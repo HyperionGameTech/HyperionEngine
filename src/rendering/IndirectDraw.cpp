@@ -167,8 +167,6 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 {
     out = { };
 
-    AssertThrow(draw_call.mesh != nullptr);
-
     const UInt32 draw_command_index = m_num_draw_commands++;
 
     for (UInt index = 0; index < draw_call.entity_id_count; index++) {
@@ -187,7 +185,8 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
         m_draw_commands.Resize(SizeType(m_num_draw_commands));
     }
 
-    draw_call.mesh->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
+    GetContainer<Mesh>().Get(draw_call.mesh_id.ToIndex())
+        .PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
     
     m_is_dirty = { true, true };
 }

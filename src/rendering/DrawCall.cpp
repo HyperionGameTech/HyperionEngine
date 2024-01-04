@@ -42,9 +42,9 @@ DrawCallCollection::~DrawCallCollection()
     Reset();
 }
 
-void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const EntityDrawProxy &entity)
+void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, EntityDrawData entity_draw_data)
 {
-    AssertThrow(entity.mesh_id.IsValid());
+    AssertThrow(entity_draw_data.mesh_id.IsValid());
 
     if constexpr (!use_indexed_array_for_object_data) {
         AssertThrow(id.Value() != 0);
@@ -58,13 +58,13 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
             DrawCall &draw_call = draw_calls[draw_call_index];
             AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
 
-            if (!PushEntityToBatch(draw_call.batch_index, entity.entity_id)) {
+            if (!PushEntityToBatch(draw_call.batch_index, entity_draw_data.entity_id)) {
                 // filled up, continue looking in array,
                 // if all are filled, we push a new one
                 continue;
             }
 
-            draw_call.entity_ids[draw_call.entity_id_count++] = entity.entity_id;
+            draw_call.entity_ids[draw_call.entity_id_count++] = entity_draw_data.entity_id;
 
             AssertThrow(draw_call.entity_id_count == g_engine->shader_globals->entity_instance_batches.Get(draw_call.batch_index).num_entities);
 
@@ -82,19 +82,16 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     draw_call.id = id;
     draw_call.draw_command_index = ~0u;
 
-    draw_call.mesh_id = entity.mesh_id;
-    draw_call.material_id = entity.material_id;
-    draw_call.skeleton_id = entity.skeleton_id;
+    draw_call.mesh_id = entity_draw_data.mesh_id;
+    draw_call.material_id = entity_draw_data.material_id;
+    draw_call.skeleton_id = entity_draw_data.skeleton_id;
 
-    draw_call.entity_ids[0] = entity.entity_id;
+    draw_call.entity_ids[0] = entity_draw_data.entity_id;
     draw_call.entity_id_count = 1;
-
-    // Lifetime is extended in RenderGroup.
-    draw_call.mesh = entity.mesh;
 
     draw_call.batch_index = batch_index == 0 ? g_engine->shader_globals->entity_instance_batches.AcquireTicket() : batch_index;
 
-    PushEntityToBatch(draw_call.batch_index, entity.entity_id);
+    PushEntityToBatch(draw_call.batch_index, entity_draw_data.entity_id);
 
     draw_calls.PushBack(draw_call);
 }

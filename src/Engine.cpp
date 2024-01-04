@@ -24,6 +24,8 @@
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
 
+#include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
+
 #include <Game.hpp>
 
 #include <util/MeshBuilder.hpp>
@@ -133,6 +135,8 @@ void Engine::RegisterComponents()
     m_components.Register<LightController>();
     m_components.Register<UIButtonController>();
     m_components.Register<UIContainerController>();
+
+    EntityManager::GetInstance().AddSystem<VisibilityStateUpdaterSystem>();
 }
 
 void Engine::FindTextureFormatDefaults()

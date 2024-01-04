@@ -7,6 +7,8 @@
 namespace hyperion::v2 {
 
 const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
+const OctantID OctantID::root = OctantID();
+const OctantID OctantID::invalid = OctantID(~0ull, 0xff);
 
 Bool Octree::IsVisible(
     const Octree *root,
@@ -43,7 +45,7 @@ Octree::Octree(Octree *parent, const BoundingBox &aabb, UInt8 index)
       m_is_divided(false),
       m_root(nullptr),
       m_visibility_state{},
-      m_index(index)
+      m_octant_id(index, parent != nullptr ? parent->m_octant_id : OctantID::root)
 {
     if (parent != nullptr) {
         SetParent(parent); // call explicitly to set root ptr
@@ -70,6 +72,8 @@ void Octree::SetParent(Octree *parent)
     } else {
         m_root = nullptr;
     }
+
+    m_octant_id = OctantID(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantID::root);
 }
 
 Bool Octree::EmptyDeep(Int depth, UInt8 octant_mask) const
@@ -83,8 +87,9 @@ Bool Octree::EmptyDeep(Int depth, UInt8 octant_mask) const
     }
 
     if (depth != 0) {
-        return m_octants.Every([depth, octant_mask](const Octant &octant) {
-            if (octant_mask & (1u << octant.octree->m_index)) {
+        return m_octants.Every([depth, octant_mask](const Octant &octant)
+        {
+            if (octant_mask & (1u << octant.octree->m_octant_id.GetIndex())) {
                 return octant.octree->EmptyDeep(depth - 1);
             }
 
@@ -113,6 +118,37 @@ void Octree::InitOctants()
             }
         }
     }
+}
+
+Octree *Octree::GetChildOctant(OctantID octant_id)
+{
+    if (octant_id == OctantID::root) {
+        AssertThrow(IsRoot());
+
+        return this;
+    }
+
+    if (octant_id.depth <= m_octant_id.depth) {
+        return nullptr;
+    }
+
+    if (!IsDivided()) {
+        return nullptr;
+    }
+
+    Octree *current = this;
+
+    for (UInt depth = m_octant_id.depth; depth < octant_id.depth; depth++) {
+        if (!current || !current->IsDivided()) {
+            return nullptr;
+        }
+
+        const UInt8 index = octant_id.GetIndex(depth);
+
+        current = current->m_octants[index].octree.Get();
+    }
+
+    return current;
 }
 
 void Octree::Divide()
@@ -349,7 +385,7 @@ Octree::Result Octree::RemoveInternal(Entity *entity)
         if (Octree *parent = m_parent) {
             const Octree *child = this;
 
-            while (parent->EmptyDeep(DEPTH_SEARCH_INF, 0xff & ~(1 << child->m_index))) { // do not search this branch of the tree again
+            while (parent->EmptyDeep(DEPTH_SEARCH_INF, 0xff & ~(1 << child->m_octant_id.GetIndex()))) { // do not search this branch of the tree again
                 last_empty_parent = parent;
 
                 if (parent->m_parent == nullptr) {

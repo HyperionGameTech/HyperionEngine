@@ -1,8 +1,8 @@
-#include "Entity.hpp"
+#include <scene/Entity.hpp>
 #include <math/BoundingSphere.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <scene/Scene.hpp>
-#include <scene/EntityComponentManager.hpp>
+#include <scene/ecs/EntityComponentManager.hpp>
 #include <Engine.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
@@ -557,7 +557,7 @@ void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_at
 void Entity::RebuildRenderableAttributes()
 {
     RenderableAttributeSet new_renderable_attributes(
-        m_mesh ? m_mesh->GetRenderAttributes() : MeshAttributes { .vertex_attributes = VertexAttributeSet(0u) },
+        m_mesh ? m_mesh->GetMeshAttributes() : MeshAttributes { .vertex_attributes = VertexAttributeSet(0u) },
         m_material ? m_material->GetRenderAttributes() : MaterialAttributes { }
     );
 

@@ -10,6 +10,11 @@
 #include <script/ScriptApi.hpp>
 #include <script/ScriptBindingDef.generated.hpp>
 
+// New ECS
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/SceneComponent.hpp>
 
 namespace hyperion::v2 {
 
@@ -686,14 +691,15 @@ void Scene::Update(GameCounter::TickUnit delta)
         }
     }
 
-    // TEMP
-    if (m_camera) {
-        const Vector3 &camera_position = m_camera->GetTranslation();
+    // // TEMP
+    // if (m_camera) {
+    //     const Vector3 &camera_position = m_camera->GetTranslation();
 
-        std::sort(m_entities.Begin(), m_entities.End(), [&camera_position](const auto &lhs, const auto &rhs) {
-            return camera_position.Distance(lhs.second->GetTranslation()) > camera_position.Distance(rhs.second->GetTranslation());
-        });
-    }
+    //     std::sort(m_entities.Begin(), m_entities.End(), [&camera_position](const auto &lhs, const auto &rhs)
+    //     {
+    //         return camera_position.Distance(lhs.second->GetTranslation()) > camera_position.Distance(rhs.second->GetTranslation());
+    //     });
+    // }
 
     // update each entity
     for (auto &it : m_entities) {
@@ -772,6 +778,7 @@ void Scene::CollectEntities(
     // );
     
     const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
+    const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
 
     for (auto &it : m_entities) {
         const Handle<Entity> &entity = it.second;
@@ -779,6 +786,28 @@ void Scene::CollectEntities(
         if (entity->IsRenderable() && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))) {
             render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
         }
+    }
+
+    for (auto it : EntityManager::GetInstance().GetEntitySet<MeshComponent, TransformComponent, VisibilityStateComponent>()) {
+        auto [entity_id, mesh_component, transform_component, visibility_state_component] = it;
+
+        // @TODO Visibility check
+        if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
+            || !visibility_state_component.visibility_state.Get(camera_id, visibility_cursor)) {
+            continue;
+        }
+
+        // TEMP
+        render_list.PushEntityToRender(
+            camera,
+            entity_id,
+            mesh_component.mesh,
+            Handle<Material>::empty,
+            Handle<Shader>::empty,
+            Handle<Skeleton>::empty,
+            transform_component.transform,
+            override_attributes_ptr
+        );
     }
 }
 

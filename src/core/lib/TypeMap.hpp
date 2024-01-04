@@ -21,12 +21,14 @@ protected:
     using Map = FlatMap<TypeID, Value>;
 
 public:
-    static constexpr Bool is_contiguous = false;
+    static constexpr Bool is_contiguous = Map::is_contiguous;
 
-    using InsertResult = typename Map::InsertResult;
+    using KeyValuePairType  = typename Map::KeyValuePairType;
 
-    using Iterator = typename Map::Iterator;
-    using ConstIterator = typename Map::ConstIterator;
+    using InsertResult      = typename Map::InsertResult;
+
+    using Iterator          = typename Map::Iterator;
+    using ConstIterator     = typename Map::ConstIterator;
 
     TypeMap() = default;
     TypeMap(const TypeMap &other) = default;
@@ -46,7 +48,17 @@ public:
 
     ~TypeMap() = default;
 
-    SizeType Size() const { return m_map.Size(); }
+    [[nodiscard]]
+    SizeType Size() const
+        { return m_map.Size(); }
+
+    [[nodiscard]]
+    KeyValuePairType *Data()
+        { return m_map.Data(); }
+
+    [[nodiscard]]
+    KeyValuePairType * const Data() const
+        { return m_map.Data(); }
     
     template <class T>
     InsertResult Set(const Value &value)
@@ -65,15 +77,12 @@ public:
     }
 
     InsertResult Set(TypeID type_id, const Value &value)
-    {
-        return m_map.Set(type_id, value);
-    }
+        { return m_map.Set(type_id, value); }
 
     InsertResult Set(TypeID type_id, Value &&value)
-    {
-        return m_map.Set(type_id, std::move(value));
-    }
+        { return m_map.Set(type_id, std::move(value)); }
 
+    [[nodiscard]]
     Value &Get(TypeID type_id)
     {
         Iterator it = m_map.Find(type_id);
@@ -83,6 +92,7 @@ public:
     }
 
     template <class T>
+    [[nodiscard]]
     Iterator Find()
     {
         const auto id = TypeID::ForType<T>();
@@ -91,6 +101,7 @@ public:
     }
 
     template <class T>
+    [[nodiscard]]
     ConstIterator Find() const
     {
         const auto id = TypeID::ForType<T>();
@@ -98,33 +109,26 @@ public:
         return m_map.Find(id);
     }
 
+    [[nodiscard]]
     Iterator Find(TypeID type_id)
-    {
-        return m_map.Find(type_id);
-    }
+        { return m_map.Find(type_id); }
 
+    [[nodiscard]]
     ConstIterator Find(TypeID type_id) const
-    {
-        return m_map.Find(type_id);
-    }
+        { return m_map.Find(type_id); }
 
     Iterator Erase(ConstIterator it)
-    {
-        return m_map.Erase(it);
-    }
+        { return m_map.Erase(it); }
 
     Bool Erase(TypeID type_id)
-    {
-        return m_map.Erase(type_id);
-    }
+        { return m_map.Erase(type_id); }
 
     template <class T>
     Bool Erase()
-    {
-        return m_map.Erase(TypeID::ForType<T>());
-    }
+        { return m_map.Erase(TypeID::ForType<T>()); }
 
     template <class T>
+    [[nodiscard]]
     Value &At()
     {
         const auto it = Find<T>();
@@ -135,6 +139,7 @@ public:
     }
 
     template <class T>
+    [[nodiscard]]
     const Value &At() const
     {
         const auto it = Find<T>();
@@ -144,12 +149,40 @@ public:
         return it->second;
     }
 
-    Bool Contains(TypeID type_id) const
+    [[nodiscard]]
+    Value &At(TypeID type_id)
     {
-        return m_map.Contains(type_id);
+        const auto it = Find(type_id);
+
+        AssertThrow(it != m_map.End());
+
+        return it->second;
     }
 
+    [[nodiscard]]
+    const Value &At(TypeID type_id) const
+    {
+        const auto it = Find(type_id);
+
+        AssertThrow(it != m_map.End());
+
+        return it->second;
+    }
+
+    [[nodiscard]]
+    Value &AtIndex(SizeType index)
+        { return m_map.AtIndex(index).second; }
+
+    [[nodiscard]]
+    const Value &AtIndex(SizeType index) const
+        { return m_map.AtIndex(index).second; }
+
+    [[nodiscard]]
+    Bool Contains(TypeID type_id) const
+        { return m_map.Contains(type_id); }
+
     template <class T>
+    [[nodiscard]]
     Bool Contains() const
     {
         const auto id = TypeID::ForType<T>();
@@ -185,13 +218,13 @@ public:
     }
 
     void Clear()
-    {
-        m_map.Clear();
-    }
+        { m_map.Clear(); }
 
+    [[nodiscard]]
     Bool Any() const
         { return m_map.Any(); }
 
+    [[nodiscard]]
     Bool Empty() const
         { return m_map.Empty(); }
 

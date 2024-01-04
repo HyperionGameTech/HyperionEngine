@@ -367,7 +367,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         mesh->CalculateTangents();
 
-        auto mesh_attributes = mesh->GetRenderAttributes();
+        auto mesh_attributes = mesh->GetMeshAttributes();
         auto material_attributes = material->GetRenderAttributes();
         
         auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh_attributes.vertex_attributes));

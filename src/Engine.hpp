@@ -21,7 +21,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
-#include <scene/EntityComponentManager.hpp>
+#include <scene/ecs/EntityComponentManager.hpp>
 
 #include <GameThread.hpp>
 #include <Threads.hpp>

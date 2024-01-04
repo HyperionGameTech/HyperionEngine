@@ -4,6 +4,7 @@
 #include <core/Containers.hpp>
 #include "Entity.hpp"
 #include "VisibilityState.hpp"
+#include <util/ByteUtil.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>
@@ -19,6 +20,94 @@ namespace hyperion::v2 {
 
 class Entity;
 class Camera;
+
+/*! \brief A 64-bit integer that represents an octant in an octree
+ *  \details The bits are ordered as follows:
+ *  - 0-2: index of topmost parent octant
+ *  - 3-5: index of second parent octant
+ *  - 6-8: index of third parent octant
+ * ... and so on until the index of the octant itself.
+ * 
+ * The maximum depth of an octree using this ID scheme is 64 bits / 3 bits for index = 21 octants.
+*/
+struct OctantID
+{
+    static constexpr SizeType max_depth = 64 / 3;
+
+    static const OctantID root;
+    static const OctantID invalid; // special value for invalid octant
+
+    UInt64  index_bits { 0 };
+    UInt8   depth { 0 };
+
+    OctantID() = default;
+
+    explicit OctantID(UInt64 index_bits, UInt8 depth)
+        : index_bits(index_bits), depth(depth) {}
+
+    explicit OctantID(UInt8 child_index, OctantID parent_id)
+    {
+        AssertThrow(child_index < 8);
+        AssertThrow(parent_id.GetDepth() < max_depth);
+
+        index_bits = parent_id.index_bits | (child_index << (parent_id.GetDepth() * 3));
+        depth = parent_id.GetDepth() + 1;
+    }
+
+    OctantID(const OctantID &other) = default;
+    OctantID &operator=(const OctantID &other) = default;
+    OctantID(OctantID &&other) noexcept = default;
+    OctantID &operator=(OctantID &&other) noexcept = default;
+    ~OctantID() = default;
+
+    HYP_FORCE_INLINE
+    Bool operator==(const OctantID &other) const
+        { return index_bits == other.index_bits && depth == other.depth; }
+
+    HYP_FORCE_INLINE
+    Bool operator!=(const OctantID &other) const
+        { return !(*this == other); }
+
+    HYP_FORCE_INLINE
+    UInt8 GetIndex(UInt depth) const
+        { return (index_bits >> (depth * 3)) & 0x7; }
+
+    HYP_FORCE_INLINE
+    UInt8 GetIndex() const
+        { return GetIndex(depth); }
+
+    HYP_FORCE_INLINE
+    UInt32 GetDepth() const
+        { return depth; }
+
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(index_bits);
+        hc.Add(depth);
+
+        return hc;
+    }
+
+    HYP_FORCE_INLINE
+    Bool IsSiblingOctant(OctantID other) const
+    {
+        return depth == other.depth && (index_bits & ~(~0u << (depth * 3))) == (other.index_bits & ~(~0u << (depth * 3)));
+    }
+
+    HYP_FORCE_INLINE
+    Bool IsChildOctant(OctantID other) const
+    {
+        return depth > other.depth && (index_bits & ~(~0u << (other.depth * 3))) == other.index_bits;
+    }
+
+    HYP_FORCE_INLINE
+    Bool IsParentOctant(OctantID other) const
+    {
+        return depth < other.depth && index_bits == (other.index_bits & ~(~0u << (depth * 3)));
+    }
+};
 
 class Octree
 {
@@ -128,8 +217,17 @@ public:
     const Array<Node> &GetNodes() const
         { return m_nodes; }
 
+    OctantID GetOctantID() const
+        { return m_octant_id; }
+
     const FixedArray<Octant, 8> &GetOctants() const
         { return m_octants; }
+
+    /*! \brief Get the child (nested) octant with the specified index
+     *  \param octant_id The OctantID to use to find the octant (see OctantID struct)
+     *  \return The octant with the specified index, or nullptr if it doesn't exist
+    */
+    Octree *GetChildOctant(OctantID octant_id);
 
     Bool IsDivided() const
         { return m_is_divided; }
@@ -184,7 +282,8 @@ private:
 
     auto FindNode(Entity *entity)
     {
-        return m_nodes.FindIf([entity](const Node &item) {
+        return m_nodes.FindIf([entity](const Node &item)
+        {
             return item.entity == entity;
         });
     }
@@ -211,15 +310,15 @@ private:
     /* Called from entity - remove the pointer */
     void OnEntityRemoved(Entity *entity);
     
-    Array<Node>            m_nodes;
-    HashCode               m_nodes_hash;
-    Octree                *m_parent;
-    BoundingBox            m_aabb;
-    FixedArray<Octant, 8>  m_octants;
-    Bool                   m_is_divided;
-    Root                  *m_root;
-    VisibilityState        m_visibility_state;
-    UInt8                  m_index;
+    Array<Node>             m_nodes;
+    HashCode                m_nodes_hash;
+    Octree                  *m_parent;
+    BoundingBox             m_aabb;
+    FixedArray<Octant, 8>   m_octants;
+    Bool                    m_is_divided;
+    Root                    *m_root;
+    VisibilityState         m_visibility_state;
+    OctantID                m_octant_id;
 };
 
 } // namespace hyperion::v2

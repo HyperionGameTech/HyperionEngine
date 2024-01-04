@@ -82,7 +82,7 @@ public:
     const VertexAttributeSet &GetVertexAttributes() const { return m_mesh_attributes.vertex_attributes; }
     void SetVertexAttributes(const VertexAttributeSet &attributes) { m_mesh_attributes.vertex_attributes = attributes; }
 
-    const MeshAttributes &GetRenderAttributes() const { return m_mesh_attributes; }
+    const MeshAttributes &GetMeshAttributes() const { return m_mesh_attributes; }
 
     Topology GetTopology() const { return m_mesh_attributes.topology; }
 

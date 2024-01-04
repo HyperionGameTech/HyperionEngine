@@ -221,15 +221,15 @@ void RenderGroup::CollectDrawCalls()
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    for (EntityDrawProxy &draw_proxy : m_draw_proxies) {
-        AssertThrow(draw_proxy.mesh_id.IsValid());
+    for (EntityDrawData &entity_draw_data : m_entity_draw_datas) {
+        AssertThrow(entity_draw_data.mesh_id.IsValid());
 
         DrawCallID draw_call_id;
 
         if constexpr (DrawCall::unique_per_material) {
-            draw_call_id = DrawCallID(draw_proxy.mesh_id, draw_proxy.material_id);
+            draw_call_id = DrawCallID(entity_draw_data.mesh_id, entity_draw_data.material_id);
         } else {
-            draw_call_id = DrawCallID(draw_proxy.mesh_id);
+            draw_call_id = DrawCallID(entity_draw_data.mesh_id);
         }
 
         BufferTicket<EntityInstanceBatch> batch_index = 0;
@@ -243,7 +243,7 @@ void RenderGroup::CollectDrawCalls()
             draw_call->batch_index = 0;
         }
 
-        m_draw_state.PushDrawCall(batch_index, draw_call_id, draw_proxy);
+        m_draw_state.PushDrawCall(batch_index, draw_call_id, entity_draw_data);
     }
 
     previous_draw_state.Reset();
@@ -255,7 +255,7 @@ void RenderGroup::CollectDrawCalls()
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
 
-    m_draw_proxies.Clear();
+    m_entity_draw_datas.Clear();
 }
 
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
@@ -454,6 +454,8 @@ RenderAll(
                 return;
             }
 
+            auto &mesh_container = GetContainer<Mesh>();
+
             command_buffers[frame_index][index/*(command_buffer_index + batch_index) % static_cast<UInt>(command_buffers.Size())*/]->Record(
                 g_engine->GetGPUDevice(),
                 pipeline->GetConstructionInfo().render_pass,
@@ -467,8 +469,6 @@ RenderAll(
                     );
 
                     for (const DrawCall &draw_call : draw_calls) {
-                        AssertThrow(draw_call.mesh != nullptr);
-
                         const EntityInstanceBatch &entity_batch = g_engine->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
 
                         BindPerObjectDescriptorSets(
@@ -484,14 +484,15 @@ RenderAll(
 #ifdef HYP_DEBUG_MODE
                             AssertThrow(draw_call.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
 #endif
-                            
-                            draw_call.mesh->RenderIndirect(
-                                secondary,
-                                indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
-                                draw_call.draw_command_index * sizeof(IndirectDrawCommand)
-                            );
+                            mesh_container.Get(draw_call.mesh_id.ToIndex())
+                                .RenderIndirect(
+                                    secondary,
+                                    indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
+                                    draw_call.draw_command_index * sizeof(IndirectDrawCommand)
+                                );
                         } else {
-                            draw_call.mesh->Render(secondary, entity_batch.num_entities);
+                            mesh_container.Get(draw_call.mesh_id.ToIndex())
+                                .Render(secondary, entity_batch.num_entities);
                         }
                     }
 
@@ -561,18 +562,12 @@ void RenderGroup::Render(Frame *frame)
     PerformRendering(frame);
 }
 
-void RenderGroup::SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies)
+
+void RenderGroup::SetEntityDrawDatas(Array<EntityDrawData> entity_draw_datas)
 {
     Threads::AssertOnThread(THREAD_RENDER | THREAD_TASK);
 
-    m_draw_proxies = draw_proxies;
-}
-
-void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
-{
-    Threads::AssertOnThread(THREAD_RENDER | THREAD_TASK);
-
-    m_draw_proxies = std::move(draw_proxies);
+    m_entity_draw_datas = std::move(entity_draw_datas);
 }
 
 // Proxied methods

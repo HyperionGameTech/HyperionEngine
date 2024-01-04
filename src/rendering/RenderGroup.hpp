@@ -7,6 +7,7 @@
 #include <rendering/RenderBucket.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/EntityDrawData.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
@@ -120,8 +121,7 @@ public:
     
     void Init();
 
-    void SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies);
-    void SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies);
+    void SetEntityDrawDatas(Array<EntityDrawData> entity_draw_datas);
 
     // render non-indirect (collects draw calls, then renders)
     void Render(Frame *frame);
@@ -174,7 +174,7 @@ private:
 
     FlatMap<UInt, BufferTicket<EntityInstanceBatch>> m_entity_batches;
 
-    Array<EntityDrawProxy> m_draw_proxies;
+    Array<EntityDrawData> m_entity_draw_datas;
 
     DrawCallCollection m_draw_state;
 };

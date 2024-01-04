@@ -138,14 +138,14 @@ public:
     }
 
     template <class T>
-    [[nodiscard]] bool Contains(const T &value) const
+    [[nodiscard]] Bool Contains(const T &value) const
     {
         return static_cast<const Container *>(this)->Find(value)
             != static_cast<const Container *>(this)->End();
     }
 
     template <class Lambda>
-    [[nodiscard]] bool Any(Lambda &&lambda) const
+    [[nodiscard]] Bool Any(Lambda &&lambda) const
     {
         const auto _begin = static_cast<const Container *>(this)->Begin();
         const auto _end = static_cast<const Container *>(this)->End();
@@ -160,7 +160,7 @@ public:
     }
 
     template <class Lambda>
-    [[nodiscard]] bool Every(Lambda &&lambda) const
+    [[nodiscard]] Bool Every(Lambda &&lambda) const
     {
         const auto _begin = static_cast<const Container *>(this)->Begin();
         const auto _end = static_cast<const Container *>(this)->End();
@@ -255,6 +255,8 @@ public:
     template <class TaskSystem, class Lambda>
     void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
     {
+        static_assert(Container::is_contiguous, "Container must be contiguous to perform parallel for-each");
+
         task_system.ParallelForEach(
             *static_cast<Container *>(this),
             std::forward<Lambda>(lambda)

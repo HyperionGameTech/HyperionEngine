@@ -4,7 +4,9 @@
 #include <core/lib/ArrayMap.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/ID.hpp>
+#include <math/Transform.hpp>
 #include <rendering/DrawProxy.hpp>
+#include <rendering/EntityDrawData.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
@@ -62,11 +64,11 @@ class EntityDrawCollection
 public:
     struct EntityList
     {
-        Array<EntityDrawProxy>  drawables;
+        Array<EntityDrawData>   entity_draw_datas;
         Handle<RenderGroup>     render_group;
     };
 
-    void Insert(const RenderableAttributeSet &attributes, const EntityDrawProxy &entity);
+    void Insert(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data);
     void ClearEntities();
 
     void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list);
@@ -145,6 +147,17 @@ public:
         { return m_draw_collection; }
 
     void ClearEntities();
+
+    void PushEntityToRender(
+        const Handle<Camera> &camera,
+        ID<Entity> entity_id,
+        const Handle<Mesh> &mesh,
+        const Handle<Material> &material,
+        const Handle<Shader> &shader,
+        const Handle<Skeleton> &skeleton,
+        const Transform &transform,
+        const RenderableAttributeSet *override_attributes
+    );
 
     void PushEntityToRender(
         const Handle<Camera> &camera,

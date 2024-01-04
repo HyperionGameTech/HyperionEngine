@@ -3,19 +3,16 @@
 
 #include <core/Base.hpp>
 #include <core/Name.hpp>
+#include <core/Containers.hpp>
 #include <core/lib/Mutex.hpp>
 #include <core/lib/AtomicVar.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <math/Transform.hpp>
 #include <scene/Entity.hpp>
 #include <scene/Controller.hpp>
 #include <Threads.hpp>
-#include "../GameCounter.hpp"
-
-#include <core/Containers.hpp>
-
+#include <GameCounter.hpp>
 #include <Types.hpp>
-
-#include <mutex>
 
 namespace hyperion::v2 {
 

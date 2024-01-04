@@ -92,6 +92,8 @@ public:
     {
         return ((value + alignment - 1) / alignment) * alignment;
     }
+
+    static UInt HighestSetBitIndex(UInt64 bits);
 };
 
 } // namespace hyperion

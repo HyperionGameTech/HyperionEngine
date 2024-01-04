@@ -72,9 +72,9 @@ const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityLi
     return m_lists[UInt(thread_type)];
 }
 
-void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, const EntityDrawProxy &entity)
+void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data)
 {
-    GetEntityList(THREAD_TYPE_GAME)[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes].drawables.PushBack(entity);
+    GetEntityList(THREAD_TYPE_GAME)[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes].entity_draw_datas.PushBack(std::move(entity_draw_data));
 }
 
 void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
@@ -100,10 +100,10 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
     Bitset new_bitsets[3] = { }; // mesh, material, skeleton
 
     // prevent these objects from going out of scope while rendering is happening
-    for (const EntityDrawProxy &draw_proxy : entity_list.drawables) {
-        new_bitsets[0].Set(draw_proxy.mesh_id.Value(), true);
-        new_bitsets[1].Set(draw_proxy.material_id.Value(), true);
-        new_bitsets[2].Set(draw_proxy.skeleton_id.Value(), true);
+    for (const EntityDrawData &entity_draw_data : entity_list.entity_draw_datas) {
+        new_bitsets[0].Set(entity_draw_data.mesh_id.Value(), true);
+        new_bitsets[1].Set(entity_draw_data.material_id.Value(), true);
+        new_bitsets[2].Set(entity_draw_data.skeleton_id.Value(), true);
     }
 
     // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
@@ -169,7 +169,7 @@ void EntityDrawCollection::ClearEntities()
     // as well as render groups.
     for (auto &collection_per_pass_type : GetEntityList()) {
         for (auto &it : collection_per_pass_type) {
-            it.second.drawables.Clear();
+            it.second.entity_draw_datas.Clear();
         }
     }
 }
@@ -286,6 +286,70 @@ void RenderList::UpdateRenderGroups()
 
 void RenderList::PushEntityToRender(
     const Handle<Camera> &camera,
+    ID<Entity> entity_id,
+    const Handle<Mesh> &mesh,
+    const Handle<Material> &material,
+    const Handle<Shader> &shader,
+    const Handle<Skeleton> &skeleton,
+    const Transform &transform,
+    const RenderableAttributeSet *override_attributes
+)
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(mesh.IsValid());
+    AssertThrow(entity_id.IsValid());
+
+    const Handle<Framebuffer> &framebuffer = camera
+        ? camera->GetFramebuffer()
+        : Handle<Framebuffer>::empty;
+
+    RenderableAttributeSet attributes {
+        mesh.IsValid() ? mesh->GetMeshAttributes() : MeshAttributes { },
+        material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { },
+        shader.IsValid() ? shader->GetCompiledShader().GetDefinition() : ShaderDefinition { }
+    };
+
+    if (framebuffer) {
+        attributes.SetFramebufferID(framebuffer->GetID());
+    }
+
+    if (override_attributes) {
+        if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
+            attributes.SetShaderDefinition(override_shader_definition);
+        }
+        
+        // Check for varying vertex attributes on the override shader compared to the entity's vertex
+        // attributes. If there is not a match, we should switch to a version of the override shader that
+        // has matching vertex attribs.
+        const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
+
+        if (mesh_vertex_attributes != attributes.GetShaderDefinition().GetProperties().GetRequiredVertexAttributes()) {
+            ShaderDefinition new_shader_definition = attributes.GetShaderDefinition();
+            new_shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
+
+            attributes.SetShaderDefinition(new_shader_definition);
+        }
+
+        // do not override bucket!
+        MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
+        new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
+
+        attributes.SetMaterialAttributes(new_material_attributes);
+        attributes.SetStencilState(override_attributes->GetStencilState());
+    }
+
+    m_draw_collection->Insert(attributes, EntityDrawData {
+        entity_id,
+        mesh.GetID(),
+        material.GetID(),
+        skeleton.GetID(),
+        transform
+    });
+}
+
+void RenderList::PushEntityToRender(
+    const Handle<Camera> &camera,
     const Handle<Entity> &entity,
     const RenderableAttributeSet *override_attributes
 )
@@ -338,7 +402,13 @@ void RenderList::PushEntityToRender(
         attributes.SetStencilState(override_attributes->GetStencilState());
     }
 
-    m_draw_collection->Insert(attributes, entity->GetDrawProxy());
+    m_draw_collection->Insert(attributes, EntityDrawData {
+        entity->GetID(),
+        entity->GetDrawProxy().mesh_id,
+        entity->GetDrawProxy().material_id,
+        entity->GetDrawProxy().skeleton_id,
+        entity->GetTransform()
+    });
 }
 
 void RenderList::CollectDrawCalls(
@@ -368,13 +438,14 @@ void RenderList::CollectDrawCalls(
     }
 
     if constexpr (do_parallel_collection) {
-        TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt) {
+        TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt)
+        {
             EntityDrawCollection::EntityList &entity_list = it->second;
             Handle<RenderGroup> &render_group = entity_list.render_group;
 
             AssertThrow(render_group.IsValid());
 
-            render_group->SetDrawProxies(entity_list.drawables);
+            render_group->SetEntityDrawDatas(entity_list.entity_draw_datas);
             render_group->CollectDrawCalls();
         });
     } else {
@@ -384,7 +455,7 @@ void RenderList::CollectDrawCalls(
 
             AssertThrow(render_group.IsValid());
 
-            render_group->SetDrawProxies(entity_list.drawables);
+            render_group->SetEntityDrawDatas(entity_list.entity_draw_datas);
             render_group->CollectDrawCalls();
         }
     }

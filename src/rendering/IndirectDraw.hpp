@@ -63,17 +63,8 @@ public:
     const GPUBufferRef &GetIndirectBuffer(UInt frame_index) const
         { return m_indirect_buffers[frame_index]; }
 
-    Array<ObjectInstance> &GetInstances()
-        { return m_object_instances; }
-
     const Array<ObjectInstance> &GetInstances() const
         { return m_object_instances; }
-
-    Array<IndirectDrawCommand> &GetDrawCommands()
-        { return m_draw_commands; }
-
-    const Array<IndirectDrawCommand> &GetDrawCommands() const
-        { return m_draw_commands; }
 
     Result Create();
     void Destroy();
@@ -91,14 +82,14 @@ private:
     // returns true if resize happened.
     bool ResizeIfNeeded(Frame *frame);
 
-    Array<ObjectInstance> m_object_instances;
-    Array<IndirectDrawCommand> m_draw_commands;
+    Array<ObjectInstance>                           m_object_instances;
+    Array<IndirectDrawCommand>                      m_draw_commands;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_indirect_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_instance_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_staging_buffers;
-    FixedArray<bool, max_frames_in_flight> m_is_dirty;
-    UInt32 m_num_draw_commands;
+    FixedArray<GPUBufferRef, max_frames_in_flight>  m_indirect_buffers;
+    FixedArray<GPUBufferRef, max_frames_in_flight>  m_instance_buffers;
+    FixedArray<GPUBufferRef, max_frames_in_flight>  m_staging_buffers;
+    FixedArray<bool, max_frames_in_flight>          m_is_dirty;
+    UInt32                                          m_num_draw_commands;
 };
 
 struct alignas(16) IndirectParams

@@ -289,6 +289,8 @@ public:
     template <class Container, class Lambda>
     void ParallelForEach(TaskThreadPoolName pool, UInt num_batches, Container &&items, Lambda &&lambda)
     {
+        // static_assert(Container::is_contiguous, "Container must be contiguous to perform ParallelForEach");
+
         const UInt num_items = UInt(items.Size());
 
         if (num_items == 0) {
@@ -302,13 +304,16 @@ public:
 
         const UInt items_per_batch = (num_items + num_batches - 1) / num_batches;
 
+        auto *data_ptr = items.Data();
+
         for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
-            batch.AddTask([&items, batch_index, items_per_batch, num_items, lambda](...) {
+            batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, lambda](...)
+            {
                 const UInt offset_index = batch_index * items_per_batch;
                 const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
                 for (UInt i = offset_index; i < max_index; i++) {
-                    lambda(items[i], i, batch_index);
+                    lambda(*(data_ptr + i), i, batch_index);
                 }
             });
         }

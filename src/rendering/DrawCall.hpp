@@ -7,6 +7,7 @@
 #include <core/lib/AtomicSemaphore.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
+#include <rendering/EntityDrawData.hpp>
 #include <system/StackDump.hpp>
 #include <system/Debug.hpp>
 #include <util/Defines.hpp>
@@ -252,8 +253,6 @@ struct DrawCall
     UInt                                entity_id_count;
     ID<Entity>                          entity_ids[max_entities_per_instance_batch];
 
-    Mesh                                *mesh;
-
     UInt                                packed_data[4];
 };
 
@@ -271,7 +270,7 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const EntityDrawProxy &entity);
+    void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, EntityDrawData entity_draw_data);
     DrawCall *TakeDrawCall(DrawCallID id);
     void Reset();
 };

@@ -1,4 +1,4 @@
-#include <scene/EntityComponentManager.hpp>
+#include <scene/ecs/EntityComponentManager.hpp>
 
 namespace hyperion::v2 {
 

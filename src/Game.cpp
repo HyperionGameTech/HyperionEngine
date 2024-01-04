@@ -47,6 +47,8 @@ void Game::Init()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
+    EntityManager::GetInstance().Update(delta);
+
     g_engine->GetComponents().Update(delta);
     g_engine->GetWorld()->Update(delta);
 
