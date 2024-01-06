@@ -3,9 +3,9 @@
 
 #include <core/Name.hpp>
 #include <core/lib/String.hpp>
+#include <core/Util.hpp>
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <Types.hpp>
-#include <Util.hpp>
 
 namespace hyperion::v2::fbom {
 

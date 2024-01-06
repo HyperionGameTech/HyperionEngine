@@ -1,8 +1,7 @@
 #ifndef VECTOR2_H
 #define VECTOR2_H
 
-#include "../HashCode.hpp"
-#include "../Util.hpp"
+#include <HashCode.hpp>
 
 #include <util/Defines.hpp>
 #include <Types.hpp>

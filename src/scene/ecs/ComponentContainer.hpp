@@ -10,18 +10,28 @@ namespace hyperion::v2 {
 
 class Entity;
 
+using ComponentID = UInt;
+
 class ComponentContainerBase
 {
 public:
     virtual ~ComponentContainerBase() = default;
 
-    /*! \brief Remove a component from an entity.
+    /*! \brief Checks if the component container has a component with the given ID.
      *
-     *  \param entity The entity to remove the component from.
+     *  \param id The ID of the component to check.
+     *
+     *  \return True if the component container has a component with the given ID, false otherwise.
+     */
+    virtual Bool HasComponent(ComponentID id) const = 0;
+
+    /*! \brief Removes the component with the given ID from the component container.
+     *
+     *  \param id The ID of the component to remove.
      *
      *  \return True if the component was removed, false otherwise.
      */
-    virtual Bool RemoveComponent(ID<Entity> entity) = 0;
+    virtual Bool RemoveComponent(ComponentID id) = 0;
 };
 
 template <class Component>
@@ -35,37 +45,38 @@ public:
     ComponentContainer &operator=(ComponentContainer &&) noexcept   = delete;
     virtual ~ComponentContainer() override                          = default;
 
-    HYP_FORCE_INLINE
-    Bool HasComponent(ID<Entity> entity) const
-        { return m_components.Contains(entity); }
+    virtual Bool HasComponent(ComponentID id) const override
+        { return m_components.Contains(id); }
 
     HYP_FORCE_INLINE
-    Component &GetComponent(ID<Entity> entity)
+    Component &GetComponent(ComponentID id)
     {
-        AssertThrowMsg(HasComponent(entity), "Entity does not have component");
+        AssertThrowMsg(HasComponent(id), "Component does not exist");
         
-        return m_components.At(entity);
+        return m_components.At(id);
     }
 
     HYP_FORCE_INLINE
-    const Component &GetComponent(ID<Entity> entity) const
+    const Component &GetComponent(ComponentID id) const
     {
-        AssertThrowMsg(HasComponent(entity), "Entity does not have component");
+        AssertThrowMsg(HasComponent(id), "Component does not exist");
         
-        return m_components.At(entity);
+        return m_components.At(id);
     }
 
     HYP_FORCE_INLINE
-    void AddComponent(ID<Entity> entity, Component &&component)
+    ComponentID AddComponent(Component &&component)
     {
-        AssertThrowMsg(!HasComponent(entity), "Entity already has component");
+        ComponentID id = m_component_id_counter++;
 
-        m_components.Set(entity, std::move(component));
+        m_components.Set(id, std::move(component));
+
+        return id;
     }
 
-    virtual Bool RemoveComponent(ID<Entity> entity) override
+    virtual Bool RemoveComponent(ComponentID id) override
     {
-        auto it = m_components.Find(entity);
+        auto it = m_components.Find(id);
 
         if (it != m_components.End()) {
             m_components.Erase(it);
@@ -81,7 +92,8 @@ public:
         { return m_components.Size(); }
 
 private:
-    FlatMap<ID<Entity>, Component> m_components;
+    ComponentID                     m_component_id_counter = 0;
+    FlatMap<ComponentID, Component> m_components;
 };
 
 } // namespace hyperion::v2

@@ -1,7 +1,10 @@
 #ifndef HYPERION_V2_CONFIG_HPP
 #define HYPERION_V2_CONFIG_HPP
 
-#include <core/Containers.hpp>
+#include <core/lib/Variant.hpp>
+#include <core/lib/FlatMap.hpp>
+#include <core/lib/FixedArray.hpp>
+#include <core/lib/String.hpp>
 #include <util/Defines.hpp>
 #include <util/definitions/DefinitionsFile.hpp>
 #include <Types.hpp>
@@ -54,7 +57,7 @@ class Option : public Variant<Bool, Float, Int>
 {
     using Base = Variant<Bool, Float, Int>;
 
-    bool m_save = true;
+    Bool m_save = true;
 
 public:
     Option()
@@ -62,19 +65,19 @@ public:
     {
     }
 
-    Option(Int int_value, bool save = true)
+    Option(Int int_value, Bool save = true)
         : Base(int_value),
           m_save(save)
     {
     }
 
-    Option(Float float_value, bool save = true)
+    Option(Float float_value, Bool save = true)
         : Base(float_value),
           m_save(save)
     {
     }
 
-    Option(bool bool_value, bool save = true)
+    Option(Bool bool_value, Bool save = true)
         : Base(bool_value),
           m_save(save)
     {
@@ -135,13 +138,13 @@ public:
 
     ~Option() = default;
 
-    operator bool() const
+    operator Bool() const
         { return GetBool(); }
 
-    bool operator==(const Option &other) const
+    Bool operator==(const Option &other) const
         { return Base::operator==(other); }
 
-    bool operator!=(const Option &other) const
+    Bool operator!=(const Option &other) const
         { return Base::operator!=(other); }
 
     Int GetInt() const
@@ -195,10 +198,10 @@ public:
         return false;
     }
 
-    bool GetIsSaved() const
+    Bool GetIsSaved() const
         { return m_save; }
 
-    void SetIsSaved(bool save)
+    void SetIsSaved(Bool save)
         { m_save = save; }
 };
 
@@ -246,14 +249,14 @@ public:
     //     return const_cast<Configuration *>(this)->Get(option);
     // }
 
-    bool LoadFromDefinitionsFile();
-    bool SaveToDefinitionsFile();
+    Bool LoadFromDefinitionsFile();
+    Bool SaveToDefinitionsFile();
 
     void SetToDefaultConfiguration();
 
     static OptionName StringToOptionName(const String &str);
     static String OptionNameToString(OptionName option);
-    static bool IsRTOption(OptionName option);
+    static Bool IsRTOption(OptionName option);
 
 private:
     FixedArray<Option, CONFIG_MAX> m_variables;

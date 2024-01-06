@@ -15,8 +15,10 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
 
     for (auto [entity_id, visibility_state_component] : entity_manager.GetEntitySet<VisibilityStateComponent>()) {
         Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id);
+        DebugLog(LogType::Debug, "Got octant %u\t%u\n", visibility_state_component.octant_id, octant ? octant->GetOctantID().GetIndex() : ~0u);
 
         if (octant) {
+
             const VisibilityState &octant_visibility_state = octant->GetVisibilityState();
 
             visibility_state_component.visibility_state.snapshots[visibility_cursor] = octant_visibility_state.snapshots[visibility_cursor];

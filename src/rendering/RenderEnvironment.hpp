@@ -102,7 +102,7 @@ public:
             AssertThrowMsg(
                 name_it == it->second.End(),
                 "Render component with name %s already exists! Name must be unique.\n",
-                name.LookupString().Data()
+                name.LookupString()
             );
 
             it->second.Insert(name, std::move(component));

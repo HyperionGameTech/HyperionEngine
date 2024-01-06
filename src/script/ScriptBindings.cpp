@@ -1261,7 +1261,7 @@ static HYP_SCRIPT_FUNCTION(EntityGetName)
     vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
     AssertThrow(ptr != nullptr);
 
-    ptr->Assign(VMString(entity_handle->GetName().LookupString().Data()));
+    ptr->Assign(VMString(entity_handle->GetName().LookupString()));
     ptr->Mark();
 
     HYP_SCRIPT_RETURN_PTR(ptr);

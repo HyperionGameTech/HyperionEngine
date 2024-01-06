@@ -25,14 +25,14 @@ private:
 public:
     static constexpr Bool is_contiguous = true;
 
-    using Base = ContainerBase<FlatMap<Key, Value>, Key>;
+    using Base          = ContainerBase<FlatMap<Key, Value>, Key>;
 
-    using KeyType = Key;
-    using ValueType = Value;
+    using KeyType       = Key;
+    using ValueType     = Value;
 
-    using Iterator = typename decltype(m_vector)::Iterator;
+    using Iterator      = typename decltype(m_vector)::Iterator;
     using ConstIterator = typename decltype(m_vector)::ConstIterator;
-    using InsertResult = std::pair<Iterator, bool>; // iterator, was inserted
+    using InsertResult  = std::pair<Iterator, bool>; // iterator, was inserted
 
     FlatMap();
     FlatMap(std::initializer_list<KeyValuePairType> initializer_list)

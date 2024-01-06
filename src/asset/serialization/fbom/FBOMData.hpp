@@ -18,6 +18,7 @@
 #include <Types.hpp>
 
 #include <cstring>
+#include <sstream>
 
 #define FBOM_ASSERT(cond, message) \
     if (!(cond)) { return FBOMResult(FBOMResult::FBOM_ERR, (message)); }

@@ -211,7 +211,7 @@ struct DescriptorSetDeclaration
 
     void AddDescriptor(DescriptorSlot slot, Name name, Bool is_dynamic = false)
     {
-        DebugLog(LogType::Debug, "Add descriptor to slot %u with name %s (%u), dynamic: %d\n", slot, name.LookupString().Data(), name.GetHashCode().Value(), is_dynamic);
+        DebugLog(LogType::Debug, "Add descriptor to slot %u with name %s (%u), dynamic: %d\n", slot, name.LookupString(), name.GetHashCode().Value(), is_dynamic);
 
         AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 

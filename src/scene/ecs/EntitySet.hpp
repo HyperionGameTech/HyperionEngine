@@ -4,8 +4,10 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/lib/FixedArray.hpp>
 #include <core/IDCreator.hpp>
 #include <core/Handle.hpp>
+#include <scene/Entity.hpp>
 #include <scene/ecs/EntityContainer.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <scene/ecs/EntitySetBase.hpp>
@@ -14,8 +16,6 @@
 #include <tuple>
 
 namespace hyperion::v2 {
-
-class Entity;
 
 template <class ... Components>
 class EntitySet;
@@ -52,25 +52,31 @@ struct EntitySetIterator
 
     std::tuple<ID<Entity>, Components &...> operator*()
     {
-        return std::tuple<ID<Entity>, Components &...> {
-            set.m_entities.AtIndex(index).first,
-            std::get<ComponentContainer<Components> &>(set.m_components).GetComponent(set.m_entities.AtIndex(index).first)...
-        };
+        const typename EntitySet<Components...>::Element &element = set.m_elements[index];
+
+        return std::tuple_cat(
+            std::make_tuple(element.first),
+            GetComponents(element.second, std::make_index_sequence<sizeof...(Components)>())
+        );
     }
 
     std::tuple<ID<Entity>, const Components &...> operator*() const
-    {
-        return std::tuple<ID<Entity>, const Components &...> {
-            set.m_entities.AtIndex(index).first,
-            std::get<ComponentContainer<Components> &>(set.m_components).GetComponent(set.m_entities.AtIndex(index).first)...
-        };
-    }
+        { return const_cast<EntitySetIterator *>(this)->operator*(); }
 
     std::tuple<ID<Entity>, Components &...> operator->()
         { return **this; }
 
     std::tuple<ID<Entity>, const Components &...> operator->() const
         { return **this; }
+
+private:
+    template <SizeType ... Indices>
+    std::tuple<Components &...> GetComponents(const FixedArray<ComponentID, sizeof...(Components)> &component_ids, std::index_sequence<Indices...>)
+    {
+        return std::tuple<Components &...>(
+            std::get<ComponentContainer<Components> &>(set.m_component_containers).GetComponent(component_ids[Indices])...
+        );
+    }
 };
 
 /*! \brief A set of entities with a specific set of components.
@@ -83,15 +89,20 @@ class EntitySet : public EntitySetBase
 public:
     friend struct EntitySetIterator<Components...>;
 
+    using Element           = Pair<ID<Entity>, FixedArray<ComponentID, sizeof...(Components)>>;
+
     using Iterator          = EntitySetIterator<Components...>;
     using ConstIterator     = EntitySetIterator<const Components...>;
 
     static const EntitySetTypeID type_id;
 
-    EntitySet(EntityContainer &entities, ComponentContainer<Components> &... components)
+    EntitySet(EntityContainer &entities, ComponentContainer<Components> &... component_containers)
         : m_entities(entities),
-          m_components(components...)
+          m_component_containers(component_containers...)
     {
+        for (auto it = m_entities.Begin(); it != m_entities.End(); ++it) {
+            OnEntityUpdated(it->first);
+        }
     }
 
     EntitySet(const EntitySet &other)                   = delete;
@@ -100,11 +111,19 @@ public:
     EntitySet &operator=(EntitySet &&other) noexcept    = delete;
     ~EntitySet()                                        = default;
 
+    /*! \brief Gets the elements array of this set.
+     *  The elements array contains the entities in this set and the corresponding component IDs.
+     *
+     *  \return Reference to the elements array of this set.
+     */
+    const Array<Element> &GetElements() const
+        { return m_elements; }
+
     /*! \brief Gets the entities in this set.
      *
      *  \return Reference to the entities in this set.
      */
-    const EntityContainer &GetEntities() const
+    const EntityContainer &GetEntityContainer() const
         { return m_entities; }
 
     /*! \brief Gets a component. */
@@ -113,7 +132,7 @@ public:
     {
         static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
 
-        return std::get<ComponentContainer<Component> &>(m_components).GetComponent(m_entities);
+        return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
 
     /*! \brief Gets a component. */
@@ -122,37 +141,56 @@ public:
     {
         static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
 
-        return std::get<ComponentContainer<Component> &>(m_components).GetComponent(m_entities);
+        return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
 
-    /*! \brief Adds a component to an entity. */
-    template <class Component>
-    void AddComponent(ID<Entity> entity, Component &&component)
+    /*! \brief To be used by the EntityManager */
+    virtual void OnEntityUpdated(ID<Entity> entity) override
     {
-        static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
+        const auto entity_element_it = m_elements.FindIf([&entity](const Element &element)
+        {
+            return element.first == entity;
+        });
 
-        std::get<ComponentContainer<Component> &>(m_components).AddComponent(entity, std::move(component));
+        if (ValidForEntity(entity)) {
+            if (entity_element_it != m_elements.End()) {
+                return;
+            }
+
+            m_elements.PushBack({
+                entity,
+                { m_entities.GetEntityData(entity).template GetComponentID<Components>()... }
+            });
+        } else {
+            if (entity_element_it == m_elements.End()) {
+                return;
+            }
+
+            m_elements.Erase(entity_element_it);
+        }
     }
 
-    /*! \brief Removes a component from an entity. */
-    template <class Component>
-    void RemoveComponent(ID<Entity> entity)
+    /*! \brief Checks if an Entity's components are valid for this EntitySet.
+     *
+     *  \param entity The Entity to check.
+     *
+     *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
+     */
+    virtual Bool ValidForEntity(ID<Entity> entity) const override
     {
-        static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
-
-        std::get<ComponentContainer<Component> &>(m_components).RemoveComponent(entity);
+        return m_entities.GetEntityData(entity).template HasComponents<Components...>();
     }
-
-    // All component containers should have the same size, so we can just use the first one.
 
     HYP_DEF_STL_BEGIN_END(
         Iterator(*this, 0),
-        Iterator(*this, std::get<0>(m_components).Size())
+        Iterator(*this, m_elements.Size())
     )
 
 private:
+    Array<Element>                                  m_elements;
+
     EntityContainer                                 &m_entities;
-    std::tuple<ComponentContainer<Components> &...> m_components;
+    std::tuple<ComponentContainer<Components> &...> m_component_containers;
 };
 
 template <class ... Components>

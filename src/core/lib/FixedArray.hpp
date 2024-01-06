@@ -34,7 +34,7 @@ public:
 
     T m_values[MathUtil::Max(Sz, 1)];
 
-    using Iterator = T *;
+    using Iterator      = T *;
     using ConstIterator = const T *;
 
     using KeyType = SizeType;
@@ -42,13 +42,16 @@ public:
     static constexpr SizeType size = Sz;
 
     template <class Function>
+    HYP_FORCE_INLINE
     FixedArray Map(Function &&fn) const
     {
         containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
         return impl.Map(std::forward<Function>(fn));
     }
 
-    [[nodiscard]] bool Contains(const T &value) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Bool Contains(const T &value) const
     {
         containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
         return impl.Contains(value);
@@ -66,7 +69,8 @@ public:
     T &operator[](KeyType index)
         { return m_values[index]; }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &operator[](KeyType index) const
         { return m_values[index]; }
 
@@ -76,16 +80,18 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr bool Empty() const
+    constexpr Bool Empty() const
         { return Sz == 0; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr bool Any() const
+    constexpr Bool Any() const
         { return Sz != 0; }
         
     template <class Lambda>
-    [[nodiscard]] Bool Any(Lambda &&lambda) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Bool Any(Lambda &&lambda) const
     {
         if constexpr (Sz == 0) {
             return false;
@@ -96,13 +102,17 @@ public:
     }
 
     template <class Lambda>
-    [[nodiscard]] Bool Every(Lambda &&lambda) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Bool Every(Lambda &&lambda) const
     {
         containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
         return impl.Every(std::forward<Lambda>(lambda));
     }
 
-    [[nodiscard]] auto Sum() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    auto Sum() const
     {
         if constexpr (Sz == 0) {
             return T();
@@ -113,7 +123,9 @@ public:
         }
     }
 
-    [[nodiscard]] auto Avg() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    auto Avg() const
     {
         if constexpr (Sz == 0) {
             return T();
@@ -124,7 +136,9 @@ public:
     }
 
     template <class ConstIterator>
-    [[nodiscard]] KeyType IndexOf(ConstIterator iter) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    KeyType IndexOf(ConstIterator iter) const
     {
         if constexpr (Sz == 0) {
             return KeyType(-1);
@@ -135,6 +149,7 @@ public:
     }
 
     template <class TaskSystem, class Lambda>
+    HYP_FORCE_INLINE
     void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
     {
         if constexpr (Sz != 0) {
@@ -144,7 +159,9 @@ public:
     }
 
     template <class OtherContainer>
-    [[nodiscard]] Bool CompareBitwise(const OtherContainer &other) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Bool CompareBitwise(const OtherContainer &other) const
     {
         if constexpr (Sz != OtherContainer::size) {
             return false;
@@ -154,33 +171,41 @@ public:
         }
     }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T *Data()
         { return static_cast<T *>(m_values); }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T *Data() const
         { return static_cast<const T *>(m_values); }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T &Front()
         { return m_values[0]; }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &Front() const
         { return m_values[0]; }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T &Back()
         { return m_values[Sz - 1]; }
 
-    [[nodiscard]] HYP_FORCE_INLINE
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &Back() const
         { return m_values[Sz - 1]; }
 
     HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
     
-    [[nodiscard]] HashCode GetHashCode() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
     {
         containers::detail::FixedArrayImpl<T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();
@@ -248,7 +273,7 @@ public:
 
     static constexpr Bool is_contiguous = true;
 
-    using Iterator = T *;
+    using Iterator      = T *;
     using ConstIterator = const T *;
 
     FixedArrayImpl(T *ptr)
@@ -256,7 +281,9 @@ public:
     {
     }
 
-    [[nodiscard]] SizeType Size() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType Size() const
         { return Sz; }
 
     HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)

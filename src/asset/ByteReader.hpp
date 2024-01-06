@@ -3,8 +3,8 @@
 
 #include <math/MathUtil.hpp>
 #include <core/lib/ByteBuffer.hpp>
+#include <core/Util.hpp>
 #include <Types.hpp>
-#include <Util.hpp>
 
 #include <fstream>
 #include <core/Core.hpp>

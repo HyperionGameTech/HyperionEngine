@@ -11,9 +11,9 @@
 #include <core/lib/Optional.hpp>
 #include <core/Thread.hpp>
 #include <core/Task.hpp>
+#include <core/Util.hpp>
 #include <Threads.hpp>
 
-#include <Util.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
 

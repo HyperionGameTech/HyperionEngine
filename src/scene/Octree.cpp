@@ -1,6 +1,8 @@
 #include "Octree.hpp"
 #include "Entity.hpp"
 #include <Engine.hpp>
+#include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/camera/Camera.hpp>
 #include <Threads.hpp>
 
@@ -243,6 +245,11 @@ void Octree::ClearInternal(Array<Node> &out_nodes)
     for (auto &node : m_nodes) {
         node.entity->OnRemovedFromOctree(this);
 
+        // @TODO Update once everything is moved to ECS
+        if (EntityManager::GetInstance().HasEntity(node.entity->GetID())) {
+            EntityManager::GetInstance().GetComponent<VisibilityStateComponent>(node.entity->GetID()).octant_id = OctantID::invalid;
+        }
+
         if (m_root != nullptr) {
             auto it = m_root->node_to_octree.find(node.entity);
 
@@ -324,6 +331,17 @@ Octree::Result Octree::InsertInternal(Entity *entity)
 
     entity->OnAddedToOctree(this);
 
+    if (EntityManager::GetInstance().HasEntity(entity->GetID())) {
+        // TODO: Update once everything is moved to ECS
+        if (!EntityManager::GetInstance().HasComponent<VisibilityStateComponent>(entity->GetID())) {
+            EntityManager::GetInstance().AddComponent<VisibilityStateComponent>(entity->GetID(), {
+                .octant_id = m_octant_id
+            });
+        } else {
+            EntityManager::GetInstance().GetComponent<VisibilityStateComponent>(entity->GetID()).octant_id = m_octant_id;
+        }
+    }
+
     RebuildNodesHash();
 
     return {};
@@ -375,6 +393,11 @@ Octree::Result Octree::RemoveInternal(Entity *entity)
     }
 
     entity->OnRemovedFromOctree(this);
+
+    // @TODO Update once everything is moved to ECS
+    if (EntityManager::GetInstance().HasEntity(entity->GetID())) {
+        EntityManager::GetInstance().GetComponent<VisibilityStateComponent>(entity->GetID()).octant_id = OctantID::invalid;
+    }
 
     m_nodes.Erase(it);
     RebuildNodesHash();
@@ -552,6 +575,10 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
         }
 
         entity->OnMovedToOctant(this);
+
+        if (EntityManager::GetInstance().HasEntity(entity->GetID())) {
+            EntityManager::GetInstance().GetComponent<VisibilityStateComponent>(entity->GetID()).octant_id = m_octant_id;
+        }
     }
 
     RebuildNodesHash();

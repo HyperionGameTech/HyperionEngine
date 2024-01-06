@@ -1,12 +1,12 @@
 #ifndef VECTOR4_H
 #define VECTOR4_H
 
-#include "Vector2.hpp"
-#include "Vector3.hpp"
-#include "../HashCode.hpp"
-#include "../Util.hpp"
+#include <math/Vector2.hpp>
+#include <math/Vector3.hpp>
 
 #include <util/Defines.hpp>
+
+#include <HashCode.hpp>
 #include <Types.hpp>
 
 #include <cmath>

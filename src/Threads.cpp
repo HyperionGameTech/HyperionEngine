@@ -41,7 +41,7 @@ void Threads::AssertOnThread(ThreadMask mask, const char *message)
         "Expected current thread to be in mask %u, but got %u (%s). Message: %s",
         mask,
         current.value,
-        current.name.LookupString().Data(),
+        current.name.LookupString(),
         message ? message : "(no message)"
     );
 
@@ -64,9 +64,9 @@ void Threads::AssertOnThread(const ThreadID &thread_id, const char *message)
         thread_id == current,
         "Expected current thread to be %u (%s), but got %u (%s). Message: %s",
         thread_id.value,
-        thread_id.name.LookupString().Data(),
+        thread_id.name.LookupString(),
         current.value,
-        current.name.LookupString().Data(),
+        current.name.LookupString(),
         message ? message : "(no message)"
     );
 #else

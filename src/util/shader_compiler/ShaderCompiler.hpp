@@ -694,6 +694,10 @@ struct ShaderDefinition
     HYP_FORCE_INLINE
     explicit operator Bool() const
         { return name.IsValid(); }
+
+    HYP_FORCE_INLINE
+    Bool IsValid() const
+        { return name.IsValid(); }
     
     HYP_FORCE_INLINE
     explicit operator HashedShaderDefinition() const

@@ -488,7 +488,7 @@ void Scene::RemovePendingEntities()
             "Remove entity with ID #%u (with material: %s) from scene with ID #%u\n",
             found_entity->GetID().value,
             found_entity->GetMaterial()
-                ? found_entity->GetMaterial()->GetName().LookupString().Data()
+                ? found_entity->GetMaterial()->GetName().LookupString()
                 : " no material ",
             GetID().value
         );
@@ -797,14 +797,19 @@ void Scene::CollectEntities(
             continue;
         }
 
-        // TEMP
+        DebugLog(
+            LogType::Debug,
+            "Collecting entity #%u\n",
+            entity_id.Value()
+        );
+
         render_list.PushEntityToRender(
             camera,
             entity_id,
             mesh_component.mesh,
-            Handle<Material>::empty,
-            Handle<Shader>::empty,
-            Handle<Skeleton>::empty,
+            mesh_component.material,
+            mesh_component.shader,
+            Handle<Skeleton>::empty, // TEMP
             transform_component.transform,
             override_attributes_ptr
         );

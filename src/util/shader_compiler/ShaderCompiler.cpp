@@ -616,7 +616,7 @@ Bool ShaderCompiler::HandleCompiledShaderBatch(
         DebugLog(
             LogType::Info,
             "Source file in batch %s has been modified since the batch was last compiled, recompiling...\n",
-            bundle.name.LookupString().Data()
+            bundle.name.LookupString()
         );
 
         batch = CompiledShaderBatch { };
@@ -708,7 +708,7 @@ Bool ShaderCompiler::HandleCompiledShaderBatch(
         DebugLog(
             LogType::Error,
             "Failed to load the compiled shader %s; Variants are missing.\n\tRequested with properties:\n\t%llu - %s\n\n\tFound:\n\t%s\n\nMissing:\n\t%s\n",
-            bundle.name.LookupString().Data(),
+            bundle.name.LookupString(),
             additional_versions.GetHashCode().Value(),
             additional_versions.ToString().Data(),
             found_variants_string.Data(),
@@ -752,7 +752,7 @@ Bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         DebugLog(
             LogType::Error,
             "Section %s not found in shader definitions file\n",
-            name.LookupString().Data()
+            name.LookupString()
         );
 
         return false;
@@ -879,7 +879,7 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
             DebugLog(
                 LogType::Warn,
                 "Not compiling shader bundle %s because it contains raytracing shaders and raytracing is not supported on this device.\n",
-                bundle.name.LookupString().Data()
+                bundle.name.LookupString()
             );
 
             continue;
@@ -904,7 +904,7 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
             DebugLog(
                 LogType::Error,
                 "%s: Loading of compiled shader failed with version hash %llu\n",
-                it.first->name.LookupString().Data(),
+                it.first->name.LookupString(),
                 it.first->versions.GetHashCode().Value()
             );
         }
@@ -1220,7 +1220,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             //     if (descriptor_declaration) {
             //         result.final_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + ") " + parse_result.remaining + "\n";
             //     } else {
-            //         result.errors.PushBack(ProcessError { String("Invalid descriptor ") + usage.descriptor_name.LookupString().Data() });
+            //         result.errors.PushBack(ProcessError { String("Invalid descriptor ") + usage.descriptor_name.LookupString() });
 
             //         break;
             //     }
@@ -1424,7 +1424,7 @@ Bool ShaderCompiler::CompileBundle(
     DebugLog(
         LogType::Info,
         "Compiling shader bundle for shader %s\n",
-        bundle.name.LookupString().Data()
+        bundle.name.LookupString()
     );
 
     // update versions to include vertex attribute properties
@@ -1441,15 +1441,15 @@ Bool ShaderCompiler::CompileBundle(
     renderer::DescriptorTable descriptor_table = bundle.descriptor_usages.BuildDescriptorTable();
 
     for (renderer::DescriptorSetDeclaration &descriptor_set_declaration : descriptor_table.GetDescriptorSetDeclarations()) {
-        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString().Data()) + " " + String::ToString(descriptor_set_declaration.set_index) + "\n";
+        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(descriptor_set_declaration.set_index) + "\n";
 
         for (const Array<renderer::DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration.slots) {
             for (const renderer::DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
-                DebugLog(LogType::Debug, "Declaration : %s\n", descriptor_declaration.name.LookupString().Data());
+                DebugLog(LogType::Debug, "Declaration : %s\n", descriptor_declaration.name.LookupString());
                 const UInt flat_index = descriptor_set_declaration.CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
                 AssertThrow(flat_index != UInt(-1));
 
-                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration.name.LookupString().Data()) + "_" + descriptor_declaration.name.LookupString().Data() + " " + String::ToString(flat_index) + "\n";
+                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
             }
         }
     }
@@ -1633,7 +1633,7 @@ Bool ShaderCompiler::CompileBundle(
             LogType::Info,
             "Compiled %u new variants for shader %s to: %s\n",
             num_compiled_permutations.Get(MemoryOrder::RELAXED),
-            bundle.name.LookupString().Data(),
+            bundle.name.LookupString(),
             final_output_path.Data()
         );
     }
@@ -1683,7 +1683,7 @@ Bool ShaderCompiler::GetCompiledShader(
         DebugLog(
             LogType::Error,
             "Failed to attempt loading of shader batch: %s\n\tRequested instance with properties: [%s]\n",
-            name.LookupString().Data(),
+            name.LookupString(),
             final_properties.ToString().Data()
         );
 
@@ -1704,7 +1704,7 @@ Bool ShaderCompiler::GetCompiledShader(
         DebugLog(
             LogType::Error,
             "Hash calculation for shader %s does not match %llu! Invalid shader property combination.\n\tRequested instance with properties: [%s]\n",
-            name.LookupString().Data(),
+            name.LookupString(),
             final_properties_hash.Value(),
             final_properties.ToString().Data()
         );
@@ -1717,7 +1717,7 @@ Bool ShaderCompiler::GetCompiledShader(
     DebugLog(
         LogType::Debug,
         "Selected shader %s for hash %llu.\n\tRequested instance with properties: [%s]\n",
-        name.LookupString().Data(),
+        name.LookupString(),
         final_properties_hash.Value(),
         final_properties.ToString().Data()
     );

@@ -5,7 +5,6 @@
 
 #include <Types.hpp>
 
-#include <Util.hpp>
 #include <util/Defines.hpp>
 #include <util/StringUtil.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -13,6 +12,7 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/ByteBuffer.hpp>
+#include <core/Util.hpp>
 
 #include <array>
 #include <fstream>

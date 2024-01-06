@@ -27,7 +27,7 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
                     DebugLog(
                         LogType::Warn,
                         "RenderComponent with name %s was null, skipping...\n",
-                        component_tag_pair.first.LookupString().Data()
+                        component_tag_pair.first.LookupString()
                     );
 
                     continue;
@@ -279,7 +279,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                     AssertThrowMsg(
                         name_it == components_it->second.End(),
                         "Render component with name %s already exists! Name must be unique.\n",
-                        name.LookupString().Data()
+                        name.LookupString()
                     );
 
                     components_it->second.Set(name, std::move(items_pending_addition_it.second));

@@ -6,6 +6,7 @@
 #include <core/Containers.hpp>
 #include <core/lib/Mutex.hpp>
 #include <core/lib/AtomicVar.hpp>
+#include <core/lib/String.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <math/Transform.hpp>
 #include <scene/Entity.hpp>
@@ -236,7 +237,7 @@ public:
         AssertThrowMsg(
             registered_controller.Empty(),
             "Controller %s is already registered!",
-            controller_name.LookupString().Data()
+            controller_name.LookupString()
         );
 
         m_registered_controllers[controller_name] = RegisteredController {
@@ -255,7 +256,7 @@ public:
         DebugLog(
             LogType::Debug,
             "Registered controller %s\n",
-            controller_name.LookupString().Data()
+            controller_name.LookupString()
         );
     }
 
@@ -272,7 +273,7 @@ public:
         AssertThrowMsg(
             registered_controller.HasValue(),
             "Controller %s is not registered!",
-            controller_name.LookupString().Data()
+            controller_name.LookupString()
         );
 
         return registered_controller.Get().type_id;
@@ -285,7 +286,7 @@ public:
         AssertThrowMsg(
             registered_controller.HasValue(),
             "Controller %s is not registered!",
-            controller_name.LookupString().Data()
+            controller_name.LookupString()
         );
 
         return registered_controller.Get().CreateController();
@@ -304,7 +305,7 @@ public:
         AssertThrowMsg(
             registered_controller.HasValue(),
             "Controller %s is not registered!",
-            controller_name.LookupString().Data()
+            controller_name.LookupString()
         );
 
         return registered_controller.Get().CreateController().Cast<ControllerType>();

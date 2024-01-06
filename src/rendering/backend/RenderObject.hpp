@@ -120,7 +120,7 @@ public:
 
         HYP_FORCE_INLINE T &Get()
         {
-            AssertThrowMsg(HasValue(), "Render object of type %s has no value!", GetNameForRenderObject<T, PLATFORM>().LookupString().Data());
+            AssertThrowMsg(HasValue(), "Render object of type %s has no value!", GetNameForRenderObject<T, PLATFORM>().LookupString());
 
             return storage.Get();
         }

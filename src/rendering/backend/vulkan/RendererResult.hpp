@@ -1,7 +1,6 @@
 #ifndef RENDERER_RESULT_H
 #define RENDERER_RESULT_H
 
-#include <Util.hpp>
 #include <system/Debug.hpp>
 
 namespace hyperion {

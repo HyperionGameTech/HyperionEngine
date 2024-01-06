@@ -46,20 +46,20 @@ void SetCurrentThreadID(const ThreadID &thread_id)
 #ifdef HYP_WINDOWS
     HRESULT set_thread_result = SetThreadDescription(
         GetCurrentThread(),
-        &HYP_UTF8_TOWIDE(thread_id.name.LookupString().Data())[0]
+        &HYP_UTF8_TOWIDE(thread_id.name.LookupString())[0]
     );
 
     if (FAILED(set_thread_result)) {
         DebugLog(
             LogType::Warn,
             "Failed to set Win32 thread name for thread %s\n",
-            thread_id.name.LookupString().Data()
+            thread_id.name.LookupString()
         );
     }
 #elif defined(HYP_MACOS)
-    pthread_setname_np(thread_id.name.LookupString().Data());
+    pthread_setname_np(thread_id.name.LookupString());
 #elif defined(HYP_LINUX)
-    pthread_setname_np(pthread_self(), thread_id.name.LookupString().Data());
+    pthread_setname_np(pthread_self(), thread_id.name.LookupString());
 #endif
 }
 

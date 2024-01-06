@@ -39,7 +39,7 @@ public:
             DebugLog(
                 LogType::Error,
                 "Component with name %s is not registered, cannot continue loading the controller\n",
-                component_name.LookupString().Data()
+                component_name.LookupString()
             );
 
             return { FBOMResult::FBOM_ERR, "Invalid component - not registered" };

@@ -1,8 +1,6 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
-#include <Util.hpp>
-
 #include <functional>
 
 namespace hyperion {

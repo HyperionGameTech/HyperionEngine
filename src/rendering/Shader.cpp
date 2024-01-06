@@ -270,7 +270,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         LogType::Debug,
         "Locking ShaderManager for ShaderDefinition with hash %llu from thread %s\n",
         definition.GetHashCode().Value(),
-        Threads::CurrentThreadID().name.LookupString().Data()
+        Threads::CurrentThreadID().name.LookupString()
     );
 
     std::lock_guard guard(m_mutex);
@@ -285,7 +285,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
                 DebugLog(
                     LogType::Error,
                     "Loaded shader from cache (Name: %s, Properties: %s) does not contain the requested properties!\n\tRequested: %s\n",
-                    definition.GetName().LookupString().Data(),
+                    definition.GetName().LookupString(),
                     handle->GetCompiledShader().GetProperties().ToString().Data(),
                     definition.GetProperties().ToString().Data()
                 );
@@ -307,7 +307,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
     AssertThrowMsg(
         is_valid_compiled_shader,
         "Failed to get compiled shader with name %s and props hash %llu!\n",
-        definition.GetName().LookupString().Data(),
+        definition.GetName().LookupString(),
         definition.GetProperties().GetHashCode().Value()
     );
 

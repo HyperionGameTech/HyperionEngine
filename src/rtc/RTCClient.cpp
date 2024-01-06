@@ -174,7 +174,7 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
     RC<LibDataChannelRTCDataChannel> data_channel;
     data_channel.Reset(new LibDataChannelRTCDataChannel());
 
-    data_channel->m_data_channel = m_peer_connection->createDataChannel(name.LookupString().Data());
+    data_channel->m_data_channel = m_peer_connection->createDataChannel(name.LookupString());
 
     data_channel->m_data_channel->onOpen([data_channel_weak = Weak<LibDataChannelRTCDataChannel>(data_channel)](...) mutable
     {

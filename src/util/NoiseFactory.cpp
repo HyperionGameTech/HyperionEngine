@@ -1,7 +1,6 @@
 #include "NoiseFactory.hpp"
 
-#include "random/Simplex.hpp"
-#include "../Util.hpp"
+#include <util/random/Simplex.hpp>
 
 #include <cmath>
 #include <iostream>
