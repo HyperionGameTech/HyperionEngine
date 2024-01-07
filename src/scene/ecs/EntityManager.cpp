@@ -52,28 +52,14 @@ void EntityManager::Update(GameCounter::TickUnit delta)
     }
 }
 
-SystemBase *EntityManager::AddSystemToExecutionGroup(UniquePtr<SystemBase> &&system)
-{
-    AssertThrow(system != nullptr);
-
-    if (m_system_execution_groups.Empty()) {
-        m_system_execution_groups.PushBack({ });
-    }
-
-    // @TODO: Organize it so Read-Only systems can be more efficiently grouped
-
-    for (auto &system_execution_group : m_system_execution_groups) {
-        if (system_execution_group.IsValidForExecutionGroup(system.Get())) {
-            return system_execution_group.AddSystem(std::move(system));
-        }
-    }
-
-    m_system_execution_groups.PushBack({ });
-    return m_system_execution_groups.Back().AddSystem(std::move(system));
-}
-
 void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
+    DebugLog(
+        LogType::Debug,
+        "SystemExecutionGroup::Process: Processing execution group with %zu systems\n",
+        m_systems.Size()
+    );
+
     m_systems.ParallelForEach(
         TaskSystem::GetInstance(),
         [&entity_manager, delta](auto &it, UInt, UInt)

@@ -23,13 +23,12 @@ namespace hyperion::v2 {
 class SystemExecutionGroup
 {
 public:
-    SystemExecutionGroup() = default;
-
-    SystemExecutionGroup(const SystemExecutionGroup &)                = delete;
-    SystemExecutionGroup &operator=(const SystemExecutionGroup &)     = delete;
-    SystemExecutionGroup(SystemExecutionGroup &&) noexcept            = default;
-    SystemExecutionGroup &operator=(SystemExecutionGroup &&) noexcept = default;
-    ~SystemExecutionGroup()                                           = default;
+    SystemExecutionGroup()                                              = default;
+    SystemExecutionGroup(const SystemExecutionGroup &)                  = delete;
+    SystemExecutionGroup &operator=(const SystemExecutionGroup &)       = delete;
+    SystemExecutionGroup(SystemExecutionGroup &&) noexcept              = default;
+    SystemExecutionGroup &operator=(SystemExecutionGroup &&) noexcept   = default;
+    ~SystemExecutionGroup()                                             = default;
 
     /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
      *
@@ -45,8 +44,17 @@ public:
 
         for (const auto &it : m_systems) {
             for (TypeID component_type_id : component_type_ids) {
-                if (it.second->HasComponentTypeID(component_type_id)) {
-                    return false;
+                const ComponentRWFlags rw_flags = system->GetComponentRWFlags(component_type_id);
+
+                // This System is read-only for this component, so it can be processed with other Systems
+                if (rw_flags == COMPONENT_RW_FLAGS_READ) {
+                    if (it.second->HasComponentTypeID(component_type_id, false)) {
+                        return false;
+                    }
+                } else {
+                    if (it.second->HasComponentTypeID(component_type_id, true)) {
+                        return false;
+                    }
                 }
             }
         }
@@ -60,10 +68,10 @@ public:
      *
      *  \return True if the SystemExecutionGroup has a System of the given type, false otherwise.
      */
-    template <class System>
+    template <class SystemType>
     Bool HasSystem() const
     {
-        const TypeID id = TypeID::ForType<System>();
+        const TypeID id = TypeID::ForType<SystemType>();
 
         return m_systems.Find(id) != m_systems.End();
     }
@@ -74,16 +82,16 @@ public:
      *
      *  \param[in] system The System to add.
      */
-    template <class System>
-    SystemBase *AddSystem(UniquePtr<System> &&system)
+    template <class SystemType>
+    SystemBase *AddSystem(UniquePtr<SystemType> &&system)
     {
         AssertThrow(system != nullptr);
         AssertThrowMsg(IsValidForExecutionGroup(system.Get()), "System is not valid for this SystemExecutionGroup");
 
-        const TypeID id = TypeID::ForType<System>();
-        AssertThrowMsg(m_systems.Find(id) == m_systems.End(), "System already exists");
+        auto it = m_systems.Find<SystemType>();
+        AssertThrowMsg(it == m_systems.End(), "System already exists");
 
-        auto insert_result = m_systems.Set(id, std::move(system));
+        auto insert_result = m_systems.Set<SystemType>(std::move(system));
 
         return insert_result.first->second.Get();
     }
@@ -94,10 +102,10 @@ public:
      *
      *  \return True if the System was removed, false otherwise.
      */
-    template <class System>
+    template <class SystemType>
     Bool RemoveSystem()
     {
-        const TypeID id = TypeID::ForType<System>();
+        const TypeID id = TypeID::ForType<SystemType>();
 
         return m_systems.Erase(id);
     }
@@ -360,16 +368,32 @@ public:
         return entity_listeners_it->second.Erase(id);
     }
 
-    template <class System, class ...Args>
-    System *AddSystem(Args &&... args)
+    template <class SystemType, class ...Args>
+    SystemType *AddSystem(Args &&... args)
     {
-        return static_cast<System *>(AddSystemToExecutionGroup(UniquePtr<System>::Construct(std::forward<Args>(args)...)));
+        return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>::Construct(std::forward<Args>(args)...)));
     }
 
     void Update(GameCounter::TickUnit delta);
 
 private:
-    SystemBase *AddSystemToExecutionGroup(UniquePtr<SystemBase> &&system);
+    template <class SystemType>
+    SystemType *AddSystemToExecutionGroup(UniquePtr<SystemType> &&system)
+    {
+        AssertThrow(system != nullptr);
+
+        if (m_system_execution_groups.Empty()) {
+            m_system_execution_groups.PushBack({ });
+        }
+
+        for (auto &system_execution_group : m_system_execution_groups) {
+            if (system_execution_group.IsValidForExecutionGroup(system.Get())) {
+                return static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system)));
+            }
+        }
+
+        return static_cast<SystemType *>(m_system_execution_groups.PushBack({ }).AddSystem<SystemType>(std::move(system)));
+    }
 
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;

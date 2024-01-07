@@ -30,11 +30,27 @@ public:
     /*! \brief Returns true if this System operates on the component with the given TypeID, false otherwise.
      *
      *  \param component_type_id The TypeID of the component to check.
+     *  \param include_read_only If true, this function will return true even if the component is read-only.
+     *  Otherwise, read-only components will be ignored.
      *
      *  \return True if this System operates on the component with the given TypeID, false otherwise.
      */
-    Bool HasComponentTypeID(TypeID component_type_id) const
-        { return m_component_type_ids.Contains(component_type_id); }
+    Bool HasComponentTypeID(TypeID component_type_id, Bool include_read_only = true) const
+    {
+        const Bool has_component_type_id = m_component_type_ids.Contains(component_type_id);
+
+        if (!has_component_type_id) {
+            return false;
+        }
+
+        if (include_read_only) {
+            return true;
+        }
+
+        const ComponentRWFlags rw_flags = GetComponentRWFlags(component_type_id);
+
+        return rw_flags != COMPONENT_RW_FLAGS_READ;
+    }
 
     /*! \brief Returns the ComponentRWFlags of the component with the given TypeID.
      *

@@ -45,21 +45,10 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         
         Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id);
 
-        // DebugLog(LogType::Debug, "Entity %u is in octant %u,%u (bits: %u) (%p)\n", entity_id.Value(), visibility_state_component.octant_id.GetDepth(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.index_bits, octant);
-
         if (octant) {
             const VisibilityState &octant_visibility_state = octant->GetVisibilityState();
 
             visibility_state_component.visibility_state.snapshots[visibility_cursor] = octant_visibility_state.snapshots[visibility_cursor];
-
-            // DebugLog(
-            //     LogType::Debug,
-            //     "Copy octant visibility state for entity %u at cursor %u: %u,%u\n",
-            //     entity_id.Value(),
-            //     visibility_cursor,
-            //     visibility_state_component.visibility_state.snapshots[visibility_cursor].bits,
-            //     visibility_state_component.visibility_state.snapshots[visibility_cursor].nonce
-            // );
         }
     }
 }
