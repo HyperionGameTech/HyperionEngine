@@ -13,8 +13,12 @@
 // New ECS
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
+
+// #define HYP_VISIBILITY_CHECK_DEBUG
+#define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion::v2 {
 
@@ -66,40 +70,40 @@ struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 
 #pragma endregion
 
-static void CollectOctantEntities(
-    RenderList &render_list,
-    const Handle<Camera> &camera,
-    RenderableAttributeSet *override_attributes_ptr,
-    const Octree *octree
-)
-{
-    if (!Octree::IsVisible(&g_engine->GetWorld()->GetOctree(), octree)) {
-        return;
-    }
+// static void CollectOctantEntities(
+//     RenderList &render_list,
+//     const Handle<Camera> &camera,
+//     RenderableAttributeSet *override_attributes_ptr,
+//     const Octree *octree
+// )
+// {
+//     if (!Octree::IsVisible(&g_engine->GetWorld()->GetOctree(), octree)) {
+//         return;
+//     }
 
-    for (const Octree::Node &octree_node : octree->GetNodes()) {
-        const Entity *entity = octree_node.entity;
+//     for (const Octree::Node &octree_node : octree->GetNodes()) {
+//         const Entity *entity = octree_node.entity;
 
-        if (!entity) {
-            continue;
-        }
+//         if (!entity) {
+//             continue;
+//         }
 
-        if (entity->IsRenderable()) {
-            render_list.PushEntityToRender(camera, Handle<Entity>(entity->GetID()) /* temp */, override_attributes_ptr);
-        }
-    }
+//         if (entity->IsRenderable()) {
+//             render_list.PushEntityToRender(camera, Handle<Entity>(entity->GetID()) /* temp */, override_attributes_ptr);
+//         }
+//     }
 
-    if (octree->IsDivided()) {
-        for (const Octree::Octant &octant : octree->GetOctants()) {
-            CollectOctantEntities(
-                render_list,
-                camera,
-                override_attributes_ptr,
-                octant.octree.Get()
-            );
-        }
-    }
-}
+//     if (octree->IsDivided()) {
+//         for (const Octree::Octant &octant : octree->GetOctants()) {
+//             CollectOctantEntities(
+//                 render_list,
+//                 camera,
+//                 override_attributes_ptr,
+//                 octant.octree.Get()
+//             );
+//         }
+//     }
+// }
 
 Scene::Scene()
     : Scene(Handle<Camera>::empty, { })
@@ -768,40 +772,38 @@ void Scene::CollectEntities(
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
-    // push all entities to render if they are visible to the given camera
-
-    // CollectOctantEntities(
-    //     render_list,
-    //     camera,
-    //     override_attributes_ptr,
-    //     &g_engine->GetWorld()->GetOctree()
-    // );
-    
     const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
     const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
 
-    for (auto &it : m_entities) {
-        const Handle<Entity> &entity = it.second;
+    for (auto it : EntityManager::GetInstance().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
+        auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
-        if (entity->IsRenderable() && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))) {
-            render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
-        }
-    }
+#ifndef HYP_DISABLE_VISIBILITY_CHECK
+        // Visibility check
+        if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)) {
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            DebugLog(
+                LogType::Debug,
+                "Skipping entity #%u due to visibility state being invalid.\n",
+                entity_id.Value()
+            );
+#endif
 
-    for (auto it : EntityManager::GetInstance().GetEntitySet<MeshComponent, TransformComponent, VisibilityStateComponent>()) {
-        auto [entity_id, mesh_component, transform_component, visibility_state_component] = it;
-
-        // @TODO Visibility check
-        if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
-            || !visibility_state_component.visibility_state.Get(camera_id, visibility_cursor)) {
             continue;
         }
 
-        DebugLog(
-            LogType::Debug,
-            "Collecting entity #%u\n",
-            entity_id.Value()
-        );
+        if (!visibility_state_component.visibility_state.Get(camera_id, visibility_cursor)) {
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            DebugLog(
+                LogType::Debug,
+                "Skipping entity #%u due to visibility state being false\n",
+                entity_id.Value()
+            );
+#endif
+
+            continue;
+        }
+#endif
 
         render_list.PushEntityToRender(
             camera,
@@ -810,7 +812,9 @@ void Scene::CollectEntities(
             mesh_component.material,
             mesh_component.shader,
             Handle<Skeleton>::empty, // TEMP
-            transform_component.transform,
+            transform_component.transform.GetMatrix(),
+            transform_component.previous_transform_matrix,
+            bounding_box_component.aabb,
             override_attributes_ptr
         );
     }

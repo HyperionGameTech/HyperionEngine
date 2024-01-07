@@ -9,7 +9,9 @@ namespace hyperion::v2 {
 struct VisibilityStateComponent
 {
     VisibilityState visibility_state;
-    OctantID        octant_id;
+    OctantID        octant_id = OctantID::invalid;
+
+    HashCode        last_aabb_hash;
 };
 
 } // namespace hyperion::v2

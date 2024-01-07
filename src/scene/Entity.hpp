@@ -218,6 +218,9 @@ public:
 
     void SetTransform(const Transform &transform);
 
+    const Matrix4 &GetPreviousModelMatrix() const
+        { return m_previous_model_matrix; }
+
     const BoundingBox &GetLocalAABB() const
         { return m_local_aabb; }
 
@@ -401,7 +404,7 @@ private:
     Bool                    m_needs_octree_update = false;
     VisibilityState         m_visibility_state;
 
-    Matrix4                 m_previous_transform_matrix;
+    Matrix4                 m_previous_model_matrix;
 
     mutable ShaderDataState m_shader_data_state;
 };

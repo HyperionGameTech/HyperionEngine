@@ -224,6 +224,19 @@ void RenderGroup::CollectDrawCalls()
     for (EntityDrawData &entity_draw_data : m_entity_draw_datas) {
         AssertThrow(entity_draw_data.mesh_id.IsValid());
 
+        // @TODO: Change it to use EntityDrawData instead of ObjectShaderData.
+        g_engine->GetRenderData()->objects.Set(entity_draw_data.entity_id.ToIndex(), ObjectShaderData {
+            .model_matrix = entity_draw_data.model_matrix,
+            .previous_model_matrix = entity_draw_data.previous_model_matrix,
+            .world_aabb_max = Vector4(entity_draw_data.aabb.max, 1.0f),
+            .world_aabb_min = Vector4(entity_draw_data.aabb.min, 1.0f),
+            .entity_index = entity_draw_data.entity_id.ToIndex(),
+            .material_index = entity_draw_data.material_id.ToIndex(),
+            .skeleton_index = entity_draw_data.skeleton_id.ToIndex(),
+            .bucket = entity_draw_data.bucket,
+            .flags = entity_draw_data.skeleton_id ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE
+        });
+
         DrawCallID draw_call_id;
 
         if constexpr (DrawCall::unique_per_material) {

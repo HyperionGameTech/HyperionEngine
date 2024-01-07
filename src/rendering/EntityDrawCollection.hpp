@@ -155,7 +155,9 @@ public:
         const Handle<Material> &material,
         const Handle<Shader> &shader,
         const Handle<Skeleton> &skeleton,
-        const Transform &transform,
+        const Matrix4 &model_matrix,
+        const Matrix4 &previous_model_matrix,
+        const BoundingBox &aabb,
         const RenderableAttributeSet *override_attributes
     );
 

@@ -19,6 +19,7 @@
 #include <scene/skydome/controllers/SkydomeController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
@@ -215,7 +216,7 @@ void SampleStreamer::InitGame()
         EntityManager::GetInstance().AddComponent(entity_id, SceneComponent {
         });
 
-        auto cube = MeshBuilder::Cube();
+        auto cube = MeshBuilder::NormalizedCubeSphere(8);
         InitObject(cube);
 
         constexpr auto temp_typename = TypeName<MeshComponent>();
@@ -226,9 +227,12 @@ void SampleStreamer::InitGame()
             g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE }),
             g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(renderer::static_mesh_vertex_attributes))
         });
+        EntityManager::GetInstance().AddComponent(entity_id, BoundingBoxComponent {
+            BoundingBox(Vec3f(0.0f) + Vec3f(-1.0f), Vec3f(0.0f) + Vec3f(1.0f))
+        });
         EntityManager::GetInstance().AddComponent(entity_id, TransformComponent {
             Transform(
-                Vec3f(8.0f, 25.0f, 100.0f),
+                Vec3f(0.0f, 0.0f, 0.0f),
                 Vec3f::one,
                 Quaternion::Identity()
             )
@@ -237,9 +241,7 @@ void SampleStreamer::InitGame()
 
         });
         // TEMP
-        g_engine->GetWorld()->GetOctree().Insert(Handle<Entity>(entity_id).Get());
-
-
+        // g_engine->GetWorld()->GetOctree().Insert(Handle<Entity>(entity_id).Get());
 
         if (auto *controller = g_engine->GetComponents().Add<UIButtonController>(btn_node.GetEntity(), UniquePtr<UIButtonController>::Construct())) {
             controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));

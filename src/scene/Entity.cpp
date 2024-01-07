@@ -180,7 +180,7 @@ void Entity::Init()
     // }
 
     m_draw_proxy.entity_id = m_id;
-    m_previous_transform_matrix = m_transform.GetMatrix();
+    m_previous_model_matrix = m_transform.GetMatrix();
 
     InitObject(m_shader);
     InitObject(m_material);
@@ -248,16 +248,16 @@ void Entity::Update(GameCounter::TickUnit delta)
 
     UpdateControllers(delta);
 
-    if (m_octree) {
-        if (m_needs_octree_update) {
-            UpdateOctree();
-        }
+    // if (m_octree) {
+    //     if (m_needs_octree_update) {
+    //         UpdateOctree();
+    //     }
 
-        const VisibilityState &octree_visibility_state = m_octree->GetVisibilityState();
-        const UInt8 visibility_cursor = m_octree->LoadVisibilityCursor();
+    //     const VisibilityState &octree_visibility_state = m_octree->GetVisibilityState();
+    //     const UInt8 visibility_cursor = m_octree->LoadVisibilityCursor();
 
-        m_visibility_state.snapshots[visibility_cursor] = octree_visibility_state.snapshots[visibility_cursor];
-    }
+    //     m_visibility_state.snapshots[visibility_cursor] = octree_visibility_state.snapshots[visibility_cursor];
+    // }
 
     if (m_shader_data_state.IsDirty()) {
         EnqueueRenderUpdates();
@@ -314,34 +314,34 @@ void Entity::EnqueueRenderUpdates()
         this,
         std::move(draw_proxy),
         m_transform.GetMatrix(),
-        m_previous_transform_matrix
+        m_previous_model_matrix
     );
 
-    if (Memory::MemCmp(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4)) == 0) {
+    if (Memory::MemCmp(&m_previous_model_matrix, &m_transform.GetMatrix(), sizeof(Matrix4)) == 0) {
         m_shader_data_state = ShaderDataState::CLEAN;
     }
 
-    Memory::MemCpy(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4));
+    Memory::MemCpy(&m_previous_model_matrix, &m_transform.GetMatrix(), sizeof(Matrix4));
 }
 
 void Entity::UpdateOctree()
 {
     // AssertReady();
 
-    if (Octree *octree = m_octree) {
-        const Octree::Result update_result = octree->Update(this);
+    // if (Octree *octree = m_octree) {
+    //     const Octree::Result update_result = octree->Update(this);
 
-        if (!update_result) {
-            DebugLog(
-                LogType::Warn,
-                "Could not update Entity #%u in octree: %s\n",
-                m_id.value,
-                update_result.message
-            );
-        }
-    }
+    //     if (!update_result) {
+    //         DebugLog(
+    //             LogType::Warn,
+    //             "Could not update Entity #%u in octree: %s\n",
+    //             m_id.value,
+    //             update_result.message
+    //         );
+    //     }
+    // }
 
-    m_needs_octree_update = false;
+    // m_needs_octree_update = false;
 }
 
 void Entity::SetMesh(Handle<Mesh> &&mesh)
@@ -663,7 +663,7 @@ void Entity::SetTransform(const Transform &transform)
         return;
     }
 
-    m_previous_transform_matrix = m_transform.GetMatrix();
+    m_previous_model_matrix = m_transform.GetMatrix();
     m_transform = transform;
     m_shader_data_state |= ShaderDataState::DIRTY;
     
@@ -735,9 +735,9 @@ void Entity::AddToOctree(Octree &octree)
 {
     AssertThrow(m_octree == nullptr);
 
-    if (!octree.Insert(this)) {
-        DebugLog(LogType::Warn, "Entity #%lu could not be added to octree\n", m_id.value);
-    }
+    // if (!octree.Insert(this)) {
+    //     DebugLog(LogType::Warn, "Entity #%lu could not be added to octree\n", m_id.value);
+    // }
 }
 
 void Entity::RemoveFromOctree()
@@ -748,7 +748,7 @@ void Entity::RemoveFromOctree()
         GetID().value
     );
 
-    m_octree->OnEntityRemoved(this);
+    // m_octree->OnEntityRemoved(this);
 }
 
 Bool Entity::IsReady() const

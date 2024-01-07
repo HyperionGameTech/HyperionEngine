@@ -6,7 +6,9 @@
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/TypeMap.hpp>
+#include <core/lib/Proc.hpp>
 #include <core/Handle.hpp>
+#include <core/ID.hpp>
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/EntityContainer.hpp>
@@ -14,6 +16,140 @@
 #include <scene/ecs/System.hpp>
 
 namespace hyperion::v2 {
+
+/*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
+    TODO: Read/write differentation. all Systems are assumed to be writable
+ */
+class SystemExecutionGroup
+{
+public:
+    SystemExecutionGroup() = default;
+
+    SystemExecutionGroup(const SystemExecutionGroup &)                = delete;
+    SystemExecutionGroup &operator=(const SystemExecutionGroup &)     = delete;
+    SystemExecutionGroup(SystemExecutionGroup &&) noexcept            = default;
+    SystemExecutionGroup &operator=(SystemExecutionGroup &&) noexcept = default;
+    ~SystemExecutionGroup()                                           = default;
+
+    /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
+     *
+     *  \param[in] system The System to check.
+     *
+     *  \return True if the SystemExecutionGroup is valid for the given System, false otherwise.
+     */
+    Bool IsValidForExecutionGroup(const SystemBase *system) const
+    {
+        AssertThrow(system != nullptr);
+
+        const Array<TypeID> &component_type_ids = system->GetComponentTypeIDs();
+
+        for (const auto &it : m_systems) {
+            for (TypeID component_type_id : component_type_ids) {
+                if (it.second->HasComponentTypeID(component_type_id)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /*! \brief Checks if the SystemExecutionGroup has a System of the given type.
+     *
+     *  \tparam System The type of the System to check for.
+     *
+     *  \return True if the SystemExecutionGroup has a System of the given type, false otherwise.
+     */
+    template <class System>
+    Bool HasSystem() const
+    {
+        const TypeID id = TypeID::ForType<System>();
+
+        return m_systems.Find(id) != m_systems.End();
+    }
+
+    /*! \brief Adds a System to the SystemExecutionGroup.
+     *
+     *  \tparam System The type of the System to add.
+     *
+     *  \param[in] system The System to add.
+     */
+    template <class System>
+    SystemBase *AddSystem(UniquePtr<System> &&system)
+    {
+        AssertThrow(system != nullptr);
+        AssertThrowMsg(IsValidForExecutionGroup(system.Get()), "System is not valid for this SystemExecutionGroup");
+
+        const TypeID id = TypeID::ForType<System>();
+        AssertThrowMsg(m_systems.Find(id) == m_systems.End(), "System already exists");
+
+        auto insert_result = m_systems.Set(id, std::move(system));
+
+        return insert_result.first->second.Get();
+    }
+
+    /*! \brief Removes a System from the SystemExecutionGroup.
+     *
+     *  \tparam System The type of the System to remove.
+     *
+     *  \return True if the System was removed, false otherwise.
+     */
+    template <class System>
+    Bool RemoveSystem()
+    {
+        const TypeID id = TypeID::ForType<System>();
+
+        return m_systems.Erase(id);
+    }
+
+    /*! \brief Processes all Systems in the SystemExecutionGroup.
+     *
+     *  \param[in] entity_manager The EntityManager to use.
+     *  \param[in] delta The delta time to use.
+     */
+    void Process(EntityManager &entity_manager, GameCounter::TickUnit delta);
+
+private:
+    TypeMap<UniquePtr<SystemBase>> m_systems;
+};
+
+using EntityListenerID = UInt;
+
+struct EntityListener
+{
+    static constexpr EntityListenerID invalid_id = 0;
+
+    EntityListener()                                        = default;
+
+    EntityListener(Proc<void, ID<Entity>> &&on_entity_added, Proc<void, ID<Entity>> &&on_entity_removed)
+        : on_entity_added(std::move(on_entity_added)),
+          on_entity_removed(std::move(on_entity_removed))
+    {
+    }
+
+    EntityListener(const EntityListener &)                  = delete;
+    EntityListener &operator=(const EntityListener &)       = delete;
+    EntityListener(EntityListener &&) noexcept              = default;
+    EntityListener &operator=(EntityListener &&) noexcept   = default;
+    ~EntityListener()                                       = default;
+
+    Proc<void, ID<Entity>> on_entity_added;
+    Proc<void, ID<Entity>> on_entity_removed;
+
+    void OnEntityAdded(ID<Entity> id)
+    {
+        if (on_entity_added) {
+            on_entity_added(id);
+        }
+    }
+
+    void OnEntityRemoved(ID<Entity> id)
+    {
+        if (on_entity_removed) {
+            on_entity_removed(id);
+        }
+    }
+};
 
 class EntityManager
 {
@@ -189,28 +325,58 @@ public:
         return static_cast<EntitySet<Components...> &>(*entity_sets_it->second);
     }
 
+    template <class ... Components>
+    EntityListenerID AddEntityListener(EntityListener &&listener)
+    {
+        const EntitySetTypeID type_id = EntitySet<Components...>::type_id;
+
+        auto entity_listeners_it = m_entity_listeners.Find(type_id);
+
+        if (entity_listeners_it == m_entity_listeners.End()) {
+            auto entity_listeners_insert_result = m_entity_listeners.Set(type_id, { });
+
+            entity_listeners_it = entity_listeners_insert_result.first;
+        }
+
+        const EntityListenerID id = entity_listeners_it->second.Any()
+            ? entity_listeners_it->second.Back().first + 1
+            : 1; // Start at 1 so that 0 can be used as an invalid ID
+
+        entity_listeners_it->second.Insert(id, std::move(listener));
+
+        return id;
+    }
+
+    template <class ... Components>
+    Bool RemoveEntityListener(EntityListenerID id)
+    {
+        const EntitySetTypeID type_id = EntitySet<Components...>::type_id;
+
+        auto entity_listeners_it = m_entity_listeners.Find(type_id);
+        if (entity_listeners_it == m_entity_listeners.End()) {
+            return false;
+        }
+
+        return entity_listeners_it->second.Erase(id);
+    }
+
     template <class System, class ...Args>
     System *AddSystem(Args &&... args)
     {
-        const auto id = TypeID::ForType<System>();
-
-        if (m_systems.Contains(id)) {
-            return nullptr;
-        }
-
-        m_systems.Set<System>(UniquePtr<System>::Construct(std::forward<Args>(args)...));
-
-        return static_cast<System *>(m_systems.At<System>().Get());
+        return static_cast<System *>(AddSystemToExecutionGroup(UniquePtr<System>::Construct(std::forward<Args>(args)...)));
     }
 
     void Update(GameCounter::TickUnit delta);
 
 private:
-    TypeMap<UniquePtr<ComponentContainerBase>>          m_containers;
-    EntityContainer                                     m_entities;
-    FlatMap<EntitySetTypeID, UniquePtr<EntitySetBase>>  m_entity_sets;
-    TypeMap<FlatSet<EntitySetTypeID>>                   m_component_entity_sets;
-    TypeMap<UniquePtr<SystemBase>>                      m_systems;
+    SystemBase *AddSystemToExecutionGroup(UniquePtr<SystemBase> &&system);
+
+    TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
+    EntityContainer                                                         m_entities;
+    FlatMap<EntitySetTypeID, UniquePtr<EntitySetBase>>                      m_entity_sets;
+    TypeMap<FlatSet<EntitySetTypeID>>                                       m_component_entity_sets;
+    FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
+    Array<SystemExecutionGroup>                                             m_system_execution_groups;
 };
 
 } // namespace hyperion::v2

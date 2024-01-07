@@ -46,13 +46,39 @@ void EntityManager::RemoveEntity(ID<Entity> id)
 
 void EntityManager::Update(GameCounter::TickUnit delta)
 {
-    EntityManager &entity_manager = *this;
+    // Process the execution groups in sequential order
+    for (auto &system_execution_group : m_system_execution_groups) {
+        system_execution_group.Process(*this, delta);
+    }
+}
 
+SystemBase *EntityManager::AddSystemToExecutionGroup(UniquePtr<SystemBase> &&system)
+{
+    AssertThrow(system != nullptr);
+
+    if (m_system_execution_groups.Empty()) {
+        m_system_execution_groups.PushBack({ });
+    }
+
+    // @TODO: Organize it so Read-Only systems can be more efficiently grouped
+
+    for (auto &system_execution_group : m_system_execution_groups) {
+        if (system_execution_group.IsValidForExecutionGroup(system.Get())) {
+            return system_execution_group.AddSystem(std::move(system));
+        }
+    }
+
+    m_system_execution_groups.PushBack({ });
+    return m_system_execution_groups.Back().AddSystem(std::move(system));
+}
+
+void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+{
     m_systems.ParallelForEach(
         TaskSystem::GetInstance(),
-        [&entity_manager, delta](typename TypeMap<UniquePtr<SystemBase>>::KeyValuePairType &pair, UInt index, UInt batch_index)
+        [&entity_manager, delta](auto &it, UInt, UInt)
         {
-            pair.second->Process(entity_manager, delta);
+            it.second->Process(entity_manager, delta);
         }
     );
 }

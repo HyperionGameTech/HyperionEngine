@@ -291,7 +291,9 @@ void RenderList::PushEntityToRender(
     const Handle<Material> &material,
     const Handle<Shader> &shader,
     const Handle<Skeleton> &skeleton,
-    const Transform &transform,
+    const Matrix4 &model_matrix,
+    const Matrix4 &previous_model_matrix,
+    const BoundingBox &aabb,
     const RenderableAttributeSet *override_attributes
 )
 {
@@ -344,7 +346,10 @@ void RenderList::PushEntityToRender(
         mesh.GetID(),
         material.GetID(),
         skeleton.GetID(),
-        transform
+        model_matrix,
+        previous_model_matrix,
+        aabb,
+        attributes.GetMaterialAttributes().bucket
     });
 }
 
@@ -404,10 +409,13 @@ void RenderList::PushEntityToRender(
 
     m_draw_collection->Insert(attributes, EntityDrawData {
         entity->GetID(),
-        entity->GetDrawProxy().mesh_id,
-        entity->GetDrawProxy().material_id,
-        entity->GetDrawProxy().skeleton_id,
-        entity->GetTransform()
+        entity->GetMesh().GetID(),
+        entity->GetMaterial().GetID(),
+        entity->GetSkeleton().GetID(),
+        entity->GetTransform().GetMatrix(),
+        entity->GetPreviousModelMatrix(),
+        entity->GetWorldAABB(),
+        attributes.GetMaterialAttributes().bucket
     });
 }
 

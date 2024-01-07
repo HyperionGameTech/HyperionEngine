@@ -171,8 +171,8 @@ public:
         }
     }
 
-    Proc(const Proc &other) = delete;
-    Proc &operator=(const Proc &other) = delete;
+    Proc(const Proc &other)             = delete;
+    Proc &operator=(const Proc &other)  = delete;
 
     Proc(Proc &&other) noexcept
         : functor(std::move(other.functor))

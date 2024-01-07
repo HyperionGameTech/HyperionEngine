@@ -11,6 +11,23 @@ namespace hyperion::v2 {
 class Entity;
 
 using ComponentID = UInt;
+using ComponentRWFlags = UInt;
+
+enum ComponentRWFlagBits : ComponentRWFlags
+{
+    COMPONENT_RW_FLAGS_NONE         = 0,
+    COMPONENT_RW_FLAGS_READ         = 0x1,
+    COMPONENT_RW_FLAGS_WRITE        = 0x2,
+    COMPONENT_RW_FLAGS_READ_WRITE   = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
+};
+
+template <class T, ComponentRWFlags RWFlags = COMPONENT_RW_FLAGS_READ_WRITE>
+struct ComponentDescriptor
+{
+    using Type = T;
+
+    constexpr static ComponentRWFlags rw_flags = RWFlags;
+};
 
 class ComponentContainerBase
 {

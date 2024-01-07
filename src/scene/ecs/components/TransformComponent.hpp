@@ -7,7 +7,8 @@ namespace hyperion::v2 {
 
 struct TransformComponent
 {
-    Transform transform;
+    Transform   transform;
+    Matrix4     previous_transform_matrix;
 };
 
 } // namespace hyperion::v2
