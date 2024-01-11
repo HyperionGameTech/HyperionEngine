@@ -368,15 +368,17 @@ static void ForEachPermutation(
     Array<ShaderProperty> static_properties;
     Array<ShaderProperty> value_groups;
 
-    for (const auto &it : VertexAttribute::mapping) {
-        if (!it.second.name) {
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+        const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
+
+        if (!kv.second.name) {
             continue;
         }
 
-        if (versions.HasRequiredVertexAttribute(it.first)) {
-            static_properties.PushBack(ShaderProperty(it.first));
-        } else if (versions.HasOptionalVertexAttribute(it.first)) {
-            variable_properties.PushBack(ShaderProperty(it.first));
+        if (versions.HasRequiredVertexAttribute(kv.first)) {
+            static_properties.PushBack(ShaderProperty(kv.first));
+        } else if (versions.HasOptionalVertexAttribute(kv.first)) {
+            variable_properties.PushBack(ShaderProperty(kv.first));
         }
     }
 

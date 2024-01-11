@@ -74,15 +74,15 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 {
     ID<Material> id;
     SizeType texture_index;
-    Handle<Texture> texture;
+    Texture *texture;
     
     RENDER_COMMAND(UpdateMaterialTexture)(
         ID<Material> id,
         SizeType texture_index,
-        Handle<Texture> texture
+        Texture *texture
     ) : id(id),
         texture_index(texture_index),
-        texture(std::move(texture))
+        texture(texture)
     {
     }
 
@@ -320,7 +320,9 @@ Material::~Material()
 {
     SetReady(false);
 
-    m_textures.Clear();
+    for (SizeType i = 0; i < m_textures.Size(); i++) {
+        m_textures.ValueAt(i).Reset();
+    }
 
     if (IsInitCalled()) {
 #if !HYP_FEATURES_BINDLESS_TEXTURES
@@ -339,8 +341,10 @@ void Material::Init()
 
     BasicObject::Init();
 
-    for (auto &it : m_textures) {
-        InitObject(it.second);
+    for (SizeType i = 0; i < m_textures.Size(); i++) {
+        if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
+            InitObject(texture);
+        }
     }
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES
@@ -368,12 +372,11 @@ void Material::EnqueueDescriptorSetCreate()
     FlatMap<UInt, ImageViewRef> texture_bindings;
 
     const UInt num_bound_textures = max_textures_to_set;
-    UInt texture_index = 0;
-
-    for (auto it = m_textures.Begin(); it != m_textures.End() && texture_index < num_bound_textures; ++it) {
-        if (const Handle<Texture> &texture = it->second) {
+    
+    for (UInt i = 0; i < num_bound_textures; i++) {
+        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             if (texture->GetImageView()) {
-                texture_bindings[texture_index++] = texture->GetImageView();
+                texture_bindings[i] = texture->GetImageView();
             }
         }
     }
@@ -401,13 +404,10 @@ void Material::EnqueueRenderUpdates()
     FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> bound_texture_ids { };
 
     const UInt num_bound_textures = max_textures_to_set;
-    UInt texture_index = 0;
-
-    for (auto it = m_textures.Begin(); it != m_textures.End() && texture_index < num_bound_textures; ++it) {
-        if (const Handle<Texture> &texture = it->second) {
-            if (texture->GetImageView()) {
-                bound_texture_ids[texture_index++] = texture->GetID();
-            }
+    
+    for (UInt i = 0; i < num_bound_textures; i++) {
+        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
+            bound_texture_ids[i] = texture->GetID();
         }
     }
 
@@ -443,18 +443,15 @@ void Material::EnqueueRenderUpdates()
 
 void Material::EnqueueTextureUpdate(TextureKey key)
 {
-    auto it = m_textures.Find(key);
+    const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
-    if (it == m_textures.End()) {
-        return;
-    }
-
-    const UInt32 texture_index = UInt32(MathUtil::FastLog2_Pow2(UInt64(key)));
+    Texture *texture = m_textures.Get(key).Get();
+    AssertThrow(texture != nullptr);
 
     PUSH_RENDER_COMMAND(UpdateMaterialTexture, 
         m_id,
         texture_index,
-        it->second
+        texture
     );
 }
 
@@ -522,25 +519,19 @@ void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)
 
 void Material::SetTextureAtIndex(UInt index, const Handle<Texture> &texture)
 {
-    const TextureKey key = static_cast<TextureKey>(1ull << index);
+    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
 
     return SetTexture(key, texture);
 }
 
 const Handle<Texture> &Material::GetTexture(TextureKey key) const
 {
-    auto it = m_textures.Find(key);
-
-    if (it != m_textures.End()) {
-        return it->second;
-    }
-
-    return Handle<Texture>::empty;
+    return m_textures.Get(key);
 }
 
 const Handle<Texture> &Material::GetTextureAtIndex(UInt index) const
 {
-    const TextureKey key = static_cast<TextureKey>(1ull << index);
+    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
 
     return GetTexture(key);
 }

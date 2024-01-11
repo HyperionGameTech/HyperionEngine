@@ -11,6 +11,8 @@
 #include <core/lib/String.hpp>
 #include <core/lib/HashMap.hpp>
 #include <Types.hpp>
+
+#include <util/EnumOptions.hpp>
 #include <HashCode.hpp>
 
 #include <array>
@@ -268,8 +270,8 @@ public:
         MATERIAL_KEY_TERRAIN_LEVEL_3_HEIGHT = 1 << 21
     };
 
-    using ParameterTable    = HashMap<MaterialKey, Parameter>;
-    using TextureSet        = HashMap<TextureKey, Handle<Texture>>;
+    using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
+    using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
 
     static ParameterTable DefaultParameters();
 
@@ -305,50 +307,18 @@ public:
     const ParameterTable &GetParameters() const
         { return m_parameters; }
 
-    Parameter GetParameter(MaterialKey key) const
-    {
-        auto it = m_parameters.Find(key);
-
-        if (it == m_parameters.End()) {
-            return { };
-        }
-
-        return it->second;
-    }
+    const Parameter &GetParameter(MaterialKey key) const
+        { return m_parameters.Get(key); }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<T>, float>, std::decay_t<T>>
     GetParameter(MaterialKey key) const
-    {
-        static_assert(sizeof(T) <= sizeof(Parameter::values));
-
-        auto it = m_parameters.Find(key);
-
-        if (it == m_parameters.End()) {
-            return { };
-        }
-
-        T result;
-        std::memcpy(&result, &it->second.values.float_values[0], sizeof(T));
-        return result;
-    }
+        { return m_parameters.Get(key).values.float_values[0]; }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<T>, int>, std::decay_t<T>>
     GetParameter(MaterialKey key) const
-    {
-        static_assert(sizeof(T) <= sizeof(Parameter::values));
-
-        auto it = m_parameters.Find(key);
-
-        if (it == m_parameters.End()) {
-            return { };
-        }
-
-        T result;
-        std::memcpy(&result, &it->second.values.int_values[0], sizeof(T));
-        return result;
-    }
+        { return m_parameters.Get(key).values.int_values[0]; }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<decltype(T::values[0])>, float>, std::decay_t<T>>
@@ -356,14 +326,8 @@ public:
     {
         static_assert(sizeof(T::values) <= sizeof(Parameter::values));
 
-        auto it = m_parameters.Find(key);
-
-        if (it == m_parameters.End()) {
-            return { };
-        }
-
         T result;
-        std::memcpy(&result.values[0], &it->second.values.float_values[0], sizeof(float) * std::size(result.values));
+        std::memcpy(&result.values[0], &m_parameters.Get(key).values.float_values[0], sizeof(float) * std::size(result.values));
         return result;
     }
 

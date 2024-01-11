@@ -30,36 +30,35 @@ public:
 
         out.SetProperty("params.size", FBOMUnsignedInt(), UInt32(in_object.GetParameters().Size()));
 
-        for (const auto &it : in_object.GetParameters()) {
-            const auto key = it.first;
-            const auto &value = it.second;
+        for (SizeType i = 0; i < in_object.GetParameters().Size(); i++) {
+            const auto key_value = in_object.GetParameters().KeyValueAt(i);
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key)) + ".key",
+                String("params.") + String::ToString(UInt(key_value.first)) + ".key",
                 FBOMUnsignedLong(),
-                key
+                key_value.first
             );
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key)) + ".type",
+                String("params.") + String::ToString(UInt(key_value.first)) + ".type",
                 FBOMUnsignedInt(),
-                value.type
+                key_value.second.type
             );
 
-            if (value.IsIntType()) {
+            if (key_value.second.IsIntType()) {
                 for (UInt j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
                         FBOMInt(),
-                        value.values.int_values[j]
+                        key_value.second.values.int_values[j]
                     );
                 }
-            } else if (value.IsFloatType()) {
+            } else if (key_value.second.IsFloatType()) {
                 for (UInt j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
                         FBOMFloat(),
-                        value.values.float_values[j]
+                        key_value.second.values.float_values[j]
                     );
                 }
             }
@@ -68,11 +67,9 @@ public:
         UInt32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
-        UInt texture_index = 0;
-
-        for (const auto &it : in_object.GetTextures()) {
-            const auto key = it.first;
-            const auto &value = it.second;
+        for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
+            const auto key = in_object.GetTextures().KeyAt(i);
+            const auto &value = in_object.GetTextures().ValueAt(i);
 
             if (value) {
                 if (auto err = out.AddChild(*value, FBOM_OBJECT_FLAGS_EXTERNAL)) {
