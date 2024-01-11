@@ -143,16 +143,6 @@ public:
     void SetSkeleton(const Handle<Skeleton> &skeleton)
         { SetSkeleton(Handle<Skeleton>(skeleton)); }
 
-    Handle<Shader> &GetShader()
-        { return m_shader; }
-
-    const Handle<Shader> &GetShader() const
-        { return m_shader; }
-
-    void SetShader(Handle<Shader> &&shader);
-    void SetShader(const Handle<Shader> &shader)
-        { SetShader(Handle<Shader>(shader)); }
-
     Handle<Material> &GetMaterial()
         { return m_material; }
 

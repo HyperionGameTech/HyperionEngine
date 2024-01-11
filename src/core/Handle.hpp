@@ -161,7 +161,7 @@ struct Handle
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(String(HandleDefinition<T>::class_name).GetHashCode());
+        hc.Add(GetTypeName().GetHashCode());
         hc.Add(index);
 
         return hc;

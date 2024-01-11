@@ -37,10 +37,6 @@ public:
             out.AddChild(*mesh, FBOM_OBJECT_FLAGS_EXTERNAL);
         }
 
-        if (const auto &shader = in_object.GetShader()) {
-            out.AddChild(*shader, FBOM_OBJECT_FLAGS_EXTERNAL);
-        }
-
         if (const auto &material = in_object.GetMaterial()) {
             out.AddChild(*material, FBOM_OBJECT_FLAGS_EXTERNAL);
         }
@@ -100,8 +96,6 @@ public:
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Mesh")) {
                 (*entity_handle)->SetMesh(node.deserialized.Get<Mesh>());
-            } else if (node.GetType().IsOrExtends("Shader")) {
-                (*entity_handle)->SetShader(node.deserialized.Get<Shader>());
             } else if (node.GetType().IsOrExtends("Material")) {
                 (*entity_handle)->SetMaterial(node.deserialized.Get<Material>());
             } else if (node.GetType().IsOrExtends("Controller")) {

@@ -213,21 +213,25 @@ void SampleStreamer::InitGame()
         btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 1.0f, 0.0f));
 
         auto entity_id = EntityManager::GetInstance().AddEntity();
+
         EntityManager::GetInstance().AddComponent(entity_id, SceneComponent {
         });
 
         auto cube = MeshBuilder::NormalizedCubeSphere(8);
         InitObject(cube);
-
-        constexpr auto temp_typename = TypeName<MeshComponent>();
-        DebugLog(LogType::Debug, "Type name: %s\n", temp_typename.data);
         
         EntityManager::GetInstance().AddComponent(entity_id, MeshComponent {
             cube,
-            g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE }),
-            g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(renderer::static_mesh_vertex_attributes))
+            g_material_system->GetOrCreate({
+                .shader_definition = ShaderDefinition {
+                    HYP_NAME(Forward),
+                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+                },
+                .bucket = Bucket::BUCKET_OPAQUE
+            })
         });
         EntityManager::GetInstance().AddComponent(entity_id, BoundingBoxComponent {
+            BoundingBox(Vec3f(0.0f) + Vec3f(-1.0f), Vec3f(0.0f) + Vec3f(1.0f)),
             BoundingBox(Vec3f(0.0f) + Vec3f(-1.0f), Vec3f(0.0f) + Vec3f(1.0f))
         });
         EntityManager::GetInstance().AddComponent(entity_id, TransformComponent {

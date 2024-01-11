@@ -1287,13 +1287,16 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             FBXMesh *mesh;
 
             if (GetFBXObject(node.mesh_id, mesh)) {
-                // create Entity for Mesh
-                auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh->attributes, {{ "SKINNING" }}));
-                auto material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
+                auto material = g_material_system->GetOrCreate({
+                    .shader_definition = ShaderDefinition {
+                        HYP_NAME(Forward),
+                        ShaderProperties(mesh->attributes, {{ "SKINNING" }})
+                    },
+                    .bucket = Bucket::BUCKET_OPAQUE
+                });
 
                 auto entity = CreateObject<Entity>();
                 entity->SetName(CreateNameFromDynamicString(node.name.Data()));
-                entity->SetShader(shader);
                 entity->SetMaterial(material);
 
                 ApplyClustersToMesh(*mesh);

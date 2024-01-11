@@ -13,7 +13,7 @@ using MeshComponentFlags = UInt32;
 
 enum MeshComponentFlagBits : MeshComponentFlags
 {
-    MESH_COMPONENT_FLAG_NONE    = 0,
+    MESH_COMPONENT_FLAG_NONE    = 0x0,
     MESH_COMPONENT_FLAG_DIRTY   = 0x1
 };
 
@@ -21,7 +21,6 @@ struct MeshComponent
 {
     Handle<Mesh>        mesh;
     Handle<Material>    material;
-    Handle<Shader>      shader;
 
     MeshComponentFlags  flags = MESH_COMPONENT_FLAG_DIRTY;
 };

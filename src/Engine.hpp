@@ -40,7 +40,6 @@
 
 #include <system/CrashHandler.hpp>
 
-#include <util/EnumOptions.hpp>
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
 #include <Types.hpp>
@@ -162,7 +161,7 @@ public:
     const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
 
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
-        { return m_texture_format_defaults.Get(type); }
+        { return m_texture_format_defaults.At(type); }
 
     const FinalPass &GetFinalPass() const
         { return m_final_pass; }
@@ -294,7 +293,7 @@ private:
     
     UniquePtr<Instance> m_instance;
 
-    EnumOptions<TextureFormatDefault, InternalFormat, 16> m_texture_format_defaults;
+    HashMap<TextureFormatDefault, InternalFormat> m_texture_format_defaults;
 
     DeferredRenderer m_deferred_renderer;
     DeferredSystem m_render_list_container;

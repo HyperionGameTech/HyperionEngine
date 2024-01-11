@@ -14,6 +14,17 @@ struct HashElement
 
     KeyType     first;
     ValueType   second;
+
+    /*! \brief Implement GetHashCode() so GetHashCode() of the entire HashMap can be used. */
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(first);
+        hc.Add(second);
+
+        return hc;
+    }
 };
 
 template <class KeyType, class ValueType>

@@ -227,7 +227,6 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 
         mesh->CalculateTangents();
 
-
         auto vertex_attributes = mesh->GetVertexAttributes();
         
         ShaderProperties shader_properties(vertex_attributes);

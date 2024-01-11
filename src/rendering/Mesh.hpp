@@ -92,8 +92,9 @@ public:
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
     void InvertNormals();
-
-    BoundingBox CalculateAABB() const;
+    
+    const BoundingBox &GetAABB() const
+        { return m_aabb; }
 
     void Init();
 
@@ -108,17 +109,21 @@ public:
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
 
 private:
+    void CalculateAABB();
+
     Array<Float> BuildVertexBuffer();
 
-    GPUBufferRef m_vbo;
-    GPUBufferRef m_ibo;
+    GPUBufferRef        m_vbo;
+    GPUBufferRef        m_ibo;
 
-    UInt m_indices_count = 0;
+    UInt                m_indices_count = 0;
 
-    MeshAttributes m_mesh_attributes;
+    MeshAttributes      m_mesh_attributes;
 
-    Array<Vertex> m_vertices;
-    Array<Index> m_indices;
+    Array<Vertex>       m_vertices;
+    Array<Index>        m_indices;
+
+    mutable BoundingBox m_aabb;
 };
 
 } // namespace hyperion::v2

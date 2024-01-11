@@ -7,7 +7,8 @@ namespace hyperion::v2 {
 
 struct BoundingBoxComponent
 {
-    BoundingBox aabb;
+    BoundingBox world_aabb;
+    BoundingBox local_aabb;
 };
 
 } // namespace hyperion::v2

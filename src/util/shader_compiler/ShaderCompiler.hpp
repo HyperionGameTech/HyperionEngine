@@ -43,15 +43,9 @@ struct ShaderProperty;
 
 static Bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
 {
-    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-        const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
-
-        if (!kv.second.name) {
-            continue;
-        }
-
-        if (name == kv.second.name) {
-            out_type = kv.first;
+    for (auto it : VertexAttribute::mapping) {
+        if (it.second.name == name) {
+            out_type = it.first;
 
             return true;
         }
@@ -88,10 +82,10 @@ struct ShaderProperty
     }
 
     explicit ShaderProperty(VertexAttribute::Type vertex_attribute)
-        : name(String("HYP_ATTRIBUTE_") + VertexAttribute::mapping.Get(vertex_attribute).name),
+        : name(String("HYP_ATTRIBUTE_") + VertexAttribute::mapping.At(vertex_attribute).name),
           is_permutation(false),
           flags(SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE),
-          value(Value(String(VertexAttribute::mapping.Get(vertex_attribute).name)))
+          value(Value(String(VertexAttribute::mapping.At(vertex_attribute).name)))
     {
     }
 
@@ -548,6 +542,18 @@ struct HashedShaderDefinition
     Name                name;
     HashCode            property_set_hash;
     VertexAttributeSet  required_vertex_attributes;
+
+    HYP_FORCE_INLINE
+    Bool operator==(const HashedShaderDefinition &other) const
+    {
+        return name == other.name
+            && property_set_hash == other.property_set_hash
+            && required_vertex_attributes == other.required_vertex_attributes;
+    }
+
+    HYP_FORCE_INLINE
+    Bool operator!=(const HashedShaderDefinition &other) const
+        { return !(*this == other); }
     
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
@@ -698,6 +704,14 @@ struct ShaderDefinition
     HYP_FORCE_INLINE
     Bool IsValid() const
         { return name.IsValid(); }
+
+    HYP_FORCE_INLINE
+    Bool operator==(const ShaderDefinition &other) const
+        { return GetHashCode() == other.GetHashCode(); }
+
+    HYP_FORCE_INLINE
+    Bool operator!=(const ShaderDefinition &other) const
+        { return GetHashCode() != other.GetHashCode(); }
     
     HYP_FORCE_INLINE
     explicit operator HashedShaderDefinition() const

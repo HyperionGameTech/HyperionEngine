@@ -45,7 +45,7 @@ public:
     HYP_FORCE_INLINE
     FixedArray Map(Function &&fn) const
     {
-        containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Map(std::forward<Function>(fn));
     }
 
@@ -53,7 +53,7 @@ public:
     HYP_FORCE_INLINE
     Bool Contains(const T &value) const
     {
-        containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Contains(value);
     }
 
@@ -96,7 +96,7 @@ public:
         if constexpr (Sz == 0) {
             return false;
         } else {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.Any(std::forward<Lambda>(lambda));
         }
     }
@@ -106,7 +106,7 @@ public:
     HYP_FORCE_INLINE
     Bool Every(Lambda &&lambda) const
     {
-        containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Every(std::forward<Lambda>(lambda));
     }
 
@@ -117,7 +117,7 @@ public:
         if constexpr (Sz == 0) {
             return T();
         } else {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
 
             return impl.Sum();
         }
@@ -130,7 +130,7 @@ public:
         if constexpr (Sz == 0) {
             return T();
         } else {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.Avg();
         }
     }
@@ -143,17 +143,17 @@ public:
         if constexpr (Sz == 0) {
             return KeyType(-1);
         } else {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.IndexOf(iter);
         }
     }
 
     template <class TaskSystem, class Lambda>
     HYP_FORCE_INLINE
-    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
+    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda) const
     {
         if constexpr (Sz != 0) {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             impl.ParallelForEach(task_system, std::forward<Lambda>(lambda));
         }
     }
@@ -166,7 +166,7 @@ public:
         if constexpr (Sz != OtherContainer::size) {
             return false;
         } else {
-            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.CompareBitwise(other);
         }
     }
@@ -207,7 +207,7 @@ public:
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
-        containers::detail::FixedArrayImpl<T, Sz> impl(&m_values[0]);
+        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();
     }
 };

@@ -126,11 +126,11 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
                 .vertex_attributes = vertex_attributes
             },
             MaterialAttributes {
+                .shader_definition = shader->GetCompiledShader().GetDefinition(),
                 .bucket = Bucket::BUCKET_OPAQUE,
                 .blend_mode = BlendMode::NONE,
                 .cull_faces = FaceCullMode::NONE
-            },
-            shader->GetCompiledShader().GetDefinition()
+            }
         )
     );
 

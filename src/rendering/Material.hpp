@@ -3,6 +3,7 @@
 
 #include <rendering/Texture.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/ShaderDataState.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
@@ -10,8 +11,6 @@
 #include <core/lib/String.hpp>
 #include <core/lib/HashMap.hpp>
 #include <Types.hpp>
-
-#include <util/EnumOptions.hpp>
 #include <HashCode.hpp>
 
 #include <array>
@@ -269,8 +268,8 @@ public:
         MATERIAL_KEY_TERRAIN_LEVEL_3_HEIGHT = 1 << 21
     };
 
-    using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
-    using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
+    using ParameterTable    = HashMap<MaterialKey, Parameter>;
+    using TextureSet        = HashMap<TextureKey, Handle<Texture>>;
 
     static ParameterTable DefaultParameters();
 
@@ -295,24 +294,61 @@ public:
     void SetShaderDataState(ShaderDataState state)
         { m_shader_data_state = state; }
 
+    const Handle<Shader> &GetShader() const
+        { return m_shader; }
+
+    void SetShader(Handle<Shader> shader);
+
     ParameterTable &GetParameters()
         { return m_parameters; }
 
     const ParameterTable &GetParameters() const
         { return m_parameters; }
 
-    const Parameter &GetParameter(MaterialKey key) const
-        { return m_parameters.Get(key); }
+    Parameter GetParameter(MaterialKey key) const
+    {
+        auto it = m_parameters.Find(key);
+
+        if (it == m_parameters.End()) {
+            return { };
+        }
+
+        return it->second;
+    }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<T>, float>, std::decay_t<T>>
     GetParameter(MaterialKey key) const
-        { return m_parameters.Get(key).values.float_values[0]; }
+    {
+        static_assert(sizeof(T) <= sizeof(Parameter::values));
+
+        auto it = m_parameters.Find(key);
+
+        if (it == m_parameters.End()) {
+            return { };
+        }
+
+        T result;
+        std::memcpy(&result, &it->second.values.float_values[0], sizeof(T));
+        return result;
+    }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<T>, int>, std::decay_t<T>>
     GetParameter(MaterialKey key) const
-        { return m_parameters.Get(key).values.int_values[0]; }
+    {
+        static_assert(sizeof(T) <= sizeof(Parameter::values));
+
+        auto it = m_parameters.Find(key);
+
+        if (it == m_parameters.End()) {
+            return { };
+        }
+
+        T result;
+        std::memcpy(&result, &it->second.values.int_values[0], sizeof(T));
+        return result;
+    }
 
     template <class T>
     typename std::enable_if_t<std::is_same_v<std::decay_t<decltype(T::values[0])>, float>, std::decay_t<T>>
@@ -320,8 +356,14 @@ public:
     {
         static_assert(sizeof(T::values) <= sizeof(Parameter::values));
 
+        auto it = m_parameters.Find(key);
+
+        if (it == m_parameters.End()) {
+            return { };
+        }
+
         T result;
-        std::memcpy(&result.values[0], &m_parameters.Get(key).values.float_values[0], sizeof(float) * std::size(result.values));
+        std::memcpy(&result.values[0], &it->second.values.float_values[0], sizeof(float) * std::size(result.values));
         return result;
     }
 
@@ -453,6 +495,7 @@ public:
     {
         HashCode hc;
 
+        hc.Add(m_shader.GetHashCode());
         hc.Add(m_parameters.GetHashCode());
         hc.Add(m_textures.GetHashCode());
         hc.Add(m_render_attributes.GetHashCode());
@@ -466,17 +509,19 @@ private:
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
 
-    ParameterTable m_parameters;
-    TextureSet m_textures;
+    Handle<Shader>                                      m_shader;
 
-    MaterialAttributes m_render_attributes;
+    ParameterTable                                      m_parameters;
+    TextureSet                                          m_textures;
 
-    bool m_is_dynamic;
+    MaterialAttributes                                  m_render_attributes;
 
-    MaterialShaderData m_shader_data;
-    mutable ShaderDataState m_shader_data_state;
+    bool                                                m_is_dynamic;
 
-    FixedArray<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
+    MaterialShaderData                                  m_shader_data;
+    mutable ShaderDataState                             m_shader_data_state;
+
+    FixedArray<DescriptorSet *, max_frames_in_flight>   m_descriptor_sets;
 };
 
 class MaterialGroup : public BasicObject<STUB_CLASS(MaterialGroup)>

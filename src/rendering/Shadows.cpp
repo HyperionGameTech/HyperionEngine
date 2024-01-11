@@ -472,12 +472,12 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
+                .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition(),
                 .bucket = BUCKET_INTERNAL,
                 .cull_faces = m_shadow_pass->GetShadowMode() == ShadowMode::VSM
                     ? FaceCullMode::BACK
                     : FaceCullMode::FRONT
-            },
-            m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition()
+            }
         ),
         true // no culling for now
     );

@@ -301,7 +301,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
 
 MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Float voxel_size)
 {
-    BoundingBox total_aabb = mesh->CalculateAABB();
+    BoundingBox total_aabb = mesh->GetAABB();
     Vector3 total_aabb_dimensions = total_aabb.GetExtent();
 
     UInt num_voxels_x = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.x / voxel_size);
@@ -313,7 +313,7 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Float voxel_size)
 
 MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_size)
 {
-    BoundingBox mesh_aabb = mesh->CalculateAABB();
+    BoundingBox mesh_aabb = mesh->GetAABB();
 
     Float voxel_size = 1.0f / Float(voxel_grid_size.Max());
 

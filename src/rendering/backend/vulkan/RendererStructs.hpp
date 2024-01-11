@@ -1,9 +1,9 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP
 
-#include <util/EnumOptions.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/DynArray.hpp>
+#include <core/lib/HashMap.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 

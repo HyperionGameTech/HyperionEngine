@@ -474,10 +474,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             RenderableAttributeSet(
                 MeshAttributes { },
                 MaterialAttributes {
+                    .shader_definition = m_shader->GetCompiledShader().GetDefinition(),
                     .bucket = BUCKET_INTERNAL,
                     .cull_faces = FaceCullMode::NONE
-                },
-                m_shader->GetCompiledShader().GetDefinition()
+                }
             ),
             true // skip frustum culling
         );

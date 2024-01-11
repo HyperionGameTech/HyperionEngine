@@ -30,35 +30,36 @@ public:
 
         out.SetProperty("params.size", FBOMUnsignedInt(), UInt32(in_object.GetParameters().Size()));
 
-        for (SizeType i = 0; i < in_object.GetParameters().Size(); i++) {
-            const auto key_value = in_object.GetParameters().KeyValueAt(i);
+        for (const auto &it : in_object.GetParameters()) {
+            const auto key = it.first;
+            const auto &value = it.second;
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key_value.first)) + ".key",
+                String("params.") + String::ToString(UInt(key)) + ".key",
                 FBOMUnsignedLong(),
-                key_value.first
+                key
             );
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key_value.first)) + ".type",
+                String("params.") + String::ToString(UInt(key)) + ".type",
                 FBOMUnsignedInt(),
-                key_value.second.type
+                value.type
             );
 
-            if (key_value.second.IsIntType()) {
+            if (value.IsIntType()) {
                 for (UInt j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(UInt(key)) + ".values[" + String::ToString(j) + "]",
                         FBOMInt(),
-                        key_value.second.values.int_values[j]
+                        value.values.int_values[j]
                     );
                 }
-            } else if (key_value.second.IsFloatType()) {
+            } else if (value.IsFloatType()) {
                 for (UInt j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(UInt(key)) + ".values[" + String::ToString(j) + "]",
                         FBOMFloat(),
-                        key_value.second.values.float_values[j]
+                        value.values.float_values[j]
                     );
                 }
             }
@@ -67,9 +68,11 @@ public:
         UInt32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
-        for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
-            const auto key = in_object.GetTextures().KeyAt(i);
-            const auto &value = in_object.GetTextures().ValueAt(i);
+        UInt texture_index = 0;
+
+        for (const auto &it : in_object.GetTextures()) {
+            const auto key = it.first;
+            const auto &value = it.second;
 
             if (value) {
                 if (auto err = out.AddChild(*value, FBOM_OBJECT_FLAGS_EXTERNAL)) {
@@ -78,6 +81,10 @@ public:
 
                 texture_keys[texture_index++] = UInt32(key);
             }
+        }
+
+        if (const auto &shader = in_object.GetShader()) {
+            out.AddChild(*shader, FBOM_OBJECT_FLAGS_EXTERNAL);
         }
 
         out.SetProperty(
@@ -152,6 +159,11 @@ public:
 
         UInt texture_index = 0;
 
+        Handle<Shader> shader = g_shader_manager->GetOrCreate(
+            HYP_NAME(Forward),
+            ShaderProperties()
+        );
+
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Texture")) {
                 if (texture_index < std::size(texture_keys)) {
@@ -164,10 +176,13 @@ public:
                         ++texture_index;
                     }
                 }
+            } else if (node.GetType().IsOrExtends("Shader")) {
+                shader = node.deserialized.Get<Shader>();
             }
         }
 
         auto material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
+        material_handle->SetShader(std::move(shader));
 
         if (name) {
             material_handle->SetName(name);

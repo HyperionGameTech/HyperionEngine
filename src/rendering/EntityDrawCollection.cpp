@@ -217,6 +217,8 @@ void RenderList::UpdateRenderGroups()
 
     for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(THREAD_TYPE_GAME)) {
         for (auto &it : collection_per_pass_type) {
+            // temp
+            AssertThrow(it.first.GetMaterialAttributes().shader_definition.IsValid());
             iterators.PushBack(&it);
         }
     }
@@ -289,7 +291,6 @@ void RenderList::PushEntityToRender(
     ID<Entity> entity_id,
     const Handle<Mesh> &mesh,
     const Handle<Material> &material,
-    const Handle<Shader> &shader,
     const Handle<Skeleton> &skeleton,
     const Matrix4 &model_matrix,
     const Matrix4 &previous_model_matrix,
@@ -308,9 +309,14 @@ void RenderList::PushEntityToRender(
 
     RenderableAttributeSet attributes {
         mesh.IsValid() ? mesh->GetMeshAttributes() : MeshAttributes { },
-        material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { },
-        shader.IsValid() ? shader->GetCompiledShader().GetDefinition() : ShaderDefinition { }
+        material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { }
     };
+
+    // Temp
+    if (material.IsValid()) {
+        AssertThrow(material->GetRenderAttributes().shader_definition.IsValid());
+        AssertThrow(attributes.GetShaderDefinition().IsValid());
+    }
 
     if (framebuffer) {
         attributes.SetFramebufferID(framebuffer->GetID());
@@ -320,26 +326,32 @@ void RenderList::PushEntityToRender(
         if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
             attributes.SetShaderDefinition(override_shader_definition);
         }
-        
+
+        AssertThrow(attributes.GetShaderDefinition().IsValid());
+
+        ShaderDefinition shader_definition = override_attributes->GetShaderDefinition().IsValid()
+            ? override_attributes->GetShaderDefinition()
+            : attributes.GetShaderDefinition();
+
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
         const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
 
-        if (mesh_vertex_attributes != attributes.GetShaderDefinition().GetProperties().GetRequiredVertexAttributes()) {
-            ShaderDefinition new_shader_definition = attributes.GetShaderDefinition();
-            new_shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
-
-            attributes.SetShaderDefinition(new_shader_definition);
+        if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes()) {
+            shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
         }
 
-        // do not override bucket!
         MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
+        new_material_attributes.shader_definition = shader_definition;
+        // do not override bucket!
         new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetMaterialAttributes(new_material_attributes);
         attributes.SetStencilState(override_attributes->GetStencilState());
     }
+
+    AssertThrow(attributes.GetMaterialAttributes().shader_definition.IsValid());
 
     m_draw_collection->Insert(attributes, EntityDrawData {
         entity_id,

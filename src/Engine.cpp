@@ -26,6 +26,7 @@
 
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
+#include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 
 #include <Game.hpp>
 
@@ -137,6 +138,7 @@ void Engine::RegisterComponents()
     m_components.Register<UIButtonController>();
     m_components.Register<UIContainerController>();
 
+    EntityManager::GetInstance().AddSystem<WorldAABBUpdaterSystem>();
     EntityManager::GetInstance().AddSystem<VisibilityStateUpdaterSystem>();
     EntityManager::GetInstance().AddSystem<EntityDrawDataUpdaterSystem>();
 }

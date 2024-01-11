@@ -45,15 +45,13 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
 {
     Array<EntityDrawData> entity_draw_datas;
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>())
-    {
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }
 
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();
-        const ID<Shader> shader_id = mesh_component.shader.GetID();
 
         ID<Skeleton> skeleton_id = ID<Skeleton>::invalid;
 
@@ -68,7 +66,7 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             skeleton_id,
             transform_component.transform.GetMatrix(),
             transform_component.previous_transform_matrix,
-            bounding_box_component.aabb,
+            bounding_box_component.world_aabb,
             mesh_component.material.IsValid() // @TODO: More efficent way of doing this
                 ? UInt32(mesh_component.material->GetBucket())
                 : BUCKET_OPAQUE

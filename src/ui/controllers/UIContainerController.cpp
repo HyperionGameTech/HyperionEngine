@@ -33,12 +33,13 @@ bool UIContainerController::CreateScriptedMethods()
 void UIContainerController::OnAdded()
 {
     GetOwner()->SetMesh(MeshBuilder::Quad());
-    GetOwner()->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);
     mat->SetFaceCullMode(FaceCullMode::NONE);
     mat->SetBlendMode(BlendMode::NORMAL);
+    mat->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
+
     GetOwner()->SetMaterial(std::move(mat));
 
     Controller::OnAdded();

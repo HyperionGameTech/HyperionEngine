@@ -153,7 +153,6 @@ public:
         ID<Entity> entity_id,
         const Handle<Mesh> &mesh,
         const Handle<Material> &material,
-        const Handle<Shader> &shader,
         const Handle<Skeleton> &skeleton,
         const Matrix4 &model_matrix,
         const Matrix4 &previous_model_matrix,

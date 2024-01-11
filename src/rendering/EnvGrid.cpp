@@ -572,11 +572,11 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
+                .shader_definition = m_ambient_shader->GetCompiledShader().GetDefinition(),
                 .bucket = BUCKET_INTERNAL,
                 .cull_faces = FaceCullMode::NONE
                 // .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
-            m_ambient_shader->GetCompiledShader().GetDefinition(),
             Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set
         ),
         true // skip frustum culling

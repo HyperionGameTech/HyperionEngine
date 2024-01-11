@@ -18,7 +18,7 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         if (visibility_state_component.octant_id == OctantID::invalid) {
             const Octree::InsertResult insert_result = octree.Insert(
                 entity_id,
-                bounding_box_component.aabb
+                bounding_box_component.world_aabb
             );
 
             if (insert_result.first) {
@@ -34,11 +34,11 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             needs_octree_update = true;
         }
         
-        const HashCode aabb_hash_code = bounding_box_component.aabb.GetHashCode();
+        const HashCode aabb_hash_code = bounding_box_component.world_aabb.GetHashCode();
         needs_octree_update |= (aabb_hash_code != visibility_state_component.last_aabb_hash);
 
         if (needs_octree_update) {
-            octree.Update(entity_id, bounding_box_component.aabb);
+            octree.Update(entity_id, bounding_box_component.world_aabb);
 
             visibility_state_component.last_aabb_hash = aabb_hash_code;
         }

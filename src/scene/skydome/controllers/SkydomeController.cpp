@@ -21,12 +21,6 @@ void SkydomeController::OnAdded()
         m_dome->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);
         m_dome->SetScale(150.0f);
 
-
-        m_dome->SetShader(g_shader_manager->GetOrCreate(
-            HYP_NAME(Skybox),
-            ShaderProperties(renderer::static_mesh_vertex_attributes)
-        ));
-
         InitObject(m_dome);
     }
 }
@@ -73,6 +67,11 @@ void SkydomeController::OnAttachedToScene(ID<Scene> id)
             material->SetFaceCullMode(FaceCullMode::FRONT);
             material->SetIsDepthTestEnabled(false);
             material->SetIsDepthWriteEnabled(false);
+
+            material->SetShader(g_shader_manager->GetOrCreate(
+                HYP_NAME(Skybox),
+                ShaderProperties(renderer::static_mesh_vertex_attributes)
+            ));
 
             m_dome->SetMaterial(std::move(material));
         }

@@ -145,7 +145,7 @@ Entity::Entity(
     m_shader_data_state(ShaderDataState::DIRTY)
 {
     if (m_mesh) {
-        m_local_aabb = m_mesh->CalculateAABB();
+        m_local_aabb = m_mesh->GetAABB();
         
         if (!m_local_aabb.Empty()) {
             m_world_aabb = BoundingBox(m_transform.GetMatrix() * m_local_aabb.min, m_transform.GetMatrix() * m_local_aabb.max);
@@ -196,7 +196,7 @@ void Entity::Init()
 
     // set our aabb to be the mesh aabb now that it is init
     if (InitObject(m_mesh)) {
-        m_local_aabb = m_mesh->CalculateAABB();
+        m_local_aabb = m_mesh->GetAABB();
         
         UpdateWorldAABB(false);
     }
@@ -353,14 +353,8 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
     m_mesh = std::move(mesh);
 
     if (m_mesh) {
-        m_local_aabb = m_mesh->CalculateAABB();
+        m_local_aabb = m_mesh->GetAABB();
         m_world_aabb = BoundingBox::empty;
-
-        //if (m_nodes.Any()) {
-        //    for (Node *node : m_nodes) {
-        //        node->UpdateWorldTransform();
-        //    }
-        //}
 
         if (!m_local_aabb.Empty()) {
             for (const Vector3 &corner : m_local_aabb.GetCorners()) {
@@ -391,27 +385,6 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
     }
 
     RebuildRenderableAttributes();
-}
-
-void Entity::SetShader(Handle<Shader> &&shader)
-{
-    if (m_shader == shader) {
-        return;
-    }
-
-    m_shader = std::move(shader);
-    
-    if (m_shader) {
-        if (IsInitCalled()) {
-            InitObject(m_shader);
-        }
-
-        RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
-        new_renderable_attributes.SetShaderDefinition(m_shader->GetCompiledShader().GetDefinition());
-        SetRenderableAttributes(new_renderable_attributes);
-    } else {
-        RebuildRenderableAttributes();
-    }
 }
 
 void Entity::SetMaterial(Handle<Material> &&material)

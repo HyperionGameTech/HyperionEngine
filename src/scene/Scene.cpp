@@ -778,6 +778,10 @@ void Scene::CollectEntities(
     for (auto it : EntityManager::GetInstance().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
+        // Temp
+        AssertThrow(mesh_component.material.IsValid());
+        AssertThrow(mesh_component.material->GetRenderAttributes().shader_definition.IsValid());
+
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
         // Visibility check
         if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)) {
@@ -810,11 +814,10 @@ void Scene::CollectEntities(
             entity_id,
             mesh_component.mesh,
             mesh_component.material,
-            mesh_component.shader,
             Handle<Skeleton>::empty, // TEMP
             transform_component.transform.GetMatrix(),
             transform_component.previous_transform_matrix,
-            bounding_box_component.aabb,
+            bounding_box_component.world_aabb,
             override_attributes_ptr
         );
     }

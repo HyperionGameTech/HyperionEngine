@@ -319,6 +319,8 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
     AssertThrow(EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetDefinition().GetProperties()));
 #endif
 
+    InitObject(handle);
+
     m_map.Set(definition, handle);
 
     return handle;

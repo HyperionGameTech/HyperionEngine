@@ -116,6 +116,7 @@ template <class Key, class Value>
 struct KeyValuePair : Pair<Key, Value>
 {
     KeyValuePair() : Pair<Key, Value>() {}
+
     KeyValuePair(const Key &key, const Value &value) : Pair<Key, Value>(key, value) {}
     KeyValuePair(const Key &key, Value &&value) : Pair<Key, Value>(key, std::forward<Value>(value)) {}
     KeyValuePair(Key &&key, const Value &value) : Pair<Key, Value>(std::forward<Key>(key), value) {}

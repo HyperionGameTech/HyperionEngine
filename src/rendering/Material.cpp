@@ -74,15 +74,15 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 {
     ID<Material> id;
     SizeType texture_index;
-    Texture *texture;
+    Handle<Texture> texture;
     
     RENDER_COMMAND(UpdateMaterialTexture)(
         ID<Material> id,
         SizeType texture_index,
-        Texture *texture
+        Handle<Texture> texture
     ) : id(id),
         texture_index(texture_index),
-        texture(texture)
+        texture(std::move(texture))
     {
     }
 
@@ -267,7 +267,13 @@ Material::ParameterTable Material::DefaultParameters()
 
 Material::Material()
     : BasicObject(),
-      m_render_attributes { .bucket = Bucket::BUCKET_OPAQUE },
+      m_render_attributes {
+        .shader_definition = ShaderDefinition {
+            HYP_NAME(Forward),
+            renderer::static_mesh_vertex_attributes
+        },
+        .bucket = Bucket::BUCKET_OPAQUE
+      },
       m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
@@ -276,10 +282,20 @@ Material::Material()
 
 Material::Material(Name name, Bucket bucket)
     : BasicObject(name),
-      m_render_attributes { .bucket = bucket },
+      m_render_attributes {
+        .shader_definition = ShaderDefinition {
+            HYP_NAME(Forward),
+            renderer::static_mesh_vertex_attributes
+        },
+        .bucket = Bucket::BUCKET_OPAQUE
+      },
       m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
+    if (m_render_attributes.shader_definition) {
+        m_shader = g_shader_manager->GetOrCreate(m_render_attributes.shader_definition);
+    }
+
     ResetParameters();
 }
 
@@ -295,15 +311,16 @@ Material::Material(
     m_is_dynamic(false),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
+    if (m_render_attributes.shader_definition) {
+        m_shader = g_shader_manager->GetOrCreate(m_render_attributes.shader_definition);
+    }
 }
 
 Material::~Material()
 {
     SetReady(false);
 
-    for (SizeType i = 0; i < m_textures.Size(); i++) {
-        m_textures.ValueAt(i).Reset();
-    }
+    m_textures.Clear();
 
     if (IsInitCalled()) {
 #if !HYP_FEATURES_BINDLESS_TEXTURES
@@ -322,10 +339,8 @@ void Material::Init()
 
     BasicObject::Init();
 
-    for (SizeType i = 0; i < m_textures.Size(); i++) {
-        if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
-            InitObject(texture);
-        }
+    for (auto &it : m_textures) {
+        InitObject(it.second);
     }
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES
@@ -353,11 +368,12 @@ void Material::EnqueueDescriptorSetCreate()
     FlatMap<UInt, ImageViewRef> texture_bindings;
 
     const UInt num_bound_textures = max_textures_to_set;
-    
-    for (UInt i = 0; i < num_bound_textures; i++) {
-        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
+    UInt texture_index = 0;
+
+    for (auto it = m_textures.Begin(); it != m_textures.End() && texture_index < num_bound_textures; ++it) {
+        if (const Handle<Texture> &texture = it->second) {
             if (texture->GetImageView()) {
-                texture_bindings[i] = texture->GetImageView();
+                texture_bindings[texture_index++] = texture->GetImageView();
             }
         }
     }
@@ -385,10 +401,13 @@ void Material::EnqueueRenderUpdates()
     FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> bound_texture_ids { };
 
     const UInt num_bound_textures = max_textures_to_set;
-    
-    for (UInt i = 0; i < num_bound_textures; i++) {
-        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
-            bound_texture_ids[i] = texture->GetID();
+    UInt texture_index = 0;
+
+    for (auto it = m_textures.Begin(); it != m_textures.End() && texture_index < num_bound_textures; ++it) {
+        if (const Handle<Texture> &texture = it->second) {
+            if (texture->GetImageView()) {
+                bound_texture_ids[texture_index++] = texture->GetID();
+            }
         }
     }
 
@@ -424,16 +443,33 @@ void Material::EnqueueRenderUpdates()
 
 void Material::EnqueueTextureUpdate(TextureKey key)
 {
-    const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(key);
+    auto it = m_textures.Find(key);
 
-    Texture *texture = m_textures.Get(key).Get();
-    AssertThrow(texture != nullptr);
+    if (it == m_textures.End()) {
+        return;
+    }
+
+    const UInt32 texture_index = UInt32(MathUtil::FastLog2_Pow2(UInt64(key)));
 
     PUSH_RENDER_COMMAND(UpdateMaterialTexture, 
         m_id,
         texture_index,
-        texture
+        it->second
     );
+}
+
+void Material::SetShader(Handle<Shader> shader)
+{
+    if (m_shader == shader) {
+        return;
+    }
+
+    m_render_attributes.shader_definition = shader.IsValid()
+        ? shader->GetCompiledShader().GetDefinition()
+        : ShaderDefinition { };
+
+    m_shader = std::move(shader);
+    m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Material::SetParameter(MaterialKey key, const Parameter &value)
@@ -486,19 +522,25 @@ void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)
 
 void Material::SetTextureAtIndex(UInt index, const Handle<Texture> &texture)
 {
-    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
+    const TextureKey key = static_cast<TextureKey>(1ull << index);
 
     return SetTexture(key, texture);
 }
 
 const Handle<Texture> &Material::GetTexture(TextureKey key) const
 {
-    return m_textures.Get(key);
+    auto it = m_textures.Find(key);
+
+    if (it != m_textures.End()) {
+        return it->second;
+    }
+
+    return Handle<Texture>::empty;
 }
 
 const Handle<Texture> &Material::GetTextureAtIndex(UInt index) const
 {
-    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
+    const TextureKey key = static_cast<TextureKey>(1ull << index);
 
     return GetTexture(key);
 }
@@ -625,6 +667,8 @@ Handle<Material> MaterialCache::GetOrCreate(
         "Adding material with hash %u to material cache\n",
         hc.Value()
     );
+
+    InitObject(handle);
 
     m_map.Set(hc.Value(), handle);
 

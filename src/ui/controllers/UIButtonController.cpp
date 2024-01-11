@@ -40,13 +40,23 @@ void UIButtonController::OnAdded()
     );
 
     GetOwner()->SetMesh(UIText::BuildTextMesh(font_map, "HyperionEngine v0.2"));
-    GetOwner()->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
 
-    auto mat = CreateObject<Material>();
-    mat->SetBucket(Bucket::BUCKET_UI);
-    mat->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>(font_map.GetTexture()));
-    mat->SetFaceCullMode(FaceCullMode::NONE);
-    mat->SetBlendMode(BlendMode::NORMAL);
+    auto mat = g_material_system->GetOrCreate(
+        MaterialAttributes {
+            .shader_definition = ShaderDefinition {
+                HYP_NAME(UIObject),
+                ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())
+            },
+            .bucket = Bucket::BUCKET_UI,
+            .blend_mode = BlendMode::NORMAL,
+            .cull_faces = FaceCullMode::NONE,
+        },
+        { },
+        {
+            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_texture }
+        }
+    );
+
     GetOwner()->SetMaterial(std::move(mat));
 
     Controller::OnAdded();

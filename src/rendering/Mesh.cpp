@@ -12,12 +12,6 @@
 #include <unordered_map>
 #include <cstring>
 
-#define HYP_MESH_AABB_USE_MULTITHREADING 0
-
-#if HYP_MESH_AABB_USE_MULTITHREADING
-#include <thread>
-#endif
-
 namespace hyperion::v2 {
 
 using renderer::Result;
@@ -144,8 +138,10 @@ Mesh::Mesh(
         .topology = topology
     },
     m_vertices(vertices),
-    m_indices(indices)
+    m_indices(indices),
+    m_aabb(BoundingBox::empty)
 {
+    CalculateAABB();
 }
 
 Mesh::Mesh(
@@ -166,8 +162,10 @@ Mesh::Mesh(Mesh &&other) noexcept
       m_ibo(std::move(other.m_ibo)),
       m_mesh_attributes(other.m_mesh_attributes),
       m_vertices(std::move(other.m_vertices)),
-      m_indices(std::move(other.m_indices))
+      m_indices(std::move(other.m_indices)),
+      m_aabb(other.m_aabb)
 {
+    other.m_aabb = BoundingBox::empty;
 }
 
 Mesh &Mesh::operator=(Mesh &&other) noexcept
@@ -181,6 +179,9 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
     m_mesh_attributes = other.m_mesh_attributes;
     m_vertices = std::move(other.m_vertices);
     m_indices = std::move(other.m_indices);
+    m_aabb = other.m_aabb;
+
+    other.m_aabb = BoundingBox::empty;
 
     return *this;
 }
@@ -270,6 +271,8 @@ void Mesh::SetVertices(const Array<Vertex> &vertices)
         m_vertices[index] = vertices[index];
         m_indices[index] = Index(index);
     }
+
+    CalculateAABB();
 }
 
 void Mesh::SetIndices(const Array<Index> &indices)
@@ -610,49 +613,15 @@ void Mesh::InvertNormals()
     }
 }
 
-BoundingBox Mesh::CalculateAABB() const
+void Mesh::CalculateAABB()
 {
     BoundingBox aabb;
 
-#if HYP_MESH_AABB_USE_MULTITHREADING
-    constexpr size_t max_threads = 8;
-    constexpr size_t vertex_count_threshold = 512;
-
-    if (m_vertices.size() > vertex_count_threshold) {
-        std::vector<std::thread> threads;
-        threads.reserve(max_threads);
-
-        const int vertex_stride = MathUtil::Ceil(double(m_vertices.size()) / double(max_threads));
-
-        std::array<BoundingBox, max_threads> working_aabbs;
-
-        for (size_t i = 0; i < max_threads; i++) {
-            const size_t vertex_offset = vertex_stride * i;
-
-            threads.emplace_back([this, &working_aabbs, vertex_offset, vertex_stride, i] {
-                const size_t vertex_end = MathUtil::Min(m_vertices.size(), vertex_offset + vertex_stride);
-                
-                for (size_t j = vertex_offset; j < vertex_end; j++) {
-                    working_aabbs[i].Extend(m_vertices[j].GetPosition());
-                }
-            });
-        }
-
-        for (size_t i = 0; i < threads.size(); i++) {
-            threads[i].join();
-
-            aabb.Extend(working_aabbs[i]);
-        }
-    } else {
-#endif
-        for (const Vertex &vertex : m_vertices) {
-            aabb.Extend(vertex.GetPosition());
-        }
-#if HYP_MESH_AABB_USE_MULTITHREADING
+    for (const Vertex &vertex : m_vertices) {
+        aabb.Extend(vertex.GetPosition());
     }
-#endif
 
-    return aabb;
+    m_aabb = aabb;
 }
 
 static struct MeshScriptBindings : ScriptBindingsBase

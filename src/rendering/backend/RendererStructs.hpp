@@ -2,8 +2,8 @@
 #define HYPERION_V2_BACKEND_RENDERER_STRUCTS_H
 
 #include <core/lib/String.hpp>
+#include <core/lib/HashMap.hpp>
 #include <util/Defines.hpp>
-#include <util/EnumOptions.hpp>
 #include <math/Extent.hpp>
 #include <Types.hpp>
 #include <HashCode.hpp>
@@ -114,7 +114,7 @@ struct VertexAttribute
         MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80,
     };
 
-    static const EnumOptions<Type, VertexAttribute, 16> mapping;
+    static const HashMap<Type, VertexAttribute> mapping;
 
     const char *name;
     UInt32 location;
@@ -230,11 +230,9 @@ struct VertexAttributeSet
         Array<VertexAttribute> attributes;
         attributes.Reserve(VertexAttribute::mapping.Size());
 
-        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
-
-            if (flag_mask & iter_flag_mask) {
-                attributes.PushBack(VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)]);
+        for (const auto &it : VertexAttribute::mapping) {
+            if (flag_mask & it.first) {
+                attributes.PushBack(it.second);
             }
         }
 
@@ -245,11 +243,9 @@ struct VertexAttributeSet
     {
         SizeType size = 0;
 
-        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
-
-            if (flag_mask & iter_flag_mask) {
-                size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
+        for (const auto &it : VertexAttribute::mapping) {
+            if (flag_mask & it.first) {
+                size += it.second.size;
             }
         }
 

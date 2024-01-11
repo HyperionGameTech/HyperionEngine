@@ -415,8 +415,12 @@ public:
         { return (value & (value - 1)) == 0; }
 
     /* Fast log2 for power-of-2 numbers */
-    static UInt64 FastLog2_Pow2(UInt64 value)
+    static constexpr UInt64 FastLog2_Pow2(UInt64 value)
     {
+        if (std::is_constant_evaluated()) {
+            return FastLog2(value);
+        }
+
 #if defined(__clang__) || defined(__GNUC__)
     #if defined(_MSC_VER)
         return FastLog2(value); // fallback :/

@@ -31,27 +31,18 @@ struct MaterialAttributes
         RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST = 0x2
     };
 
-    Bucket bucket = Bucket::BUCKET_OPAQUE;
-    FillMode fill_mode = FillMode::FILL;
-    BlendMode blend_mode = BlendMode::NONE;
-    FaceCullMode cull_faces = FaceCullMode::BACK;
-    MaterialFlags flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
-
-    auto ToTuple() const
-    {
-        return std::make_tuple(
-            bucket,
-            fill_mode,
-            blend_mode,
-            cull_faces,
-            flags
-        );
-    }
+    ShaderDefinition    shader_definition;
+    Bucket              bucket = Bucket::BUCKET_OPAQUE;
+    FillMode            fill_mode = FillMode::FILL;
+    BlendMode           blend_mode = BlendMode::NONE;
+    FaceCullMode        cull_faces = FaceCullMode::BACK;
+    MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
     
     HYP_FORCE_INLINE
-    bool operator==(const MaterialAttributes &other) const
+    Bool operator==(const MaterialAttributes &other) const
     {
-        return bucket == other.bucket
+        return shader_definition == other.shader_definition
+            && bucket == other.bucket
             && fill_mode == other.fill_mode
             && blend_mode == other.blend_mode
             && cull_faces == other.cull_faces
@@ -59,15 +50,13 @@ struct MaterialAttributes
     }
 
     HYP_FORCE_INLINE
-    bool operator!=(const MaterialAttributes &other) const
-        { return !operator==(other); }
-
-    bool operator<(const MaterialAttributes &other) const
-        { return ToTuple() < other.ToTuple(); }
+    Bool operator!=(const MaterialAttributes &other) const
+        { return !(*this == other); }
 
     HashCode GetHashCode() const
     {
         HashCode hc;
+        hc.Add(shader_definition.GetHashCode());
         hc.Add(bucket);
         hc.Add(fill_mode);
         hc.Add(blend_mode);
@@ -83,25 +72,14 @@ struct MeshAttributes
     VertexAttributeSet vertex_attributes { renderer::static_mesh_vertex_attributes };
     Topology topology { Topology::TRIANGLES };
 
-    auto ToTuple() const
-    {
-        return std::make_tuple(
-            vertex_attributes,
-            topology
-        );
-    }
-
-    bool operator==(const MeshAttributes &other) const
+    HYP_FORCE_INLINE
+    Bool operator==(const MeshAttributes &other) const
     {
         return vertex_attributes == other.vertex_attributes
             && topology == other.topology;
     }
 
-    bool operator<(const MeshAttributes &other) const
-    {
-         return ToTuple() < other.ToTuple();
-    }
-
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
@@ -114,7 +92,6 @@ struct MeshAttributes
 
 class RenderableAttributeSet
 {
-    ShaderDefinition    m_shader_definition;
     ID<Framebuffer>     m_framebuffer_id; // only used for scenes, not per entity
     MeshAttributes      m_mesh_attributes;
     MaterialAttributes  m_material_attributes;
@@ -128,41 +105,38 @@ public:
     RenderableAttributeSet(
         const MeshAttributes &mesh_attributes = { },
         const MaterialAttributes &material_attributes = { },
-        const ShaderDefinition &shader_definition = { },
         UInt32 override_flags = 0
     ) : m_mesh_attributes(mesh_attributes),
         m_material_attributes(material_attributes),
-        m_shader_definition(shader_definition),
         m_override_flags(override_flags)
     {
-
     }
 
-    RenderableAttributeSet(const RenderableAttributeSet &other) = default;
-    RenderableAttributeSet &operator=(const RenderableAttributeSet &other) = default;
-    RenderableAttributeSet(RenderableAttributeSet &&other) noexcept = default;
-    RenderableAttributeSet &operator=(RenderableAttributeSet &&other) noexcept = default;
-    ~RenderableAttributeSet() = default;
+    RenderableAttributeSet(const RenderableAttributeSet &other)                 = default;
+    RenderableAttributeSet &operator=(const RenderableAttributeSet &other)      = default;
+    RenderableAttributeSet(RenderableAttributeSet &&other) noexcept             = default;
+    RenderableAttributeSet &operator=(RenderableAttributeSet &&other) noexcept  = default;
+    ~RenderableAttributeSet()                                                   = default;
     
     HYP_FORCE_INLINE
-    bool operator==(const RenderableAttributeSet &other) const
+    Bool operator==(const RenderableAttributeSet &other) const
         { return GetHashCode() == other.GetHashCode(); }
 
     HYP_FORCE_INLINE
-    bool operator!=(const RenderableAttributeSet &other) const
+    Bool operator!=(const RenderableAttributeSet &other) const
         { return GetHashCode() != other.GetHashCode(); }
     
     HYP_FORCE_INLINE
-    bool operator<(const RenderableAttributeSet &other) const
+    Bool operator<(const RenderableAttributeSet &other) const
         { return GetHashCode().Value() < other.GetHashCode().Value(); }
 
     HYP_FORCE_INLINE
     const ShaderDefinition &GetShaderDefinition() const
-        { return m_shader_definition; }
+        { return m_material_attributes.shader_definition; }
     
     HYP_FORCE_INLINE
     void SetShaderDefinition(const ShaderDefinition &shader_definition)
-        { m_shader_definition = shader_definition; }
+        { m_material_attributes.shader_definition = shader_definition; }
     
     HYP_FORCE_INLINE
     ID<Framebuffer> GetFramebufferID() const
@@ -220,7 +194,6 @@ private:
     void RecalculateHashCode() const
     {
         HashCode hc;
-        hc.Add(m_shader_definition.GetHashCode());
         hc.Add(m_framebuffer_id.GetHashCode());
         hc.Add(m_mesh_attributes.GetHashCode());
         hc.Add(m_material_attributes.GetHashCode());
@@ -230,7 +203,6 @@ private:
         m_cached_hash_code = hc;
     }
 };
-
 
 } // namespace hyperion::v2
 
