@@ -305,7 +305,7 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(CreateObject<Entity>());
             btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));
@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -408,7 +408,7 @@ public:
         monkey_fbx.Rotate(Vector3(90, 0, 0));
 
         material_test_obj.Scale(2.0f);
-        material_test_obj.Translate(Vector3(5.0f, 3.0f, 0.0f));
+        material_test_obj.Translate(Vector3(5.0f, 1.25f, 0.0f));
         GetScene()->GetRoot().AddChild(material_test_obj);
         
         if (auto dude = obj_models["dude3"].Get<Node>()) {
@@ -425,8 +425,8 @@ public:
         }
 
         // test_model.Scale(1.825f);
-        test_model.Scale(8.0f);
-        // test_model.Scale(0.0225f);
+        //test_model.Scale(1.5f);
+        test_model.Scale(0.0125f);
 
         /*for (NodeProxy &item : test_model.GetChildren()) {
             DebugLog(LogType::Debug, "Item: %s\n", item.GetName().Data());
@@ -503,7 +503,7 @@ public:
             }
         }
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -599,26 +599,26 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
             if (auto monkey = g_asset_manager->Load<Node>("models/monkey/monkey.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
-                monkey_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward),
-                    ShaderProperties(renderer::static_mesh_vertex_attributes, {{ "FORWARD_LIGHTING" }})));
+                //monkey_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward),
+                //    ShaderProperties(renderer::static_mesh_vertex_attributes, {{ "FORWARD_LIGHTING" }})));
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
                 monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.08f);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-                monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-                monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+                //monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.93f);
+                //monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+                //monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
                 monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
                 monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
                 monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 1.0f));
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.6f, 0.2f, 1.0f));
                 monkey_entity->RebuildRenderableAttributes();
-                monkey.SetLocalTranslation(Vector3(0.0f, 0.0f, 0.0f));
-                monkey.Scale(1.2f);
+                monkey.SetLocalTranslation(Vector3(0.0f, 2.0f, 0.0f));
+                monkey.Scale(1.0f);
                 monkey.Rotate(Quaternion(Vector3::UnitY(), MathUtil::DegToRad(90.0f)));
                 InitObject(monkey_entity);
 
@@ -732,7 +732,7 @@ public:
 
         if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-                .texture = g_asset_manager->Load<Texture>("textures/spark.png"),
+                .texture = g_asset_manager->Load<Texture>("textures/spark2.png"),
                 .max_particles = 1024u,
                 .origin = Vector3(0.0f, 4.1f, 0.0f),
                 .randomness = 1.0f,
