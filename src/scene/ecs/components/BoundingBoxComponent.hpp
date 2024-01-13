@@ -2,13 +2,16 @@
 #define HYPERION_V2_ECS_BOUNDING_BOX_COMPONENT_HPP
 
 #include <math/BoundingBox.hpp>
+#include <HashCode.hpp>
 
 namespace hyperion::v2 {
 
 struct BoundingBoxComponent
 {
-    BoundingBox world_aabb;
     BoundingBox local_aabb;
+    BoundingBox world_aabb;
+
+    HashCode    transform_hash_code;
 };
 
 } // namespace hyperion::v2

@@ -24,10 +24,6 @@
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
 
-#include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
-#include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
-#include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
-
 #include <Game.hpp>
 
 #include <util/MeshBuilder.hpp>
@@ -137,10 +133,6 @@ void Engine::RegisterComponents()
     m_components.Register<LightController>();
     m_components.Register<UIButtonController>();
     m_components.Register<UIContainerController>();
-
-    EntityManager::GetInstance().AddSystem<WorldAABBUpdaterSystem>();
-    EntityManager::GetInstance().AddSystem<VisibilityStateUpdaterSystem>();
-    EntityManager::GetInstance().AddSystem<EntityDrawDataUpdaterSystem>();
 }
 
 void Engine::FindTextureFormatDefaults()
@@ -1057,7 +1049,7 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
 
-    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE | RENDER_STATE_CAMERA);
+    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_SCENE | RENDER_STATE_CAMERA);
 }
 
 void Engine::ResetRenderState(RenderStateMask mask)

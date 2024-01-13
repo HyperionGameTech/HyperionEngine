@@ -84,9 +84,6 @@ public:
     World &operator=(const World &other) = delete;
     ~World();
 
-    Octree &GetOctree() { return m_octree; }
-    const Octree &GetOctree() const { return m_octree; }
-
     PhysicsWorld &GetPhysicsWorld() { return m_physics_world; }
     const PhysicsWorld &GetPhysicsWorld() const { return m_physics_world; }
 
@@ -115,7 +112,6 @@ public:
 private:
     void PerformSceneUpdates();
 
-    Octree m_octree;
     PhysicsWorld m_physics_world;
     RenderListContainer m_render_list_container;
 

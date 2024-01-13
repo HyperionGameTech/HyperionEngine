@@ -6,6 +6,7 @@
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>
 #include <core/lib/FixedArray.hpp>
+#include <core/lib/CMemory.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -24,25 +25,32 @@ public:
     BoundingBox(const Vec3f &min, const Vec3f &max);
     BoundingBox(const BoundingBox &other);
 
+    HYP_FORCE_INLINE
     const Vec3f &GetMin() const
         { return min; }
 
+    HYP_FORCE_INLINE
     void SetMin(const Vec3f &min)
         { this->min = min; }
+
+    HYP_FORCE_INLINE
     const Vec3f &GetMax() const
         { return max; }
 
+    HYP_FORCE_INLINE
     void SetMax(const Vec3f &max)
         { this->max = max; }
 
     FixedArray<Vec3f, 8> GetCorners() const;
     Vec3f GetCorner(UInt index) const;
     
+    HYP_FORCE_INLINE
     Vec3f GetCenter() const
         { return (max + min) * 0.5f; }
 
     void SetCenter(const Vec3f &center);
 
+    HYP_FORCE_INLINE
     Vec3f GetExtent() const
         { return max - min; }
 
@@ -66,19 +74,19 @@ public:
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
 
+    HYP_FORCE_INLINE
     Bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
 
+    HYP_FORCE_INLINE
     Bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
     BoundingBox &Clear();
     
+    HYP_FORCE_INLINE
     Bool Empty() const
-    { 
-        return min == MathUtil::MaxSafeValue<Vec3f>() && 
-            max == MathUtil::MinSafeValue<Vec3f>();
-    }
+        { return Memory::MemCmp(this, &empty, sizeof(BoundingBox)) == 0; }
 
     BoundingBox &Extend(const Vec3f &vec);
     BoundingBox &Extend(const BoundingBox &bb);
@@ -90,6 +98,7 @@ public:
     Bool ContainsPoint(const Vec3f &vec) const;
     Float Area() const;
 
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

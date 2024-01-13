@@ -1,17 +1,24 @@
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/components/SceneComponent.hpp>
 #include <scene/Entity.hpp>
 #include <TaskSystem.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
 
-EntityManager *EntityManager::s_instance = nullptr;
-
 ID<Entity> EntityManager::AddEntity()
 {
     auto handle = CreateObject<Entity>();
 
-    return m_entities.AddEntity(std::move(handle));
+    const ID<Entity> id = m_entities.AddEntity(std::move(handle));
+
+    if (m_scene) {
+        AddComponent(id, SceneComponent {
+            m_scene->GetID()
+        });
+    }
+
+    return id;
 }
 
 void EntityManager::RemoveEntity(ID<Entity> id)
@@ -54,11 +61,11 @@ void EntityManager::Update(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
-    DebugLog(
-        LogType::Debug,
-        "SystemExecutionGroup::Process: Processing execution group with %zu systems\n",
-        m_systems.Size()
-    );
+    // DebugLog(
+    //     LogType::Debug,
+    //     "SystemExecutionGroup::Process: Processing execution group with %zu systems\n",
+    //     m_systems.Size()
+    // );
 
     m_systems.ParallelForEach(
         TaskSystem::GetInstance(),

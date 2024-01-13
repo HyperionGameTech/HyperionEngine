@@ -9,8 +9,7 @@ namespace hyperion::v2 {
 using renderer::RTUpdateStateFlags;
 
 World::World()
-    : BasicObject(),
-      m_octree(BoundingBox(Vector3(-250.0f), Vector3(250.0f)))
+    : BasicObject()
 {
 }
 
@@ -108,8 +107,6 @@ void World::Update(GameCounter::TickUnit delta)
 
     AssertReady();
 
-    m_octree.NextVisibilityState();
-
     m_physics_world.Tick(delta);
 
     if (m_has_scene_updates.load()) {
@@ -131,9 +128,6 @@ void World::PreRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
-
-    // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
-    g_engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
 }
 
 void World::Render(Frame *frame)

@@ -27,6 +27,7 @@ namespace hyperion::v2 {
 class RenderEnvironment;
 class World;
 class Scene;
+class EntityManager;
 
 struct FogParams
 {
@@ -164,6 +165,15 @@ public:
         }
     }
 
+    const RC<EntityManager> &GetEntityManager() const
+        { return m_entity_manager; }
+
+    Octree &GetOctree()
+        { return m_octree; }
+
+    const Octree &GetOctree() const
+        { return m_octree; }
+
     RenderEnvironment *GetEnvironment() const
         { return m_environment.Get(); }
 
@@ -231,6 +241,9 @@ private:
     FlatSet<ID<Entity>> m_entities_pending_removal;
     FlatSet<Handle<Entity>> m_entities_pending_addition;
 
+    RC<EntityManager> m_entity_manager;
+
+    Octree m_octree;
 
     Handle<TLAS> m_tlas;
 

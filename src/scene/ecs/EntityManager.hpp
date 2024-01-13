@@ -17,8 +17,9 @@
 
 namespace hyperion::v2 {
 
+class Scene;
+
 /*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
-    TODO: Read/write differentation. all Systems are assumed to be writable
  */
 class SystemExecutionGroup
 {
@@ -161,24 +162,21 @@ struct EntityListener
 
 class EntityManager
 {
-    static EntityManager *s_instance;
-
 public:
-    static EntityManager &GetInstance()
+    EntityManager(Scene *scene)
+        : m_scene(scene)
     {
-        if (!s_instance) {
-            s_instance = new EntityManager();
-        }
-
-        return *s_instance;
+        AssertThrow(scene != nullptr);
     }
 
-    EntityManager()                                     = default;
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
     EntityManager(EntityManager &&) noexcept            = delete;
     EntityManager &operator=(EntityManager &&) noexcept = delete;
     ~EntityManager()                                    = default;
+
+    Scene *GetScene() const
+        { return m_scene; }
 
     ID<Entity> AddEntity();
     void RemoveEntity(ID<Entity> id);
@@ -314,6 +312,10 @@ public:
                 GetContainer<Components>()...
             ));
 
+            AssertThrow(entity_sets_insert_result.second); // Make sure the element was inserted (it shouldn't already exist)
+
+            entity_sets_it = entity_sets_insert_result.first;
+
             // Make sure the element exists in m_component_entity_sets
             for (TypeID component_type_id : { TypeID::ForType<Components>()... }) {
                 auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
@@ -326,8 +328,6 @@ public:
 
                 component_entity_sets_it->second.Insert(type_id);
             }
-
-            entity_sets_it = entity_sets_insert_result.first;
         }
 
         return static_cast<EntitySet<Components...> &>(*entity_sets_it->second);
@@ -394,6 +394,8 @@ private:
 
         return static_cast<SystemType *>(m_system_execution_groups.PushBack({ }).AddSystem<SystemType>(std::move(system)));
     }
+
+    Scene                                                                   *m_scene;
 
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;

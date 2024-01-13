@@ -129,17 +129,19 @@ void UIRenderer::OnRemoved() { }
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    m_scene->CollectEntities(
-        m_render_list,
-        m_scene->GetCamera(),
-        RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .bucket = BUCKET_UI,
-                .cull_faces = FaceCullMode::NONE
-            }
-        )
-    );
+    // Temp removed. To rewrite as custom collector.
+
+    // m_scene->CollectEntities(
+    //     m_render_list,
+    //     m_scene->GetCamera(),
+    //     RenderableAttributeSet(
+    //         MeshAttributes { },
+    //         MaterialAttributes {
+    //             .bucket = BUCKET_UI,
+    //             .cull_faces = FaceCullMode::NONE
+    //         }
+    //     )
+    // );
 
     m_render_list.UpdateRenderGroups();
 }

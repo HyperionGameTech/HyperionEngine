@@ -1081,6 +1081,8 @@ auto DynArray<T, NumInlineBytes>::Insert(ConstIterator where, const ValueType &v
         return Begin();
     }
 
+    AssertThrow(where >= Begin() && where <= End());
+
     if (m_size + 1 >= m_capacity) {
         if (m_capacity >= Size() + 1) {
             ResetOffsets();
@@ -1127,6 +1129,8 @@ auto DynArray<T, NumInlineBytes>::Insert(ConstIterator where, ValueType &&value)
 
         return Begin();
     }
+
+    AssertThrow(where >= Begin() && where <= End());
 
     if (m_size + 1 >= m_capacity) {
         if (m_capacity >= Size() + 1) {

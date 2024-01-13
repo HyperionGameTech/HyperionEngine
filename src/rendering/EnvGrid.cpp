@@ -563,8 +563,6 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     m_camera->Update(delta);
 
-    // @TODO: Only collect entities in next probe to render range.
-
     GetParent()->GetScene()->CollectEntities(
         m_render_list,
         m_camera,

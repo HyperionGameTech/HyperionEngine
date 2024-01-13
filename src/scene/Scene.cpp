@@ -16,9 +16,12 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
+#include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
+#include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
+#include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
-#define HYP_DISABLE_VISIBILITY_CHECK
+// #define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion::v2 {
 
@@ -125,8 +128,14 @@ Scene::Scene(
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(false),
+    m_entity_manager(new EntityManager(this)),
+    m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
+    m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
+    m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
+    m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
+
     m_root_node_proxy.Get()->SetScene(this);
 }
 
@@ -304,7 +313,7 @@ void Scene::SetWorld(World *world)
         );
 #endif
 
-        entity->AddToOctree(m_world->GetOctree());
+        entity->AddToOctree(m_octree);
     }
 }
 
@@ -449,7 +458,7 @@ void Scene::AddPendingEntities()
                 );
 #endif
 
-                entity->AddToOctree(m_world->GetOctree());
+                entity->AddToOctree(m_octree);
             }
         }
 
@@ -642,6 +651,8 @@ void Scene::Update(GameCounter::TickUnit delta)
         AddPendingEntities();
     }
 
+    m_octree.NextVisibilityState();
+
     ID<Camera> camera_id;
 
     if (m_camera) {
@@ -649,11 +660,16 @@ void Scene::Update(GameCounter::TickUnit delta)
 
         m_camera->Update(delta);
 
+        // update octree visibility states using the camera
+        m_octree.CalculateVisibility(m_camera.Get());
+
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
             m_shader_data_state |= ShaderDataState::DIRTY;
         }
     }
+
+    m_entity_manager->Update(delta);
 
     EnqueueRenderUpdates();
 
@@ -735,7 +751,7 @@ void Scene::CollectEntities(
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
-    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
+    const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
 
     // push all entities to render if they are visible to the given camera
     for (auto &it : m_entities) {
@@ -772,10 +788,10 @@ void Scene::CollectEntities(
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
-    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
-    const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
+    const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
+    const VisibilityState &parent_visibility_state = m_octree.GetVisibilityState();
 
-    for (auto it : EntityManager::GetInstance().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
+    for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
         // Temp

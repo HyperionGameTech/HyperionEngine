@@ -6,12 +6,12 @@
 
 namespace hyperion {
 
-const BoundingBox BoundingBox::empty = BoundingBox();
+const BoundingBox BoundingBox::empty = BoundingBox(MathUtil::MaxSafeValue<Vec3f>(), MathUtil::MinSafeValue<Vec3f>());
 const BoundingBox BoundingBox::infinity = BoundingBox(-MathUtil::Infinity<Vec3f>(), +MathUtil::Infinity<Vec3f>());
 
 BoundingBox::BoundingBox()
-    : min(MathUtil::MaxSafeValue<Float>()), 
-      max(MathUtil::MinSafeValue<Float>())
+    : min(MathUtil::MaxSafeValue<Vec3f>()),
+      max(MathUtil::MinSafeValue<Vec3f>())
 {
 }
 

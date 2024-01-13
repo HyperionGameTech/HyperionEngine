@@ -514,10 +514,13 @@ void Entity::SetIsInScene(ID<Scene> id, Bool is_in_scene)
 
 Bool Entity::IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const
 {
-    const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
+    // Removed in lieu of ECS system
+    return true;
 
-    return m_visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
-        && m_visibility_state.Get(camera_id, visibility_cursor);
+    // const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
+
+    // return m_visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
+    //     && m_visibility_state.Get(camera_id, visibility_cursor);
 }
 
 void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes)

@@ -32,7 +32,7 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_LIGHTS = 0x2,
     RENDER_STATE_ENV_PROBES = 0x4,
     RENDER_STATE_ACTIVE_ENV_PROBE = 0x8,
-    RENDER_STATE_VISIBILITY = 0x10,
+    RENDER_STATE_UNUSED = 0x10, // placeholder
     RENDER_STATE_CAMERA = 0x20,
     RENDER_STATE_FRAME_COUNTER = 0x40,
 
@@ -97,7 +97,6 @@ struct RenderState
     FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX>   bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                     env_probe_bindings;
-    UInt8                                                                   visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
     UInt32                                                                  frame_counter = ~0u;
 
     void AdvanceFrameCounter()
@@ -272,10 +271,6 @@ struct RenderState
 
         if (mask & RENDER_STATE_ACTIVE_ENV_PROBE) {
             env_probe_bindings = { };
-        }
-
-        if (mask & RENDER_STATE_VISIBILITY) {
-            visibility_cursor = 0u;
         }
 
         if (mask & RENDER_STATE_FRAME_COUNTER) {

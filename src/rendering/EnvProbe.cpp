@@ -440,8 +440,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     Octree const *octree = nullptr;
 
     HashCode octant_hash;
+
+    AssertThrow(m_parent_scene.IsValid());
     
-    if (g_engine->GetWorld()->GetOctree().GetFittingOctant(m_aabb, octree)) {
+    if (m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree)) {
         AssertThrow(octree != nullptr);
 
         octant_hash = octree->GetNodesHash();

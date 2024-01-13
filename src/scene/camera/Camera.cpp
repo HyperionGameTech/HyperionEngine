@@ -351,9 +351,6 @@ void Camera::Update(GameCounter::TickUnit dt)
 
     UpdateMatrices();
 
-    // TODO: Check that matrices have changed before this.
-    g_engine->GetWorld()->GetOctree().CalculateVisibility(this);
-
     PUSH_RENDER_COMMAND(UpdateCameraDrawProxy, 
         this,
         CameraDrawProxy {

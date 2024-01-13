@@ -212,15 +212,12 @@ void SampleStreamer::InitGame()
         btn_node.SetEntity(CreateObject<Entity>());
         btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 1.0f, 0.0f));
 
-        auto entity_id = EntityManager::GetInstance().AddEntity();
-
-        EntityManager::GetInstance().AddComponent(entity_id, SceneComponent {
-        });
+        auto entity_id = m_scene->GetEntityManager()->AddEntity();
 
         auto cube = MeshBuilder::NormalizedCubeSphere(8);
         InitObject(cube);
         
-        EntityManager::GetInstance().AddComponent(entity_id, MeshComponent {
+        m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
             cube,
             g_material_system->GetOrCreate({
                 .shader_definition = ShaderDefinition {
@@ -230,18 +227,17 @@ void SampleStreamer::InitGame()
                 .bucket = Bucket::BUCKET_OPAQUE
             })
         });
-        EntityManager::GetInstance().AddComponent(entity_id, BoundingBoxComponent {
-            BoundingBox(Vec3f(0.0f) + Vec3f(-1.0f), Vec3f(0.0f) + Vec3f(1.0f)),
-            BoundingBox(Vec3f(0.0f) + Vec3f(-1.0f), Vec3f(0.0f) + Vec3f(1.0f))
+        m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
+            cube->GetAABB()
         });
-        EntityManager::GetInstance().AddComponent(entity_id, TransformComponent {
+        m_scene->GetEntityManager()->AddComponent(entity_id, TransformComponent {
             Transform(
-                Vec3f(0.0f, 0.0f, 0.0f),
+                Vec3f(5.0f, 5.0f, 5.0f),
                 Vec3f::one,
                 Quaternion::Identity()
             )
         });
-        EntityManager::GetInstance().AddComponent(entity_id, VisibilityStateComponent {
+        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent {
 
         });
         // TEMP
@@ -258,12 +254,12 @@ void SampleStreamer::InitGame()
 
     // // Add a reflection probe
     // TEMP: Commented out due to blending issues with multiple reflection probes
-    m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(
-        HYP_NAME(ReflectionProbe0),
-        Vec3f(0.0f)
-    );
+    // m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(
+    //     HYP_NAME(ReflectionProbe0),
+    //     Vec3f(0.0f)
+    // );
 
-    m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
+    // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     {
         auto sun = CreateObject<Entity>();

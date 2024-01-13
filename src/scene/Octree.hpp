@@ -18,9 +18,8 @@
 
 namespace hyperion::v2 {
 
-using EntityListenerID = UInt;
-
 class Entity;
+class EntityManager;
 class Camera;
 
 /*! \brief A 64-bit integer that represents an octant in an octree
@@ -34,6 +33,7 @@ class Camera;
 */
 struct OctantID
 {
+    static constexpr UInt64 invalid_bits = 1ull << 63;
     static constexpr SizeType max_depth = 64 / 3;
 
     static const OctantID invalid;  // special value for invalid octant
@@ -48,8 +48,8 @@ struct OctantID
 
     explicit OctantID(UInt8 child_index, OctantID parent_id)
         : index_bits(!parent_id.IsInvalid()
-            ? parent_id.index_bits | (child_index << (parent_id.GetDepth() * 3))
-            : 0),
+            ? parent_id.index_bits | (child_index << ((parent_id.GetDepth() + UInt8(1)) * 3))
+            : child_index),
           depth(parent_id.GetDepth() + 1) {}
 
     OctantID(const OctantID &other) = default;
@@ -60,7 +60,7 @@ struct OctantID
 
     HYP_FORCE_INLINE
     Bool IsInvalid() const // This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
-        { return index_bits & (1ull << 63); }
+        { return index_bits & invalid_bits; }
 
     HYP_FORCE_INLINE
     Bool operator==(const OctantID &other) const
@@ -71,8 +71,8 @@ struct OctantID
         { return !(*this == other); }
 
     HYP_FORCE_INLINE
-    UInt8 GetIndex(UInt depth) const
-        { return (index_bits >> (depth * 3)) & 0x7; }
+    UInt8 GetIndex(UInt8 depth) const
+        { return (index_bits >> ((depth) * 3)) & 0x7; }
 
     HYP_FORCE_INLINE
     UInt8 GetIndex() const
@@ -90,24 +90,6 @@ struct OctantID
         hc.Add(depth);
 
         return hc;
-    }
-
-    HYP_FORCE_INLINE
-    Bool IsSiblingOctant(OctantID other) const
-    {
-        return depth == other.depth && (index_bits & ~(~0u << (depth * 3))) == (other.index_bits & ~(~0u << (depth * 3)));
-    }
-
-    HYP_FORCE_INLINE
-    Bool IsChildOctant(OctantID other) const
-    {
-        return depth > other.depth && (index_bits & ~(~0u << (other.depth * 3))) == other.index_bits;
-    }
-
-    HYP_FORCE_INLINE
-    Bool IsParentOctant(OctantID other) const
-    {
-        return depth < other.depth && index_bits == (other.index_bits & ~(~0u << (depth * 3)));
     }
 };
 
@@ -127,7 +109,7 @@ class Octree
     static constexpr Float min_aabb_size = 1.0f; 
     static const BoundingBox default_bounds;
 
-    Octree(Octree *parent, const BoundingBox &aabb, UInt8 index);
+    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, UInt8 index);
 
 public:
     struct Result
@@ -198,7 +180,7 @@ public:
         UInt8 cursor
     );
 
-    Octree(const BoundingBox &aabb = default_bounds);
+    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb = default_bounds);
     Octree(const Octree &other) = delete;
     Octree &operator=(const Octree &other) = delete;
     Octree(Octree &&other) noexcept = delete;
@@ -253,8 +235,8 @@ public:
     void Clear();
     InsertResult Insert(ID<Entity> id, const BoundingBox &aabb);
     Result Remove(ID<Entity> id);
-    Result Update(ID<Entity> id, const BoundingBox &aabb);
-    Result Rebuild(const BoundingBox &new_aabb);
+    InsertResult Update(ID<Entity> id, const BoundingBox &aabb);
+    InsertResult Rebuild(const BoundingBox &new_aabb);
 
     void CollectEntities(Array<ID<Entity>> &out) const;
     void CollectEntitiesInRange(const Vector3 &position, Float radius, Array<ID<Entity>> &out) const;
@@ -275,7 +257,7 @@ private:
 
     void ClearInternal(Array<Node> &out_nodes);
     void Clear(Array<Node> &out_nodes);
-    Result Move(ID<Entity> id, const BoundingBox &aabb, const Array<Node>::Iterator *it = nullptr);
+    InsertResult Move(ID<Entity> id, const BoundingBox &aabb, const Array<Node>::Iterator *it = nullptr);
 
     void ForceVisibilityStates();
     void CopyVisibilityState(const VisibilityState &visibility_state);
@@ -302,13 +284,15 @@ private:
     /* Remove any potentially empty octants above the node */
     void CollapseParents();
     InsertResult InsertInternal(ID<Entity> id, const BoundingBox &aabb);
-    Result UpdateInternal(ID<Entity> id, const BoundingBox &aabb);
+    InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb);
     Result RemoveInternal(ID<Entity> id);
-    Result RebuildExtendInternal(const BoundingBox &extend_include_aabb);
+    InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
     void UpdateVisibilityState(Camera *camera, UInt8 cursor);
 
     /* Called from entity - remove the pointer */
     // void OnEntityRemoved(Entity *entity);
+
+    RC<EntityManager>       m_entity_manager;
     
     Array<Node>             m_nodes;
     HashCode                m_nodes_hash;
@@ -319,7 +303,6 @@ private:
     Root                    *m_root;
     VisibilityState         m_visibility_state;
     OctantID                m_octant_id;
-    EntityListenerID        m_entity_listener_id;
 };
 
 } // namespace hyperion::v2

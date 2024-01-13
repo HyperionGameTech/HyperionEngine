@@ -52,34 +52,36 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
         .direction = Vec3f::UnitY() * -1.0f
     };
 
-    if (g_engine->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
-        RayTestResults triangle_mesh_results;
+    // @TODO
 
-        auto &hit = m_ray_test_results.Front();
-            // now ray test each result as triangle mesh to find exact hit point
+    // if (g_engine->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
+    //     RayTestResults triangle_mesh_results;
 
-        Handle<Entity> entity(ID<Entity> { hit.id });
+    //     auto &hit = m_ray_test_results.Front();
+    //         // now ray test each result as triangle mesh to find exact hit point
 
-        if (entity) {
-            if (auto &mesh = entity->GetMesh()) {
-                ray.TestTriangleList(
-                    mesh->GetVertices(),
-                    mesh->GetIndices(),
-                    entity->GetTransform(),
-                    entity->GetID().value,
-                    triangle_mesh_results
-                );
-            }
-        }
+    //     Handle<Entity> entity(ID<Entity> { hit.id });
 
-        if (!triangle_mesh_results.Empty()) {
-            auto &mesh_hit = triangle_mesh_results.Front();
+    //     if (entity) {
+    //         if (auto &mesh = entity->GetMesh()) {
+    //             ray.TestTriangleList(
+    //                 mesh->GetVertices(),
+    //                 mesh->GetIndices(),
+    //                 entity->GetTransform(),
+    //                 entity->GetID().value,
+    //                 triangle_mesh_results
+    //             );
+    //         }
+    //     }
 
-            m_camera->SetNextTranslation(mesh_hit.hitpoint + Vector3(0, camera_height, 0));
-        }
+    //     if (!triangle_mesh_results.Empty()) {
+    //         auto &mesh_hit = triangle_mesh_results.Front();
 
-        m_ray_test_results.Clear();
-    }
+    //         m_camera->SetNextTranslation(mesh_hit.hitpoint + Vector3(0, camera_height, 0));
+    //     }
+
+    //     m_ray_test_results.Clear();
+    // }
 }
 
 void BasicCharacterController::Serialize(fbom::FBOMObject &out) const

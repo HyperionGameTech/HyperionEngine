@@ -7,22 +7,30 @@ namespace hyperion::v2 {
 void WorldAABBUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : entity_manager.GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>()) {
-        const BoundingBox local_aabb = mesh_component.mesh.IsValid()
-            ? mesh_component.mesh->GetAABB()
-            : BoundingBox::empty;
+        const BoundingBox local_aabb = bounding_box_component.local_aabb;
+        BoundingBox world_aabb = bounding_box_component.world_aabb;
 
-        if (local_aabb != bounding_box_component.local_aabb) {
-            BoundingBox world_aabb = BoundingBox::empty;
+        const HashCode transform_hash_code = transform_component.transform.GetHashCode();
+
+        if (transform_hash_code != bounding_box_component.transform_hash_code) {
+            DebugLog(LogType::Debug, "Updating entity #%u AABB %f,%f,%f\t%f,%f,%f\n", entity_id.Value(),
+                local_aabb.min.x, local_aabb.min.y, local_aabb.min.z,
+                local_aabb.max.x, local_aabb.max.y, local_aabb.max.z);
+
+            world_aabb = BoundingBox::empty;
 
             if (!local_aabb.Empty()) {
-                for (const Vec3f &corner : world_aabb.GetCorners()) {
+                for (const Vec3f &corner : local_aabb.GetCorners()) {
                     world_aabb.Extend(transform_component.transform.GetMatrix() * corner);
                 }
             }
 
             bounding_box_component.local_aabb = local_aabb;
             bounding_box_component.world_aabb = world_aabb;
+            bounding_box_component.transform_hash_code = transform_hash_code;
         
+            // Tell the renderer that the entity's world AABB has changed.
+            // This will cause the renderer to update the entity's world AABB in the GPU.
             mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
         }
     }

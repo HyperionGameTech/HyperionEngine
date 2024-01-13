@@ -121,7 +121,8 @@ Mesh::Mesh()
       m_mesh_attributes {
           .vertex_attributes = renderer::static_mesh_vertex_attributes,
           .topology = Topology::TRIANGLES
-      }
+      },
+      m_aabb(BoundingBox::empty)
 {
 }
 
@@ -615,7 +616,7 @@ void Mesh::InvertNormals()
 
 void Mesh::CalculateAABB()
 {
-    BoundingBox aabb;
+    BoundingBox aabb = BoundingBox::empty;
 
     for (const Vertex &vertex : m_vertices) {
         aabb.Extend(vertex.GetPosition());
