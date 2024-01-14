@@ -464,7 +464,7 @@ void Scene::CollectEntities(
     Bool skip_frustum_culling
 ) const
 {
-    Threads::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME | THREAD_TASK);
 
     // clear out existing entities before populating
     render_list.ClearEntities();
@@ -495,32 +495,34 @@ void Scene::CollectEntities(
         //     continue;
         // }
 
+        if (!skip_frustum_culling) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
-        // Visibility check
-        if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)) {
+            // Visibility check
+            if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)) {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-            DebugLog(
-                LogType::Debug,
-                "Skipping entity #%u due to visibility state being invalid.\n",
-                entity_id.Value()
-            );
+                DebugLog(
+                    LogType::Debug,
+                    "Skipping entity #%u due to visibility state being invalid.\n",
+                    entity_id.Value()
+                );
 #endif
 
-            continue;
-        }
+                continue;
+            }
 
-        if (!visibility_state_component.visibility_state.Get(camera_id, visibility_cursor)) {
+            if (!visibility_state_component.visibility_state.Get(camera_id, visibility_cursor)) {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-            DebugLog(
-                LogType::Debug,
-                "Skipping entity #%u due to visibility state being false\n",
-                entity_id.Value()
-            );
+                DebugLog(
+                    LogType::Debug,
+                    "Skipping entity #%u due to visibility state being false\n",
+                    entity_id.Value()
+                );
 #endif
 
-            continue;
-        }
+                continue;
+            }
 #endif
+        }
 
         render_list.PushEntityToRender(
             camera,

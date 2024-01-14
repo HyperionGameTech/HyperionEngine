@@ -5,13 +5,21 @@
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 
 namespace hyperion::v2 {
 
 class ShadowMapUpdaterSystem : public System<
     ComponentDescriptor<ShadowMapComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+
+    // These are needed because we use CollectEntities() which uses these components
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
+    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ>,
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>
 >
 {
 public:

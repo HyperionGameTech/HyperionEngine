@@ -76,7 +76,7 @@ public:
         { return m_gaussian_splatting; }
 
     template <class T>
-    T *AddRenderComponent(Name name, UniquePtr<T> &&component)
+    RC<T> AddRenderComponent(Name name, RC<T> component)
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -89,8 +89,6 @@ public:
         if (IsInitCalled()) {
             component->ComponentInit();
         }
-
-        T *ptr = component.Get();
 
         std::lock_guard guard(m_render_component_mutex);
 
@@ -105,25 +103,23 @@ public:
                 name.LookupString()
             );
 
-            it->second.Insert(name, std::move(component));
+            it->second.Insert(name, component);
         } else {
-            FlatMap<Name, UniquePtr<RenderComponentBase>> component_map;
-            component_map.Set(name, std::move(component));
+            FlatMap<Name, RC<RenderComponentBase>> component_map;
+            component_map.Set(name, component);
 
             m_render_components_pending_addition.Set<T>(std::move(component_map));
         }
         
         m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS);
 
-        AssertThrow(ptr != nullptr);
-
-        return ptr;
+        return component;
     }
 
     template <class T, class ...Args>
-    T *AddRenderComponent(Name name, Args &&... args)
+    RC<T> AddRenderComponent(Name name, Args &&... args)
     {
-        return AddRenderComponent(name, UniquePtr<T>::Construct(std::forward<Args>(args)...));
+        return AddRenderComponent(name, RC<T>::Construct(std::forward<Args>(args)...));
     }
 
     /*! CALL FROM RENDER THREAD ONLY */
@@ -164,7 +160,7 @@ public:
             return false;
         }
 
-        const FlatMap<Name, UniquePtr<RenderComponentBase>> &items = m_render_components.At<T>();
+        const FlatMap<Name, RC<RenderComponentBase>> &items = m_render_components.At<T>();
 
         return items.Any();
     }
@@ -182,7 +178,7 @@ public:
             return false;
         }
 
-        const FlatMap<Name, UniquePtr<RenderComponentBase>> &items = m_render_components.At<T>();
+        const FlatMap<Name, RC<RenderComponentBase>> &items = m_render_components.At<T>();
 
         return items.Contains(name);
     }
@@ -236,9 +232,9 @@ private:
     Queue<Handle<Entity>> m_entity_renderable_attribute_updates;
     BinarySemaphore m_entity_update_sp;
 
-    TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> m_render_components; // only touch from render thread
-    TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> m_render_components_pending_init;
-    TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> m_render_components_pending_addition;
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_init;
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_addition;
     FlatSet<RenderComponentPendingRemovalEntry> m_render_components_pending_removal;
     std::mutex m_render_component_mutex;
     UInt32 m_current_enabled_render_components_mask;

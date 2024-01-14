@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_POINT_SHADOW_RENDERER_HPP
-#define HYPERION_V2_POINT_SHADOW_RENDERER_HPP
+#ifndef HYPERION_V2_POINT_LIGHT_SHADOW_RENDERER_HPP
+#define HYPERION_V2_POINT_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/Base.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -13,8 +13,6 @@
 #include <scene/camera/Camera.hpp>
 #include <Types.hpp>
 
-#include <array>
-
 namespace hyperion::v2 {
 
 using renderer::Frame;
@@ -24,15 +22,15 @@ using renderer::ImageView;
 
 class Light;
 
-class PointShadowRenderer : public RenderComponent<PointShadowRenderer>
+class PointLightShadowRenderer : public RenderComponent<PointLightShadowRenderer>
 {
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_POINT_SHADOW;
 
-    PointShadowRenderer(Handle<Light> light, const Extent2D &extent);
-    PointShadowRenderer(const PointShadowRenderer &other) = delete;
-    PointShadowRenderer &operator=(const PointShadowRenderer &other) = delete;
-    virtual ~PointShadowRenderer() override;
+    PointLightShadowRenderer(Handle<Light> light, const Extent2D &extent);
+    PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
+    PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
+    virtual ~PointLightShadowRenderer() override;
 
     void Init();
     void InitGame(); // init on game thread

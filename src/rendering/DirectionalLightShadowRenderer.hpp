@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_SHADOWS_H
-#define HYPERION_V2_SHADOWS_H
+#ifndef HYPERION_V2_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
+#define HYPERION_V2_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <scene/Controller.hpp>
 
@@ -50,7 +50,7 @@ class ShadowPass : public FullScreenPass
     friend struct RenderCommand_CreateShadowMapDescriptors;
 
 public:
-    ShadowPass(const Handle<Scene> &parent_scene);
+    ShadowPass(const Handle<Scene> &parent_scene, Extent2D resolution);
     ShadowPass(const ShadowPass &other) = delete;
     ShadowPass &operator=(const ShadowPass &other) = delete;
     virtual ~ShadowPass();
@@ -77,8 +77,8 @@ public:
     const Vector3 &GetOrigin() const { return m_origin; }
     void SetOrigin(const Vector3 &origin) { m_origin = origin; }
 
-    Extent2D GetDimensions() const
-        { return m_dimensions; }
+    Extent2D GetResolution() const
+        { return m_resolution; }
 
     UInt GetShadowMapIndex() const
         { return m_shadow_map_index; }
@@ -114,7 +114,7 @@ private:
     RenderList                      m_render_list;
     Vector3                         m_origin;
     UInt                            m_shadow_map_index;
-    Extent2D                        m_dimensions;
+    Extent2D                        m_resolution;
 
     Handle<Texture>                 m_shadow_map;
 
@@ -122,15 +122,15 @@ private:
     FixedArray<DescriptorSetRef, 2> m_blur_descriptor_sets;
 };
 
-class ShadowMapRenderer : public RenderComponent<ShadowMapRenderer>
+class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>
 {
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
 
-    ShadowMapRenderer();
-    ShadowMapRenderer(const ShadowMapRenderer &other) = delete;
-    ShadowMapRenderer &operator=(const ShadowMapRenderer &other) = delete;
-    virtual ~ShadowMapRenderer();
+    DirectionalLightShadowRenderer(Extent2D resolution);
+    DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
+    DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
+    virtual ~DirectionalLightShadowRenderer();
 
     ShadowPass *GetPass() const { return m_shadow_pass.Get(); }
 
@@ -145,7 +145,8 @@ public:
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    UniquePtr<ShadowPass> m_shadow_pass;
+    UniquePtr<ShadowPass>   m_shadow_pass;
+    Extent2D                m_resolution;
 };
 
 } // namespace hyperion::v2

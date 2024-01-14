@@ -33,9 +33,9 @@ protected:
     void RemoveEnvGridRenderer();
     void UpdateGridTransform(const Transform &transform);
 
-    WeakHandle<Scene> m_env_grid_renderer_scene;
-    Name m_env_grid_renderer_name;
-    EnvGrid *m_env_grid_renderer;
+    WeakHandle<Scene>   m_env_grid_renderer_scene;
+    Name                m_env_grid_renderer_name;
+    RC<EnvGrid>         m_env_grid_renderer;
 };
 
 } // namespace hyperion::v2

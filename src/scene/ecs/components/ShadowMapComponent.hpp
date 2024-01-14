@@ -6,12 +6,13 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <scene/camera/Camera.hpp>
 #include <math/Matrix4.hpp>
+#include <math/Extent.hpp>
 #include <math/BoundingBox.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion::v2 {
 
-class ShadowMapRenderer;
+class RenderComponentBase;
 
 enum ShadowMapFilter
 {
@@ -25,8 +26,8 @@ struct ShadowMapComponent
 {
     ShadowMapFilter         filter = SHADOW_MAP_FILTER_PCF;
     Float                   radius = 15.0f;
-    BoundingBox             aabb;
-    RC<ShadowMapRenderer>   shadow_map_renderer;
+    Extent2D                resolution = { 1024, 1024 };
+    RC<RenderComponentBase> render_component;
 
     UInt                    update_counter = 0;
 };

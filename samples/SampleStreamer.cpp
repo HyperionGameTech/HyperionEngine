@@ -12,7 +12,6 @@
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/LightController.hpp>
-#include <scene/controllers/ShadowMapController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/AnimationController.hpp>
@@ -25,7 +24,7 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
-#include <rendering/PointShadowRenderer.hpp>
+#include <rendering/PointLightShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
@@ -257,6 +256,14 @@ void SampleStreamer::InitGame()
     // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     {
+        auto sun = CreateObject<Light>(DirectionalLight(
+            Vec3f(-0.8f, 0.65f, 0.8f).Normalize(),
+            Color(1.0f, 1.0f, 1.0f),
+            5.0f
+        ));
+
+        InitObject(sun);
+
         auto sun_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, TransformComponent {
@@ -268,11 +275,7 @@ void SampleStreamer::InitGame()
         });
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
-            CreateObject<Light>(DirectionalLight(
-                Vec3f(-0.8f, 0.65f, 0.8f).Normalize(),
-                Color(1.0f, 1.0f, 1.0f),
-                5.0f
-            ))
+            sun
         });
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent { });

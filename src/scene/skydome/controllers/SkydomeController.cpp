@@ -7,8 +7,7 @@
 namespace hyperion::v2 {
 
 SkydomeController::SkydomeController()
-    : Controller(),
-      m_skydome_renderer(nullptr)
+    : Controller()
 {
 }
 

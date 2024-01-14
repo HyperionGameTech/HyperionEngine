@@ -1,4 +1,4 @@
-#include <rendering/PointShadowRenderer.hpp>
+#include <rendering/PointLightShadowRenderer.hpp>
 
 #include <Engine.hpp>
 #include <rendering/Light.hpp>
@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-PointShadowRenderer::PointShadowRenderer(
+PointLightShadowRenderer::PointLightShadowRenderer(
     Handle<Light> light,
     const Extent2D &extent
 ) : RenderComponent(),
@@ -19,9 +19,9 @@ PointShadowRenderer::PointShadowRenderer(
 {
 }
 
-PointShadowRenderer::~PointShadowRenderer() = default;
+PointLightShadowRenderer::~PointLightShadowRenderer() = default;
 
-void PointShadowRenderer::Init()
+void PointLightShadowRenderer::Init()
 {
     if (!InitObject(m_light)) {
         DebugLog(
@@ -49,14 +49,14 @@ void PointShadowRenderer::Init()
 }
 
 // called from game thread
-void PointShadowRenderer::InitGame()
+void PointLightShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_env_probe.IsValid());
 }
 
-void PointShadowRenderer::OnRemoved()
+void PointLightShadowRenderer::OnRemoved()
 {
     if (m_env_probe.IsValid()) {
         m_env_probe->EnqueueUnbind();
@@ -65,7 +65,7 @@ void PointShadowRenderer::OnRemoved()
     m_env_probe.Reset();
 }
 
-void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
+void PointLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -82,7 +82,7 @@ void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_env_probe->Update(delta);
 }
 
-void PointShadowRenderer::OnRender(Frame *frame)
+void PointLightShadowRenderer::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -113,7 +113,7 @@ void PointShadowRenderer::OnRender(Frame *frame)
     }
 }
 
-void PointShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
+void PointLightShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
 {
     AssertThrowMsg(false, "Not implemented");
 }

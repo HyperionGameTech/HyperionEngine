@@ -30,8 +30,8 @@ public:
     virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in) override;
 
 protected:
-    SkydomeRenderer *m_skydome_renderer;
-    NodeProxy       m_dome_node;
+    RC<SkydomeRenderer> m_skydome_renderer;
+    NodeProxy           m_dome_node;
 };
 
 } // namespace hyperion::v2

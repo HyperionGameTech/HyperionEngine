@@ -8,8 +8,7 @@
 namespace hyperion::v2 {
 
 EnvGridController::EnvGridController()
-    : Controller(true),
-      m_env_grid_renderer(nullptr)
+    : Controller(true)
 {
 }
 

@@ -1,4 +1,4 @@
-#include "Shadows.hpp"
+#include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <Engine.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
@@ -161,12 +161,12 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
 #pragma endregion
 
-ShadowPass::ShadowPass(const Handle<Scene> &parent_scene)
+ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D resolution)
     : FullScreenPass(),
       m_parent_scene(parent_scene),
       m_shadow_mode(ShadowMode::PCF),
       m_shadow_map_index(~0u),
-      m_dimensions { 2048, 2048 }
+      m_resolution(resolution)
 {
 }
 
@@ -205,7 +205,7 @@ void ShadowPass::CreateFramebuffer()
 {
     /* Add the filters' renderpass */
     m_framebuffer = CreateObject<Framebuffer>(
-        m_dimensions,
+        m_resolution,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -215,7 +215,7 @@ void ShadowPass::CreateFramebuffer()
     { // depth, depth^2 texture (for variance shadow map)
         m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
             MakeRenderObject<Image>(renderer::FramebufferImage2D(
-                m_dimensions,
+                m_resolution,
                 InternalFormat::RG32F,
                 FilterMode::TEXTURE_FILTER_NEAREST
             )),
@@ -235,7 +235,7 @@ void ShadowPass::CreateFramebuffer()
     { // standard depth texture
         m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
             MakeRenderObject<Image>(renderer::FramebufferImage2D(
-                m_dimensions,
+                m_resolution,
                 g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
                 nullptr
             )),
@@ -273,7 +273,7 @@ void ShadowPass::CreateDescriptors()
 void ShadowPass::CreateShadowMap()
 {
     m_shadow_map = CreateObject<Texture>(Texture2D(
-        m_dimensions,
+        m_resolution,
         InternalFormat::RG32F,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -321,7 +321,7 @@ void ShadowPass::Create()
     CreateComputePipelines();
 
     {
-        m_camera = CreateObject<Camera>(m_dimensions.width, m_dimensions.height);
+        m_camera = CreateObject<Camera>(m_resolution.width, m_resolution.height);
 
         m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
         m_camera->SetFramebuffer(m_framebuffer);
@@ -425,12 +425,13 @@ void ShadowPass::Render(Frame *frame)
     }
 }
 
-ShadowMapRenderer::ShadowMapRenderer()
-    : RenderComponent()
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Extent2D resolution)
+    : RenderComponent(),
+      m_resolution(resolution)
 {
 }
 
-ShadowMapRenderer::~ShadowMapRenderer()
+DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
     if (m_shadow_pass) {
         m_shadow_pass->Destroy(); // flushes render queue
@@ -439,23 +440,23 @@ ShadowMapRenderer::~ShadowMapRenderer()
 }
 
 // called from render thread
-void ShadowMapRenderer::Init()
+void DirectionalLightShadowRenderer::Init()
 {
     AssertThrow(IsValidComponent());
 
-    m_shadow_pass.Reset(new ShadowPass(Handle<Scene>(GetParent()->GetScene()->GetID())));
+    m_shadow_pass.Reset(new ShadowPass(Handle<Scene>(GetParent()->GetScene()->GetID()), m_resolution));
 
     m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
     m_shadow_pass->Create();
 }
 
 // called from game thread
-void ShadowMapRenderer::InitGame()
+void DirectionalLightShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 }
 
-void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
+void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -468,7 +469,6 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
     GetParent()->GetScene()->CollectEntities(
         m_shadow_pass->GetRenderList(),
         m_shadow_pass->GetCamera(),
-        Bitset((1 << BUCKET_OPAQUE)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
@@ -485,7 +485,7 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_shadow_pass->GetRenderList().UpdateRenderGroups();
 }
 
-void ShadowMapRenderer::OnRender(Frame *frame)
+void DirectionalLightShadowRenderer::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -494,7 +494,7 @@ void ShadowMapRenderer::OnRender(Frame *frame)
     m_shadow_pass->Render(frame);
 }
 
-void ShadowMapRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
+void DirectionalLightShadowRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
 {
     AssertThrow(m_shadow_pass != nullptr);
 
@@ -520,12 +520,12 @@ void ShadowMapRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
         camera_data.view,
         camera_data.projection,
         camera_data.aabb,
-        m_shadow_pass->GetDimensions(),
+        m_shadow_pass->GetResolution(),
         flags
     );
 }
 
-void ShadowMapRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
+void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
 {
     AssertThrowMsg(false, "Not implemented");
 }

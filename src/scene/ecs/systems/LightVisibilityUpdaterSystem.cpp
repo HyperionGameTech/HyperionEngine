@@ -16,7 +16,7 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         if (!(light_component.flags & LIGHT_COMPONENT_FLAGS_INIT)) {
             InitObject(light_component.light);
 
-            light_component.flags |= LIGHT_COMPONENT_FLAGS_INIT | LIGHT_COMPONENT_FLAGS_DIRTY;
+            light_component.flags |= LIGHT_COMPONENT_FLAGS_INIT;
 
             continue;
         }
@@ -24,19 +24,13 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (transform_hash_code != light_component.transform_hash_code) {
-            light_component.flags |= LIGHT_COMPONENT_FLAGS_DIRTY;
+            if (light_component.light->GetType() == LightType::DIRECTIONAL) {
+                light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
+            } else {
+                light_component.light->SetPosition(transform_component.transform.GetTranslation());
+            }
 
             light_component.transform_hash_code = transform_hash_code;
-        }
-
-        if (!(light_component.flags & LIGHT_COMPONENT_FLAGS_DIRTY)) {
-            continue;
-        }
-
-        if (light_component.light->GetType() == LightType::DIRECTIONAL) {
-            light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
-        } else {
-            light_component.light->SetPosition(transform_component.transform.GetTranslation());
         }
 
         const Bool is_light_in_frustum = light_component.light->GetType() == LightType::DIRECTIONAL

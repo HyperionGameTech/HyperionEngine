@@ -215,7 +215,6 @@ private:
     Handle<Camera>                                          m_camera;
     RC<EntityDrawCollection>                                m_draw_collection;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_groups;
-    HashCode                                                m_combined_attributes_hash_code;
 };
 
 } // namespace hyperion::v2

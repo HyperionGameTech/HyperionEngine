@@ -1,6 +1,6 @@
 #include "RenderEnvironment.hpp"
 #include <Engine.hpp>
-#include <rendering/Shadows.hpp>
+#include <rendering/DirectionalLightShadowRenderer.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
@@ -10,9 +10,9 @@ using renderer::Result;
 
 struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 {
-    TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> render_components;
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> render_components;
 
-    RENDER_COMMAND(RemoveAllRenderComponents)(TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> &&render_components)
+    RENDER_COMMAND(RemoveAllRenderComponents)(TypeMap<FlatMap<Name, RC<RenderComponentBase>>> &&render_components)
         : render_components(std::move(render_components))
     {
     }
@@ -213,7 +213,7 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_ddgi_probes) {
-        const ShadowMapRenderer *shadow_map_renderer = GetRenderComponent<ShadowMapRenderer>();
+        const DirectionalLightShadowRenderer *shadow_map_renderer = GetRenderComponent<DirectionalLightShadowRenderer>();
 
         UInt shadow_map_index = 0;
         Handle<Texture> shadow_map;
@@ -304,7 +304,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 const auto item_it = items_map.Find(name);
 
                 if (item_it != items_map.End()) {
-                    const UniquePtr<RenderComponentBase> &item = item_it->second;
+                    const RC<RenderComponentBase> &item = item_it->second;
 
                     if (item != nullptr) {
                         component_type = item->GetName();

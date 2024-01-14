@@ -260,7 +260,7 @@ void RenderGroup::CollectDrawCalls()
 
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
 {
-    if (!use_draw_indirect) {
+    if constexpr (!use_draw_indirect) {
         return;
     }
 
