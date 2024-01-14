@@ -84,6 +84,10 @@ public:
     World &operator=(const World &other) = delete;
     ~World();
 
+    /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene. */
+    const Handle<Scene> &GetDetachedScene() const
+        { return m_detached_scene; }
+
     PhysicsWorld &GetPhysicsWorld() { return m_physics_world; }
     const PhysicsWorld &GetPhysicsWorld() const { return m_physics_world; }
 
@@ -112,16 +116,17 @@ public:
 private:
     void PerformSceneUpdates();
 
-    PhysicsWorld m_physics_world;
-    RenderListContainer m_render_list_container;
+    PhysicsWorld                m_physics_world;
+    RenderListContainer         m_render_list_container;
 
-    FlatSet<Handle<Scene>> m_scenes;
-    FlatSet<Handle<Scene>> m_scenes_pending_addition;
-    FlatSet<Handle<Scene>> m_scenes_pending_removal;
+    Handle<Scene>               m_detached_scene;
 
-    std::atomic_bool m_has_scene_updates { false };
-    BinarySemaphore m_scene_update_sp;
-    std::mutex m_scene_update_mutex;
+    FlatSet<Handle<Scene>>      m_scenes;
+    FlatSet<Handle<Scene>>      m_scenes_pending_addition;
+    FlatSet<Handle<Scene>>      m_scenes_pending_removal;
+
+    std::atomic_bool            m_has_scene_updates { false };
+    std::mutex                  m_scene_update_mutex;
 };
 
 } // namespace hyperion::v2

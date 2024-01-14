@@ -622,8 +622,6 @@ void DeferredRenderer::CreateCombinePass()
         GetDeferredShaderProperties()
     );
 
-    g_engine->InitObject(shader);
-
     m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA16F));
     m_combine_pass->Create();
 }
@@ -665,7 +663,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    CommandBuffer *primary = frame->GetCommandBuffer();
+    const CommandBufferRef &primary = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     const auto &scene_binding = g_engine->render_state.GetScene();
@@ -892,7 +890,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
-    CommandBuffer *primary = frame->GetCommandBuffer();
+    const CommandBufferRef &primary = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     const ImageRef &mipmapped_result = m_mip_chain->GetImage();

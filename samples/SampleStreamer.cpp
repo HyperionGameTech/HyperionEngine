@@ -19,6 +19,8 @@
 #include <scene/skydome/controllers/SkydomeController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
+#include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
@@ -71,22 +73,22 @@
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCDataChannel.hpp>
 
-static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
-{
-    const auto &entity = node.GetEntity();
+// static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
+// {
+//     const auto &entity = node.GetEntity();
 
-    if (entity) {
-        const auto &mesh = entity->GetMesh();
+//     if (entity) {
+//         const auto &mesh = entity->GetMesh();
 
-        if (mesh) {
-            out.PushBack(Pair<Handle<Mesh>, Transform> { mesh, entity->GetTransform() });
-        }
-    }
+//         if (mesh) {
+//             out.PushBack(Pair<Handle<Mesh>, Transform> { mesh, entity->GetTransform() });
+//         }
+//     }
 
-    for (auto &child : node.GetChildren()) {
-        CollectMeshes(child, out);
-    }
-}
+//     for (auto &child : node.GetChildren()) {
+//         CollectMeshes(child, out);
+//     }
+// }
 
 
 
@@ -207,14 +209,10 @@ void SampleStreamer::InitGame()
     ));*/
     m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
-    { // allow ui rendering
-        auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
-        btn_node.SetEntity(CreateObject<Entity>());
-        btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 1.0f, 0.0f));
-
+    {
         auto entity_id = m_scene->GetEntityManager()->AddEntity();
 
-        auto cube = MeshBuilder::NormalizedCubeSphere(8);
+        auto cube = MeshBuilder::Cube();
         InitObject(cube);
         
         m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
@@ -243,13 +241,10 @@ void SampleStreamer::InitGame()
         // TEMP
         // g_engine->GetWorld()->GetOctree().Insert(Handle<Entity>(entity_id).Get());
 
-        if (auto *controller = g_engine->GetComponents().Add<UIButtonController>(btn_node.GetEntity(), UniquePtr<UIButtonController>::Construct())) {
-            controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));
-        }
+        // if (auto *controller = g_engine->GetComponents().Add<UIButtonController>(btn_node.GetEntity(), UniquePtr<UIButtonController>::Construct())) {
+        //     controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));
+        // }
 
-        btn_node.Scale(0.01f);
-
-        m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
     }
 
     // // Add a reflection probe
@@ -262,22 +257,42 @@ void SampleStreamer::InitGame()
     // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     {
-        auto sun = CreateObject<Entity>();
-        sun->SetName(HYP_NAME(Sun));
+        auto sun_entity = m_scene->GetEntityManager()->AddEntity();
 
-        auto *light_component = g_engine->GetComponents().Add<LightController>(sun, UniquePtr<LightController>::Construct(CreateObject<Light>(DirectionalLight(
-            Vector3(-0.8f, 0.65f, 0.8f).Normalize(),
-            Color(1.0f, 1.0f, 1.0f),
-            5.0f
-        ))));
+        m_scene->GetEntityManager()->AddComponent(sun_entity, TransformComponent {
+            Transform(
+                Vec3f(-0.8f, 0.65f, 0.8f),
+                Vec3f::one,
+                Quaternion::Identity()
+            )
+        });
 
-        sun->SetTranslation(Vector3(-0.8f, 0.65f, 0.8f));
+        m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
+            CreateObject<Light>(DirectionalLight(
+                Vec3f(-0.8f, 0.65f, 0.8f).Normalize(),
+                Color(1.0f, 1.0f, 1.0f),
+                5.0f
+            ))
+        });
 
-        g_engine->GetComponents().Add<ShadowMapController>(sun, UniquePtr<ShadowMapController>::Construct(
-            light_component->GetLight()
-        ));
+        m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent { });
 
-        GetScene()->AddEntity(sun);
+        // auto sun = CreateObject<Entity>();
+        // sun->SetName(HYP_NAME(Sun));
+
+        // auto *light_component = g_engine->GetComponents().Add<LightController>(sun, UniquePtr<LightController>::Construct(CreateObject<Light>(DirectionalLight(
+        //     Vector3(-0.8f, 0.65f, 0.8f).Normalize(),
+        //     Color(1.0f, 1.0f, 1.0f),
+        //     5.0f
+        // ))));
+
+        // sun->SetTranslation(Vector3(-0.8f, 0.65f, 0.8f));
+
+        // g_engine->GetComponents().Add<ShadowMapController>(sun, UniquePtr<ShadowMapController>::Construct(
+        //     light_component->GetLight()
+        // ));
+
+        // GetScene()->AddEntity(sun);
 
         Array<Handle<Light>> point_lights;
 
@@ -295,20 +310,28 @@ void SampleStreamer::InitGame()
         // )));
 
         for (auto &light : point_lights) {
-            auto point_light_entity = CreateObject<Entity>();
-            point_light_entity->SetTranslation(light->GetPosition());
-            g_engine->GetComponents().Add<LightController>(point_light_entity, UniquePtr<LightController>::Construct(light));
-            m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(HYP_NAME(PointShadowRenderer), light, Extent2D { 256, 256 });
-            GetScene()->AddEntity(std::move(point_light_entity));
+            auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
+                Transform(
+                    light->GetPosition(),
+                    Vec3f(1.0f),
+                    Quaternion::Identity()
+                )
+            });
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
+                light
+            });
         }
     }
 
     // Add skybox
-    {
-        auto skydome_entity = CreateObject<Entity>();
-        g_engine->GetComponents().Add<SkydomeController>(skydome_entity, UniquePtr<SkydomeController>::Construct());
-        GetScene()->AddEntity(skydome_entity);
-    }
+    // {
+    //     auto skydome_entity = CreateObject<Entity>();
+    //     g_engine->GetComponents().Add<SkydomeController>(skydome_entity, UniquePtr<SkydomeController>::Construct());
+    //     GetScene()->AddEntity(skydome_entity);
+    // }
 
     // add sample model
     {
@@ -321,22 +344,26 @@ void SampleStreamer::InitGame()
         if (auto zombie = results["zombie"].Get<Node>()) {
             auto zombie_entity = zombie[0].GetEntity();
 
+            m_scene->GetRoot().AddChild(zombie);
+
             // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
             //     animation_controller->Play(1.0f, LoopMode::REPEAT);
             // }
 
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-            zombie_entity->RebuildRenderableAttributes();
-            zombie_entity->SetTranslation(Vector3(0, 1, 0));
-            zombie_entity->SetScale(Vector3(0.25f));
+            if (zombie_entity.IsValid()) {
+                if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                }
 
-            InitObject(zombie_entity);
-            zombie_entity->CreateBLAS();
+                // if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(zombie_entity)) {
+                //     transform_component->transform.SetTranslation(Vector3(0, 1, 0));
+                //     transform_component->transform.SetScale(Vector3(0.25f));
+                // }
+            }
+
             zombie.SetName("zombie");
-
-            m_scene->GetRoot().AddChild(zombie);
         }
 
         if (results["test_model"]) {
@@ -345,21 +372,17 @@ void SampleStreamer::InitGame()
             // node.Scale(3.0f);
             // node.Scale(0.01f);
             node.Scale(0.01f);
+            node.SetName("test_model");
 
-            // Add grid of environment probes to capture indirect lighting
-            auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
-            // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
-            g_engine->GetComponents().Add<EnvGridController>(env_grid_entity, UniquePtr<EnvGridController>::Construct());
-            // env_grid_entity->AddController<AABBDebugController>();
-            GetScene()->AddEntity(env_grid_entity);
-
-            if (node) {
-                DebugLog(LogType::Debug, "Adding test model\n");
-                GetScene()->GetRoot().AddChild(std::move(node));
-            } else {
-                DebugLog(LogType::Debug, "Test model not found\n");
-            }
+            // // Add grid of environment probes to capture indirect lighting
+            // auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
+            // env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
+            // // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
+            // g_engine->GetComponents().Add<EnvGridController>(env_grid_entity, UniquePtr<EnvGridController>::Construct());
+            // // env_grid_entity->AddController<AABBDebugController>();
+            // GetScene()->AddEntity(env_grid_entity);
+            
+            GetScene()->GetRoot().AddChild(node);
         }
     }
     
@@ -604,109 +627,6 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         InitObject(gaussian_splatting_instance);
 
         m_scene->GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
-    } else if (name == HYP_NAME(TestVoxelizerModel)) {
-        auto node = loaded_assets["test_voxelizer_model"].ExtractAs<Node>();
-        node.Scale(0.1f);
-
-        if (node) {
-            // Voxelize 
-            UInt voxel_grid_index = 0;
-
-            Array<Pair<Handle<Mesh>, Transform>> all_meshes;
-
-            CollectMeshes(node, all_meshes);
-
-            Handle<Mesh> merged_mesh;
-
-            for (const auto &it : all_meshes) {
-                if (!merged_mesh) {
-                    merged_mesh = MeshBuilder::ApplyTransform(it.first.Get(), it.second);
-                } else {
-                    merged_mesh = MeshBuilder::Merge(merged_mesh.Get(), it.first.Get(), Transform(), it.second);
-                }
-            }
-
-            if (!merged_mesh) {
-                DebugLog(LogType::Error, "Failed to merge meshes\n");
-
-                return;
-            }
-
-            DebugLog(LogType::Debug, "Merged mesh vertex attributes: %llu\n", merged_mesh->GetVertexAttributes().flag_mask);
-
-            const auto voxel_grid = MeshBuilder::Voxelize(merged_mesh.Get(), Vec3u { 20, 20, 20 });
-            
-            { // Add to scene
-                Handle<Mesh> voxel_mesh = MeshBuilder::BuildVoxelMesh(voxel_grid);
-                InitObject(voxel_mesh);
-
-                auto material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
-
-                auto vertex_attributes = voxel_mesh->GetVertexAttributes();
-                
-                ShaderProperties shader_properties(vertex_attributes);
-
-                Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties);
-
-                Handle<Entity> voxel_entity = CreateObject<Entity>(
-                    voxel_mesh,
-                    std::move(shader),
-                    std::move(material),
-                    RenderableAttributeSet(
-                        MeshAttributes {
-                            .vertex_attributes = vertex_attributes
-                        },
-                        MaterialAttributes {
-                            .bucket = Bucket::BUCKET_OPAQUE
-                        }
-                    )
-                );
-
-                InitObject(voxel_entity);
-
-                GetScene()->AddEntity(std::move(voxel_entity));
-            }
-
-            DebugLog(LogType::Debug, "Dumping voxel grid with %llu voxels\n", voxel_grid.voxels.Size());
-            return;
-            String filename = String("voxel_grid_") + String::ToString(voxel_grid_index++) + String(".txt");
-
-            FileByteWriter writer(filename.Data());
-
-            if (!writer.IsOpen()) {
-                DebugLog(LogType::Error, "Failed to open file %s\n", filename.Data());
-
-                return;
-            }
-
-            // Scale it so that the voxel grid coords can remain integers (chopping off the fractional part)
-            const Vector3 scale = Vector3(1.0f / voxel_grid.voxel_size);
-            
-            for (UInt x = 0; x < voxel_grid.size_x; x++) {
-                for (UInt y = 0; y < voxel_grid.size_y; y++) {
-                    for (UInt z = 0; z < voxel_grid.size_z; z++) {
-                        const UInt index = voxel_grid.GetIndex(x, y, z);
-                        const auto &voxel = voxel_grid.voxels[index];
-
-                        const Vector3 position = voxel.aabb.GetCenter();
-
-                        Vec3i voxel_position = Vec3i(
-                            MathUtil::Floor(position.x * scale.x),
-                            MathUtil::Floor(position.y * scale.y),
-                            MathUtil::Floor(position.z * scale.z)
-                        );
-
-                        String str;
-                        str += voxel.filled ? "F " : "E ";
-                        str += String(std::to_string(voxel_position.x).c_str()) + " ";
-                        str += String(std::to_string(voxel_position.y).c_str()) + " ";
-                        str += String(std::to_string(voxel_position.z).c_str()) + "\n";
-
-                        writer.WriteString(str, BYTE_WRITER_FLAGS_NONE);
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -725,9 +645,9 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
         }
     }
 
-    auto env_grid_entity = m_scene->FindEntityByName(HYP_NAME(EnvGridEntity));
+    auto env_grid_node = m_scene->FindNodeByName("EnvGridEntity");
 
-    if (env_grid_entity) {
+    if (env_grid_node) {
         // env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
     }
 

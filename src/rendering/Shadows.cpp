@@ -358,7 +358,7 @@ void ShadowPass::Render(Frame *frame)
         return;
     }
 
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     AssertThrow(m_parent_scene.IsValid());
 

@@ -546,7 +546,7 @@ void RenderList::ExecuteDrawCalls(
 
     AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
 
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     if (framebuffer) {

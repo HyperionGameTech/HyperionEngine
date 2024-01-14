@@ -4,6 +4,11 @@
 #include <scene/Entity.hpp>
 #include <scene/animation/Bone.hpp>
 #include <scene/controllers/AnimationController.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/SkeletonComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <rendering/Material.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <core/lib/CMemory.hpp>
@@ -554,22 +559,22 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping> &mapping,
     return false;
 }
 
-static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *node)
-{
-    AssertThrow(node != nullptr);
+// static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *node)
+// {
+//     AssertThrow(node != nullptr);
     
-    if (Handle<Entity> &entity = node->GetEntity()) {
-        entity->SetSkeleton(skeleton);
+//     if (Handle<Entity> &entity = node->GetEntity()) {
+//         entity->SetSkeleton(skeleton);
 
-        g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct());
-    }
+//         g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct());
+//     }
 
-    for (auto &child : node->GetChildren()) {
-        if (child) {
-            AddSkeletonToEntities(skeleton, child.Get());
-        }
-    }
-}
+//     for (auto &child : node->GetChildren()) {
+//         if (child) {
+//             AddSkeletonToEntities(skeleton, child.Get());
+//         }
+//     }
+// }
 
 LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 {
@@ -1287,6 +1292,8 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             FBXMesh *mesh;
 
             if (GetFBXObject(node.mesh_id, mesh)) {
+                ApplyClustersToMesh(*mesh);
+
                 auto material = g_material_system->GetOrCreate({
                     .shader_definition = ShaderDefinition {
                         HYP_NAME(Forward),
@@ -1295,15 +1302,34 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     .bucket = Bucket::BUCKET_OPAQUE
                 });
 
-                auto entity = CreateObject<Entity>();
-                entity->SetName(CreateNameFromDynamicString(node.name.Data()));
-                entity->SetMaterial(material);
+                const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
 
-                ApplyClustersToMesh(*mesh);
+                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                    entity,
+                    TransformComponent { }
+                );
 
-                entity->SetMesh(mesh->GetResultObject());
+                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                    entity,
+                    MeshComponent {
+                        mesh->GetResultObject(),
+                        material
+                    }
+                );
 
-                node_proxy.SetEntity(std::move(entity));
+                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                    entity,
+                    BoundingBoxComponent {
+                        mesh->GetResultObject()->GetAABB()
+                    }
+                );
+
+                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                    entity,
+                    VisibilityStateComponent { }
+                );
+
+                node_proxy.SetEntity(entity);
             }
         }
 

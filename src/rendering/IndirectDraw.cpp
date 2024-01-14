@@ -88,7 +88,8 @@ Result IndirectDrawState::Create()
 {
     auto single_time_commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
-    single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result {
+    single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result
+    {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto frame = Frame::TemporaryFrame(command_buffer, frame_index);
 
@@ -407,7 +408,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());

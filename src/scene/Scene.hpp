@@ -83,34 +83,8 @@ public:
     const RenderList &GetRenderList() const
         { return m_render_list; }
 
-    /*! \brief Add the Entity to a new Node attached to the root.
-     * @returns If successfully added, returns the NodeProxy which the Entity was attached to. Otherwise, returns an empty NodeProxy.
-     */
-    NodeProxy AddEntity(Handle<Entity> &&entity);
-    /*! \brief Add the Entity to a new Node attached to the root.
-     * @returns If successfully added, returns the NodeProxy which the Entity was attached to. Otherwise, returns an empty NodeProxy.
-     * */
-    NodeProxy AddEntity(const Handle<Entity> &entity)
-        { return AddEntity(Handle<Entity>(entity)); }
-
-    /*! \brief Remove a Node from the Scene with the given Entity */
-    Bool RemoveEntity(ID<Entity> entity_id);
-    /*! \brief Remove a Node from the Scene with the given Entity */
-    Bool RemoveEntity(const Handle<Entity> &entity)
-        { return RemoveEntity(entity.GetID()); }
-
-    /*! \brief Add an Entity to the queue. On Update(), it will be added to the scene. */
-    Bool AddEntityInternal(Handle<Entity> &&entity);
-    Bool HasEntity(ID<Entity> entity_id) const;
-    /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
-    Bool RemoveEntityInternal(const Handle<Entity> &entity);
-
-    const Handle<Entity> &FindEntityWithID(ID<Entity>) const;
-    const Handle<Entity> &FindEntityByName(Name) const;
-
-    Bool AddLight(Handle<Light> &&light);
-    Bool AddLight(const Handle<Light> &light);
-    Bool RemoveLight(ID<Light> id);
+    NodeProxy FindNodeWithEntity(ID<Entity>) const;
+    NodeProxy FindNodeByName(const String &) const;
 
     Bool AddEnvProbe(Handle<EnvProbe> env_probe);
     Bool RemoveEnvProbe(ID<EnvProbe> id);
@@ -137,13 +111,6 @@ public:
      *  The Scene must have had Init() called on it before calling this.
      */
     Bool CreateTLAS();
-
-    /* ONLY USE FROM GAME THREAD */
-    auto &GetEntities()
-        { return m_entities; }
-
-    const auto &GetEntities() const
-        { return m_entities; }
 
     NodeProxy &GetRoot()
         { return m_root_node_proxy; }
@@ -216,9 +183,6 @@ public:
 
 private:
     void EnqueueRenderUpdates();
-    
-    void AddPendingEntities();
-    void RemovePendingEntities();
 
     Bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
 
@@ -231,15 +195,7 @@ private:
 
     FogParams m_fog_params;
 
-    // entities, lights etc. live in GAME thread
-    FlatMap<ID<Entity>, Handle<Entity>> m_entities;
-    FlatMap<ID<Light>, Handle<Light>> m_lights;
     FlatMap<ID<EnvProbe>, Handle<EnvProbe>> m_env_probes;
-
-    // NOTE: not for thread safety, it's to defer updates so we don't
-    // remove in the update loop.
-    FlatSet<ID<Entity>> m_entities_pending_removal;
-    FlatSet<Handle<Entity>> m_entities_pending_addition;
 
     RC<EntityManager> m_entity_manager;
 

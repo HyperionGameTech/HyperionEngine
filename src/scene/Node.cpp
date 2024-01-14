@@ -2,6 +2,8 @@
 #include <system/Debug.hpp>
 
 #include <scene/animation/Bone.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
 #include <Engine.hpp>
 
 #include <cstring>
@@ -13,7 +15,7 @@ Node::Node(
     const Transform &local_transform
 ) : Node(
         name,
-        Handle<Entity>(),
+        ID<Entity>::invalid,
         local_transform
     )
 {
@@ -21,12 +23,12 @@ Node::Node(
 
 Node::Node(
     const String &name,
-    Handle<Entity> &&entity,
+    ID<Entity> entity,
     const Transform &local_transform
 ) : Node(
         Type::NODE,
         name,
-        std::move(entity),
+        entity,
         local_transform
     )
 {
@@ -35,7 +37,7 @@ Node::Node(
 Node::Node(
     Type type,
     const String &name,
-    Handle<Entity> &&entity,
+    ID<Entity> entity,
     const Transform &local_transform
 ) : m_type(type),
     m_name(name),
@@ -43,7 +45,10 @@ Node::Node(
     m_local_transform(local_transform),
     m_scene(nullptr)
 {
-    SetEntity(std::move(entity));
+    SetEntity(entity);
+
+    // Set the scene to the world's detached scene.
+    SetScene(g_engine->GetWorld()->GetDetachedScene().Get());
 }
 
 Node::Node(Node &&other) noexcept
@@ -66,10 +71,10 @@ Node::Node(Node &&other) noexcept
 
     m_entity = std::move(other.m_entity);
 
-    if (m_entity) {
-        m_entity->SetIsAttachedToNode(&other, false);
-        m_entity->SetIsAttachedToNode(this, true);
-    }
+    // if (m_entity) {
+    //     m_entity->SetIsAttachedToNode(&other, false);
+    //     m_entity->SetIsAttachedToNode(this, true);
+    // }
 
     m_child_nodes = std::move(other.m_child_nodes);
     other.m_child_nodes = {};
@@ -88,7 +93,7 @@ Node &Node::operator=(Node &&other) noexcept
 {
     RemoveAllChildren();
 
-    SetEntity(Handle<Entity>());
+    SetEntity(ID<Entity>::invalid);
     SetScene(nullptr);
 
     m_type = other.m_type;
@@ -115,8 +120,8 @@ Node &Node::operator=(Node &&other) noexcept
     m_entity = std::move(other.m_entity);
 
     if (m_entity) {
-        m_entity->SetIsAttachedToNode(&other, false);
-        m_entity->SetIsAttachedToNode(this, true);
+        // m_entity->SetIsAttachedToNode(&other, false);
+        // m_entity->SetIsAttachedToNode(this, true);
     }
 
     m_name = std::move(other.m_name);
@@ -139,19 +144,30 @@ Node &Node::operator=(Node &&other) noexcept
 Node::~Node()
 {
     RemoveAllChildren();
-    SetEntity(Handle<Entity>());
+    SetEntity(ID<Entity>::invalid);
 }
 
 void Node::SetScene(Scene *scene)
 {
-    if (m_scene && m_entity) {
-        m_scene->RemoveEntityInternal(m_entity);
+    if (m_scene == scene) {
+        return;
+    }
+
+    if (!scene) {
+        scene = g_engine->GetWorld()->GetDetachedScene().Get();
+    }
+
+    AssertThrow(scene != nullptr);
+
+    if (m_scene && m_entity.IsValid()) {
+        // m_scene->RemoveEntityInternal(m_entity);
+        m_scene->GetEntityManager()->MoveEntity(m_entity, *scene->GetEntityManager().Get());
     }
 
     m_scene = scene;
 
     if (m_scene && m_entity) {
-        m_scene->AddEntityInternal(Handle<Entity>(m_entity));
+        // m_scene->AddEntityInternal(Handle<Entity>(m_entity));
     }
 
     for (auto &child : m_child_nodes) {
@@ -400,7 +416,7 @@ void Node::SetLocalTransform(const Transform &transform)
     UpdateWorldTransform();
 }
 
-void Node::SetEntity(Handle<Entity> &&entity)
+void Node::SetEntity(ID<Entity> entity)
 {
     if (m_entity == entity) {
         return;
@@ -408,31 +424,41 @@ void Node::SetEntity(Handle<Entity> &&entity)
 
     if (m_entity.IsValid()) {
         if (m_scene != nullptr) {
-            m_scene->RemoveEntityInternal(m_entity);
+            // m_scene->RemoveEntityInternal(m_entity);
         }
 
-        m_entity->SetIsAttachedToNode(this, false);
+        // m_entity->SetIsAttachedToNode(this, false);
     }
 
     if (entity.IsValid()) {
-        const Transform entity_transform = entity->GetTransform();
-
-        m_entity = std::move(entity);
-        InitObject(m_entity);
+        m_entity = entity;
+        // InitObject(m_entity);
 
         if (m_scene != nullptr) {
-            m_scene->AddEntityInternal(Handle<Entity>(m_entity));
+            // m_scene->AddEntityInternal(Handle<Entity>(m_entity));
         }
 
-        m_entity->SetIsAttachedToNode(this, true);
+        // m_entity->SetIsAttachedToNode(this, true);
 
-        m_local_aabb = m_entity->GetLocalAABB();
+        Transform entity_transform;
+
+        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+            entity_transform = transform_component->transform;
+        }
+
+        if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
+            m_local_aabb = bounding_box_component->local_aabb;
+        } else {
+            m_local_aabb = BoundingBox::empty;
+        }
+
+        // m_local_aabb = m_entity->GetLocalAABB();
 
         SetWorldTransform(entity_transform);
     } else {
         m_local_aabb = BoundingBox::empty;
 
-        m_entity.Reset();
+        m_entity = ID<Entity>::invalid;
 
         UpdateWorldTransform();
     }
@@ -469,8 +495,16 @@ void Node::UpdateWorldTransform()
         m_parent_node->m_world_aabb.Extend(m_world_aabb);
     }
 
-    if (m_entity) {
-        m_entity->SetTransform(m_world_transform);
+    if (m_entity.IsValid()) {
+        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+            transform_component->transform = m_world_transform;
+        } else {
+            m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
+                m_world_transform
+            });
+        }
+
+        // m_entity->SetTransform(m_world_transform);
     }
 }
 
@@ -478,10 +512,24 @@ void Node::RefreshEntityTransform()
 {
     m_local_aabb = BoundingBox::empty;
 
-    if (m_entity) {
-        m_local_aabb = m_entity->GetLocalAABB();
+    if (m_entity.IsValid()) {
+        if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
+            m_local_aabb = bounding_box_component->local_aabb;
+        } else {
+            m_local_aabb = BoundingBox::empty;
+        }
 
-        m_entity->SetTransform(m_world_transform);
+        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+            transform_component->transform = m_world_transform;
+        } else {
+            m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
+                m_world_transform
+            });
+        }
+
+        // m_local_aabb = m_entity->GetLocalAABB();
+
+        // m_entity->SetTransform(m_world_transform);
     }
 
     m_world_aabb = m_local_aabb * m_world_transform;
@@ -494,11 +542,11 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     bool has_entity_hit = false;
 
     if (has_node_hit) {
-        if (m_entity != nullptr) {
+        if (m_entity.IsValid()) {
             has_entity_hit = ray.TestAABB(
-                m_entity->GetWorldAABB(),
-                m_entity->GetID().value,
-                m_entity.Get(),
+                m_world_aabb,
+                m_entity.Value(),
+                nullptr,
                 out_results
             );
         }
@@ -517,7 +565,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     return has_entity_hit;
 }
 
-const Handle<Entity> &Node::FindEntityWithID(ID<Entity> entity_id) const
+NodeProxy Node::FindChildWithEntity(ID<Entity> entity) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -531,18 +579,18 @@ const Handle<Entity> &Node::FindEntityWithID(ID<Entity> entity_id) const
                 continue;
             }
 
-            if (child.GetEntity()->GetID() == entity_id) {
-                return child.GetEntity();
+            if (child.GetEntity() == entity) {
+                return child;
             }
 
             queue.Push(child.Get());
         }
     }
 
-    return Handle<Entity>::empty;
+    return NodeProxy::empty;
 }
 
-const Handle<Entity> &Node::FindEntityByName(Name name) const
+NodeProxy Node::FindChildByName(const String &name) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -556,15 +604,15 @@ const Handle<Entity> &Node::FindEntityByName(Name name) const
                 continue;
             }
 
-            if (child.GetEntity()->GetName() == name) {
-                return child.GetEntity();
+            if (child.GetName() == name) {
+                return child;
             }
 
             queue.Push(child.Get());
         }
     }
 
-    return Handle<Entity>::empty;
+    return NodeProxy::empty;
 }
 
 } // namespace hyperion::v2

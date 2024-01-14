@@ -51,6 +51,14 @@ public:
     }
 
     HYP_FORCE_INLINE
+    ID<Entity> AddEntity(ID<Entity> id, EntityData data)
+    {
+        const auto insert_result = m_entities.Insert(id, std::move(data));
+
+        return insert_result.first->first;
+    }
+
+    HYP_FORCE_INLINE
     EntityData &GetEntityData(ID<Entity> id)
         { return m_entities.At(id); }
 

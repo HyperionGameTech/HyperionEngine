@@ -1,6 +1,32 @@
 #include <core/Name.hpp>
+#include <math/MathUtil.hpp>
 
 namespace hyperion {
+
+static ANSIString GenerateUUID()
+{
+    static constexpr SizeType num_uuid_groups = 5;
+    static constexpr SizeType num_uuid_chars = 4;
+
+    static constexpr char uuid_chars[] = "0123456789abcdef";
+
+    ANSIString uuid;
+    uuid.Reserve(num_uuid_groups * num_uuid_chars + num_uuid_groups - 1);
+
+    for (SizeType i = 0; i < num_uuid_groups; ++i) {
+        for (SizeType j = 0; j < num_uuid_chars; ++j) {
+            const SizeType index = MathUtil::RandRange(0ull, sizeof(uuid_chars) - 1ull);
+
+            uuid.Append(index);
+        }
+
+        if (i < num_uuid_groups - 1) {
+            uuid.Append('-');
+        }
+    }
+
+    return uuid;
+}
 
 const Name Name::invalid = Name(0);
 
@@ -9,6 +35,16 @@ NameRegistry *Name::GetRegistry()
     static NameRegistry registry;
 
     return &registry;
+}
+
+Name Name::Unique()
+{
+    return CreateNameFromDynamicString(GenerateUUID());
+}
+
+Name Name::Unique(const char *prefix)
+{
+    return CreateNameFromDynamicString(ANSIString(prefix) + "_" + GenerateUUID());
 }
 
 const char *Name::LookupString() const

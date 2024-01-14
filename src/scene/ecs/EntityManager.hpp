@@ -7,6 +7,7 @@
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/Proc.hpp>
+#include <core/lib/Mutex.hpp>
 #include <core/Handle.hpp>
 #include <core/ID.hpp>
 #include <scene/Entity.hpp>
@@ -180,6 +181,15 @@ public:
 
     ID<Entity> AddEntity();
     void RemoveEntity(ID<Entity> id);
+
+    /*! \brief Moves an entity from one EntityManager to another.
+     *  This is useful for moving entities between scenes.
+     *  All components will be moved to the other EntityManager.
+     *
+     *  \param[in] id The ID of the entity to move.
+     *  \param[in] other The EntityManager to move the entity to.
+     */
+    void MoveEntity(ID<Entity> id, EntityManager &other);
     
     HYP_FORCE_INLINE
     Bool HasEntity(ID<Entity> id) const
@@ -214,6 +224,38 @@ public:
     template <class Component>
     const Component &GetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->GetComponent<Component>(entity); }
+
+    template <class Component>
+    Component *TryGetComponent(ID<Entity> entity)
+    {
+        auto it = m_entities.Find(entity);
+
+        if (it == m_entities.End()) {
+            return nullptr;
+        }
+
+        if (!it->second.HasComponent<Component>()) {
+            return nullptr;
+        }
+
+        const TypeID component_type_id = TypeID::ForType<Component>();
+        const ComponentID component_id = it->second.GetComponentID<Component>();
+
+        auto component_container_it = m_containers.Find(component_type_id);
+        if (component_container_it == m_containers.End()) {
+            return nullptr;
+        }
+
+        if (!component_container_it->second->HasComponent(component_id)) {
+            return nullptr;
+        }
+
+        return &static_cast<ComponentContainer<Component> &>(*component_container_it->second).GetComponent(component_id);
+    }
+
+    template <class Component>
+    const Component *TryGetComponent(ID<Entity> entity) const
+        { return const_cast<EntityManager *>(this)->TryGetComponent<Component>(entity); }
 
     template <class ... Components>
     std::tuple<Components &...> GetComponents(ID<Entity> entity)
@@ -278,18 +320,6 @@ public:
         }
     }
 
-    template <class Component>
-    ComponentContainer<Component> &GetContainer()
-    {
-        auto it = m_containers.Find<Component>();
-
-        if (it == m_containers.End()) {
-            it = m_containers.Set<Component>(UniquePtr<ComponentContainer<Component>>::Construct()).first;
-        }
-
-        return static_cast<ComponentContainer<Component> &>(*it->second);
-    }
-
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
      *
      *  \tparam Components The components that the entities in this set have.
@@ -302,6 +332,8 @@ public:
     template <class ... Components>
     EntitySet<Components...> &GetEntitySet()
     {
+        Mutex::Guard guard(m_entity_sets_mutex);
+
         const EntitySetTypeID type_id = EntitySet<Components...>::type_id;
         
         auto entity_sets_it = m_entity_sets.Find(type_id);
@@ -377,6 +409,18 @@ public:
     void Update(GameCounter::TickUnit delta);
 
 private:
+    template <class Component>
+    ComponentContainer<Component> &GetContainer()
+    {
+        auto it = m_containers.Find<Component>();
+
+        if (it == m_containers.End()) {
+            it = m_containers.Set<Component>(UniquePtr<ComponentContainer<Component>>::Construct()).first;
+        }
+
+        return static_cast<ComponentContainer<Component> &>(*it->second);
+    }
+
     template <class SystemType>
     SystemType *AddSystemToExecutionGroup(UniquePtr<SystemType> &&system)
     {
@@ -400,6 +444,7 @@ private:
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;
     FlatMap<EntitySetTypeID, UniquePtr<EntitySetBase>>                      m_entity_sets;
+    Mutex                                                                   m_entity_sets_mutex;
     TypeMap<FlatSet<EntitySetTypeID>>                                       m_component_entity_sets;
     FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
     Array<SystemExecutionGroup>                                             m_system_execution_groups;

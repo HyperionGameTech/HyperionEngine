@@ -14,7 +14,8 @@ using MeshComponentFlags = UInt32;
 enum MeshComponentFlagBits : MeshComponentFlags
 {
     MESH_COMPONENT_FLAG_NONE    = 0x0,
-    MESH_COMPONENT_FLAG_DIRTY   = 0x1
+    MESH_COMPONENT_FLAG_INIT    = 0x1,
+    MESH_COMPONENT_FLAG_DIRTY   = 0x2
 };
 
 struct MeshComponent

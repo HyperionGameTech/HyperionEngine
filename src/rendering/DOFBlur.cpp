@@ -67,7 +67,7 @@ void DOFBlur::Render(Frame *frame)
     push_constants.dimension = m_extent;
 
     const UInt frame_index = frame->GetFrameIndex();
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     FixedArray<FullScreenPass *, 2> directional_passes {
         m_blur_horizontal_pass.Get(),

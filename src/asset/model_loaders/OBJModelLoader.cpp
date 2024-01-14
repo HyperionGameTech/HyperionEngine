@@ -2,6 +2,10 @@
 #include <Engine.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <util/fs/FsUtil.hpp>
 
 #include <algorithm>
@@ -337,24 +341,6 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             continue;
         }
 
-        Handle<Material> material;
-
-        if (!obj_mesh.material.Empty() && material_library) {
-            if (material_library->Has(obj_mesh.material)) {
-                material = material_library->Get(obj_mesh.material);
-            } else {
-                DebugLog(
-                    LogType::Warn,
-                    "Obj model loader: Material '%s' could not be found in material library\n",
-                    obj_mesh.material.Data()
-                );
-            }
-        }
-
-        if (!material) {
-            material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
-        }
-
         auto mesh = CreateObject<Mesh>(
             vertices, 
             indices,
@@ -367,25 +353,70 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         mesh->CalculateTangents();
 
-        auto mesh_attributes = mesh->GetMeshAttributes();
-        auto material_attributes = material->GetRenderAttributes();
-        
-        auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh_attributes.vertex_attributes));
+        InitObject(mesh);
 
-        auto entity = CreateObject<Entity>(
-            std::move(mesh),
-            std::move(shader),
-            std::move(material),
-            RenderableAttributeSet(
-                mesh_attributes,
-                material_attributes
-            )
+        Handle<Material> material;
+
+        // if (!obj_mesh.material.Empty() && material_library) {
+        //     if (material_library->Has(obj_mesh.material)) {
+        //         material = material_library->Get(obj_mesh.material);
+        //     } else {
+        //         DebugLog(
+        //             LogType::Warn,
+        //             "Obj model loader: Material '%s' could not be found in material library\n",
+        //             obj_mesh.material.Data()
+        //         );
+        //     }
+        // }
+
+        if (!material) {
+            material = g_material_system->GetOrCreate(
+                {
+                    .shader_definition = ShaderDefinition {
+                        HYP_NAME(Forward),
+                        ShaderProperties(mesh->GetVertexAttributes())
+                    },
+                    .bucket = Bucket::BUCKET_OPAQUE
+                },
+                {
+                    { Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f) },
+                    { Material::MATERIAL_KEY_ROUGHNESS, 0.5f },
+                    { Material::MATERIAL_KEY_METALNESS, 0.0f }
+                }
+            );
+        }
+
+        InitObject(material);
+
+        const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
+
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            TransformComponent { }
         );
 
-        entity->SetName(CreateNameFromDynamicString(obj_mesh.tag.Data()));
-        
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            MeshComponent {
+                mesh,
+                material
+            }
+        );
+
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            BoundingBoxComponent {
+                mesh->GetAABB()
+            }
+        );
+
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            VisibilityStateComponent { }
+        );
+
         auto *node = new Node(obj_mesh.tag);
-        node->SetEntity(std::move(entity));
+        node->SetEntity(entity);
 
         // Takes ownership of node
         top->AddChild(NodeProxy(node));

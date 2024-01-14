@@ -39,7 +39,6 @@ using v2::Threads;
 
 #define HYP_SYNC_RENDER() \
     do { \
-        ::hyperion::v2::Threads::AssertOnThread(~::hyperion::v2::THREAD_TASK, "Waiting on render thread from task threads is disabled as it may cause a deadlock."); \
         HYPERION_ASSERT_RESULT(::hyperion::renderer::RenderCommands::FlushOrWait()); \
     } while (0)
 
@@ -131,7 +130,8 @@ struct RenderCommand
 
     virtual ~RenderCommand() = default;
 
-    HYP_FORCE_INLINE Result Call()
+    HYP_FORCE_INLINE
+    Result Call()
         { return operator()(); }
 
     virtual Result operator()() = 0;

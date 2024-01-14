@@ -1,5 +1,10 @@
 #include "OgreXMLModelLoader.hpp"
 #include <scene/controllers/AnimationController.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/SkeletonComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <Engine.hpp>
 
 #include <util/xml/SAXParser.hpp>
@@ -213,7 +218,17 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             continue;
         }
 
-        Handle<Material> material = CreateObject<Material>(HYP_NAME(ogrexml_material));
+        const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
+
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            TransformComponent { }
+        );
+
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            VisibilityStateComponent { }
+        );
 
         Handle<Mesh> mesh = CreateObject<Mesh>(
             model.vertices,
@@ -226,37 +241,59 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         }
 
         mesh->CalculateTangents();
+        InitObject(mesh);
 
         auto vertex_attributes = mesh->GetVertexAttributes();
         
         ShaderProperties shader_properties(vertex_attributes);
 
-        Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties);
+        Handle<Material> material = CreateObject<Material>(HYP_NAME(ogrexml_material));
+        material->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties));
+        InitObject(material);
 
-        auto entity = CreateObject<Entity>(
-            std::move(mesh),
-            std::move(shader),
-            std::move(material),
-            RenderableAttributeSet(
-                MeshAttributes {
-                    .vertex_attributes = vertex_attributes
-                },
-                MaterialAttributes {
-                    .bucket = Bucket::BUCKET_OPAQUE
-                }
-            )
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            MeshComponent {
+                mesh,
+                material
+            }
         );
 
-        if (skeleton) {
-            entity->SetSkeleton(skeleton);
-            
-            if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct(skeleton))) {
-                animation_controller->Play(1.0f, LoopMode::REPEAT);
+        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            entity,
+            BoundingBoxComponent {
+                mesh->GetAABB()
             }
+        );
+
+        if (skeleton.IsValid()) {
+            InitObject(skeleton);
+
+            g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                entity,
+                SkeletonComponent {
+                    skeleton,
+                    {
+                        .animation_index = 0,
+                        .current_time = 0.0f,
+                        .speed = 1.0f,
+                        .status = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
+                        .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT
+                    }
+                }
+            );
         }
+
+        // if (skeleton) {
+        //     entity->SetSkeleton(skeleton);
+            
+        //     if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct(skeleton))) {
+        //         animation_controller->Play(1.0f, LoopMode::REPEAT);
+        //     }
+        // }
         
         NodeProxy node(new Node);
-        node.SetEntity(std::move(entity));
+        node.SetEntity(entity);
 
         top->AddChild(std::move(node));
     }

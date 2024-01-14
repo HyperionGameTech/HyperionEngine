@@ -520,7 +520,7 @@ void EnvProbe::Render(Frame *frame)
 
     AssertThrow(m_texture.IsValid());
 
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     auto result = renderer::Result::OK;

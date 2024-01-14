@@ -48,9 +48,9 @@ struct OctantID
 
     explicit OctantID(UInt8 child_index, OctantID parent_id)
         : index_bits(!parent_id.IsInvalid()
-            ? parent_id.index_bits | (child_index << ((parent_id.GetDepth() + UInt8(1)) * 3))
+            ? parent_id.index_bits | (UInt64(child_index) << (UInt64(parent_id.GetDepth() + UInt8(1)) * 3ull))
             : child_index),
-          depth(parent_id.GetDepth() + 1) {}
+          depth(parent_id.GetDepth() + UInt8(1)) {}
 
     OctantID(const OctantID &other) = default;
     OctantID &operator=(const OctantID &other) = default;
@@ -72,7 +72,7 @@ struct OctantID
 
     HYP_FORCE_INLINE
     UInt8 GetIndex(UInt8 depth) const
-        { return (index_bits >> ((depth) * 3)) & 0x7; }
+        { return (index_bits >> (UInt64(depth) * 3ull)) & 0x7; }
 
     HYP_FORCE_INLINE
     UInt8 GetIndex() const

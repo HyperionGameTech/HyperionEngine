@@ -63,23 +63,25 @@ void AnimationController::OnDetachedFromNode(Node *node)
     // FindSkeletonDirect(GetOwner());
 }
 
-bool AnimationController::FindSkeleton(Node *node)
+Bool AnimationController::FindSkeleton(Node *node)
 {
     if (node == nullptr) {
         return false;
     }
 
-    if (auto &entity = node->GetEntity()) {
-        if (FindSkeletonDirect(entity.Get())) {
-            return true;
-        }
-    }
+    // @TODO: Remove this; will be converted to ECS system
 
-    for (auto &it : node->GetChildren()) {
-        if (FindSkeleton(it.Get())) {
-            return true;
-        }
-    }
+    // if (auto &entity = node->GetEntity()) {
+    //     if (FindSkeletonDirect(entity.Get())) {
+    //         return true;
+    //     }
+    // }
+
+    // for (auto &it : node->GetChildren()) {
+    //     if (FindSkeleton(it.Get())) {
+    //         return true;
+    //     }
+    // }
 
     return false;
 }

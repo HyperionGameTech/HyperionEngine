@@ -14,15 +14,17 @@ SkydomeController::SkydomeController()
 
 void SkydomeController::OnAdded()
 {
-    auto dome_node = g_asset_manager->Load<Node>("models/cube.obj");
-    m_dome = dome_node[0].GetEntity();
+    m_dome_node = g_asset_manager->Load<Node>("models/cube.obj");
+    m_dome_node.Scale(150.0f);
 
-    if (m_dome) {    
-        m_dome->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);
-        m_dome->SetScale(150.0f);
+    // m_dome = dome_node[0].GetEntity();
 
-        InitObject(m_dome);
-    }
+    // if (m_dome) {    
+    //     m_dome->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);
+    //     m_dome->SetScale(150.0f);
+
+    //     InitObject(m_dome);
+    // }
 }
 
 void SkydomeController::OnRemoved()
@@ -36,7 +38,9 @@ void SkydomeController::OnUpdate(GameCounter::TickUnit delta)
 void SkydomeController::OnDetachedFromScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        scene->RemoveEntity(m_dome);
+        // m_dome_node.Remove();
+
+        // scene->RemoveEntity(m_dome);
 
         if (scene->IsWorldScene() && m_skydome_renderer != nullptr) {
             scene->GetEnvironment()->RemoveRenderComponent<SkydomeRenderer>(HYP_NAME(TempSkydomeRenderer0));
@@ -49,7 +53,7 @@ void SkydomeController::OnDetachedFromScene(ID<Scene> id)
 void SkydomeController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        scene->AddEntity(m_dome);
+        // scene->AddEntity(m_dome);
     }
 
     AssertThrow(m_skydome_renderer == nullptr);
@@ -58,8 +62,8 @@ void SkydomeController::OnAttachedToScene(ID<Scene> id)
         if (scene->IsWorldScene()) {
             m_skydome_renderer = scene->GetEnvironment()->AddRenderComponent<SkydomeRenderer>(HYP_NAME(TempSkydomeRenderer0));
 
-            AssertThrow(m_dome.IsValid());
-            AssertThrow(m_dome->GetMaterial().IsValid());
+            // AssertThrow(m_dome.IsValid());
+            // AssertThrow(m_dome->GetMaterial().IsValid());
 
             Handle<Material> material = CreateObject<Material>();
             material->SetBucket(Bucket::BUCKET_SKYBOX);
@@ -73,7 +77,7 @@ void SkydomeController::OnAttachedToScene(ID<Scene> id)
                 ShaderProperties(renderer::static_mesh_vertex_attributes)
             ));
 
-            m_dome->SetMaterial(std::move(material));
+            // m_dome->SetMaterial(std::move(material));
         }
     }
 }

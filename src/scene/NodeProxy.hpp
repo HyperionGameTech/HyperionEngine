@@ -138,13 +138,10 @@ public:
 
     /* \brief If the NodeProxy is not empty, returns the Entity, if any,
         attached to the underlying Node. */
-    const Handle<Entity> &GetEntity() const;
+    ID<Entity> GetEntity() const;
 
     /*! \brief If the Node exists, sets the Entity attached to the Node. */
-    void SetEntity(const Handle<Entity> &entity);
-
-    /*! \brief If the Node exists, sets the Entity attached to the Node. */
-    void SetEntity(Handle<Entity> &&entity);
+    void SetEntity(ID<Entity> entity);
 
     Node *GetParent() const;
 

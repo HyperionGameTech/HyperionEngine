@@ -162,7 +162,7 @@ Entity::~Entity()
         controller.second->OnRemoved();
     }
 
-    g_engine->GetComponents().Remove(GetID());
+    // g_engine->GetComponents().Remove(GetID());
 
     Teardown();
 }

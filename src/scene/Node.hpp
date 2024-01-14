@@ -54,7 +54,7 @@ public:
 
     Node(
         const String &name,
-        Handle<Entity> &&entity,
+        ID<Entity> entity,
         const Transform &local_transform = Transform()
     );
 
@@ -75,9 +75,8 @@ public:
     /*! @returns A pointer to the Scene this Node and its children are attached to. May be null. */
     Scene *GetScene() const { return m_scene; }
 
-    Handle<Entity> &GetEntity() { return m_entity; }
-    const Handle<Entity> &GetEntity() const { return m_entity; }
-    void SetEntity(Handle<Entity> &&entity);
+    ID<Entity> GetEntity() const { return m_entity; }
+    void SetEntity(ID<Entity> entity);
 
     /*! \brief Add a new child Node to this object
      * @returns The added Node
@@ -306,9 +305,9 @@ public:
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
-    const Handle<Entity> &FindEntityWithID(ID<Entity>) const;
-    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given name is found. */
-    const Handle<Entity> &FindEntityByName(Name) const;
+    NodeProxy FindChildWithEntity(ID<Entity>) const;
+    /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
+    NodeProxy FindChildByName(const String &) const;
 
     HashCode GetHashCode() const
     {
@@ -320,10 +319,7 @@ public:
         hc.Add(m_world_transform);
         hc.Add(m_local_aabb);
         hc.Add(m_world_aabb);
-
-        if (m_entity) {
-            hc.Add(m_entity->GetID());
-        }
+        hc.Add(m_entity);
 
         for (auto &child : m_child_nodes) {
             hc.Add(child);
@@ -336,7 +332,7 @@ protected:
     Node(
         Type type,
         const String &name,
-        Handle<Entity> &&entity,
+        ID<Entity> entity,
         const Transform &local_transform = Transform()
     );
 
@@ -345,20 +341,20 @@ protected:
     void OnNestedNodeAdded(const NodeProxy &node);
     void OnNestedNodeRemoved(const NodeProxy &node);
 
-    Type m_type = Type::NODE;
-    String m_name;
-    Node *m_parent_node;
-    NodeList m_child_nodes;
-    Transform m_local_transform;
-    Transform m_world_transform;
-    BoundingBox m_local_aabb;
-    BoundingBox m_world_aabb;
+    Type                m_type = Type::NODE;
+    String              m_name;
+    Node                *m_parent_node;
+    NodeList            m_child_nodes;
+    Transform           m_local_transform;
+    Transform           m_world_transform;
+    BoundingBox         m_local_aabb;
+    BoundingBox         m_world_aabb;
 
-    Handle<Entity> m_entity;
+    ID<Entity>          m_entity;
 
-    Array<NodeProxy> m_descendents;
+    Array<NodeProxy>    m_descendents;
 
-    Scene *m_scene;
+    Scene               *m_scene;
 };
 
 } // namespace hyperion::v2

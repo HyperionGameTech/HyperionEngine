@@ -34,10 +34,10 @@ template <PlatformType PLATFORM>
 class Frame
 {
 public:
-    static Frame TemporaryFrame(CommandBuffer<PLATFORM> *command_buffer, UInt frame_index = 0)
+    static Frame TemporaryFrame(CommandBufferRef<PLATFORM> command_buffer, UInt frame_index = 0)
     {
         Frame frame;
-        frame.m_command_buffer = command_buffer;
+        frame.m_command_buffer = std::move(command_buffer);
         frame.m_frame_index = frame_index;
         return frame;
     }
@@ -49,7 +49,7 @@ public:
     Frame(Frame &&other) noexcept;
     ~Frame();
 
-    Result Create(Device<PLATFORM> *device, CommandBuffer<PLATFORM> *cmd);
+    Result Create(Device<PLATFORM> *device, CommandBufferRef<PLATFORM> cmd);
     Result Destroy(Device<PLATFORM> *device);
 
     const FenceRef<PLATFORM> &GetFence() const
@@ -58,7 +58,7 @@ public:
     HYP_FORCE_INLINE UInt GetFrameIndex() const
         { return m_frame_index; }
 
-    CommandBuffer<PLATFORM> *GetCommandBuffer() const
+    const CommandBufferRef<PLATFORM> &GetCommandBuffer() const
         { return m_command_buffer; }
 
     SemaphoreChain &GetPresentSemaphores()
@@ -74,8 +74,7 @@ public:
     /* Submit command buffer to the given queue */
     Result Submit(DeviceQueue *queue);
     
-    // Not owned
-    CommandBuffer<PLATFORM>         *m_command_buffer;
+    CommandBufferRef<PLATFORM>  m_command_buffer;
 
 private:
     UInt                m_frame_index;

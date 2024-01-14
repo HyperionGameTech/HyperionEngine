@@ -35,7 +35,7 @@ void LightController::OnAttachedToScene(ID<Scene> id)
 
     if (Handle<Scene> scene = Handle<Scene>(id)) {
         if (scene->IsWorldScene()) {
-            scene->AddLight(m_light);
+            // scene->AddLight(m_light);
         }
     }
 }
@@ -55,7 +55,7 @@ void LightController::OnDetachedFromScene(ID<Scene> id)
 
     if (Handle<Scene> scene = Handle<Scene>(id)) {
         if (scene->IsWorldScene()) {
-            scene->RemoveLight(m_light->GetID());
+            // scene->RemoveLight(m_light->GetID());
         }
     }
 }

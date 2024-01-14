@@ -49,7 +49,7 @@ struct StaticString
     }
 
     template <SizeType Start, SizeType End>
-    constexpr StaticString<End - Start> Substr() const
+    constexpr StaticString<End - Start + 1> Substr() const
     {
         static_assert(Start < End, "Start must be less than End");
         static_assert(End <= Sz, "End must be less than or equal to Size");
@@ -66,9 +66,9 @@ struct StaticString
         { return Sz; }
 
     template <SizeType ... Indices>
-    constexpr StaticString<sizeof...(Indices)> MakeSubString(std::index_sequence<Indices...>) const
+    constexpr StaticString<sizeof...(Indices) + 1> MakeSubString(std::index_sequence<Indices...>) const
     {
-        return { { data[Indices]... } };
+        return { { data[Indices]..., '\0' } };
     }
 };
 

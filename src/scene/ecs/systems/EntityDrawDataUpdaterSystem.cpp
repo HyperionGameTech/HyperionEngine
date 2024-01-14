@@ -46,6 +46,15 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
     Array<EntityDrawData> entity_draw_datas;
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
+        if (!(mesh_component.flags & MESH_COMPONENT_FLAG_INIT)) {
+            InitObject(mesh_component.mesh);
+            InitObject(mesh_component.material);
+
+            mesh_component.flags |= MESH_COMPONENT_FLAG_INIT | MESH_COMPONENT_FLAG_DIRTY;
+
+            continue;
+        }
+        
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }
@@ -55,8 +64,12 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
 
         ID<Skeleton> skeleton_id = ID<Skeleton>::invalid;
 
-        if (entity_manager.HasComponent<SkeletonComponent>(entity_id)) {
-            skeleton_id = entity_manager.GetComponent<SkeletonComponent>(entity_id).skeleton.GetID();
+        if (auto *skeleton_component = entity_manager.TryGetComponent<SkeletonComponent>(entity_id)) {
+            skeleton_id = skeleton_component->skeleton.GetID();
+        }
+
+        if (mesh_component.material) {
+            mesh_component.material->Update();
         }
 
         entity_draw_datas.PushBack(EntityDrawData {
@@ -76,8 +89,6 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
     }
 
     if (entity_draw_datas.Any()) {
-        DebugLog(LogType::Debug, "Updating %llu entity draw datas\n", entity_draw_datas.Size());
-
         PUSH_RENDER_COMMAND(
             UpdateEntityDrawDatas,
             std::move(entity_draw_datas)

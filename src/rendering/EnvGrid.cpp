@@ -1429,7 +1429,7 @@ void EnvGrid::RenderEnvProbe(
     const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(probe_index);//GetEnvProbeOnRenderThread(probe_index);
     AssertThrow(probe.IsValid());
 
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     auto result = Result::OK;
 
     // DebugLog(LogType::Debug, "Render EnvProbe #%u\n", proxy->id.Value());

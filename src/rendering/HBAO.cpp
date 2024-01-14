@@ -387,7 +387,7 @@ void HBAO::CreateTemporalBlending()
 void HBAO::Render(Frame *frame)
 {
     const UInt frame_index = frame->GetFrameIndex();
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     {
         struct alignas(128) {

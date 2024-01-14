@@ -88,12 +88,9 @@ void SkydomeRenderer::Init()
 void SkydomeRenderer::InitGame()
 {
     auto dome_node = g_asset_manager->Load<Node>("models/inv_sphere.obj");
-    m_dome = dome_node[0].GetEntity();
+    dome_node.Scale(Vec3f(10.0f));
 
-    if (m_dome) {
-        m_dome->SetScale(Vec3f(10.0f));
-        m_virtual_scene->AddEntity(m_dome);
-    }
+    m_virtual_scene->GetRoot().AddChild(dome_node);
 }
 
 void SkydomeRenderer::OnRemoved()
@@ -113,7 +110,6 @@ void SkydomeRenderer::OnRemoved()
 
     m_virtual_scene.Reset();
 
-    m_dome.Reset();
     m_camera.Reset();
     m_cubemap.Reset();
 }

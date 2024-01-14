@@ -140,10 +140,10 @@ void DepthPyramidRenderer::Destroy()
 
 void DepthPyramidRenderer::Render(Frame *frame)
 {
-    auto *primary = frame->GetCommandBuffer();
-    const auto frame_index = frame->GetFrameIndex();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
+    const UInt frame_index = frame->GetFrameIndex();
 
-    DebugMarker marker(primary, "Depth pyramid generation");
+    DebugMarker marker(command_buffer, "Depth pyramid generation");
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips.Size();
 
@@ -158,7 +158,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
         // put the mip into writeable state
         m_depth_pyramid->GetGPUImage()->InsertSubResourceBarrier(
-            primary,
+            command_buffer,
             renderer::ImageSubResource { .base_mip_level = mip_level },
             renderer::ResourceState::UNORDERED_ACCESS
         );
@@ -170,7 +170,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
         mip_height = MathUtil::Max(1u, depth_pyramid_extent.height >> (mip_level));
 
         // bind descriptor set to compute pipeline
-        primary->BindDescriptorSet(
+        command_buffer->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_generate_depth_pyramid->GetPipeline(),
             m_depth_pyramid_descriptor_sets[frame_index][mip_level],
@@ -179,7 +179,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
         // set push constant data for the current mip level
         m_generate_depth_pyramid->GetPipeline()->Bind(
-            primary,
+            command_buffer,
             Pipeline::PushConstantData {
                 .depth_pyramid_data = {
                     .mip_dimensions = renderer::ShaderVec2<UInt32>(mip_width, mip_height),
@@ -191,7 +191,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
         
         // dispatch to generate this mip level
         m_generate_depth_pyramid->GetPipeline()->Dispatch(
-            primary,
+            command_buffer,
             Extent3D {
                 (mip_width + 31) / 32,
                 (mip_height + 31) / 32,
@@ -201,7 +201,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
         // put this mip into readable state
         m_depth_pyramid->GetGPUImage()->InsertSubResourceBarrier(
-            primary,
+            command_buffer,
             renderer::ImageSubResource { .base_mip_level = mip_level },
             renderer::ResourceState::SHADER_RESOURCE
         );

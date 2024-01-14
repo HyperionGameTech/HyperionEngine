@@ -31,7 +31,7 @@ public:
 
 protected:
     SkydomeRenderer *m_skydome_renderer;
-    Handle<Entity>  m_dome;
+    NodeProxy       m_dome_node;
 };
 
 } // namespace hyperion::v2

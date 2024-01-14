@@ -49,9 +49,11 @@ public:
         }
 
         if (const auto &entity = in_object.GetEntity()) {
-            if (auto err = out.AddChild(*entity/*, FBOM_OBJECT_FLAGS_EXTERNAL*/)) {
-                return err;
-            }
+            // @TODO Fix when entity moving between EntityManager instances is supported
+
+            // if (auto err = out.AddChild(*entity/*, FBOM_OBJECT_FLAGS_EXTERNAL*/)) {
+            //     return err;
+            // }
         }
 
         for (const auto &child : in_object.GetChildren()) {
@@ -151,7 +153,9 @@ public:
             if (sub_object.GetType().IsOrExtends("Node")) {
                 node_ptr->AddChild(sub_object.deserialized.Get<Node>());
             } else if (sub_object.GetType().IsOrExtends("Entity")) {
-                node_ptr->SetEntity(sub_object.deserialized.Get<Entity>());
+                // @TODO: Fix when entity moving between EntityManager instances is supported
+
+                // node_ptr->SetEntity(sub_object.deserialized.Get<Entity>());
             }
         }
 

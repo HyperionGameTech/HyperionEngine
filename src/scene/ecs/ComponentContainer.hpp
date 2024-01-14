@@ -5,6 +5,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/ID.hpp>
+#include <core/Util.hpp>
 
 namespace hyperion::v2 {
 
@@ -29,10 +30,24 @@ struct ComponentDescriptor
     constexpr static ComponentRWFlags rw_flags = RWFlags;
 };
 
+class ComponentContainerFactoryBase;
 class ComponentContainerBase
 {
 public:
-    virtual ~ComponentContainerBase() = default;
+    ComponentContainerBase(ComponentContainerFactoryBase *factory)
+        : m_factory(factory)
+    {
+    }
+
+    ComponentContainerBase(const ComponentContainerBase &)                  = delete;
+    ComponentContainerBase &operator=(const ComponentContainerBase &)       = delete;
+    ComponentContainerBase(ComponentContainerBase &&) noexcept              = delete;
+    ComponentContainerBase &operator=(ComponentContainerBase &&) noexcept   = delete;
+
+    virtual ~ComponentContainerBase()                                       = default;
+
+    ComponentContainerFactoryBase *GetFactory() const
+        { return m_factory; }
 
     /*! \brief Checks if the component container has a component with the given ID.
      *
@@ -49,13 +64,38 @@ public:
      *  \return True if the component was removed, false otherwise.
      */
     virtual Bool RemoveComponent(ComponentID id) = 0;
+
+    /*! \brief Moves the component with the given ID from this component container to the given component container.
+     *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
+     *
+     *  \param id The ID of the component to move.
+     *  \param other The component container to move the component to.
+     *
+     *  \return An optional containing the ID of the component in the given component container if the component was moved, an empty optional otherwise.
+     */
+    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) = 0;
+
+private:
+    ComponentContainerFactoryBase *m_factory;
+};
+
+class ComponentContainerFactoryBase
+{
+public:
+    virtual ~ComponentContainerFactoryBase() = default;
+
+    virtual UniquePtr<ComponentContainerBase> Create() const = 0;
 };
 
 template <class Component>
 class ComponentContainer : public ComponentContainerBase
 {
 public:
-    ComponentContainer()                                            = default;
+    ComponentContainer()
+        : ComponentContainerBase(&factory)
+    {
+    }
+
     ComponentContainer(const ComponentContainer &)                  = delete;
     ComponentContainer &operator=(const ComponentContainer &)       = delete;
     ComponentContainer(ComponentContainer &&) noexcept              = delete;
@@ -84,7 +124,7 @@ public:
     HYP_FORCE_INLINE
     ComponentID AddComponent(Component &&component)
     {
-        ComponentID id = m_component_id_counter++;
+        ComponentID id = ++m_component_id_counter;
 
         m_components.Set(id, std::move(component));
 
@@ -104,13 +144,55 @@ public:
         return false;
     }
 
+    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) override
+    {
+        AssertThrowMsg(dynamic_cast<ComponentContainer<Component> *>(&other), "Component container is not of the same type");
+
+        auto it = m_components.Find(id);
+
+        if (it != m_components.End()) {
+            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(it->second));
+
+            m_components.Erase(it);
+
+            return new_component_id;
+        }
+
+        return { };
+    }
+
     HYP_FORCE_INLINE
     SizeType Size() const
         { return m_components.Size(); }
 
 private:
+    static class Factory : public ComponentContainerFactoryBase
+    {
+    public:
+        Factory(UniquePtr<ComponentContainerBase> (*create)())
+            : m_create(create)
+        {
+        }
+
+        virtual ~Factory() override = default;
+
+        virtual UniquePtr<ComponentContainerBase> Create() const override
+            { return m_create(); }
+
+    private:
+        UniquePtr<ComponentContainerBase> (*m_create)();
+    } factory;
+
     ComponentID                     m_component_id_counter = 0;
     FlatMap<ComponentID, Component> m_components;
+};
+
+template <class Component>
+typename ComponentContainer<Component>::Factory ComponentContainer<Component>::factory {
+    []() -> UniquePtr<ComponentContainerBase>
+    {
+        return UniquePtr<ComponentContainerBase>(new ComponentContainer<Component>());
+    }
 };
 
 } // namespace hyperion::v2

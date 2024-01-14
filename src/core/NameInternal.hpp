@@ -74,6 +74,9 @@ struct Name
 
     constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
+
+    static Name Unique();
+    static Name Unique(const char *prefix);
 };
 
 template <auto StaticStringType>

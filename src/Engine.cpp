@@ -895,11 +895,11 @@ void Engine::RenderNextFrame(Game *game)
         RequestStop();
     }
 
-    auto *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrameData().Get<Frame>();
-
-    PreFrameUpdate(frame);
+    const FrameRef &frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
+    
+    PreFrameUpdate(frame);
 
     m_world->PreRender(frame);
 

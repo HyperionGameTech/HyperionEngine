@@ -28,37 +28,30 @@ void UIScene::Init()
 
     BasicObject::Init();
 
-    m_scene = CreateObject<Scene>(CreateObject<Camera>());
+    // m_scene = CreateObject<Scene>(CreateObject<Camera>());
 
-    m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
-        0.0f, 1.0f,
-        0.0f, 1.0f,
-        -1.0f, 1.0f
-    ));
+    // m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+    //     0.0f, 1.0f,
+    //     0.0f, 1.0f,
+    //     -1.0f, 1.0f
+    // ));
 
-    InitObject(m_scene);
+    // InitObject(m_scene);
 
-    m_scene->GetCamera()->SetDirection(Vector3(0.0f, 0.0f, -1.0f));
-
-    // for (auto &object : m_ui_objects) {
-    //     AssertThrow(InitObject(object));
-
-    //     m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
-    // }
+    // m_scene->GetCamera()->SetDirection(Vector3(0.0f, 0.0f, -1.0f));
 
     SetReady(true);
 
     OnTeardown([this](...) {
         SetReady(false);
 
-        // m_ui_objects.Clear();
-        m_scene.Reset();
+        // m_scene.Reset();
     });
 }
 
 void UIScene::Update(GameCounter::TickUnit delta)
 {
-    m_scene->Update(delta);
+    // m_scene->Update(delta);
 
     for (auto &it : m_mouse_held_times) {
         it.second += delta;
@@ -74,16 +67,16 @@ bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)
     
     RayTestResults results;
 
-    for (auto &it : m_scene->GetEntities()) {
-        if (it.second->GetWorldAABB().ContainsPoint(direction)) {
-            RayHit hit { };
-            hit.hitpoint = Vector3(position.x, position.y, 0.0f);
-            hit.distance = m_scene->GetCamera()->TransformWorldToNDC(it.second->GetTranslation()).z;
-            hit.id = it.first.value;
+    // for (auto &it : m_scene->GetEntities()) {
+    //     if (it.second->GetWorldAABB().ContainsPoint(direction)) {
+    //         RayHit hit { };
+    //         hit.hitpoint = Vector3(position.x, position.y, 0.0f);
+    //         hit.distance = m_scene->GetCamera()->TransformWorldToNDC(it.second->GetTranslation()).z;
+    //         hit.id = it.first.value;
 
-            results.AddHit(hit);
-        }
-    }
+    //         results.AddHit(hit);
+    //     }
+    // }
 
     if (results.Any()) {
         out_first_hit = results.Front();
@@ -99,6 +92,8 @@ bool UIScene::OnInputEvent(
     const SystemEvent &event
 )
 {
+    return false;
+
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
         // check intersects with objects on mouse movement.
@@ -129,14 +124,12 @@ bool UIScene::OnInputEvent(
 
             for (auto &it : m_mouse_held_times) {
                 if (it.second >= 0.05f) {
-                    if (const Handle<Entity> &entity = m_scene->FindEntityWithID(it.first)) {
-                        // signal mouse drag
-                        for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
-                            if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
-                                ui_controller->OnEvent(drag_event);
+                    // signal mouse drag
+                    for (auto component_it = g_engine->GetComponents().Begin(it.first); component_it != g_engine->GetComponents().End(it.first); ++component_it) {
+                        if (UIController *ui_controller = dynamic_cast<UIController *>(&*component_it)) {
+                            ui_controller->OnEvent(drag_event);
 
-                                event_handled = true;
-                            }
+                            event_handled = true;
                         }
                     }
                 }
@@ -144,21 +137,19 @@ bool UIScene::OnInputEvent(
         }
 
         if (TestRay(mouse_screen, hit)) {
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
-                auto it = m_mouse_held_times.Find(entity->GetID());
+            auto it = m_mouse_held_times.Find(hit.id);
 
-                if (it == m_mouse_held_times.End()) {
-                    UIEvent hover_event;
-                    hover_event.type = UIEvent::Type::MOUSE_HOVER;
-                    hover_event.original_event = &event;
-                    hover_event.mouse_position = mouse_screen;
+            if (it == m_mouse_held_times.End()) {
+                UIEvent hover_event;
+                hover_event.type = UIEvent::Type::MOUSE_HOVER;
+                hover_event.original_event = &event;
+                hover_event.mouse_position = mouse_screen;
 
-                    for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
-                        if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
-                            ui_controller->OnEvent(hover_event);
+                for (auto component_it = g_engine->GetComponents().Begin(hit.id); component_it != g_engine->GetComponents().End(hit.id); ++component_it) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(&*component_it)) {
+                        ui_controller->OnEvent(hover_event);
 
-                            event_handled = true;
-                        }
+                        event_handled = true;
                     }
                 }
             }
@@ -187,13 +178,11 @@ bool UIScene::OnInputEvent(
             ui_event.original_event = &event;
             ui_event.mouse_position = mouse_screen;
 
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
-                m_mouse_held_times.Insert(entity->GetID(), 0.0f);
+            m_mouse_held_times.Insert(hit.id, 0.0f);
 
-                for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
-                    if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
-                        ui_controller->OnEvent(ui_event);
-                    }
+            for (auto it = g_engine->GetComponents().Begin(hit.id); it != g_engine->GetComponents().End(hit.id); ++it) {
+                if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
+                    ui_controller->OnEvent(ui_event);
                 }
             }
 
@@ -224,24 +213,22 @@ bool UIScene::OnInputEvent(
             ui_event.original_event = &event;
             ui_event.mouse_position = mouse_screen;
 
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(it.first)) {
-                for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
-                    if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
-                        RayHit hit;
+            for (auto component_it = g_engine->GetComponents().Begin(it.first); component_it != g_engine->GetComponents().End(it.first); ++component_it) {
+                if (UIController *ui_controller = dynamic_cast<UIController *>(&*component_it)) {
+                    RayHit hit;
 
-                        if (TestRay(mouse_screen, hit)) {
-                            UIEvent click_event;
-                            click_event.type = UIEvent::Type::CLICK;
-                            click_event.original_event = &event;
-                            click_event.mouse_position = mouse_screen;
+                    if (TestRay(mouse_screen, hit)) {
+                        UIEvent click_event;
+                        click_event.type = UIEvent::Type::CLICK;
+                        click_event.original_event = &event;
+                        click_event.mouse_position = mouse_screen;
 
-                            ui_controller->OnEvent(click_event);
-                        }
-
-                        ui_controller->OnEvent(ui_event);
-
-                        result = true;
+                        ui_controller->OnEvent(click_event);
                     }
+
+                    ui_controller->OnEvent(ui_event);
+
+                    result = true;
                 }
             }
         }

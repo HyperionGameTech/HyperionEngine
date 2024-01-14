@@ -15,7 +15,8 @@ AABBDebugController::AABBDebugController()
 void AABBDebugController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        scene->AddEntity(m_aabb_entity);
+        // @FIXME new ECS
+        // scene->AddEntity(m_aabb_entity);
     }
 }
 
@@ -26,7 +27,8 @@ void AABBDebugController::OnDetachedFromScene(ID<Scene> id)
     }
 
     if (auto scene = Handle<Scene>(id)) {
-        scene->RemoveEntity(m_aabb_entity);
+        // @FIXME new ECS
+        // scene->RemoveEntity(m_aabb_entity);
     }
 }
 

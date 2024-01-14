@@ -49,7 +49,6 @@ public:
 private:
     Extent2D            m_dimensions;
     Handle<Texture>     m_cubemap;
-    Handle<Entity>      m_dome;
     Handle<Camera>      m_camera;
 
     Handle<Scene>       m_virtual_scene;

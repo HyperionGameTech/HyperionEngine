@@ -1,11 +1,11 @@
 #ifndef HYPERION_V2_ENVIRONMENT_H
 #define HYPERION_V2_ENVIRONMENT_H
 
-#include <rendering/Shadows.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
+#include <rendering/RenderComponent.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/rt/ProbeSystem.hpp>
 

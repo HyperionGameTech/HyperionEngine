@@ -156,17 +156,6 @@ Octree *Octree::GetChildOctant(OctantID octant_id)
     }
 
     if (octant_id == m_octant_id) {
-#if HYP_OCTREE_DEBUG
-        DebugLog(
-            LogType::Warn,
-            "Octant id %u:%u is not a child of %u:%u: Octant is the same\n",
-            octant_id.GetDepth(),
-            octant_id.GetIndex(),
-            m_octant_id.GetDepth(),
-            m_octant_id.GetIndex()
-        );
-#endif
-
         return this;
     }
 

@@ -136,11 +136,6 @@ public:
     
     virtual void ComponentInit() override final
     {
-        // Threads::AssertOnThread(THREAD_RENDER);
-        Threads::AssertOnThread(THREAD_GAME);
-
-        DebugLog(LogType::Info, "Initializing component %s\n", typeid(Derived).name());
-
         static_cast<Derived *>(this)->Init();
 
         m_component_is_render_init = true;

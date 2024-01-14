@@ -45,7 +45,7 @@ void ScreenCaptureRenderComponent::OnRender(Frame *frame)
     const ImageRef &image_ref = final_pass.GetLastFrameImage();//deferred_renderer.GetCombinedResult()->GetAttachment()->GetImage();//final_pass.GetAttachments()[0]->GetImage();
     AssertThrow(image_ref.IsValid());
     
-    auto *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
     m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);

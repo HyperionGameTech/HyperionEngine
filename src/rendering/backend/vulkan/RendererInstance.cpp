@@ -293,8 +293,7 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
     this->frame_handler = new FrameHandler<Platform::VULKAN>(m_swapchain->NumImages(), HandleNextFrame);
     
     /* Our command pool will have a command buffer for each frame we can render to. */
-    HYPERION_BUBBLE_ERRORS(this->frame_handler->CreateCommandBuffers(m_device, &queue_graphics));
-    HYPERION_BUBBLE_ERRORS(this->frame_handler->CreateFrames(m_device));
+    HYPERION_BUBBLE_ERRORS(this->frame_handler->CreateFrames(m_device, &queue_graphics));
 
     /* init descriptor sets */
 

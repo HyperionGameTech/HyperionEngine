@@ -12,7 +12,7 @@ namespace platform {
 template <>
 Frame<Platform::VULKAN>::Frame()
     : m_frame_index(0),
-      m_command_buffer(nullptr),
+      m_command_buffer(CommandBufferRef<Platform::VULKAN>::unset),
       m_present_semaphores({}, {})
 {
 }
@@ -20,7 +20,7 @@ Frame<Platform::VULKAN>::Frame()
 template <>
 Frame<Platform::VULKAN>::Frame(UInt frame_index)
     : m_frame_index(frame_index),
-      m_command_buffer(nullptr),
+      m_command_buffer(CommandBufferRef<Platform::VULKAN>::unset),
       m_present_semaphores(
           { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
           { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }
@@ -31,12 +31,11 @@ Frame<Platform::VULKAN>::Frame(UInt frame_index)
 template <>
 Frame<Platform::VULKAN>::Frame(Frame &&other) noexcept
     : m_frame_index(other.m_frame_index),
-      m_command_buffer(other.m_command_buffer),
+      m_command_buffer(std::move(other.m_command_buffer)),
       m_queue_submit_fence(std::move(other.m_queue_submit_fence)),
       m_present_semaphores(std::move(other.m_present_semaphores))
 {
     other.m_frame_index = 0;
-    other.m_command_buffer = nullptr;
 }
 
 template <>
@@ -46,9 +45,9 @@ Frame<Platform::VULKAN>::~Frame()
 }
 
 template <>
-Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, CommandBuffer<Platform::VULKAN> *cmd)
+Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, CommandBufferRef<Platform::VULKAN> cmd)
 {
-    m_command_buffer = cmd;
+    m_command_buffer = std::move(cmd);
     
     HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create(device));
 
@@ -68,6 +67,7 @@ Result Frame<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 
     HYPERION_PASS_ERRORS(m_present_semaphores.Destroy(device), result);
 
+    SafeRelease(std::move(m_command_buffer));
     SafeRelease(std::move(m_queue_submit_fence));
 
     return result;

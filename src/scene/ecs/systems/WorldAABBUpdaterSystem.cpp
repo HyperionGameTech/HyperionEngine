@@ -13,10 +13,6 @@ void WorldAABBUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (transform_hash_code != bounding_box_component.transform_hash_code) {
-            DebugLog(LogType::Debug, "Updating entity #%u AABB %f,%f,%f\t%f,%f,%f\n", entity_id.Value(),
-                local_aabb.min.x, local_aabb.min.y, local_aabb.min.z,
-                local_aabb.max.x, local_aabb.max.y, local_aabb.max.z);
-
             world_aabb = BoundingBox::empty;
 
             if (!local_aabb.Empty()) {

@@ -15,10 +15,14 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/SceneComponent.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
 #include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
+#include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
+#include <scene/ecs/systems/ShadowMapUpdaterSystem.hpp>
+#include <scene/ecs/systems/AnimationSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
@@ -135,6 +139,9 @@ Scene::Scene(
     m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
     m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
+    m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
+    m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
+    m_entity_manager->AddSystem<AnimationSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
 }
@@ -174,42 +181,23 @@ void Scene::Init()
         }
     }
 
-    for (auto &it : m_entities) {
-        auto &entity = it.second;
-        AssertThrow(InitObject(entity));
-    }
+    // if (m_lights.Any()) {
+    //     // enqueue bind for all in bulk
+    //     auto *lights = new Pair<ID<Light>, LightDrawProxy>[m_lights.Size()];
+    //     SizeType index = 0;
 
-    if (m_entities_pending_removal.Any()) {
-        RemovePendingEntities();
-    }
+    //     for (auto &it : m_lights) {
+    //         auto &light = it.second;
+    //         AssertThrow(InitObject(light));
 
-    if (m_entities_pending_addition.Any()) {
-        for (auto &entity : m_entities_pending_addition) {
-            AssertThrow(entity);
-            
-            InitObject(entity);
-        }
+    //         lights[index++] = { it.first, it.second->GetDrawProxy() };
+    //     }
 
-        AddPendingEntities();
-    }
-
-    if (m_lights.Any()) {
-        // enqueue bind for all in bulk
-        auto *lights = new Pair<ID<Light>, LightDrawProxy>[m_lights.Size()];
-        SizeType index = 0;
-
-        for (auto &it : m_lights) {
-            auto &light = it.second;
-            AssertThrow(InitObject(light));
-
-            lights[index++] = { it.first, it.second->GetDrawProxy() };
-        }
-
-        PUSH_RENDER_COMMAND(BindLights, 
-            index,
-            lights
-        );
-    }
+    //     PUSH_RENDER_COMMAND(BindLights, 
+    //         index,
+    //         lights
+    //     );
+    // }
 
     if (m_env_probes.Any()) {
         // enqueue bind for all in bulk
@@ -239,20 +227,6 @@ void Scene::Init()
 
         m_root_node_proxy.Get()->SetScene(nullptr);
 
-        for (auto &it : m_entities) {
-            AssertThrow(it.second != nullptr);
-
-            it.second->SetIsInScene(GetID(), false);
-
-            if (it.second->m_octree != nullptr) {
-                it.second->RemoveFromOctree();
-            }
-        }
-
-        m_entities.Clear();
-        m_entities_pending_addition.Clear();
-        m_entities_pending_removal.Clear();
-
         HYP_SYNC_RENDER();
 
         SetReady(false);
@@ -272,329 +246,85 @@ void Scene::SetWorld(World *world)
     // be cautious
     // Threads::AssertOnThread(THREAD_GAME);
 
-    for (auto &it : m_entities) {
-        auto &entity = it.second;
-
-        if (entity == nullptr) {
-            continue;
-        }
-
-        if (entity->m_octree != nullptr) {
-            DebugLog(
-                LogType::Debug,
-                "[scene] Remove entity #%u from octree\n",
-                entity->GetID().value
-            );
-
-            entity->RemoveFromOctree();
-        }
-    }
-
     m_world = world;
-
-    if (m_world == nullptr) {
-        return;
-    }
-
-    for (auto &it : m_entities) {
-        auto &entity = it.second;
-
-        if (entity == nullptr) {
-            continue;
-        }
-
-        AssertThrow(entity->m_octree == nullptr);
-
-#if HYP_OCTREE_DEBUG
-        DebugLog(
-            LogType::Debug,
-            "Add entity #%u to octree\n",
-            entity->GetID().value
-        );
-#endif
-
-        entity->AddToOctree(m_octree);
-    }
 }
 
-NodeProxy Scene::AddEntity(Handle<Entity> &&entity)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-    AssertReady();
-
-    if (!entity) {
-        return NodeProxy();
-    }
-
-    auto node = m_root_node_proxy.AddChild(NodeProxy(new Node));
-    node.SetEntity(std::move(entity));
-
-    return node;
-}
-
-Bool Scene::RemoveEntity(ID<Entity> entity_id)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-    AssertReady();
-
-    if (!entity_id) {
-        return false;
-    }
-
-    // breadth-first search
-    Queue<NodeProxy *> queue;
-    queue.Push(&m_root_node_proxy);
-
-    while (queue.Any()) {
-        NodeProxy *parent = queue.Pop();
-
-        for (auto &child : parent->GetChildren()) {
-            if (!child) {
-                continue;
-            }
-
-            if (child.GetEntity().GetID() == entity_id) {
-                parent->Get()->RemoveChild(&child);
-
-                return true;
-            }
-
-            queue.Push(&child);
-        }
-    }
-
-    return false;
-}
-
-Bool Scene::AddEntityInternal(Handle<Entity> &&entity)
-{
-    // Threads::AssertOnThread(THREAD_GAME);
-    // AssertReady();
-
-    if (!entity) {
-        return false;
-    }
-
-    if (m_entities.Contains(entity->GetID())) {
-        DebugLog(
-            LogType::Warn,
-            "Entity #%u already exists in Scene #%u\n",
-            entity->GetID().value,
-            m_id.value
-        );
-
-        return false;
-    }
-
-    InitObject(entity);
-
-    entity->SetIsInScene(GetID(), true);
-
-    m_entities_pending_addition.Insert(std::move(entity));
-
-    return true;
-}
-
-Bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
-{
-    // Threads::AssertOnThread(THREAD_GAME);
-
-    if (!entity) {
-        return false;
-    }
-
-    const auto it = m_entities.Find(entity->GetID());
-
-    if (it == m_entities.End()) {
-        DebugLog(
-            LogType::Warn,
-            "Could not remove entity with id #%u: not found\n",
-            entity->GetID().value
-        );
-
-        return false;
-    }
-
-    entity->SetIsInScene(GetID(), false);
-
-    if (m_entities_pending_removal.Contains(entity->GetID())) {
-        DebugLog(
-            LogType::Warn,
-            "Could not remove entity with id #%u: already pending removal\n",
-            entity->GetID().value
-        );
-
-        return false;
-    }
-
-    m_entities_pending_removal.Insert(entity->GetID());
-
-    return true;
-}
-
-Bool Scene::HasEntity(ID<Entity> entity_id) const
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    return m_entities.Find(entity_id) != m_entities.End();
-}
-
-void Scene::AddPendingEntities()
-{
-    if (m_entities_pending_addition.Empty()) {
-        return;
-    }
-
-    for (auto &entity : m_entities_pending_addition) {
-        const ID<Entity> id = entity->GetID();
-
-        if (entity->m_octree == nullptr) {
-            if (m_world != nullptr) {
-#if HYP_OCTREE_DEBUG
-                DebugLog(
-                    LogType::Debug,
-                    "Add entity #%u to octree\n",
-                    entity->GetID().value
-                );
-#endif
-
-                entity->AddToOctree(m_octree);
-            }
-        }
-
-        if (m_tlas) {
-            if (const auto &blas = entity->GetBLAS()) {
-                m_tlas->AddBLAS(Handle<BLAS>(blas));       
-            }
-        }
-
-        m_entities.Insert(id, std::move(entity));
-    }
-
-    m_entities_pending_addition.Clear();
-}
-
-void Scene::RemovePendingEntities()
-{
-    if (m_entities_pending_removal.Empty()) {
-        return;
-    }
-
-    for (auto &id : m_entities_pending_removal) {
-        auto it = m_entities.Find(id);
-
-        auto &found_entity = it->second;
-        AssertThrow(found_entity.IsValid());
-
-        if (found_entity->m_octree != nullptr) {
-            DebugLog(
-                LogType::Debug,
-                "[scene] Remove entity #%u from octree\n",
-                found_entity->GetID().value
-            );
-
-            found_entity->RemoveFromOctree();
-        }
-
-        DebugLog(
-            LogType::Debug,
-            "Remove entity with ID #%u (with material: %s) from scene with ID #%u\n",
-            found_entity->GetID().value,
-            found_entity->GetMaterial()
-                ? found_entity->GetMaterial()->GetName().LookupString()
-                : " no material ",
-            GetID().value
-        );
-
-        if (m_tlas) {
-            if (const auto &blas = found_entity->GetBLAS()) {
-                // TODO:
-                //m_tlas->RemoveBLAS(blas);
-            }
-        }
-
-        m_entities.Erase(it);
-    }
-
-    m_entities_pending_removal.Clear();
-}
-
-const Handle<Entity> &Scene::FindEntityWithID(ID<Entity> entity_id) const
+NodeProxy Scene::FindNodeWithEntity(ID<Entity> entity) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_root_node_proxy);
-    return m_root_node_proxy.Get()->FindEntityWithID(entity_id);
+    return m_root_node_proxy.Get()->FindChildWithEntity(entity);
 }
 
-const Handle<Entity> &Scene::FindEntityByName(Name name) const
+NodeProxy Scene::FindNodeByName(const String &name) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_root_node_proxy);
-    return m_root_node_proxy.Get()->FindEntityByName(name);
+    return m_root_node_proxy.Get()->FindChildByName(name);
 }
 
-Bool Scene::AddLight(Handle<Light> &&light)
-{
-    Threads::AssertOnThread(THREAD_GAME);
+// Bool Scene::AddLight(Handle<Light> &&light)
+// {
+//     Threads::AssertOnThread(THREAD_GAME);
 
-    if (!light) {
-        return false;
-    }
+//     if (!light) {
+//         return false;
+//     }
 
-    auto insert_result = m_lights.Insert(light->GetID(), std::move(light));
+//     auto insert_result = m_lights.Insert(light->GetID(), std::move(light));
     
-    auto it = insert_result.first;
-    const Bool was_inserted = insert_result.second;
+//     auto it = insert_result.first;
+//     const Bool was_inserted = insert_result.second;
 
-    if (!was_inserted) {
-        return false;
-    }
+//     if (!was_inserted) {
+//         return false;
+//     }
 
-    InitObject(it->second);
+//     InitObject(it->second);
 
-    return true;
-}
+//     return true;
+// }
 
-Bool Scene::AddLight(const Handle<Light> &light)
-{
-    Threads::AssertOnThread(THREAD_GAME);
+// Bool Scene::AddLight(const Handle<Light> &light)
+// {
+//     Threads::AssertOnThread(THREAD_GAME);
 
-    if (!light) {
-        return false;
-    }
+//     if (!light) {
+//         return false;
+//     }
 
-    auto insert_result = m_lights.Insert(light->GetID(), light);
+//     auto insert_result = m_lights.Insert(light->GetID(), light);
     
-    auto it = insert_result.first;
-    const Bool was_inserted = insert_result.second;
+//     auto it = insert_result.first;
+//     const Bool was_inserted = insert_result.second;
 
-    if (!was_inserted) {
-        return false;
-    }
+//     if (!was_inserted) {
+//         return false;
+//     }
 
-    InitObject(it->second);
+//     InitObject(it->second);
 
-    return true;
-}
+//     return true;
+// }
 
-Bool Scene::RemoveLight(ID<Light> id)
-{
-    Threads::AssertOnThread(THREAD_GAME);
+// Bool Scene::RemoveLight(ID<Light> id)
+// {
+//     Threads::AssertOnThread(THREAD_GAME);
 
-    auto it = m_lights.Find(id);
+//     auto it = m_lights.Find(id);
 
-    if (it == m_lights.End()) {
-        return false;
-    }
+//     if (it == m_lights.End()) {
+//         return false;
+//     }
 
-    if (it->second) {
-        it->second->EnqueueUnbind();
-    }
+//     if (it->second) {
+//         it->second->EnqueueUnbind();
+//     }
 
-    return m_lights.Erase(it) != m_lights.End();
-}
+//     return m_lights.Erase(it) != m_lights.End();
+// }
 
 Bool Scene::AddEnvProbe(Handle<EnvProbe> env_probe)
 {
@@ -643,14 +373,6 @@ void Scene::Update(GameCounter::TickUnit delta)
 
     AssertReady();
 
-    if (m_entities_pending_removal.Any()) {
-        RemovePendingEntities();
-    }
-
-    if (m_entities_pending_addition.Any()) {
-        AddPendingEntities();
-    }
-
     m_octree.NextVisibilityState();
 
     ID<Camera> camera_id;
@@ -682,26 +404,9 @@ void Scene::Update(GameCounter::TickUnit delta)
         env_probe->SetIsVisible(camera_id, is_env_probe_in_frustum);
     }
 
-    // update light visibility states
-    for (auto &it : m_lights) {
-        Handle<Light> &light = it.second;
-        
-        const Bool is_light_in_frustum = light->GetType() == LightType::DIRECTIONAL
-            || (m_camera.IsValid() && m_camera->GetFrustum().ContainsBoundingSphere(BoundingSphere(light->GetPosition(), light->GetRadius())));
-
-        light->SetIsVisible(camera_id, is_light_in_frustum);
-    }
-
     if (IsWorldScene()) {
         // update render environment
         m_environment->Update(delta);
-
-        // update each light
-        for (auto &it : m_lights) {
-            Handle<Light> &light = it.second;
-
-            light->Update();
-        }
 
         // update each environment probe
         for (auto &it : m_env_probes) {
@@ -709,23 +414,6 @@ void Scene::Update(GameCounter::TickUnit delta)
 
             env_probe->Update(delta);
         }
-    }
-
-    // // TEMP
-    // if (m_camera) {
-    //     const Vector3 &camera_position = m_camera->GetTranslation();
-
-    //     std::sort(m_entities.Begin(), m_entities.End(), [&camera_position](const auto &lhs, const auto &rhs)
-    //     {
-    //         return camera_position.Distance(lhs.second->GetTranslation()) > camera_position.Distance(rhs.second->GetTranslation());
-    //     });
-    // }
-
-    // update each entity
-    for (auto &it : m_entities) {
-        Handle<Entity> &entity = it.second;
-
-        entity->Update(delta);
     }
 }
 
@@ -753,18 +441,20 @@ void Scene::CollectEntities(
     
     const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
 
-    // push all entities to render if they are visible to the given camera
-    for (auto &it : m_entities) {
-        const Handle<Entity> &entity = it.second;
+    // @TODO: Update this to use the new ECS
 
-        if (
-            entity->IsRenderable()
-            && bucket_bits.Test(entity->GetRenderableAttributes().GetMaterialAttributes().bucket)
-            && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))
-        ) {
-            render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
-        }
-    }
+    // push all entities to render if they are visible to the given camera
+    // for (auto &it : m_entities) {
+    //     const Handle<Entity> &entity = it.second;
+
+    //     if (
+    //         entity->IsRenderable()
+    //         && bucket_bits.Test(entity->GetRenderableAttributes().GetMaterialAttributes().bucket)
+    //         && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))
+    //     ) {
+    //         render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
+    //     }
+    // }
 }
 
 void Scene::CollectEntities(
@@ -791,12 +481,19 @@ void Scene::CollectEntities(
     const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
     const VisibilityState &parent_visibility_state = m_octree.GetVisibilityState();
 
+    UInt num_collected = 0;
+
     for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
         // Temp
         AssertThrow(mesh_component.material.IsValid());
         AssertThrow(mesh_component.material->GetRenderAttributes().shader_definition.IsValid());
+
+        // hack
+        // if (!mesh_component.material->GetRenderAttributes().shader_definition.IsValid()) {
+        //     continue;
+        // }
 
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
         // Visibility check
@@ -836,7 +533,15 @@ void Scene::CollectEntities(
             bounding_box_component.world_aabb,
             override_attributes_ptr
         );
+
+        num_collected++;
     }
+
+    // DebugLog(
+    //     LogType::Debug,
+    //     "Collected %u entities\n",
+    //     num_collected
+    // );
 }
 
 Bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
@@ -856,7 +561,6 @@ void Scene::EnqueueRenderUpdates()
         ID<Scene> id;
         BoundingBox aabb;
         Float global_timer;
-        SizeType num_lights;
         FogParams fog_params;
         RenderEnvironment *render_environment;
         SceneDrawProxy &draw_proxy;
@@ -865,14 +569,12 @@ void Scene::EnqueueRenderUpdates()
             ID<Scene> id,
             const BoundingBox &aabb,
             Float global_timer,
-            SizeType num_lights,
             const FogParams &fog_params,
             RenderEnvironment *render_environment,
             SceneDrawProxy &draw_proxy
         ) : id(id),
             aabb(aabb),
             global_timer(global_timer),
-            num_lights(num_lights),
             fog_params(fog_params),
             render_environment(render_environment),
             draw_proxy(draw_proxy)
@@ -903,7 +605,6 @@ void Scene::EnqueueRenderUpdates()
         m_id,
         m_root_node_proxy.GetWorldAABB(),
         m_environment->GetGlobalTimer(),
-        m_lights.Size(),
         m_fog_params,
         m_environment.Get(),
         m_draw_proxy

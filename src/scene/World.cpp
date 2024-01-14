@@ -28,6 +28,10 @@ void World::Init()
         PerformSceneUpdates();
     }
 
+    m_detached_scene = CreateObject<Scene>();
+    InitObject(m_detached_scene);
+    m_detached_scene->SetWorld(this);
+
     for (Handle<Scene> &scene : m_scenes) {
         InitObject(scene);
     }

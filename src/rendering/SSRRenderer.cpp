@@ -524,7 +524,7 @@ void SSRRenderer::Render(Frame *frame)
     const auto &camera_binding = g_engine->render_state.GetCamera();
     const UInt camera_index = camera_binding ? camera_binding.id.ToIndex() : 0;
 
-    CommandBuffer *command_buffer = frame->GetCommandBuffer();
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     /* ========== BEGIN SSR ========== */

@@ -8,7 +8,6 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/DeferredSystem.hpp>
-#include <rendering/Shadows.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DefaultFormats.hpp>

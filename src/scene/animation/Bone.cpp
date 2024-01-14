@@ -3,7 +3,7 @@
 namespace hyperion::v2 {
 
 Bone::Bone(const String &name)
-    : Node(Type::BONE, name, Handle<Entity>(), Transform()),
+    : Node(Type::BONE, name, ID<Entity>::invalid, Transform()),
       m_skeleton(nullptr)
 {
 }

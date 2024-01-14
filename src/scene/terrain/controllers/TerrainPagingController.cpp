@@ -148,7 +148,8 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
     for (const ID<Scene> &id : GetOwner()->GetScenes()) {
         if (auto scene = Handle<Scene>(id)) {
-            scene->AddEntity(Handle<Entity>(patch->entity));
+            // @FIXME new ECS
+            // scene->AddEntity(Handle<Entity>(patch->entity));
         }
     }
 
@@ -205,13 +206,14 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
         if (auto scene = Handle<Scene>(id)) {
             DebugLog(LogType::Debug, "Remove terrain Entity with id #%u\n", patch->entity->GetID().value);
 
-            if (!scene->RemoveEntity(patch->entity)) {
-                DebugLog(
-                    LogType::Warn,
-                    "Terrain entity with id #%u not in Scene! Could cause mem leak if cannot from entities from scene.\n",
-                    patch->entity->GetID().value
-                );
-            }
+            // @FIXME new ECS
+            // if (!scene->RemoveEntity(patch->entity)) {
+            //     DebugLog(
+            //         LogType::Warn,
+            //         "Terrain entity with id #%u not in Scene! Could cause mem leak if cannot from entities from scene.\n",
+            //         patch->entity->GetID().value
+            //     );
+            // }
         }
     }
 
