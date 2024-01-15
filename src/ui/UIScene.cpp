@@ -28,15 +28,15 @@ void UIScene::Init()
 
     BasicObject::Init();
 
-    // m_scene = CreateObject<Scene>(CreateObject<Camera>());
+    m_scene = CreateObject<Scene>(CreateObject<Camera>());
 
-    // m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
-    //     0.0f, 1.0f,
-    //     0.0f, 1.0f,
-    //     -1.0f, 1.0f
-    // ));
+    m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+        0.0f, 1.0f,
+        0.0f, 1.0f,
+        -1.0f, 1.0f
+    ));
 
-    // InitObject(m_scene);
+    InitObject(m_scene);
 
     // m_scene->GetCamera()->SetDirection(Vector3(0.0f, 0.0f, -1.0f));
 
@@ -45,13 +45,14 @@ void UIScene::Init()
     OnTeardown([this](...) {
         SetReady(false);
 
-        // m_scene.Reset();
+        // m_ui_objects.Clear();
+        m_scene.Reset();
     });
 }
 
 void UIScene::Update(GameCounter::TickUnit delta)
 {
-    // m_scene->Update(delta);
+    m_scene->Update(delta);
 
     for (auto &it : m_mouse_held_times) {
         it.second += delta;
@@ -92,8 +93,6 @@ bool UIScene::OnInputEvent(
     const SystemEvent &event
 )
 {
-    return false;
-
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
         // check intersects with objects on mouse movement.
