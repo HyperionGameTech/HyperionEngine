@@ -505,7 +505,7 @@ void DeferredRenderer::Create()
 
     m_ssr.Reset(new SSRRenderer(
         g_engine->GetGPUInstance()->GetSwapchain()->extent / 2,
-        SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING//| SSR_RENDERER_OPTIONS_CONE_TRACING
+        SSR_RENDERER_OPTIONS_NONE //SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING//| SSR_RENDERER_OPTIONS_CONE_TRACING
     ));
 
     m_ssr->Create();

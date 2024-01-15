@@ -423,6 +423,8 @@ void SampleStreamer::InitGame()
 
     //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
     // }
+
+    m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
 }
 
 void SampleStreamer::InitRender()
