@@ -78,14 +78,20 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             material_id,
             skeleton_id,
             transform_component.transform.GetMatrix(),
-            transform_component.previous_transform_matrix,
+            mesh_component.previous_model_matrix,
             bounding_box_component.world_aabb,
             mesh_component.material.IsValid() // @TODO: More efficent way of doing this
                 ? UInt32(mesh_component.material->GetBucket())
                 : BUCKET_OPAQUE
         });
 
-        mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
+        if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {
+            // Update previous model matrix to current model matrix
+            mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
+            mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+        } else {
+            mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
+        }
     }
 
     if (entity_draw_datas.Any()) {

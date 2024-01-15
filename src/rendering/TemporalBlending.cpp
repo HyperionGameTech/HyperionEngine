@@ -161,17 +161,17 @@ void TemporalBlending::CreateDescriptorSets()
         const ImageView *input_image_view = m_input_framebuffer ? m_input_framebuffer->GetAttachmentUsages()[0]->GetImageView() : m_input_image_views[frame_index];
         AssertThrow(input_image_view != nullptr);
 
-        // input image (first pass just radiance image, second pass is prev image)
+        // input image
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(0)
             ->SetElementSRV(0, input_image_view);
 
-        // previous image (used for temporal blending)
+        // history image
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(1)
             ->SetElementSRV(0, m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view);
 
-        // velocity (used for temporal blending)
+        // velocity
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(2)
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());

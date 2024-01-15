@@ -495,7 +495,7 @@ void DeferredRenderer::Create()
 
     InitObject(m_mip_chain);
 
-    m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent / 2));
+    m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent));
     m_hbao->Create();
     
     m_indirect_pass.CreateDescriptors(); // no-op
@@ -504,7 +504,7 @@ void DeferredRenderer::Create()
     CreateBlueNoiseBuffer();
 
     m_ssr.Reset(new SSRRenderer(
-        g_engine->GetGPUInstance()->GetSwapchain()->extent / 2,
+        g_engine->GetGPUInstance()->GetSwapchain()->extent,
         SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING//| SSR_RENDERER_OPTIONS_CONE_TRACING
     ));
 
@@ -708,16 +708,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         environment->GetGaussianSplatting()->UpdateSplats(frame);
     }
 
-    if (use_ssr) { // screen space reflection
-        DebugMarker marker(primary, "Screen space reflection");
-
-        Image *mipmapped_result = m_mip_chain->GetImage();
-
-        if (mipmapped_result->GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
-            m_ssr->Render(frame);
-        }
-    }
-
     { // indirect lighting
         DebugMarker marker(primary, "Record deferred indirect lighting pass");
 
@@ -775,6 +765,16 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         DebugMarker marker(primary, "DDGI");
 
         environment->RenderDDGIProbes(frame);
+    }
+
+    if (use_ssr) { // screen space reflection
+        DebugMarker marker(primary, "Screen space reflection");
+
+        Image *mipmapped_result = m_mip_chain->GetImage();
+
+        if (mipmapped_result->GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
+            m_ssr->Render(frame);
+        }
     }
 
     if (use_hbao || use_hbil) {

@@ -531,7 +531,7 @@ void Scene::CollectEntities(
             mesh_component.material,
             Handle<Skeleton>::empty, // TEMP
             transform_component.transform.GetMatrix(),
-            transform_component.previous_transform_matrix,
+            mesh_component.previous_model_matrix,
             bounding_box_component.world_aabb,
             override_attributes_ptr
         );

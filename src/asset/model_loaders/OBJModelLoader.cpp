@@ -380,7 +380,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
                 },
                 {
                     { Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f) },
-                    { Material::MATERIAL_KEY_ROUGHNESS, 0.1f },
+                    { Material::MATERIAL_KEY_ROUGHNESS, 0.65f },
                     { Material::MATERIAL_KEY_METALNESS, 0.0f }
                 }
             );

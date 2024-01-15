@@ -23,6 +23,8 @@ struct MeshComponent
     Handle<Mesh>        mesh;
     Handle<Material>    material;
 
+    Matrix4             previous_model_matrix;
+
     MeshComponentFlags  flags = MESH_COMPONENT_FLAG_DIRTY;
 };
 

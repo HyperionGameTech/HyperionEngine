@@ -78,6 +78,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
     ) : extent(extent),
         uniform_buffers(uniform_buffers)
     {
+        AssertThrow(extent.Size() != 0);
     }
 
     virtual Result operator()()
@@ -591,7 +592,11 @@ void SSRRenderer::Render(Frame *frame)
         }
     );
 
-    m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D {
+        (m_extent.width + 7) / 8,
+        (m_extent.height + 7) / 8,
+        1
+    });
 
     // transition the UV image back into read state
     m_image_outputs[frame_index][0].image->GetGPUImage()
@@ -619,7 +624,11 @@ void SSRRenderer::Render(Frame *frame)
         }
     );
 
-    m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D {
+        (m_extent.width + 7) / 8,
+        (m_extent.height + 7) / 8,
+        1
+    });
 
     // transition sample image back into read state
     m_image_outputs[frame_index][1].image->GetGPUImage()
@@ -648,7 +657,11 @@ void SSRRenderer::Render(Frame *frame)
             }
         );
 
-        m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+        m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D {
+            (m_extent.width + 7) / 8,
+            (m_extent.height + 7) / 8,
+            1
+        });
 
         // transition blur image back into read state
         m_image_outputs[frame_index][2].image->GetGPUImage()
@@ -674,7 +687,11 @@ void SSRRenderer::Render(Frame *frame)
             }
         );
 
-        m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+        m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D {
+            (m_extent.width + 7) / 8,
+            (m_extent.height + 7) / 8,
+            1
+        });
 
         // transition blur image back into read state
         m_image_outputs[frame_index][3].image->GetGPUImage()

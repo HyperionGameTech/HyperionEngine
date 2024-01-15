@@ -154,9 +154,9 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_DEPTH,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::DEPTH_24,
-                        InternalFormat::DEPTH_16,
-                        InternalFormat::DEPTH_32F },
+            std::array{ InternalFormat::DEPTH_32F, InternalFormat::DEPTH_24,
+                        InternalFormat::DEPTH_16
+                         },
             renderer::ImageSupportType::DEPTH
         )
     );
@@ -895,9 +895,9 @@ void Engine::RenderNextFrame(Game *game)
 
     const FrameRef &frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
-    HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
-
     PreFrameUpdate(frame);
+
+    HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
 
     m_world->PreRender(frame);
 
