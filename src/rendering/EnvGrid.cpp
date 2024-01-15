@@ -566,7 +566,6 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     GetParent()->GetScene()->CollectEntities(
         m_render_list,
         m_camera,
-        Bitset((1 << BUCKET_OPAQUE)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {

@@ -410,8 +410,10 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // gbuffer depth
             ->AddDescriptor<renderer::ImageDescriptor>(13)
-            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredRenderer().GetDepthPyramidRenderer().GetResultImageView());
+            
+                /*g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());*/
 
         // nearest sampler
         descriptor_set
@@ -519,10 +521,10 @@ void SSRRenderer::CreateComputePipelines()
 void SSRRenderer::Render(Frame *frame)
 {
     const auto &scene_binding = g_engine->render_state.GetScene();
-    const UInt scene_index = scene_binding ? scene_binding.id.ToIndex() : 0;
+    const UInt scene_index = scene_binding.id.ToIndex();
 
     const auto &camera_binding = g_engine->render_state.GetCamera();
-    const UInt camera_index = camera_binding ? camera_binding.id.ToIndex() : 0;
+    const UInt camera_index = camera_binding.id.ToIndex();
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
