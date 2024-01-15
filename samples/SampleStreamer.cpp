@@ -22,7 +22,7 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/SceneComponent.hpp>
+#include <scene/ecs/components/EnvGridComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -344,30 +344,30 @@ void SampleStreamer::InitGame()
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
-        if (auto zombie = results["zombie"].Get<Node>()) {
-            auto zombie_entity = zombie[0].GetEntity();
+        // if (auto zombie = results["zombie"].Get<Node>()) {
+        //     auto zombie_entity = zombie[0].GetEntity();
 
-            m_scene->GetRoot().AddChild(zombie);
+        //     m_scene->GetRoot().AddChild(zombie);
 
-            // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
-            //     animation_controller->Play(1.0f, LoopMode::REPEAT);
-            // }
+        //     // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
+        //     //     animation_controller->Play(1.0f, LoopMode::REPEAT);
+        //     // }
 
-            if (zombie_entity.IsValid()) {
-                if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-                }
+        //     if (zombie_entity.IsValid()) {
+        //         if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
+        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+        //         }
 
-                // if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(zombie_entity)) {
-                //     transform_component->transform.SetTranslation(Vector3(0, 1, 0));
-                //     transform_component->transform.SetScale(Vector3(0.25f));
-                // }
-            }
+        //         // if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(zombie_entity)) {
+        //         //     transform_component->transform.SetTranslation(Vector3(0, 1, 0));
+        //         //     transform_component->transform.SetScale(Vector3(0.25f));
+        //         // }
+        //     }
 
-            zombie.SetName("zombie");
-        }
+        //     zombie.SetName("zombie");
+        // }
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
@@ -386,6 +386,22 @@ void SampleStreamer::InitGame()
             // GetScene()->AddEntity(env_grid_entity);
             
             GetScene()->GetRoot().AddChild(node);
+
+            auto env_grid_entity = m_scene->GetEntityManager()->AddEntity();
+
+            m_scene->GetEntityManager()->AddComponent(env_grid_entity, TransformComponent {
+                node.GetWorldTransform()
+            });
+
+            m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
+                node.GetLocalAABB(),
+                node.GetWorldAABB()
+            });
+
+            // Add env grid component
+            m_scene->GetEntityManager()->AddComponent(env_grid_entity, EnvGridComponent {
+                EnvGridType::ENV_GRID_TYPE_SH
+            });
         }
     }
     
@@ -813,7 +829,7 @@ void SampleStreamer::HandleCameraMovement(GameCounter::TickUnit delta)
         });
     }
 
-    if (auto character = GetScene()->GetRoot().Select("zombie")) {
-        character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
-    }
+    // if (auto character = GetScene()->GetRoot().Select("zombie")) {
+    //     character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
+    // }
 }

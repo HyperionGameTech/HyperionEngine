@@ -41,8 +41,6 @@ struct GlobalSphericalHarmonicsGrid
 
     GPUBufferRef sh_grid_buffer;
 
-    Handle<Texture> clipmap_texture;
-
     GlobalSphericalHarmonicsGrid();
 
     void Create();

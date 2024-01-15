@@ -16,12 +16,12 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
-#include <scene/ecs/components/SceneComponent.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
 #include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/systems/ShadowMapUpdaterSystem.hpp>
+#include <scene/ecs/systems/EnvGridUpdaterSystem.hpp>
 #include <scene/ecs/systems/AnimationSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
@@ -141,6 +141,7 @@ Scene::Scene(
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
+    m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);

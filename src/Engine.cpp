@@ -499,10 +499,6 @@ void Engine::Initialize(RC<Application> application)
             ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
 
         descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_CLIPMAPS)
-            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.clipmap_texture->GetImageView());
-
-        descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER)
             ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
 

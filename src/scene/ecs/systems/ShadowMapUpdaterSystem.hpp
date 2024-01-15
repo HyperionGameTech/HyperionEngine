@@ -14,12 +14,7 @@ namespace hyperion::v2 {
 class ShadowMapUpdaterSystem : public System<
     ComponentDescriptor<ShadowMapComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-
-    // These are needed because we use CollectEntities() which uses these components
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
 >
 {
 public:

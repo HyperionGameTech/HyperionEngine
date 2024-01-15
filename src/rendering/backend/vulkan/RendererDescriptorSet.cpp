@@ -86,7 +86,6 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::DEFERRED_REFLECTION_PROBE, 59},
             
             {DescriptorKey::SH_GRID_BUFFER, 61},
-            {DescriptorKey::SH_CLIPMAPS, 62},
             {DescriptorKey::LIGHT_FIELD_COLOR_BUFFER, 63},
             {DescriptorKey::LIGHT_FIELD_NORMALS_BUFFER, 64},
             {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER, 65},

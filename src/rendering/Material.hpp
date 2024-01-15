@@ -519,7 +519,7 @@ public:
     void Add(const Handle<Material> &material);
 
     Handle<Material> GetOrCreate(
-        const MaterialAttributes &attributes = { },
+        MaterialAttributes attributes = { },
         const Material::ParameterTable &parameters = Material::DefaultParameters(),
         const Material::TextureSet &textures = { }
     );

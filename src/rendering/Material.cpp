@@ -620,11 +620,18 @@ void MaterialCache::Add(const Handle<Material> &material)
 }
 
 Handle<Material> MaterialCache::GetOrCreate(
-    const MaterialAttributes &attributes,
+    MaterialAttributes attributes,
     const Material::ParameterTable &parameters,
     const Material::TextureSet &textures
 )
 {
+    if (!attributes.shader_definition) {
+        attributes.shader_definition = ShaderDefinition {
+            HYP_NAME(Forward),
+            renderer::static_mesh_vertex_attributes
+        };
+    }
+
     HashCode hc;
     hc.Add(attributes.GetHashCode());
     hc.Add(parameters.GetHashCode());

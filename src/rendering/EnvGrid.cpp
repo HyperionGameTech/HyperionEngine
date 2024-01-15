@@ -63,18 +63,9 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
 
 #pragma region Render commands
 
-struct EnvProbeAABBUpdate
-{
-    UInt32 current_index;
-    BoundingBox current_aabb;
-
-    UInt32 new_index;
-    BoundingBox new_aabb;
-};
-
 struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
 {
-    EnvGrid *grid;
+    EnvGrid     *grid;
     Array<UInt> updates;
 
     RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(
@@ -178,10 +169,10 @@ struct RENDER_COMMAND(CreateLightFieldStorageImages) : renderer::RenderCommand
 
 struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 {
-    renderer::DescriptorType type;
-    renderer::DescriptorKey key;
-    UInt32 element_index;
-    ImageViewRef value;
+    renderer::DescriptorType    type;
+    renderer::DescriptorKey     key;
+    UInt32                      element_index;
+    ImageViewRef                value;
 
     RENDER_COMMAND(SetElementInGlobalDescriptorSet)(
         renderer::DescriptorType type,
@@ -316,7 +307,7 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::SetCameraData(const Vec3f &position)
 {
-    Threads::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME | THREAD_TASK);
 
     const BoundingBox current_aabb = m_aabb;
     const Vec3f current_aabb_center = current_aabb.GetCenter();
@@ -473,7 +464,6 @@ void EnvGrid::Init()
 
     if (GetEnvGridType() == ENV_GRID_TYPE_SH) {
         CreateSHData();
-        CreateSHClipmapData();
     } else if (GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD) {
         CreateLightFieldData();
     }
@@ -548,7 +538,6 @@ void EnvGrid::OnRemoved()
     SafeRelease(std::move(m_light_field_probe_descriptor_sets));
 
     SafeRelease(std::move(m_compute_sh_descriptor_sets));
-    SafeRelease(std::move(m_compute_clipmaps_descriptor_sets));
 
     SafeRelease(std::move(m_voxelize_probe_descriptor_sets));
     SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_sets));
@@ -647,11 +636,6 @@ void EnvGrid::OnRender(Frame *frame)
         // m_shader_data.probe_indices[binding_index.GetProbeIndex()] = probe.GetID().ToIndex();
     }
 
-    // render enqueued probes
-    while (m_next_render_indices.Any()) {
-        RenderEnvProbe(frame, m_next_render_indices.Pop());
-    }
-
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES)) {
         // Debug draw
         for (UInt index = 0; index < m_grid.num_probes; index++) {
@@ -663,12 +647,23 @@ void EnvGrid::OnRender(Frame *frame)
 
             const ID<EnvProbe> probe_id = probe->GetID();
 
+            Color probe_color { probe_id.Value() };
+
+            if (m_next_render_indices.Contains(index)) {
+                probe_color = Color(1.0f);
+            }
+
             g_engine->GetImmediateMode().Sphere(
                 probe->GetDrawProxy().world_position,
-                0.35f,
-                Color(probe_id.Value())
+                0.5f,
+                probe_color
             );
         }
+    }
+
+    // render enqueued probes
+    while (m_next_render_indices.Any()) {
+        RenderEnvProbe(frame, m_next_render_indices.Pop());
     }
     
     if (num_ambient_probes != 0) {
@@ -748,10 +743,6 @@ void EnvGrid::OnRender(Frame *frame)
     m_shader_data.density = { m_density.width, m_density.height, m_density.depth, 0 };
 
     g_engine->GetRenderData()->env_grids.Set(GetComponentIndex(), m_shader_data);
-
-    if (GetEnvGridType() == EnvGridType::ENV_GRID_TYPE_SH) {
-        ComputeClipmaps(frame);
-    }
 
     if (flags != new_flags) {
         m_flags.Set(new_flags, MemoryOrder::RELEASE);
@@ -993,109 +984,6 @@ void EnvGrid::CreateSHData()
     );
 
     InitObject(m_finalize_sh);
-}
-
-void EnvGrid::CreateSHClipmapData()
-{
-    AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
-
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_compute_clipmaps_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
-
-        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
-
-        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
-
-        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(2)
-            ->SetElementUAV(0, g_engine->GetRenderData()->spherical_harmonics_grid.clipmap_texture->GetImageView());
-
-        // gbuffer textures
-        m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<ImageDescriptor>(3)
-            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
-
-        // scene buffer
-        m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
-
-        // camera buffer
-        m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
-
-        // env grid buffer (dynamic)
-        m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(6)
-            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer());
-
-        // env probes buffer
-        m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<renderer::StorageBufferDescriptor>(7)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer());
-    }
-
-    PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_compute_clipmaps_descriptor_sets);
-
-    m_compute_clipmaps = CreateObject<ComputePipeline>(
-        CreateObject<Shader>(g_engine->GetShaderCompiler().GetCompiledShader(HYP_NAME(ComputeSHClipmap))),
-        Array<DescriptorSetRef> { m_compute_clipmaps_descriptor_sets[0] }
-    );
-
-    InitObject(m_compute_clipmaps);
-}
-
-void EnvGrid::ComputeClipmaps(Frame *frame)
-{
-    AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
-
-    const auto &scene_binding = g_engine->render_state.GetScene();
-    const UInt scene_index = scene_binding.id.ToIndex();
-
-    const auto &camera = g_engine->GetRenderState().GetCamera();
-    
-    const Handle<Texture> &clipmap_texture = g_engine->GetRenderData()->spherical_harmonics_grid.clipmap_texture;
-    AssertThrow(clipmap_texture.IsValid());
-
-    const Extent3D &clipmap_extent = clipmap_texture->GetExtent();
-
-    struct alignas(128) {
-        ShaderVec4<UInt32> clipmap_dimensions;
-        ShaderVec4<Float> cage_center_world;
-    } push_constants;
-
-    push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
-    push_constants.cage_center_world = Vector4(camera.camera.position, 1.0f);
-
-    clipmap_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_compute_clipmaps->GetPipeline(),
-        m_compute_clipmaps_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray {
-            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-            HYP_RENDER_OBJECT_OFFSET(Camera, camera.id.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
-        }
-    );
-
-    m_compute_clipmaps->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_compute_clipmaps->GetPipeline()->Dispatch(
-        frame->GetCommandBuffer(),
-        Extent3D {
-            (clipmap_extent[0] + 7) / 8,
-            (clipmap_extent[1] + 7) / 8,
-            (clipmap_extent[2] + 7) / 8,
-        }
-    );
-
-    clipmap_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void EnvGrid::CreateLightFieldData()
@@ -1430,8 +1318,6 @@ void EnvGrid::RenderEnvProbe(
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     auto result = Result::OK;
-
-    // DebugLog(LogType::Debug, "Render EnvProbe #%u\n", proxy->id.Value());
 
     {
         struct alignas(128) { UInt32 env_probe_index; } push_constants;

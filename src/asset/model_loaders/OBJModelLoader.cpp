@@ -357,17 +357,17 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         Handle<Material> material;
 
-        // if (!obj_mesh.material.Empty() && material_library) {
-        //     if (material_library->Has(obj_mesh.material)) {
-        //         material = material_library->Get(obj_mesh.material);
-        //     } else {
-        //         DebugLog(
-        //             LogType::Warn,
-        //             "Obj model loader: Material '%s' could not be found in material library\n",
-        //             obj_mesh.material.Data()
-        //         );
-        //     }
-        // }
+        if (!obj_mesh.material.Empty() && material_library) {
+            if (material_library->Has(obj_mesh.material)) {
+                material = material_library->Get(obj_mesh.material);
+            } else {
+                DebugLog(
+                    LogType::Warn,
+                    "Obj model loader: Material '%s' could not be found in material library\n",
+                    obj_mesh.material.Data()
+                );
+            }
+        }
 
         if (!material) {
             material = g_material_system->GetOrCreate(

@@ -124,23 +124,6 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
             item.image_view = MakeRenderObject<ImageView>();
         }
     }
-
-    { // clipmaps
-        const Extent3D probe_cage_size { 32, 32, 32 };
-        const Extent2D image_dimensions = ReshapeExtent(probe_cage_size);
-
-        clipmap_texture = CreateObject<Texture>(TextureArray(
-            image_dimensions,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            9
-        ));
-
-        clipmap_texture->GetImage()->SetIsRWTexture(true);
-
-        InitObject(clipmap_texture);
-    }
 }
 
 void GlobalSphericalHarmonicsGrid::Create()
@@ -157,8 +140,6 @@ void GlobalSphericalHarmonicsGrid::Destroy()
         SafeRelease(std::move(item.image));
         SafeRelease(std::move(item.image_view));
     }
-
-    clipmap_texture.Reset();
 }
 
 ShaderGlobals::ShaderGlobals()

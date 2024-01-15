@@ -1,5 +1,4 @@
 #include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/components/SceneComponent.hpp>
 #include <scene/Entity.hpp>
 #include <TaskSystem.hpp>
 #include <Engine.hpp>
@@ -10,15 +9,7 @@ ID<Entity> EntityManager::AddEntity()
 {
     auto handle = CreateObject<Entity>();
 
-    const ID<Entity> id = m_entities.AddEntity(std::move(handle));
-
-    if (m_scene) {
-        AddComponent(id, SceneComponent {
-            m_scene->GetID()
-        });
-    }
-
-    return id;
+    return m_entities.AddEntity(std::move(handle));
 }
 
 void EntityManager::RemoveEntity(ID<Entity> id)

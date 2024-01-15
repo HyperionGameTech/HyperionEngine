@@ -152,8 +152,6 @@ private:
     void CreateVoxelGridData();
 
     void CreateSHData();
-    void CreateSHClipmapData();
-    void ComputeClipmaps(Frame *frame);
 
     void CreateLightFieldData();
     void ComputeLightFieldData(
@@ -200,9 +198,6 @@ private:
     // Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
 
     LightProbeGrid m_grid;
-
-    Handle<ComputePipeline> m_compute_clipmaps;
-    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;
 
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;
