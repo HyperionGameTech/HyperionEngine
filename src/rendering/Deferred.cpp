@@ -505,7 +505,7 @@ void DeferredRenderer::Create()
 
     m_ssr.Reset(new SSRRenderer(
         g_engine->GetGPUInstance()->GetSwapchain()->extent / 2,
-        SSR_RENDERER_OPTIONS_NONE //SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING//| SSR_RENDERER_OPTIONS_CONE_TRACING
+        SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING//| SSR_RENDERER_OPTIONS_CONE_TRACING
     ));
 
     m_ssr->Create();
@@ -622,6 +622,8 @@ void DeferredRenderer::CreateCombinePass()
         GetDeferredShaderProperties()
     );
 
+    g_engine->InitObject(shader);
+
     m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA16F));
     m_combine_pass->Create();
 }
@@ -663,7 +665,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    const CommandBufferRef &primary = frame->GetCommandBuffer();
+    CommandBuffer *primary = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     const auto &scene_binding = g_engine->render_state.GetScene();
@@ -890,7 +892,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
-    const CommandBufferRef &primary = frame->GetCommandBuffer();
+    CommandBuffer *primary = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     const ImageRef &mipmapped_result = m_mip_chain->GetImage();

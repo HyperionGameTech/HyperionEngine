@@ -278,7 +278,7 @@ void SampleStreamer::InitGame()
             sun
         });
 
-        m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent { });
+        // m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent { });
 
         // auto sun = CreateObject<Entity>();
         // sun->SetName(HYP_NAME(Sun));

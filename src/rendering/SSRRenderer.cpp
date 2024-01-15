@@ -441,7 +441,7 @@ void SSRRenderer::CreateDescriptorSets()
         // blue noise buffer
         descriptor_set
             ->AddDescriptor<renderer::StorageBufferDescriptor>(19)
-            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
+            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

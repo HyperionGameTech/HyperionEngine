@@ -24,19 +24,17 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
     {
         camera->m_draw_proxy = draw_proxy;
 
-        CameraShaderData &shader_data = g_engine->GetRenderData()->cameras.Get(camera->GetID().ToIndex());
-
-        shader_data.view             = draw_proxy.view;
-        shader_data.projection       = draw_proxy.projection;
-        shader_data.previous_view    = draw_proxy.previous_view;
-        shader_data.dimensions       = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 1 };
-        shader_data.camera_position  = Vector4(draw_proxy.position, 1.0f);
-        shader_data.camera_direction = Vector4(draw_proxy.position, 1.0f);
-        shader_data.camera_near      = draw_proxy.clip_near;
-        shader_data.camera_fov       = draw_proxy.fov;
-        shader_data.camera_far       = draw_proxy.clip_far;
-
-        g_engine->GetRenderData()->cameras.MarkDirty(camera->GetID().ToIndex());
+        g_engine->GetRenderData()->cameras.Set(camera->GetID().ToIndex(), CameraShaderData {
+            .view = draw_proxy.view,
+            .projection = draw_proxy.projection,
+            .previous_view = draw_proxy.previous_view,
+            .dimensions = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 1 },
+            .camera_position = Vector4(draw_proxy.position, 1.0f),
+            .camera_direction = Vector4(draw_proxy.position, 1.0f),
+            .camera_near = draw_proxy.clip_near,
+            .camera_fov = draw_proxy.fov,
+            .camera_far = draw_proxy.clip_far
+        });
         
         HYPERION_RETURN_OK;
     }
