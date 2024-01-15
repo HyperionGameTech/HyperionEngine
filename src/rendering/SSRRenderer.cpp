@@ -410,10 +410,8 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // gbuffer depth
             ->AddDescriptor<renderer::ImageDescriptor>(13)
-            ->SetElementSRV(0, g_engine->GetDeferredRenderer().GetDepthPyramidRenderer().GetResultImageView());
-            
-                /*g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-                .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());*/
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // nearest sampler
         descriptor_set
