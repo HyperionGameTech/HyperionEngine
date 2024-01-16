@@ -14,8 +14,6 @@
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/terrain/controllers/TerrainPagingController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
-#include <scene/controllers/LightController.hpp>
-#include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
@@ -121,8 +119,6 @@ void Engine::RegisterComponents()
     m_components.Register<BasicCharacterController>();
     m_components.Register<RigidBodyController>();
     m_components.Register<BasicPagingController>();
-    m_components.Register<EnvGridController>();
-    m_components.Register<LightController>();
     m_components.Register<UIButtonController>();
     m_components.Register<UIContainerController>();
 }

@@ -10,8 +10,6 @@
 #include <Engine.hpp>
 #include <rendering/Atomics.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
-#include <scene/controllers/LightController.hpp>
-#include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
@@ -282,23 +280,6 @@ void SampleStreamer::InitGame()
             .resolution = { 2048, 2048 }
         });
 
-        // auto sun = CreateObject<Entity>();
-        // sun->SetName(HYP_NAME(Sun));
-
-        // auto *light_component = g_engine->GetComponents().Add<LightController>(sun, UniquePtr<LightController>::Construct(CreateObject<Light>(DirectionalLight(
-        //     Vector3(-0.8f, 0.65f, 0.8f).Normalize(),
-        //     Color(1.0f, 1.0f, 1.0f),
-        //     5.0f
-        // ))));
-
-        // sun->SetTranslation(Vector3(-0.8f, 0.65f, 0.8f));
-
-        // g_engine->GetComponents().Add<ShadowMapController>(sun, UniquePtr<ShadowMapController>::Construct(
-        //     light_component->GetLight()
-        // ));
-
-        // GetScene()->AddEntity(sun);
-
         Array<Handle<Light>> point_lights;
 
         point_lights.PushBack(CreateObject<Light>(PointLight(
@@ -467,6 +448,12 @@ void SampleStreamer::InitGame()
 
     //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
     // }
+
+    auto test_button = GetUI().CreateButton(
+        Vector2(0.0f, 0.0f),
+        Vector2(0.2f, 0.5f),
+        "Test Button"
+    );
 
     m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
 }
