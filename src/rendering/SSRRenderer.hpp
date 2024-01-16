@@ -37,15 +37,13 @@ using SSRRendererOptions = UInt32;
 
 enum SSRRendererOptionBits : SSRRendererOptions
 {
-    SSR_RENDERER_OPTIONS_NONE = 0x0,
-    SSR_RENDERER_OPTIONS_CONE_TRACING = 0x1,
-    SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING = 0x2
+    SSR_RENDERER_OPTIONS_NONE                   = 0x0,
+    SSR_RENDERER_OPTIONS_CONE_TRACING           = 0x1,
+    SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING   = 0x2
 };
 
 class SSRRenderer
 {
-    static constexpr bool use_temporal_blending = true;
-    static constexpr bool blur_result = false;
     static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
 
 public:

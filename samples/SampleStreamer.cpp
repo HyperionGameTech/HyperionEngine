@@ -278,7 +278,7 @@ void SampleStreamer::InitGame()
         });
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
-            .radius = 10.0f,
+            .radius = 12.0f,
             .resolution = { 2048, 2048 }
         });
 

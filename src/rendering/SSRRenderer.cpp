@@ -21,6 +21,8 @@ using renderer::GPUBufferType;
 #define USE_SSR_COMPUTE_SHADER
 #endif
 
+static constexpr bool use_temporal_blending = true;
+
 struct alignas(16) SSRParams
 {
     ShaderVec4<UInt32> dimensions;
@@ -274,8 +276,8 @@ void SSRRenderer::Create()
                 m_temporal_history_textures[0]->GetImageView(), //m_image_outputs[0][blur_result ? 3 : 1].image_view,
                 m_temporal_history_textures[1]->GetImageView()               //m_image_outputs[1][blur_result ? 3 : 1].image_view
 #elif defined(USE_SSR_COMPUTE_SHADER)
-                m_image_outputs[blur_result ? 3 : 1]->GetImageView(),
-                m_image_outputs[blur_result ? 3 : 1]->GetImageView()
+                m_image_outputs[1]->GetImageView(),
+                m_image_outputs[1]->GetImageView()
 #endif
             }
         ));
@@ -295,8 +297,6 @@ void SSRRenderer::Destroy()
 
     m_write_uvs.Reset();
     m_sample.Reset();
-    m_blur_hor.Reset();
-    m_blur_vert.Reset();
 
     for (auto &texture : m_temporal_history_textures) {
         texture.Reset();
@@ -440,8 +440,8 @@ void SSRRenderer::CreateDescriptorSets()
         CreateSSRDescriptors,
         m_descriptor_sets,
         FixedArray {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_image_outputs[blur_result ? 3 : 1]->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_image_outputs[blur_result ? 3 : 1]->GetImageView()
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_image_outputs[1]->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_image_outputs[1]->GetImageView()
         }
     );
 }
@@ -489,20 +489,6 @@ void SSRRenderer::CreateComputePipelines()
     );
 
     InitObject(m_sample);
-
-    m_blur_hor = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurHor), shader_properties),
-        Array<DescriptorSetRef> { m_descriptor_sets[0] }
-    );
-
-    InitObject(m_blur_hor);
-
-    m_blur_vert = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurVert), shader_properties),
-        Array<DescriptorSetRef> { m_descriptor_sets[0] }
-    );
-
-    InitObject(m_blur_vert);
 #endif
 }
 
@@ -563,6 +549,14 @@ void SSRRenderer::Render(Frame *frame)
 
     // End new SSR
 #elif defined(USE_SSR_COMPUTE_SHADER)
+    // We will be dispatching half the number of pixels, due to checkerboarding.
+    // We need to find the best fitting dimensions for this.
+
+    const SizeType total_pixels_in_image = m_extent.Size();
+    const SizeType total_pixels_in_image_div_2 = total_pixels_in_image / 2;
+
+    const UInt32 num_dispatch_calls = (UInt32(total_pixels_in_image_div_2) + 255) / 256;
+
     // PASS 1 -- write UVs
 
     m_image_outputs[0]->GetImage()->GetGPUImage()
@@ -582,9 +576,7 @@ void SSRRenderer::Render(Frame *frame)
     );
 
     m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D {
-        (m_extent.width / 2 + 7) / 8,
-        (m_extent.height / 2 + 7) / 8,
-        1
+        num_dispatch_calls, 1, 1
     });
 
     // transition the UV image back into read state
@@ -614,9 +606,7 @@ void SSRRenderer::Render(Frame *frame)
     );
 
     m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D {
-        (m_extent.width / 2 + 7) / 8,
-        (m_extent.height / 2 + 7) / 8,
-        1
+        num_dispatch_calls, 1, 1
     });
 
     // transition sample image back into read state
@@ -625,67 +615,6 @@ void SSRRenderer::Render(Frame *frame)
     // transition radius image back into read state
     m_radius_output[frame_index].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-    if constexpr (blur_result) {
-        // PASS 3 - blur image using radii in output from previous stage
-
-        //put blur image in writeable state
-        m_image_outputs[2]->GetImage()->GetGPUImage()
-            ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
-
-        m_blur_hor->GetPipeline()->Bind(command_buffer);
-
-        frame->GetCommandBuffer()->BindDescriptorSet(
-            g_engine->GetGPUInstance()->GetDescriptorPool(),
-            m_blur_hor->GetPipeline(),
-            m_descriptor_sets[frame->GetFrameIndex()],
-            0,
-            FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
-            }
-        );
-
-        m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D {
-            (m_extent.width / 2 + 7) / 8,
-            (m_extent.height / 2 + 7) / 8,
-            1
-        });
-
-        // transition blur image back into read state
-        m_image_outputs[2]->GetImage()->GetGPUImage()
-            ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-
-        // PASS 4 - blur image vertically
-
-        //put blur image in writeable state
-        m_image_outputs[3]->GetImage()->GetGPUImage()
-            ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
-
-        m_blur_vert->GetPipeline()->Bind(command_buffer);
-
-        frame->GetCommandBuffer()->BindDescriptorSet(
-            g_engine->GetGPUInstance()->GetDescriptorPool(),
-            m_blur_vert->GetPipeline(),
-            m_descriptor_sets[frame->GetFrameIndex()],
-            0,
-            FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
-            }
-        );
-
-        m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D {
-            (m_extent.width + 7) / 8,
-            (m_extent.height + 7) / 8,
-            1
-        });
-
-        // transition blur image back into read state
-        m_image_outputs[3]->GetImage()->GetGPUImage()
-            ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    }
 #endif
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
