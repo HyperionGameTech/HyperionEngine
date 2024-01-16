@@ -86,18 +86,6 @@ public:
     NodeProxy FindNodeWithEntity(ID<Entity>) const;
     NodeProxy FindNodeByName(const String &) const;
 
-    Bool AddEnvProbe(Handle<EnvProbe> env_probe);
-    Bool RemoveEnvProbe(ID<EnvProbe> id);
-
-    FogParams &GetFogParams()
-        { return m_fog_params; }
-
-    const FogParams &GetFogParams() const
-        { return m_fog_params; }
-
-    void SetFogParams(const FogParams &fog_params)
-        { m_fog_params = fog_params; }
-
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
     Handle<TLAS> &GetTLAS()
         { return m_tlas; }
@@ -192,31 +180,29 @@ private:
 
     Bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
 
-    Handle<Camera> m_camera;
-    RenderList m_render_list;
+    Handle<Camera>                  m_camera;
+    RenderList                      m_render_list;
 
-    NodeProxy m_root_node_proxy;
-    UniquePtr<RenderEnvironment> m_environment;
-    World *m_world;
+    UniquePtr<RenderEnvironment>    m_environment;
+    World                           *m_world;
 
-    FogParams m_fog_params;
+    FogParams                       m_fog_params;
 
-    FlatMap<ID<EnvProbe>, Handle<EnvProbe>> m_env_probes;
+    NodeProxy                       m_root_node_proxy;
+    RC<EntityManager>               m_entity_manager;
 
-    RC<EntityManager> m_entity_manager;
+    Octree                          m_octree;
 
-    Octree m_octree;
+    Handle<TLAS>                    m_tlas;
 
-    Handle<TLAS> m_tlas;
+    Matrix4                         m_last_view_projection_matrix;
 
-    Matrix4 m_last_view_projection_matrix;
+    Handle<Scene>                   m_parent_scene;
+    Bool                            m_is_non_world_scene;
 
-    Handle<Scene> m_parent_scene;
-    Bool m_is_non_world_scene;
-
-    Bool m_is_audio_listener;
+    Bool                            m_is_audio_listener;
                                  
-    mutable ShaderDataState m_shader_data_state;
+    mutable ShaderDataState         m_shader_data_state;
 };
 
 } // namespace hyperion::v2

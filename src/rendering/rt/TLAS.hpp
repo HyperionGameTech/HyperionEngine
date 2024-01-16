@@ -25,7 +25,7 @@ public:
     TopLevelAccelerationStructure &GetInternalTLAS() { return m_tlas; }
     const TopLevelAccelerationStructure &GetInternalTLAS() const { return m_tlas; }
 
-    void AddBLAS(Handle<BLAS> &&blas);
+    void AddBLAS(Handle<BLAS> blas);
 
     void Init();
 

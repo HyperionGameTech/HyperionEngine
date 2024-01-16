@@ -51,7 +51,7 @@ TLAS::~TLAS()
     Teardown();
 }
 
-void TLAS::AddBLAS(Handle<BLAS> &&blas)
+void TLAS::AddBLAS(Handle<BLAS> blas)
 {
     if (!blas) {
         return;

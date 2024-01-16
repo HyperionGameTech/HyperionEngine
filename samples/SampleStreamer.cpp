@@ -9,7 +9,6 @@
 
 #include <Engine.hpp>
 #include <rendering/Atomics.hpp>
-#include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
@@ -257,7 +256,7 @@ void SampleStreamer::InitGame()
 
     {
         auto sun = CreateObject<Light>(DirectionalLight(
-            Vec3f(-0.8f, 0.65f, 0.8f).Normalize(),
+            Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
             Color(1.0f, 1.0f, 1.0f),
             5.0f
         ));
@@ -268,7 +267,7 @@ void SampleStreamer::InitGame()
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, TransformComponent {
             Transform(
-                Vec3f(-0.8f, 0.65f, 0.8f),
+                Vec3f(-0.1f, 0.65f, 0.1f).Normalized(),
                 Vec3f::one,
                 Quaternion::Identity()
             )
@@ -278,7 +277,10 @@ void SampleStreamer::InitGame()
             sun
         });
 
-        m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent { });
+        m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
+            .radius = 10.0f,
+            .resolution = { 2048, 2048 }
+        });
 
         // auto sun = CreateObject<Entity>();
         // sun->SetName(HYP_NAME(Sun));
@@ -370,6 +372,7 @@ void SampleStreamer::InitGame()
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
+#if 0
         if (auto zombie = results["zombie"].Get<Node>()) {
             auto zombie_entity = zombie[0].GetEntity();
 
@@ -403,6 +406,7 @@ void SampleStreamer::InitGame()
 
             zombie.SetName("zombie");
         }
+#endif
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();

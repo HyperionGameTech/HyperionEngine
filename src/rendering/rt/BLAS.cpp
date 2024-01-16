@@ -36,9 +36,9 @@ struct RENDER_COMMAND(DestroyBLAS) : renderer::RenderCommand
 };
 
 BLAS::BLAS(
-    IDBase entity_id,
-    Handle<Mesh> &&mesh,
-    Handle<Material> &&material,
+    ID<Entity> entity_id,
+    Handle<Mesh> mesh,
+    Handle<Material> material,
     const Transform &transform
 ) : BasicObject(),
     m_entity_id(entity_id),
@@ -53,7 +53,7 @@ BLAS::~BLAS()
     Teardown();
 }
 
-void BLAS::SetMesh(Handle<Mesh> &&mesh)
+void BLAS::SetMesh(Handle<Mesh> mesh)
 {
     // TODO: thread safety
 
@@ -83,7 +83,7 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
     }
 }
 
-void BLAS::SetMaterial(Handle<Material> &&material)
+void BLAS::SetMaterial(Handle<Material> material)
 {
     // TODO: thread safety
 

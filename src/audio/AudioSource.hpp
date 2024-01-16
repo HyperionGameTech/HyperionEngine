@@ -35,18 +35,29 @@ public:
 
     void Init();
 
-    Format GetFormat() const { return m_format; }
-    SizeType GetFreq() const { return m_freq; }
-    const ByteBuffer &GetByteBuffer() const { return m_data; }
-    unsigned int GetSampleLength() const { return m_sample_length; }
+    Format GetFormat() const
+        { return m_format; }
+
+    SizeType GetFreq() const
+        { return m_freq; }
+
+    const ByteBuffer &GetByteBuffer() const
+        { return m_data; }
+
+    UInt32 GetSampleLength() const
+        { return m_sample_length; }
+
+    /*! \brief Get duration in seconds. */
+    Double GetDuration() const
+        { return Double(m_sample_length) / Double(m_freq); }
 
     State GetState() const;
 
-    void SetPosition(const Vector3 &vec);
-    void SetVelocity(const Vector3 &vec);
-    void SetPitch(float pitch);
-    void SetGain(float gain);
-    void SetLoop(bool loop);
+    void SetPosition(const Vec3f &vec);
+    void SetVelocity(const Vec3f &vec);
+    void SetPitch(Float pitch);
+    void SetGain(Float gain);
+    void SetLoop(Bool loop);
 
     void Play();
     void Pause();
@@ -55,13 +66,13 @@ public:
 private:
     void FindSampleLength();
 
-    Format m_format;
-    ByteBuffer m_data;
-    SizeType m_freq;
+    Format      m_format;
+    ByteBuffer  m_data;
+    SizeType    m_freq;
 
-    unsigned int m_buffer_id;
-    unsigned int m_source_id;
-    unsigned int m_sample_length;
+    UInt32      m_buffer_id;
+    UInt32      m_source_id;
+    UInt32      m_sample_length;
 };
 
 } // namespace hyperion::v2

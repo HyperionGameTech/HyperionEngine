@@ -10,7 +10,6 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/controllers/AabbDebugController.hpp>
-#include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/terrain/controllers/TerrainPagingController.hpp>
@@ -120,7 +119,6 @@ void Engine::RegisterComponents()
     m_components.Register<TerrainPagingController>();
     m_components.Register<ScriptedController>();
     m_components.Register<BasicCharacterController>();
-    m_components.Register<AudioController>();
     m_components.Register<RigidBodyController>();
     m_components.Register<BasicPagingController>();
     m_components.Register<EnvGridController>();

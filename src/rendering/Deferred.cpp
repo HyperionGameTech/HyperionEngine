@@ -495,7 +495,7 @@ void DeferredRenderer::Create()
 
     InitObject(m_mip_chain);
 
-    m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent));
+    m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent / 2));
     m_hbao->Create();
     
     m_indirect_pass.CreateDescriptors(); // no-op

@@ -93,14 +93,14 @@ AudioSource::State AudioSource::GetState() const
 }
 
 
-void AudioSource::SetPosition(const Vector3 &vec)
+void AudioSource::SetPosition(const Vec3f &vec)
 {
     if (AudioManager::GetInstance()->IsInitialized()) {
         alSource3f(m_source_id, AL_POSITION, vec.x, vec.y, vec.z);
     }
 }
 
-void AudioSource::SetVelocity(const Vector3 &vec)
+void AudioSource::SetVelocity(const Vec3f &vec)
 {
     if (AudioManager::GetInstance()->IsInitialized()) {
         alSource3f(m_source_id, AL_VELOCITY, vec.x, vec.y, vec.z);
@@ -121,7 +121,7 @@ void AudioSource::SetGain(float gain)
     }
 }
 
-void AudioSource::SetLoop(bool loop)
+void AudioSource::SetLoop(Bool loop)
 {
     if (AudioManager::GetInstance()->IsInitialized()) {
         alSourcei(m_source_id, AL_LOOPING, loop);

@@ -16,13 +16,15 @@ using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlagBits;
 using renderer::Frame;
 
+class Entity;
+
 class BLAS : public BasicObject<STUB_CLASS(BLAS)>
 {
 public:
     BLAS(
-        IDBase entity_id,
-        Handle<Mesh> &&mesh,
-        Handle<Material> &&material,
+        ID<Entity> entity_id,
+        Handle<Mesh> mesh,
+        Handle<Material> material,
         const Transform &transform
     );
     BLAS(const BLAS &other) = delete;
@@ -34,11 +36,11 @@ public:
     
     Handle<Mesh> &GetMesh() { return m_mesh; }
     const Handle<Mesh> &GetMesh() const { return m_mesh; }
-    void SetMesh(Handle<Mesh> &&mesh);
+    void SetMesh(Handle<Mesh> mesh);
 
     Handle<Material> &GetMaterial() { return m_material; }
     const Handle<Material> &GetMaterial() const { return m_material; }
-    void SetMaterial(Handle<Material> &&material);
+    void SetMaterial(Handle<Material> material);
 
     const Transform &GetTransform() const { return m_transform; }
     void SetTransform(const Transform &transform);
@@ -58,11 +60,11 @@ private:
     bool NeedsUpdate() const
         { return bool(m_blas.GetFlags()); }
 
-    IDBase m_entity_id;
-    Handle<Mesh> m_mesh;
-    Handle<Material> m_material;
-    Transform m_transform;
-    BottomLevelAccelerationStructure m_blas;
+    ID<Entity>                          m_entity_id;
+    Handle<Mesh>                        m_mesh;
+    Handle<Material>                    m_material;
+    Transform                           m_transform;
+    BottomLevelAccelerationStructure    m_blas;
 };
 
 } // namespace hyperion::v2

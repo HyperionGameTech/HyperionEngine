@@ -25,6 +25,7 @@
 #include <scene/ecs/systems/AnimationSystem.hpp>
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
+#include <scene/ecs/systems/BLASUpdaterSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
@@ -148,6 +149,7 @@ Scene::Scene(
     m_entity_manager->AddSystem<AnimationSystem>();
     m_entity_manager->AddSystem<SkySystem>();
     m_entity_manager->AddSystem<AudioSystem>();
+    m_entity_manager->AddSystem<BLASUpdaterSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
 }
@@ -185,41 +187,6 @@ void Scene::Init()
         if (m_tlas) {
             m_environment->SetTLAS(m_tlas);
         }
-    }
-
-    // if (m_lights.Any()) {
-    //     // enqueue bind for all in bulk
-    //     auto *lights = new Pair<ID<Light>, LightDrawProxy>[m_lights.Size()];
-    //     SizeType index = 0;
-
-    //     for (auto &it : m_lights) {
-    //         auto &light = it.second;
-    //         AssertThrow(InitObject(light));
-
-    //         lights[index++] = { it.first, it.second->GetDrawProxy() };
-    //     }
-
-    //     PUSH_RENDER_COMMAND(BindLights, 
-    //         index,
-    //         lights
-    //     );
-    // }
-
-    if (m_env_probes.Any()) {
-        // enqueue bind for all in bulk
-        Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
-        items.Reserve(m_env_probes.Size());
-
-        for (auto &it : m_env_probes) {
-            if (!it.second->IsControlledByEnvGrid()) {
-                items.PushBack({ it.first, it.second->GetEnvProbeType() });
-            }
-        }
-
-        PUSH_RENDER_COMMAND(
-            BindEnvProbes,
-            std::move(items)
-        );
     }
 
     SetReady(true);
@@ -271,108 +238,6 @@ NodeProxy Scene::FindNodeByName(const String &name) const
     return m_root_node_proxy.Get()->FindChildByName(name);
 }
 
-// Bool Scene::AddLight(Handle<Light> &&light)
-// {
-//     Threads::AssertOnThread(THREAD_GAME);
-
-//     if (!light) {
-//         return false;
-//     }
-
-//     auto insert_result = m_lights.Insert(light->GetID(), std::move(light));
-    
-//     auto it = insert_result.first;
-//     const Bool was_inserted = insert_result.second;
-
-//     if (!was_inserted) {
-//         return false;
-//     }
-
-//     InitObject(it->second);
-
-//     return true;
-// }
-
-// Bool Scene::AddLight(const Handle<Light> &light)
-// {
-//     Threads::AssertOnThread(THREAD_GAME);
-
-//     if (!light) {
-//         return false;
-//     }
-
-//     auto insert_result = m_lights.Insert(light->GetID(), light);
-    
-//     auto it = insert_result.first;
-//     const Bool was_inserted = insert_result.second;
-
-//     if (!was_inserted) {
-//         return false;
-//     }
-
-//     InitObject(it->second);
-
-//     return true;
-// }
-
-// Bool Scene::RemoveLight(ID<Light> id)
-// {
-//     Threads::AssertOnThread(THREAD_GAME);
-
-//     auto it = m_lights.Find(id);
-
-//     if (it == m_lights.End()) {
-//         return false;
-//     }
-
-//     if (it->second) {
-//         it->second->EnqueueUnbind();
-//     }
-
-//     return m_lights.Erase(it) != m_lights.End();
-// }
-
-Bool Scene::AddEnvProbe(Handle<EnvProbe> env_probe)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    if (!env_probe) {
-        return false;
-    }
-
-    auto insert_result = m_env_probes.Insert(env_probe->GetID(), std::move(env_probe));
-    
-    auto it = insert_result.first;
-    const Bool was_inserted = insert_result.second;
-
-    if (!was_inserted) {
-        return false;
-    }
-
-    if (InitObject(it->second)) {
-        it->second->EnqueueBind();
-    }
-
-    return true;
-}
-
-Bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    const auto it = m_env_probes.Find(id);
-
-    if (it == m_env_probes.End()) {
-        return false;
-    }
-
-    if (it->second) {
-        it->second->EnqueueUnbind();
-    }
-
-    return m_env_probes.Erase(it) != m_env_probes.End();
-}
-
 void Scene::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
@@ -401,25 +266,9 @@ void Scene::Update(GameCounter::TickUnit delta)
 
     EnqueueRenderUpdates();
 
-    // update EnvProbe visibility states
-    for (auto &it : m_env_probes) {
-        Handle<EnvProbe> &env_probe = it.second;
-
-        const Bool is_env_probe_in_frustum = m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
-
-        env_probe->SetIsVisible(camera_id, is_env_probe_in_frustum);
-    }
-
     if (IsWorldScene()) {
         // update render environment
         m_environment->Update(delta);
-
-        // update each environment probe
-        for (auto &it : m_env_probes) {
-            Handle<EnvProbe> &env_probe = it.second;
-
-            env_probe->Update(delta);
-        }
     }
 }
 
@@ -599,7 +448,8 @@ void Scene::EnqueueRenderUpdates()
         }
     };
 
-    PUSH_RENDER_COMMAND(UpdateSceneRenderData, 
+    PUSH_RENDER_COMMAND(
+        UpdateSceneRenderData, 
         m_id,
         m_root_node_proxy.GetWorldAABB(),
         m_environment->GetGlobalTimer(),
