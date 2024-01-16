@@ -86,7 +86,8 @@ private:
 
     Extent2D m_extent;
 
-    FixedArray<FixedArray<ImageOutput, 4>, max_frames_in_flight> m_image_outputs;
+    FixedArray<Handle<Texture>, 4> m_image_outputs;
+    
     FixedArray<ImageOutput, max_frames_in_flight> m_radius_output;
     FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;

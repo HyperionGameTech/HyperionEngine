@@ -40,15 +40,12 @@ struct alignas(16) SSRParams
 struct RENDER_COMMAND(CreateSSRImageOutputs) : renderer::RenderCommand
 {
     Extent2D extent;
-    FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs;
     SSRRenderer::ImageOutput *radius_outputs;
 
     RENDER_COMMAND(CreateSSRImageOutputs)(
         Extent2D extent,
-        FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs,
         SSRRenderer::ImageOutput *radius_outputs
     ) : extent(extent),
-        image_outputs(image_outputs),
         radius_outputs(radius_outputs)
     {
     }
@@ -56,10 +53,6 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : renderer::RenderCommand
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (auto &image_output : image_outputs[frame_index]) {
-                image_output.Create(g_engine->GetGPUDevice());
-            }
-
             radius_outputs[frame_index].Create(g_engine->GetGPUDevice());
         }
 
@@ -189,64 +182,65 @@ SSRRenderer::~SSRRenderer()
 
 void SSRRenderer::Create()
 {
+    m_image_outputs[0] = CreateObject<Texture>(Texture2D(
+        m_extent,
+        ssr_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_image_outputs[0]->GetImage()->SetIsRWTexture(true);
+    InitObject(m_image_outputs[0]);
+
+    m_image_outputs[1] = CreateObject<Texture>(Texture2D(
+        m_extent,
+        ssr_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_image_outputs[1]->GetImage()->SetIsRWTexture(true);
+    InitObject(m_image_outputs[1]);
+
+    m_image_outputs[2] = CreateObject<Texture>(Texture2D(
+        m_extent,
+        ssr_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_image_outputs[2]->GetImage()->SetIsRWTexture(true);
+    InitObject(m_image_outputs[2]);
+
+    m_image_outputs[3] = CreateObject<Texture>(Texture2D(
+        m_extent,
+        ssr_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_image_outputs[3]->GetImage()->SetIsRWTexture(true);
+    InitObject(m_image_outputs[3]);
+
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_image_outputs[frame_index][0] = ImageOutput {
+        m_radius_output[frame_index] = ImageOutput {
             MakeRenderObject<Image>(StorageImage(
                 Extent3D(m_extent),
-                InternalFormat::RGBA16F,
+                InternalFormat::R8,
                 ImageType::TEXTURE_TYPE_2D,
                 nullptr
             )),
             MakeRenderObject<ImageView>()
         };
-
-        m_image_outputs[frame_index][1] = ImageOutput {
-            MakeRenderObject<Image>(StorageImage(
-                Extent3D(m_extent),
-                ssr_format,
-                ImageType::TEXTURE_TYPE_2D,
-                nullptr
-            )),
-            MakeRenderObject<ImageView>()
-        };
-
-        // if constexpr (blur_result) {
-            m_image_outputs[frame_index][2] = ImageOutput {
-                MakeRenderObject<Image>(StorageImage(
-                    Extent3D(m_extent),
-                    ssr_format,
-                    ImageType::TEXTURE_TYPE_2D,
-                    nullptr
-                )),
-                MakeRenderObject<ImageView>()
-            };
-
-            m_image_outputs[frame_index][3] = ImageOutput {
-                MakeRenderObject<Image>(StorageImage(
-                    Extent3D(m_extent),
-                    ssr_format,
-                    ImageType::TEXTURE_TYPE_2D,
-                    nullptr
-                )),
-                MakeRenderObject<ImageView>()
-            };
-
-            m_radius_output[frame_index] = ImageOutput {
-                MakeRenderObject<Image>(StorageImage(
-                    Extent3D(m_extent),
-                    InternalFormat::R8,
-                    ImageType::TEXTURE_TYPE_2D,
-                    nullptr
-                )),
-                MakeRenderObject<ImageView>()
-            };
-        // }
     }
     
     PUSH_RENDER_COMMAND(
         CreateSSRImageOutputs,
         m_extent,
-        m_image_outputs.Data(),
         m_radius_output.Data()
     );
 
@@ -280,8 +274,8 @@ void SSRRenderer::Create()
                 m_temporal_history_textures[0]->GetImageView(), //m_image_outputs[0][blur_result ? 3 : 1].image_view,
                 m_temporal_history_textures[1]->GetImageView()               //m_image_outputs[1][blur_result ? 3 : 1].image_view
 #elif defined(USE_SSR_COMPUTE_SHADER)
-                m_image_outputs[0][blur_result ? 3 : 1].image_view,
-                m_image_outputs[1][blur_result ? 3 : 1].image_view
+                m_image_outputs[blur_result ? 3 : 1]->GetImageView(),
+                m_image_outputs[blur_result ? 3 : 1]->GetImageView()
 #endif
             }
         ));
@@ -321,11 +315,6 @@ void SSRRenderer::Destroy()
     SafeRelease(std::move(m_uniform_buffers));
     
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (UInt j = 0; j < UInt(m_image_outputs[frame_index].Size()); j++) {
-            SafeRelease(std::move(m_image_outputs[frame_index][j].image));
-            SafeRelease(std::move(m_image_outputs[frame_index][j].image_view));
-        }
-        
         SafeRelease(std::move(m_radius_output[frame_index].image));
         SafeRelease(std::move(m_radius_output[frame_index].image_view));
     }
@@ -357,11 +346,11 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::StorageImageDescriptor>(0)
-            ->SetElementUAV(0, m_image_outputs[frame_index][0].image_view);
+            ->SetElementUAV(0, m_image_outputs[0]->GetImageView());
 
         descriptor_set // 2nd stage -- sample
             ->AddDescriptor<renderer::StorageImageDescriptor>(1)
-            ->SetElementUAV(0, m_image_outputs[frame_index][1].image_view);
+            ->SetElementUAV(0, m_image_outputs[1]->GetImageView());
 
         descriptor_set // 2nd stage -- write radii
             ->AddDescriptor<renderer::StorageImageDescriptor>(2)
@@ -369,19 +358,19 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::StorageImageDescriptor>(3)
-            ->SetElementUAV(0, m_image_outputs[frame_index][2].image_view);
+            ->SetElementUAV(0, m_image_outputs[2]->GetImageView());
 
         descriptor_set // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::StorageImageDescriptor>(4)
-            ->SetElementUAV(0, m_image_outputs[frame_index][3].image_view);
+            ->SetElementUAV(0, m_image_outputs[3]->GetImageView());
 
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::ImageDescriptor>(5)
-            ->SetElementSRV(0, m_image_outputs[frame_index][0].image_view);
+            ->SetElementSRV(0, m_image_outputs[0]->GetImageView());
 
         descriptor_set // 2nd stage -- sample
             ->AddDescriptor<renderer::ImageDescriptor>(6)
-            ->SetElementSRV(0, m_image_outputs[frame_index][1].image_view);
+            ->SetElementSRV(0, m_image_outputs[1]->GetImageView());
 
         descriptor_set // 2nd stage -- write radii
             ->AddDescriptor<renderer::ImageDescriptor>(7)
@@ -389,11 +378,11 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::ImageDescriptor>(8)
-            ->SetElementSRV(0, m_image_outputs[frame_index][2].image_view);
+            ->SetElementSRV(0, m_image_outputs[2]->GetImageView());
 
         descriptor_set // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::ImageDescriptor>(9)
-            ->SetElementSRV(0, m_image_outputs[frame_index][3].image_view);
+            ->SetElementSRV(0, m_image_outputs[3]->GetImageView());
 
         descriptor_set // gbuffer mip chain texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
@@ -451,8 +440,8 @@ void SSRRenderer::CreateDescriptorSets()
         CreateSSRDescriptors,
         m_descriptor_sets,
         FixedArray {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_image_outputs[0][blur_result ? 3 : 1].image_view,
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_image_outputs[1][blur_result ? 3 : 1].image_view
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_image_outputs[blur_result ? 3 : 1]->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_image_outputs[blur_result ? 3 : 1]->GetImageView()
         }
     );
 }
@@ -576,7 +565,7 @@ void SSRRenderer::Render(Frame *frame)
 #elif defined(USE_SSR_COMPUTE_SHADER)
     // PASS 1 -- write UVs
 
-    m_image_outputs[frame_index][0].image->GetGPUImage()
+    m_image_outputs[0]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_write_uvs->GetPipeline()->Bind(command_buffer);
@@ -593,19 +582,19 @@ void SSRRenderer::Render(Frame *frame)
     );
 
     m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D {
-        (m_extent.width + 7) / 8,
-        (m_extent.height + 7) / 8,
+        (m_extent.width / 2 + 7) / 8,
+        (m_extent.height / 2 + 7) / 8,
         1
     });
 
     // transition the UV image back into read state
-    m_image_outputs[frame_index][0].image->GetGPUImage()
+    m_image_outputs[0]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_image_outputs[frame_index][1].image->GetGPUImage()
+    m_image_outputs[1]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
     // put radius image in writeable state
     m_radius_output[frame_index].image->GetGPUImage()
@@ -625,13 +614,13 @@ void SSRRenderer::Render(Frame *frame)
     );
 
     m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D {
-        (m_extent.width + 7) / 8,
-        (m_extent.height + 7) / 8,
+        (m_extent.width / 2 + 7) / 8,
+        (m_extent.height / 2 + 7) / 8,
         1
     });
 
     // transition sample image back into read state
-    m_image_outputs[frame_index][1].image->GetGPUImage()
+    m_image_outputs[1]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     // transition radius image back into read state
     m_radius_output[frame_index].image->GetGPUImage()
@@ -641,7 +630,7 @@ void SSRRenderer::Render(Frame *frame)
         // PASS 3 - blur image using radii in output from previous stage
 
         //put blur image in writeable state
-        m_image_outputs[frame_index][2].image->GetGPUImage()
+        m_image_outputs[2]->GetImage()->GetGPUImage()
             ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_hor->GetPipeline()->Bind(command_buffer);
@@ -658,20 +647,20 @@ void SSRRenderer::Render(Frame *frame)
         );
 
         m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D {
-            (m_extent.width + 7) / 8,
-            (m_extent.height + 7) / 8,
+            (m_extent.width / 2 + 7) / 8,
+            (m_extent.height / 2 + 7) / 8,
             1
         });
 
         // transition blur image back into read state
-        m_image_outputs[frame_index][2].image->GetGPUImage()
+        m_image_outputs[2]->GetImage()->GetGPUImage()
             ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
 
         // PASS 4 - blur image vertically
 
         //put blur image in writeable state
-        m_image_outputs[frame_index][3].image->GetGPUImage()
+        m_image_outputs[3]->GetImage()->GetGPUImage()
             ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_vert->GetPipeline()->Bind(command_buffer);
@@ -694,7 +683,7 @@ void SSRRenderer::Render(Frame *frame)
         });
 
         // transition blur image back into read state
-        m_image_outputs[frame_index][3].image->GetGPUImage()
+        m_image_outputs[3]->GetImage()->GetGPUImage()
             ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 #endif
