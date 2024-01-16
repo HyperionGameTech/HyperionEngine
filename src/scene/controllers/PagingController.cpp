@@ -206,11 +206,14 @@ void PagingController::OnUpdate(GameCounter::TickUnit delta)
 
 auto PagingController::WorldSpaceToCoord(const Vector3 &position) const -> PatchCoord
 {
-    Vector3 scaled = position - GetOwner()->GetTranslation();
-    scaled *= Vector3::One() / (m_scale * (Vector3(m_patch_size) - 1.0f));
-    scaled = MathUtil::Floor(scaled);
+    // @TODO update for new ECS
+    return PatchCoord { 0, 0 };
 
-    return PatchCoord{scaled.x, scaled.z};
+    // Vector3 scaled = position - GetOwner()->GetTranslation();
+    // scaled *= Vector3::One() / (m_scale * (Vector3(m_patch_size) - 1.0f));
+    // scaled = MathUtil::Floor(scaled);
+
+    // return PatchCoord{scaled.x, scaled.z};
 }
 
 bool PagingController::InRange(const Patch *patch, const PatchCoord &camera_coord) const

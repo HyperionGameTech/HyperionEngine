@@ -1,6 +1,4 @@
-#include "Frustum.hpp"
-
-#include "scene/controllers/AabbDebugController.hpp"
+#include <math/Frustum.hpp>
 
 namespace hyperion {
 

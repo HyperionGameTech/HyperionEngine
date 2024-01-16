@@ -28,15 +28,17 @@ void RigidBodyController::OnAdded()
     );
 
     InitObject(m_rigid_body);
+
+    // @TODO Update for new ECS
     
-    m_origin_offset = GetOwner()->GetTranslation() - GetOwner()->GetWorldAABB().GetCenter();
+    // m_origin_offset = GetOwner()->GetTranslation() - GetOwner()->GetWorldAABB().GetCenter();
 
-    Transform transform;
-    transform.SetTranslation(GetOwner()->GetWorldAABB().GetCenter());
-    transform.SetRotation(GetOwner()->GetRotation());
-    transform.SetScale(GetOwner()->GetScale());
+    // Transform transform;
+    // transform.SetTranslation(GetOwner()->GetWorldAABB().GetCenter());
+    // transform.SetRotation(GetOwner()->GetRotation());
+    // transform.SetScale(GetOwner()->GetScale());
 
-    m_rigid_body->SetTransform(transform);
+    // m_rigid_body->SetTransform(transform);
 }
 
 void RigidBodyController::OnRemoved()
@@ -89,9 +91,11 @@ fbom::FBOMResult RigidBodyController::Deserialize(const fbom::FBOMObject &in)
 
 void RigidBodyController::OnUpdate(GameCounter::TickUnit delta)
 {
+    // @TODO Update for new ECS
+
     Transform transform = m_rigid_body->GetTransform();
     transform.SetTranslation(transform.GetTranslation() + m_origin_offset);
-    GetOwner()->SetTransform(transform);
+    // GetOwner()->SetTransform(transform);
 }
 
 void RigidBodyController::SetPhysicsShape(RC<physics::PhysicsShape> &&shape)

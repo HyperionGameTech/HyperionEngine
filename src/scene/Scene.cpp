@@ -1,16 +1,5 @@
-#include "Scene.hpp"
-#include <Engine.hpp>
-#include <rendering/RenderEnvironment.hpp>
-#include <rendering/ReflectionProbeRenderer.hpp>
-
-#include <rendering/backend/RendererFeatures.hpp>
-
-#include <math/Halton.hpp>
-
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
-// New ECS
+#include <scene/Scene.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -27,6 +16,17 @@
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
 #include <scene/ecs/systems/ScriptingSystem.hpp>
+
+#include <rendering/RenderEnvironment.hpp>
+#include <rendering/ReflectionProbeRenderer.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
+
+#include <math/Halton.hpp>
+
+#include <script/ScriptApi.hpp>
+#include <script/ScriptBindingDef.generated.hpp>
+
+#include <Engine.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
@@ -277,46 +277,6 @@ void Scene::Update(GameCounter::TickUnit delta)
 void Scene::CollectEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
-    const Bitset &bucket_bits,
-    Optional<RenderableAttributeSet> override_attributes,
-    Bool skip_frustum_culling
-) const
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    // clear out existing entities before populating
-    render_list.ClearEntities();
-
-    if (!camera) {
-        return;
-    }
-
-    const ID<Camera> camera_id = camera->GetID();
-
-    RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
-    const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
-    
-    const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
-
-    // @TODO: Update this to use the new ECS
-
-    // push all entities to render if they are visible to the given camera
-    // for (auto &it : m_entities) {
-    //     const Handle<Entity> &entity = it.second;
-
-    //     if (
-    //         entity->IsRenderable()
-    //         && bucket_bits.Test(entity->GetRenderableAttributes().GetMaterialAttributes().bucket)
-    //         && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))
-    //     ) {
-    //         render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
-    //     }
-    // }
-}
-
-void Scene::CollectEntities(
-    RenderList &render_list,
-    const Handle<Camera> &camera,
     Optional<RenderableAttributeSet> override_attributes,
     Bool skip_frustum_culling
 ) const
@@ -391,16 +351,6 @@ void Scene::CollectEntities(
             override_attributes_ptr
         );
     }
-}
-
-Bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
-{
-    if (!camera_id) {
-        return false;
-    }
-
-    return entity->GetRenderableAttributes().GetMaterialAttributes().bucket == BUCKET_UI
-        || entity->IsVisibleToCamera(camera_id, visibility_cursor);
 }
 
 void Scene::EnqueueRenderUpdates()

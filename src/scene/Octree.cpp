@@ -84,9 +84,6 @@ void Octree::SetParent(Octree *parent)
 
     m_octant_id = OctantID(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantID::invalid);
 
-    DebugLog(LogType::Debug, "Set octant id to %u:%u (%llu)\tParent: %u:%u (%llu)\n", m_octant_id.GetDepth(), m_octant_id.GetIndex(), m_octant_id.index_bits,
-        m_parent ? m_parent->m_octant_id.GetDepth() : ~0u, m_parent ? m_parent->m_octant_id.GetIndex() : ~0u, m_parent ? m_parent->m_octant_id.index_bits : ~0ull);
-
     if (IsDivided()) {
         for (Octant &octant : m_octants) {
             AssertThrow(octant.octree != nullptr);

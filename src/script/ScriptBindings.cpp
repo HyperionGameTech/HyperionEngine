@@ -4,7 +4,6 @@
 
 #include <asset/BufferedByteReader.hpp>
 
-#include <ui/controllers/UIController.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
 #include <script/compiler/ast/AstFloat.hpp>
@@ -1293,72 +1292,6 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     HYP_SCRIPT_RETURN(ptr);
 }
 
-static HYP_SCRIPT_FUNCTION(Entity_SetTranslation)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 2);
-
-    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
-    const Vector3 translation = GetArgument<1, Vector3>(params);
-
-    if (!entity_ptr) {
-        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
-    }
-
-    entity_ptr->SetTranslation(translation);
-
-    HYP_SCRIPT_RETURN_VOID(nullptr);
-}
-
-static HYP_SCRIPT_FUNCTION(Entity_GetTranslation)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 1);
-
-    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
-
-    if (!entity_ptr) {
-        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
-    }
-
-    Vector3 translation = entity_ptr->GetTranslation();
-
-    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Vector3>();
-    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
-
-    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
-    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
-
-    HYP_SCRIPT_CREATE_PTR(translation, result);
-    vm::VMObject result_value(prototype_it->second); // construct from prototype
-    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
-    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
-    HYP_SCRIPT_RETURN(ptr);
-}
-
-static HYP_SCRIPT_FUNCTION(Entity_GetWorldAABB)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 1);
-
-    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
-
-    if (!entity_ptr) {
-        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
-    }
-
-    BoundingBox aabb = entity_ptr->GetWorldAABB();
-
-    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<BoundingBox>();
-    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
-
-    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
-    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
-
-    HYP_SCRIPT_CREATE_PTR(aabb, result);
-    vm::VMObject result_value(prototype_it->second); // construct from prototype
-    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
-    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
-    HYP_SCRIPT_RETURN(ptr);
-}
-
 static HYP_SCRIPT_FUNCTION(Runtime_GetFunctionBytecode)
 {
     static const UInt32 invoke_hash = hash_fnv_1("$invoke");
@@ -1895,33 +1828,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 { "engine", BuiltinTypes::ANY },
             },
             EngineCreateEntity
-        );
-
-    api_instance.Module(Config::global_module_name)
-        .Function(
-            "Entity_SetTranslation",
-            BuiltinTypes::ANY,
-            {
-                { "entity", BuiltinTypes::ANY },
-                { "translation", BuiltinTypes::ANY }
-            },
-            Entity_SetTranslation
-        )
-        .Function(
-            "Entity_GetTranslation",
-            BuiltinTypes::ANY,
-            {
-                { "entity", BuiltinTypes::ANY }
-            },
-            Entity_GetTranslation
-        )
-        .Function(
-            "Entity_GetWorldAABB",
-            BuiltinTypes::ANY,
-            {
-                { "entity", BuiltinTypes::ANY }
-            },
-            Entity_GetWorldAABB
         );
 
     api_instance.Module(Config::global_module_name)

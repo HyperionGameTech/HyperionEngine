@@ -117,41 +117,43 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Terrain), ShaderProperties(vertex_attributes));
     AssertThrow(shader.IsValid());
 
-    patch->entity = CreateObject<Entity>(
-        Handle<Mesh>(), // mesh added later, after task thread generates it
-        Handle<Shader>(shader),
-        Handle<Material>(m_material),
-        RenderableAttributeSet(
-            MeshAttributes {
-                .vertex_attributes = vertex_attributes
-            },
-            MaterialAttributes {
-                .shader_definition = shader->GetCompiledShader().GetDefinition(),
-                .bucket = Bucket::BUCKET_OPAQUE,
-                .blend_mode = BlendMode::NONE,
-                .cull_faces = FaceCullMode::NONE
-            }
-        )
-    );
+    // @TODO new ECS
 
-    patch->entity->SetName(CreateNameFromDynamicString(
-        ANSIString("terrain_chunk_")
-        + ANSIString::ToString(Int(patch->info.coord.x))
-        + "_" + ANSIString::ToString(Int(patch->info.coord.y))
-    ));
+    // patch->entity = CreateObject<Entity>(
+    //     Handle<Mesh>(), // mesh added later, after task thread generates it
+    //     Handle<Shader>(shader),
+    //     Handle<Material>(m_material),
+    //     RenderableAttributeSet(
+    //         MeshAttributes {
+    //             .vertex_attributes = vertex_attributes
+    //         },
+    //         MaterialAttributes {
+    //             .shader_definition = shader->GetCompiledShader().GetDefinition(),
+    //             .bucket = Bucket::BUCKET_OPAQUE,
+    //             .blend_mode = BlendMode::NONE,
+    //             .cull_faces = FaceCullMode::NONE
+    //         }
+    //     )
+    // );
 
-    patch->entity->SetTranslation({
-        (patch->info.coord.x - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.x,
-        GetOwner()->GetTranslation().y,
-        (patch->info.coord.y - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.z
-    });
+    // patch->entity->SetName(CreateNameFromDynamicString(
+    //     ANSIString("terrain_chunk_")
+    //     + ANSIString::ToString(Int(patch->info.coord.x))
+    //     + "_" + ANSIString::ToString(Int(patch->info.coord.y))
+    // ));
 
-    for (const ID<Scene> &id : GetOwner()->GetScenes()) {
-        if (auto scene = Handle<Scene>(id)) {
-            // @FIXME new ECS
-            // scene->AddEntity(Handle<Entity>(patch->entity));
-        }
-    }
+    // patch->entity->SetTranslation({
+    //     (patch->info.coord.x - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.x,
+    //     GetOwner()->GetTranslation().y,
+    //     (patch->info.coord.y - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.z
+    // });
+
+    // for (const ID<Scene> &id : GetOwner()->GetScenes()) {
+    //     if (auto scene = Handle<Scene>(id)) {
+    //         // @FIXME new ECS
+    //         // scene->AddEntity(Handle<Entity>(patch->entity));
+    //     }
+    // }
 
     const auto task_ref = TaskSystem::GetInstance().ScheduleTask([this, patch_info = patch->info]() {
         TerrainMeshBuilder builder(patch_info);
@@ -201,12 +203,13 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
 
         return;
     }
+    
+    // @FIXME new ECS
 
-    for (const ID<Scene> &id : GetOwner()->GetScenes()) {
-        if (auto scene = Handle<Scene>(id)) {
-            DebugLog(LogType::Debug, "Remove terrain Entity with id #%u\n", patch->entity->GetID().value);
+    // for (const ID<Scene> &id : GetOwner()->GetScenes()) {
+    //     if (auto scene = Handle<Scene>(id)) {
+    //         DebugLog(LogType::Debug, "Remove terrain Entity with id #%u\n", patch->entity->GetID().value);
 
-            // @FIXME new ECS
             // if (!scene->RemoveEntity(patch->entity)) {
             //     DebugLog(
             //         LogType::Warn,
@@ -214,8 +217,8 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
             //         patch->entity->GetID().value
             //     );
             // }
-        }
-    }
+    //     }
+    // }
 
     patch->entity.Reset();
 }
@@ -258,12 +261,14 @@ void TerrainPagingController::AddEnqueuedChunks()
         AssertThrow(mesh.IsValid());
 
         if (auto *patch = GetPatch(patch_info.coord)) {
+            // @TODO new ECS
+
             AssertThrow(patch->entity.IsValid());
-            AssertThrow(!patch->entity->GetMesh().IsValid());
+            // AssertThrow(!patch->entity->GetMesh().IsValid());
 
             ++num_chunks_added;
 
-            patch->entity->SetMesh(std::move(mesh));
+            // patch->entity->SetMesh(std::move(mesh));
         } else {
             DebugLog(
                 LogType::Warn,

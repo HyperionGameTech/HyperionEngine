@@ -1,4 +1,5 @@
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {

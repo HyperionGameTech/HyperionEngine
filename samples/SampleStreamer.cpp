@@ -10,7 +10,6 @@
 #include <Engine.hpp>
 #include <rendering/Atomics.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
-#include <scene/controllers/AabbDebugController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -64,7 +63,6 @@
 #include <util/UTF8.hpp>
 
 #include <mutex>
-#include <ui/controllers/UIButtonController.hpp>
 
 #include <rtc/RTCClientList.hpp>
 #include <rtc/RTCClient.hpp>
@@ -235,13 +233,6 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent {
 
         });
-        // TEMP
-        // g_engine->GetWorld()->GetOctree().Insert(Handle<Entity>(entity_id).Get());
-
-        // if (auto *controller = g_engine->GetComponents().Add<UIButtonController>(btn_node.GetEntity(), UniquePtr<UIButtonController>::Construct())) {
-        //     controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));
-        // }
-
     }
 
     // // Add a reflection probe
@@ -359,10 +350,6 @@ void SampleStreamer::InitGame()
             auto zombie_entity = zombie[0].GetEntity();
 
             m_scene->GetRoot().AddChild(zombie);
-
-            // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
-            //     animation_controller->Play(1.0f, LoopMode::REPEAT);
-            // }
 
             if (zombie_entity.IsValid()) {
                 if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {

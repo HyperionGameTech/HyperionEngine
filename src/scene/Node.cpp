@@ -1,9 +1,9 @@
-#include "Node.hpp"
-#include <system/Debug.hpp>
-
-#include <scene/animation/Bone.hpp>
+#include <scene/Node.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/animation/Bone.hpp>
+#include <system/Debug.hpp>
 #include <Engine.hpp>
 
 #include <cstring>

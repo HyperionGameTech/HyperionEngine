@@ -31,40 +31,40 @@ public:
     {
         Name component_name;
 
-        if (auto err = in.GetProperty("component_name").ReadName(&component_name)) {
-            return err;
-        }
+        // if (auto err = in.GetProperty("component_name").ReadName(&component_name)) {
+        //     return err;
+        // }
 
-        if (!g_engine->GetComponents().IsRegistered(component_name)) {
-            DebugLog(
-                LogType::Error,
-                "Component with name %s is not registered, cannot continue loading the controller\n",
-                component_name.LookupString()
-            );
+        // if (!g_engine->GetComponents().IsRegistered(component_name)) {
+        //     DebugLog(
+        //         LogType::Error,
+        //         "Component with name %s is not registered, cannot continue loading the controller\n",
+        //         component_name.LookupString()
+        //     );
 
-            return { FBOMResult::FBOM_ERR, "Invalid component - not registered" };
-        }
+        //     return { FBOMResult::FBOM_ERR, "Invalid component - not registered" };
+        // }
 
-        TypeID type_id = g_engine->GetComponents().GetControllerTypeID(component_name);
+        // TypeID type_id = g_engine->GetComponents().GetControllerTypeID(component_name);
 
-        if (!type_id) {
-            return { FBOMResult::FBOM_ERR, "Invalid component type ID" };
-        }
+        // if (!type_id) {
+        //     return { FBOMResult::FBOM_ERR, "Invalid component type ID" };
+        // }
 
-        auto component = g_engine->GetComponents().CreateByName(component_name);
+        // auto component = g_engine->GetComponents().CreateByName(component_name);
 
-        if (!component) {
-            return { FBOMResult::FBOM_ERR, "Failed to construct component" };
-        }
+        // if (!component) {
+        //     return { FBOMResult::FBOM_ERR, "Failed to construct component" };
+        // }
 
-        if (auto err = component->Deserialize(in)) {
-            return err;
-        }
+        // if (auto err = component->Deserialize(in)) {
+        //     return err;
+        // }
 
-        out_object = UniquePtr<ControllerSerializationWrapper>::Construct(ControllerSerializationWrapper {
-            type_id,
-            std::move(component)
-        });
+        // out_object = UniquePtr<ControllerSerializationWrapper>::Construct(ControllerSerializationWrapper {
+        //     type_id,
+        //     std::move(component)
+        // });
 
         return { FBOMResult::FBOM_OK };
     }

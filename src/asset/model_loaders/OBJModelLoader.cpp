@@ -2,6 +2,7 @@
 #include <Engine.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>

@@ -562,8 +562,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
                 .bucket = BUCKET_INTERNAL,
                 .cull_faces = FaceCullMode::NONE
                 // .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
-            },
-            Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set
+            }
         ),
         true // skip frustum culling
     );

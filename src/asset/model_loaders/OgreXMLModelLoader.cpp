@@ -1,4 +1,5 @@
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkeletonComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -282,14 +283,6 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
                 }
             );
         }
-
-        // if (skeleton) {
-        //     entity->SetSkeleton(skeleton);
-            
-        //     if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct(skeleton))) {
-        //         animation_controller->Play(1.0f, LoopMode::REPEAT);
-        //     }
-        // }
         
         NodeProxy node(new Node);
         node.SetEntity(entity);

@@ -163,22 +163,12 @@ public:
     void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
-        const Bitset &bucket_bits,
-        Optional<RenderableAttributeSet> override_attributes = { },
-        Bool skip_frustum_culling = false
-    ) const;
-
-    void CollectEntities(
-        RenderList &render_list, 
-        const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
         Bool skip_frustum_culling = false
     ) const;
 
 private:
     void EnqueueRenderUpdates();
-
-    Bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
 
     Handle<Camera>                  m_camera;
     RenderList                      m_render_list;

@@ -9,14 +9,10 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <scene/controllers/AabbDebugController.hpp>
-#include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/terrain/controllers/TerrainPagingController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
-#include <ui/controllers/UIButtonController.hpp>
-#include <ui/controllers/UIContainerController.hpp>
 
 #include <Game.hpp>
 
@@ -73,7 +69,6 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 Engine::Engine()
     : shader_globals(nullptr)
 {
-    RegisterComponents();
 }
 
 Engine::~Engine()
@@ -109,18 +104,6 @@ bool Engine::InitializeGame(Game *game)
     }
 
     return game_thread->Start(game);
-}
-
-void Engine::RegisterComponents()
-{
-    m_components.Register<AABBDebugController>();
-    m_components.Register<TerrainPagingController>();
-    m_components.Register<ScriptedController>();
-    m_components.Register<BasicCharacterController>();
-    m_components.Register<RigidBodyController>();
-    m_components.Register<BasicPagingController>();
-    m_components.Register<UIButtonController>();
-    m_components.Register<UIContainerController>();
 }
 
 void Engine::FindTextureFormatDefaults()

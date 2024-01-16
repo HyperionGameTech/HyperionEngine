@@ -160,12 +160,6 @@ public:
         const RenderableAttributeSet *override_attributes
     );
 
-    void PushEntityToRender(
-        const Handle<Camera> &camera,
-        const Handle<Entity> &entity,
-        const RenderableAttributeSet *override_attributes
-    );
-
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
         Call after calling CollectEntities() on Scene. */
     void UpdateRenderGroups();

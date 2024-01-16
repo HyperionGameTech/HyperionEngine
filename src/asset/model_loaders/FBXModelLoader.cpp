@@ -3,6 +3,7 @@
 #include <rendering/Mesh.hpp>
 #include <scene/Entity.hpp>
 #include <scene/animation/Bone.hpp>
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkeletonComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>

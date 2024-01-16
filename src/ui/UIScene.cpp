@@ -31,6 +31,15 @@ UIObject::UIObject(UIComponentType component_type, UIScene *ui_scene)
         m_component_type
     });
 
+    // auto font_texture = g_asset_manager->Load<Texture>("textures/fontmap.png");
+            
+    // FontMap font_map(
+    //     font_texture,
+    //     Extent2D { 32, 32 }
+    // );
+
+    // auto mesh = UIText::BuildTextMesh(font_map, "HyperionEngine v0.2");
+
     Handle<Mesh> mesh = MeshBuilder::Quad();
     InitObject(mesh);
 
