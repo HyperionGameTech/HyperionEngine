@@ -316,7 +316,7 @@ void Value::ToRepresentation(
             m_value.value_ref->ToRepresentation(
                 ss,
                 add_type_name,
-                depth - 1
+                depth
             );
         }
 
@@ -330,11 +330,11 @@ void Value::ToRepresentation(
             ss << string->GetData();
             ss << '\"';
         } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
-            array->GetRepresentation(ss, add_type_name, depth - 1);
+            array->GetRepresentation(ss, add_type_name, depth);
         } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
-            slice->GetRepresentation(ss, add_type_name, depth - 1);
+            slice->GetRepresentation(ss, add_type_name, depth);
         } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
-            object->GetRepresentation(ss, add_type_name, depth - 1);
+            object->GetRepresentation(ss, add_type_name, depth);
         } else {
             if (add_type_name) {
                 ss << GetTypeString();

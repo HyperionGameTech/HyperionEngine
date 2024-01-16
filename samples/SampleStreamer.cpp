@@ -20,6 +20,7 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
+#include <scene/ecs/components/ScriptComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -454,6 +455,11 @@ void SampleStreamer::InitGame()
         Vector2(0.2f, 0.5f),
         "Test Button"
     );
+
+    GetUI().GetScene()->GetEntityManager()->AddComponent(test_button.GetEntity(), ScriptComponent {
+        g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"),
+        "controller"
+    });
 
     m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
 }

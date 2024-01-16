@@ -46,6 +46,9 @@ public:
                 .user_data = nullptr
             }
         );
+
+        Bool IsNull() const
+            { return _inner.m_type == Value::NONE; }
     };
 
     struct ObjectHandle : ValueHandle { };
@@ -75,10 +78,10 @@ public:
     VM &GetVM() { return m_vm; }
     const VM &GetVM() const { return m_vm; }
 
-    bool IsBaked() const { return m_baked_bytes.Any(); }
-    bool IsCompiled() const { return m_bytecode_chunk.buildables.Any(); }
+    Bool IsBaked() const { return m_baked_bytes.Any(); }
+    Bool IsCompiled() const { return m_bytecode_chunk.buildables.Any(); }
 
-    bool Compile();
+    Bool Compile();
 
     InstructionStream Decompile(utf::utf8_ostream *os = nullptr) const;
 
@@ -128,7 +131,7 @@ public:
         } else if constexpr (std::is_same_v<double, ArgType>) {
             first_value.m_type = Value::F64;
             first_value.m_value.d = item;
-        } else if constexpr (std::is_same_v<bool, ArgType>) {
+        } else if constexpr (std::is_same_v<Bool, ArgType>) {
             first_value.m_type = Value::BOOLEAN;
             first_value.m_value.b = item;
         } else if constexpr (std::is_pointer_v<ArgType>) {
@@ -152,22 +155,22 @@ public:
 
     void CallFunctionArgV(const FunctionHandle &handle, Value *args, ArgCount num_args);
 
-    bool GetFunctionHandle(const char *name, FunctionHandle &out_handle)
+    Bool GetFunctionHandle(const char *name, FunctionHandle &out_handle)
     {
         return GetExportedValue(name, &out_handle._inner);
     }
 
-    bool GetObjectHandle(const char *name, ObjectHandle &out_handle)
+    Bool GetObjectHandle(const char *name, ObjectHandle &out_handle)
     {
         return GetExportedValue(name, &out_handle._inner);
     }
 
-    bool GetExportedValue(const char *name, Value *value)
+    Bool GetExportedValue(const char *name, Value *value)
     {
         return GetExportedSymbols().Find(hash_fnv_1(name), value);
     }
 
-    bool GetMember(const ObjectHandle &object, const char *member_name, ValueHandle &out_value)
+    Bool GetMember(const ObjectHandle &object, const char *member_name, ValueHandle &out_value)
     {
         if (object._inner.m_type != Value::HEAP_POINTER) {
             return false;
@@ -184,7 +187,7 @@ public:
         return false;
     }
 
-    bool SetMember(const ObjectHandle &object, const char *member_name, const Value &value)
+    Bool SetMember(const ObjectHandle &object, const char *member_name, const Value &value)
     {
         if (object._inner.m_type != Value::HEAP_POINTER) {
             return false;

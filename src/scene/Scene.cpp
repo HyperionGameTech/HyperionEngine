@@ -26,6 +26,7 @@
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
+#include <scene/ecs/systems/ScriptingSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
@@ -150,6 +151,7 @@ Scene::Scene(
     m_entity_manager->AddSystem<SkySystem>();
     m_entity_manager->AddSystem<AudioSystem>();
     m_entity_manager->AddSystem<BLASUpdaterSystem>();
+    m_entity_manager->AddSystem<ScriptingSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
 }

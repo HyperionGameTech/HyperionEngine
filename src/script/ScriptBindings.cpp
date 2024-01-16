@@ -5,6 +5,7 @@
 #include <asset/BufferedByteReader.hpp>
 
 #include <ui/controllers/UIController.hpp>
+#include <scene/ecs/EntityManager.hpp>
 
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
