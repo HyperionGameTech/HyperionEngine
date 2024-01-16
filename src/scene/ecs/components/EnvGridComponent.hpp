@@ -13,8 +13,6 @@
 
 namespace hyperion::v2 {
 
-class RenderComponentBase;
-
 struct EnvGridComponent
 {
     EnvGridType env_grid_type = ENV_GRID_TYPE_SH;

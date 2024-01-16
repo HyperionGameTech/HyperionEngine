@@ -37,6 +37,8 @@ void Game::Init()
         }
     );
 
+    m_scene->SetIsAudioListener(true);
+
     InitObject(m_scene);
     g_engine->GetWorld()->AddScene(m_scene);
 

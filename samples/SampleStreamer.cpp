@@ -14,10 +14,10 @@
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
-#include <scene/controllers/AnimationController.hpp>
-#include <scene/skydome/controllers/SkydomeController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/SkyComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/AudioComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -329,12 +329,38 @@ void SampleStreamer::InitGame()
         }
     }
 
-    // Add skybox
-    // {
-    //     auto skydome_entity = CreateObject<Entity>();
-    //     g_engine->GetComponents().Add<SkydomeController>(skydome_entity, UniquePtr<SkydomeController>::Construct());
-    //     GetScene()->AddEntity(skydome_entity);
-    // }
+    // Add Skybox
+    {
+        auto skybox_entity = m_scene->GetEntityManager()->AddEntity();
+
+        m_scene->GetEntityManager()->AddComponent(skybox_entity, TransformComponent {
+            Transform(
+                Vec3f::zero,
+                Vec3f(10.0f),
+                Quaternion::Identity()
+            )
+        });
+
+        // m_scene->GetEntityManager()->AddComponent(skybox_entity, MeshComponent {
+        //     MeshBuilder::Cube(),
+        //     g_material_system->GetOrCreate({
+        //         .shader_definition = ShaderDefinition {
+        //             HYP_NAME(Skybox),
+        //             ShaderProperties(renderer::static_mesh_vertex_attributes)
+        //         },
+        //         .bucket = Bucket::BUCKET_SKYBOX,
+        //         .cull_faces = FaceCullMode::FRONT
+        //     })
+        // });
+
+        m_scene->GetEntityManager()->AddComponent(skybox_entity, SkyComponent { });
+        m_scene->GetEntityManager()->AddComponent(skybox_entity, VisibilityStateComponent {
+            VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+        });
+        m_scene->GetEntityManager()->AddComponent(skybox_entity, BoundingBoxComponent {
+            BoundingBox(Vec3f(-100.0f), Vec3f(100.0f))
+        });
+    }
 
     // add sample model
     {
@@ -344,46 +370,44 @@ void SampleStreamer::InitGame()
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
-        // if (auto zombie = results["zombie"].Get<Node>()) {
-        //     auto zombie_entity = zombie[0].GetEntity();
+        if (auto zombie = results["zombie"].Get<Node>()) {
+            auto zombie_entity = zombie[0].GetEntity();
 
-        //     m_scene->GetRoot().AddChild(zombie);
+            m_scene->GetRoot().AddChild(zombie);
 
-        //     // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
-        //     //     animation_controller->Play(1.0f, LoopMode::REPEAT);
-        //     // }
+            // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
+            //     animation_controller->Play(1.0f, LoopMode::REPEAT);
+            // }
 
-        //     if (zombie_entity.IsValid()) {
-        //         if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
-        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
-        //             mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-        //         }
+            if (zombie_entity.IsValid()) {
+                if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                }
 
-        //         // if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(zombie_entity)) {
-        //         //     transform_component->transform.SetTranslation(Vector3(0, 1, 0));
-        //         //     transform_component->transform.SetScale(Vector3(0.25f));
-        //         // }
-        //     }
+                m_scene->GetEntityManager()->AddComponent(zombie_entity, AudioComponent {
+                    g_asset_manager->Load<AudioSource>("sounds/cartoon001.wav"),
+                    {
+                        .status = AUDIO_PLAYBACK_STATUS_PLAYING,
+                        .loop_mode = AUDIO_LOOP_MODE_REPEAT,
+                        .speed = 1.0f
+                    }
+                });
 
-        //     zombie.SetName("zombie");
-        // }
+                // if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(zombie_entity)) {
+                //     transform_component->transform.SetTranslation(Vector3(0, 1, 0));
+                //     transform_component->transform.SetScale(Vector3(0.25f));
+                // }
+            }
+
+            zombie.SetName("zombie");
+        }
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
-            // node.Scale(3.0f);
-            // node.Scale(0.01f);
             node.Scale(0.01f);
             node.SetName("test_model");
-
-            // // Add grid of environment probes to capture indirect lighting
-            // auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
-            // env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
-            // // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
-            // g_engine->GetComponents().Add<EnvGridController>(env_grid_entity, UniquePtr<EnvGridController>::Construct());
-            // // env_grid_entity->AddController<AABBDebugController>();
-            // GetScene()->AddEntity(env_grid_entity);
             
             GetScene()->GetRoot().AddChild(node);
 

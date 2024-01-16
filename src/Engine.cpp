@@ -10,7 +10,6 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/controllers/AabbDebugController.hpp>
-#include <scene/controllers/AnimationController.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/paging/BasicPagingController.hpp>
@@ -18,7 +17,6 @@
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
-#include <scene/skydome/controllers/SkydomeController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
@@ -120,10 +118,8 @@ void Engine::RegisterComponents()
 {
     m_components.Register<AABBDebugController>();
     m_components.Register<TerrainPagingController>();
-    m_components.Register<SkydomeController>();
     m_components.Register<ScriptedController>();
     m_components.Register<BasicCharacterController>();
-    m_components.Register<AnimationController>();
     m_components.Register<AudioController>();
     m_components.Register<RigidBodyController>();
     m_components.Register<BasicPagingController>();

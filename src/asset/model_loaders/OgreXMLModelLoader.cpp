@@ -1,5 +1,4 @@
-#include "OgreXMLModelLoader.hpp"
-#include <scene/controllers/AnimationController.hpp>
+#include <asset/model_loaders/OgreXMLModelLoader.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkeletonComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>

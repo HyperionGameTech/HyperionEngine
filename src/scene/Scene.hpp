@@ -155,6 +155,12 @@ public:
         but does not call Update() on them. */
     Bool IsWorldScene() const
         { return !m_parent_scene.IsValid() && !m_is_non_world_scene; }
+
+    Bool IsAudioListener() const
+        { return m_is_audio_listener; }
+
+    void SetIsAudioListener(Bool is_audio_listener)
+        { m_is_audio_listener = is_audio_listener; }
     
     void Init();
 
@@ -207,6 +213,8 @@ private:
 
     Handle<Scene> m_parent_scene;
     Bool m_is_non_world_scene;
+
+    Bool m_is_audio_listener;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

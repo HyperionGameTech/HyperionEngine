@@ -477,7 +477,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 MaterialAttributes {
                     .shader_definition = m_shader->GetCompiledShader().GetDefinition(),
                     .bucket = BUCKET_INTERNAL,
-                    .cull_faces = FaceCullMode::BACK
+                    .cull_faces = FaceCullMode::NONE
                 }
             ),
             true // skip frustum culling

@@ -23,6 +23,8 @@
 #include <scene/ecs/systems/ShadowMapUpdaterSystem.hpp>
 #include <scene/ecs/systems/EnvGridUpdaterSystem.hpp>
 #include <scene/ecs/systems/AnimationSystem.hpp>
+#include <scene/ecs/systems/SkySystem.hpp>
+#include <scene/ecs/systems/AudioSystem.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
@@ -132,6 +134,7 @@ Scene::Scene(
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(false),
+    m_is_audio_listener(false),
     m_entity_manager(new EntityManager(this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_shader_data_state(ShaderDataState::DIRTY)
@@ -143,6 +146,8 @@ Scene::Scene(
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();
+    m_entity_manager->AddSystem<SkySystem>();
+    m_entity_manager->AddSystem<AudioSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
 }
@@ -482,8 +487,6 @@ void Scene::CollectEntities(
     const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
     const VisibilityState &parent_visibility_state = m_octree.GetVisibilityState();
 
-    UInt num_collected = 0;
-
     for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
@@ -496,7 +499,7 @@ void Scene::CollectEntities(
         //     continue;
         // }
 
-        if (!skip_frustum_culling) {
+        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             // Visibility check
             if (!visibility_state_component.visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)) {
@@ -536,15 +539,7 @@ void Scene::CollectEntities(
             bounding_box_component.world_aabb,
             override_attributes_ptr
         );
-
-        num_collected++;
     }
-
-    // DebugLog(
-    //     LogType::Debug,
-    //     "Collected %u entities\n",
-    //     num_collected
-    // );
 }
 
 Bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
