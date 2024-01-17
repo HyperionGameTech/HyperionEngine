@@ -14,6 +14,7 @@
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/EntityContainer.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/System.hpp>
 
 namespace hyperion::v2 {

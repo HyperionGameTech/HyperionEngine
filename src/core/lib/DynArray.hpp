@@ -69,13 +69,24 @@ public:
         }
     }
 
-    DynArray(const std::initializer_list<T> &items)
+    template <SizeType Sz>
+    DynArray(T (&&items)[Sz])
+        : DynArray()
+    {
+        Reserve(Sz);
+
+        for (SizeType i = 0; i < Sz; ++i) {
+            PushBack(std::move(items[i]));
+        }
+    }
+
+    DynArray(std::initializer_list<T> items)
         : DynArray()
     {
         Reserve(items.size());
 
         for (auto it = items.begin(); it != items.end(); ++it) {
-            PushBack(*it);
+            PushBack(std::move(*it));
         }
     }
 

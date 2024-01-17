@@ -37,6 +37,14 @@ public:
     }
 
     template <class T>
+    explicit Any(const T &value)
+        : m_type_id(TypeID::ForType<T>()),
+          m_ptr(new T(value)),
+          m_delete_function(&Memory::Delete<T>)
+    {
+    }
+
+    template <class T>
     Any &operator=(const T &value)
     {
         const auto new_type_id = TypeID::ForType<T>();
@@ -63,7 +71,7 @@ public:
     }
 
     template <class T>
-    Any(T &&value) noexcept
+    explicit Any(T &&value) noexcept
         : m_type_id(TypeID::ForType<T>()),
           m_ptr(new T(std::forward<T>(value))),
           m_delete_function(&Memory::Delete<T>)

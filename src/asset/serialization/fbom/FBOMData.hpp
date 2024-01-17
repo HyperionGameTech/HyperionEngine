@@ -40,7 +40,7 @@ struct FBOMData
     FBOMData &operator=(FBOMData &&other) noexcept;
     ~FBOMData();
 
-    explicit operator bool() const
+    explicit operator Bool() const
         { return bytes.Any(); }
 
     const FBOMType &GetType() const { return type; }

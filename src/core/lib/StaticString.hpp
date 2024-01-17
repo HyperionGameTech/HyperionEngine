@@ -39,12 +39,41 @@ using make_offset_index_sequence_t = decltype(make_offset_index_sequence<Offset>
 template <SizeType Sz>
 struct StaticString
 {
+    static constexpr SizeType size = Sz;
+
     char data[Sz];
 
     constexpr StaticString(const char (&str)[Sz])
     {
         for (SizeType i = 0; i < Sz; ++i) {
             data[i] = str[i];
+        }
+    }
+
+    template <typename IntegerSequence, Int Index = Int(Sz) - Int(IntegerSequence::Size())>
+    constexpr SizeType FindLast() const
+    {
+        static_assert(Sz >= IntegerSequence::Size(), "OtherStaticString must be less than or equal to Size");
+
+        constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
+
+        if constexpr (Index < 0) {
+            return -1;
+        } else {
+            Bool found = true;
+
+            for (SizeType j = 0; j < other_size; ++j) {
+                if (data[Index + j] != IntegerSequence{}.Data()[j]) {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found) {
+                return Index;
+            } else {
+                return FindLast<IntegerSequence, Index - 1>();
+            }
         }
     }
 
@@ -83,6 +112,9 @@ public:
 
     static constexpr const char *Data()
         { return &StaticString.data[0]; }
+
+    static constexpr SizeType Size()
+        { return StaticString.size; }
 };
 
 template <auto StaticString>
