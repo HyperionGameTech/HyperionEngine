@@ -6,6 +6,7 @@
 #include <system/Debug.hpp>
 #include <core/Containers.hpp>
 #include <core/lib/AtomicVar.hpp>
+#include <core/Util.hpp>
 #include <Threads.hpp>
 #include <Types.hpp>
 
@@ -90,8 +91,8 @@ struct RenderCommandList
         if (last_block->IsFull()) {
             DebugLog(
                 LogType::Debug,
-                "Allocating new block node for render commands of type %s.\n",
-                typeid(T).name()
+                "Allocating new block for render commands of type %s.\n",
+                TypeName<T>().Data()
             );
 
             blocks.EmplaceBack();
@@ -199,7 +200,7 @@ public:
         T *ptr = new (mem) T(std::forward<Args>(args)...);
 
 #ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        ptr->_debug_name = typeid(T).name();
+        ptr->_debug_name = TypeName<T>().Data();
 #endif
 
         scheduler.Commit(ptr);

@@ -12,7 +12,7 @@ struct HaltonSequence
 {
     static constexpr UInt size = 128;
 
-    Vector2 sequence[size];
+    Vec2f sequence[size];
 
     HaltonSequence()
     {

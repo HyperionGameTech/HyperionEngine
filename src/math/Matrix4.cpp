@@ -1,10 +1,9 @@
-#include "Matrix4.hpp"
-#include "Matrix3.hpp"
-#include "Vector3.hpp"
-#include "Quaternion.hpp"
-#include "Rect.hpp"
+#include <math/Matrix4.hpp>
+#include <math/Matrix3.hpp>
+#include <math/Vector3.hpp>
+#include <math/Quaternion.hpp>
+#include <math/Rect.hpp>
 #include <math/Halton.hpp>
-
 #include <core/Core.hpp>
 
 namespace hyperion {
@@ -30,9 +29,9 @@ Matrix4 Matrix4::Rotation(const Matrix4 &t)
     Matrix4 mat;
     Matrix4 transform = t;
 
-    const float scale_x = 1.0f / Vector3(transform.GetColumn(0)).Length();
-    const float scale_y = 1.0f / Vector3(transform.GetColumn(1)).Length();
-    const float scale_z = 1.0f / Vector3(transform.GetColumn(2)).Length();
+    const Float scale_x = 1.0f / Vector3(transform.GetColumn(0)).Length();
+    const Float scale_y = 1.0f / Vector3(transform.GetColumn(1)).Length();
+    const Float scale_z = 1.0f / Vector3(transform.GetColumn(2)).Length();
 
     mat[0] = {
         transform[0][0] * scale_x,
@@ -64,7 +63,7 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
 {
     Matrix4 mat;
 
-    const float xx = rotation.x * rotation.x,
+    const Float xx = rotation.x * rotation.x,
         xy = rotation.x * rotation.y,
         xz = rotation.x * rotation.z,
         xw = rotation.x * rotation.w,
@@ -98,7 +97,7 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Vector3 &axis, float radians)
+Matrix4 Matrix4::Rotation(const Vector3 &axis, Float radians)
 {
     return Rotation(Quaternion(axis, radians));
 }
@@ -114,13 +113,13 @@ Matrix4 Matrix4::Scaling(const Vector3 &scale)
     return mat;
 }
 
-Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
+Matrix4 Matrix4::Perspective(Float fov, Int w, Int h, Float n, Float f)
 {
     Matrix4 mat = zeros;
 
-    float ar = (float)w / (float)h;
-    float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
-    float range = n - f;
+    Float ar = (Float)w / (Float)h;
+    Float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
+    Float range = n - f;
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
     
@@ -135,16 +134,16 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
     return mat;
 }
 
-Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float f)
+Matrix4 Matrix4::Orthographic(Float l, Float r, Float b, Float t, Float n, Float f)
 {
     Matrix4 mat = zeros;
     
-    float x_orth = 2.0f / (r - l);
-    float y_orth = 2.0f / (t - b);
-    float z_orth = 1.0f / (n - f);
-    float tx = -((r + l) / (r - l));
-    float ty = -((t + b) / (t - b));
-    float tz = ((n) / (n - f));
+    Float x_orth = 2.0f / (r - l);
+    Float y_orth = 2.0f / (t - b);
+    Float z_orth = 1.0f / (n - f);
+    Float tx = -((r + l) / (r - l));
+    Float ty = -((t + b) / (t - b));
+    Float tz = ((n) / (n - f));
     
     mat[0] = { x_orth, 0.0f, 0.0f, tx };
     mat[1] = { 0.0f, y_orth, 0.0f, ty };
@@ -221,7 +220,6 @@ Matrix4::Matrix4(const Matrix3 &matrix3)
         { 0.0f, 0.0f, 0.0f, 1.0f }
       }
 {
-    
 }
 
 Matrix4::Matrix4(const Vector4 *rows)
@@ -234,7 +232,7 @@ Matrix4::Matrix4(const Vector4 *rows)
 {
 }
 
-Matrix4::Matrix4(const float *v)
+Matrix4::Matrix4(const Float *v)
 {
     rows[0] = { v[0],  v[1],  v[2],  v[3] };
     rows[1] = { v[4],  v[5],  v[6],  v[7] };
@@ -247,7 +245,7 @@ Matrix4::Matrix4(const Matrix4 &other)
     hyperion::Memory::MemCpy(values, other.values, sizeof(values));
 }
 
-float Matrix4::Determinant() const
+Float Matrix4::Determinant() const
 {
     return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1]
          * rows[2][2] * rows[0][3] + rows[1][0] * rows[3][1] * rows[2][2] * rows[0][3] + rows[2][0] * rows[1][1] * rows[3][2] * rows[0][3] - rows[1][0]
@@ -267,14 +265,14 @@ Matrix4 &Matrix4::Transpose()
 
 Matrix4 Matrix4::Transposed() const
 {
-    const float v[4][4] = {
+    const Float v[4][4] = {
         { rows[0][0], rows[1][0], rows[2][0], rows[3][0] },
         { rows[0][1], rows[1][1], rows[2][1], rows[3][1] },
         { rows[0][2], rows[1][2], rows[2][2], rows[3][2] },
         { rows[0][3], rows[1][3], rows[2][3], rows[3][3] }
     };
 
-    return Matrix4(reinterpret_cast<const float *>(v));
+    return Matrix4(reinterpret_cast<const Float *>(v));
 }
 
 Matrix4 &Matrix4::Invert()
@@ -284,10 +282,10 @@ Matrix4 &Matrix4::Invert()
 
 Matrix4 Matrix4::Inverted() const
 {
-    float det = Determinant();
-    float inv_det = 1.0f / det;
+    const Float det = Determinant();
+    Float inv_det = 1.0f / det;
 
-    float tmp[4][4];
+    Float tmp[4][4];
 
     tmp[0][0] = (rows[1][2] * rows[2][3] * rows[3][1] - rows[1][3] * rows[2][2] * rows[3][1] + rows[1][3] * rows[2][1] * rows[3][2] - rows[1][1]
               * rows[2][3] * rows[3][2] - rows[1][2] * rows[2][1] * rows[3][3] + rows[1][1] * rows[2][2] * rows[3][3])
@@ -353,7 +351,7 @@ Matrix4 Matrix4::Inverted() const
               * rows[1][2] * rows[2][1] - rows[0][1] * rows[1][0] * rows[2][2] + rows[0][0] * rows[1][1] * rows[2][2])
               * inv_det;
 
-    return Matrix4(reinterpret_cast<const float *>(tmp));
+    return Matrix4(reinterpret_cast<const Float *>(tmp));
 }
 
 Matrix4 &Matrix4::Orthonormalize()
@@ -399,17 +397,17 @@ Matrix4 Matrix4::Orthonormalized() const
     return mat;
 }
 
-float Matrix4::GetYaw() const
+Float Matrix4::GetYaw() const
 {
     return Quaternion(*this).Yaw();
 }
 
-float Matrix4::GetPitch() const
+Float Matrix4::GetPitch() const
 {
     return Quaternion(*this).Pitch();
 }
 
-float Matrix4::GetRoll() const
+Float Matrix4::GetRoll() const
 {
     return Quaternion(*this).Roll();
 }
@@ -431,7 +429,7 @@ Matrix4 Matrix4::operator+(const Matrix4 &other) const
 
 Matrix4 &Matrix4::operator+=(const Matrix4 &other)
 {
-    for (int i = 0; i < std::size(values); i++) {
+    for (Int i = 0; i < std::size(values); i++) {
         values[i] += other.values[i];
     }
 
@@ -440,7 +438,7 @@ Matrix4 &Matrix4::operator+=(const Matrix4 &other)
 
 Matrix4 Matrix4::operator*(const Matrix4 &other) const
 {
-    const float fv[] = {
+    const Float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[4] + values[2] * other.values[8] + values[3] * other.values[12],
         values[0] * other.values[1] + values[1] * other.values[5] + values[2] * other.values[9] + values[3] * other.values[13],
         values[0] * other.values[2] + values[1] * other.values[6] + values[2] * other.values[10] + values[3] * other.values[14],
@@ -470,7 +468,7 @@ Matrix4 &Matrix4::operator*=(const Matrix4 &other)
     return (*this) = operator*(other);
 }
 
-Matrix4 Matrix4::operator*(float scalar) const
+Matrix4 Matrix4::operator*(Float scalar) const
 {
     Matrix4 result(*this);
     result *= scalar;
@@ -478,9 +476,9 @@ Matrix4 Matrix4::operator*(float scalar) const
     return result;
 }
 
-Matrix4 &Matrix4::operator*=(float scalar)
+Matrix4 &Matrix4::operator*=(Float scalar)
 {
-    for (float &value : values) {
+    for (Float &value : values) {
         value *= scalar;
     }
 
@@ -537,14 +535,14 @@ Vector4 Matrix4::GetColumn(UInt index) const
 
 Matrix4 Matrix4::Zeros()
 {
-    static constexpr float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
+    static constexpr Float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
     return Matrix4(zero_array);
 }
 
 Matrix4 Matrix4::Ones()
 {
-    static constexpr float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
+    static constexpr Float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
     return Matrix4(ones_array);
 }
@@ -557,8 +555,8 @@ Matrix4 Matrix4::Identity()
 std::ostream &operator<<(std::ostream &os, const Matrix4 &mat)
 {
     os << "[";
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    for (Int i = 0; i < 4; i++) {
+        for (Int j = 0; j < 4; j++) {
             os << mat.values[i * 4 + j];
 
             if (i != 3 && j == 3) {

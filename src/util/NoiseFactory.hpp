@@ -171,7 +171,7 @@ public:
         for (auto &it : m_generators) {
             ApplyNoiseValue(
                 it.second.mode,
-                (it.second.generator->GetNoise(xy * Vector2(it.second.scaling)) + it.second.bias) * it.second.multiplier,
+                (it.second.generator->GetNoise(xy * Vector2(it.second.scaling.x, it.second.scaling.y)) + it.second.bias) * it.second.multiplier,
                 result,
                 first
             );

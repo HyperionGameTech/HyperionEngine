@@ -3,136 +3,35 @@
 #include "MathUtil.hpp"
 namespace hyperion {
 
-const Vector2 Vector2::zero = Vector2(0.0f);
-const Vector2 Vector2::one = Vector2(1.0f);
+namespace math {
+namespace detail {
 
-Vector2::Vector2()
-    : x(0.0f), 
-      y(0.0f)
-{
-}
+const Vec2<Float> Vec2<Float>::zero = Vec2<Float>(0.0f);
+const Vec2<Float> Vec2<Float>::one = Vec2<Float>(1.0f);
 
-Vector2::Vector2(float x, float y)
-    : x(x), 
-      y(y)
-{
-}
-
-Vector2::Vector2(float xy)
-    : x(xy), 
-      y(xy)
-{
-}
-
-Vector2::Vector2(const Vector2 &other)
-    : x(other.x), 
-      y(other.y)
-{
-}
-
-Vector2::Vector2(const Vector3 &other)
-    : x(other.x),
-      y(other.y)
-{
-}
-
-Vector2::Vector2(const Vector4 &other)
-    : x(other.x),
-      y(other.y)
-{
-}
-
-Vector2 &Vector2::operator=(const Vector2 &other)
-{
-    x = other.x;
-    y = other.y;
-    return *this;
-}
-
-Vector2 Vector2::operator+(const Vector2 &other) const
-{
-    return Vector2(x + other.x, y + other.y);
-}
-
-Vector2 &Vector2::operator+=(const Vector2 &other)
-{
-    x += other.x;
-    y += other.y;
-    return *this;
-}
-
-Vector2 Vector2::operator-(const Vector2 &other) const
-{
-    return Vector2(x - other.x, y - other.y);
-}
-
-Vector2 &Vector2::operator-=(const Vector2 &other)
-{
-    x -= other.x;
-    y -= other.y;
-    return *this;
-}
-
-Vector2 Vector2::operator*(const Vector2 &other) const
-{
-    return Vector2(x * other.x, y * other.y);
-}
-
-Vector2 &Vector2::operator*=(const Vector2 &other)
-{
-    x *= other.x;
-    y *= other.y;
-    return *this;
-}
-
-Vector2 Vector2::operator/(const Vector2 &other) const
-{
-    return Vector2(x / other.x, y / other.y);
-}
-
-Vector2 &Vector2::operator/=(const Vector2 &other)
-{
-    x /= other.x;
-    y /= other.y;
-    return *this;
-}
-
-bool Vector2::operator==(const Vector2 &other) const
-{
-    return MathUtil::ApproxEqual(x, other.x)
-        && MathUtil::ApproxEqual(y, other.y);
-
-    // return x == other.x && y == other.y;
-}
-
-bool Vector2::operator!=(const Vector2 &other) const
-{
-    return !((*this) == other);
-}
-
-float Vector2::Min() const
+float Vec2<Float>::Min() const
 {
     return MathUtil::Min(x, y);
 }
 
-float Vector2::Max() const
+float Vec2<Float>::Max() const
 {
     return MathUtil::Max(x, y);
 }
 
-float Vector2::Distance(const Vector2 &other) const
+float Vec2<Float>::Distance(const Vec2<Float> &other) const
 {
     return sqrt(DistanceSquared(other));
 }
 
-float Vector2::DistanceSquared(const Vector2 &other) const
+float Vec2<Float>::DistanceSquared(const Vec2<Float> &other) const
 {
     float dx = x - other.x;
     float dy = y - other.y;
     return dx * dx + dy * dy;
 }
 
-Vector2 &Vector2::Normalize()
+Vec2<Float> &Vec2<Float>::Normalize()
 {
     float len = Length();
     float len_sqr = len * len;
@@ -144,59 +43,74 @@ Vector2 &Vector2::Normalize()
     return *this;
 }
 
-Vector2 &Vector2::Lerp(const Vector2 &to, const float amt)
+Vec2<Float> &Vec2<Float>::Lerp(const Vector2 &to, const float amt)
 {
     x = MathUtil::Lerp(x, to.x, amt);
     y = MathUtil::Lerp(y, to.y, amt);
     return *this;
 }
 
-Vector2 Vector2::Abs(const Vector2 &vec)
+Vec2<Float> Vec2<Float>::Abs(const Vec2<Float> &vec)
 {
     return Vector2(abs(vec.x), abs(vec.y));
 }
 
-Vector2 Vector2::Round(const Vector2 &vec)
+Vec2<Float> Vec2<Float>::Round(const Vec2<Float> &vec)
 {
     return Vector2(std::round(vec.x), std::round(vec.y));
 }
 
-Vector2 Vector2::Clamp(const Vector2 &vec, float min_value, float max_value)
+Vec2<Float> Vec2<Float>::Clamp(const Vec2<Float> &vec, float min_value, float max_value)
 {
     return Max(min_value, Min(vec, max_value));
 }
 
-Vector2 Vector2::Min(const Vector2 &a, const Vector2 &b)
+Vec2<Float> Vec2<Float>::Min(const Vec2<Float> &a, const Vec2<Float> &b)
 {
-    return Vector2(MathUtil::Min(a.x, b.x), MathUtil::Min(a.y, b.y));
+    return Vec2<Float>(MathUtil::Min(a.x, b.x), MathUtil::Min(a.y, b.y));
 }
 
-Vector2 Vector2::Max(const Vector2 &a, const Vector2 &b)
+Vec2<Float> Vec2<Float>::Max(const Vec2<Float> &a, const Vec2<Float> &b)
 {
-    return Vector2(MathUtil::Max(a.x, b.x), MathUtil::Max(a.y, b.y));
+    return Vec2<Float>(MathUtil::Max(a.x, b.x), MathUtil::Max(a.y, b.y));
 }
 
-Vector2 Vector2::Zero()
+Vec2<Float> Vec2<Float>::Zero()
 {
-    return Vector2(0, 0);
+    return Vec2<Float>(0, 0);
 }
 
-Vector2 Vector2::One()
+Vec2<Float> Vec2<Float>::One()
 {
-    return Vector2(1, 1);
+    return Vec2<Float>(1, 1);
 }
 
-Vector2 Vector2::UnitX()
+Vec2<Float> Vec2<Float>::UnitX()
 {
-    return Vector2(1, 0);
+    return Vec2<Float>(1, 0);
 }
 
-Vector2 Vector2::UnitY()
+Vec2<Float> Vec2<Float>::UnitY()
 {
-    return Vector2(0, 1);
+    return Vec2<Float>(0, 1);
 }
 
-std::ostream &operator<<(std::ostream &out, const Vector2 &vec) // output
+} // namespace detail
+} // namespace math
+
+std::ostream &operator<<(std::ostream &out, const Vec2<Float> &vec) // output
+{
+    out << "[" << vec.x << ", " << vec.y << "]";
+    return out;
+}
+
+std::ostream &operator<<(std::ostream &out, const Vec2<Int> &vec) // output
+{
+    out << "[" << vec.x << ", " << vec.y << "]";
+    return out;
+}
+
+std::ostream &operator<<(std::ostream &out, const Vec2<UInt> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << "]";
     return out;

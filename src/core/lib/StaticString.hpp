@@ -91,6 +91,9 @@ struct StaticString
         return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start> { });
     }
 
+    constexpr const char *Data() const
+        { return &data[0]; }
+
     constexpr SizeType Size() const
         { return Sz; }
 

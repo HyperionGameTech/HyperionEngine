@@ -13,8 +13,8 @@
 
 namespace hyperion {
 
-class Vector2;
-class Vector4;
+namespace math {
+namespace detail {
 
 template <class T>
 struct alignas(alignof(T) * 2) Vec2
@@ -90,14 +90,22 @@ struct alignas(alignof(T) * 2) Vec2
     Vec2 &operator^=(const Vec2 &other)
         { x ^= other.x; y ^= other.y; return *this; }
 
-    constexpr bool operator==(const Vec2 &other) const
+    constexpr Bool operator==(const Vec2 &other) const
         { return x == other.x && y == other.y; }
 
-    constexpr bool operator!=(const Vec2 &other) const
+    constexpr Bool operator!=(const Vec2 &other) const
         { return x != other.x || y != other.y; }
 
     constexpr Vec2 operator-() const
         { return operator*(T(-1)); }
+
+    Type Max() const;
+    Type Min() const;
+
+    static Vec2 Zero();
+    static Vec2 One();
+    static Vec2 UnitX();
+    static Vec2 UnitY();
 
     template <class Ty>
     constexpr explicit operator Vec2<Ty>() const
@@ -113,104 +121,130 @@ struct alignas(alignof(T) * 2) Vec2
         HashCode hc;
 
         hc.Add(x);
+        hc.Add(y);
 
         return hc;
     }
 };
 
-using Vec2i = Vec2<Int32>;
-using Vec2u = Vec2<UInt32>;
-
-static_assert(sizeof(Vec2i) == 8);
-static_assert(sizeof(Vec2u) == 8);
-
-class Vector2
+template <>
+struct alignas(alignof(Float) * 2) Vec2<Float>
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vector2 &vec);
+    friend std::ostream &operator<<(std::ostream &out, const Vec2<Float> &vec);
 public:
     static constexpr UInt size = 2;
 
-    static const Vector2 zero;
-    static const Vector2 one;
+    static const Vec2 zero;
+    static const Vec2 one;
 
     union {
-        struct { float x, y; };
-        float values[2];
+        struct { Float x, y; };
+        Float values[2];
     };
 
-    Vector2();
-    Vector2(float x, float y);
-    Vector2(float xy);
-    Vector2(const Vector2 &other);
+    constexpr Vec2()
+        : x(0.0f), y(0.0f)
+    {
+    }
 
-    //! \brief Consturct a Vector2 from a Vector3, discarding z.
-    Vector2(const Vector3 &other);
+    constexpr Vec2(Float x, Float y)
+        : x(x), y(y)
+    {
+    }
 
-    //! \brief Consturct a Vector2 from a Vector4, discarding z and w.
-    Vector2(const Vector4 &other);
+    constexpr Vec2(Float xy)
+        : x(xy), y(xy)
+    {
+    }
 
-    float GetX() const     { return x; }
-    float &GetX()          { return x; }
-    Vector2 &SetX(float x) { this->x = x; return *this; }
-    float GetY() const     { return y; }
-    float &GetY()          { return y; }
-    Vector2 &SetY(float y) { this->y = y; return *this; }
+    constexpr Vec2(const Vec2 &other)
+        : x(other.x), y(other.y)
+    {
+    }
+
+    Float GetX() const      { return x; }
+    Float &GetX()           { return x; }
+    Vec2 &SetX(Float x)     { this->x = x; return *this; }
+    Float GetY() const      { return y; }
+    Float &GetY()           { return y; }
+    Vec2 &SetY(Float y)     { this->y = y; return *this; }
     
-    constexpr float operator[](SizeType index) const
+    constexpr Float operator[](SizeType index) const
         { return values[index]; }
 
-    constexpr float &operator[](SizeType index)
+    constexpr Float &operator[](SizeType index)
         { return values[index]; }
 
-    explicit operator bool() const
+    explicit operator Bool() const
         { return Sum() != 0.0f; }
 
-    explicit operator Vec2i() const
-        { return Vec2i(static_cast<Int>(x), static_cast<Int>(y)); }
+    template <class U>
+    explicit operator Vec2<U>() const
+        { return Vec2i(static_cast<U>(x), static_cast<U>(y)); }
 
-    explicit operator Vec2u() const
-        { return Vec2u(static_cast<UInt>(x), static_cast<UInt>(y)); }
+    Vec2 &operator=(const Vec2 &other)
+        { x = other.x; y = other.y; return *this; }
 
-    Vector2 &operator=(const Vector2 &other);
-    Vector2 operator+(const Vector2 &other) const;
-    Vector2 &operator+=(const Vector2 &other);
-    Vector2 operator-(const Vector2 &other) const;
-    Vector2 &operator-=(const Vector2 &other);
-    Vector2 operator*(const Vector2 &other) const;
-    Vector2 &operator*=(const Vector2 &other);
-    Vector2 operator/(const Vector2 &other) const;
-    Vector2 &operator/=(const Vector2 &other);
-    bool operator==(const Vector2 &other) const;
-    bool operator!=(const Vector2 &other) const;
-    Vector2 operator-() const { return operator*(-1.0f); }
+    constexpr Vec2 operator+(const Vec2 &other) const
+        { return { x + other.x, y + other.y }; }
 
-    bool operator<(const Vector2 &other) const
-        { return std::tie(x, y) < std::tie(other.x, other.y); }
+    Vec2 &operator+=(const Vec2 &other)
+        { x += other.x; y += other.y; return *this; }
 
-    constexpr float LengthSquared() const { return x * x + y * y; }
-    float Length() const { return std::sqrt(LengthSquared()); }
+    constexpr Vec2 operator-(const Vec2 &other) const
+        { return { x - other.x, y - other.y }; }
 
-    constexpr float Avg() const { return (x + y) / 2.0f; }
-    constexpr float Sum() const { return x + y; }
-    float Max() const;
-    float Min() const;
+    Vec2 &operator-=(const Vec2 &other)
+        { x -= other.x; y -= other.y; return *this; }
 
-    float Distance(const Vector2 &other) const;
-    float DistanceSquared(const Vector2 &other) const;
+    constexpr Vec2 operator*(const Vec2 &other) const
+        { return { x * other.x, y * other.y }; }
 
-    Vector2 &Normalize();
-    Vector2 &Lerp(const Vector2 &to, const float amt);
+    Vec2 &operator*=(const Vec2 &other)
+        { x *= other.x; y *= other.y; return *this; }
 
-    static Vector2 Abs(const Vector2 &);
-    static Vector2 Round(const Vector2 &);
-    static Vector2 Clamp(const Vector2 &, float min, float max);
-    static Vector2 Min(const Vector2 &a, const Vector2 &b);
-    static Vector2 Max(const Vector2 &a, const Vector2 &b);
+    constexpr Vec2 operator/(const Vec2 &other) const
+        { return { x / other.x, y / other.y }; }
 
-    static Vector2 Zero();
-    static Vector2 One();
-    static Vector2 UnitX();
-    static Vector2 UnitY();
+    Vec2 &operator/=(const Vec2 &other)
+        { x /= other.x; y /= other.y; return *this; }
+
+    constexpr Bool operator==(const Vec2 &other) const
+        { return x == other.x && y == other.y; }
+
+    constexpr Bool operator!=(const Vec2 &other) const
+        { return x != other.x || y != other.y; }
+
+    constexpr Vec2 operator-() const
+        { return operator*(-1.0f); }
+
+    constexpr Bool operator<(const Vec2 &other) const
+        { return x < other.x && y < other.y; }
+
+    constexpr Float LengthSquared() const { return x * x + y * y; }
+    Float Length() const { return std::sqrt(LengthSquared()); }
+
+    constexpr Float Avg() const { return (x + y) / 2.0f; }
+    constexpr Float Sum() const { return x + y; }
+    Float Max() const;
+    Float Min() const;
+
+    Float Distance(const Vec2 &other) const;
+    Float DistanceSquared(const Vec2 &other) const;
+
+    Vec2 &Normalize();
+    Vec2 &Lerp(const Vec2 &to, const Float amt);
+
+    static Vec2 Abs(const Vec2 &);
+    static Vec2 Round(const Vec2 &);
+    static Vec2 Clamp(const Vec2 &, Float min, Float max);
+    static Vec2 Min(const Vec2 &a, const Vec2 &b);
+    static Vec2 Max(const Vec2 &a, const Vec2 &b);
+
+    static Vec2 Zero();
+    static Vec2 One();
+    static Vec2 UnitX();
+    static Vec2 UnitY();
 
     HashCode GetHashCode() const
     {
@@ -223,19 +257,39 @@ public:
     }
 };
 
-static_assert(sizeof(Vector2) == sizeof(float) * 2, "sizeof(Vector2) must be equal to sizeof(float) * 2");
+} // namespace detail
 
 template <class T>
-inline constexpr bool is_vec2 = false;
+using Vec2 = detail::Vec2<T>;
+
+} // namespace math
+
+
+template <class T>
+using Vec2 = math::Vec2<T>;
+
+using Vec2f = Vec2<Float>;
+using Vec2i = Vec2<Int>;
+using Vec2u = Vec2<UInt>;
+
+static_assert(sizeof(Vec2f) == 8);
+static_assert(sizeof(Vec2i) == 8);
+static_assert(sizeof(Vec2u) == 8);
+
+template <class T>
+inline constexpr Bool is_vec2 = false;
 
 template <>
-inline constexpr bool is_vec2<Vector2> = true;
+inline constexpr Bool is_vec2<Vec2f> = true;
 
 template <>
-inline constexpr bool is_vec2<Vec2i> = true;
+inline constexpr Bool is_vec2<Vec2i> = true;
 
 template <>
-inline constexpr bool is_vec2<Vec2u> = true;
+inline constexpr Bool is_vec2<Vec2u> = true;
+
+// transitional typedef
+using Vector2 = Vec2f;
 
 } // namespace hyperion
 

@@ -43,19 +43,9 @@ struct ShaderProperty;
 
 static Bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
 {
-    // for (auto it : VertexAttribute::mapping) {
-    //     DebugLog(LogType::Info, "VertexAttribute: %u %s\n", it.first, it.second.name);
-    //     if (it.second.name == name) {
-    //         out_type = it.first;
-
-    //         return true;
-    //     }
-    // }
-
     for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
         const auto it = VertexAttribute::mapping.KeyValueAt(i);
-        DebugLog(LogType::Info, "VertexAttribute: %u %s\n", it.first, it.second.name);
-
+        
         if (it.second.name == name) {
             out_type = it.first;
 
@@ -63,10 +53,8 @@ static Bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
         }
     }
 
-    HYP_BREAKPOINT;
-
     return false;
-};
+}
 
 struct ShaderProperty
 {

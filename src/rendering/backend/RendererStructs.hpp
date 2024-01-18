@@ -348,11 +348,6 @@ struct alignas(8) ShaderVec2
     ShaderVec2() = default;
     ShaderVec2(const ShaderVec2 &other) = default;
     ShaderVec2(T x, T y) : x(x), y(y) {}
-    ShaderVec2(const Vector2 &vec)
-        : x(vec.x),
-          y(vec.y)
-    {
-    }
     ShaderVec2(const Extent2D &extent)
         : x(extent.width),
           y(extent.height)
@@ -368,7 +363,7 @@ struct alignas(8) ShaderVec2
     constexpr T &operator[](UInt index) { return values[index]; }
     constexpr const T &operator[](UInt index) const { return values[index]; }
 
-    operator Vector2() const { return Vector2(x, y); }
+    operator Vec2<T>() const { return Vec2<T>(x, y); }
 };
 
 static_assert(sizeof(ShaderVec2<Float>) == 8);

@@ -17,15 +17,15 @@ Frustum::Frustum(const Matrix4 &view_proj)
     SetFromViewProjectionMatrix(view_proj);
 }
 
-bool Frustum::ContainsAABB(const BoundingBox &aabb) const
+Bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 {
-    const FixedArray<Vector3, 8> corners = aabb.GetCorners();
+    const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
-    for (const Vector4 &plane : m_planes) {
-        bool pass = false;
+    for (const Vec4f &plane : m_planes) {
+        Bool pass = false;
 
-        for (const Vector3 &corner : corners) {
-            if (plane.Dot(Vector4(corner, 1.0f)) > 0.0f) {
+        for (const Vec3f &corner : corners) {
+            if (plane.Dot(Vec4f(corner, 1.0f)) > 0.0f) {
                 pass = true;
                 break;
             }
@@ -41,10 +41,10 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
     return true;
 }
 
-bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
+Bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
 {
-    for (const auto &plane : m_planes) {
-        if (plane.Dot(Vector4(sphere.center, 1.0f)) <= -sphere.radius) {
+    for (const Vec4f &plane : m_planes) {
+        if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius) {
             return false;
         }
     }
@@ -94,19 +94,19 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
 
     const Matrix4 clip_to_world = view_proj.Inverted();
 
-    static const FixedArray<Vector3, 8> corners_ndc {
-        Vector3 { -1, -1, 0 },
-        Vector3 { -1,  1, 0 },
-        Vector3 {  1,  1, 0 },
-        Vector3 {  1, -1, 0 },
-        Vector3 { -1, -1, 1 },
-        Vector3 { -1,  1, 1 },
-        Vector3 {  1,  1, 1 },
-        Vector3 {  1, -1, 1 }
+    static const FixedArray<Vec3f, 8> corners_ndc {
+        Vec3f { -1, -1, 0 },
+        Vec3f { -1,  1, 0 },
+        Vec3f {  1,  1, 0 },
+        Vec3f {  1, -1, 0 },
+        Vec3f { -1, -1, 1 },
+        Vec3f { -1,  1, 1 },
+        Vec3f {  1,  1, 1 },
+        Vec3f {  1, -1, 1 }
     };
 
-    for (int i = 0; i < 8; i++) {
-        Vector4 corner = clip_to_world * Vector4(corners_ndc[i], 1.0f);
+    for (UInt i = 0; i < 8; i++) {
+        Vec4f corner = clip_to_world * Vec4f(corners_ndc[i], 1.0f);
         corner /= corner.w;
 
         m_corners[i] = corner.GetXYZ();
@@ -115,23 +115,16 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
     return *this;
 }
 
-Vector3 Frustum::GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const
+Vec3f Frustum::GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const
 {
-    const Vector4 planes[3] = { GetPlane(plane_index_0), GetPlane(plane_index_1), GetPlane(plane_index_2) };
+    const Vec4f planes[3] = { GetPlane(plane_index_0), GetPlane(plane_index_1), GetPlane(plane_index_2) };
 
-    //const Vector3 v1 = Vector3(planes[1]).Cross(Vector3(planes[2])) * planes[0].w;
-    //const Vector3 v2 = Vector3(planes[2]).Cross(Vector3(planes[0])) * planes[1].w;
-    //const Vector3 v3 = Vector3(planes[0]).Cross(Vector3(planes[1])) * planes[2].w;
-    
-    //const Float f = -Vector3(planes[0]).Dot(Vector3(planes[1]).Cross(Vector3(planes[2])));
-    
-   // return (v1 + v2 + v3) / f;
+    Vec3f bxc = planes[1].GetXYZ().Cross(planes[2].GetXYZ());
+    Vec3f cxa = planes[2].GetXYZ().Cross(planes[0].GetXYZ());
+    Vec3f axb = planes[0].GetXYZ().Cross(planes[1].GetXYZ());
 
-    Vector3 bxc = planes[1].GetXYZ().Cross(planes[2].GetXYZ());
-    Vector3 cxa = planes[2].GetXYZ().Cross(planes[0].GetXYZ());
-    Vector3 axb = planes[0].GetXYZ().Cross(planes[1].GetXYZ());
+    Vec3f r = (bxc * -planes[0].w) - (cxa * planes[1].w) - (axb * planes[2].w);
 
-    Vector3 r = (bxc * -planes[0].w) - (cxa * planes[1].w) - (axb * planes[2].w);
     return r * (1.0f / planes[0].GetXYZ().Dot(bxc));
 }
 

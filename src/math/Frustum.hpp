@@ -18,25 +18,33 @@ public:
     Frustum(const Frustum &other);
     Frustum(const Matrix4 &view_proj);
 
-    FixedArray<Vector4, 6> &GetPlanes() { return m_planes; }
-    const FixedArray<Vector4, 6> &GetPlanes() const { return m_planes; }
+    FixedArray<Vec4f, 6> &GetPlanes()
+        { return m_planes; }
 
-    Vector4 &GetPlane(UInt index) { return m_planes[index]; }
-    const Vector4 &GetPlane(UInt index) const { return m_planes[index]; }
+    const FixedArray<Vec4f, 6> &GetPlanes() const
+        { return m_planes; }
 
-    const Vector3 &GetCorner(UInt index) { return m_corners[index]; }
-    const FixedArray<Vector3, 8> &GetCorners() const { return m_corners; }
+    Vec4f &GetPlane(UInt index)
+        { return m_planes[index]; }
 
-    bool ContainsAABB(const BoundingBox &aabb) const;
-    bool ContainsBoundingSphere(const BoundingSphere &sphere) const;
+    const Vec4f &GetPlane(UInt index) const
+        { return m_planes[index]; }
+
+    const Vec3f &GetCorner(UInt index)
+        { return m_corners[index]; }
+
+    const FixedArray<Vec3f, 8> &GetCorners() const
+        { return m_corners; }
+
+    Bool ContainsAABB(const BoundingBox &aabb) const;
+    Bool ContainsBoundingSphere(const BoundingSphere &sphere) const;
 
     Frustum &SetFromViewProjectionMatrix(const Matrix4 &view_proj);
-    Vector3 GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const;
-
+    Vec3f GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const;
 
 private:
-    FixedArray<Vector4, 6> m_planes;
-    FixedArray<Vector3, 8> m_corners;
+    FixedArray<Vec4f, 6>    m_planes;
+    FixedArray<Vec3f, 8>    m_corners;
 };
 } // namespace hyperion
 
