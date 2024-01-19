@@ -44,10 +44,6 @@ Builtins::Builtins()
         BuiltinTypes::FLOAT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Number"].Reset(new AstTypeObject(
-        BuiltinTypes::NUMBER, nullptr, SourceLocation::eof
-    ));
-
     m_vars["Bool"].Reset(new AstTypeObject(
         BuiltinTypes::BOOLEAN, nullptr, SourceLocation::eof
     ));

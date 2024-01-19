@@ -93,9 +93,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
             // no bitwise operators on floats allowed.
             // do not allow right-hand side to be 'Any', because it might change the data type.
             visitor->Assert(
-                type == BuiltinTypes::INT || 
-                type == BuiltinTypes::UNSIGNED_INT ||
-                type == BuiltinTypes::NUMBER,
+                type->IsIntegral(),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operand_must_be_int,
@@ -104,25 +102,8 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 )
             );
         } else if (m_op->GetType() & ARITHMETIC) {
-            if (type != BuiltinTypes::INT &&
-                type != BuiltinTypes::UNSIGNED_INT &&
-                type != BuiltinTypes::FLOAT &&
-                type != BuiltinTypes::NUMBER) {
-            
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_invalid_operator_for_type,
-                    m_target->GetLocation(),
-                    m_op->LookupStringValue(),
-                    type->ToString()
-                )); 
-            }
-
             visitor->Assert(
-                type == BuiltinTypes::INT ||
-                type == BuiltinTypes::UNSIGNED_INT ||
-                type == BuiltinTypes::FLOAT ||
-                type == BuiltinTypes::NUMBER,
+                type->IsNumber(),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_invalid_operator_for_type,

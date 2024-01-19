@@ -31,7 +31,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     // @NOTE: do not add error for undefined, it causes too many unnecessary errors
     //        that would've already been conveyed via 'not declared' errors
     if (arg_type != BuiltinTypes::UNDEFINED) {
-        if (!param_type->TypeCompatible(*arg_type, false)) {
+        if (!param_type->TypeCompatible(*arg_type, true)) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_arg_type_incompatible,
@@ -775,18 +775,6 @@ void SemanticAnalyzer::Helpers::EnsureLooseTypeAssignmentCompatibility(
 
     SymbolTypePtr_t comparison_type = symbol_type;
 
-    // unboxing values
-    // note that this is below the default assignment check,
-    // because these "box" types may have a default assignment of their own
-    // (or they may intentionally not have one)
-    // e.g Maybe(T) defaults to null, and Const(T) has no assignment.
-    if (symbol_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
-        if (symbol_type->IsBoxedType()) {
-            comparison_type = symbol_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-            AssertThrow(comparison_type != nullptr);
-        }
-    }
-
     SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
         visitor,
         mod,
@@ -807,7 +795,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     AssertThrow(symbol_type != nullptr);
     AssertThrow(assignment_type != nullptr);
 
-    if (!symbol_type->TypeCompatible(*assignment_type, false)) {
+    if (!symbol_type->TypeCompatible(*assignment_type, true)) {
         CompilerError error(
             LEVEL_ERROR,
             Msg_mismatched_types_assignment,

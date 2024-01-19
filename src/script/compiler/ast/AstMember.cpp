@@ -77,15 +77,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t field_type = nullptr;
 
     for (UInt depth = 0; field_type == nullptr && m_target_type != nullptr; depth++) {
-        // allow boxing/unboxing
-        if (m_target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
-            if (m_target_type->IsBoxedType()) {
-                AssertThrow(!m_target_type->GetGenericInstanceInfo().m_generic_args.Empty());
-
-                m_target_type = m_target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-            }
-        }
-
         AssertThrow(m_target_type != nullptr);
         m_target_type = m_target_type->GetUnaliased();
 

@@ -176,7 +176,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 if (m_return_type->IsAnyType() || m_return_type->IsPlaceholderType()) {
                     m_return_type = it.first;
                 } else if (m_return_type->TypeCompatible(*it.first, false)) {
-                    m_return_type = SymbolType::TypePromotion(m_return_type, it.first, true);
+                    m_return_type = SymbolType::TypePromotion(m_return_type, it.first);
                 } else {
                     // error; more than one possible deduced return type.
                     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

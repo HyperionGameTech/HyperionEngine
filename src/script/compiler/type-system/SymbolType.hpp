@@ -169,8 +169,7 @@ public:
 
     static SymbolTypePtr_t TypePromotion(
         const SymbolTypePtr_t &lptr,
-        const SymbolTypePtr_t &rptr,
-        bool use_number
+        const SymbolTypePtr_t &rptr
     );
 
     static SymbolTypePtr_t GenericPromotion(
@@ -292,6 +291,10 @@ public:
     /** Find the root aliasee. If not an alias, just returns itself */
     SymbolTypePtr_t GetUnaliased();
     
+    bool IsNumber() const;
+    bool IsIntegral() const;
+    bool IsUnsignedIntegral() const;
+    bool IsFloat() const;
     bool IsClass() const;
     bool IsObject() const;
     bool IsAnyType() const;
@@ -299,7 +302,6 @@ public:
     bool IsNullType() const;
     bool IsNullableType() const;
     bool IsArrayType() const;
-    bool IsBoxedType() const;
 
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;

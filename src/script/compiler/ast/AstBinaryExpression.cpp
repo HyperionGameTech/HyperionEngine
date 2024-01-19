@@ -150,49 +150,37 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
     m_right->Visit(visitor, mod);
 
     SymbolTypePtr_t left_type = m_left->GetExprType();
-    SymbolTypePtr_t left_type_unboxed = left_type;
-    
-    if (left_type->GetTypeClass() == TYPE_GENERIC_INSTANCE && left_type->IsBoxedType()) {
-        left_type_unboxed = left_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-    }
-
-    AssertThrow(left_type_unboxed != nullptr);
+    AssertThrow(left_type != nullptr);
 
     SymbolTypePtr_t right_type = m_right->GetExprType();
-    SymbolTypePtr_t right_type_unboxed = right_type;
-    
-    if (right_type->GetTypeClass() == TYPE_GENERIC_INSTANCE && right_type->IsBoxedType()) {
-        right_type_unboxed = right_type->GetGenericInstanceInfo().m_generic_args[0].m_type;   
-    }
+    AssertThrow(right_type != nullptr);
 
-    AssertThrow(right_type_unboxed != nullptr);
-
-    if (!left_type_unboxed->IsAnyType() && !right_type_unboxed->IsAnyType()) {
+    if (!left_type->IsAnyType() && !right_type->IsAnyType()) {
         if (m_op->GetType() & BITWISE) {
             // no bitwise operators on floats allowed.
             visitor->Assert(
-                (left_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT) &&
-                (right_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT),
+                (left_type == BuiltinTypes::INT || left_type == BuiltinTypes::UNSIGNED_INT) &&
+                (right_type == BuiltinTypes::INT || left_type == BuiltinTypes::UNSIGNED_INT),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,
                     m_location,
-                    left_type_unboxed->GetName(),
-                    right_type_unboxed->GetName()
+                    left_type->GetName(),
+                    right_type->GetName()
                 )
             );
         } else if (m_op->GetType() & ARITHMETIC) {
             // arithmetic operators are only for numbers
             visitor->Assert(
-                left_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false) &&
-                right_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false),
+                (left_type->TypeCompatible(*BuiltinTypes::INT, false) || left_type->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || left_type->TypeCompatible(*BuiltinTypes::FLOAT, false)) &&
+                    (right_type->TypeCompatible(*BuiltinTypes::INT, false) || right_type->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || right_type->TypeCompatible(*BuiltinTypes::FLOAT, false)),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,
                     m_location,
                     m_op->LookupStringValue(),
-                    left_type_unboxed->GetName(),
-                    right_type_unboxed->GetName()
+                    left_type->GetName(),
+                    right_type->GetName()
                 )
             );
         }
@@ -202,8 +190,8 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             visitor,
             mod,
-            left_type_unboxed,
-            right_type_unboxed,
+            left_type,
+            right_type,
             m_location
         );
         
@@ -226,13 +214,13 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     } else {
         // compare both sides because assignment does not matter in this case
-        if (!left_type_unboxed->TypeCompatible(*right_type_unboxed, false)) {
+        if (!left_type->TypeCompatible(*right_type, false)) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_mismatched_types,
                 m_location,
-                left_type_unboxed->GetName(),
-                right_type_unboxed->GetName()
+                left_type->GetName(),
+                right_type->GetName()
             ));
         }
     }
@@ -760,7 +748,7 @@ SymbolTypePtr_t AstBinaryExpression::GetExprType() const
 
         AssertThrow(r_type_ptr != nullptr);
 
-        return SymbolType::TypePromotion(l_type_ptr, r_type_ptr, true);
+        return SymbolType::TypePromotion(l_type_ptr, r_type_ptr);
     } else {
         // right was optimized away, return only left type
         return l_type_ptr;

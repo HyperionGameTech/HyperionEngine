@@ -22,7 +22,6 @@ struct BuiltinTypes
     static const SymbolTypePtr_t INT;
     static const SymbolTypePtr_t UNSIGNED_INT;
     static const SymbolTypePtr_t FLOAT;
-    static const SymbolTypePtr_t NUMBER;
     static const SymbolTypePtr_t BOOLEAN;
     static const SymbolTypePtr_t STRING;
     static const SymbolTypePtr_t FUNCTION;
@@ -31,7 +30,6 @@ struct BuiltinTypes
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t MODULE_INFO;
     static const SymbolTypePtr_t GENERATOR;
-    static const SymbolTypePtr_t BOXED_TYPE;
     static const SymbolTypePtr_t MAYBE;
     static const SymbolTypePtr_t CLOSURE_TYPE;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;

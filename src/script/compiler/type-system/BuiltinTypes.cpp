@@ -131,12 +131,6 @@ const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Primitive(
-    "Number",
-    RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Primitive(
     "Bool",
     RC<AstFalse>(new AstFalse(SourceLocation::eof)),
@@ -265,14 +259,6 @@ const SymbolTypePtr_t BuiltinTypes::GENERATOR = SymbolType::Generic(
     {},
     GenericTypeInfo{ 1 },
     BuiltinTypes::CLASS_TYPE
-);
-
-const SymbolTypePtr_t BuiltinTypes::BOXED_TYPE = SymbolType::Generic(
-    "Boxed",
-    nullptr,
-    {},
-    GenericTypeInfo { 1 },
-    BuiltinTypes::TRAIT_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::CLOSURE_TYPE = SymbolType::Generic(

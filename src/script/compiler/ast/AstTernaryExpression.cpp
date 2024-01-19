@@ -170,10 +170,9 @@ SymbolTypePtr_t AstTernaryExpression::GetExprType() const
             // the right was not optimized away,
             // return type promotion
             SymbolTypePtr_t r_type_ptr = m_right->GetExprType();
-
             AssertThrow(r_type_ptr != nullptr);
 
-            return SymbolType::TypePromotion(l_type_ptr, r_type_ptr, true);
+            return SymbolType::TypePromotion(l_type_ptr, r_type_ptr);
         } else {
             // right was optimized away, return only left type
             return l_type_ptr;

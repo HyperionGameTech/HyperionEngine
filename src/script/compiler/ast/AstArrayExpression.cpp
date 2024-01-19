@@ -54,7 +54,7 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
             // take first item found that is not `Any`
             m_held_type = it;
         } else if (m_held_type->TypeCompatible(*it, false)) {
-            m_held_type = SymbolType::TypePromotion(m_held_type, it, true);
+            m_held_type = SymbolType::TypePromotion(m_held_type, it);
         } else {
             // more than one differing type, use Any.
             m_held_type = BuiltinTypes::ANY;

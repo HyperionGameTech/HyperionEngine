@@ -188,98 +188,80 @@ bool SymbolType::TypeCompatible(
     }
 
     switch (m_type_class) {
-        case TYPE_ALIAS: {
-            SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock();
-            AssertThrow(sp != nullptr);
+    case TYPE_ALIAS: {
+        SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock();
+        AssertThrow(sp != nullptr);
 
-            return sp->TypeCompatible(right, strict_numbers);
-        }
-        case TYPE_GENERIC: {
-            if (right.m_type_class == TYPE_GENERIC || right.m_type_class == TYPE_GENERIC_INSTANCE) {
-                if (auto right_base = right.GetBaseType()) {
-                    if (TypeCompatible(*right_base, strict_numbers)) {
-                        return true;
-                    }
+        return sp->TypeCompatible(right, strict_numbers);
+    }
+    case TYPE_GENERIC: {
+        if (right.m_type_class == TYPE_GENERIC || right.m_type_class == TYPE_GENERIC_INSTANCE) {
+            if (auto right_base = right.GetBaseType()) {
+                if (TypeCompatible(*right_base, strict_numbers)) {
+                    return true;
                 }
             }
-
-            return false;
         }
-        case TYPE_GENERIC_INSTANCE: {
-            SymbolTypePtr_t base = m_base;
-            AssertThrow(base != nullptr);
 
-            if (right.m_type_class == TYPE_GENERIC_INSTANCE) {
-                // check for compatibility between instances
-                SymbolTypePtr_t other_base = right.GetBaseType();
-                AssertThrow(other_base != nullptr);
+        return false;
+    }
+    case TYPE_GENERIC_INSTANCE: {
+        SymbolTypePtr_t base = m_base;
+        AssertThrow(base != nullptr);
 
-                if (!TypeCompatible(*other_base, strict_numbers) && !base->TypeCompatible(*other_base, strict_numbers)) {
-                    return false;
-                } 
+        if (right.m_type_class == TYPE_GENERIC_INSTANCE) {
+            // check for compatibility between instances
+            SymbolTypePtr_t other_base = right.GetBaseType();
+            AssertThrow(other_base != nullptr);
 
-                // check all params
-                if (m_generic_instance_info.m_generic_args.Size() != right.m_generic_instance_info.m_generic_args.Size()) {
-                    return false;
-                }
+            if (!TypeCompatible(*other_base, strict_numbers) && !base->TypeCompatible(*other_base, strict_numbers)) {
+                return false;
+            } 
 
-                // check each substituted parameter
-                for (SizeType i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
-                    const SymbolTypePtr_t &param_type = m_generic_instance_info.m_generic_args[i].m_type;
-                    const SymbolTypePtr_t &other_param_type = right.m_generic_instance_info.m_generic_args[i].m_type;
-
-                    AssertThrow(param_type != nullptr);
-                    AssertThrow(other_param_type != nullptr);
-
-                    if (param_type == other_param_type) {
-                        continue;
-                    } else if (param_type->TypeEqual(*other_param_type)) {
-                        continue;
-                    } else if (param_type->IsAnyType() || other_param_type->IsAnyType()
-                            || param_type->IsPlaceholderType() || other_param_type->IsPlaceholderType()) {
-                        continue;
-                    } else {
-                        return false;
-                    }
-                }
-
-                return true;
-            } else {
+            // check all params
+            if (m_generic_instance_info.m_generic_args.Size() != right.m_generic_instance_info.m_generic_args.Size()) {
                 return false;
             }
 
-            break;
-        }
+            // check each substituted parameter
+            for (SizeType i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
+                const SymbolTypePtr_t &param_type = m_generic_instance_info.m_generic_args[i].m_type;
+                const SymbolTypePtr_t &other_param_type = right.m_generic_instance_info.m_generic_args[i].m_type;
 
-        case TYPE_GENERIC_PARAMETER: {
-            // uninstantiated generic parameters are compatible with anything
-            return true;
-        }
+                AssertThrow(param_type != nullptr);
+                AssertThrow(other_param_type != nullptr);
 
-        default:
-            if (!strict_numbers) {
-                if (TypeEqual(*BuiltinTypes::INT) || TypeEqual(*BuiltinTypes::UNSIGNED_INT) || TypeEqual(*BuiltinTypes::FLOAT)) {
-                    return (right.TypeEqual(*BuiltinTypes::NUMBER) ||
-                            right.TypeEqual(*BuiltinTypes::FLOAT) ||
-                            right.TypeEqual(*BuiltinTypes::UNSIGNED_INT) ||
-                            right.TypeEqual(*BuiltinTypes::INT));
+                if (param_type == other_param_type) {
+                    continue;
+                } else if (param_type->TypeEqual(*other_param_type)) {
+                    continue;
+                } else if (param_type->IsAnyType() || other_param_type->IsAnyType()
+                        || param_type->IsPlaceholderType() || other_param_type->IsPlaceholderType()) {
+                    continue;
+                } else {
+                    return false;
                 }
             }
 
-            if (TypeEqual(*BuiltinTypes::NUMBER)) {
-                return (right.TypeEqual(*BuiltinTypes::INT) ||
-                        right.TypeEqual(*BuiltinTypes::UNSIGNED_INT) ||
-                        right.TypeEqual(*BuiltinTypes::FLOAT));
-            } else if (TypeEqual(*BuiltinTypes::FLOAT)) {
-                return (right.TypeEqual(*BuiltinTypes::INT) ||
-                        right.TypeEqual(*BuiltinTypes::UNSIGNED_INT) ||
-                        right.TypeEqual(*BuiltinTypes::NUMBER));
-            } else if (TypeEqual(*BuiltinTypes::UNSIGNED_INT)) {
-                return (right.TypeEqual(*BuiltinTypes::INT) ||
-                        right.TypeEqual(*BuiltinTypes::NUMBER));
-            }
-
+            return true;
+        } else {
             return false;
+        }
+
+        break;
+    }
+
+    case TYPE_GENERIC_PARAMETER: {
+        // uninstantiated generic parameters are compatible with anything
+        return true;
+    }
+
+    default:
+        if (!strict_numbers && IsNumber() && right.IsNumber()) {
+            return true;
+        }
+
+        return false;
     }
 
     return true;
@@ -429,6 +411,29 @@ SymbolTypePtr_t SymbolType::GetUnaliased()
     return shared_from_this();
 }
 
+bool SymbolType::IsNumber() const
+{
+    return IsOrHasBase(*BuiltinTypes::INT)
+        || IsOrHasBase(*BuiltinTypes::UNSIGNED_INT)
+        || IsOrHasBase(*BuiltinTypes::FLOAT);
+}
+
+bool SymbolType::IsIntegral() const
+{
+    return IsOrHasBase(*BuiltinTypes::INT)
+        || IsOrHasBase(*BuiltinTypes::UNSIGNED_INT);
+}
+
+bool SymbolType::IsUnsignedIntegral() const
+{
+    return IsOrHasBase(*BuiltinTypes::UNSIGNED_INT);
+}
+
+bool SymbolType::IsFloat() const
+{
+    return IsOrHasBase(*BuiltinTypes::FLOAT);
+}
+
 bool SymbolType::IsClass() const
 {
     return IsOrHasBase(*BuiltinTypes::CLASS_TYPE);
@@ -463,19 +468,6 @@ bool SymbolType::IsArrayType() const
 {
     return IsOrHasBase(*BuiltinTypes::ARRAY)
         || HasBase(*BuiltinTypes::VAR_ARGS);
-}
-
-bool SymbolType::IsBoxedType() const
-{
-    if (SymbolTypePtr_t base_type = GetBaseType()) {
-        if (m_type_class == TYPE_GENERIC_INSTANCE) {
-            return base_type->GetBaseType() == BuiltinTypes::BOXED_TYPE;
-        } else if (m_type_class == TYPE_GENERIC) {
-            return base_type == BuiltinTypes::BOXED_TYPE;
-        }
-    }
-
-    return false;
 }
 
 bool SymbolType::IsGenericParameter() const
@@ -911,8 +903,7 @@ SymbolTypePtr_t PrototypedObject(
 
 SymbolTypePtr_t SymbolType::TypePromotion(
     const SymbolTypePtr_t &lptr,
-    const SymbolTypePtr_t &rptr,
-    bool use_number
+    const SymbolTypePtr_t &rptr
 )
 {
     if (lptr == nullptr || rptr == nullptr) {
@@ -937,53 +928,14 @@ SymbolTypePtr_t SymbolType::TypePromotion(
         return BuiltinTypes::PLACEHOLDER;
     } else if (lptr->IsPlaceholderType() || rptr->IsPlaceholderType()) {
         return BuiltinTypes::PLACEHOLDER;
-    } else if (lptr->TypeEqual(*BuiltinTypes::NUMBER)) {
-        if (use_number) {
-            return rptr->TypeEqual(*BuiltinTypes::INT) ||
-                   rptr->TypeEqual(*BuiltinTypes::FLOAT) ||
-                   rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
-                       ? BuiltinTypes::NUMBER
-                       : BuiltinTypes::UNDEFINED;
-        } else if (rptr->TypeEqual(*BuiltinTypes::FLOAT)) {
+    } else if (lptr->IsNumber() && rptr->IsNumber()) {
+        if (lptr->IsFloat() || rptr->IsFloat()) {
             return BuiltinTypes::FLOAT;
+        } else if (lptr->IsUnsignedIntegral() || rptr->IsUnsignedIntegral()) {
+            return BuiltinTypes::UNSIGNED_INT;
         } else {
-            return BuiltinTypes::NUMBER;
+            return BuiltinTypes::INT;
         }
-    } else if (lptr->TypeEqual(*BuiltinTypes::INT)) {
-        if (rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)) {
-            return BuiltinTypes::UNSIGNED_INT;
-        }
-
-        return rptr->TypeEqual(*BuiltinTypes::NUMBER) || rptr->TypeEqual(*BuiltinTypes::FLOAT)
-               ? (use_number ? BuiltinTypes::NUMBER : rptr)
-               : BuiltinTypes::UNDEFINED;
-    } else if (lptr->TypeEqual(*BuiltinTypes::FLOAT)) {
-        return rptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               rptr->TypeEqual(*BuiltinTypes::INT) ||
-               rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
-               ? (use_number ? BuiltinTypes::NUMBER : lptr)
-               : BuiltinTypes::UNDEFINED;
-    } else if (rptr->TypeEqual(*BuiltinTypes::NUMBER)) {
-        return lptr->TypeEqual(*BuiltinTypes::INT) ||
-               lptr->TypeEqual(*BuiltinTypes::FLOAT) ||
-               rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
-               ? BuiltinTypes::NUMBER
-               : BuiltinTypes::UNDEFINED;
-    } else if (rptr->TypeEqual(*BuiltinTypes::INT)) {
-        if (lptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)) {
-            return BuiltinTypes::UNSIGNED_INT;
-        }
-
-        return lptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               lptr->TypeEqual(*BuiltinTypes::FLOAT)
-               ? (use_number ? BuiltinTypes::NUMBER : lptr)
-               : BuiltinTypes::UNDEFINED;
-    } else if (rptr->TypeEqual(*BuiltinTypes::FLOAT)) {
-        return lptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               lptr->TypeEqual(*BuiltinTypes::INT) ||
-               lptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
-               ? (use_number ? BuiltinTypes::NUMBER : rptr)
-               : BuiltinTypes::UNDEFINED;
     }
 
     return BuiltinTypes::UNDEFINED;
@@ -1013,48 +965,12 @@ SymbolTypePtr_t SymbolType::GenericPromotion(
         }
             // fallthrough
         default:
-            // check if left is a Boxed type so we can upgrade the inner type
-            if (auto left_base = lptr->GetBaseType()) {
-                if (left_base == BuiltinTypes::BOXED_TYPE) {
-                    // if left is a Boxed type and still generic (no params),
-                    // e.i Const or Maybe, fill it with the assignment type
-                    Array<GenericInstanceTypeInfo::Arg> generic_types {
-                        { "", rptr }
-                    };
-                    
-                    return SymbolType::GenericInstance(
-                        lptr,
-                        GenericInstanceTypeInfo {
-                            generic_types
-                        }
-                    );
-                }
-            }
-
             break;
         }
 
         break;
     
     case TYPE_GENERIC_INSTANCE: {
-        if (lptr->IsBoxedType()) {
-            // if left is a Boxed type and generic instance,
-            // perform promotion on the inner type.
-            const SymbolTypePtr_t &inner_type = lptr->GetGenericInstanceInfo().m_generic_args[0].m_type;
-            AssertThrow(inner_type != nullptr);
-
-            Array<GenericInstanceTypeInfo::Arg> new_generic_types {
-                { "", SymbolType::GenericPromotion(inner_type, rptr) }
-            };
-            
-            return SymbolType::GenericInstance(
-                lptr->GetBaseType(),
-                GenericInstanceTypeInfo {
-                    new_generic_types
-                }
-            );
-        }
-
         break;
     }
     }
