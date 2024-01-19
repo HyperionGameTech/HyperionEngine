@@ -840,9 +840,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     {
         struct alignas(128) {
-            ShaderVec2<UInt32> image_dimensions;
-            UInt32 _pad0, _pad1;
-            UInt32 deferred_flags;
+            ShaderVec2<UInt32>  image_dimensions;
+            UInt32              _pad0, _pad1;
+            UInt32              deferred_flags;
         } deferred_combine_constants;
 
         deferred_combine_constants.image_dimensions = {
@@ -986,13 +986,6 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
             Bitset((1 << BUCKET_TRANSLUCENT)),
             &m_cull_data
         );
-    }
-}
-
-void DeferredRenderer::RenderUI(Frame *frame)
-{
-    for (auto &render_group : g_engine->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
-        render_group->Render(frame);
     }
 }
 

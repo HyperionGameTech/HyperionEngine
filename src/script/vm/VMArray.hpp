@@ -24,13 +24,23 @@ public:
     VMArray &operator=(VMArray &&other) noexcept;
     ~VMArray();
 
-    bool operator==(const VMArray &other) const { return this == &other; }
+    bool operator==(const VMArray &other) const
+        { return this == &other; }
 
-    SizeType GetSize() const { return m_size; }
-    Value *GetBuffer() const { return m_buffer; }
-    Value &AtIndex(SizeType index) { return m_buffer[index]; }
-    const Value &AtIndex(SizeType index) const { return m_buffer[index]; }
-    void AtIndex(SizeType index, const Value &value) { m_buffer[index] = value; }
+    SizeType GetSize() const
+        { return m_size; }
+
+    Value *GetBuffer() const
+        { return m_buffer; }
+
+    Value &AtIndex(SizeType index)
+        { return m_buffer[index]; }
+
+    const Value &AtIndex(SizeType index) const
+        { return m_buffer[index]; }
+
+    void AtIndex(SizeType index, const Value &value)
+        { m_buffer[index] = value; }
 
     void Resize(SizeType capacity);
     void Push(const Value &value);
@@ -51,9 +61,9 @@ private:
             static_cast<SizeType>(std::ceil(std::log(MathUtil::Max(new_size, 1)) / std::log(2.0)));
     }
 
-    SizeType m_size;
-    SizeType m_capacity;
-    Value *m_buffer;
+    SizeType    m_size;
+    SizeType    m_capacity;
+    Value       *m_buffer;
 };
 
 } // namespace vm

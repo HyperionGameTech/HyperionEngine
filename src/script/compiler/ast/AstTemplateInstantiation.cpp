@@ -20,7 +20,7 @@
 namespace hyperion::compiler {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
-    const RC<AstIdentifier> &expr,
+    const RC<AstExpression> &expr,
     const Array<RC<AstArgument>> &generic_args,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),

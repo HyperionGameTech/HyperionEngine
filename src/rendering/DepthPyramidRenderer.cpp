@@ -16,9 +16,8 @@ DepthPyramidRenderer::DepthPyramidRenderer()
 {
 }
 
-DepthPyramidRenderer::~DepthPyramidRenderer()
-{
-}
+DepthPyramidRenderer::~DepthPyramidRenderer() = default;
+
 void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
 {
     AssertThrow(m_depth_attachment_usage == nullptr);

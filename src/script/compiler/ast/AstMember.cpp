@@ -160,66 +160,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-
-        // // for instance members (do it last, so it can be overridden by instances)
-        // if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
-        //     // get member index from name
-        //     for (SizeType i = 0; i < proto_type->GetMembers().Size(); i++) {
-        //         const SymbolMember_t &mem = proto_type->GetMembers()[i];
-
-        //         if (std::get<0>(mem) == m_field_name) {
-        //             // only set m_found_index if found in first level.
-        //             // for members from base objects,
-        //             // we load based on hash.
-        //             if (depth == 0) {
-        //                 m_found_index = i;
-        //             }
-
-        //             field_type = std::get<1>(mem);
-        //             found = true;
-
-        //             break;
-        //         }
-        //     }
-
-        //     if (found) {
-        //         break;
-        //     }
-        // }
-
-        // if (m_found_index == -1) {
-        //     // lookup in bases, checking all prototypes
-        //     SymbolTypePtr_t base_type = m_target_type;
-
-        //     while ((base_type = base_type->GetBaseType())) {
-        //         if (SymbolTypePtr_t proto_type = base_type->FindMember("$proto")) {
-        //             bool found = false;
-
-        //             // get member index from name
-        //             for (SizeType i = 0; i < proto_type->GetMembers().Size(); i++) {
-        //                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
-
-        //                 if (std::get<0>(mem) == m_field_name) {
-        //                     // do not set m_found_index,
-        //                     // because we grab members from the base types
-        //                     // based on hash code.
-        //                     field_type = std::get<1>(mem);
-        //                     found = true;
-
-        //                     break;
-        //                 }
-        //             }
-
-        //             if (found) {
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
-
-
-        // TEMP:
-
         const AstExpression *value_of = m_target->GetValueOf();
         AssertThrow(value_of != nullptr);
 
@@ -255,6 +195,18 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
     if (field_type != nullptr) {
         m_symbol_type = field_type->GetUnaliased();
+
+        // For generic types, we need to set the default value
+        // to the default value of the generic type.
+
+        // This allows us to do:
+        // thing.DoThing<T>()
+        if (field_type->IsGeneric()) {
+            m_override_expr = CloneAstNode(field_type->GetDefaultValue());
+            AssertThrow(m_override_expr != nullptr);
+
+            m_override_expr->Visit(visitor, mod);
+        }
     } else {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

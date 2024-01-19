@@ -457,7 +457,8 @@ void API::ModuleDefine::BindType(
     }
 
     // look for $proto, if not there, add it
-    auto proto_it = def.members.FindIf([](const NativeMemberDefine &item) {
+    auto proto_it = def.members.FindIf([](const NativeMemberDefine &item)
+    {
         return item.name == "$proto";
     });
 

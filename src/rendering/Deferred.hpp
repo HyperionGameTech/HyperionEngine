@@ -38,14 +38,14 @@ class RenderEnvironment;
 
 enum DeferredFlags : DeferredFlagBits
 {
-    DEFERRED_FLAGS_NONE = 0x0,
-    DEFERRED_FLAGS_SSR_ENABLED = 0x1,
-    DEFERRED_FLAGS_VCT_ENABLED = 0x2,
-    DEFERRED_FLAGS_ENV_PROBE_ENABLED = 0x4,
-    DEFERRED_FLAGS_HBAO_ENABLED = 0x8,
-    DEFERRED_FLAGS_HBIL_ENABLED = 0x10,
-    DEFERRED_FLAGS_RT_RADIANCE_ENABLED = 0x20,
-    DEFERRED_FLAGS_DDGI_ENABLED = 0x40
+    DEFERRED_FLAGS_NONE                 = 0x0,
+    DEFERRED_FLAGS_SSR_ENABLED          = 0x1,
+    DEFERRED_FLAGS_VCT_ENABLED          = 0x2,
+    DEFERRED_FLAGS_ENV_PROBE_ENABLED    = 0x4,
+    DEFERRED_FLAGS_HBAO_ENABLED         = 0x8,
+    DEFERRED_FLAGS_HBIL_ENABLED         = 0x10,
+    DEFERRED_FLAGS_RT_RADIANCE_ENABLED  = 0x20,
+    DEFERRED_FLAGS_DDGI_ENABLED         = 0x40
 };
 
 class DeferredPass : public FullScreenPass
@@ -94,8 +94,8 @@ class ReflectionProbePass : public FullScreenPass
 {
 public:
     ReflectionProbePass();
-    ReflectionProbePass(const ReflectionProbePass &other) = delete;
-    ReflectionProbePass &operator=(const ReflectionProbePass &other) = delete;
+    ReflectionProbePass(const ReflectionProbePass &other)               = delete;
+    ReflectionProbePass &operator=(const ReflectionProbePass &other)    = delete;
     virtual ~ReflectionProbePass() override;
 
     void CreateShader();
@@ -113,8 +113,8 @@ class DeferredRenderer
 
 public:
     DeferredRenderer();
-    DeferredRenderer(const DeferredRenderer &other) = delete;
-    DeferredRenderer &operator=(const DeferredRenderer &other) = delete;
+    DeferredRenderer(const DeferredRenderer &other)             = delete;
+    DeferredRenderer &operator=(const DeferredRenderer &other)  = delete;
     ~DeferredRenderer();
 
     FullScreenPass *GetCombinePass() const
@@ -147,8 +147,6 @@ public:
     void Create();
     void Destroy();
     void Render(Frame *frame, RenderEnvironment *environment);
-
-    void RenderUI(Frame *frame);
 
 private:
     void ApplyCameraJitter();

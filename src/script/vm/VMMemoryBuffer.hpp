@@ -18,18 +18,23 @@ public:
 
     VMMemoryBuffer(SizeType size = 0);
     VMMemoryBuffer(const ByteBuffer &bytes);
-    VMMemoryBuffer(const VMMemoryBuffer &other) = default;
-    VMMemoryBuffer &operator=(const VMMemoryBuffer &other) = default;
-    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept = default;
-    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept = default;
-    ~VMMemoryBuffer() = default;
+    VMMemoryBuffer(const VMMemoryBuffer &other)                 = default;
+    VMMemoryBuffer &operator=(const VMMemoryBuffer &other)      = default;
+    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept             = default;
+    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept  = default;
+    ~VMMemoryBuffer()                                           = default;
 
-    bool operator==(const VMMemoryBuffer &other) const { return this == &other; }
+    bool operator==(const VMMemoryBuffer &other) const
+        { return this == &other; }
 
-    SizeType GetSize() const { return m_bytes.Size(); }
+    SizeType GetSize() const
+        { return m_bytes.Size(); }
 
-    void *GetBuffer() { return m_bytes.Data(); }
-    const void *GetBuffer() const { return m_bytes.Data(); }
+    void *GetBuffer()
+        { return m_bytes.Data(); }
+
+    const void *GetBuffer() const
+        { return m_bytes.Data(); }
 
     void GetRepresentation(
         std::stringstream &ss,

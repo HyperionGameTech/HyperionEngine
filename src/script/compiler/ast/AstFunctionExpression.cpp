@@ -136,8 +136,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     Array<GenericInstanceTypeInfo::Arg> param_symbol_types;
 
     for (auto &param : m_parameters) {
-        // add the identifier to the table
-        AssertThrow(param->GetIdentifier() != nullptr);
+        if (!param || !param->GetIdentifier()) {
+            // skip, should have added an error
+            continue;
+        }
+
         // add to list of param types
         param_symbol_types.PushBack(GenericInstanceTypeInfo::Arg {
             .m_name             = param->GetName(),

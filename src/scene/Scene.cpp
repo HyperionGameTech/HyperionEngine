@@ -81,41 +81,6 @@ struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 
 #pragma endregion
 
-// static void CollectOctantEntities(
-//     RenderList &render_list,
-//     const Handle<Camera> &camera,
-//     RenderableAttributeSet *override_attributes_ptr,
-//     const Octree *octree
-// )
-// {
-//     if (!Octree::IsVisible(&g_engine->GetWorld()->GetOctree(), octree)) {
-//         return;
-//     }
-
-//     for (const Octree::Node &octree_node : octree->GetNodes()) {
-//         const Entity *entity = octree_node.entity;
-
-//         if (!entity) {
-//             continue;
-//         }
-
-//         if (entity->IsRenderable()) {
-//             render_list.PushEntityToRender(camera, Handle<Entity>(entity->GetID()) /* temp */, override_attributes_ptr);
-//         }
-//     }
-
-//     if (octree->IsDivided()) {
-//         for (const Octree::Octant &octant : octree->GetOctants()) {
-//             CollectOctantEntities(
-//                 render_list,
-//                 camera,
-//                 override_attributes_ptr,
-//                 octant.octree.Get()
-//             );
-//         }
-//     }
-// }
-
 Scene::Scene()
     : Scene(Handle<Camera>::empty, { })
 {
@@ -305,11 +270,6 @@ void Scene::CollectEntities(
         AssertThrow(mesh_component.material.IsValid());
         AssertThrow(mesh_component.material->GetRenderAttributes().shader_definition.IsValid());
 
-        // hack
-        // if (!mesh_component.material->GetRenderAttributes().shader_definition.IsValid()) {
-        //     continue;
-        // }
-
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             // Visibility check
@@ -475,12 +435,22 @@ static struct SceneScriptBindings : ScriptBindingsBase
                         CxxFn< UInt32, const Handle<Scene> &, ScriptGetHandleIDValue<Scene> >
                     ),
                     API::NativeMemberDefine(
-                        "Init",
-                        BuiltinTypes::VOID_TYPE,
+                        "GetComponent",
+                        BuiltinTypes::ANY,
                         {
-                            { "self", BuiltinTypes::ANY }
+                            { "self", BuiltinTypes::ANY },
+                            { "entity", BuiltinTypes::UNSIGNED_INT },
+                            { "component_type_name", BuiltinTypes::STRING }
                         },
-                        CxxMemberFnWrapped< void, Handle<Scene>, Scene, &Scene::Init >
+                        CxxFn<
+                            ComponentInterfaceBase *, const Handle<Scene> &, UInt32, const String &,
+                            [](const Handle<Scene> &self, UInt32 entity_id, const String &component_type_name) -> ComponentInterfaceBase *
+                            {
+                                DebugLog(LogType::Debug, "Getting component %s from entity #%u\n", component_type_name.Data(), entity_id);
+
+                                return nullptr;
+                            }
+                        >
                     )
                 }
             );

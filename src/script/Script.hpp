@@ -12,6 +12,7 @@
 
 #include <core/Base.hpp>
 #include <core/lib/FixedArray.hpp>
+#include <core/Util.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -216,10 +217,10 @@ public:
     ValueHandle CreateInternedObject(const T &value)
     {
         const auto class_name_it = m_api_instance.class_bindings.class_names.Find<RegisteredType>();
-        AssertThrowMsg(class_name_it != m_api_instance.class_bindings.class_names.End(), "Class not registered!");
+        AssertThrowMsg(class_name_it != m_api_instance.class_bindings.class_names.End(), "Class %s not registered!", TypeName<RegisteredType>().Data());
 
         const auto prototype_it = m_api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
-        AssertThrowMsg(prototype_it != m_api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
+        AssertThrowMsg(prototype_it != m_api_instance.class_bindings.class_prototypes.End(), "Class %s not registered!", TypeName<RegisteredType>().Data());
 
         vm::Value intern_value;
         {

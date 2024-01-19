@@ -22,11 +22,11 @@ namespace vm {
 
 enum HeapValueFlags
 {
-    GC_MARKED = 0x01,
-    GC_DESTROYED = 0x02, // for debug
+    GC_MARKED       = 0x01,
+    GC_DESTROYED    = 0x02, // for debug
     GC_ALWAYS_ALIVE = 0x04, // for internal objects -- keep them alive without needing to be marked again
 
-    GC_ALIVE = GC_MARKED | GC_ALWAYS_ALIVE
+    GC_ALIVE        = GC_MARKED | GC_ALWAYS_ALIVE
 };
 
 class HeapValue_Impl
@@ -157,8 +157,8 @@ class HeapValue
 {
 public:
     HeapValue();
-    HeapValue(const HeapValue &other) = delete;
-    HeapValue &operator=(const HeapValue &other) = delete;
+    HeapValue(const HeapValue &other)               = delete;
+    HeapValue &operator=(const HeapValue &other)    = delete;
     ~HeapValue();
     
     HYP_FORCE_INLINE
@@ -190,12 +190,12 @@ public:
     template <class T>
     HYP_FORCE_INLINE
     void Assign(const T &value)
-        { m_impl.Assign(value); debug_name = typeid(T).name(); }
+        { m_impl.Assign(value); }
 
     template <typename T>
     HYP_FORCE_INLINE
     void Assign(T &&value)
-        { m_impl.Assign(std::forward<T>(value)); debug_name = typeid(T).name(); }
+        { m_impl.Assign(std::forward<T>(value)); }
 
     template <typename T>
     HYP_FORCE_INLINE
@@ -228,10 +228,8 @@ public:
     void Mark();
 
 private:
-    HeapValue_Impl m_impl;
-    int m_flags;
-
-    const char *debug_name = "";
+    HeapValue_Impl  m_impl;
+    Int             m_flags;
 };
 
 } // namespace vm

@@ -11,9 +11,9 @@ namespace vm {
 
 struct HeapNode
 {
-    HeapValue value;
-    HeapNode *before;
-    HeapNode *after;
+    HeapValue   value;
+    HeapNode    *before;
+    HeapNode    *after;
 };
 
 class Heap
@@ -21,7 +21,13 @@ class Heap
     friend std::ostream &operator<<(std::ostream &os, const Heap &heap);
 public:
     Heap();
-    Heap(const Heap &other) = delete;
+
+    Heap(const Heap &other)             = delete;
+    Heap &operator=(const Heap &other)  = delete;
+    
+    Heap(Heap &&other)                  = delete;
+    Heap &operator=(Heap &&other)       = delete;
+
     ~Heap();
 
     SizeType Size() const

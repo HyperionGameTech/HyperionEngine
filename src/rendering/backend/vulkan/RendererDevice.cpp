@@ -18,55 +18,52 @@ namespace renderer {
 namespace platform {
 
 Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface)
-    : device(VK_NULL_HANDLE),
-      physical(physical),
-      surface(surface),
-      allocator(VK_NULL_HANDLE),
-      features(new Features())
+    : m_device(VK_NULL_HANDLE),
+      m_physical(physical),
+      m_surface(surface),
+      m_allocator(VK_NULL_HANDLE),
+      m_features(UniquePtr<Features>::Construct())
 {
-    this->features->SetPhysicalDevice(physical);
-    this->queue_family_indices = FindQueueFamilies(this->physical, this->surface);
+    m_features->SetPhysicalDevice(m_physical);
+    m_queue_family_indices = FindQueueFamilies(m_physical, m_surface);
 }
 
 Device<Platform::VULKAN>::~Device()
 {
-    delete features;
 }
 
 void Device<Platform::VULKAN>::SetPhysicalDevice(VkPhysicalDevice physical)
 {
-    this->physical = physical;
-    this->features->SetPhysicalDevice(physical);
+    m_physical = physical;
+    m_features->SetPhysicalDevice(m_physical);
 }
 
 void Device<Platform::VULKAN>::SetRenderSurface(const VkSurfaceKHR &surface)
 {
-    this->surface = surface;
+    m_surface = surface;
 }
 
 void Device<Platform::VULKAN>::SetRequiredExtensions(const ExtensionMap &extensions)
 {
-    this->required_extensions = extensions;
+    m_required_extensions = extensions;
 }
 
 VkDevice Device<Platform::VULKAN>::GetDevice()
 {
-    AssertThrow(this->device != VK_NULL_HANDLE);
-    return this->device;
+    AssertThrow(m_device != VK_NULL_HANDLE);
+    return m_device;
 }
 
 VkPhysicalDevice Device<Platform::VULKAN>::GetPhysicalDevice()
 {
-    return this->physical;
+    return m_physical;
 }
 
 VkSurfaceKHR Device<Platform::VULKAN>::GetRenderSurface()
 {
-    if (this->surface == VK_NULL_HANDLE) {
-        DebugLog(LogType::Fatal, "Device render surface is null!\n");
-        throw std::runtime_error("Device render surface not set");
-    }
-    return this->surface;
+    AssertThrowMsg(m_surface != VK_NULL_HANDLE, "Surface has not been set!");
+    
+    return m_surface;
 }
 
 QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
@@ -75,15 +72,19 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(queue_family_count);
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, families.data());
+
+    Array<VkQueueFamilyProperties> families;
+    families.Resize(queue_family_count);
+
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, families.Data());
 
     constexpr auto possible_flags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT;
 
     /* TODO: move over to QueueFamilyIndices */
-    std::vector<uint32_t> found_indices;
+    Array<UInt32> found_indices;
 
-    const auto predicate = [&](uint32_t index, VkQueueFlagBits expected_bits, bool expect_dedicated) -> bool {
+    const auto predicate = [&](UInt32 index, VkQueueFlagBits expected_bits, bool expect_dedicated) -> bool
+    {
         const auto masked_bits = families[index].queueFlags & possible_flags;
         
         /* When looking for a dedicate graphics queue, we'll make sure it supports presentation.
@@ -110,7 +111,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     };
 
     /* Find dedicated queues */
-    for (uint32_t i = 0; i < families.size() && !indices.IsComplete(); i++) {
+    for (uint32_t i = 0; i < families.Size() && !indices.IsComplete(); i++) {
         AssertContinueMsg(
             families[i].queueCount != 0,
             "Queue family %d supports no queues, skipping\n",
@@ -131,7 +132,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             if (predicate(i, VK_QUEUE_GRAPHICS_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated graphics presentation queue (%d)\n", i);
                 indices.graphics_family = i;
-                found_indices.push_back(i);
+                found_indices.PushBack(i);
                 continue;
             }
         }
@@ -140,7 +141,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated transfer queue (%d)\n", i);
                 indices.transfer_family = i;
-                found_indices.push_back(i);
+                found_indices.PushBack(i);
                 continue;
             }
         }
@@ -149,7 +150,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             if (predicate(i, VK_QUEUE_COMPUTE_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated compute queue (%d)\n", i);
                 indices.compute_family = i;
-                found_indices.push_back(i);
+                found_indices.PushBack(i);
                 continue;
             }
         }
@@ -167,7 +168,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     }
 
     /* Fallback -- find queue families (non-dedicated) */
-    for (uint32_t i = 0; i < families.size() && !indices.IsComplete(); i++) {
+    for (UInt32 i = 0; i < families.Size() && !indices.IsComplete(); i++) {
         AssertContinueMsg(
             families[i].queueCount != 0,
             "Queue family %d supports no queues, skipping\n",
@@ -202,26 +203,28 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     return indices;
 }
 
-std::vector<VkExtensionProperties> Device<Platform::VULKAN>::GetSupportedExtensions()
+Array<VkExtensionProperties> Device<Platform::VULKAN>::GetSupportedExtensions()
 {
-    uint32_t extension_count = 0;
-    vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, nullptr);
-    std::vector<VkExtensionProperties> supported_extensions(extension_count);
-    vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, supported_extensions.data());
+    UInt32 extension_count = 0;
+    vkEnumerateDeviceExtensionProperties(m_physical, nullptr, &extension_count, nullptr);
+
+    Array<VkExtensionProperties> supported_extensions;
+    supported_extensions.Resize(extension_count);
+
+    vkEnumerateDeviceExtensionProperties(m_physical, nullptr, &extension_count, supported_extensions.Data());
 
     return supported_extensions;
 }
 
 ExtensionMap Device<Platform::VULKAN>::GetUnsupportedExtensions()
 {
-    const auto extensions_supported = GetSupportedExtensions();
+    const Array<VkExtensionProperties> extensions_supported = GetSupportedExtensions();
     ExtensionMap unsupported_extensions;
 
-    for (const auto &required_ext : required_extensions) {
-        auto supported_it = std::find_if(
-            extensions_supported.begin(),
-            extensions_supported.end(),
-            [&required_ext](const auto &it) {
+    for (const auto &required_ext : m_required_extensions) {
+        auto supported_it = extensions_supported.FindIf(
+            [&required_ext](const auto &it)
+            {
                 return required_ext.first == it.extensionName;
             }
         );
@@ -256,10 +259,10 @@ Result Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap &unsuppo
         }
     }
 
-    const SwapchainSupportDetails swapchain_support = features->QuerySwapchainSupport(surface);
+    const SwapchainSupportDetails swapchain_support = m_features->QuerySwapchainSupport(m_surface);
     const bool swapchains_available = swapchain_support.formats.Any() && swapchain_support.present_modes.Any();
 
-    if (!this->queue_family_indices.IsComplete()) {
+    if (!m_queue_family_indices.IsComplete()) {
         return {Result::RENDERER_ERR, "Device not supported -- indices setup was not complete."};
     }
 
@@ -278,43 +281,43 @@ Result Device<Platform::VULKAN>::SetupAllocator(Instance<Platform::VULKAN> *inst
 
     VmaAllocatorCreateInfo create_info { };
     create_info.vulkanApiVersion = HYP_VULKAN_API_VERSION;
-    create_info.physicalDevice   = this->GetPhysicalDevice();
-    create_info.device           = this->GetDevice();
+    create_info.physicalDevice   = m_physical;
+    create_info.device           = m_device;
     create_info.instance         = instance->GetInstance();
     create_info.pVulkanFunctions = &vkfuncs;
-    create_info.flags            = 0 | (features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    create_info.flags            = 0 | (m_features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
-    vmaCreateAllocator(&create_info, &allocator);
+    vmaCreateAllocator(&create_info, &m_allocator);
 
     HYPERION_RETURN_OK;
 }
 
 void Device<Platform::VULKAN>::DebugLogAllocatorStats() const
 {
-    if (this->allocator != VK_NULL_HANDLE) {
+    if (m_allocator != VK_NULL_HANDLE) {
         char *stats_string;
-        vmaBuildStatsString(this->allocator, &stats_string, true);
+        vmaBuildStatsString(m_allocator, &stats_string, true);
 
         DebugLog(LogType::RenInfo, "Pre-destruction VMA stats:\n%s\n", stats_string);
 
-        vmaFreeStatsString(this->allocator, stats_string);
+        vmaFreeStatsString(m_allocator, stats_string);
     }
 }
 
 Result Device<Platform::VULKAN>::DestroyAllocator()
 {
-    if (this->allocator != VK_NULL_HANDLE) {
+    if (m_allocator != VK_NULL_HANDLE) {
         DebugLogAllocatorStats();
 
-        vmaDestroyAllocator(this->allocator);
-        this->allocator = VK_NULL_HANDLE;
+        vmaDestroyAllocator(m_allocator);
+        m_allocator = VK_NULL_HANDLE;
     }
 
     HYPERION_RETURN_OK;
 }
 Result Device<Platform::VULKAN>::Wait() const
 {
-    HYPERION_VK_CHECK(vkDeviceWaitIdle(this->device));
+    HYPERION_VK_CHECK(vkDeviceWaitIdle(m_device));
 
     HYPERION_RETURN_OK;
 }
@@ -322,7 +325,7 @@ Result Device<Platform::VULKAN>::Wait() const
 Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &required_queue_families)
 {
     DebugLog(LogType::Debug, "Memory properties:\n");
-    const auto &memory_properties = features->GetPhysicalDeviceMemoryProperties();
+    const auto &memory_properties = m_features->GetPhysicalDeviceMemoryProperties();
 
     for (UInt32 i = 0; i < memory_properties.memoryTypeCount; i++) {
         const auto &memory_type = memory_properties.memoryTypes[i];
@@ -349,6 +352,7 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     }
     
     const ExtensionMap unsupported_extensions = GetUnsupportedExtensions();
+    const auto supported_extensions = GetSupportedExtensions();
 
     HYPERION_BUBBLE_ERRORS(CheckDeviceSuitable(unsupported_extensions));
 
@@ -357,20 +361,35 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     for (auto &it : unsupported_extensions) {
         AssertThrowMsg(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
 
-        required_extensions.erase(it.first);
+        m_required_extensions.erase(it.first);
     }
 
-    Array<const char *> required_extensions_linear;
-    required_extensions_linear.Reserve(required_extensions.size());
+    Array<const char *> extension_names;
+    extension_names.Reserve(m_required_extensions.size());
 
-    for (const auto &it : required_extensions) {
-        required_extensions_linear.PushBack(it.first.c_str());
+    for (const auto &it : m_required_extensions) {
+        extension_names.PushBack(it.first.c_str());
+    }
+
+    // Vulkan 1.3 requires VK_KHR_portability_subset to be enabled if it is found in vkEnumerateDeviceExtensionProperties()
+    // https://vulkan.lunarg.com/doc/view/1.3.211.0/mac/1.3-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+    {
+        auto protability_subset_it = supported_extensions.FindIf(
+            [](const auto &it)
+            {
+                return std::strcmp(it.extensionName, "VK_KHR_portability_subset") == 0;
+            }
+        );
+
+        if (protability_subset_it != supported_extensions.end()) {
+            extension_names.PushBack("VK_KHR_portability_subset");
+        }
     }
 
     DebugLog(LogType::RenDebug, "Required vulkan extensions:\n");
     DebugLog(LogType::RenDebug, "-----\n");
 
-    for (const char *str : required_extensions_linear) {
+    for (const char *str : extension_names) {
         DebugLog(LogType::RenDebug, "\t%s\n", str);
     }
 
@@ -380,42 +399,44 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     create_info.pQueueCreateInfos       = queue_create_infos.Data();
     create_info.queueCreateInfoCount    = UInt32(queue_create_infos.Size());
     // Setup Device extensions
-    create_info.enabledExtensionCount   = UInt32(required_extensions_linear.Size());
-    create_info.ppEnabledExtensionNames = required_extensions_linear.Data();
+    create_info.enabledExtensionCount   = UInt32(extension_names.Size());
+    create_info.ppEnabledExtensionNames = extension_names.Data();
     // Setup Device Features
     //create_info.pEnabledFeatures        = &features->GetPhysicalDeviceFeatures();
-    create_info.pNext                   = &features->GetPhysicalDeviceFeatures2();
+    create_info.pNext                   = &m_features->GetPhysicalDeviceFeatures2();
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateDevice(this->physical, &create_info, nullptr, &this->device),
+        vkCreateDevice(m_physical, &create_info, nullptr, &m_device),
         "Could not create Device!"
     );
     
     DebugLog(LogType::Debug, "Loading dynamic functions\n");
-    features->LoadDynamicFunctions(this);
-    features->SetDeviceFeatures(this);
+    m_features->LoadDynamicFunctions(this);
+    m_features->SetDeviceFeatures(this);
 
-    DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->IsRaytracingSupported());
+    DebugLog(LogType::Info, "Raytracing supported? : %d\n", m_features->IsRaytracingSupported());
 
     HYPERION_RETURN_OK;
 }
 
 VkQueue Device<Platform::VULKAN>::GetQueue(UInt32 queue_family_index, UInt32 queue_index)
 {
+    AssertThrow(m_device != VK_NULL_HANDLE);
+
     VkQueue queue;
-    vkGetDeviceQueue(this->GetDevice(), queue_family_index, queue_index, &queue);
+    vkGetDeviceQueue(m_device, queue_family_index, queue_index, &queue);
 
     return queue;
 }
 
 void Device<Platform::VULKAN>::Destroy()
 {
-    if (this->device != nullptr) {
+    if (m_device != VK_NULL_HANDLE) {
         /* By the time this destructor is called there should never
          * be a running queue, but just in case we will wait until
          * all the queues on our device are stopped. */
-        vkDeviceWaitIdle(this->device);
-        vkDestroyDevice(this->device, nullptr);
+        vkDeviceWaitIdle(m_device);
+        vkDestroyDevice(m_device, nullptr);
     }
 }
 

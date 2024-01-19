@@ -26,9 +26,9 @@ public:
     // a mapping from binary instruction location, to line number as well as optionally, stringmap index (-1 if not set). 
     struct LinemapEntry
     {
-        UInt64 instruction_location;
-        UInt64 line_num;
-        Int64 stringmap_index;
+        UInt64  instruction_location;
+        UInt64  line_num;
+        Int64   stringmap_index;
     };
 
     Tracemap();
@@ -39,8 +39,8 @@ public:
     void Set(StringmapEntry *stringmap, LinemapEntry *linemap);
 
 private:
-    StringmapEntry *m_stringmap;
-    LinemapEntry *m_linemap;
+    StringmapEntry  *m_stringmap;
+    LinemapEntry    *m_linemap;
 };
 
 } // namespace vm

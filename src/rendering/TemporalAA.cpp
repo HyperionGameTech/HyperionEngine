@@ -218,7 +218,7 @@ void TemporalAA::Render(Frame *frame)
     const auto &scene = g_engine->GetRenderState().GetScene().scene;
     const auto &camera = g_engine->GetRenderState().GetCamera().camera;
 
-    const FixedArray<Handle<Texture> *, 2> textures {
+    const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
         &m_history_texture
     };

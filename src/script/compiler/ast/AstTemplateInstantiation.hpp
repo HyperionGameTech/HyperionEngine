@@ -18,7 +18,7 @@ class AstTemplateInstantiation : public AstExpression
 {
 public:
     AstTemplateInstantiation(
-        const RC<AstIdentifier> &expr,
+        const RC<AstExpression> &expr,
         const Array<RC<AstArgument>> &generic_args,
         const SourceLocation &location
     );
@@ -38,7 +38,7 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
 
 private:
-    RC<AstIdentifier> m_expr;
+    RC<AstExpression> m_expr;
     Array<RC<AstArgument>> m_generic_args;
 
     // set while analyzing

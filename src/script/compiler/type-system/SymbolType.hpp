@@ -300,9 +300,14 @@ public:
     bool IsNullableType() const;
     bool IsArrayType() const;
     bool IsBoxedType() const;
-    /** Is is an uninstantiated generic parameter? (e.g T) */
+
+    /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;
+
+    /*! \brief Is this type an uninstantiated generic type? (e.g. List<T>) */
     bool IsGeneric() const;
+
+    /*! \brief Is this type a primitive type? (e.g. Int, Float) */
     bool IsPrimitive() const;
 
     bool IsProxyClass() const

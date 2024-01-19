@@ -66,7 +66,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
             const bool is_substitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
 
-            if (false) {//is_member) {
+            if (false) {//is_member) { // temporarily disabled; allows for self.<variable name> to be used without prefixing with 'self.'
                 m_self_member_access.Reset(new AstMember(
                     m_name,
                     RC<AstVariable>(new AstVariable(

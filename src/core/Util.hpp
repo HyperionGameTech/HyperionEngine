@@ -39,14 +39,16 @@ constexpr auto TypeName()
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    // Remove the namespace from the name
-    constexpr auto last_index = substr.template FindLast<IntegerSequenceFromString<StaticString("::")>>();
+    // // Remove the namespace from the name
+    // constexpr auto last_index = substr.template FindLast<IntegerSequenceFromString<StaticString("::")>>();
 
-    if constexpr (last_index == -1) {
-        return substr;
-    } else {
-        return substr.template Substr<last_index + 2, substr.Size() - 1>();
-    }
+    // if constexpr (last_index == -1) {
+    //     return substr;
+    // } else {
+    //     return substr.template Substr<last_index + 2, substr.Size() - 1>();
+    // }
+
+    return substr;
 }
 
 } // namespace hyperion

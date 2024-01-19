@@ -270,15 +270,6 @@ struct alignas(16) ObjectInstance
     UInt32 draw_command_index;
     UInt32 instance_index;
     UInt32 batch_index;
-
-    // UInt32 entity_id;
-    // UInt32 draw_command_index;
-    // UInt32 batch_index;
-    // UInt32 num_indices;
-
-    // ShaderVec4<Float> aabb_max;
-    // ShaderVec4<Float> aabb_min;
-    // ShaderVec4<UInt32> packed_data;
 };
 
 static_assert(sizeof(ObjectInstance) == 16);

@@ -32,7 +32,7 @@ void VMState::Reset()
     // purge static memory
     m_static_memory.Purge();
 
-    for (int i = 0; i < VM_MAX_THREADS; i++) {
+    for (UInt i = 0; i < VM_MAX_THREADS; i++) {
         DestroyThread(i);
     }
 
@@ -136,7 +136,7 @@ ExecutionThread *VMState::CreateThread()
     AssertThrow(m_num_threads < VM_MAX_THREADS);
 
     // find a free slot
-    for (int i = 0; i < VM_MAX_THREADS; i++) {
+    for (UInt i = 0; i < VM_MAX_THREADS; i++) {
         if (m_threads[i] == nullptr) {
             ExecutionThread *thread = new ExecutionThread();
             thread->m_id = i;

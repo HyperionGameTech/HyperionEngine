@@ -226,8 +226,8 @@ private:
         struct Data
         {
             RenderCommandRewindFunc rewind_func;
-            RenderCommandList<T> command_list;
-            SizeType command_type_index;
+            RenderCommandList<T>    command_list;
+            SizeType                command_type_index;
 
             Data()
             {

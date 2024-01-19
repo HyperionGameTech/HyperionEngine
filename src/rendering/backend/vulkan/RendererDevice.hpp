@@ -1,10 +1,12 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP
 
-#include <vector>
 #include <set>
 #include <unordered_map>
 #include <string>
+
+#include <core/lib/UniquePtr.hpp>
+#include <core/lib/DynArray.hpp>
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -47,10 +49,10 @@ public:
 
     Result SetupAllocator(Instance<Platform::VULKAN> *instance);
     Result DestroyAllocator();
-    VmaAllocator GetAllocator() const { return allocator; }
+    VmaAllocator GetAllocator() const { return m_allocator; }
 
-    const QueueFamilyIndices &GetQueueFamilyIndices() const { return queue_family_indices; }
-    const Features &GetFeatures() const { return *features; }
+    const QueueFamilyIndices &GetQueueFamilyIndices() const { return m_queue_family_indices; }
+    const Features &GetFeatures() const { return *m_features; }
 
     VkQueue GetQueue(UInt32 queue_family_index, UInt32 queue_index = 0);
 
@@ -63,18 +65,18 @@ public:
     /* \brief Check if the set required extensions extensions are supported. Any unsupported extensions are returned. */
     ExtensionMap GetUnsupportedExtensions();
 
-    std::vector<VkExtensionProperties> GetSupportedExtensions();
+    Array<VkExtensionProperties> GetSupportedExtensions();
 
 private:
-    VkDevice device;
-    VkPhysicalDevice physical;
-    VkSurfaceKHR surface;
-    VmaAllocator allocator;
+    VkDevice            m_device;
+    VkPhysicalDevice    m_physical;
+    VkSurfaceKHR        m_surface;
+    VmaAllocator        m_allocator;
 
-    Features *features;
-    QueueFamilyIndices queue_family_indices;
+    UniquePtr<Features> m_features;
+    QueueFamilyIndices  m_queue_family_indices;
 
-    ExtensionMap required_extensions;
+    ExtensionMap        m_required_extensions;
 };
 
 } // namespace platform

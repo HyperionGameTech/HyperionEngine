@@ -52,7 +52,8 @@ void ScriptingSystem::Process(EntityManager &entity_manager, GameCounter::TickUn
                 script->CallFunction(
                     script_component.script_methods[SCRIPT_METHOD_ON_ADDED],
                     script_component.target_object,
-                    script->CreateInternedObject<Handle<Entity>>(Handle<Entity>(entity_id))
+                    script->CreateInternedObject<Handle<Scene>>(Handle<Scene>(entity_manager.GetScene()->GetID())),
+                    entity_id.Value()
                 );
             }
 

@@ -25,7 +25,7 @@ enum EnvGridFlagBits : EnvGridFlags
 
 struct RenderCommand_UpdateEnvProbeAABBsInGrid;
 
-struct LightProbeGrid
+struct EnvProbeCollection
 {
     SizeType num_probes = 0;
     FixedArray<UInt, max_bound_ambient_probes * 2> indirect_indices = { 0 };
@@ -197,7 +197,7 @@ private:
     // Array<Handle<EnvProbe>> m_ambient_probes;
     // Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
 
-    LightProbeGrid m_grid;
+    EnvProbeCollection m_env_probe_collection;
 
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;

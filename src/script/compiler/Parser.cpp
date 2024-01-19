@@ -754,7 +754,7 @@ RC<AstExpression> Parser::ParseParentheses()
     return expr;
 }
 
-RC<AstExpression> Parser::ParseAngleBrackets(RC<AstIdentifier> target)
+RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression> target)
 {
     SourceLocation location = CurrentLocation();
     const SizeType before_pos = m_token_stream->GetPosition();
@@ -762,6 +762,8 @@ RC<AstExpression> Parser::ParseAngleBrackets(RC<AstIdentifier> target)
     Array<RC<AstArgument>> args;
 
     if (Token token = ExpectOperator("<", true)) {
+        bool breakout = false;
+
         if (MatchOperator(">", true)) {
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 target,
@@ -806,30 +808,44 @@ RC<AstExpression> Parser::ParseAngleBrackets(RC<AstIdentifier> target)
                     arg_location
                 )));
             } else {
-                --m_template_argument_depth;
-
                 // not an argument, revert to start.
                 m_token_stream->SetPosition(before_pos);
 
-                // return as comparison expression
-                return ParseBinaryExpression(0, target);
+                breakout = true;
+
+                // not a template instantiation, revert to start.
+                break;
             }
         } while (Match(TK_COMMA, true));
 
         --m_template_argument_depth;
 
-        if (MatchOperator(">", true)) {
+        if (!breakout && MatchOperator(">", true)) {
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 target,
                 args,
                 token.GetLocation()
             ));
-        } else {
-            // no closing bracket found
-            m_token_stream->SetPosition(before_pos);
-            // return as comparison expression
-            return ParseBinaryExpression(0, target);
         }
+
+        // no closing bracket found, revert to start.
+        m_token_stream->SetPosition(before_pos);
+    }
+
+    return nullptr;
+}
+
+RC<AstExpression> Parser::ParseAngleBrackets(RC<AstExpression> target)
+{
+    SourceLocation location = CurrentLocation();
+
+    if (Token token = ExpectOperator("<", false)) {
+        if (auto template_instantiation = ParseTemplateInstantiation(target)) {
+            return template_instantiation;
+        }
+
+        // return as comparison expression
+        return ParseBinaryExpression(0, target);
     }
 
     return nullptr;
@@ -1082,7 +1098,7 @@ RC<AstModuleProperty> Parser::ParseModuleProperty()
     ));
 }
 
-RC<AstMember> Parser::ParseMemberExpression(RC<AstExpression> target)
+RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
 {
     Expect(TK_DOT, true);
 
@@ -1091,28 +1107,24 @@ RC<AstMember> Parser::ParseMemberExpression(RC<AstExpression> target)
         ? m_token_stream->Next()
         : ExpectIdentifier(true, true);
 
+    RC<AstExpression> expr;
+
     if (ident) {
-        // if (Match(TK_OPEN_PARENTH)) {
-        //     if (auto argument_list = ParseArguments()) {
-        //         return RC<AstMemberCallExpression>(new AstMemberCallExpression(
-        //             ident.GetValue(),
-        //             target,
-        //             argument_list,
-        //             ident.GetLocation()
-        //         ));
-        //     } else {
-        //         return nullptr;
-        //     }
-        // } else {
-            return RC<AstMember>(new AstMember(
-                ident.GetValue(),
-                target,
-                ident.GetLocation()
-            ));
-        // }
+        expr = RC<AstMember>(new AstMember(
+            ident.GetValue(),
+            target,
+            ident.GetLocation()
+        ));
+
+        // match template arguments
+        if (MatchOperator("<")) {
+            if (auto template_instantiation = ParseTemplateInstantiation(expr)) {
+                expr = std::move(template_instantiation);
+            }
+        }
     }
 
-    return nullptr;
+    return expr;
 }
 
 RC<AstArrayAccess> Parser::ParseArrayAccess(RC<AstExpression> target)

@@ -223,35 +223,30 @@ public:
 private:
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
-    Scene *m_scene;
+    Scene                                           *m_scene;
 
-    std::atomic<RenderEnvironmentUpdates> m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
-
-    Queue<Handle<Entity>> m_entities_pending_addition;
-    Queue<Handle<Entity>> m_entities_pending_removal;
-    Queue<Handle<Entity>> m_entity_renderable_attribute_updates;
-    BinarySemaphore m_entity_update_sp;
+    std::atomic<RenderEnvironmentUpdates>           m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_init;
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_addition;
-    FlatSet<RenderComponentPendingRemovalEntry> m_render_components_pending_removal;
-    std::mutex m_render_component_mutex;
-    UInt32 m_current_enabled_render_components_mask;
-    UInt32 m_next_enabled_render_components_mask;
+    FlatSet<RenderComponentPendingRemovalEntry>     m_render_components_pending_removal;
+    std::mutex                                      m_render_component_mutex;
+    UInt32                                          m_current_enabled_render_components_mask;
+    UInt32                                          m_next_enabled_render_components_mask;
 
-    Handle<ParticleSystem> m_particle_system;
+    Handle<ParticleSystem>                          m_particle_system;
 
-    Handle<GaussianSplatting> m_gaussian_splatting;
+    Handle<GaussianSplatting>                       m_gaussian_splatting;
 
-    UniquePtr<RTRadianceRenderer> m_rt_radiance;
-    ProbeGrid m_probe_system;
-    Bool m_has_rt_radiance;
-    Bool m_has_ddgi_probes;
-    Handle<TLAS> m_tlas;
+    UniquePtr<RTRadianceRenderer>                   m_rt_radiance;
+    ProbeGrid                                       m_probe_system;
+    Bool                                            m_has_rt_radiance;
+    Bool                                            m_has_ddgi_probes;
+    Handle<TLAS>                                    m_tlas;
 
-    Float m_global_timer;
-    UInt32 m_frame_counter;
+    Float                                           m_global_timer;
+    UInt32                                          m_frame_counter;
 };
 
 } // namespace hyperion::v2

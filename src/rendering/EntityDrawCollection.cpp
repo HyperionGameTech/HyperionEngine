@@ -494,9 +494,9 @@ void RenderList::ExecuteDrawCalls(
             const RenderableAttributeSet &attributes = it.first;
             const EntityDrawCollection::EntityList &entity_list = it.second;
 
-            const Bucket bucket = bucket_bits.Test(UInt(attributes.GetMaterialAttributes().bucket)) ? attributes.GetMaterialAttributes().bucket : BUCKET_INVALID;
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            if (bucket == BUCKET_INVALID) {
+            if (!bucket_bits.Test(UInt(bucket))) {
                 continue;
             }
 

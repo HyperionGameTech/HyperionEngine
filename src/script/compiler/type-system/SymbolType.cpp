@@ -485,25 +485,7 @@ bool SymbolType::IsGenericParameter() const
 
 bool SymbolType::IsGeneric() const
 {
-    if (IsOrHasBase(*BuiltinTypes::GENERIC_VARIABLE_TYPE)) {
-        return true;
-    }
-
-    if (GetTypeClass() == TYPE_GENERIC) {
-        return true;
-    }
-
-    SymbolTypePtr_t top = GetBaseType();
-
-    while (top != nullptr) {
-        if (top->GetTypeClass() == TYPE_GENERIC) {
-            return true;
-        }
-
-        top = top->GetBaseType();
-    }
-    
-    return false;
+    return GetBaseType() == BuiltinTypes::GENERIC_VARIABLE_TYPE;
 }
 
 bool SymbolType::IsPrimitive() const

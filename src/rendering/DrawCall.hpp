@@ -252,14 +252,14 @@ struct DrawCall
 
     UInt                                entity_id_count;
     ID<Entity>                          entity_ids[max_entities_per_instance_batch];
-
-    UInt                                packed_data[4];
 };
 
 struct DrawCallCollection
 {
-    Array<DrawCall> draw_calls;
-    HashMap<UInt64 /* DrawCallID */, Array<SizeType>> index_map;
+    Array<DrawCall>                     draw_calls;
+
+    // Map from draw call ID to index in draw_calls
+    HashMap<UInt64, Array<SizeType>>    index_map;
 
     DrawCallCollection() = default;
     DrawCallCollection(const DrawCallCollection &other) = delete;

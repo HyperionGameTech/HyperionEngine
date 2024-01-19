@@ -38,8 +38,8 @@ class VM;
 
 struct Registers
 {
-    Value m_reg[VM_NUM_REGISTERS];
-    int m_flags = 0;
+    Value   m_reg[VM_NUM_REGISTERS];
+    int     m_flags = 0;
 
     Value &operator[](UInt8 index) { return m_reg[index]; }
     void ResetFlags() { m_flags = 0; }
@@ -62,19 +62,21 @@ struct ExecutionThread
 {
     friend struct VMState;
 
-    StackMemory m_stack;
-    ExceptionState m_exception_state;
-    Registers m_regs;
+    StackMemory     m_stack;
+    ExceptionState  m_exception_state;
+    Registers       m_regs;
 
-    UInt m_func_depth = 0;
+    UInt            m_func_depth = 0;
+    int             m_id = -1;
 
-    StackMemory &GetStack() { return m_stack; }
-    ExceptionState &GetExceptionState() { return m_exception_state; }
-    Registers &GetRegisters() { return m_regs; }
-    int GetId() const { return m_id; }
+    StackMemory &GetStack()
+        { return m_stack; }
 
-private:
-    int m_id;
+    ExceptionState &GetExceptionState()
+        { return m_exception_state; }
+
+    Registers &GetRegisters()
+        { return m_regs; }
 };
 
 struct DynModule
@@ -128,9 +130,6 @@ struct VMState
 
     const Heap &GetHeap() const
         { return m_heap; }
-
-    StaticMemory &GetStaticMemory()
-        { return m_static_memory; }
 
     ExportedSymbolTable &GetExportedSymbols()
         { return m_exported_symbols; }

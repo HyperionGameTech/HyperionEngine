@@ -46,12 +46,12 @@ struct VMStructMemberView
 
 struct VMStructView
 {
-    Array<VMStructMemberView> members;
+    Array<VMStructMemberView>   members;
 };
 
 struct VMStructDynamicMemory
 {
-    Array<Value> values;
+    Array<Value>    values;
 };
 
 struct VMStructHeader

@@ -114,7 +114,8 @@ private:
         Bool override_question_mark = false
     );
     RC<AstExpression> ParseParentheses();
-    RC<AstExpression> ParseAngleBrackets(RC<AstIdentifier> target);
+    RC<AstTemplateInstantiation> ParseTemplateInstantiation(RC<AstExpression> expr);
+    RC<AstExpression> ParseAngleBrackets(RC<AstExpression> target);
     RC<AstConstant> ParseIntegerLiteral();
     RC<AstFloat> ParseFloatLiteral();
     RC<AstString> ParseStringLiteral();
@@ -127,7 +128,7 @@ private:
     );
     RC<AstModuleAccess> ParseModuleAccess();
     RC<AstModuleProperty> ParseModuleProperty();
-    RC<AstMember> ParseMemberExpression(RC<AstExpression> target);
+    RC<AstExpression> ParseMemberExpression(RC<AstExpression> target);
     RC<AstArrayAccess> ParseArrayAccess(RC<AstExpression> target);
     RC<AstHasExpression> ParseHasExpression(RC<AstExpression> target);
     RC<AstIsExpression> ParseIsExpression(RC<AstExpression> target);

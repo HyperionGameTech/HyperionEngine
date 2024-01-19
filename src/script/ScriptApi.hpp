@@ -845,7 +845,7 @@ static inline vm::Value CxxToScriptValueInternal(APIInstance &api_instance, T &&
 template <class T>
 struct CxxToScriptValueImpl
 {
-    static_assert(std::is_class_v<T>, "Should not receive a VM object type as it is handled by other specializations");
+    static_assert(std::is_class_v<T> || std::is_pointer_v<T>, "Must be a class type or pointer type");
     static_assert(!is_vm_object_type<T>, "Should not receive a VM object type as it is handled by other specializations");
 
     // use a template param to allow const references and similar but still having T be decayed
@@ -855,36 +855,44 @@ struct CxxToScriptValueImpl
         static_assert(!IsDynArray<T>::value, "other specialization should handle dynarrays");
         static_assert(std::is_convertible_v<Ty, T>, "must be convertible; unrelated types T and Ty");
 
-        const auto class_name_it = api_instance.class_bindings.class_names.Find<T>();
-        AssertThrowMsg(class_name_it != api_instance.class_bindings.class_names.End(), "Class not registered!");
+        if constexpr (std::is_pointer_v<T>) {
+            vm::Value final_value;
+            final_value.m_type = vm::Value::USER_DATA;
+            final_value.m_value.user_data = value;
 
-        const auto prototype_it = api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
-        AssertThrowMsg(prototype_it != api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
+            return final_value;
+        } else {
+            const auto class_name_it = api_instance.class_bindings.class_names.Find<T>();
+            AssertThrowMsg(class_name_it != api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        vm::Value intern_value;
-        {
-            vm::HeapValue *ptr_result = api_instance.GetVM()->GetState().HeapAlloc(api_instance.GetVM()->GetState().GetMainThread());
-            AssertThrow(ptr_result != nullptr);
+            const auto prototype_it = api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
+            AssertThrowMsg(prototype_it != api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
-            ptr_result->Assign(std::forward<Ty>(value));
-            ptr_result->Mark();
-            intern_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
+            vm::Value intern_value;
+            {
+                vm::HeapValue *ptr_result = api_instance.GetVM()->GetState().HeapAlloc(api_instance.GetVM()->GetState().GetMainThread());
+                AssertThrow(ptr_result != nullptr);
+
+                ptr_result->Assign(std::forward<Ty>(value));
+                ptr_result->Mark();
+                intern_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
+            }
+
+            vm::VMObject boxed_value(prototype_it->second);
+            HYP_SCRIPT_SET_MEMBER(boxed_value, "__intern", intern_value);
+
+            vm::Value final_value;
+            {
+                vm::HeapValue *ptr_result = api_instance.GetVM()->GetState().HeapAlloc(api_instance.GetVM()->GetState().GetMainThread());
+                AssertThrow(ptr_result != nullptr);
+
+                ptr_result->Assign(boxed_value);
+                ptr_result->Mark();
+                final_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
+            }
+
+            return final_value;
         }
-
-        vm::VMObject boxed_value(prototype_it->second);
-        HYP_SCRIPT_SET_MEMBER(boxed_value, "__intern", intern_value);
-
-        vm::Value final_value;
-        {
-            vm::HeapValue *ptr_result = api_instance.GetVM()->GetState().HeapAlloc(api_instance.GetVM()->GetState().GetMainThread());
-            AssertThrow(ptr_result != nullptr);
-
-            ptr_result->Assign(boxed_value);
-            ptr_result->Mark();
-            final_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
-        }
-
-        return final_value;
     }
 };
 

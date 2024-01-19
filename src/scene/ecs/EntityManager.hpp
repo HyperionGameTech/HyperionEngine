@@ -266,6 +266,8 @@ public:
     std::tuple<const Components &...> GetComponents(ID<Entity> entity) const
         { return std::tuple<const Components &...>(GetComponent<Components>(entity)...); }
 
+    ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
+
     template <class Component>
     void AddComponent(ID<Entity> entity, Component &&component)
     {
