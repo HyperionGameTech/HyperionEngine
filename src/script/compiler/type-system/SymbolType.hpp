@@ -59,14 +59,14 @@ struct AliasTypeInfo
 
 struct FunctionTypeInfo
 {
-    Array<SymbolTypePtr_t> m_param_types;
-    SymbolTypePtr_t m_return_type;
+    Array<SymbolTypePtr_t>  m_param_types;
+    SymbolTypePtr_t         m_return_type;
 };
 
 struct GenericTypeInfo
 {
-    int m_num_parameters; // -1 for variadic
-    Array<SymbolTypePtr_t> m_params;
+    int                     m_num_parameters; // -1 for variadic
+    Array<SymbolTypePtr_t>  m_params;
 };
 
 struct GenericInstanceTypeInfo
@@ -80,7 +80,7 @@ struct GenericInstanceTypeInfo
         bool                m_is_const = false;
     };
 
-    Array<Arg> m_generic_args;
+    Array<Arg>  m_generic_args;
 };
 
 struct GenericParameterTypeInfo
@@ -271,7 +271,10 @@ public:
 
     const SymbolTypePtr_t FindMember(const String &name) const;
     bool FindMember(const String &name, SymbolMember_t &out) const;
+    bool FindMember(const String &name, SymbolMember_t &out, UInt &out_index) const;
     bool FindMemberDeep(const String &name, SymbolMember_t &out) const;
+    bool FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index) const;
+    bool FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index, UInt &out_depth) const;
 
     const SymbolTypePtr_t FindPrototypeMember(const String &name) const;
     bool FindPrototypeMember(const String &name, SymbolMember_t &out) const;

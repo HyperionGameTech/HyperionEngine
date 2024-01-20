@@ -185,6 +185,15 @@ public:
     const SourceLocation &GetLocation() const { return m_location; }
     const String &GetText() const { return m_text; }
 
+    bool operator==(const CompilerError &other) const
+        { return m_level == other.m_level
+            && m_msg == other.m_msg
+            && m_location == other.m_location
+            && m_text == other.m_text; }
+
+    bool operator!=(const CompilerError &other) const
+        { return !(*this == other); }
+
     bool operator<(const CompilerError &other) const;
 
 private:

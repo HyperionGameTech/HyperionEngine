@@ -100,7 +100,6 @@ static struct EnqueuedAssetScriptBindings : ScriptBindingsBase
             .Class<EnqueuedAsset>(
                 "EnqueuedAsset",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,
@@ -151,7 +150,6 @@ static struct AssetMapScriptBindings : ScriptBindingsBase
             .Class<AssetMap>(
                 "AssetMap",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,
@@ -187,7 +185,6 @@ static struct AssetBatchScriptBindings : ScriptBindingsBase
             .Class<RC<AssetBatch>>(
                 "AssetBatch",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,

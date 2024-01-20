@@ -288,18 +288,28 @@ bool AstTypeExpression::MayHaveSideEffects() const
 SymbolTypePtr_t AstTypeExpression::GetExprType() const
 {
     AssertThrow(m_expr != nullptr);
+
     return m_expr->GetExprType();
+}
+
+SymbolTypePtr_t AstTypeExpression::GetHeldType() const
+{
+    AssertThrow(m_symbol_type != nullptr);
+
+    return m_symbol_type;
 }
 
 const AstExpression *AstTypeExpression::GetValueOf() const
 {
     AssertThrow(m_expr != nullptr);
+
     return m_expr->GetValueOf();
 }
 
 const AstExpression *AstTypeExpression::GetDeepValueOf() const
 {
     AssertThrow(m_expr != nullptr);
+
     return m_expr->GetDeepValueOf();
 }
 

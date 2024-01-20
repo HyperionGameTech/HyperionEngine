@@ -42,20 +42,20 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
+
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual SymbolTypePtr_t GetHeldType() const override;
+
     virtual const AstTypeObject *ExtractTypeObject() const override;
 
-    const SymbolTypePtr_t &GetHeldType() const
-        { return m_symbol_type; }
-
 private:
-    SymbolTypePtr_t m_symbol_type;
-    RC<AstVariable> m_proto;
-    SymbolTypePtr_t m_enum_underlying_type;
-    bool m_is_proxy_class;
+    SymbolTypePtr_t             m_symbol_type;
+    RC<AstVariable>             m_proto;
+    SymbolTypePtr_t             m_enum_underlying_type;
+    bool                        m_is_proxy_class;
 
     // set while analyzing
-    Array<RC<AstExpression>> m_member_expressions;
+    Array<RC<AstExpression>>    m_member_expressions;
 
     RC<AstTypeObject> CloneImpl() const
     {

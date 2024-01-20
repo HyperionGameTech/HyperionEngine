@@ -33,19 +33,22 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual SymbolTypePtr_t GetHeldType() const override;
 
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+    virtual AstExpression *GetTarget() const override;
 
 private:
-    RC<AstExpression> m_expr;
-    Array<RC<AstArgument>> m_generic_args;
+    RC<AstExpression>       m_expr;
+    Array<RC<AstArgument>>  m_generic_args;
 
     // set while analyzing
-    RC<AstExpression> m_inner_expr;
-    RC<AstBlock> m_block;
-    SymbolTypePtr_t m_expr_type;
-    bool m_is_visited = false;
+    RC<AstExpression>       m_inner_expr;
+    RC<AstBlock>            m_block;
+    RC<AstExpression>       m_target_expr;
+    SymbolTypePtr_t         m_expr_type;
+    bool                    m_is_visited = false;
 
     RC<AstTemplateInstantiation> CloneImpl() const
     {

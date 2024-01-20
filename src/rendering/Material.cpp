@@ -686,7 +686,6 @@ static struct MaterialScriptBindings : ScriptBindingsBase
             .Class<Handle<Material>>(
                 "Material",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,

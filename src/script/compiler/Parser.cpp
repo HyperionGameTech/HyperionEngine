@@ -1660,51 +1660,31 @@ RC<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
         true,  // override []
         true   // override ()
     )) {
-        //while (Match(TK_OPEN_BRACKET) || Match(TK_QUESTION_MARK)) {
-            // question mark at the end of a type is syntactical sugar for `Maybe(T)`
-            /*if (Token token = Match(TK_QUESTION_MARK, true)) {
-                term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                    RC<AstVariable>(new AstVariable(
-                        "Maybe",
-                        token.GetLocation()
-                    )),
-                    {
-                        RC<AstArgument>(new AstArgument(
-                            term,
-                            false,
-                            false,
-                            "",
-                            term->GetLocation()
-                        ))
-                    },
-                    term->GetLocation()
-                ));
-            } else */if (Token token = Match(TK_OPEN_BRACKET, true)) {
-                // array braces at the end of a type are syntactical sugar for `Array(T)`
-                term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                    RC<AstVariable>(new AstVariable(
-                        BuiltinTypes::ARRAY->GetName(),
-                        token.GetLocation()
-                    )),
-                    {
-                        RC<AstArgument>(new AstArgument(
-                            term,
-                            false,
-                            false,
-                            false,
-                            false,
-                            "",
-                            term->GetLocation()
-                        ))
-                    },
-                    term->GetLocation()
-                ));
+        if (Token token = Match(TK_OPEN_BRACKET, true)) {
+            // array braces at the end of a type are syntactical sugar for `Array(T)`
+            term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+                RC<AstVariable>(new AstVariable(
+                    BuiltinTypes::ARRAY->GetName(),
+                    token.GetLocation()
+                )),
+                {
+                    RC<AstArgument>(new AstArgument(
+                        term,
+                        false,
+                        false,
+                        false,
+                        false,
+                        "",
+                        term->GetLocation()
+                    ))
+                },
+                term->GetLocation()
+            ));
 
-                if (!Expect(TK_CLOSE_BRACKET, true)) {
-                    return nullptr;
-                }
+            if (!Expect(TK_CLOSE_BRACKET, true)) {
+                return nullptr;
             }
-        //}
+        }
 
         return RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
             term,

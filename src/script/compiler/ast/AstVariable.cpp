@@ -450,4 +450,22 @@ bool AstVariable::IsMutable() const
     return !IsLiteral();
 }
 
+const AstExpression *AstVariable::GetValueOf() const
+{
+    if (m_inline_value != nullptr) {
+        return m_inline_value->GetValueOf();
+    }
+
+    return AstIdentifier::GetValueOf();
+}
+
+const AstExpression *AstVariable::GetDeepValueOf() const
+{
+    if (m_inline_value != nullptr) {
+        return m_inline_value->GetDeepValueOf();
+    }
+
+    return AstIdentifier::GetDeepValueOf();
+}
+
 } // namespace hyperion::compiler

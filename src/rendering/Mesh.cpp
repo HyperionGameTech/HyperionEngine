@@ -638,7 +638,6 @@ static struct MeshScriptBindings : ScriptBindingsBase
             .Class<Handle<Mesh>>(
                 "Mesh",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,

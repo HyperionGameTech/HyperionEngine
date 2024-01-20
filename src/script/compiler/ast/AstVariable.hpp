@@ -25,6 +25,9 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual bool IsMutable() const override;
 
+    virtual const AstExpression *GetValueOf() const override;
+    virtual const AstExpression *GetDeepValueOf() const override;
+
 private:
     // set while analyzing
     // used to get locals from outer function in a closure

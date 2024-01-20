@@ -82,37 +82,6 @@ const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
     }
 );
 
-const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Primitive(
-    "Enum",
-    RC<AstUndefined>(new AstUndefined(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE
-);
-
-/*
-const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
-    "Enum",
-    Array<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__Enum", nullptr
-            ),
-            RC<AstUndefined>(new AstUndefined(SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    },
-    GenericTypeInfo { 1 },
-    BuiltinTypes::CLASS_TYPE
-);*/
-
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Primitive(
     "Int",
     RC<AstInteger>(new AstInteger(0, SourceLocation::eof)),

@@ -72,7 +72,6 @@ static struct VertexScriptBindings : ScriptBindingsBase
             .Class<Vertex>(
                 "Vertex",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,

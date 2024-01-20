@@ -1593,8 +1593,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         .Class<RC<DynModule>>(
             "Module",
             {
-                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
-
                 API::NativeMemberDefine(
                     "Get",
                     BuiltinTypes::ANY,
@@ -1832,7 +1830,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         .Class<Vec2f>(
             "Vec2f",
             {
-                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                 API::NativeMemberDefine(
                     "$construct",
                     BuiltinTypes::ANY,
@@ -1981,7 +1978,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         .Class<Vec3f>(
             "Vec3f",
             {
-                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                 API::NativeMemberDefine(
                     "$construct",
                     BuiltinTypes::ANY,
@@ -2218,7 +2214,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         .Class<BoundingBox>(
             "BoundingBox",
             {
-                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                 API::NativeMemberDefine(
                     "$construct",
                     BuiltinTypes::ANY,

@@ -50,11 +50,23 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    const auto &expr_type = m_expr->GetExprType();
+    // We clone the target expr from the initial expression so that we can use it in the case of
+    // generic instantiation of a member function.
+    // e.g: `foo.bar<int>()` where `bar` is a generic function. `foo` is the target expression, being passed as the `self` argument
+    m_target_expr = CloneAstNode(m_expr->GetTarget());
+
+    if (m_target_expr != nullptr) {
+        // Visit it so that it can be analyzed
+        m_target_expr->Visit(visitor, mod);
+    }
+
+    const SymbolTypePtr_t expr_type = m_expr->GetExprType();
     AssertThrow(expr_type != nullptr);
 
-    // temporarily define all generic parameters so there are no undefined reference errors.
-    const AstExpression *value_of = m_expr->GetValueOf();
+    const AstExpression *value_of = m_expr->GetDeepValueOf();
+    AssertThrow(value_of != nullptr);
+
+    // Check if the expression is a generic expression.
     const AstExpression *generic_expr = value_of->GetHeldGenericExpr();
 
     if (generic_expr == nullptr) {
@@ -92,6 +104,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     
     m_inner_expr = CloneAstNode(generic_expr);
 
+    // temporarily define all generic parameters so there are no undefined reference errors.
     for (SizeType index = 0; index < expr_type->GetGenericInstanceInfo().m_generic_args.Size() - 1; index++) {
         AssertThrow(args_substituted[index]->GetExpr() != nullptr);
 
@@ -192,12 +205,22 @@ SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
     return BuiltinTypes::UNDEFINED;
 }
 
+SymbolTypePtr_t AstTemplateInstantiation::GetHeldType() const
+{
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->GetHeldType();
+    }
+
+    return AstExpression::GetHeldType();
+}
+
 const AstExpression *AstTemplateInstantiation::GetValueOf() const
 {
     if (m_inner_expr != nullptr) {
-        AssertThrow(m_inner_expr.Get() != this);
+        return m_inner_expr.Get();
+        // AssertThrow(m_inner_expr.Get() != this);
 
-        return m_inner_expr->GetValueOf();
+        // return m_inner_expr->GetValueOf();
     }
 
     return AstExpression::GetValueOf();
@@ -212,6 +235,17 @@ const AstExpression *AstTemplateInstantiation::GetDeepValueOf() const
     }
 
     return AstExpression::GetDeepValueOf();
+}
+
+AstExpression *AstTemplateInstantiation::GetTarget() const
+{
+    if (m_target_expr != nullptr) {
+        AssertThrow(m_target_expr.Get() != this);
+
+        return m_target_expr.Get();
+    }
+
+    return AstExpression::GetTarget();
 }
 
 } // namespace hyperion::compiler

@@ -207,4 +207,9 @@ const AstExpression *AstPrototypeSpecification::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
+SymbolTypePtr_t AstPrototypeSpecification::GetHeldType() const
+{
+    return m_symbol_type;
+}
+
 } // namespace hyperion::compiler

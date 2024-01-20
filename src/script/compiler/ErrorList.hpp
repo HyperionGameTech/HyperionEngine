@@ -1,7 +1,7 @@
 #ifndef ERROR_LIST_HPP
 #define ERROR_LIST_HPP
 
-#include <core/lib/DynArray.hpp>
+#include <core/lib/FlatSet.hpp>
 
 #include <script/compiler/CompilerError.hpp>
 #include <util/UTF8.hpp>
@@ -17,6 +17,10 @@ class ErrorList
 public:
     ErrorList();
     ErrorList(const ErrorList &other);
+    ErrorList &operator=(const ErrorList &other);
+    ErrorList(ErrorList &&other) noexcept;
+    ErrorList &operator=(ErrorList &&other) noexcept;
+    ~ErrorList() = default;
 
     SizeType Size() const
         { return m_errors.Size(); }
@@ -28,22 +32,19 @@ public:
         { return m_errors[index]; }
 
     void AddError(const CompilerError &error)
-        { m_errors.PushBack(error); }
+        { m_errors.Insert(error); }
 
     void ClearErrors()
         { m_errors.Clear(); }
 
-    void SortErrors()
-        { std::sort(m_errors.Begin(), m_errors.End()); }
-
     void Concatenate(const ErrorList &other)
-        { m_errors.Concat(other.m_errors); }
+        { m_errors.Merge(other.m_errors); }
 
     bool HasFatalErrors() const;
     std::ostream &WriteOutput(std::ostream &os) const;
 
 private:
-    Array<CompilerError> m_errors;
+    FlatSet<CompilerError> m_errors;
 };
 
 } // namespace hyperion::compiler

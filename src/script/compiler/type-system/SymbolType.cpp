@@ -66,53 +66,53 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     }
 
     switch (m_type_class) {
-        case TYPE_BUILTIN:
-            return true;
-        case TYPE_ALIAS:
-            if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
-                return *sp == other;
-            }
+    case TYPE_BUILTIN:
+        return true;
+    case TYPE_ALIAS:
+        if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
+            return *sp == other;
+        }
 
+        return false;
+
+    case TYPE_GENERIC:
+        if (m_generic_info.m_num_parameters != other.m_generic_info.m_num_parameters) {
             return false;
+        }
 
-        case TYPE_GENERIC:
-            if (m_generic_info.m_num_parameters != other.m_generic_info.m_num_parameters) {
-                return false;
+        return true;
+        
+    case TYPE_GENERIC_INSTANCE:
+        if (m_generic_instance_info.m_generic_args.Size() != other.m_generic_instance_info.m_generic_args.Size()) {
+            return false;
+        }
+
+        // check each substituted parameter
+        for (SizeType i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
+            const SymbolTypePtr_t &instance_arg_type = m_generic_instance_info.m_generic_args[i].m_type;
+            const SymbolTypePtr_t &other_arg_type = other.m_generic_instance_info.m_generic_args[i].m_type;
+
+            AssertThrow(instance_arg_type != nullptr);
+            AssertThrow(other_arg_type != nullptr);
+
+            if (instance_arg_type != other_arg_type) {
+                return false; // have to do this for now to prevent infinte recursion
             }
 
-            return true;
-            
-        case TYPE_GENERIC_INSTANCE:
-            if (m_generic_instance_info.m_generic_args.Size() != other.m_generic_instance_info.m_generic_args.Size()) {
-                return false;
-            }
+            // if (instance_arg_type == other_arg_type) {
+            //     continue;
+            // }
 
-            // check each substituted parameter
-            for (SizeType i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
-                const SymbolTypePtr_t &instance_arg_type = m_generic_instance_info.m_generic_args[i].m_type;
-                const SymbolTypePtr_t &other_arg_type = other.m_generic_instance_info.m_generic_args[i].m_type;
+            // if (!instance_arg_type->TypeEqual(*other_arg_type)) {
+            //     return false;
+            // }
+        }
 
-                AssertThrow(instance_arg_type != nullptr);
-                AssertThrow(other_arg_type != nullptr);
+        // do not go to end (where members are compared)
+        return true;
 
-                if (instance_arg_type != other_arg_type) {
-                    return false; // have to do this for now to prevent infinte recursion
-                }
-
-                // if (instance_arg_type == other_arg_type) {
-                //     continue;
-                // }
-
-                // if (!instance_arg_type->TypeEqual(*other_arg_type)) {
-                //     return false;
-                // }
-            }
-
-            // do not go to end (where members are compared)
-            return true;
-
-        default:
-            break;
+    default:
+        break;
     }
 
     if (m_members.Size() != other.m_members.Size()) {
@@ -290,20 +290,61 @@ bool SymbolType::FindMember(const String &name, SymbolMember_t &out) const
     return false;
 }
 
+bool SymbolType::FindMember(const String &name, SymbolMember_t &out, UInt &out_index) const
+{
+    // get member index from name
+    for (SizeType i = 0; i < m_members.Size(); i++) {
+        const SymbolMember_t &member = m_members[i];
+
+        if (std::get<0>(member) == name) {
+            // only set m_found_index if found in first level.
+            // for members from base objects,
+            // we load based on hash.
+            out_index = UInt(i);
+            out = member;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out) const
 {
-    if (FindMember(name, out)) {
+    UInt out_index;
+    UInt out_depth;
+
+    return FindMemberDeep(name, out, out_index, out_depth);
+}
+
+bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index) const
+{
+    UInt out_depth;
+
+    return FindMemberDeep(name, out, out_index, out_depth);
+}
+
+bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index, UInt &out_depth) const
+{
+    out_depth = 0;
+
+    if (FindMember(name, out, out_index)) {
         return true;
     }
+
+    out_depth++;
 
     SymbolTypePtr_t base_ptr = GetBaseType();
 
     while (base_ptr != nullptr) {
-        if (base_ptr->FindMember(name, out)) {
+        if (base_ptr->FindMember(name, out, out_index)) {
             return true;
         }
 
         base_ptr = base_ptr->GetBaseType();
+
+        out_depth++;
     }
 
     return false;
@@ -472,7 +513,7 @@ bool SymbolType::IsArrayType() const
 
 bool SymbolType::IsGenericParameter() const
 {
-     return m_type_class == TYPE_GENERIC_PARAMETER;
+    return m_type_class == TYPE_GENERIC_PARAMETER;
 }
 
 bool SymbolType::IsGeneric() const
@@ -832,10 +873,6 @@ SymbolTypePtr_t SymbolType::GenericInstance(
     return GenericInstance(base, info, { });
 }
 
-
-/**
- * @TODO: Constraint
- */
 SymbolTypePtr_t SymbolType::GenericParameter(
     const String &name
 )

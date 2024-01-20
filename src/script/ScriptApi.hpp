@@ -18,6 +18,7 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/LinkedList.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/Optional.hpp>
 
 #include <Types.hpp>
 
@@ -424,10 +425,11 @@ public:
 
     struct NativeFunctionDefine
     {
-        String function_name;
-        SymbolTypePtr_t return_type;
+        String                              function_name;
+        SymbolTypePtr_t                     return_type;
+        Optional<GenericInstanceTypeInfo>   generic_instance_info;
         Array<GenericInstanceTypeInfo::Arg> param_types;
-        NativeFunctionPtr_t ptr;
+        NativeFunctionPtr_t                 ptr;
 
         NativeFunctionDefine() = default;
 
@@ -443,22 +445,68 @@ public:
         {
         }
 
+        NativeFunctionDefine(
+            const String &function_name,
+            const SymbolTypePtr_t &return_type,
+            const GenericInstanceTypeInfo &generic_instance_info,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr
+        ) : function_name(function_name),
+            return_type(return_type),
+            generic_instance_info(generic_instance_info),
+            param_types(param_types),
+            ptr(ptr)
+        {
+        }
+
         NativeFunctionDefine(const NativeFunctionDefine &other)
             : function_name(other.function_name),
               return_type(other.return_type),
+              generic_instance_info(other.generic_instance_info),
               param_types(other.param_types),
               ptr(other.ptr)
         {
+        }
+
+        NativeFunctionDefine &operator=(const NativeFunctionDefine &other)
+        {
+            function_name = other.function_name;
+            return_type = other.return_type;
+            generic_instance_info = other.generic_instance_info;
+            param_types = other.param_types;
+            ptr = other.ptr;
+
+            return *this;
+        }
+
+        NativeFunctionDefine(NativeFunctionDefine &&other) noexcept
+            : function_name(std::move(other.function_name)),
+              return_type(std::move(other.return_type)),
+              generic_instance_info(std::move(other.generic_instance_info)),
+              param_types(std::move(other.param_types)),
+              ptr(other.ptr)
+        {
+        }
+
+        NativeFunctionDefine &operator=(NativeFunctionDefine &&other) noexcept
+        {
+            function_name = std::move(other.function_name);
+            return_type = std::move(other.return_type);
+            generic_instance_info = std::move(other.generic_instance_info);
+            param_types = std::move(other.param_types);
+            ptr = other.ptr;
+
+            return *this;
         }
     };
 
     struct NativeMemberDefine
     {
-        String name;
-        enum { MEMBER_TYPE_VALUE, MEMBER_TYPE_FUNCTION } member_type;
-        vm::Value value;
-        SymbolTypePtr_t value_type;
-        NativeFunctionDefine fn;
+        String                                              name;
+        enum { MEMBER_TYPE_VALUE, MEMBER_TYPE_FUNCTION }    member_type;
+        vm::Value                                           value;
+        SymbolTypePtr_t                                     value_type;
+        NativeFunctionDefine                                fn;
 
         NativeMemberDefine(
             const String &name,
@@ -498,6 +546,25 @@ public:
         {
         }
 
+        NativeMemberDefine(
+            const String &name,
+            const SymbolTypePtr_t &return_type,
+            const GenericInstanceTypeInfo &generic_instance_info,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr
+        ) : NativeMemberDefine(
+                name,
+                NativeFunctionDefine(
+                    name,
+                    return_type,
+                    generic_instance_info,
+                    param_types,
+                    ptr
+                )
+            )
+        {
+        }
+
         NativeMemberDefine(const NativeMemberDefine &other)
             : name(other.name),
               member_type(other.member_type),
@@ -506,23 +573,57 @@ public:
               fn(other.fn)
         {
         }
+
+        NativeMemberDefine &operator=(const NativeMemberDefine &other)
+        {
+            name = other.name;
+            member_type = other.member_type;
+            value = other.value;
+            value_type = other.value_type;
+            fn = other.fn;
+
+            return *this;
+        }
+
+        NativeMemberDefine(NativeMemberDefine &&other) noexcept
+            : name(std::move(other.name)),
+              member_type(other.member_type),
+              value(std::move(other.value)),
+              value_type(std::move(other.value_type)),
+              fn(std::move(other.fn))
+        {
+        }
+
+        NativeMemberDefine &operator=(NativeMemberDefine &&other) noexcept
+        {
+            name = std::move(other.name);
+            member_type = other.member_type;
+            value = std::move(other.value);
+            value_type = std::move(other.value_type);
+            fn = std::move(other.fn);
+
+            return *this;
+        }
     };
 
     struct TypeDefine
     {
-        String name;
-        SymbolTypePtr_t base_class;
-        Array<NativeMemberDefine> members;
-        Array<NativeMemberDefine> static_members;
+        String                      name;
+        TypeID                      native_type_id;
+        SymbolTypePtr_t             base_class;
+        Array<NativeMemberDefine>   members;
+        Array<NativeMemberDefine>   static_members;
 
         TypeDefine() = default;
         TypeDefine(const TypeDefine &other) = default;
 
         TypeDefine(
             const String &name,
+            TypeID native_type_id,
             const SymbolTypePtr_t &base_class,
             const Array<NativeMemberDefine> &members
         ) : name(name),
+            native_type_id(native_type_id),
             base_class(base_class),
             members(members)
         {
@@ -530,10 +631,12 @@ public:
 
         TypeDefine(
             const String &name,
+            TypeID native_type_id,
             const SymbolTypePtr_t &base_class,
             const Array<NativeMemberDefine> &members,
             const Array<NativeMemberDefine> &static_members
         ) : name(name),
+            native_type_id(native_type_id),
             base_class(base_class),
             members(members),
             static_members(static_members)
@@ -542,10 +645,12 @@ public:
 
         TypeDefine(
             const String &name,
+            TypeID native_type_id,
             const Array<NativeMemberDefine> &members,
             const Array<NativeMemberDefine> &static_members
         ) : TypeDefine(
                 name,
+                native_type_id,
                 nullptr,
                 members,
                 static_members
@@ -555,8 +660,10 @@ public:
 
         TypeDefine(
             const String &name,
+            TypeID native_type_id,
             const Array<NativeMemberDefine> &members
         ) : name(name),
+            native_type_id(native_type_id),
             base_class(nullptr),
             members(members)
         {
@@ -663,6 +770,14 @@ public:
             NativeFunctionPtr_t ptr
         );
 
+        ModuleDefine &Function(
+            const String &function_name,
+            const SymbolTypePtr_t &return_type,
+            const GenericInstanceTypeInfo &generic_instance_info,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr
+        );
+
         void BindAll(
             APIInstance &api_instance,
             vm::VM *vm,
@@ -688,7 +803,7 @@ public:
 
         void BindType(
             APIInstance &api_instance,
-            TypeDefine def,
+            const TypeDefine &def,
             Module *mod,
             vm::VM *vm,
             CompilationUnit *compilation_unit
@@ -765,6 +880,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
 
     m_type_defs.PushBack(TypeDefine(
         class_name,
+        TypeID::ForType<T>(),
         base_class,
         members
     ));
@@ -784,6 +900,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
 
     m_type_defs.PushBack(TypeDefine(
         class_name,
+        TypeID::ForType<T>(),
         base_class,
         members,
         static_members
@@ -802,6 +919,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
 
     m_type_defs.PushBack(TypeDefine(
         class_name,
+        TypeID::ForType<T>(),
         members
     ));
 
@@ -819,6 +937,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
 
     m_type_defs.PushBack(TypeDefine(
         class_name,
+        TypeID::ForType<T>(),
         members,
         static_members
     ));

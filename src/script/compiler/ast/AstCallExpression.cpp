@@ -52,6 +52,9 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     Array<RC<AstArgument>> args_with_self = m_args;
 
     if (m_insert_self) {
+        auto *value_of = m_expr->GetValueOf();
+        AssertThrow(value_of != nullptr);
+
         if (const auto *left_target = m_expr->GetTarget()) {
             const auto self_target = CloneAstNode(left_target);
             AssertThrow(self_target != nullptr);
@@ -70,7 +73,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    // allow unboxing
     SymbolTypePtr_t unaliased = target_type->GetUnaliased();
     AssertThrow(unaliased != nullptr);
 
@@ -84,21 +86,19 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (call_member_type != nullptr) {
-        // if (call_member_name == "$invoke") {
-            // closure objects have a self parameter for the '$invoke' call.
-            RC<AstArgument> closure_self_arg(new AstArgument(
-                CloneAstNode(m_expr),
-                false,
-                false,
-                false,
-                false,
-                "$functor",
-                m_expr->GetLocation()
-            ));
-            
-            // insert at front
-            args_with_self.PushFront(std::move(closure_self_arg));
-        // }
+        // closure objects have a self parameter for the '$invoke' call.
+        RC<AstArgument> closure_self_arg(new AstArgument(
+            CloneAstNode(m_expr),
+            false,
+            false,
+            false,
+            false,
+            "$functor",
+            m_expr->GetLocation()
+        ));
+        
+        // insert at front
+        args_with_self.PushFront(std::move(closure_self_arg));
 
         m_replaced_expr.Reset(new AstMember(
             call_member_name,

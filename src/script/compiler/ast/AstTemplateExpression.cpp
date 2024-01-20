@@ -189,7 +189,16 @@ SymbolTypePtr_t AstTemplateExpression::GetExprType() const
 {
     AssertThrow(m_is_visited);
     AssertThrow(m_symbol_type != nullptr);
+
     return m_symbol_type;
+}
+
+SymbolTypePtr_t AstTemplateExpression::GetHeldType() const
+{
+    AssertThrow(m_is_visited);
+    AssertThrow(m_expr != nullptr);
+
+    return m_expr->GetHeldType();
 }
 
 const AstExpression *AstTemplateExpression::GetValueOf() const

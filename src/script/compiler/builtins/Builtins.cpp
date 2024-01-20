@@ -56,10 +56,6 @@ Builtins::Builtins()
         BuiltinTypes::FUNCTION, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Enum"].Reset(new AstTypeObject(
-        BuiltinTypes::ENUM_TYPE, nullptr, SourceLocation::eof
-    ));
-
     m_vars["Array"].Reset(new AstTemplateExpression(
         RC<AstTypeObject>(new AstTypeObject(
             BuiltinTypes::ARRAY, nullptr, SourceLocation::eof

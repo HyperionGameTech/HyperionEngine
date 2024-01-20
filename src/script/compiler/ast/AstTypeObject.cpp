@@ -223,6 +223,13 @@ SymbolTypePtr_t AstTypeObject::GetExprType() const
     return BuiltinTypes::CLASS_TYPE;
 }
 
+SymbolTypePtr_t AstTypeObject::GetHeldType() const
+{
+    AssertThrow(m_symbol_type != nullptr);
+
+    return m_symbol_type;
+}
+
 const AstTypeObject *AstTypeObject::ExtractTypeObject() const
 {
     return this;

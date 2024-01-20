@@ -55,7 +55,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_break_outside_loop, "'break' cannot be used outside of a loop or switch statement" },
     { Msg_continue_outside_loop, "'continue' cannot be used outside of a loop" },
     { Msg_multiple_return_types, "Function has more than one possible return type" },
-    { Msg_mismatched_return_type, "Function is marked to return '%', cannot return '%'" },
+    { Msg_mismatched_return_type, "Function is marked to return '%', but attempting to return '%'" },
     { Msg_must_be_explicitly_marked_any, "Function must be explicitly marked to return 'Any'" },
     { Msg_any_reserved_for_parameters, "'Any' type is reserved for function parameters" },
     { Msg_return_outside_function, "'return' not allowed outside of function body" },
@@ -144,11 +144,23 @@ CompilerError::CompilerError(const CompilerError &other)
 
 bool CompilerError::operator<(const CompilerError &other) const
 {
-    if (m_level == other.m_level) {
-        return m_location < other.m_location;
-    } else {
+    if (m_level != other.m_level) {
         return m_level < other.m_level;
     }
+
+    if (m_location.GetFileName() != other.m_location.GetFileName()) {
+        return m_location.GetFileName() < other.m_location.GetFileName();
+    }
+
+    if (m_location.GetLine() != other.m_location.GetLine()) {
+        return m_location.GetLine() < other.m_location.GetLine();
+    }
+
+    if (m_location.GetColumn() != other.m_location.GetColumn()) {
+        return m_location.GetColumn() < other.m_location.GetColumn();
+    }
+
+    return m_text < other.m_text;
 }
 
 } // namespace hyperion::compiler

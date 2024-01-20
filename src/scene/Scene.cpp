@@ -413,11 +413,26 @@ static struct SceneScriptBindings : ScriptBindingsBase
 
     virtual void Generate(APIInstance &api_instance) override
     {
+        // api_instance.Module(Config::global_module_name)
+        //     .Function(
+        //         "TestSceneFunction",
+        //         BuiltinTypes::VOID_TYPE,
+        //         GenericInstanceTypeInfo {
+        //             {{ "T", BuiltinTypes::CLASS_TYPE }}
+        //         },
+        //         { },
+        //         CxxFn<
+        //             void, []() -> void
+        //             {
+        //                 DebugLog(LogType::Debug, "TestSceneFunction called\n");
+        //             }
+        //         >
+        //     );
+
         api_instance.Module(Config::global_module_name)
             .Class<Handle<Scene>>(
                 "Scene",
                 {
-                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                     API::NativeMemberDefine(
                         "$construct",
                         BuiltinTypes::ANY,
@@ -437,16 +452,21 @@ static struct SceneScriptBindings : ScriptBindingsBase
                     API::NativeMemberDefine(
                         "GetComponent",
                         BuiltinTypes::ANY,
+                        // GenericInstanceTypeInfo {
+                        //     {{ "T", BuiltinTypes::CLASS_TYPE }}
+                        // },
                         {
                             { "self", BuiltinTypes::ANY },
-                            { "entity", BuiltinTypes::UNSIGNED_INT },
-                            { "component_type_name", BuiltinTypes::STRING }
+                            { "type_id", BuiltinTypes::UNSIGNED_INT },
+                            { "entity", BuiltinTypes::UNSIGNED_INT }
                         },
                         CxxFn<
-                            ComponentInterfaceBase *, const Handle<Scene> &, UInt32, const String &,
-                            [](const Handle<Scene> &self, UInt32 entity_id, const String &component_type_name) -> ComponentInterfaceBase *
+                            ComponentInterfaceBase *, const Handle<Scene> &, UInt32, UInt32,
+                            [](const Handle<Scene> &self, UInt32 type_id, UInt32 entity_id) -> ComponentInterfaceBase *
                             {
-                                DebugLog(LogType::Debug, "Getting component %s from entity #%u\n", component_type_name.Data(), entity_id);
+                                DebugLog(LogType::Debug, "Getting component with ID %u from entity #%u\n", type_id, entity_id);
+
+                                // @TODO - get component with type ID from entity.
 
                                 return nullptr;
                             }

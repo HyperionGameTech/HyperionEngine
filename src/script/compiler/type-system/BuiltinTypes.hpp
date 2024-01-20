@@ -15,7 +15,6 @@ struct BuiltinTypes
     static const SymbolTypePtr_t UNDEFINED;
     static const SymbolTypePtr_t OBJECT;
     static const SymbolTypePtr_t CLASS_TYPE;
-    static const SymbolTypePtr_t ENUM_TYPE;
     static const SymbolTypePtr_t ANY;
     static const SymbolTypePtr_t PLACEHOLDER;
     static const SymbolTypePtr_t VOID_TYPE;
@@ -30,7 +29,6 @@ struct BuiltinTypes
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t MODULE_INFO;
     static const SymbolTypePtr_t GENERATOR;
-    static const SymbolTypePtr_t MAYBE;
     static const SymbolTypePtr_t CLOSURE_TYPE;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
 };

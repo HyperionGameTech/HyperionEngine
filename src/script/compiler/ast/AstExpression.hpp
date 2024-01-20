@@ -71,6 +71,7 @@ public:
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
+    virtual SymbolTypePtr_t GetHeldType() const { return nullptr; }
 
     virtual bool IsMutable() const
         { return false; }

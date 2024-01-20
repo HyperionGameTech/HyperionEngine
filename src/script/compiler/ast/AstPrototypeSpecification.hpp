@@ -22,7 +22,6 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
     const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
     const RC<AstExpression> &GetDefaultValue() const { return m_default_value; }
     virtual const RC<AstExpression> &GetExpr() const { return m_expr; }
@@ -35,6 +34,8 @@ public:
   
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+    
+    virtual SymbolTypePtr_t GetHeldType() const override;
 
 protected:
     bool FindPrototypeType(const SymbolTypePtr_t &symbol_type);

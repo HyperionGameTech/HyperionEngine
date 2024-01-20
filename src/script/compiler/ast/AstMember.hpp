@@ -40,7 +40,7 @@ protected:
     SymbolTypePtr_t     m_target_type;
     RC<AstExpression>   m_proxy_expr;
     RC<AstExpression>   m_override_expr;
-    Int                 m_found_index;
+    UInt                m_found_index;
 
     RC<AstMember> CloneImpl() const
     {

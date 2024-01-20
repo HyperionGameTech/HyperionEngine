@@ -19,17 +19,29 @@ ErrorList::ErrorList(const ErrorList &other)
 {
 }
 
+ErrorList &ErrorList::operator=(const ErrorList &other)
+{
+    m_errors = other.m_errors;
+    return *this;
+}
+
+ErrorList::ErrorList(ErrorList &&other) noexcept
+    : m_errors(std::move(other.m_errors))
+{
+}
+
+ErrorList &ErrorList::operator=(ErrorList &&other) noexcept
+{
+    m_errors = std::move(other.m_errors);
+    return *this;
+}
+
 bool ErrorList::HasFatalErrors() const
 {
-    if (m_errors.Any()) {
-        for (const CompilerError &error : m_errors) {
-            if (error.GetLevel() == LEVEL_ERROR) {
-                return true;
-            }
-        }
-    }
-    
-    return false;
+    return m_errors.FindIf([](const CompilerError &error)
+    {
+        return error.GetLevel() == LEVEL_ERROR;
+    }) != m_errors.End();
 }
 
 std::ostream &ErrorList::WriteOutput(std::ostream &os) const

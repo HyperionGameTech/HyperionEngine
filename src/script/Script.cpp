@@ -80,9 +80,7 @@ bool Script::Compile()
     SemanticAnalyzer semantic_analyzer(&ast_iterator, &m_compilation_unit);
     semantic_analyzer.Analyze();
 
-    m_compilation_unit.GetErrorList().SortErrors();
     m_errors = m_compilation_unit.GetErrorList();
-
     m_errors.WriteOutput(std::cout);
 
     if (!m_errors.HasFatalErrors()) {

@@ -78,7 +78,7 @@ int AstIdentifier::GetStackOffset(int stack_size) const
 const AstExpression *AstIdentifier::GetValueOf() const
 {
     if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
-        if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
+        if (((ident->GetFlags() & IdentifierFlags::FLAG_CONST) || (ident->GetFlags() & IdentifierFlags::FLAG_GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
                 if (current_value.Get() == this) {
@@ -96,7 +96,7 @@ const AstExpression *AstIdentifier::GetValueOf() const
 const AstExpression *AstIdentifier::GetDeepValueOf() const
 {
     if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
-        if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
+        if (((ident->GetFlags() & IdentifierFlags::FLAG_CONST) || (ident->GetFlags() & IdentifierFlags::FLAG_GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
                 if (current_value.Get() == this) {

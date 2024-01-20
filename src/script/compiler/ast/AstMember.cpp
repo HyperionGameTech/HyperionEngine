@@ -33,7 +33,7 @@ AstMember::AstMember(
     m_field_name(field_name),
     m_target(target),
     m_symbol_type(BuiltinTypes::UNDEFINED),
-    m_found_index(-1)
+    m_found_index(~0u)
 {
 }
 
@@ -75,6 +75,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     // start looking at the target type,
     // iterate through base type
     SymbolTypePtr_t field_type = nullptr;
+    SymbolMember_t member;
 
     for (UInt depth = 0; field_type == nullptr && m_target_type != nullptr; depth++) {
         AssertThrow(m_target_type != nullptr);
@@ -86,7 +87,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             break;
         }
 
-        if (m_target_type->IsPlaceholderType()) {
+        if (m_target_type->IsPlaceholderType() || m_target_type->IsGenericParameter()) {
             field_type = BuiltinTypes::PLACEHOLDER;
 
             break;
@@ -117,25 +118,15 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             // if it is a proxy class,
             // convert thing.DoThing()
             // to ThingProxy.DoThing(thing)
-            for (SizeType i = 0; i < m_target_type->GetMembers().Size(); i++) {
-                const SymbolMember_t &mem = m_target_type->GetMembers()[i];
-
-                if (std::get<0>(mem) == m_field_name) {
-                    m_found_index = i;
-                    field_type = std::get<1>(mem);
-
-                    break;
-                }
+            if (m_target_type->FindMember(m_field_name, member, m_found_index)) {
+                field_type = std::move(std::get<1>(member));
             }
 
-            if (m_found_index != -1) {
-                break;
-            }
+            break;
         }
 
-        {
-            UInt field_index = UInt(-1);
-            SymbolMember_t member;
+        { // Check for members on the object's prototype
+            UInt field_index = ~0u;
 
             if (m_target_type->FindPrototypeMember(m_field_name, member, field_index)) {
                 // only set m_found_index if found in first level.
@@ -151,29 +142,31 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        const AstExpression *value_of = m_target->GetValueOf();
-        AssertThrow(value_of != nullptr);
+        // if (auto type_object = m_target_type->GetTypeObject()) { // Check for members on the object itself (static members)
+        //     if (auto held_type = type_object->GetHeldType()) {
+        //         UInt field_index = ~0u;
 
-        if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
-            AssertThrow(as_type_object->GetHeldType() != nullptr);
-            SymbolTypePtr_t instance_type = as_type_object->GetHeldType()->GetUnaliased();
+        //         if (held_type->FindMember(m_field_name, member, field_index)) {
+        //             field_type = std::move(std::get<1>(member));
 
-            // get member index from name
-            for (SizeType i = 0; i < instance_type->GetMembers().Size(); i++) {
-                const SymbolMember_t &mem = instance_type->GetMembers()[i];
+        //             // Set override expr to be `GetClass(x).field_name`, if field name is found on the actual object.
+        //             auto get_class_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
+        //                 .Module(Config::global_module_name)
+        //                 .Function("GetClass")
+        //                 .Call({ RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, false, false, "", m_location)) });
 
-                if (std::get<0>(mem) == m_field_name) {
-                    m_found_index = i;
-                    field_type = std::get<1>(mem);
+        //             m_override_expr.Reset(new AstMember(
+        //                 m_field_name,
+        //                 get_class_expr,
+        //                 m_location
+        //             ));
 
-                    break;
-                }
-            }
+        //             m_override_expr->Visit(visitor, mod);
 
-            if (m_found_index != -1) {
-                break;
-            }
-        }
+        //             return;
+        //         }
+        //     }
+        // }
 
         if (auto base = m_target_type->GetBaseType()) {
             m_target_type = base->GetUnaliased();
@@ -184,20 +177,81 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_target_type != nullptr);
 
-    if (field_type != nullptr) {
-        m_symbol_type = field_type->GetUnaliased();
+    // Look for members on the object itself (static members)
+    if (field_type == nullptr) {
+        const AstExpression *value_of = m_target->GetDeepValueOf();
+        AssertThrow(value_of != nullptr);
 
-        // For generic types, we need to set the default value
-        // to the default value of the generic type.
+        if (SymbolTypePtr_t held_type = value_of->GetHeldType()) {
+            if (held_type->IsAnyType()) {
+                field_type = BuiltinTypes::ANY;
+            } else if (held_type->IsPlaceholderType() || held_type->IsGenericParameter()) {
+                field_type = BuiltinTypes::PLACEHOLDER;
+            } else {
+                UInt field_index = ~0u;
+                UInt depth = 0;
 
-        // This allows us to do:
-        // thing.DoThing<T>()
-        if (field_type->IsGeneric()) {
-            m_override_expr = CloneAstNode(field_type->GetDefaultValue());
-            AssertThrow(m_override_expr != nullptr);
+                DebugLog(LogType::Debug, "Looking for static member %s in type %s\n", m_field_name.Data(), held_type->ToString().Data());
+                DebugLog(LogType::Debug, "\tAll members:\n");
 
-            m_override_expr->Visit(visitor, mod);
+                for (const SymbolMember_t &mem : held_type->GetMembers()) {
+                    DebugLog(LogType::Debug, "\t\t%s\n", std::get<0>(mem).Data());
+                }
+
+                if (held_type->FindMemberDeep(m_field_name, member, field_index, depth)) {
+                    // only set m_found_index if found in first level.
+                    // for members from base objects,
+                    // we load based on hash.
+                    if (depth == 0) {
+                        m_found_index = field_index;
+                    }
+
+                    field_type = std::move(std::get<1>(member));
+                }
+            }
         }
+    }
+
+    // if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
+    //     AssertThrow(as_type_object->GetHeldType() != nullptr);
+    //     SymbolTypePtr_t instance_type = as_type_object->GetHeldType()->GetUnaliased();
+
+    //     // get member index from name
+    //     for (SizeType member_index = 0; member_index < instance_type->GetMembers().Size(); member_index++) {
+    //         const SymbolMember_t &mem = instance_type->GetMembers()[member_index];
+
+    //         if (std::get<0>(mem) == m_field_name) {
+    //             m_found_index = member_index;
+    //             member = mem;
+    //             field_type = std::get<1>(mem);
+
+    //             break;
+    //         }
+    //     }
+    // }
+
+    if (field_type != nullptr) {
+        field_type = field_type->GetUnaliased();
+        AssertThrow(field_type != nullptr);
+
+        if (field_type->IsGeneric()) {
+            {
+                // @FIXME
+                // Cloning the member will unfortunately will break closure captures used
+                // in a member function, but it's the best we can do for now.
+                // it also will cause too many clones to be made, making a larger bytecode chunk.
+                m_override_expr = CloneAstNode(std::get<2>(member));
+                AssertThrowMsg(m_override_expr != nullptr, "member %s is generic but has no value", m_field_name.Data());
+
+                m_override_expr->Visit(visitor, mod);
+
+                m_symbol_type = m_override_expr->GetExprType();
+            }
+        } else {
+            m_symbol_type = field_type;
+        }
+
+        AssertThrow(m_symbol_type != nullptr);
     } else {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -232,50 +286,50 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_target_type != nullptr);
 
-    if (m_found_index == -1) {
+    if (m_found_index == ~0u) {
         // no exact index of member found, have to load from hash.
         const UInt32 hash = hash_fnv_1(m_field_name.Data());
 
         switch (m_access_mode) {
-            case ACCESS_MODE_LOAD:
-                chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
-                break;
-            case ACCESS_MODE_STORE:
-                chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
-                break;
-            default:
-                AssertThrowMsg(false, "unknown access mode");
+        case ACCESS_MODE_LOAD:
+            chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
+            break;
+        case ACCESS_MODE_STORE:
+            chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
+            break;
+        default:
+            AssertThrowMsg(false, "unknown access mode");
         }
     } else {
         switch (m_access_mode) {
-            case ACCESS_MODE_LOAD:
-                // just load the data member.
-                chunk->Append(Compiler::LoadMemberAtIndex(
-                    visitor,
-                    mod,
-                    m_found_index
-                ));
-                break;
-            case ACCESS_MODE_STORE:
-                // we are in storing mode, so store to LAST item in the member expr.
-                chunk->Append(Compiler::StoreMemberAtIndex(
-                    visitor,
-                    mod,
-                    m_found_index
-                ));
-                break;
-            default:
-                AssertThrowMsg(false, "unknown access mode");
+        case ACCESS_MODE_LOAD:
+            // just load the data member.
+            chunk->Append(Compiler::LoadMemberAtIndex(
+                visitor,
+                mod,
+                m_found_index
+            ));
+            break;
+        case ACCESS_MODE_STORE:
+            // we are in storing mode, so store to LAST item in the member expr.
+            chunk->Append(Compiler::StoreMemberAtIndex(
+                visitor,
+                mod,
+                m_found_index
+            ));
+            break;
+        default:
+            AssertThrowMsg(false, "unknown access mode");
         }
     }
 
     switch (m_access_mode) {
-        case ACCESS_MODE_LOAD:
-            chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_field_name));
-            break;
-        case ACCESS_MODE_STORE:
-            chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_field_name));
-            break;
+    case ACCESS_MODE_LOAD:
+        chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_field_name));
+        break;
+    case ACCESS_MODE_STORE:
+        chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_field_name));
+        break;
     }
 
     return chunk;
@@ -352,9 +406,9 @@ SymbolTypePtr_t AstMember::GetExprType() const
 
 const AstExpression *AstMember::GetValueOf() const
 {
-    if (m_override_expr != nullptr) {
-        return m_override_expr->GetValueOf();
-    }
+    // if (m_override_expr != nullptr) {
+    //     return m_override_expr->GetValueOf();
+    // }
 
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetValueOf();
@@ -378,9 +432,9 @@ const AstExpression *AstMember::GetDeepValueOf() const
 
 AstExpression *AstMember::GetTarget() const
 {
-    if (m_override_expr != nullptr) {
-        return m_override_expr->GetTarget();
-    }
+    // if (m_override_expr != nullptr) {
+    //     return m_override_expr->GetTarget();
+    // }
 
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetTarget();
