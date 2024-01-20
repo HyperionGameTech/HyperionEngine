@@ -197,10 +197,12 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String &name, int depth_level
 SymbolTypePtr_t Module::LookupSymbolType(const String &name)
 {
     return PerformLookup(
-        [&name](TreeNode<Scope> *top) {
+        [&name](TreeNode<Scope> *top)
+        {
             return top->Get().GetIdentifierTable().LookupSymbolType(name);
         },
-        [&name](Module *mod) {
+        [&name](Module *mod)
+        {
             return mod->LookupSymbolType(name);
         }
     );
@@ -211,18 +213,20 @@ SymbolTypePtr_t Module::LookupGenericInstance(
     const Array<GenericInstanceTypeInfo::Arg> &params)
 {
     return PerformLookup(
-        [&base, &params](TreeNode<Scope> *top) {
+        [&base, &params](TreeNode<Scope> *top)
+        {
             return top->Get().GetIdentifierTable().LookupGenericInstance(base, params);
         },
-        [&base, &params](Module *mod) {
+        [&base, &params](Module *mod)
+        {
             return mod->LookupGenericInstance(base, params);
         }
     );
 }
 
 SymbolTypePtr_t Module::PerformLookup(
-    std::function<SymbolTypePtr_t(TreeNode<Scope>*)> pred1,
-    std::function<SymbolTypePtr_t(Module *mod)> pred2
+    Proc<SymbolTypePtr_t, TreeNode<Scope> *> &&pred1,
+    Proc<SymbolTypePtr_t, Module *> &&pred2
 )
 {
     TreeNode<Scope> *top = m_scopes.TopNode();

@@ -230,9 +230,4 @@ SymbolTypePtr_t AstTypeObject::GetHeldType() const
     return m_symbol_type;
 }
 
-const AstTypeObject *AstTypeObject::ExtractTypeObject() const
-{
-    return this;
-}
-
 } // namespace hyperion::compiler

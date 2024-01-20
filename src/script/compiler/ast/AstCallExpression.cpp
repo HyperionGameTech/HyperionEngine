@@ -79,10 +79,9 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t call_member_type;
     String call_member_name;
 
-    if ((call_member_type = unaliased->FindPrototypeMember("$invoke"))) {
+    // check if $invoke is found on the object or its prototype
+    if ((call_member_type = unaliased->FindMember("$invoke")) || (call_member_type = unaliased->FindPrototypeMember("$invoke"))) {
         call_member_name = "$invoke";
-    } else if ((call_member_type = unaliased->FindPrototypeMember("$construct"))) {
-        call_member_name = "$construct";
     }
 
     if (call_member_type != nullptr) {
@@ -100,18 +99,25 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         // insert at front
         args_with_self.PushFront(std::move(closure_self_arg));
 
-        m_replaced_expr.Reset(new AstMember(
-            call_member_name,
-            CloneAstNode(m_expr),
+        m_override_expr.Reset(new AstCallExpression(
+            RC<AstMember>(new AstMember(
+                call_member_name,
+                CloneAstNode(m_expr),
+                m_location
+            )),
+            CloneAllAstNodes(args_with_self),
+            false,
             m_location
         ));
         
-        m_replaced_expr->Visit(visitor, mod);
+        m_override_expr->Visit(visitor, mod);
 
-        unaliased = call_member_type;
+        unaliased = call_member_type->GetUnaliased();
         AssertThrow(unaliased != nullptr);
-    } else {
-        m_replaced_expr = m_expr;
+    }
+
+    if (m_override_expr != nullptr) {
+        return;
     }
 
     // visit each argument
@@ -171,7 +177,10 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_is_visited);
-    AssertThrow(m_replaced_expr != nullptr);
+
+    if (m_override_expr != nullptr) {
+        return m_override_expr->Build(visitor, mod);
+    }
     
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
@@ -187,7 +196,7 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
-        m_replaced_expr,
+        m_expr,
         UInt8(m_substituted_args.Size())
     ));
 
@@ -211,8 +220,11 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
 
 void AstCallExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_replaced_expr != nullptr);
-    m_replaced_expr->Optimize(visitor, mod);
+    if (m_override_expr != nullptr) {
+        m_override_expr->Optimize(visitor, mod);
+
+        return;
+    }
 
     // optimize each argument
     for (auto &arg : m_substituted_args) {
@@ -229,12 +241,20 @@ RC<AstStatement> AstCallExpression::Clone() const
 
 Tribool AstCallExpression::IsTrue() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->IsTrue();
+    }
+
     // cannot deduce if return value is true
     return Tribool::Indeterminate();
 }
 
 bool AstCallExpression::MayHaveSideEffects() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->MayHaveSideEffects();
+    }
+
     // assume a function call has side effects
     // maybe we could detect this later
     return true;
@@ -242,12 +262,20 @@ bool AstCallExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstCallExpression::GetExprType() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetExprType();
+    }
+
     AssertThrow(m_return_type != nullptr);
     return m_return_type;
 }
 
 AstExpression *AstCallExpression::GetTarget() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetTarget();
+    }
+
     return AstExpression::GetTarget();
 }
 

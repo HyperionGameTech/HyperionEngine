@@ -1,5 +1,5 @@
-#ifndef ACE_TYPEDEFS_HPP
-#define ACE_TYPEDEFS_HPP
+#ifndef HYP_SCRIPT_TYPEDEFS_HPP
+#define HYP_SCRIPT_TYPEDEFS_HPP
 
 #include <stdint.h>
 

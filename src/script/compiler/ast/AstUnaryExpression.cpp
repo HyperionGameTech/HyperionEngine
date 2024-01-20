@@ -91,7 +91,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
     if (!type->IsAnyType() && !type->IsGenericParameter() && !type->IsPlaceholderType()) {
         if (m_op->GetType() & BITWISE) {
             // no bitwise operators on floats allowed.
-            // do not allow right-hand side to be 'Any', because it might change the data type.
+            // do not allow right-hand side to be 'any', because it might change the data type.
             visitor->Assert(
                 type->IsIntegral(),
                 CompilerError(

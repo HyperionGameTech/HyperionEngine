@@ -43,7 +43,7 @@ private:
     RC<AstExpression> m_operator_overload;
     bool m_operator_overloading_enabled;
 
-#if ACE_ENABLE_LAZY_DECLARATIONS
+#if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration
     RC<AstVariableDeclaration> m_variable_declaration;
     RC<AstVariableDeclaration> CheckLazyDeclaration(AstVisitor *visitor, Module *mod);

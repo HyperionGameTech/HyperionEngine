@@ -526,6 +526,11 @@ bool SymbolType::IsPrimitive() const
     return IsOrHasBase(*BuiltinTypes::PRIMITIVE_TYPE);
 }
 
+bool SymbolType::IsEnumType() const
+{
+    return IsOrHasBase(*BuiltinTypes::ENUM_TYPE);
+}
+
 SymbolTypePtr_t SymbolType::Alias(
     const String &name,
     const AliasTypeInfo &info

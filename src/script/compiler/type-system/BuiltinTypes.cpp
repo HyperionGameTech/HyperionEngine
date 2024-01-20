@@ -76,6 +76,32 @@ const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
     }
 );
 
+// Enum type is a generic class type similar to Array<T>.
+// e.g. Enum<uint>
+const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
+    "Enum",
+    Array<SymbolMember_t> {
+        SymbolMember_t {
+            "$proto",
+            SymbolType::Primitive(
+                "EmptyEnumLiteral", nullptr
+            ),
+            nullptr
+        },
+        SymbolMember_t {
+            "base",
+            BuiltinTypes::OBJECT,
+            RC<AstTypeObject>(new AstTypeObject(
+                BuiltinTypes::OBJECT,
+                nullptr,
+                SourceLocation::eof
+            )),
+        }
+    },
+    GenericTypeInfo { 1 },
+    BuiltinTypes::OBJECT
+);
+
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Primitive(
     "int",
     RC<AstInteger>(new AstInteger(0, SourceLocation::eof)),

@@ -111,19 +111,6 @@ const AstExpression *AstIdentifier::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-const AstTypeObject *AstIdentifier::ExtractTypeObject() const
-{
-    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
-        if (const auto current_value = ident->GetCurrentValue()) {
-            if (current_value.Get() != this) {
-                return current_value->ExtractTypeObject();
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 ExprAccess AstIdentifier::GetExprAccess() const
 {
     if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
@@ -150,6 +137,15 @@ ExprAccess AstIdentifier::GetExprAccess() const
 const String &AstIdentifier::GetName() const
 {
     return m_name;
+}
+
+SymbolTypePtr_t AstIdentifier::GetHeldType() const
+{
+    if (m_properties.GetIdentifierType() == IDENTIFIER_TYPE_TYPE) {
+        return m_properties.m_found_type;
+    }
+
+    return AstExpression::GetHeldType();
 }
 
 } // namespace hyperion::compiler

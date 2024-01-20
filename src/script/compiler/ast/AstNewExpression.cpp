@@ -173,7 +173,7 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
 
     AssertThrow(m_prototype_type != nullptr);
 
-#if ACE_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
+#if HYP_SCRIPT_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
     // does not currently work in templates
     // e.g `new X` where `X` is `String` as a template argument, attempts to
     // construct the object rather than baking in

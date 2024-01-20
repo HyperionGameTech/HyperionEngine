@@ -44,7 +44,7 @@ protected:
     bool                    m_insert_self;
 
     // set while analyzing
-    RC<AstExpression>       m_replaced_expr;
+    RC<AstExpression>       m_override_expr;
     Array<RC<AstArgument>>  m_substituted_args;
     SymbolTypePtr_t         m_return_type;
     bool                    m_is_visited = false;

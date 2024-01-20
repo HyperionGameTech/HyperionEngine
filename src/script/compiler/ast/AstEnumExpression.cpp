@@ -89,13 +89,19 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
         ++enum_counter;
     }
 
+    SymbolTypePtr_t underlying_type = BuiltinTypes::INT;
+
+    if (auto held_type = m_underlying_type->GetHeldType()) {
+        underlying_type = held_type->GetUnaliased();
+    }
+
     m_expr.Reset(new AstTypeExpression(
         m_name,
         nullptr,
         {},
         {},
         enum_members,
-        m_underlying_type->GetExprType() ? m_underlying_type->GetExprType() : BuiltinTypes::INT,
+        underlying_type,
         false,
         m_location
     ));

@@ -5,9 +5,6 @@
 #include <core/lib/String.hpp>
 #include <core/lib/HashMap.hpp>
 
-#include <map>
-#include <string>
-
 namespace hyperion::compiler {
 
 using OperatorTypeBits = UInt32;

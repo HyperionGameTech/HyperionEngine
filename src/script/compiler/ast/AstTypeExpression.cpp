@@ -1,7 +1,9 @@
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstTypeName.hpp>
+#include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -85,23 +87,100 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    m_symbol_type = SymbolType::Extend(
-        m_name,
-        base_type,
-        {}
-    );
+    if (IsEnum()) {
+        // Create a generic instance of the enum type
+        m_symbol_type = SymbolType::GenericInstance(
+            BuiltinTypes::ENUM_TYPE,
+            GenericInstanceTypeInfo {
+                {
+                    { "of", m_enum_underlying_type }
+                }
+            }
+        );
 
-    if (m_is_proxy_class) {
-        m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+        m_expr.Reset(new AstTypeObject(
+            m_symbol_type,
+            nullptr,
+            m_enum_underlying_type,
+            m_is_proxy_class,
+            m_location
+        ));
+    } else {
+        m_symbol_type = SymbolType::Extend(
+            m_name,
+            base_type,
+            {}
+        );
+        
+        if (m_is_proxy_class) {
+            m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+        }
+
+        m_expr.Reset(new AstTypeObject(
+            m_symbol_type,
+            RC<AstVariable>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location)),
+            m_enum_underlying_type,
+            m_is_proxy_class,
+            m_location
+        ));
+
+        // special names
+        bool proto_found = false;
+        bool base_found = false;
+        bool name_found = false;
+        bool invoke_found = false;
+
+        for (const auto &mem : m_static_members) {
+            AssertThrow(mem != nullptr);
+
+            if (mem->GetName() == "$proto") {
+                proto_found = true;
+            } else if (mem->GetName() == "base") {
+                base_found = true;
+            } else if (mem->GetName() == "name") {
+                name_found = true;
+            } else if (mem->GetName() == "$invoke") {
+                invoke_found = true;
+            }
+        }
+
+        if (!proto_found) { // no custom '$proto' member, add default.
+            m_symbol_type->AddMember(SymbolMember_t {
+                "$proto",
+                prototype_type,
+                RC<AstTypeObject>(new AstTypeObject(
+                    prototype_type,
+                    nullptr,
+                    m_location
+                ))
+            });
+        }
+
+        if (!base_found) { // no custom 'base' member, add default
+            m_symbol_type->AddMember(SymbolMember_t {
+                "base",
+                BuiltinTypes::CLASS_TYPE,
+                m_base_specification != nullptr
+                    ? CloneAstNode(m_base_specification->GetExpr())
+                    : RC<AstExpression>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location))
+            });
+        }
+
+        if (!name_found) { // no custom 'name' member, add default
+            m_symbol_type->AddMember(SymbolMember_t {
+                "name",
+                BuiltinTypes::STRING,
+                RC<AstString>(new AstString(
+                    m_name,
+                    m_location
+                ))
+            });
+        }
     }
 
-    m_expr.Reset(new AstTypeObject(
-        m_symbol_type,
-        RC<AstVariable>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location)),
-        m_enum_underlying_type,
-        m_is_proxy_class,
-        m_location
-    ));
+    m_symbol_type->SetTypeObject(m_expr);
+
+    // Create scope
 
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
 
@@ -118,61 +197,12 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         scope->GetIdentifierTable().AddSymbolType(internal_type);
     }
 
-    // check if one with the name $proto already exists.
-    bool proto_found = false;
-    bool base_found = false;
-    bool name_found = false;
-
-    for (const auto &mem : m_static_members) {
-        AssertThrow(mem != nullptr);
-
-        if (mem->GetName() == "$proto") {
-            proto_found = true;
-        } else if (mem->GetName() == "base") {
-            base_found = true;
-        } else if (mem->GetName() == "name") {
-            name_found = true;
-        }
-    }
-
-    if (!proto_found) { // no custom '$proto' member, add default.
-        m_symbol_type->AddMember(SymbolMember_t {
-            "$proto",
-            prototype_type,
-            RC<AstTypeObject>(new AstTypeObject(
-                prototype_type,
-                nullptr,
-                m_location
-            ))
-        });
-    }
-
-    if (!base_found) { // no custom 'base' member, add default
-        m_symbol_type->AddMember(SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            m_base_specification != nullptr
-                ? CloneAstNode(m_base_specification->GetExpr())
-                : RC<AstExpression>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location))
-        });
-    }
-
-    if (!name_found) { // no custom 'name' member, add default
-        m_symbol_type->AddMember(SymbolMember_t {
-            "name",
-            BuiltinTypes::STRING,
-            RC<AstString>(new AstString(
-                m_name,
-                m_location
-            ))
-        });
-    }
-
-    m_symbol_type->SetTypeObject(m_expr);
-
     // ===== STATIC DATA MEMBERS ======
     {
         ScopeGuard static_data_members(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
+
+        // Add a static $invoke method which will be used to invoke the constructor.
+        
 
         for (const auto &mem : m_static_members) {
             AssertThrow(mem != nullptr);
@@ -194,6 +224,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     // ===== INSTANCE DATA MEMBERS =====
 
     m_combined_members.Reserve(m_data_members.Size() + m_function_members.Size());
+
+    SymbolMember_t constructor_member;
 
     // open the scope for data members
     {
@@ -234,17 +266,189 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                 }
 
                 AssertThrow(mem->GetIdentifier() != nullptr);
-                
-                prototype_type->AddMember(SymbolMember_t(
+
+                SymbolMember_t member(
                     mem->GetName(),
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment()
-                ));
+                );
+
+                if (is_constructor_definition) {
+                    constructor_member = member;
+                }
+                
+                prototype_type->AddMember(std::move(member));
 
                 m_combined_members.PushBack(mem);
             }
         }
     }
+
+#if HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS
+    if (!invoke_found && !IsProxyClass() && !IsEnum()) { // Add an '$invoke' static member, if not already defined.
+        ScopeGuard invoke_scope(mod, SCOPE_TYPE_FUNCTION, 0);
+
+        Array<RC<AstParameter>> invoke_params;
+        invoke_params.Reserve(2); // for 'self', varargs
+        invoke_params.PushBack(RC<AstParameter>(new AstParameter(
+            "self", // self: Class
+            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstVariable>(new AstVariable(
+                    class_type->GetName(),
+                    m_location
+                )),
+                m_location
+            )),
+            nullptr,
+            false,
+            false,
+            false,
+            m_location
+        )));
+
+        invoke_params.PushBack(RC<AstParameter>(new AstParameter(
+            "args", // args: Any...
+            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstVariable>(new AstVariable(
+                    BuiltinTypes::ANY->GetName(),
+                    m_location
+                )),
+                m_location
+            )),
+            nullptr,
+            true,
+            false,
+            false,
+            m_location
+        )));
+
+        Array<RC<AstArgument>> invoke_args;
+        invoke_args.Reserve(2); // for 'self', varargs
+        invoke_args.PushBack(RC<AstArgument>(new AstArgument(
+            RC<AstVariable>(new AstVariable(
+                "self",
+                m_location
+            )),
+            false,
+            false,
+            false,
+            false,
+            "self",
+            m_location
+        )));
+
+        invoke_args.PushBack(RC<AstArgument>(new AstArgument(
+            RC<AstVariable>(new AstVariable(
+                "args",
+                m_location
+            )),
+            true,
+            false,
+            false,
+            false,
+            "args",
+            m_location
+        )));
+
+        // if (SymbolTypePtr_t constructor_member_type = std::get<1>(constructor_member)) {
+        //     if (constructor_member_type->IsGeneric()) {
+        //         invoke_params.Reserve(1 + constructor_member_type->GetGenericInstanceInfo().m_generic_args.Size());
+        //         invoke_args.Reserve(1 + constructor_member_type->GetGenericInstanceInfo().m_generic_args.Size());
+
+        //         for (const auto &param : constructor_member_type->GetGenericInstanceInfo().m_generic_args) {
+        //             RC<AstPrototypeSpecification> param_type_spec(new AstPrototypeSpecification(
+        //                 RC<AstVariable>(new AstVariable(
+        //                     param.m_type->GetName(),
+        //                     m_location
+        //                 )),
+        //                 m_location
+        //             ));
+                    
+        //             invoke_params.PushBack(RC<AstParameter>(new AstParameter(
+        //                 param.m_name,
+        //                 param_type_spec,
+        //                 CloneAstNode(param.m_default_value),
+        //                 false,
+        //                 param.m_is_const,
+        //                 param.m_is_ref,
+        //                 m_location
+        //             )));
+
+        //             invoke_args.PushBack(RC<AstArgument>(new AstArgument(
+        //                 RC<AstVariable>(new AstVariable(
+        //                     param.m_name,
+        //                     m_location
+        //                 )),
+        //                 false,
+        //                 false,
+        //                 param.m_is_ref,
+        //                 param.m_is_const,
+        //                 param.m_name,
+        //                 m_location
+        //             )));
+        //         }
+        //     }
+        // }
+
+        RC<AstPrototypeSpecification> self_type_spec(new AstPrototypeSpecification(
+            RC<AstVariable>(new AstVariable(
+                m_symbol_type->GetName(),
+                m_location
+            )),
+            m_location
+        ));
+
+        RC<AstBlock> invoke_block(new AstBlock(m_location));
+
+        // Add AstNewExpression to the block
+        invoke_block->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
+            RC<AstNewExpression>(new AstNewExpression(
+                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstVariable>(new AstVariable(
+                        m_symbol_type->GetName(),
+                        m_location
+                    )),
+                    m_location
+                )),
+                RC<AstArgumentList>(new AstArgumentList(
+                    invoke_args,
+                    m_location
+                )),
+                true,
+                m_location
+            )),
+            m_location
+        )));
+
+        RC<AstFunctionExpression> invoke_expr(new AstFunctionExpression(
+            invoke_params,
+            nullptr,
+            invoke_block,
+            m_location
+        ));
+
+        // Add $invoke member to the prototype type
+
+        invoke_expr->Visit(visitor, mod);
+
+        // add it to the list of static members
+        m_static_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            "$invoke",
+            nullptr,
+            invoke_expr,
+            {},
+            IdentifierFlags::FLAG_CONST,
+            m_location
+        )));
+
+        // Add $invoke member to the symbol type
+        m_symbol_type->AddMember(SymbolMember_t {
+            "$invoke",
+            invoke_expr->GetExprType(),
+            invoke_expr
+        });
+    }
+#endif
 
     m_expr->Visit(visitor, mod);
 }
@@ -317,11 +521,5 @@ const String &AstTypeExpression::GetName() const
 {
     return m_name;
 }
-
-const AstTypeObject *AstTypeExpression::ExtractTypeObject() const
-{
-    return m_expr.Get();
-}
-
 
 } // namespace hyperion::compiler

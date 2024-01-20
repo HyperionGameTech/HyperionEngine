@@ -1,6 +1,8 @@
 #ifndef HYPERION_COMPILER_MODULE_HPP
 #define HYPERION_COMPILER_MODULE_HPP
 
+#include <core/lib/Proc.hpp>
+
 #include <script/compiler/Scope.hpp>
 #include <script/SourceLocation.hpp>
 #include <script/compiler/Tree.hpp>
@@ -10,11 +12,6 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <Types.hpp>
-
-#include <vector>
-#include <string>
-#include <unordered_set>
-#include <functional>
 
 namespace hyperion::compiler {
 
@@ -75,7 +72,7 @@ public:
         If this_scope_only is set to true, only the current scope will be
         searched.
     */
-    RC<Identifier> LookUpIdentifier(const String &name, bool this_scope_only, bool outside_modules=ACE_ALLOW_IDENTIFIERS_OTHER_MODULES);
+    RC<Identifier> LookUpIdentifier(const String &name, bool this_scope_only, bool outside_modules=HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
     
     /** Check to see if the identifier exists in this scope or above this one.
         Will only search the number of depth levels it is given.
@@ -94,18 +91,18 @@ public:
     Tree<Scope> m_scopes;
 
 private:
-    String m_name;
-    SourceLocation m_location;
+    String              m_name;
+    SourceLocation      m_location;
 
     // module scan paths
-    FlatSet<String> m_scan_paths;
+    FlatSet<String>     m_scan_paths;
 
     /** A link to where this module exists in the import tree */
-    TreeNode<Module*> *m_tree_link;
+    TreeNode<Module*>   *m_tree_link;
 
     SymbolTypePtr_t PerformLookup(
-        std::function<SymbolTypePtr_t(TreeNode<Scope>*)>,
-        std::function<SymbolTypePtr_t(Module *mod)>
+        Proc<SymbolTypePtr_t, TreeNode<Scope> *> &&pred1,
+        Proc<SymbolTypePtr_t, Module *> &&pred2
     );
 };
 
@@ -116,11 +113,11 @@ struct ScopeGuard : TreeNodeGuard<Scope>
     {
     }
 
-    ScopeGuard(const ScopeGuard &other) = delete;
-    ScopeGuard &operator=(const ScopeGuard &other) = delete;
-    ScopeGuard(ScopeGuard &&other) noexcept = delete;
-    ScopeGuard &operator=(ScopeGuard &&other) noexcept = delete;
-    ~ScopeGuard() = default;
+    ScopeGuard(const ScopeGuard &other)                 = delete;
+    ScopeGuard &operator=(const ScopeGuard &other)      = delete;
+    ScopeGuard(ScopeGuard &&other) noexcept             = delete;
+    ScopeGuard &operator=(ScopeGuard &&other) noexcept  = delete;
+    ~ScopeGuard()                                       = default;
 };
 
 } // namespace hyperion::compiler

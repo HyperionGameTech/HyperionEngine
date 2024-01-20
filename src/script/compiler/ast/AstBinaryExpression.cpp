@@ -41,7 +41,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_left != nullptr);
     AssertThrow(m_right != nullptr);
 
-#if ACE_ENABLE_LAZY_DECLARATIONS
+#if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // check for lazy declaration first
     if ((m_variable_declaration = CheckLazyDeclaration(visitor, mod))) {
         m_variable_declaration->Visit(visitor, mod);
@@ -232,7 +232,7 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
         return m_operator_overload->Build(visitor, mod);
     }
 
-#if ACE_ENABLE_LAZY_DECLARATIONS
+#if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         return m_variable_declaration->Build(visitor, mod);
     }
@@ -650,7 +650,7 @@ void AstBinaryExpression::Optimize(AstVisitor *visitor, Module *mod)
         return;
     }
 
-#if ACE_ENABLE_LAZY_DECLARATIONS
+#if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         m_variable_declaration->Optimize(visitor, mod);
         return;
@@ -755,7 +755,7 @@ SymbolTypePtr_t AstBinaryExpression::GetExprType() const
     }
 }
 
-#if ACE_ENABLE_LAZY_DECLARATIONS
+#if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
 RC<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor *visitor, Module *mod)
 {
     if (m_op->GetOperatorType() == Operators::OP_assign) {

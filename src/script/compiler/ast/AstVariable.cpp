@@ -38,190 +38,183 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_properties.GetIdentifierType() != IDENTIFIER_TYPE_UNKNOWN);
 
     switch (m_properties.GetIdentifierType()) {
-        case IDENTIFIER_TYPE_VARIABLE: {
-            AssertThrow(m_properties.GetIdentifier() != nullptr);
+    case IDENTIFIER_TYPE_VARIABLE: {
+        AssertThrow(m_properties.GetIdentifier() != nullptr);
 
-#if ACE_ENABLE_VARIABLE_INLINING
-            // clone the AST node so we don't double-visit
-            if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
-                // m_inline_value = CloneAstNode(current_value);
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
+        // clone the AST node so we don't double-visit
+        if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
+            // m_inline_value = CloneAstNode(current_value);
 
-                const AstConstant *constant_value = nullptr;
+            const AstConstant *constant_value = nullptr;
 
-                if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
-                    m_inline_value = CloneAstNode(constant_value);
-                }
+            if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
+                m_inline_value = CloneAstNode(constant_value);
             }
+        }
 #endif
 
-            // if alias or const, load direct value.
-            // if it's an alias then it will just refer to whatever other variable
-            // is being referenced. if it is const, load the direct value held in the variable
-            const bool is_alias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
-            const bool is_mixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
-            const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
-            const bool is_argument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
-            const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
-            const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
-            const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
-            const bool is_substitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
+        // if alias or const, load direct value.
+        // if it's an alias then it will just refer to whatever other variable
+        // is being referenced. if it is const, load the direct value held in the variable
+        const bool is_alias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
+        const bool is_mixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
+        const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
+        const bool is_argument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
+        const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
+        const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+        const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
+        const bool is_substitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
 
-            if (false) {//is_member) { // temporarily disabled; allows for self.<variable name> to be used without prefixing with 'self.'
-                m_self_member_access.Reset(new AstMember(
-                    m_name,
-                    RC<AstVariable>(new AstVariable(
-                        Keyword::ToString(Keywords::Keyword_self).Get(),
-                        m_location
-                    )),
+        if (false) {//is_member) { // temporarily disabled; allows for self.<variable name> to be used without prefixing with 'self.'
+            m_self_member_access.Reset(new AstMember(
+                m_name,
+                RC<AstVariable>(new AstVariable(
+                    Keyword::ToString(Keywords::Keyword_self).Get(),
                     m_location
-                ));
+                )),
+                m_location
+            ));
 
-                m_self_member_access->Visit(visitor, mod);
-            } else {
-                m_is_in_ref_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG);
-                m_is_in_const_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::CONST_VARIABLE_FLAG);
+            m_self_member_access->Visit(visitor, mod);
+        } else {
+            m_is_in_ref_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG);
+            m_is_in_const_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::CONST_VARIABLE_FLAG);
 
-                if (m_is_in_ref_assignment) {
-                    if (is_const && !m_is_in_const_assignment) {
-                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                            LEVEL_ERROR,
-                            Msg_const_assigned_to_non_const_ref,
-                            m_location,
-                            m_name
-                        ));
-                    }
-                }
-
-                if (is_generic) {
-                    if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION) && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION)) {
-                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                            LEVEL_ERROR,
-                            Msg_generic_expression_no_arguments_provided,
-                            m_location,
-                            m_name
-                        ));
-
-                        return;
-                    }
-                }
-
-#if ACE_ENABLE_VARIABLE_INLINING
-                const bool force_inline = is_alias || is_mixin || is_substitution;
-
-                if (force_inline && m_inline_value != nullptr) {
+            if (m_is_in_ref_assignment) {
+                if (is_const && !m_is_in_const_assignment) {
                     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
-                        Msg_cannot_inline_variable,
+                        Msg_const_assigned_to_non_const_ref,
                         m_location,
                         m_name
                     ));
                 }
+            }
 
-                // don't inline arguments.
-                // can run into an issue with a param is const with default assignment,
-                // where it would inline the default assignment instead of the passed in value
-                m_should_inline = force_inline || (!is_generic && is_const && !is_argument);
+            if (is_generic) {
+                if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION) && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION)
+                    && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_generic_expression_no_arguments_provided,
+                        m_location,
+                        m_name
+                    ));
 
-                if (m_inline_value == nullptr) {
-                    m_should_inline = false;
-                }
-
-                if (m_should_inline) {
-                    // set access options for this variable based on those of the current value
-                    m_access_options = m_inline_value->GetAccessOptions();
-                    // if alias, accept the current value instead
-                    m_inline_value->Visit(visitor, mod);
-                }
-#else
-                static constexpr bool force_inline = false;
-                m_should_inline = false;
-#endif
-
-                // if it is alias or mixin, update symbol type of this expression
-
-
-#if ACE_ENABLE_VARIABLE_INLINING
-                // increase usage count for variable loads (non-inlined)
-                if (!m_should_inline) {
-#endif
-                    m_properties.GetIdentifier()->IncUseCount();
-
-#if ACE_ENABLE_VARIABLE_INLINING
-                }
-#endif
-
-                if (m_properties.IsInFunction()) {
-                    if (m_properties.IsInPureFunction()) {
-                        // check if pure function - in a pure function, only variables from this scope may be used
-                        if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
-                            // add error that the variable must be passed as a parameter
-                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                                LEVEL_ERROR,
-                                Msg_pure_function_scope,
-                                m_location,
-                                m_name
-                            ));
-                        }
-                    }
-
-                    if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
-                        // lookup the variable by depth to make sure it was declared in the current function
-                        if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
-                            Scope *function_scope = m_properties.GetFunctionScope();
-                            AssertThrow(function_scope != nullptr);
-
-                            function_scope->AddClosureCapture(
-                                m_name,
-                                m_properties.GetIdentifier()
-                            );
-
-                            // closures are objects with a method named '$invoke',
-                            // because we are in the '$invoke' method currently,
-                            // we use the variable as 'self.<variable name>'
-                            m_closure_member_access.Reset(new AstMember(
-                                m_name,
-                                RC<AstVariable>(new AstVariable(
-                                    "$functor",
-                                    m_location
-                                )),
-                                m_location
-                            ));
-
-                            m_closure_member_access->Visit(visitor, mod);
-                        }
-                    }
+                    return;
                 }
             }
 
-            break;
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
+            const bool force_inline = is_alias || is_mixin || is_substitution;
+
+            if (force_inline && m_inline_value != nullptr) {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_cannot_inline_variable,
+                    m_location,
+                    m_name
+                ));
+            }
+
+            // don't inline arguments.
+            // can run into an issue with a param is const with default assignment,
+            // where it would inline the default assignment instead of the passed in value
+            m_should_inline = force_inline || (!is_generic && is_const && !is_argument);
+
+            if (m_inline_value == nullptr) {
+                m_should_inline = false;
+            }
+
+            if (m_should_inline) {
+                // set access options for this variable based on those of the current value
+                m_access_options = m_inline_value->GetAccessOptions();
+                // if alias, accept the current value instead
+                m_inline_value->Visit(visitor, mod);
+            }
+#else
+            static constexpr bool force_inline = false;
+            m_should_inline = false;
+#endif
+
+            // if it is alias or mixin, update symbol type of this expression
+
+
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
+            // increase usage count for variable loads (non-inlined)
+            if (!m_should_inline) {
+#endif
+                m_properties.GetIdentifier()->IncUseCount();
+
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
+            }
+#endif
+
+            if (m_properties.IsInFunction()) {
+                if (m_properties.IsInPureFunction()) {
+                    // check if pure function - in a pure function, only variables from this scope may be used
+                    if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
+                        // add error that the variable must be passed as a parameter
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_pure_function_scope,
+                            m_location,
+                            m_name
+                        ));
+                    }
+                }
+
+                if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
+                    // lookup the variable by depth to make sure it was declared in the current function
+                    if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
+                        Scope *function_scope = m_properties.GetFunctionScope();
+                        AssertThrow(function_scope != nullptr);
+
+                        function_scope->AddClosureCapture(
+                            m_name,
+                            m_properties.GetIdentifier()
+                        );
+
+                        // closures are objects with a method named '$invoke',
+                        // because we are in the '$invoke' method currently,
+                        // we use the variable as 'self.<variable name>'
+                        m_closure_member_access.Reset(new AstMember(
+                            m_name,
+                            RC<AstVariable>(new AstVariable(
+                                "$functor",
+                                m_location
+                            )),
+                            m_location
+                        ));
+
+                        m_closure_member_access->Visit(visitor, mod);
+                    }
+                }
+            }
         }
-        case IDENTIFIER_TYPE_MODULE:
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_identifier_is_module,
-                m_location,
-                m_name
-            ));
-            break;
-        case IDENTIFIER_TYPE_TYPE:
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_identifier_is_type,
-                m_location,
-                m_name
-            ));
-            break;
-        case IDENTIFIER_TYPE_NOT_FOUND:
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_undeclared_identifier,
-                m_location,
-                m_name,
-                mod->GenerateFullModuleName()
-            ));
-            break;
-        default:
-            break;
+
+        break;
+    }
+    case IDENTIFIER_TYPE_MODULE:
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_identifier_is_module,
+            m_location,
+            m_name
+        ));
+        break;
+    case IDENTIFIER_TYPE_NOT_FOUND:
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_undeclared_identifier,
+            m_location,
+            m_name,
+            mod->GenerateFullModuleName()
+        ));
+        break;
+    default:
+        break;
     }
 }
 
@@ -241,7 +234,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
     
     AssertThrow(m_properties.GetIdentifier() != nullptr);
 
-#if ACE_ENABLE_VARIABLE_INLINING
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
     if (m_should_inline) {
         // if alias, accept the current value instead
         const AccessMode current_access_mode = m_inline_value->GetAccessMode();
@@ -311,7 +304,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
             }
         }
 
-#if ACE_ENABLE_VARIABLE_INLINING
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
     }
 #endif
 

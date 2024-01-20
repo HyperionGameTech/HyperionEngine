@@ -315,6 +315,9 @@ public:
     /*! \brief Is this type a primitive type? (e.g. Int, Float) */
     bool IsPrimitive() const;
 
+    /*! \brief Is this an enum type? */
+    bool IsEnumType() const;
+
     bool IsProxyClass() const
         { return m_flags & SYMBOL_TYPE_FLAGS_PROXY; }
 

@@ -2328,9 +2328,51 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
         } */
         if (!is_variable && (is_function || Match(TK_OPEN_PARENTH))) { // it is a member function
             Array<RC<AstParameter>> params;
+
+#if HYP_SCRIPT_AUTO_SELF_INSERTION
+            params.Reserve(1); // reserve at least 1 for 'self' parameter
+
+            if (is_static) { // static member function
+                RC<AstPrototypeSpecification> self_type_spec(new AstPrototypeSpecification(
+                    RC<AstVariable>(new AstVariable(
+                        BuiltinTypes::CLASS_TYPE->GetName(), // `self: Class` for static functions
+                        location
+                    )),
+                    location
+                ));
+
+                params.PushBack(RC<AstParameter>(new AstParameter(
+                    "self",
+                    self_type_spec,
+                    nullptr,
+                    false,
+                    false,
+                    false,
+                    location
+                )));
+            } else { // instance member function
+                RC<AstPrototypeSpecification> self_type_spec(new AstPrototypeSpecification(
+                    RC<AstVariable>(new AstVariable(
+                        type_name, // `self: Whatever` for instance functions
+                        location
+                    )),
+                    location
+                ));
+
+                params.PushBack(RC<AstParameter>(new AstParameter(
+                    "self",
+                    self_type_spec,
+                    nullptr,
+                    false,
+                    false,
+                    false,
+                    location
+                )));
+            }
+#endif
             
             if (Match(TK_OPEN_PARENTH, true)) {
-                params = ParseFunctionParameters();
+                params.Concat(ParseFunctionParameters());
                 Expect(TK_CLOSE_PARENTH, true);
             }
 
@@ -2359,9 +2401,9 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
             ));
 
             if (is_static || is_proxy_class) { // <--- all methods for proxy classes are static
-                static_functions.PushBack(member);
+                static_functions.PushBack(std::move(member));
             } else {
-                member_functions.PushBack(member);
+                member_functions.PushBack(std::move(member));
             }
         } else {
             // rollback
@@ -2465,44 +2507,42 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
         // underlying type
         underlying_type = ParsePrototypeSpecification();
     }
+
+    SkipStatementTerminators();
     
     Array<EnumEntry> entries;
 
-    if (Expect(TK_OPEN_BRACE, true)) {
-        while (!Match(TK_CLOSE_BRACE, false)) {
-            EnumEntry entry { };
+    while (!MatchKeyword(Keyword_end, false)) {
+        EnumEntry entry { };
 
-            if (const Token ident = Expect(TK_IDENT, true)) {
-                entry.name = ident.GetValue();
-                entry.location = ident.GetLocation();
-            } else {
-                break;
-            }
-
-            if (const Token op = MatchOperator("=", true)) {
-                entry.assignment = ParseExpression(true);
-            }
-
-            entries.PushBack(entry);
-
-            while (Match(TK_NEWLINE, true));
-
-            if (!Match(TK_CLOSE_BRACE, false)) {
-                Expect(TK_COMMA, true);
-            }
+        if (const Token ident = Expect(TK_IDENT, true)) {
+            entry.name = ident.GetValue();
+            entry.location = ident.GetLocation();
+        } else {
+            break;
         }
 
-        Expect(TK_CLOSE_BRACE, true);
+        if (const Token op = MatchOperator("=", true)) {
+            entry.assignment = ParseExpression(true);
+        }
 
-        return RC<AstEnumExpression>(new AstEnumExpression(
-            enum_name,
-            entries,
-            underlying_type,
-            location
-        ));
+        entries.PushBack(entry);
+
+        while (Match(TK_NEWLINE, true));
+
+        if (!MatchKeyword(Keyword_end, false)) {
+            Expect(TK_COMMA, true);
+        }
     }
 
-    return nullptr;
+    ExpectKeyword(Keyword_end, true);
+
+    return RC<AstEnumExpression>(new AstEnumExpression(
+        enum_name,
+        entries,
+        underlying_type,
+        location
+    ));
 }
 
 RC<AstImport> Parser::ParseImport()

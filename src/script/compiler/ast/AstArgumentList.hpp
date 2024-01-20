@@ -11,8 +11,10 @@ namespace hyperion::compiler {
 
 class AstArgumentList : public AstExpression {
 public:
-    AstArgumentList(const Array<RC<AstArgument>> &args,
-      const SourceLocation &location);
+    AstArgumentList(
+      const Array<RC<AstArgument>> &args,
+      const SourceLocation &location
+    );
     virtual ~AstArgumentList() = default;
 
     const Array<RC<AstArgument>> &GetArguments() const

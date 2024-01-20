@@ -154,13 +154,12 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             found_substitution_result->arg->SetIsPassByRef(generic_arg.m_is_ref);
             found_substitution_result->arg->SetIsPassConst(generic_arg.m_is_const);
 
-            const AstTypeObject *type_object = found_substitution_result->arg->GetDeepValueOf()->ExtractTypeObject();
+            auto *deep_value_of = found_substitution_result->arg->GetDeepValueOf();
+            AssertThrow(deep_value_of != nullptr);
 
-            if (type_object) {
-                AssertThrow(type_object->GetHeldType() != nullptr);
-
-                if (!type_object->GetHeldType()->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
-                    return type_object->GetHeldType();
+            if (SymbolTypePtr_t held_type = deep_value_of->GetHeldType()) {
+                if (!held_type->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
+                    return held_type;
                 }
             }
         }

@@ -46,8 +46,6 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual SymbolTypePtr_t GetHeldType() const override;
 
-    virtual const AstTypeObject *ExtractTypeObject() const override;
-
 private:
     SymbolTypePtr_t             m_symbol_type;
     RC<AstVariable>             m_proto;

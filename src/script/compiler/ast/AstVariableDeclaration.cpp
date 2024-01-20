@@ -84,7 +84,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 m_identifier->SetSymbolType(m_symbol_type);
             }
 
-#if ACE_ANY_ONLY_FUNCTION_PARAMATERS
+#if HYP_SCRIPT_ANY_ONLY_FUNCTION_PARAMATERS
             if (m_symbol_type->IsAnyType()) {
                 // Any type is reserved for method parameters
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

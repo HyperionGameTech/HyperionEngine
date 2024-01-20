@@ -61,7 +61,6 @@ public:
     virtual const AstExpression *GetDeepValueOf() const { return GetValueOf(); }
     virtual AstExpression *GetTarget() const { return nullptr; }
     virtual const AstExpression *GetHeldGenericExpr() const { return nullptr; }
-    virtual const AstTypeObject *ExtractTypeObject() const { return nullptr; }
 
     /** Determine whether the expression would evaluate to true.
         Returns -1 if it cannot be evaluated at compile time.

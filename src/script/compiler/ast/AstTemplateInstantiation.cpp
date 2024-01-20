@@ -107,6 +107,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     // temporarily define all generic parameters so there are no undefined reference errors.
     for (SizeType index = 0; index < expr_type->GetGenericInstanceInfo().m_generic_args.Size() - 1; index++) {
         AssertThrow(args_substituted[index]->GetExpr() != nullptr);
+        AssertThrow(args_substituted[index]->GetExpr()->GetExprType() != nullptr);
 
         if (!args_substituted[index]->GetExpr()->GetExprType()->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
             RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
