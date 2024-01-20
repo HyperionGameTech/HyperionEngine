@@ -298,17 +298,6 @@ void Parser::Parse(Bool expect_module_decl)
 {
     SkipStatementTerminators();
 
-    // // pre-parse stage
-    // while (m_token_stream->HasNext()) {
-    //     if (MatchKeyword(Keyword_template, true)) {
-    //         DebugLog(LogType::Debug, "Found template keyword!\n");
-    //     } else {
-    //         m_token_stream->Next();
-    //     }
-    // }
-
-    // m_token_stream->SetPosition(0);
-
     if (expect_module_decl) {
         // create a module based upon the filename
         const String filepath = m_token_stream->GetInfo().filepath;
@@ -441,7 +430,7 @@ RC<AstStatement> Parser::ParseStatement(
     } else if (Match(TK_DIRECTIVE, false)) {
         res = ParseDirective();
     } else if (Match(TK_OPEN_BRACE, false)) {
-        res = ParseBlock();
+        res = ParseBlock(true);
     } else if (Match(TK_IDENT, false) && (MatchAhead(TK_COLON, 1) || MatchAhead(TK_DEFINE, 1))) {
         res = ParseVariableDeclaration();
     } else {
@@ -1241,30 +1230,36 @@ RC<AstNil> Parser::ParseNil()
     return nullptr;
 }
 
-RC<AstBlock> Parser::ParseBlock()
+RC<AstBlock> Parser::ParseBlock(bool require_braces, bool skip_end)
 {
-    if (Token token = Expect(TK_OPEN_BRACE, true)) {
-        RC<AstBlock> block(new AstBlock(
-            token.GetLocation()
-        ));
+    SourceLocation location = CurrentLocation();
 
-        while (!Match(TK_CLOSE_BRACE, false)) {
-            // skip statement terminator tokens
-            if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true)) {
-                if (auto stmt = ParseStatement()) {
-                    block->AddChild(stmt);
-                } else {
-                    break;
-                }
-            }
+    if (require_braces) {
+        if (!Expect(TK_OPEN_BRACE, true)) {
+            return nullptr;
         }
-
-        Expect(TK_CLOSE_BRACE, true);
-
-        return block;
     }
 
-    return nullptr;
+    RC<AstBlock> block(new AstBlock(location));
+
+    while (require_braces ? !Match(TK_CLOSE_BRACE, false) : !MatchKeyword(Keyword_end, false)) {
+        // skip statement terminator tokens
+        if (!Match(TK_SEMICOLON, true) && !Match(TK_NEWLINE, true)) {
+            if (auto stmt = ParseStatement()) {
+                block->AddChild(stmt);
+            } else {
+                break;
+            }
+        }
+    }
+
+    if (require_braces) {
+        Expect(TK_CLOSE_BRACE, true);
+    } else if (!skip_end) {
+        ExpectKeyword(Keyword_end, true);
+    }
+
+    return block;
 }
 
 RC<AstIfStatement> Parser::ParseIfStatement()
@@ -1296,7 +1291,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
         }
 
         RC<AstBlock> block;
-        if (!(block = ParseBlock())) {
+        if (!(block = ParseBlock(false, true))) {
             return nullptr;
         }
 
@@ -1314,10 +1309,15 @@ RC<AstIfStatement> Parser::ParseIfStatement()
                 }
             } else {
                 // parse block after "else keyword
-                if (!(else_block = ParseBlock())) {
+                if (!(else_block = ParseBlock(false, true))) {
                     return nullptr;
                 }
             }
+        }
+
+        // expect "end" keyword
+        if (!ExpectKeyword(Keyword_end, true)) {
+            return nullptr;
         }
 
         return RC<AstIfStatement>(new AstIfStatement(
@@ -1348,7 +1348,7 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
         }
 
         RC<AstBlock> block;
-        if (!(block = ParseBlock())) {
+        if (!(block = ParseBlock(false))) {
             return nullptr;
         }
 
@@ -1412,8 +1412,7 @@ RC<AstStatement> Parser::ParseForLoop()
         }
 
         RC<AstBlock> block;
-
-        if (!(block = ParseBlock())) {
+        if (!(block = ParseBlock(false))) {
             return nullptr;
         }
 
@@ -1454,12 +1453,17 @@ RC<AstStatement> Parser::ParseContinueStatement()
 RC<AstTryCatch> Parser::ParseTryCatchStatement()
 {
     if (Token token = ExpectKeyword(Keyword_try, true)) {
-        RC<AstBlock> try_block = ParseBlock();
+        RC<AstBlock> try_block = ParseBlock(false, true);
         RC<AstBlock> catch_block;
 
         if (ExpectKeyword(Keyword_catch, true)) {
             // TODO: Add exception argument
-            catch_block = ParseBlock();
+            catch_block = ParseBlock(false);
+        } else {
+            // No catch keyword, expect 'end'
+            if (!ExpectKeyword(Keyword_end, true)) {
+                return nullptr;
+            }
         }
 
         if (try_block != nullptr && catch_block != nullptr) {
@@ -1930,7 +1934,7 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
                 location
             ));
         } else {
-            block = ParseBlock();
+            block = ParseBlock(false);
         }
 
         if (block != nullptr) {
@@ -2217,193 +2221,193 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
 
     String current_access_specifier = Keyword::ToString(Keyword_private).Get();
 
-    if (Expect(TK_OPEN_BRACE, true)) {
-        while (!Match(TK_CLOSE_BRACE, true)) {
-            const SourceLocation location = CurrentLocation();
-            Token specifier_token = Token::EMPTY;
+    SkipStatementTerminators();
 
-            if ((specifier_token = MatchKeyword(Keyword_public, true))
-                || (specifier_token = MatchKeyword(Keyword_private, true))
-                || (specifier_token = MatchKeyword(Keyword_protected, true))) {
+    while (!MatchKeyword(Keyword_end, true)) {
+        const SourceLocation location = CurrentLocation();
+        Token specifier_token = Token::EMPTY;
 
-                // read ':'
-                if (Expect(TK_COLON, true)) {
-                    current_access_specifier = specifier_token.GetValue();
-                }
+        if ((specifier_token = MatchKeyword(Keyword_public, true))
+            || (specifier_token = MatchKeyword(Keyword_private, true))
+            || (specifier_token = MatchKeyword(Keyword_protected, true))) {
+
+            // read ':'
+            if (Expect(TK_COLON, true)) {
+                current_access_specifier = specifier_token.GetValue();
             }
-
-            IdentifierFlagBits flags = IdentifierFlags::FLAG_MEMBER;
-
-            // read ident
-            Bool is_static = false,
-                is_function = false,
-                is_variable = false;
-
-            if (MatchKeyword(Keyword_static, true)) {
-                is_static = true;
-            }
-
-            // place rollback position here because ParseVariableDeclaration()
-            // will handle everything. put keywords that ParseVariableDeclaration()
-            // does /not/ handle, above.
-            const SizeType position_before = m_token_stream->GetPosition();
-
-            if (MatchKeyword(Keyword_let, true)) {
-                is_variable = true;
-            }
-
-            if (MatchKeyword(Keyword_ref, true)) {
-                is_variable = true;
-
-                flags |= IdentifierFlags::FLAG_REF;
-            }
-
-            if (MatchKeyword(Keyword_const, true)) {
-                is_variable = true;
-
-                flags |= IdentifierFlags::FLAG_CONST;
-            }
-            
-            if (MatchKeyword(Keyword_func, true)) {
-                is_function = true;
-            }
-
-            //!Match(TK_STRING, false) || ExpectIdentifier(true, false);
-            
-            if (!MatchIdentifier(true, false) && !Match(TK_STRING, false)) {
-                // error; unexpected token
-                m_compilation_unit->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_unexpected_token,
-                    m_token_stream->Peek().GetLocation(),
-                    m_token_stream->Peek().GetValue()
-                ));
-
-                if (m_token_stream->HasNext()) {
-                    m_token_stream->Next();
-                }
-
-                continue;
-            }
-            
-            // read the identifier token
-            Token identifier = Match(TK_STRING, false)
-                ? m_token_stream->Next()
-                : ExpectIdentifier(true, true);
-
-            // read generic params after identifier
-
-            RC<AstExpression> assignment;
-            Array<RC<AstParameter>> generic_parameters;
-
-            // check for generic
-            if (MatchOperator("<", false)) {
-                flags |= IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC;
-
-                generic_parameters = ParseGenericParameters();
-            }
-
-            if (current_access_specifier == Keyword::ToString(Keyword_public).Get()) {
-                flags |= IdentifierFlags::FLAG_ACCESS_PUBLIC;
-            } else if (current_access_specifier == Keyword::ToString(Keyword_private).Get()) {
-                flags |= IdentifierFlags::FLAG_ACCESS_PRIVATE;
-            } else if (current_access_specifier == Keyword::ToString(Keyword_protected).Get()) {
-                flags |= IdentifierFlags::FLAG_ACCESS_PROTECTED;
-            }
-
-            // do not require declaration keyword for data members.
-            // also, data members may be specifiers.
-            // note: a variable may be declared with ANY name if it enquoted
-
-            // if parentheses matched, it will be a function:
-            /* type Whatever { 
-                do_something() {
-                // ...
-                }
-            } */
-            if (!is_variable && (is_function || Match(TK_OPEN_PARENTH))) { // it is a member function
-                Array<RC<AstParameter>> params;
-                
-                if (Match(TK_OPEN_PARENTH, true)) {
-                    params = ParseFunctionParameters();
-                    Expect(TK_CLOSE_PARENTH, true);
-                }
-
-                assignment = ParseFunctionExpression(false, params);
-
-                if (assignment == nullptr) {
-                    return nullptr;
-                }
-
-                if (flags & IdentifierFlags::FLAG_GENERIC) {
-                    assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
-                        assignment,
-                        generic_parameters,
-                        nullptr,
-                        assignment->GetLocation()
-                    ));
-                }
-
-                RC<AstVariableDeclaration> member(new AstVariableDeclaration(
-                    identifier.GetValue(),
-                    nullptr, // prototype specification
-                    assignment,
-                    {}, //template_expr_params,
-                    flags,
-                    location
-                ));
-
-                if (is_static || is_proxy_class) { // <--- all methods for proxy classes are static
-                    static_functions.PushBack(member);
-                } else {
-                    member_functions.PushBack(member);
-                }
-            } else {
-                // rollback
-                m_token_stream->SetPosition(position_before);
-
-                if (auto member = ParseVariableDeclaration(
-                    true, // allow keyword names
-                    true, // allow quoted names
-                    flags
-                )) {
-                    if (is_static) {
-                        static_variables.PushBack(member);
-                    } else {
-                        member_variables.PushBack(member);
-                    }
-                } else {
-                    break;
-                }
-
-                if (is_proxy_class) {
-                    m_compilation_unit->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_proxy_class_may_only_contain_methods,
-                        m_token_stream->Peek().GetLocation()
-                    ));
-                }
-            }
-
-            ExpectEndOfStmt();
-            SkipStatementTerminators();
         }
 
-        Array<RC<AstVariableDeclaration>> all_statics;
-        all_statics.Reserve(static_variables.Size() + static_functions.Size());
-        all_statics.Concat(std::move(static_variables));
-        all_statics.Concat(std::move(static_functions));
+        IdentifierFlagBits flags = IdentifierFlags::FLAG_MEMBER;
 
-        return RC<AstTypeExpression>(new AstTypeExpression(
-            type_name,
-            base_specification,
-            member_variables,
-            member_functions,
-            all_statics,
-            is_proxy_class,
-            location
-        ));
+        // read ident
+        Bool is_static = false,
+            is_function = false,
+            is_variable = false;
+
+        if (MatchKeyword(Keyword_static, true)) {
+            is_static = true;
+        }
+
+        // place rollback position here because ParseVariableDeclaration()
+        // will handle everything. put keywords that ParseVariableDeclaration()
+        // does /not/ handle, above.
+        const SizeType position_before = m_token_stream->GetPosition();
+
+        if (MatchKeyword(Keyword_let, true)) {
+            is_variable = true;
+        }
+
+        if (MatchKeyword(Keyword_ref, true)) {
+            is_variable = true;
+
+            flags |= IdentifierFlags::FLAG_REF;
+        }
+
+        if (MatchKeyword(Keyword_const, true)) {
+            is_variable = true;
+
+            flags |= IdentifierFlags::FLAG_CONST;
+        }
+        
+        if (MatchKeyword(Keyword_func, true)) {
+            is_function = true;
+        }
+
+        //!Match(TK_STRING, false) || ExpectIdentifier(true, false);
+        
+        if (!MatchIdentifier(true, false) && !Match(TK_STRING, false)) {
+            // error; unexpected token
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_unexpected_token,
+                m_token_stream->Peek().GetLocation(),
+                m_token_stream->Peek().GetValue()
+            ));
+
+            if (m_token_stream->HasNext()) {
+                m_token_stream->Next();
+            }
+
+            continue;
+        }
+        
+        // read the identifier token
+        Token identifier = Match(TK_STRING, false)
+            ? m_token_stream->Next()
+            : ExpectIdentifier(true, true);
+
+        // read generic params after identifier
+
+        RC<AstExpression> assignment;
+        Array<RC<AstParameter>> generic_parameters;
+
+        // check for generic
+        if (MatchOperator("<", false)) {
+            flags |= IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC;
+
+            generic_parameters = ParseGenericParameters();
+        }
+
+        if (current_access_specifier == Keyword::ToString(Keyword_public).Get()) {
+            flags |= IdentifierFlags::FLAG_ACCESS_PUBLIC;
+        } else if (current_access_specifier == Keyword::ToString(Keyword_private).Get()) {
+            flags |= IdentifierFlags::FLAG_ACCESS_PRIVATE;
+        } else if (current_access_specifier == Keyword::ToString(Keyword_protected).Get()) {
+            flags |= IdentifierFlags::FLAG_ACCESS_PROTECTED;
+        }
+
+        // do not require declaration keyword for data members.
+        // also, data members may be specifiers.
+        // note: a variable may be declared with ANY name if it enquoted
+
+        // if parentheses matched, it will be a function:
+        /* type Whatever { 
+            do_something() {
+            // ...
+            }
+        } */
+        if (!is_variable && (is_function || Match(TK_OPEN_PARENTH))) { // it is a member function
+            Array<RC<AstParameter>> params;
+            
+            if (Match(TK_OPEN_PARENTH, true)) {
+                params = ParseFunctionParameters();
+                Expect(TK_CLOSE_PARENTH, true);
+            }
+
+            assignment = ParseFunctionExpression(false, params);
+
+            if (assignment == nullptr) {
+                return nullptr;
+            }
+
+            if (flags & IdentifierFlags::FLAG_GENERIC) {
+                assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
+                    assignment,
+                    generic_parameters,
+                    nullptr,
+                    assignment->GetLocation()
+                ));
+            }
+
+            RC<AstVariableDeclaration> member(new AstVariableDeclaration(
+                identifier.GetValue(),
+                nullptr, // prototype specification
+                assignment,
+                {}, //template_expr_params,
+                flags,
+                location
+            ));
+
+            if (is_static || is_proxy_class) { // <--- all methods for proxy classes are static
+                static_functions.PushBack(member);
+            } else {
+                member_functions.PushBack(member);
+            }
+        } else {
+            // rollback
+            m_token_stream->SetPosition(position_before);
+
+            if (auto member = ParseVariableDeclaration(
+                true, // allow keyword names
+                true, // allow quoted names
+                flags
+            )) {
+                if (is_static) {
+                    static_variables.PushBack(member);
+                } else {
+                    member_variables.PushBack(member);
+                }
+            } else {
+                break;
+            }
+
+            if (is_proxy_class) {
+                m_compilation_unit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_proxy_class_may_only_contain_methods,
+                    m_token_stream->Peek().GetLocation()
+                ));
+            }
+        }
+
+        ExpectEndOfStmt();
+        SkipStatementTerminators();
     }
+
+    Array<RC<AstVariableDeclaration>> all_statics;
+    all_statics.Reserve(static_variables.Size() + static_functions.Size());
+    all_statics.Concat(std::move(static_variables));
+    all_statics.Concat(std::move(static_functions));
+
+    return RC<AstTypeExpression>(new AstTypeExpression(
+        type_name,
+        base_specification,
+        member_variables,
+        member_functions,
+        all_statics,
+        is_proxy_class,
+        location
+    ));
 
     return nullptr;
 }

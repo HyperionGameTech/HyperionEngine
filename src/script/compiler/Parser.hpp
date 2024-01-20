@@ -136,7 +136,7 @@ private:
     RC<AstTrue> ParseTrue();
     RC<AstFalse> ParseFalse();
     RC<AstNil> ParseNil();
-    RC<AstBlock> ParseBlock();
+    RC<AstBlock> ParseBlock(bool require_braces, bool skip_end = false);
     RC<AstIfStatement> ParseIfStatement();
     RC<AstWhileLoop> ParseWhileLoop();
     RC<AstStatement> ParseForLoop();

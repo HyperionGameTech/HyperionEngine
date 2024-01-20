@@ -15,31 +15,25 @@
 namespace hyperion::compiler {
 
 const SymbolTypePtr_t BuiltinTypes::PRIMITIVE_TYPE = SymbolType::Primitive(
-    "Primitive",
+    "<primitive-type>",
     nullptr,
     nullptr
 );
 
-const SymbolTypePtr_t BuiltinTypes::TRAIT_TYPE = SymbolType::Primitive(
-    "Trait",
-    nullptr,
-    BuiltinTypes::PRIMITIVE_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::UNDEFINED = SymbolType::Primitive(
-    "<undef>",
+    "<error-type>",
     RC<AstUndefined>(new AstUndefined(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
-    "Any",
+    "any",
     RC<AstNil>(new AstNil(SourceLocation::eof)),
     nullptr
 );
 
 const SymbolTypePtr_t BuiltinTypes::PLACEHOLDER = SymbolType::Primitive(
-    "<placeholder>",
+    "<placeholder-type>",
     RC<AstNil>(new AstNil(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
@@ -83,25 +77,25 @@ const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
 );
 
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Primitive(
-    "Int",
+    "int",
     RC<AstInteger>(new AstInteger(0, SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::UNSIGNED_INT = SymbolType::Primitive(
-    "UInt",
+    "uint",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Primitive(
-    "Float",
+    "float",
     RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Primitive(
-    "Bool",
+    "bool",
     RC<AstFalse>(new AstFalse(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
@@ -185,7 +179,7 @@ const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
 );
 
 const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
-    "Args",
+    "<varargs-type>",
     RC<AstArrayExpression>(new AstArrayExpression(
         {},
         SourceLocation::eof
@@ -196,7 +190,7 @@ const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
 );
 
 const SymbolTypePtr_t BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
-    "NullType",
+    "<null-type>",
     RC<AstNil>(new AstNil(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
@@ -238,7 +232,7 @@ const SymbolTypePtr_t BuiltinTypes::CLOSURE_TYPE = SymbolType::Generic(
 );
 
 const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
-    "Generic",
+    "generic",
     Array<SymbolMember_t> {
         SymbolMember_t {
             "$proto",

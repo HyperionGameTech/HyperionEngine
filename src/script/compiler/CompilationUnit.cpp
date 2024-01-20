@@ -24,9 +24,6 @@ CompilationUnit::CompilationUnit()
 
     Scope &top = m_global_module->m_scopes.Top();
 
-    top.GetIdentifierTable().BindTypeToIdentifier("Any", BuiltinTypes::ANY);
-    top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
-
     m_module_tree.TopNode()->Get() = m_global_module.Get();
 }
 

@@ -56,7 +56,8 @@ enum Keywords
     Keyword_valueof,
     Keyword_typeof,
     Keyword_meta,
-    Keyword_template
+    Keyword_template,
+    Keyword_end
 };
 
 class Keyword

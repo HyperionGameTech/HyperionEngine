@@ -16,6 +16,10 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 
 Builtins::Builtins()
 {
+    m_vars["any"].Reset(new AstTypeObject(
+        BuiltinTypes::ANY, nullptr, SourceLocation::eof
+    ));
+
     m_vars["Class"].Reset(new AstTypeObject(
         BuiltinTypes::CLASS_TYPE, nullptr, SourceLocation::eof
     ));
@@ -24,31 +28,27 @@ Builtins::Builtins()
         BuiltinTypes::OBJECT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Null"].Reset(new AstTypeObject(
-        BuiltinTypes::NULL_TYPE, nullptr, SourceLocation::eof
-    ));
-
     m_vars["void"].Reset(new AstTypeObject(
         BuiltinTypes::VOID_TYPE, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Int"].Reset(new AstTypeObject(
+    m_vars["int"].Reset(new AstTypeObject(
         BuiltinTypes::INT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["UInt"].Reset(new AstTypeObject(
+    m_vars["uint"].Reset(new AstTypeObject(
         BuiltinTypes::UNSIGNED_INT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Float"].Reset(new AstTypeObject(
+    m_vars["float"].Reset(new AstTypeObject(
         BuiltinTypes::FLOAT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Bool"].Reset(new AstTypeObject(
+    m_vars["bool"].Reset(new AstTypeObject(
         BuiltinTypes::BOOLEAN, nullptr, SourceLocation::eof
     ));
 
-    m_vars["String"].Reset(new AstTypeObject(
+    m_vars["string"].Reset(new AstTypeObject(
         BuiltinTypes::STRING, nullptr, SourceLocation::eof
     ));
 

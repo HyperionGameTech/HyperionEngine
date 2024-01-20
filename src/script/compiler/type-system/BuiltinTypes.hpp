@@ -11,7 +11,6 @@ using SymbolTypePtr_t = std::shared_ptr<SymbolType>;
 struct BuiltinTypes
 {
     static const SymbolTypePtr_t PRIMITIVE_TYPE;
-    static const SymbolTypePtr_t TRAIT_TYPE;
     static const SymbolTypePtr_t UNDEFINED;
     static const SymbolTypePtr_t OBJECT;
     static const SymbolTypePtr_t CLASS_TYPE;

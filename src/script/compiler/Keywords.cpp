@@ -47,7 +47,8 @@ const HashMap<String, Keywords> Keyword::keyword_strings = {
     { "valueof",   Keyword_valueof },
     { "typeof",    Keyword_typeof },
     { "$meta",     Keyword_meta },
-    { "template",  Keyword_template }
+    { "template",  Keyword_template },
+    { "end",       Keyword_end }
 };
 
 bool Keyword::IsKeyword(const String &str)
