@@ -300,8 +300,10 @@ public:
     
     bool IsNumber() const;
     bool IsIntegral() const;
+    bool IsSignedIntegral() const;
     bool IsUnsignedIntegral() const;
     bool IsFloat() const;
+    bool IsBoolean() const;
     bool IsClass() const;
     bool IsObject() const;
     bool IsAnyType() const;

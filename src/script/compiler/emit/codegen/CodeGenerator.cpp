@@ -447,6 +447,19 @@ void CodeGenerator::Visit(SymbolExport *node)
     m_ibs.Put((byte*)&hash, sizeof(hash));
 }
 
+void CodeGenerator::Visit(CastOperation *node)
+{
+    const UInt8 cast_instruction = UInt8(Instructions::CAST_U8) + UInt8(node->type);
+    AssertThrowMsg(
+        cast_instruction >= Instructions::CAST_U8 && cast_instruction <= UInt8(Instructions::CAST_DYNAMIC),
+        "Invalid cast type"
+    );
+
+    m_ibs.Put(cast_instruction);
+    m_ibs.Put((byte*)&node->reg_dst, sizeof(node->reg_dst));
+    m_ibs.Put((byte*)&node->reg_src, sizeof(node->reg_src));
+}
+
 void CodeGenerator::Visit(RawOperation<> *node)
 {
     m_ibs.Put(node->opcode);

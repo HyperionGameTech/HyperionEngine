@@ -10,6 +10,7 @@
 
 #include <core/lib/CMemory.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/TypeID.hpp>
 
 #include <vector>
 #include <ostream>
@@ -331,13 +332,46 @@ struct Comment final : public Instruction
 
 struct SymbolExport final : public Instruction
 {
-    RegIndex reg;
-    String name;
+    RegIndex    reg;
+    String      name;
 
     SymbolExport() = default;
     SymbolExport(RegIndex reg, const String &name) : reg(reg), name(name) { }
     SymbolExport(const SymbolExport &other) = default;
     virtual ~SymbolExport() = default;
+};
+
+struct CastOperation final : public Instruction
+{
+    enum Type
+    {
+        CAST_U8,
+        CAST_U16,
+        CAST_U32,
+        CAST_U64,
+        CAST_I8,
+        CAST_I16,
+        CAST_I32,
+        CAST_I64,
+        CAST_F32,
+        CAST_F64,
+        CAST_BOOL,
+        CAST_DYNAMIC
+    };
+
+    Type        type = CAST_U8;
+    RegIndex    reg_dst;
+    RegIndex    reg_src;
+
+    CastOperation() = default;
+    CastOperation(Type type, RegIndex reg_dst, RegIndex reg_src)
+        : type(type),
+          reg_dst(reg_dst),
+          reg_src(reg_src)
+    {
+    }
+
+    virtual ~CastOperation() = default;
 };
 
 template <class...Args>

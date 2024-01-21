@@ -100,12 +100,12 @@ public:
     HeapValue *GetClassPointer() const
         { return m_class_ptr; }
 
-    bool LookupBasePointer(Value &out) const
+    bool LookupBasePointer(Value *out) const
     {
         Member *member_ptr = LookupMemberFromHash(BASE_MEMBER_HASH, false);
 
         if (member_ptr) {
-            out = member_ptr->value;
+            *out = member_ptr->value;
 
             return true;
         }

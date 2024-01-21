@@ -18,7 +18,7 @@ AstTrue::AstTrue(const SourceLocation &location)
 std::unique_ptr<Buildable> AstTrue::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    const UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     return BytecodeUtil::Make<ConstBool>(rp, true);
 }

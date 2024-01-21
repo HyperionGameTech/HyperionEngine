@@ -150,6 +150,24 @@ enum Instructions : hyperion::UInt8
     /* Export a symbol from register value by name */
     EXPORT, // export [% src, u32 len, byte[len] str]
 
+    /* Casts */
+    CAST_U8,  // cast_u8  [% dst, % src]
+    CAST_U16, // cast_u16 [% dst, % src]
+    CAST_U32, // cast_u32 [% dst, % src]
+    CAST_U64, // cast_u64 [% dst, % src]
+
+    CAST_I8,  // cast_i8  [% dst, % src]
+    CAST_I16, // cast_i16 [% dst, % src]
+    CAST_I32, // cast_i32 [% dst, % src]
+    CAST_I64, // cast_i64 [% dst, % src]
+
+    CAST_F32, // cast_f32 [% dst, % src]
+    CAST_F64, // cast_f64 [% dst, % src]
+
+    CAST_BOOL, // cast_bool [% dst, % src]
+
+    CAST_DYNAMIC, // cast_dynamic [% dst, % src] - cast 'src' to dynamic type, the type is stored in the 'dst' register
+
     /* Signifies the end of the stream */
     EXIT = 0xFF
 };

@@ -618,6 +618,7 @@ RC<AstExpression> Parser::ParseTerm(
         // (!override_angle_brackets && MatchOperator("<")) ||
         MatchKeyword(Keyword_has) ||
         MatchKeyword(Keyword_is) ||
+        MatchKeyword(Keyword_as) ||
         ((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
     ))
     {
@@ -648,6 +649,10 @@ RC<AstExpression> Parser::ParseTerm(
 
         if (MatchKeyword(Keyword_is)) {
             expr = ParseIsExpression(expr);
+        }
+
+        if (MatchKeyword(Keyword_as)) {
+            expr = ParseAsExpression(expr);
         }
     }
 
@@ -1164,6 +1169,21 @@ RC<AstIsExpression> Parser::ParseIsExpression(RC<AstExpression> target)
     if (Token token = ExpectKeyword(Keyword_is, true)) {
         if (auto type_expression = ParsePrototypeSpecification()) {
             return RC<AstIsExpression>(new AstIsExpression(
+                target,
+                type_expression,
+                target->GetLocation()
+            ));
+        }
+    }
+
+    return nullptr;
+}
+
+RC<AstAsExpression> Parser::ParseAsExpression(RC<AstExpression> target)
+{
+    if (Token token = ExpectKeyword(Keyword_as, true)) {
+        if (auto type_expression = ParsePrototypeSpecification()) {
+            return RC<AstAsExpression>(new AstAsExpression(
                 target,
                 type_expression,
                 target->GetLocation()

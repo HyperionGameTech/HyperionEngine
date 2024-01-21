@@ -50,6 +50,7 @@ enum ErrorMessage
     Msg_incorrect_number_of_arguments,
     Msg_maximum_number_of_arguments,
     Msg_arg_type_incompatible,
+    Msg_incompatible_cast,
     Msg_named_arg_not_found,
     Msg_redeclared_identifier,
     Msg_redeclared_identifier_type,

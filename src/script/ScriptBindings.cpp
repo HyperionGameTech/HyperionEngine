@@ -1224,7 +1224,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_IsInstance)
 
                 vm::Value base = vm::Value(vm::Value::NONE, { .ptr = nullptr });
 
-                if (!(target_class_object->LookupBasePointer(base) && base.GetPointer<vm::VMObject>(&target_class_object))) {
+                if (!(target_class_object->LookupBasePointer(&base) && base.GetPointer<vm::VMObject>(&target_class_object))) {
                     break;
                 }
 

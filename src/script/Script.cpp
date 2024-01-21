@@ -87,6 +87,7 @@ bool Script::Compile()
         // only optimize if there were no errors
         // before this point
         ast_iterator.ResetPosition();
+
         Optimizer optimizer(&ast_iterator, &m_compilation_unit);
         optimizer.Optimize();
 

@@ -23,7 +23,7 @@ AstFloat::AstFloat(hyperion::Float32 value, const SourceLocation &location)
 std::unique_ptr<Buildable> AstFloat::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    const UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     return BytecodeUtil::Make<ConstF32>(rp, m_value);
 }
 

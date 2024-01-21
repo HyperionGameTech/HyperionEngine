@@ -23,6 +23,7 @@ void ScriptingSystem::Process(EntityManager &entity_manager, GameCounter::TickUn
 
             if (script->Compile()) {
                 script->Bake();
+                // script->Decompile(&utf::cout);
                 script->Run(); // Run the script once to initialize the global state
 
                 // If the script has a target object, setup our handles

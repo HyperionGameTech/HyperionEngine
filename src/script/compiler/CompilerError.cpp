@@ -33,6 +33,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_incorrect_number_of_arguments, "Incorrect number of arguments provided: % required, % given" },
     { Msg_maximum_number_of_arguments, "Maximum number of arguments exceeded" },
     { Msg_arg_type_incompatible, "An instance of type: '%' cannot be passed in as a parameter as required type: '%'" },
+    { Msg_incompatible_cast, "An instance of type: '%' cannot be cast to '%'" },
     { Msg_named_arg_not_found, "Could not find a parameter named '%'. Parameters are: %." },
     { Msg_redeclared_identifier, "Identifier '%' has already been declared in this scope" },
     { Msg_redeclared_identifier_type, "'%' is the name of a type and cannot be used as an identifier" },

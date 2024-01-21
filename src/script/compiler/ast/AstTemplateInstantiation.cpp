@@ -169,8 +169,6 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         // For each generic parameter, we add a new symbol type to the current scope
         // as an alias to the held type of the argument.
 
-        DebugLog(LogType::Debug, "held_type for value_of %s\n", value_of->GetName().Data());
-
         SymbolTypePtr_t held_type = value_of->GetHeldType();
         AssertThrow(held_type != nullptr);
 

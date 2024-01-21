@@ -454,6 +454,11 @@ bool SymbolType::IsIntegral() const
         || IsOrHasBase(*BuiltinTypes::UNSIGNED_INT);
 }
 
+bool SymbolType::IsSignedIntegral() const
+{
+    return IsOrHasBase(*BuiltinTypes::INT);
+}
+
 bool SymbolType::IsUnsignedIntegral() const
 {
     return IsOrHasBase(*BuiltinTypes::UNSIGNED_INT);
@@ -462,6 +467,11 @@ bool SymbolType::IsUnsignedIntegral() const
 bool SymbolType::IsFloat() const
 {
     return IsOrHasBase(*BuiltinTypes::FLOAT);
+}
+
+bool SymbolType::IsBoolean() const
+{
+    return IsOrHasBase(*BuiltinTypes::BOOLEAN);
 }
 
 bool SymbolType::IsClass() const

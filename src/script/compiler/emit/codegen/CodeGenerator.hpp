@@ -50,6 +50,7 @@ public:
     virtual void Visit(StorageOperation *);
     virtual void Visit(Comment *);
     virtual void Visit(SymbolExport *);
+    virtual void Visit(CastOperation *);
     virtual void Visit(RawOperation<> *);
 
 private:

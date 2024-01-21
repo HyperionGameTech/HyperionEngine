@@ -2163,6 +2163,439 @@ public:
             }
         }
     }
+
+    HYP_FORCE_INLINE void CastU8(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_U8",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::U8;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.u8 = static_cast<UInt8>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.u8 = static_cast<UInt8>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.u8 = static_cast<UInt8>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastU16(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_U16",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::U16;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.u16 = static_cast<UInt16>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.u16 = static_cast<UInt16>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.u16 = static_cast<UInt16>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastU32(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_U32",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::U32;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.u32 = static_cast<UInt32>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.u32 = static_cast<UInt32>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.u32 = static_cast<UInt32>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastU64(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_U64",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::U64;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.u64 = num.u;
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.u64 = static_cast<UInt64>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.u64 = static_cast<UInt64>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastI8(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_I8",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::I8;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.i8 = static_cast<Int8>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.i8 = static_cast<Int8>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.i8 = static_cast<Int8>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastI16(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_I16",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::I16;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.i16 = static_cast<Int16>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.i16 = static_cast<Int16>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.i16 = static_cast<Int16>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastI32(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_I32",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::I32;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.i32 = static_cast<Int32>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.i32 = static_cast<Int32>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.i32 = static_cast<Int32>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastI64(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_I64",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::I64;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.i64 = static_cast<Int64>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.i64 = num.i;
+        } else {
+            thread->m_regs[dst].m_value.i64 = static_cast<Int64>(num.f);
+        }
+    }
+
+    HYP_FORCE_INLINE void CastF32(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        Number num;
+
+        if (!value->GetNumber(&num)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_F32",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        thread->m_regs[dst].m_type = Value::F32;
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            thread->m_regs[dst].m_value.f = static_cast<Float32>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            thread->m_regs[dst].m_value.f = static_cast<Float32>(num.i);
+        } else {
+            thread->m_regs[dst].m_value.f = num.f;
+        }
+    }
+
+    HYP_FORCE_INLINE void CastF64(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        if (value->m_type == Value::F32) {
+            thread->m_regs[dst].m_type = Value::F64;
+            thread->m_regs[dst].m_value.d = static_cast<Float64>(value->m_value.f);
+        } else {
+            Number num;
+
+            if (!value->GetNumber(&num)) {
+                state->ThrowException(
+                    thread,
+                    Exception::InvalidOperationException(
+                        "CAST_F64",
+                        value->GetTypeString()
+                    )
+                );
+
+                return;
+            }
+
+            thread->m_regs[dst].m_type = Value::F64;
+
+            if (num.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs[dst].m_value.d = static_cast<Float64>(num.u);
+            } else if (num.flags & Number::FLAG_SIGNED) {
+                thread->m_regs[dst].m_value.d = static_cast<Float64>(num.i);
+            } else {
+                thread->m_regs[dst].m_value.d = num.f;
+            }
+        }
+    }
+
+    HYP_FORCE_INLINE void CastBool(BCRegister dst, BCRegister src)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[src];
+
+        if (value->m_type == Value::BOOLEAN) {
+            thread->m_regs[dst].m_type = Value::BOOLEAN;
+            thread->m_regs[dst].m_value.b = value->m_value.b;
+        } else {
+            Number num;
+
+            if (!value->GetNumber(&num)) {
+                state->ThrowException(
+                    thread,
+                    Exception::InvalidOperationException(
+                        "CAST_BOOL",
+                        value->GetTypeString()
+                    )
+                );
+
+                return;
+            }
+
+            thread->m_regs[dst].m_type = Value::BOOLEAN;
+
+            if (num.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs[dst].m_value.b = static_cast<bool>(num.u);
+            } else if (num.flags & Number::FLAG_SIGNED) {
+                thread->m_regs[dst].m_value.b = static_cast<bool>(num.i);
+            } else {
+                thread->m_regs[dst].m_value.b = static_cast<bool>(num.f);
+            }
+        }
+    }
+
+    HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src)
+    {
+        // load the VMObject from dst
+        Value *value = &thread->m_regs[dst];
+
+        // Ensure it is a VMObject
+        VMObject *class_object_ptr = nullptr;
+
+        if (!value->GetPointer<VMObject>(&class_object_ptr)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_DYNAMIC",
+                    value->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        // load the target from src
+        Value *target = &thread->m_regs[src];
+
+        // Ensure it is a VMObject
+        VMObject *target_object_ptr = nullptr;
+
+        if (!target->GetPointer<VMObject>(&target_object_ptr)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_DYNAMIC",
+                    target->GetTypeString()
+                )
+            );
+
+            return;
+        }
+
+        bool is_instance = false;
+
+        // Check if the target is an instance of the type
+        vm::Value base = vm::Value(vm::Value::NONE, { .ptr = nullptr });
+
+        if (HeapValue *target_class = target_object_ptr->GetClassPointer()) {
+            constexpr UInt max_depth = 1024;
+            UInt depth = 0;
+
+            vm::VMObject *target_class_object = target_class->GetPointer<vm::VMObject>();
+
+            while (target_class_object != nullptr && depth < max_depth) {
+                is_instance = (*target_class_object == *class_object_ptr);
+
+                if (is_instance) {
+                    break;
+                }
+
+                if (!(target_class_object->LookupBasePointer(&base) && base.GetPointer<vm::VMObject>(&target_class_object))) {
+                    break;
+                }
+
+                depth++;
+            }
+
+            if (depth == max_depth) {
+                state->ThrowException(
+                    thread,
+                    Exception::InvalidOperationException(
+                        "CAST_DYNAMIC",
+                        "Max depth reached"
+                    )
+                );
+
+                return;
+            }
+        }
+
+        // If it is not an instance, throw an exception
+        if (!is_instance) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "CAST_DYNAMIC",
+                    "Not an instance"
+                )
+            );
+
+            return;
+        }
+
+        // Set the destination register to be the target
+        thread->m_regs[dst] = base;
+    }
 };
 
 } // namespace vm

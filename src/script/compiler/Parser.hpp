@@ -42,6 +42,7 @@
 #include <script/compiler/ast/AstArrayAccess.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstIsExpression.hpp>
+#include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
@@ -132,6 +133,7 @@ private:
     RC<AstArrayAccess> ParseArrayAccess(RC<AstExpression> target);
     RC<AstHasExpression> ParseHasExpression(RC<AstExpression> target);
     RC<AstIsExpression> ParseIsExpression(RC<AstExpression> target);
+    RC<AstAsExpression> ParseAsExpression(RC<AstExpression> target);
     RC<AstNewExpression> ParseNewExpression();
     RC<AstTrue> ParseTrue();
     RC<AstFalse> ParseFalse();

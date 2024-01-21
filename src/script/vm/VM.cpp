@@ -28,6 +28,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
     UByte code
 )
 {
+
     switch (code) {
     case STORE_STATIC_STRING: {
         // get string length
@@ -881,6 +882,138 @@ HYP_FORCE_INLINE static void HandleInstruction(
         handler.ExportSymbol(
             reg,
             hash
+        );
+
+        break;
+    }
+    case CAST_U8: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastU8(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_U16: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastU16(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_U32: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastU32(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_U64: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastU64(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_I8: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastI8(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_I16: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastI16(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_I32: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastI32(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_I64: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastI64(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_F32: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastF32(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_F64: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastF64(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_BOOL: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastBool(
+            dst,
+            src
+        );
+
+        break;
+    }
+    case CAST_DYNAMIC: {
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+
+        handler.CastDynamic(
+            dst,
+            src
         );
 
         break;
