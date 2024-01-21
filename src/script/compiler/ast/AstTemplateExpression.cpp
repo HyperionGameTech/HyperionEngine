@@ -65,7 +65,6 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
                 generic_param->GetName(),
                 nullptr,
                 nullptr,
-                {},
                 IdentifierFlags::FLAG_CONST,
                 m_location
             ));

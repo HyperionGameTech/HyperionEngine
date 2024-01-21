@@ -25,12 +25,13 @@ VMState::~VMState()
 
 void VMState::Reset()
 {
+    // mark all static memory for deallocation,
+    // objects will be deallocated when the heap is purged
+    m_static_memory.MarkAllForDeallocation();
     // purge the heap
     m_heap.Purge();
     // reset heap threshold
     m_max_heap_objects = GC_THRESHOLD_MIN;
-    // purge static memory
-    m_static_memory.Purge();
 
     for (UInt i = 0; i < VM_MAX_THREADS; i++) {
         DestroyThread(i);

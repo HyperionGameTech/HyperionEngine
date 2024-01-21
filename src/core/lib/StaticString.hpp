@@ -2,6 +2,7 @@
 #define HYPERION_STATIC_STRING_H
 
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <utility>
 #include <string_view>
@@ -101,6 +102,11 @@ struct StaticString
     constexpr StaticString<sizeof...(Indices) + 1> MakeSubString(std::index_sequence<Indices...>) const
     {
         return { { data[Indices]..., '\0' } };
+    }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(&data[0]);
     }
 };
 

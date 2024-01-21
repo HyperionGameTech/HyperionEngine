@@ -20,8 +20,9 @@ public:
     StaticMemory(const StaticMemory &other) = delete;
     ~StaticMemory();
 
-    /** Delete everything in static memory */
-    void Purge();
+    /*! \brief Marks all values for deallocation, 
+        allowing the garbage collector to free them. */
+    void MarkAllForDeallocation();
     
     HYP_FORCE_INLINE
     Value &operator[](SizeType index)
@@ -37,17 +38,8 @@ public:
         return m_data[index];
     }
 
-    // move a value to static memory
-    HYP_FORCE_INLINE
-    void Store(Value value)
-    {
-        AssertThrowMsg(m_sp < static_size, "not enough static memory");
-        m_data[m_sp++] = value;
-    }
-
 private:
-    Value *m_data;
-    SizeType m_sp;
+    Value   *m_data;
 };
 
 } // namespace vm

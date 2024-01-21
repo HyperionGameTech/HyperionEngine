@@ -51,6 +51,19 @@ public:
 
     SymbolTypePtr_t GetExprType() const;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstParameter>());
+        hc.Add(m_type_spec ? m_type_spec->GetHashCode() : HashCode());
+        hc.Add(m_default_param ? m_default_param->GetHashCode() : HashCode());
+        hc.Add(m_is_variadic);
+        hc.Add(m_is_const);
+        hc.Add(m_is_ref);
+        hc.Add(m_is_generic_param);
+
+        return hc;
+    }
+
 private:
     RC<AstPrototypeSpecification>   m_type_spec;
     RC<AstExpression>               m_default_param;

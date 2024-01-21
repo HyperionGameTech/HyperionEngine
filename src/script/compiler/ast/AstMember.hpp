@@ -24,12 +24,23 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
+
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual SymbolTypePtr_t GetHeldType() const override;
   
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
     virtual AstExpression *GetTarget() const override;
     virtual bool IsMutable() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstMember>());
+        hc.Add(m_field_name);
+        hc.Add(m_target ? m_target->GetHashCode() : HashCode());
+
+        return hc;
+    }
 
 protected:
     String              m_field_name;
@@ -38,9 +49,11 @@ protected:
     // set while analyzing
     SymbolTypePtr_t     m_symbol_type;
     SymbolTypePtr_t     m_target_type;
+    SymbolTypePtr_t     m_held_type;
     RC<AstExpression>   m_proxy_expr;
     RC<AstExpression>   m_override_expr;
     UInt                m_found_index;
+    bool                m_enable_generic_member_substitution;
 
     RC<AstMember> CloneImpl() const
     {

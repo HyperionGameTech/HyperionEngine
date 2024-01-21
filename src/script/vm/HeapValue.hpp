@@ -173,6 +173,12 @@ public:
     int GetFlags() const
         { return m_flags; }
 
+    void EnableFlags(int flags)
+        { m_flags |= flags; }
+
+    void DisableFlags(int flags)
+        { m_flags &= ~flags; }
+
     template <class T>
     HYP_FORCE_INLINE
     bool Is() const

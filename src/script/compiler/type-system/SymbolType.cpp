@@ -40,17 +40,6 @@ SymbolType::SymbolType(
 {
 }
 
-SymbolType::SymbolType(const SymbolType &other)
-    : m_name(other.m_name),
-      m_type_class(other.m_type_class),
-      m_default_value(other.m_default_value),
-      m_members(other.m_members),
-      m_base(other.m_base),
-      m_id(other.m_id),
-      m_flags(other.m_flags)
-{
-}
-
 bool SymbolType::TypeEqual(const SymbolType &other) const
 {
     if (std::addressof(other) == this) {
@@ -697,9 +686,13 @@ String SymbolType::ToString(Bool include_parameter_names) const
 {
     String res = m_name;
 
+    if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
+        res += " (aka " + sp->ToString() + ")";
+    }
+
     switch (m_type_class) {
-    case TYPE_BUILTIN: // fallthrough
     case TYPE_ALIAS:
+    case TYPE_BUILTIN: // fallthrough
     case TYPE_USER_DEFINED:
     case TYPE_GENERIC_PARAMETER:
     case TYPE_GENERIC:
@@ -721,16 +714,12 @@ String SymbolType::ToString(Bool include_parameter_names) const
 
                 return held_type->ToString() + "...";
             } else {
-                const char *generic_argument_parentheses = IsOrHasBase(*BuiltinTypes::FUNCTION)
-                    ? "()"
-                    : "<>";
-
-                res += generic_argument_parentheses[0];
+                res += "<";
 
                 bool has_return_type = false;
                 String return_type_name;
 
-                for (size_t i = 0; i < info.m_generic_args.Size(); i++) {
+                for (SizeType i = 0; i < info.m_generic_args.Size(); i++) {
                     const String &generic_arg_name = info.m_generic_args[i].m_name;
                     const SymbolTypePtr_t &generic_arg_type = info.m_generic_args[i].m_type;
 
@@ -753,7 +742,7 @@ String SymbolType::ToString(Bool include_parameter_names) const
                     }
                 }
 
-                res += generic_argument_parentheses[1];
+                res += ">";
 
                 if (has_return_type) {
                     res += " -> " + return_type_name;

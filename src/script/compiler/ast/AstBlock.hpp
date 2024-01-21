@@ -62,14 +62,27 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstBlock>());
+
+        for (auto &child : m_children) {
+            hc.Add(child ? child->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
+
 protected:
     Array<RC<AstStatement>> m_children;
 
-    int m_num_locals;
-    bool m_last_is_return;
-    Scope *m_scope = nullptr;
-    ScopeType m_scope_type = ScopeType::SCOPE_TYPE_NORMAL;
-    int m_scope_flags = 0;
+    // set while analyzing
+    int         m_num_locals;
+    bool        m_last_is_return;
+    Scope       *m_scope = nullptr;
+    ScopeType   m_scope_type = ScopeType::SCOPE_TYPE_NORMAL;
+    int         m_scope_flags = 0;
 
     RC<AstBlock> CloneImpl() const
     {

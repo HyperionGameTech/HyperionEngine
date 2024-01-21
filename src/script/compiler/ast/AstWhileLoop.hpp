@@ -9,11 +9,14 @@
 
 namespace hyperion::compiler {
 
-class AstWhileLoop : public AstStatement {
+class AstWhileLoop : public AstStatement
+{
 public:
-    AstWhileLoop(const RC<AstExpression> &conditional,
+    AstWhileLoop(
+        const RC<AstExpression> &conditional,
         const RC<AstBlock> &block,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstWhileLoop() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -22,10 +25,22 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstWhileLoop>());
+        hc.Add(m_conditional ? m_conditional->GetHashCode() : HashCode());
+        hc.Add(m_block ? m_block->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
-    RC<AstExpression> m_conditional;
-    RC<AstBlock> m_block;
-    int m_num_locals;
+    RC<AstExpression>   m_conditional;
+    RC<AstBlock>        m_block;
+
+    // set while analyzing
+    int                 m_num_locals;
 
     RC<AstWhileLoop> CloneImpl() const
     {

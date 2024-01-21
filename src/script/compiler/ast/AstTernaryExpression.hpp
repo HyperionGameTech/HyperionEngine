@@ -34,10 +34,20 @@ public:
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTernaryExpression>());
+        hc.Add(m_conditional ? m_conditional->GetHashCode() : HashCode());
+        hc.Add(m_left ? m_left->GetHashCode() : HashCode());
+        hc.Add(m_right ? m_right->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
-    RC<AstExpression> m_conditional;
-    RC<AstExpression> m_left;
-    RC<AstExpression> m_right;
+    RC<AstExpression>   m_conditional;
+    RC<AstExpression>   m_left;
+    RC<AstExpression>   m_right;
 
     RC<AstTernaryExpression> CloneImpl() const
     {

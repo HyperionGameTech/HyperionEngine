@@ -41,9 +41,24 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstModuleImportPart>());
+        hc.Add(m_left);
+
+        for (auto &part : m_right_parts) {
+            hc.Add(part ? part->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
+
 private:
     String                          m_left;
     Array<RC<AstModuleImportPart>>  m_right_parts;
+
+    // set while analyzing
     bool                            m_pull_in_modules;
     Array<RC<Identifier>>           m_identifiers;
 
@@ -68,6 +83,17 @@ public:
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     
     virtual RC<AstStatement> Clone() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstImport::GetHashCode().Add(TypeName<AstModuleImport>());
+
+        for (auto &part : m_parts) {
+            hc.Add(part ? part->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
 
 protected:
     Array<RC<AstModuleImportPart>> m_parts;

@@ -10,7 +10,8 @@
 
 namespace hyperion::compiler {
 
-class AstModuleDeclaration : public AstDeclaration {
+class AstModuleDeclaration : public AstDeclaration
+{
 public:
     AstModuleDeclaration(
         const String &name, 
@@ -38,6 +39,17 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
     virtual RC<AstStatement> Clone() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstModuleDeclaration>());
+        
+        for (auto &child : m_children) {
+            hc.Add(child ? child->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
 
 private:
     Array<RC<AstStatement>> m_children;

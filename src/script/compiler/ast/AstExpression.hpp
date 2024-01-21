@@ -4,8 +4,9 @@
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/Enums.hpp>
-
 #include <script/Tribool.hpp>
+
+#include <HashCode.hpp>
 
 namespace hyperion::compiler {
 
@@ -71,6 +72,11 @@ public:
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
     virtual SymbolTypePtr_t GetHeldType() const { return nullptr; }
+
+    virtual HashCode GetHashCode() const override
+    {
+        return HashCode().Add(TypeName<AstExpression>());
+    }
 
     virtual bool IsMutable() const
         { return false; }

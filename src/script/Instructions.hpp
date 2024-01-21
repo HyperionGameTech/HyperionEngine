@@ -75,6 +75,8 @@ enum Instructions : hyperion::UInt8
     MOV_OFFSET,     // mov_offset   [u16 dst, % src]
     /* Copy register value to stack index */
     MOV_INDEX,      // mov_index    [u16 dst, % src]
+    /* Copy register value to static index */
+    MOV_STATIC,     // mov_static   [u16 dst, % src]
     /* Copy register value to object member */
     MOV_MEM,        // mov_mem      [% dst_obj, u8 dst_idx, % src]
     /* Copy register value to object member (using hashcode) */

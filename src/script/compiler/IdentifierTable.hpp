@@ -47,11 +47,6 @@ public:
 
     /** Look up symbol type by name */
     SymbolTypePtr_t LookupSymbolType(const String &name) const;
-    /** Look up an instance of a generic type, with the given parameters*/
-    SymbolTypePtr_t LookupGenericInstance(
-        const SymbolTypePtr_t &base, 
-        const Array<GenericInstanceTypeInfo::Arg> &params
-    ) const;
         
     void AddSymbolType(const SymbolTypePtr_t &type);
 

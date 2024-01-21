@@ -93,6 +93,11 @@ public:
 
     virtual const String &GetName() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        return AstExpression::GetHashCode().Add(TypeName<AstIdentifier>()).Add(m_name);
+    }
+
 protected:
     String                  m_name;
     

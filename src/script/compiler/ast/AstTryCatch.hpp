@@ -12,9 +12,11 @@ namespace hyperion::compiler {
 class AstTryCatch : public AstStatement
 {
 public:
-    AstTryCatch(const RC<AstBlock> &try_block,
+    AstTryCatch(
+        const RC<AstBlock> &try_block,
         const RC<AstBlock> &catch_block,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstTryCatch() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -23,9 +25,19 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstTryCatch>());
+        hc.Add(m_try_block ? m_try_block->GetHashCode() : HashCode());
+        hc.Add(m_catch_block ? m_catch_block->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
-    RC<AstBlock> m_try_block;
-    RC<AstBlock> m_catch_block;
+    RC<AstBlock>    m_try_block;
+    RC<AstBlock>    m_catch_block;
 
     RC<AstTryCatch> CloneImpl() const
     {

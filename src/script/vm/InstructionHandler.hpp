@@ -216,25 +216,27 @@ public:
 
     HYP_FORCE_INLINE void StoreStaticString(UInt32 len, const char *str)
     {
+        AssertThrowMsg(false, "Not implemented, will be removed soon.");
         // the value will be freed on
         // the destructor call of state->m_static_memory
-        HeapValue *hv = new HeapValue();
-        hv->Assign(VMString(str));
+        // HeapValue *hv = new HeapValue();
+        // hv->Assign(VMString(str));
 
-        Value sv;
-        sv.m_type = Value::HEAP_POINTER;
-        sv.m_value.ptr = hv;
+        // Value sv;
+        // sv.m_type = Value::HEAP_POINTER;
+        // sv.m_value.ptr = hv;
 
-        state->m_static_memory.Store(std::move(sv));
+        // state->m_static_memory.Store(std::move(sv));
     }
 
     HYP_FORCE_INLINE void StoreStaticAddress(BCAddress addr)
     {
-        Value sv;
-        sv.m_type = Value::ADDRESS;
-        sv.m_value.addr = addr;
+        AssertThrowMsg(false, "Not implemented, will be removed soon.");
+        // Value sv;
+        // sv.m_type = Value::ADDRESS;
+        // sv.m_value.addr = addr;
 
-        state->m_static_memory.Store(std::move(sv));
+        // state->m_static_memory.Store(std::move(sv));
     }
 
     HYP_FORCE_INLINE void StoreStaticFunction(
@@ -243,13 +245,14 @@ public:
         UInt8 flags
     )
     {
-        Value sv;
-        sv.m_type = Value::FUNCTION;
-        sv.m_value.func.m_addr = addr;
-        sv.m_value.func.m_nargs = nargs;
-        sv.m_value.func.m_flags = flags;
+        AssertThrowMsg(false, "Not implemented, will be removed soon.");
+        // Value sv;
+        // sv.m_type = Value::FUNCTION;
+        // sv.m_value.func.m_addr = addr;
+        // sv.m_value.func.m_nargs = nargs;
+        // sv.m_value.func.m_flags = flags;
 
-        state->m_static_memory.Store(std::move(sv));
+        // state->m_static_memory.Store(std::move(sv));
     }
 
     HYP_FORCE_INLINE void StoreStaticType(
@@ -258,15 +261,16 @@ public:
         char **names
     )
     {
+        AssertThrowMsg(false, "Not implemented, will be removed soon.");
         // the value will be freed on
         // the destructor call of state->m_static_memory
-        HeapValue *hv = new HeapValue();
-        hv->Assign(VMTypeInfo(type_name, size, names));
+        // HeapValue *hv = new HeapValue();
+        // hv->Assign(VMTypeInfo(type_name, size, names));
 
-        Value sv;
-        sv.m_type = Value::HEAP_POINTER;
-        sv.m_value.ptr = hv;
-        state->m_static_memory.Store(std::move(sv));
+        // Value sv;
+        // sv.m_type = Value::HEAP_POINTER;
+        // sv.m_value.ptr = hv;
+        // state->m_static_memory.Store(std::move(sv));
     }
 
     HYP_FORCE_INLINE void LoadI32(BCRegister reg, Int32 i32)
@@ -708,6 +712,36 @@ public:
     {
         // copy value from register to stack value at index
         state->MAIN_THREAD->m_stack[index].AssignValue(thread->m_regs[reg], true);
+    }
+
+    HYP_FORCE_INLINE void MovStatic(UInt16 index, BCRegister reg)
+    {
+        AssertThrow(index < state->m_static_memory.static_size);
+
+        // ensure we will not be overwriting something that is marked ALWAYS_ALIVE
+        // (will cause a memory leak)
+        if (state->m_static_memory[index].m_type == Value::HEAP_POINTER) {
+            HeapValue *hv = state->m_static_memory[index].m_value.ptr;
+            if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE)) {
+                state->ThrowException(
+                    thread,
+                    Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
+                );
+
+                return;
+            }
+        }
+
+        // Mark our new value as ALWAYS_ALIVE if applicable.
+        if (thread->m_regs[reg].m_type == Value::HEAP_POINTER) {
+            HeapValue *hv = thread->m_regs[reg].m_value.ptr;
+            if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE)) {
+                thread->m_regs[reg].m_value.ptr->EnableFlags(GC_ALWAYS_ALIVE);
+            }
+        }
+
+        // copy value from register to static memory at index
+        state->m_static_memory[index].AssignValue(thread->m_regs[reg], true);
     }
 
     HYP_FORCE_INLINE void MovMem(BCRegister dst_reg, UInt8 index, BCRegister src_reg)

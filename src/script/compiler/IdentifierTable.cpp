@@ -128,49 +128,6 @@ SymbolTypePtr_t IdentifierTable::LookupSymbolType(const String &name) const
     return nullptr;
 }
 
-SymbolTypePtr_t IdentifierTable::LookupGenericInstance(
-    const SymbolTypePtr_t &base,
-    const Array<GenericInstanceTypeInfo::Arg> &params) const
-{
-    AssertThrow(base != nullptr);
-    AssertThrow(base->GetTypeClass() == TYPE_GENERIC);
-
-    for (auto &type : m_symbol_types) {
-        if (type != nullptr) {
-            if (type->GetTypeClass() == TYPE_GENERIC_INSTANCE && type->GetBaseType() == base) {
-
-                // check params
-                const auto &other_params = type->GetGenericInstanceInfo().m_generic_args;
-
-                if (other_params.Size() != params.Size()) {
-                    continue;
-                }
-
-                bool found = true;
-
-                for (size_t i = 0; i < params.Size(); i++) {
-                    const SymbolTypePtr_t &param_type = params[i].m_type;
-                    const SymbolTypePtr_t &arg_type = type->GetGenericInstanceInfo().m_generic_args[i].m_type;
-
-                    AssertThrow(param_type != nullptr);
-                    AssertThrow(arg_type != nullptr);
-
-                    if (!param_type->TypeEqual(*arg_type)) {
-                        found = false;
-                        break;
-                    }
-                }
-
-                if (found) {
-                    return type;
-                }
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 void IdentifierTable::AddSymbolType(const SymbolTypePtr_t &type)
 {
     m_symbol_types.PushBack(type);

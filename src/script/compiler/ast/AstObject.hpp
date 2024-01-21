@@ -21,6 +21,19 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstObject>());
+
+        if (auto symbol_type = m_symbol_type.lock()) {
+            hc.Add(symbol_type->GetHashCode());
+        } else {
+            hc.Add(HashCode());
+        }
+
+        return hc;
+    }
+
 private:
     SymbolTypeWeakPtr_t m_symbol_type;
 

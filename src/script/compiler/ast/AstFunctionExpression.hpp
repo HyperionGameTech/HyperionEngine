@@ -13,7 +13,8 @@
 
 namespace hyperion::compiler {
 
-class AstFunctionExpression : public AstExpression {
+class AstFunctionExpression : public AstExpression
+{
 public:
     AstFunctionExpression(
         const Array<RC<AstParameter>> &parameters,
@@ -46,10 +47,26 @@ public:
     void SetReturnType(const SymbolTypePtr_t &return_type)
         { m_return_type = return_type; }
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstFunctionExpression>());
+        
+        for (auto &param : m_parameters) {
+            hc.Add(param ? param->GetHashCode() : HashCode());
+        }
+
+        hc.Add(m_return_type_specification ? m_return_type_specification->GetHashCode() : HashCode());
+
+        hc.Add(m_block ? m_block->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 protected:
     Array<RC<AstParameter>>         m_parameters;
     RC<AstPrototypeSpecification>   m_return_type_specification;
     RC<AstBlock>                    m_block;
+
     Bool                            m_is_closure;
 
     RC<AstExpression>               m_closure_object;

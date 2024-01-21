@@ -184,18 +184,31 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
 
-    // add symbol type to be usable within members
-    scope->GetIdentifierTable().AddSymbolType(m_symbol_type);
+    // if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) { // add symbol type to be usable within members
+    //     SymbolTypePtr_t placeholder_type = m_symbol_type;
 
-    {
-        // type alias
-        SymbolTypePtr_t internal_type = SymbolType::Alias(
-            "Self",
-            { m_symbol_type }
-        );
+    //     // If the type is generic, we need to use a placeholder type
+    //     // so that we can use the type within the type definition, without having to
+    //     // instantiate it first.
+    //     // if (m_symbol_type->IsGeneric()) {
+    //         placeholder_type = SymbolType::Alias(
+    //             m_symbol_type->GetName(),
+    //             { BuiltinTypes::PLACEHOLDER }
+    //         );
+    //     // }
 
-        scope->GetIdentifierTable().AddSymbolType(internal_type);
-    }
+    //     scope->GetIdentifierTable().AddSymbolType(placeholder_type);
+    // }
+
+    // {
+    //     // type alias
+    //     SymbolTypePtr_t internal_type = SymbolType::Alias(
+    //         "Self",
+    //         { m_symbol_type }
+    //     );
+
+    //     scope->GetIdentifierTable().AddSymbolType(internal_type);
+    // }
 
     // ===== STATIC DATA MEMBERS ======
     {
@@ -436,7 +449,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             "$invoke",
             nullptr,
             invoke_expr,
-            {},
             IdentifierFlags::FLAG_CONST,
             m_location
         )));

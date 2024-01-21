@@ -266,36 +266,36 @@ void CodeGenerator::Visit(StorageOperation *node)
         switch (node->strategy) {
         case Strategies::BY_OFFSET:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(node->op.is_ref ? Instructions::LOAD_OFFSET_REF : Instructions::LOAD_OFFSET);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.offset, sizeof(node->op.b.offset));
+            case Operations::LOAD:
+                m_ibs.Put(node->op.is_ref ? Instructions::LOAD_OFFSET_REF : Instructions::LOAD_OFFSET);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.offset, sizeof(node->op.b.offset));
 
-                    break;
-                case Operations::STORE:
-                    m_ibs.Put(Instructions::MOV_OFFSET);
-                    m_ibs.Put((byte*)&node->op.b.offset, sizeof(node->op.b.offset));
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_OFFSET);
+                m_ibs.Put((byte*)&node->op.b.offset, sizeof(node->op.b.offset));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
             
             break;
 
         case Strategies::BY_INDEX:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(node->op.is_ref ? Instructions::LOAD_INDEX_REF : Instructions::LOAD_INDEX);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
+            case Operations::LOAD:
+                m_ibs.Put(node->op.is_ref ? Instructions::LOAD_INDEX_REF : Instructions::LOAD_INDEX);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
 
-                    break;
-                case Operations::STORE:
-                    m_ibs.Put(Instructions::MOV_INDEX);
-                    m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_INDEX);
+                m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
 
             break;
@@ -317,16 +317,18 @@ void CodeGenerator::Visit(StorageOperation *node)
 
         case Strategies::BY_INDEX:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(Instructions::LOAD_STATIC);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
+            case Operations::LOAD:
+                m_ibs.Put(Instructions::LOAD_STATIC);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
 
-                    break;
-                case Operations::STORE:
-                    AssertThrowMsg(false, "Not implemented");
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_STATIC);
+                m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
 
             break;
@@ -348,20 +350,20 @@ void CodeGenerator::Visit(StorageOperation *node)
 
         case Strategies::BY_INDEX:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(Instructions::LOAD_ARRAYIDX);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
+            case Operations::LOAD:
+                m_ibs.Put(Instructions::LOAD_ARRAYIDX);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
 
-                    break;
-                case Operations::STORE:
-                    m_ibs.Put(Instructions::MOV_ARRAYIDX);
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_ARRAYIDX);
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
 
             break;
@@ -383,40 +385,40 @@ void CodeGenerator::Visit(StorageOperation *node)
 
         case Strategies::BY_INDEX:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(Instructions::LOAD_MEM);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
+            case Operations::LOAD:
+                m_ibs.Put(Instructions::LOAD_MEM);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
 
-                    break;
-                case Operations::STORE:
-                    m_ibs.Put(Instructions::MOV_MEM);
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_MEM);
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.index, sizeof(node->op.b.object_data.member.index));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
 
             break;
         
         case Strategies::BY_HASH:
             switch (node->operation) {
-                case Operations::LOAD:
-                    m_ibs.Put(Instructions::LOAD_MEM_HASH);
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.hash, sizeof(node->op.b.object_data.member.hash));
+            case Operations::LOAD:
+                m_ibs.Put(Instructions::LOAD_MEM_HASH);
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.hash, sizeof(node->op.b.object_data.member.hash));
 
-                    break;
-                case Operations::STORE:
-                    m_ibs.Put(Instructions::MOV_MEM_HASH);
-                    m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
-                    m_ibs.Put((byte*)&node->op.b.object_data.member.hash, sizeof(node->op.b.object_data.member.hash));
-                    m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
+                break;
+            case Operations::STORE:
+                m_ibs.Put(Instructions::MOV_MEM_HASH);
+                m_ibs.Put((byte*)&node->op.b.object_data.reg, sizeof(node->op.b.object_data.reg));
+                m_ibs.Put((byte*)&node->op.b.object_data.member.hash, sizeof(node->op.b.object_data.member.hash));
+                m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
 
-                    break;
+                break;
             }
 
             break;

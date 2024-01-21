@@ -28,6 +28,16 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstTypeAlias>());
+        hc.Add(m_name);
+        hc.Add(m_aliasee ? m_aliasee->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
     String                          m_name;
     RC<AstPrototypeSpecification>   m_aliasee;

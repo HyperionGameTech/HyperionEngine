@@ -1,9 +1,9 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -33,7 +33,8 @@ AstMember::AstMember(
     m_field_name(field_name),
     m_target(target),
     m_symbol_type(BuiltinTypes::UNDEFINED),
-    m_found_index(~0u)
+    m_found_index(~0u),
+    m_enable_generic_member_substitution(true)
 {
 }
 
@@ -41,12 +42,18 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 {
     if (m_field_name == Keyword::ToString(Keyword_class).Get()) {
         // transform x.class into GetClass(x)
+        // and allow us to hold the type object
         m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
             .Module(Config::global_module_name)
             .Function("GetClass")
             .Call({ RC<AstArgument>(new AstArgument(m_target, false, false, false, false, "", m_location)) });
 
         m_override_expr->Visit(visitor, mod);
+
+        AssertThrow(m_target != nullptr);
+
+        m_symbol_type = m_override_expr->GetExprType();
+        m_held_type = m_target->GetExprType();
 
         return;
     }
@@ -142,32 +149,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        // if (auto type_object = m_target_type->GetTypeObject()) { // Check for members on the object itself (static members)
-        //     if (auto held_type = type_object->GetHeldType()) {
-        //         UInt field_index = ~0u;
-
-        //         if (held_type->FindMember(m_field_name, member, field_index)) {
-        //             field_type = std::move(std::get<1>(member));
-
-        //             // Set override expr to be `GetClass(x).field_name`, if field name is found on the actual object.
-        //             auto get_class_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
-        //                 .Module(Config::global_module_name)
-        //                 .Function("GetClass")
-        //                 .Call({ RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, false, false, "", m_location)) });
-
-        //             m_override_expr.Reset(new AstMember(
-        //                 m_field_name,
-        //                 get_class_expr,
-        //                 m_location
-        //             ));
-
-        //             m_override_expr->Visit(visitor, mod);
-
-        //             return;
-        //         }
-        //     }
-        // }
-
         if (auto base = m_target_type->GetBaseType()) {
             m_target_type = base->GetUnaliased();
         } else {
@@ -191,13 +172,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                 UInt field_index = ~0u;
                 UInt depth = 0;
 
-                DebugLog(LogType::Debug, "Looking for static member %s in type %s\n", m_field_name.Data(), held_type->ToString().Data());
-                DebugLog(LogType::Debug, "\tAll members:\n");
-
-                for (const SymbolMember_t &mem : held_type->GetMembers()) {
-                    DebugLog(LogType::Debug, "\t\t%s\n", std::get<0>(mem).Data());
-                }
-
                 if (held_type->FindMemberDeep(m_field_name, member, field_index, depth)) {
                     // only set m_found_index if found in first level.
                     // for members from base objects,
@@ -212,46 +186,57 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    // if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
-    //     AssertThrow(as_type_object->GetHeldType() != nullptr);
-    //     SymbolTypePtr_t instance_type = as_type_object->GetHeldType()->GetUnaliased();
-
-    //     // get member index from name
-    //     for (SizeType member_index = 0; member_index < instance_type->GetMembers().Size(); member_index++) {
-    //         const SymbolMember_t &mem = instance_type->GetMembers()[member_index];
-
-    //         if (std::get<0>(mem) == m_field_name) {
-    //             m_found_index = member_index;
-    //             member = mem;
-    //             field_type = std::get<1>(mem);
-
-    //             break;
-    //         }
-    //     }
-    // }
-
     if (field_type != nullptr) {
         field_type = field_type->GetUnaliased();
         AssertThrow(field_type != nullptr);
 
-        if (field_type->IsGeneric()) {
-            {
-                // @FIXME
-                // Cloning the member will unfortunately will break closure captures used
-                // in a member function, but it's the best we can do for now.
-                // it also will cause too many clones to be made, making a larger bytecode chunk.
-                m_override_expr = CloneAstNode(std::get<2>(member));
-                AssertThrowMsg(m_override_expr != nullptr, "member %s is generic but has no value", m_field_name.Data());
+        if (m_enable_generic_member_substitution && field_type->IsGeneric()) {
+            // @FIXME
+            // Cloning the member will unfortunately will break closure captures used
+            // in a member function, but it's the best we can do for now.
+            // it also will cause too many clones to be made, making a larger bytecode chunk.
+            m_override_expr = CloneAstNode(std::get<2>(member));
+            AssertThrowMsg(m_override_expr != nullptr, "member %s is generic but has no value", m_field_name.Data());
 
-                m_override_expr->Visit(visitor, mod);
+            m_override_expr->Visit(visitor, mod);
 
-                m_symbol_type = m_override_expr->GetExprType();
-            }
+            m_symbol_type = m_override_expr->GetExprType();
+
+
+            // Replace it with `target.class.$proto.field_name<generic_args>`
+            // if it is a generic type.
+
+            // RC<AstMember> replaced_member_expr(new AstMember(
+            //     m_field_name,
+            //     RC<AstMember>(new AstMember(
+            //         "$proto",
+            //         RC<AstMember>(new AstMember(
+            //             Keyword::ToString(Keyword_class).Get(),
+            //             CloneAstNode(m_target),
+            //             m_location
+            //         )),
+            //         m_location
+            //     )),
+            //     m_location
+            // ));
+            
+            // // set it to false so we don't recurse
+            // replaced_member_expr->m_enable_generic_member_substitution = false;
+
+            // m_override_expr = std::move(replaced_member_expr);
+
+            // m_override_expr->SetAccessMode(m_access_mode);
+            // m_override_expr->Visit(visitor, mod);
+
+            // m_symbol_type = m_override_expr->GetExprType();
+            // m_held_type = m_override_expr->GetHeldType();
         } else {
             m_symbol_type = field_type;
         }
 
         AssertThrow(m_symbol_type != nullptr);
+
+        m_symbol_type = m_symbol_type->GetUnaliased();
     } else {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -283,8 +268,6 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
         AssertThrow(m_target != nullptr);
         chunk->Append(m_target->Build(visitor, mod));
     }
-
-    AssertThrow(m_target_type != nullptr);
 
     if (m_found_index == ~0u) {
         // no exact index of member found, have to load from hash.
@@ -392,23 +375,33 @@ bool AstMember::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstMember::GetExprType() const
 {
-    if (m_override_expr != nullptr) {
-        return m_override_expr->GetExprType();
-    }
-    // if (m_proxy_expr != nullptr) {
-    //     return m_proxy_expr->GetExprType();
-    // }
-
-    AssertThrow(m_symbol_type != nullptr);
-
     return m_symbol_type;
+    // if (m_override_expr != nullptr) {
+    //     return m_override_expr->GetExprType();
+    // }
+    // // if (m_proxy_expr != nullptr) {
+    // //     return m_proxy_expr->GetExprType();
+    // // }
+
+    // AssertThrow(m_symbol_type != nullptr);
+
+    // return m_symbol_type;
+}
+
+SymbolTypePtr_t AstMember::GetHeldType() const
+{
+    if (m_held_type != nullptr) {
+        return m_held_type;
+    }
+
+    return AstExpression::GetHeldType();
 }
 
 const AstExpression *AstMember::GetValueOf() const
 {
-    // if (m_override_expr != nullptr) {
-    //     return m_override_expr->GetValueOf();
-    // }
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetValueOf();
+    }
 
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetValueOf();

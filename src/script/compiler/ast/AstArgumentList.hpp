@@ -9,7 +9,8 @@
 
 namespace hyperion::compiler {
 
-class AstArgumentList : public AstExpression {
+class AstArgumentList : public AstExpression
+{
 public:
     AstArgumentList(
       const Array<RC<AstArgument>> &args,
@@ -18,7 +19,7 @@ public:
     virtual ~AstArgumentList() = default;
 
     const Array<RC<AstArgument>> &GetArguments() const
-      { return m_args; }
+        { return m_args; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -29,6 +30,17 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstArgumentList>());
+        
+        for (auto &arg : m_args) {
+            hc.Add(arg ? arg->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
     
 private:
     Array<RC<AstArgument>> m_args;

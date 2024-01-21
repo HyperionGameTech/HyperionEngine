@@ -4,6 +4,7 @@
 #include <Types.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/HashMap.hpp>
+#include <HashCode.hpp>
 
 namespace hyperion::compiler {
 
@@ -62,7 +63,8 @@ enum Operators
     OP_decrement
 };
 
-class Operator {
+class Operator
+{
 public:
     static const HashMap<String, Operator> binary_operators;
     static const HashMap<String, Operator> unary_operators;
@@ -202,12 +204,25 @@ public:
 
     String LookupStringValue() const;
 
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(m_op_type);
+        hc.Add(m_precedence);
+        hc.Add(m_type);
+        hc.Add(m_modifies_value);
+        hc.Add(m_supports_overloading);
+
+        return hc;
+    }
+
 private:
-    Operators m_op_type;
-    Int m_precedence;
-    Int m_type;
-    Bool m_modifies_value;
-    Bool m_supports_overloading;
+    Operators   m_op_type;
+    Int         m_precedence;
+    Int         m_type;
+    Bool        m_modifies_value;
+    Bool        m_supports_overloading;
 };
 
 } // namespace hyperion::compiler

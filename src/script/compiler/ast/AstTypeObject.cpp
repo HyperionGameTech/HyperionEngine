@@ -35,13 +35,19 @@ AstTypeObject::AstTypeObject(
     m_symbol_type(symbol_type),
     m_proto(proto),
     m_enum_underlying_type(enum_underlying_type),
-    m_is_proxy_class(is_proxy_class)
+    m_is_proxy_class(is_proxy_class),
+    m_is_visited(false)
 {
 }
 
 void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_symbol_type != nullptr);
+
+    // if (ShouldSkipVisiting()) {
+    //     // already visited the type for the SymbolType
+    //     return;
+    // }
 
     if (m_proto != nullptr) {
         m_proto->Visit(visitor, mod);
@@ -82,6 +88,8 @@ void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
 
         expr->Visit(visitor, mod);
     }
+
+    m_is_visited = true;
 }
 
 std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod)
@@ -89,10 +97,22 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
     AssertThrow(m_symbol_type != nullptr);
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName() + (m_is_proxy_class ? " <Proxy>" : "")));
 
     // get active register
     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    
+    // if (m_symbol_type->GetId() != -1) {
+    //     chunk->Append(BytecodeUtil::Make<Comment>("Load class " + m_symbol_type->GetName() + (m_is_proxy_class ? " <Proxy>" : "")));
+
+    //     // already built, we can just load it from the static table
+    //     auto instr_load_static = BytecodeUtil::Make<StorageOperation>();
+    //     instr_load_static->GetBuilder().Load(rp).Static().ByIndex(m_symbol_type->GetId());
+    //     chunk->Append(std::move(instr_load_static));
+
+    //     return chunk;
+    // }
+
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName() + (m_is_proxy_class ? " <Proxy>" : "")));
 
     if (m_proto != nullptr) {
         chunk->Append(m_proto->Build(visitor, mod));
@@ -196,11 +216,25 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 
     chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbol_type->GetName()));
 
+    // visitor->GetCompilationUnit()->RegisterType(m_symbol_type);
+    // AssertThrow(m_symbol_type->GetId() != -1);
+
     return chunk;
 }
 
 void AstTypeObject::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_proto != nullptr) {
+        m_proto->Optimize(visitor, mod);
+    }
+
+    for (const RC<AstExpression> &expr : m_member_expressions) {
+        if (expr == nullptr) {
+            continue;
+        }
+
+        expr->Optimize(visitor, mod);
+    }
 }
 
 RC<AstStatement> AstTypeObject::Clone() const

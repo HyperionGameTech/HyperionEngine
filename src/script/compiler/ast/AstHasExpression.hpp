@@ -28,6 +28,15 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstHasExpression>());
+        hc.Add(m_target ? m_target->GetHashCode() : HashCode());
+        hc.Add(m_field_name);
+
+        return hc;
+    }
+
 protected:
     RC<AstStatement>    m_target;
     String              m_field_name;

@@ -25,6 +25,14 @@ public:
 
     virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstInteger>());
+        hc.Add(m_value);
+
+        return hc;
+    }
+
 private:
     hyperion::Int32 m_value;
 

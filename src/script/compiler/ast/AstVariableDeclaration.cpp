@@ -26,13 +26,11 @@ AstVariableDeclaration::AstVariableDeclaration(
     const String &name,
     const RC<AstPrototypeSpecification> &proto,
     const RC<AstExpression> &assignment,
-    const Array<RC<AstParameter>> &template_params,
     IdentifierFlagBits flags,
     const SourceLocation &location
 ) : AstDeclaration(name, location),
     m_proto(proto),
     m_assignment(assignment),
-    m_template_params(template_params),
     m_flags(flags)
 {
 }

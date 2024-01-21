@@ -74,7 +74,6 @@ Builtins::Builtins()
             it.first,
             nullptr,
             it.second,
-            {},
             IdentifierFlags::FLAG_CONST,
             BUILTIN_SOURCE_LOCATION
         )));

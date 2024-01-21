@@ -27,6 +27,14 @@ public:
 
     virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstString>());
+        hc.Add(m_value);
+
+        return hc;
+    }
+
 private:
     String  m_value;
 

@@ -1,11 +1,11 @@
 #ifndef AST_ARGUMENT_HPP
 #define AST_ARGUMENT_HPP
 
-#include <string>
-
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <core/lib/String.hpp>
+
+#include <HashCode.hpp>
 
 namespace hyperion::compiler {
 
@@ -53,15 +53,28 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
     virtual const String &GetName() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstArgument>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+        hc.Add(m_is_splat);
+        hc.Add(m_is_named);
+        hc.Add(m_is_pass_by_ref);
+        hc.Add(m_is_pass_const);
+        hc.Add(m_name);
+
+        return hc;
+    }
+
 private:
-    RC<AstExpression> m_expr;
-    bool m_is_splat;
-    bool m_is_named;
-    bool m_is_pass_by_ref;
-    bool m_is_pass_const;
-    String m_name;
+    RC<AstExpression>   m_expr;
+    bool                m_is_splat;
+    bool                m_is_named;
+    bool                m_is_pass_by_ref;
+    bool                m_is_pass_const;
+    String              m_name;
     
-    bool m_is_visited = false;
+    bool                m_is_visited = false;
 
     RC<AstArgument> CloneImpl() const
     {

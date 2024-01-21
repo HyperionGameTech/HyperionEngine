@@ -115,37 +115,37 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         return nullptr;
     }
 
+    const auto FindArgForInputType = [&]() -> const SubstitutionResult *
+    {
+        Int generic_arg_index = -1;
+
+        for (SizeType index = 0; index < generic_args.Size(); index++) {
+            if (generic_args[index].m_name == input_type->GetName()) {
+                generic_arg_index = Int(index);
+
+                break;
+            }
+        }
+
+        const auto substitution_result_it = substitution_results.FindIf([generic_arg_index](const SubstitutionResult &substitution_result) {
+            return substitution_result.index == generic_arg_index;
+        });
+
+        if (substitution_result_it == substitution_results.End()) {
+            return nullptr;
+        }
+        
+        return substitution_result_it;
+    };
+
     switch (input_type->GetTypeClass()) {
     case TYPE_GENERIC_PARAMETER: {
-        const auto FindArgForInputType = [&]() -> const SubstitutionResult * {
-            Int generic_arg_index = -1;
-
-            for (SizeType index = 0; index < generic_args.Size(); index++) {
-                if (generic_args[index].m_name == input_type->GetName()) {
-                    generic_arg_index = Int(index);
-
-                    break;
-                }
-            }
-
-            const auto substitution_result_it = substitution_results.FindIf([generic_arg_index](const SubstitutionResult &substitution_result) {
-                return substitution_result.index == generic_arg_index;
-            });
-
-            if (substitution_result_it == substitution_results.End()) {
-                return nullptr;
-            }
-            
-            return substitution_result_it;
-        };
-
         const SubstitutionResult *found_substitution_result = FindArgForInputType();
 
         if (found_substitution_result) {
             AssertThrow(found_substitution_result->arg != nullptr);
 
             const GenericInstanceTypeInfo::Arg &generic_arg = generic_args[found_substitution_result->index];
-
 
             // @TODO We need to reevaluate the order of which Arguments are visited VS. this chain of methods gets called.
             /// We need a way to mark ref/const BEFORE visiting OR we need to ignore it in the first visiting stage and just use it for building..
@@ -173,35 +173,6 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
         return BuiltinTypes::UNDEFINED;
     }
-    /*case TYPE_GENERIC: {
-        const auto &generic_info = input_type->GetGenericInfo();
-
-        Array<GenericInstanceTypeInfo::Arg> res_args;
-        res_args.Resize(generic_info.m_params.Size());
-
-        for (SizeType index = 0; index < generic_info.m_params.Size(); index++) {
-            const SymbolTypePtr_t param_type = generic_info.m_params[index];
-            
-            res_args[index].m_name = param_type->GetName();
-            res_args[index].m_type = SubstituteGenericParameters(
-                visitor,
-                mod,
-                param_type,
-                generic_args,
-                substitution_results,
-                location
-            );
-        }
-
-        return SymbolType::GenericInstance(
-            input_type,
-            GenericInstanceTypeInfo {
-                std::move(res_args)
-            }
-        );
-
-        break;
-    }*/
     case TYPE_GENERIC_INSTANCE: {
         auto base_type = input_type->GetBaseType();
         AssertThrow(base_type != nullptr);
@@ -481,9 +452,9 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     };
 
                     if (arg_info.is_named) {
-                        named_args.PushBack(arg_data_pair);
+                        named_args.PushBack(std::move(arg_data_pair));
                     } else {
-                        unnamed_args.PushBack(arg_data_pair);
+                        unnamed_args.PushBack(std::move(arg_data_pair));
                     }
                 }
 

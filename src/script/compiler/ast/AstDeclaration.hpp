@@ -30,6 +30,15 @@ public:
 
     virtual const String &GetName() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstDeclaration>());
+        hc.Add(m_name);
+
+        return hc;
+    }
+
 protected:
     String          m_name;
     RC<Identifier>  m_identifier;

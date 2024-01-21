@@ -56,9 +56,20 @@ public:
     virtual bool IsMutable() const override;
     virtual bool IsLiteral() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstModuleAccess>());
+        hc.Add(m_target);
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
     String              m_target;
     RC<AstExpression>   m_expr;
+
+    // set while analyzing
     Module              *m_mod_access;
     // is this module access chained to another before it?
     bool                m_is_chained;

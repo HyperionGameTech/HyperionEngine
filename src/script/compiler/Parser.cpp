@@ -1822,7 +1822,6 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
             identifier.GetValue(),
             (flags & IdentifierFlags::FLAG_GENERIC) ? nullptr : proto,
             assignment,
-            {},
             flags,
             location
         ));
@@ -1883,7 +1882,6 @@ RC<AstStatement> Parser::ParseFunctionDefinition(Bool require_keyword)
             identifier.GetValue(),
             nullptr, // prototype specification
             assignment,
-            {}, //template_expr_params,
             flags,
             location
         ));
@@ -2177,7 +2175,6 @@ RC<AstStatement> Parser::ParseTypeDefinition()
                 identifier.GetValue(),
                 nullptr,
                 assignment,
-                {}, //template_expr_params,
                 flags,
                 token.GetLocation()
             ));
@@ -2395,7 +2392,6 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
                 identifier.GetValue(),
                 nullptr, // prototype specification
                 assignment,
-                {}, //template_expr_params,
                 flags,
                 location
             ));
@@ -2473,7 +2469,6 @@ RC<AstStatement> Parser::ParseEnumDefinition()
                 identifier.GetValue(),
                 nullptr, // prototype specification
                 assignment,
-                {}, //template_expr_params,
                 IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ENUM,
                 token.GetLocation()
             ));

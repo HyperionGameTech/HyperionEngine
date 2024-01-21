@@ -69,6 +69,33 @@ public:
 
     virtual const String &GetName() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeExpression>());
+        hc.Add(m_name);
+        hc.Add(m_base_specification ? m_base_specification->GetHashCode() : HashCode());
+
+        for (auto &member : m_data_members) {
+            hc.Add(member ? member->GetHashCode() : HashCode());
+        }
+
+        for (auto &member : m_function_members) {
+            hc.Add(member ? member->GetHashCode() : HashCode());
+        }
+
+        for (auto &member : m_static_members) {
+            hc.Add(member ? member->GetHashCode() : HashCode());
+        }
+
+        if (m_enum_underlying_type != nullptr) {
+            hc.Add(m_enum_underlying_type->GetHashCode());
+        }
+
+        hc.Add(m_is_proxy_class);
+
+        return hc;
+    }
+
 protected:
     String                              m_name;
     RC<AstPrototypeSpecification>       m_base_specification;

@@ -34,14 +34,23 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    const AstExpression *value_of = m_expr->GetDeepValueOf(); // GetDeepValueOf() returns the non-wrapped generic AstTypeObject*
+    const AstExpression *value_of = m_expr->GetDeepValueOf();
     AssertThrow(value_of != nullptr);
 
-    const AstIdentifier *identifier = nullptr;
-
     SymbolTypePtr_t held_type = value_of->GetHeldType();
-    AssertThrow(held_type != nullptr);
-    
+
+    if (held_type == nullptr) {
+        // Not a type.
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_type,
+            m_location,
+            value_of->GetExprType()->ToString()
+        ));
+
+        return;
+    }
+
     held_type = held_type->GetUnaliased();
 
     if (held_type->IsEnumType()) {
@@ -75,20 +84,6 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
 
         return;
     }
-
-    /*SymbolTypePtr_t found_symbol_type;
-
-    if (type_obj != nullptr) {
-        if (type_obj->IsEnum()) {
-            found_symbol_type = type_obj->GetEnumUnderlyingType();
-        } else {
-            found_symbol_type = type_obj->GetHeldType();
-        }
-
-        AssertThrow(found_symbol_type != nullptr);
-    } else if (identifier != nullptr) {
-        found_symbol_type = mod->LookupSymbolType(identifier->GetName());
-    }*/
 
     if (held_type != nullptr) {
         if (FindPrototypeType(held_type)) {

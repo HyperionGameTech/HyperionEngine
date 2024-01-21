@@ -21,6 +21,11 @@ public:
 
     virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        return AstConstant::GetHashCode().Add(TypeName<AstTrue>());
+    }
+
 private:
     RC<AstTrue> CloneImpl() const
     {

@@ -9,12 +9,13 @@
 
 namespace hyperion::compiler {
 
-class AstSymbolQuery : public AstExpression {
+class AstSymbolQuery : public AstExpression
+{
 public:
     AstSymbolQuery(
-      const String &command_name,
-      const RC<AstExpression> &expr,
-      const SourceLocation &location
+        const String &command_name,
+        const RC<AstExpression> &expr,
+        const SourceLocation &location
     );
     virtual ~AstSymbolQuery() = default;
 
@@ -28,6 +29,15 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual const AstExpression *GetValueOf() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstSymbolQuery>());
+        hc.Add(m_command_name);
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
 
 private:
     String                  m_command_name;

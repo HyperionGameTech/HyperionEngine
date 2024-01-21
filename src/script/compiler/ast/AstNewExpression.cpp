@@ -112,7 +112,6 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
                     temp_var_name,
                     nullptr,
                     CloneAstNode(m_proto),
-                    {},
                     IdentifierFlags::FLAG_CONST,
                     m_location
                 ));

@@ -434,6 +434,17 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
+    case MOV_STATIC: {
+        UInt16 index; bs->Read(&index);
+        BCRegister reg; bs->Read(&reg);
+
+        handler.MovStatic(
+            index,
+            reg
+        );
+
+        break;
+    }
     case MOV_MEM: {
         BCRegister dst; bs->Read(&dst);
         UInt8 index; bs->Read(&index);
@@ -1197,12 +1208,12 @@ bool VM::HandleException(InstructionHandler *handler)
 
         std::cout << "stack_trace = \n";
 
-        for (auto call_addresse : stack_trace.call_addresses) {
-            if (call_addresse == -1) {
+        for (auto call_address : stack_trace.call_addresses) {
+            if (call_address == -1) {
                 break;
             }
             
-            std::cout << "\t" << std::hex << call_addresse << "\n";
+            std::cout << "\t" << std::hex << call_address << "\n";
         }
 
         std::cout << "=====\n";

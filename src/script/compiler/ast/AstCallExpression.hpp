@@ -38,6 +38,20 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual AstExpression *GetTarget() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstCallExpression>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+        
+        for (auto &arg : m_args) {
+            hc.Add(arg ? arg->GetHashCode() : HashCode());
+        }
+
+        hc.Add(m_insert_self);
+
+        return hc;
+    }
+
 protected:
     RC<AstExpression>       m_expr;
     Array<RC<AstArgument>>  m_args;

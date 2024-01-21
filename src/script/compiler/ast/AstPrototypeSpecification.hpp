@@ -37,6 +37,14 @@ public:
     
     virtual SymbolTypePtr_t GetHeldType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstPrototypeSpecification>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 protected:
     bool FindPrototypeType(const SymbolTypePtr_t &symbol_type);
 

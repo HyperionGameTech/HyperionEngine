@@ -27,6 +27,14 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstThrowExpression>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 protected:
     RC<AstExpression> m_expr;
 

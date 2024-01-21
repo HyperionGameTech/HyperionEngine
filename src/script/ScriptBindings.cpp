@@ -1773,7 +1773,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         )
         .Function(
             "GetClass",
-            BuiltinTypes::ANY,
+            BuiltinTypes::CLASS_TYPE,
             {
                 { "object", BuiltinTypes::ANY }
             },

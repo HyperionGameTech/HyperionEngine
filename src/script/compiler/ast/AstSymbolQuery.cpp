@@ -63,23 +63,18 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
         SymbolTypePtr_t expr_type = m_expr->GetExprType();
         AssertThrow(expr_type != nullptr);
 
-        //if (AstTypeObject *as_type_object = dynamic_cast<AstTypeObject*>(m_expr.get())) {
-           // if (const SymbolTypePtr_t &held_type = as_type_object->GetHeldType()) {
-                Array<RC<AstExpression>> field_names;
+        Array<RC<AstExpression>> field_names;
 
-                for (const auto &member : expr_type->GetMembers()) {
-                    field_names.PushBack(RC<AstString>::Construct(std::get<0>(member), m_location));
-                }
+        for (const auto &member : expr_type->GetMembers()) {
+            field_names.PushBack(RC<AstString>::Construct(std::get<0>(member), m_location));
+        }
 
-                m_result_value = RC<AstArrayExpression>(new AstArrayExpression(
-                    field_names,
-                    m_location
-                ));
+        m_result_value = RC<AstArrayExpression>(new AstArrayExpression(
+            field_names,
+            m_location
+        ));
 
-                m_result_value->Visit(visitor, mod);
-                
-           // }
-        //}
+        m_result_value->Visit(visitor, mod);
     } else if (m_command_name == "compiles") {
         const auto *value_of = m_expr->GetDeepValueOf();
         const AstString *string_value = nullptr;

@@ -81,12 +81,7 @@ public:
     RC<Identifier> LookUpIdentifierDepth(const String &name, int depth_level);
 
     /** Look up a symbol in this module by name */
-    SymbolTypePtr_t LookupSymbolType(const String &name); 
-    /** Look up an instance of a generic type with the given parameters */
-    SymbolTypePtr_t LookupGenericInstance(
-        const SymbolTypePtr_t &base, 
-        const Array<GenericInstanceTypeInfo::Arg> &params
-    );
+    SymbolTypePtr_t LookupSymbolType(const String &name);
 
     Tree<Scope> m_scopes;
 

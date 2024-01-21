@@ -32,6 +32,14 @@ public:
     
     virtual RC<AstStatement> Clone() const override = 0;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstImport>());
+
+        return hc;
+    }
+
 protected:
     /** The AST iterator that will be used by the imported module */
     AstIterator m_ast_iterator;

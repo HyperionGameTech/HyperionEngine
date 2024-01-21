@@ -12,6 +12,7 @@
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
+#include <script/compiler/emit/StorageOperation.hpp>
 
 #include <system/Debug.hpp>
 #include <util/UTF8.hpp>
@@ -44,6 +45,14 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     for (auto &arg : m_generic_args) {
         AssertThrow(arg != nullptr);
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+
+        if (arg->MayHaveSideEffects()) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_generic_arg_may_not_have_side_effects,
+                arg->GetLocation()
+            ));
+        }
     }
 
     // visit the expression
@@ -60,8 +69,9 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         m_target_expr->Visit(visitor, mod);
     }
 
-    const SymbolTypePtr_t expr_type = m_expr->GetExprType();
+    SymbolTypePtr_t expr_type = m_expr->GetExprType();
     AssertThrow(expr_type != nullptr);
+    expr_type = expr_type->GetUnaliased();
 
     const AstExpression *value_of = m_expr->GetDeepValueOf();
     AssertThrow(value_of != nullptr);
@@ -104,19 +114,30 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     
     m_inner_expr = CloneAstNode(generic_expr);
 
-    // temporarily define all generic parameters so there are no undefined reference errors.
-    for (SizeType index = 0; index < expr_type->GetGenericInstanceInfo().m_generic_args.Size() - 1; index++) {
-        AssertThrow(args_substituted[index]->GetExpr() != nullptr);
-        AssertThrow(args_substituted[index]->GetExpr()->GetExprType() != nullptr);
+    const auto &params = expr_type->GetGenericInstanceInfo().m_generic_args;
+    AssertThrow(params.Size() >= 1);
 
-        if (!args_substituted[index]->GetExpr()->GetExprType()->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
+    AssertThrow(args_substituted.Size() >= params.Size() - 1);
+
+    // temporarily define all generic parameters as constants
+    for (SizeType index = 0; index < params.Size() - 1; index++) {
+        auto &arg = args_substituted[index];
+        const auto &param = params[index + 1];
+
+        AssertThrow(arg != nullptr);
+        AssertThrow(arg->GetExpr() != nullptr);
+
+        SymbolTypePtr_t member_expr_type = arg->GetExpr()->GetExprType();
+        AssertThrow(member_expr_type != nullptr);
+        member_expr_type = member_expr_type->GetUnaliased();
+
+        if (!member_expr_type->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
             RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-                expr_type->GetGenericInstanceInfo().m_generic_args[index + 1].m_name,
+                param.m_name,
                 nullptr,
-                CloneAstNode(args_substituted[index]->GetExpr()),
-                {},
+                CloneAstNode(arg->GetExpr()),
                 IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
-                args_substituted[index]->GetLocation()
+                arg->GetLocation()
             ));
 
             m_block->AddChild(param_override);

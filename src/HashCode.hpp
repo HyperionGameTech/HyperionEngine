@@ -50,8 +50,8 @@ struct HashCode
     constexpr bool operator!=(const HashCode &other) const { return hash != other.hash; }
 
     template<class T>
-    typename std::enable_if_t<std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>>
-    Add(const T &hash_code) { HashCombine(hash_code.Value()); }
+    typename std::enable_if_t<std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>, HashCode &>
+    Add(const T &hash_code) { HashCombine(hash_code.Value()); return *this; }
 
     //template<class T, class DecayedType = std::decay_t<T>>
    // typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && implementation_exists<std::hash<DecayedType>>>
@@ -59,7 +59,7 @@ struct HashCode
 
     template<class T, class DecayedType = std::decay_t<T>>
     typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value &&
-        (std::is_fundamental_v<DecayedType> || std::is_pointer_v<DecayedType> || std::is_enum_v<DecayedType>)>
+        (std::is_fundamental_v<DecayedType> || std::is_pointer_v<DecayedType> || std::is_enum_v<DecayedType>), HashCode &>
     Add(const T &value)
     {
         static_assert(sizeof(T) <= sizeof(uintmax_t));
@@ -73,15 +73,17 @@ struct HashCode
         std::memcpy(&value_raw, &value, sizeof(T));
 
         HashCombine(value_raw);
+
+        return *this;
     }
 
     template<class T, class DecayedType = std::decay_t<T>>
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HasGetHashCode<DecayedType, HashCode>::value>
-    Add(const T &value) { HashCombine(value.GetHashCode().Value()); }
+    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HasGetHashCode<DecayedType, HashCode>::value, HashCode &>
+    Add(const T &value) { HashCombine(value.GetHashCode().Value()); return *this; }
 
     template<class T, class DecayedType = std::decay_t<T>>
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && !implementation_exists<std::hash<DecayedType>>>
-    Add(const T &value) { static_assert(resolution_failure<T>, "No GetHashCode() method"); }
+    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && !implementation_exists<std::hash<DecayedType>>, HashCode &>
+    Add(const T &value) { static_assert(resolution_failure<T>, "No GetHashCode() method"); return *this; }
 
     constexpr ValueType Value() const { return hash; }
 

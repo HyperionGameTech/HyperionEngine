@@ -8,7 +8,8 @@ namespace hyperion::compiler {
 
 class AstBinaryExpression;
 
-class AstUnaryExpression : public AstExpression {
+class AstUnaryExpression : public AstExpression
+{
 public:
     AstUnaryExpression(
         const RC<AstExpression> &target,
@@ -27,11 +28,23 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstUnaryExpression>());
+        hc.Add(m_target ? m_target->GetHashCode() : HashCode());
+        hc.Add(m_op ? m_op->GetHashCode() : HashCode());
+        hc.Add(m_is_postfix_version);
+
+        return hc;
+    }
+
 private:
-    RC<AstExpression> m_target;
-    const Operator *m_op;
-    bool m_is_postfix_version;
-    bool m_folded;
+    RC<AstExpression>   m_target;
+    const Operator      *m_op;
+    bool                m_is_postfix_version;
+
+    // set while analyzing
+    bool                m_folded;
 
     RC<AstBinaryExpression> m_bin_expr; // internally use a binary expr for somethings (like ++ and -- operators)
 

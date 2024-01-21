@@ -10,7 +10,8 @@
 
 namespace hyperion::compiler {
 
-class AstDirective : public AstStatement {
+class AstDirective : public AstStatement
+{
 public:
     AstDirective(
         const String &key,
@@ -24,6 +25,19 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
     virtual RC<AstStatement> Clone() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstDirective>());
+        hc.Add(m_key);
+
+        for (auto &arg : m_args) {
+            hc.Add(arg);
+        }
+
+        return hc;
+    }
 
 private:
     String          m_key;

@@ -12,7 +12,8 @@
 
 namespace hyperion::compiler {
 
-class AstNewExpression : public AstExpression {
+class AstNewExpression : public AstExpression
+{
 public:
     AstNewExpression(
         const RC<AstPrototypeSpecification> &proto,
@@ -32,6 +33,16 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual AstExpression *GetTarget() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstNewExpression>());
+        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_arg_list ? m_arg_list->GetHashCode() : HashCode());
+        hc.Add(m_enable_constructor_call);
+
+        return hc;
+    }
 
 private:
     RC<AstPrototypeSpecification>   m_proto;

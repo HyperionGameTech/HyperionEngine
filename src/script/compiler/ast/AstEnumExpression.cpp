@@ -73,7 +73,6 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
                 entry.name,
                 CloneAstNode(m_underlying_type),
                 entry.assignment,
-                {},
                 IdentifierFlags::FLAG_CONST,
                 entry.location
             )));

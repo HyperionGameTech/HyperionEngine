@@ -10,7 +10,8 @@
 
 namespace hyperion::compiler {
 
-class AstFunctionDefinition : public AstDeclaration {
+class AstFunctionDefinition : public AstDeclaration
+{
 public:
     AstFunctionDefinition(
         const String &name,
@@ -28,8 +29,17 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstFunctionDefinition>());
+        hc.Add(AstDeclaration::GetHashCode());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 protected:
-    RC<AstFunctionExpression> m_expr;
+    RC<AstFunctionExpression>   m_expr;
 
     RC<AstFunctionDefinition> CloneImpl() const
     {

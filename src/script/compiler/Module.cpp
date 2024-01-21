@@ -208,22 +208,6 @@ SymbolTypePtr_t Module::LookupSymbolType(const String &name)
     );
 }
 
-SymbolTypePtr_t Module::LookupGenericInstance(
-    const SymbolTypePtr_t &base,
-    const Array<GenericInstanceTypeInfo::Arg> &params)
-{
-    return PerformLookup(
-        [&base, &params](TreeNode<Scope> *top)
-        {
-            return top->Get().GetIdentifierTable().LookupGenericInstance(base, params);
-        },
-        [&base, &params](Module *mod)
-        {
-            return mod->LookupGenericInstance(base, params);
-        }
-    );
-}
-
 SymbolTypePtr_t Module::PerformLookup(
     Proc<SymbolTypePtr_t, TreeNode<Scope> *> &&pred1,
     Proc<SymbolTypePtr_t, Module *> &&pred2

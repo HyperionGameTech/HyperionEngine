@@ -48,7 +48,7 @@ using SymbolTypeFlags = UInt32;
 
 enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
-    SYMBOL_TYPE_FLAGS_NONE = 0x0,
+    SYMBOL_TYPE_FLAGS_NONE  = 0x0,
     SYMBOL_TYPE_FLAGS_PROXY = 0x1
 };
 
@@ -65,7 +65,7 @@ struct FunctionTypeInfo
 
 struct GenericTypeInfo
 {
-    int                     m_num_parameters; // -1 for variadic
+    int                     m_num_parameters = 0; // -1 for variadic
     Array<SymbolTypePtr_t>  m_params;
 };
 
@@ -200,7 +200,11 @@ public:
         const Array<SymbolMember_t> &members
     );
         
-    SymbolType(const SymbolType &other);
+    SymbolType(const SymbolType &other)             = delete;
+    SymbolType &operator=(const SymbolType &other)  = delete;
+    SymbolType(SymbolType &&other)                  = delete;
+    SymbolType &operator=(SymbolType &&other)       = delete;
+    ~SymbolType()                                   = default;
 
     const String &GetName() const { return m_name; }
     SymbolTypeClass GetTypeClass() const { return m_type_class; }
@@ -321,30 +325,77 @@ public:
     bool IsProxyClass() const
         { return m_flags & SYMBOL_TYPE_FLAGS_PROXY; }
 
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(m_name);
+        hc.Add(m_type_class);
+        hc.Add(m_base ? m_base->GetHashCode() : 0);
+        hc.Add(m_flags);
+
+        for (const auto &member : m_members) {
+            auto &member_name = std::get<0>(member);
+            auto &member_type = std::get<1>(member);
+
+            hc.Add(member_name);
+            hc.Add(member_type ? member_type->GetHashCode() : 0);
+        }
+
+        switch (m_type_class) {
+        case TYPE_ALIAS:
+            if (auto aliasee = m_alias_info.m_aliasee.lock()) {
+                hc.Add(aliasee->GetHashCode());
+            } else {
+                hc.Add(0);
+            }
+
+            break;
+        case TYPE_GENERIC:
+            hc.Add(m_generic_info.m_num_parameters);
+
+            for (const auto &param : m_generic_info.m_params) {
+                hc.Add(param ? param->GetHashCode() : 0);
+            }
+
+            break;
+        case TYPE_GENERIC_INSTANCE:
+            for (const auto &arg : m_generic_instance_info.m_generic_args) {
+                hc.Add(arg.m_name);
+                hc.Add(arg.m_type ? arg.m_type->GetHashCode() : 0);
+            }
+
+            break;
+        case TYPE_GENERIC_PARAMETER:
+            break;
+        }
+
+        return hc;
+    }
+
 private:
-    String m_name;
-    SymbolTypeClass m_type_class;
-    RC<AstExpression> m_default_value;
-    Array<SymbolMember_t> m_members;
+    String                      m_name;
+    SymbolTypeClass             m_type_class;
+    RC<AstExpression>           m_default_value;
+    Array<SymbolMember_t>       m_members;
 
     // type that this type is based off of
-    SymbolTypePtr_t m_base;
+    SymbolTypePtr_t             m_base;
 
-    RC<AstTypeObject> m_type_object;
+    RC<AstTypeObject>           m_type_object;
 
     // if this is an alias of another type
-    AliasTypeInfo m_alias_info;
+    AliasTypeInfo               m_alias_info;
     // if this type is a function
-    FunctionTypeInfo m_function_info;
+    FunctionTypeInfo            m_function_info;
     // if this is a generic type
-    GenericTypeInfo m_generic_info;
+    GenericTypeInfo             m_generic_info;
     // if this is an instance of a generic type
-    GenericInstanceTypeInfo m_generic_instance_info;
+    GenericInstanceTypeInfo     m_generic_instance_info;
     // if this is a generic param
-    GenericParameterTypeInfo m_generic_param_info;
+    GenericParameterTypeInfo    m_generic_param_info;
 
-    int m_id;
-    SymbolTypeFlags m_flags;
+    int                         m_id;
+    SymbolTypeFlags             m_flags;
 };
 
 } // namespace hyperion::compiler

@@ -21,6 +21,11 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        return HashCode().Add(TypeName<AstContinueStatement>());
+    }
+
 private:
     UInt m_num_pops;
 

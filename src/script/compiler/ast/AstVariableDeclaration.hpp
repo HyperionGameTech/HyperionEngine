@@ -21,7 +21,6 @@ public:
         const String &name,
         const RC<AstPrototypeSpecification> &proto,
         const RC<AstExpression> &assignment,
-        const Array<RC<AstParameter>> &template_params,
         IdentifierFlagBits flags,
         const SourceLocation &location
     );
@@ -70,10 +69,20 @@ public:
     SymbolTypePtr_t GetExprType() const
         { return m_symbol_type; }
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstVariableDeclaration>());
+        hc.Add(AstDeclaration::GetHashCode());
+        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_assignment ? m_assignment->GetHashCode() : HashCode());
+        hc.Add(m_flags);
+
+        return hc;
+    }
+
 protected:
     RC<AstPrototypeSpecification>   m_proto;
     RC<AstExpression>               m_assignment;
-    Array<RC<AstParameter>>         m_template_params;
     IdentifierFlagBits              m_flags;
 
     // set while analyzing
@@ -87,7 +96,6 @@ protected:
             m_name,
             CloneAstNode(m_proto),
             CloneAstNode(m_assignment),
-            CloneAllAstNodes(m_template_params),
             m_flags,
             m_location
         ));

@@ -28,6 +28,11 @@ public:
     virtual hyperion::UInt32 UnsignedValue() const;
     virtual hyperion::Float32 FloatValue() const = 0;
 
+    virtual HashCode GetHashCode() const override
+    {
+        return AstExpression::GetHashCode().Add(TypeName<AstConstant>());
+    }
+
     virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
 };
 

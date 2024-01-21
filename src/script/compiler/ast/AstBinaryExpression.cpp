@@ -780,7 +780,6 @@ RC<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor 
                 var_name,
                 nullptr,
                 m_right,
-                {},
                 false, // not const
                 false, // not generic
                 m_left->GetLocation()

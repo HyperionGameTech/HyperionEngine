@@ -39,6 +39,18 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
     virtual AstExpression *GetTarget() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTemplateInstantiation>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+        
+        for (auto &arg : m_generic_args) {
+            hc.Add(arg ? arg->GetHashCode() : HashCode());
+        }
+
+        return hc;
+    }
+
 private:
     RC<AstExpression>       m_expr;
     Array<RC<AstArgument>>  m_generic_args;

@@ -641,6 +641,25 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case MOV_STATIC:
+    {
+        UInt16 dst;
+        bs.Read(&dst);
+
+        UInt8 src;
+        bs.Read(&src);
+
+        if (os != nullptr) {
+            (*os)
+                << "mov_static ["
+                    << "#" << dst << ", "
+                    << "%" << (int)src
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case MOV_MEM:
     {
         UInt8 reg;

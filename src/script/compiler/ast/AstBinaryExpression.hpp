@@ -8,7 +8,8 @@
 
 namespace hyperion::compiler {
 
-class AstBinaryExpression : public AstExpression {
+class AstBinaryExpression : public AstExpression
+{
 public:
     AstBinaryExpression(
         const RC<AstExpression> &left,
@@ -35,13 +36,23 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
-private:
-    RC<AstExpression> m_left;
-    RC<AstExpression> m_right;
-    const Operator *m_op;
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstBinaryExpression>());
+        hc.Add(m_left ? m_left->GetHashCode() : HashCode());
+        hc.Add(m_right ? m_right->GetHashCode() : HashCode());
+        hc.Add(m_op ? m_op->GetHashCode() : HashCode());
 
-    RC<AstExpression> m_operator_overload;
-    bool m_operator_overloading_enabled;
+        return hc;
+    }
+
+private:
+    RC<AstExpression>   m_left;
+    RC<AstExpression>   m_right;
+    const Operator      *m_op;
+
+    RC<AstExpression>   m_operator_overload;
+    bool                m_operator_overloading_enabled;
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration

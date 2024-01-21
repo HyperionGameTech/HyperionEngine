@@ -32,9 +32,18 @@ public:
     virtual AstExpression *GetTarget() const override;
     virtual bool IsMutable() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstArrayAccess>());
+        hc.Add(m_target ? m_target->GetHashCode() : HashCode());
+        hc.Add(m_index ? m_index->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
-    RC<AstExpression> m_target;
-    RC<AstExpression> m_index;
+    RC<AstExpression>   m_target;
+    RC<AstExpression>   m_index;
 
     RC<AstArrayAccess> CloneImpl() const
     {

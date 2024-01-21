@@ -17,6 +17,15 @@ struct EnumEntry
     String              name;
     RC<AstExpression>   assignment;
     SourceLocation      location;
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(assignment ? assignment->GetHashCode() : HashCode());
+
+        return hc;
+    }
 };
 
 class AstEnumExpression : public AstExpression
@@ -47,6 +56,21 @@ public:
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
     virtual const String &GetName() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstEnumExpression>());
+        hc.Add(m_name);
+
+        for (auto &entry : m_entries) {
+            hc.Add(entry.GetHashCode());
+        }
+
+        hc.Add(m_underlying_type ? m_underlying_type->GetHashCode() : HashCode());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
+
+        return hc;
+    }
 
 protected:
     String                          m_name;

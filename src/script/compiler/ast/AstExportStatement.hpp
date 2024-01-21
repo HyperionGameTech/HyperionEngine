@@ -8,7 +8,8 @@
 
 namespace hyperion::compiler {
 
-class AstExportStatement : public AstStatement {
+class AstExportStatement : public AstStatement
+{
 public:
     AstExportStatement(
         const RC<AstStatement> &stmt,
@@ -24,6 +25,15 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
     virtual RC<AstStatement> Clone() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstExportStatement>());
+        hc.Add(m_stmt ? m_stmt->GetHashCode() : HashCode());
+
+        return hc;
+    }
 
 private:
     RC<AstStatement> m_stmt;

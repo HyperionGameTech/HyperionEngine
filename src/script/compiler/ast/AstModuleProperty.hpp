@@ -6,7 +6,8 @@
 
 namespace hyperion::compiler {
 
-class AstModuleProperty : public AstExpression {
+class AstModuleProperty : public AstExpression
+{
 public:
     AstModuleProperty(
       const String &field_name,
@@ -23,6 +24,14 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstModuleProperty>());
+        hc.Add(m_field_name);
+
+        return hc;
+    }
 
 protected:
     String              m_field_name;

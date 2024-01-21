@@ -2,6 +2,7 @@
 #define SOURCE_LOCATION_HPP
 
 #include <core/lib/String.hpp>
+#include <HashCode.hpp>
 
 namespace hyperion {
 
@@ -24,10 +25,20 @@ public:
     bool operator<(const SourceLocation &other) const;
     bool operator==(const SourceLocation &other) const;
 
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(m_line);
+        hc.Add(m_column);
+        hc.Add(m_filename);
+
+        return hc;
+    }
+
 private:
-    int m_line;
-    int m_column;
-    String m_filename;
+    int     m_line;
+    int     m_column;
+    String  m_filename;
 };
 
 } // namespace hyperion

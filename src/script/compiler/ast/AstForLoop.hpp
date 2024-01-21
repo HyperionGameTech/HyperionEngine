@@ -30,11 +30,25 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstForLoop>());
+        hc.Add(m_decl_part ? m_decl_part->GetHashCode() : HashCode());
+        hc.Add(m_condition_part ? m_condition_part->GetHashCode() : HashCode());
+        hc.Add(m_increment_part ? m_increment_part->GetHashCode() : HashCode());
+        hc.Add(m_block ? m_block->GetHashCode() : HashCode());
+
+        return hc;
+    }
+
 private:
     RC<AstStatement>    m_decl_part;
     RC<AstExpression>   m_condition_part;
     RC<AstExpression>   m_increment_part;
     RC<AstBlock>        m_block;
+
+    // set while analyzing
     Int                 m_num_locals;
     Int                 m_num_used_initializers;
 

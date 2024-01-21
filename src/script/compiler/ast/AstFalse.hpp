@@ -5,7 +5,8 @@
 
 namespace hyperion::compiler {
 
-class AstFalse : public AstConstant {
+class AstFalse : public AstConstant
+{
 public:
     AstFalse(const SourceLocation &location);
 
@@ -20,6 +21,11 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
 
     virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
+
+    virtual HashCode GetHashCode() const override
+    {
+        return AstConstant::GetHashCode().Add(TypeName<AstFalse>());
+    }
 
 private:
     RC<AstFalse> CloneImpl() const

@@ -46,6 +46,17 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual SymbolTypePtr_t GetHeldType() const override;
 
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeObject>());
+        hc.Add(m_symbol_type ? m_symbol_type->GetHashCode() : HashCode());
+        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_enum_underlying_type ? m_enum_underlying_type->GetHashCode() : HashCode());
+        hc.Add(m_is_proxy_class);
+
+        return hc;
+    }
+
 private:
     SymbolTypePtr_t             m_symbol_type;
     RC<AstVariable>             m_proto;
@@ -54,6 +65,7 @@ private:
 
     // set while analyzing
     Array<RC<AstExpression>>    m_member_expressions;
+    bool                        m_is_visited;
 
     RC<AstTypeObject> CloneImpl() const
     {

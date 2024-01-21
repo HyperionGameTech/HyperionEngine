@@ -24,11 +24,21 @@ public:
     
     virtual RC<AstStatement> Clone() const override;
 
-private:
-    RC<AstExpression> m_expr;
+    virtual HashCode GetHashCode() const override
+    {
+        HashCode hc;
+        hc.Add(TypeName<AstReturnStatement>());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
 
-    UInt m_num_pops;
-    Bool m_is_visited = false;
+        return hc;
+    }
+
+private:
+    RC<AstExpression>   m_expr;
+
+    // set while analyzing
+    UInt                m_num_pops;
+    Bool                m_is_visited = false;
 
     RC<AstReturnStatement> CloneImpl() const
     {

@@ -14,11 +14,16 @@
 namespace hyperion::compiler {
 
 CompilationUnit::CompilationUnit()
-    : m_module_index(0),
-      m_global_module(new Module(
+    : m_global_module(new Module(
           hyperion::compiler::Config::global_module_name,
           SourceLocation::eof
-      ))
+      )),
+      m_generic_instance_cache([this]() -> UInt
+      {
+          // generate a new static id, so the generic instance can be cached
+          // in static storage
+          return UInt(m_instruction_stream.NewStaticId());
+      })
 {
     m_global_module->SetImportTreeLink(m_module_tree.TopNode());
 
