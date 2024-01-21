@@ -19,7 +19,8 @@ Scope::Scope(const Scope &other)
       m_scope_type(other.m_scope_type),
       m_scope_flags(other.m_scope_flags),
       m_return_types(other.m_return_types),
-      m_closure_captures(other.m_closure_captures)
+      m_closure_captures(other.m_closure_captures),
+      m_generic_instance_cache(other.m_generic_instance_cache)
 {
 }
 

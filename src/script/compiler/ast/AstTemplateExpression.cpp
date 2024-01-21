@@ -41,6 +41,9 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
+    // dirty hacky way to make uninstantiated generic types be treated similarly to c++ templates
+    visitor->GetCompilationUnit()->GetErrorList().SuppressErrors(true);
+
     mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
 
     m_block.Reset(new AstBlock(m_location));
@@ -58,7 +61,6 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(generic_param != nullptr);
 
             SymbolTypePtr_t generic_param_type = SymbolType::GenericParameter(generic_param->GetName());
-
             mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(generic_param_type);
 
             auto var_decl = RC<AstVariableDeclaration>(new AstVariableDeclaration(
@@ -97,7 +99,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     m_block->Visit(visitor, mod);
 
     Array<GenericInstanceTypeInfo::Arg> generic_param_types;
-    generic_param_types.Reserve(m_generic_param_placeholders.Size() + 1); // anotha one
+    generic_param_types.Reserve(m_generic_param_placeholders.Size() + 1); // anotha one for @return
     
     SymbolTypePtr_t expr_return_type;
     SymbolTypePtr_t explicit_return_type = m_return_type_specification != nullptr
@@ -144,29 +146,21 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_symbol_type != nullptr);
 
     mod->m_scopes.Close();
+
+    // dirty hacky way to make uninstantiated generic types be treated similarly to c++ templates
+    visitor->GetCompilationUnit()->GetErrorList().SuppressErrors(false);
 }
 
 std::unique_ptr<Buildable> AstTemplateExpression::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_is_visited);
 
-    if (m_block == nullptr) {
-        return nullptr;
-    }
-
-    return m_block->Build(visitor, mod);
+    return nullptr; // Uninstantiated generic types are not buildable
 }
 
 void AstTemplateExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    // AssertThrow(m_expr != nullptr);
-    // m_expr->Optimize(visitor, mod);
-
-    if (m_block == nullptr) {
-        return;
-    }
-
-    m_block->Optimize(visitor, mod);
+    // do nothing - instantiated generic expressions will be optimized
 }
 
 RC<AstStatement> AstTemplateExpression::Clone() const

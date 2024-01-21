@@ -44,8 +44,6 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
         // clone the AST node so we don't double-visit
         if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
-            // m_inline_value = CloneAstNode(current_value);
-
             const AstConstant *constant_value = nullptr;
 
             if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
@@ -107,9 +105,9 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             }
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
-            const bool force_inline = is_alias || is_mixin || is_substitution;
+            const bool force_inline = is_alias || is_mixin;// || is_substitution;
 
-            if (force_inline && m_inline_value != nullptr) {
+            if (force_inline && m_inline_value == nullptr) {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_cannot_inline_variable,
@@ -247,7 +245,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
         Int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
         Int stack_location = m_properties.GetIdentifier()->GetStackLocation();
 
-        AssertThrowMsg(stack_location != -1, "Variable %s has invalid stack location stored; not visited?", m_name.Data());
+        AssertThrowMsg(stack_location != -1, "Variable %s has invalid stack location stored; maybe the AstVariable is not built?", m_name.Data());
 
         Int offset = stack_size - stack_location;
 

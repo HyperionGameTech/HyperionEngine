@@ -196,7 +196,7 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String &name, int depth_level
 
 SymbolTypePtr_t Module::LookupSymbolType(const String &name)
 {
-    return PerformLookup(
+    return PerformLookup<SymbolTypePtr_t>(
         [&name](TreeNode<Scope> *top)
         {
             return top->Get().GetIdentifierTable().LookupSymbolType(name);
@@ -208,42 +208,18 @@ SymbolTypePtr_t Module::LookupSymbolType(const String &name)
     );
 }
 
-SymbolTypePtr_t Module::PerformLookup(
-    Proc<SymbolTypePtr_t, TreeNode<Scope> *> &&pred1,
-    Proc<SymbolTypePtr_t, Module *> &&pred2
-)
+Optional<GenericInstanceCache::CachedObject> Module::LookupGenericInstance(const GenericInstanceCache::Key &key)
 {
-    TreeNode<Scope> *top = m_scopes.TopNode();
-
-    while (top) {
-        if (SymbolTypePtr_t result = pred1(top)) {
-            // a result was found
-            return result;
+    return PerformLookup<Optional<GenericInstanceCache::CachedObject>>(
+        [&key](TreeNode<Scope> *top)
+        {
+            return top->Get().GetGenericInstanceCache().Lookup(key);
+        },
+        [&key](Module *mod)
+        {
+            return mod->LookupGenericInstance(key);
         }
-        top = top->m_parent;
-    }
-
-    if (m_tree_link && m_tree_link->m_parent) {
-        if (Module *other = m_tree_link->m_parent->Get()) {
-            if (other->GetLocation().GetFileName() == m_location.GetFileName()) {
-                return pred2(other);
-            } else {
-                // we are outside of file scope, so loop until root/global module found
-                auto *link = m_tree_link->m_parent;
-
-                while (link->m_parent) {
-                    link = link->m_parent;
-                }
-
-                AssertThrow(link->Get() != nullptr);
-                AssertThrow(link->Get()->GetName() == Config::global_module_name);
-
-                return pred2(link->Get());
-            }
-        }
-    }
-
-    return nullptr;
+    );
 }
 
 } // namespace hyperion::compiler

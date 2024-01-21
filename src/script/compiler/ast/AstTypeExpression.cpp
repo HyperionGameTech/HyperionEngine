@@ -2,7 +2,6 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
-#include <script/compiler/ast/AstTypeName.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/AstVisitor.hpp>

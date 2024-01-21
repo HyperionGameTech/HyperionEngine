@@ -145,7 +145,7 @@ Exception Exception::OutOfBoundsException()
 
 Exception Exception::MemberNotFoundException()
 {
-    return Exception("Member not found");
+    return Exception("Invalid member access");
 }
 
 Exception Exception::FileOpenException(const char *file_name)

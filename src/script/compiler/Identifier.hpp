@@ -29,7 +29,9 @@ enum IdentifierFlags : IdentifierFlagBits
    FLAG_ENUM                 = 0x800,
    FLAG_MEMBER               = 0x1000,
    FLAG_GENERIC_SUBSTITUTION = 0x2000,
-   FLAG_CONSTRUCTOR          = 0x4000
+   FLAG_CONSTRUCTOR          = 0x4000,
+   FLAG_CLASS                = 0x8000,
+   FLAG_FUNCTION             = 0x10000,
 };
 
 class Identifier

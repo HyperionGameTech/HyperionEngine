@@ -59,8 +59,10 @@ private:
     RC<AstExpression>       m_inner_expr;
     RC<AstBlock>            m_block;
     RC<AstExpression>       m_target_expr;
+    Array<RC<AstArgument>>  m_substituted_args;
     SymbolTypePtr_t         m_expr_type;
     bool                    m_is_visited = false;
+    bool                    m_is_new_instantiation = false;
 
     RC<AstTemplateInstantiation> CloneImpl() const
     {

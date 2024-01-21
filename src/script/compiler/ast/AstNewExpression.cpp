@@ -45,16 +45,18 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
         AssertThrowMsg(m_enable_constructor_call, "Args provided for non-constructor call new expr");
     }
 
-    /*AssertThrow(m_proto->GetExprType() != nullptr);
-    m_constructor_type = m_proto->GetExprType();
-
-    const bool is_type = m_constructor_type == BuiltinTypes::CLASS_TYPE;*/
+    auto *value_of = m_proto->GetDeepValueOf();
+    AssertThrow(value_of != nullptr);
     
     m_instance_type = BuiltinTypes::UNDEFINED;
     m_prototype_type = BuiltinTypes::UNDEFINED;
 
-    if (const auto &held_type = m_proto->GetHeldType()) {
-        m_instance_type = held_type;
+    SymbolTypePtr_t expr_type = value_of->GetExprType();
+    AssertThrow(expr_type != nullptr);
+    expr_type = expr_type->GetUnaliased();
+
+    if (SymbolTypePtr_t held_type = value_of->GetHeldType()) {
+        m_instance_type = held_type->GetUnaliased();
         m_object_value = m_proto->GetDefaultValue(); // may be nullptr
         m_prototype_type = m_proto->GetPrototypeType();
     } else {
@@ -62,9 +64,7 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
             LEVEL_ERROR,
             Msg_not_a_type,
             m_location,
-            m_proto->GetExprType() != nullptr
-                ? m_proto->GetExprType()->ToString()
-                : "??"
+            expr_type->ToString()
         ));
 
         return;

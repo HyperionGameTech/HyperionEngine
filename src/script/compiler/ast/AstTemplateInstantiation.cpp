@@ -42,9 +42,18 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
 
+    bool any_args_placeholder = false;
+
     for (auto &arg : m_generic_args) {
         AssertThrow(arg != nullptr);
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+
+        auto arg_type = arg->GetExprType();
+        AssertThrow(arg_type != nullptr);
+
+        if (arg_type->IsPlaceholderType()) {
+            any_args_placeholder = true;
+        }
 
         if (arg->MayHaveSideEffects()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -54,6 +63,12 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             ));
         }
     }
+
+    // if (any_args_placeholder) {
+    //     m_expr_type = BuiltinTypes::PLACEHOLDER;
+
+    //     return;
+    // }
 
     // visit the expression
     AssertThrow(m_expr != nullptr);
@@ -105,43 +120,74 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     );
 
     m_expr_type = substituted.first;
-    const auto args_substituted = substituted.second;
+    m_substituted_args = substituted.second;
 
     if (m_expr_type == nullptr) {
         // error should occur
         return;
     }
+
+    GenericInstanceCache::Key generic_instance_cache_key;
+    // { // look in generic instance cache
+    //     generic_instance_cache_key.generic_expr = CloneAstNode(generic_expr);
+    //     generic_instance_cache_key.arg_hash_codes.Resize(m_substituted_args.Size());
+
+    //     for (SizeType index = 0; index < m_substituted_args.Size(); index++) {
+    //         const auto &arg = m_substituted_args[index];
+    //         AssertThrow(arg != nullptr);
+
+    //         generic_instance_cache_key.arg_hash_codes[index] = arg->GetHashCode();
+    //     }
+
+    //     Optional<GenericInstanceCache::CachedObject> cached_object = mod->LookupGenericInstance(generic_instance_cache_key);
+
+    //     if (cached_object.HasValue()) {
+    //         m_inner_expr = cached_object.Get().instantiated_expr;
+    //         AssertThrow(m_inner_expr != nullptr);
+
+    //         return;
+    //     }
+    // }
     
     m_inner_expr = CloneAstNode(generic_expr);
 
     const auto &params = expr_type->GetGenericInstanceInfo().m_generic_args;
     AssertThrow(params.Size() >= 1);
 
-    AssertThrow(args_substituted.Size() >= params.Size() - 1);
+    AssertThrow(m_substituted_args.Size() >= params.Size() - 1);
 
     // temporarily define all generic parameters as constants
     for (SizeType index = 0; index < params.Size() - 1; index++) {
-        auto &arg = args_substituted[index];
+        auto &arg = m_substituted_args[index];
         const auto &param = params[index + 1];
 
         AssertThrow(arg != nullptr);
-        AssertThrow(arg->GetExpr() != nullptr);
+        
+        auto *value_of = arg->GetDeepValueOf();
+        AssertThrow(value_of != nullptr);
 
-        SymbolTypePtr_t member_expr_type = arg->GetExpr()->GetExprType();
-        AssertThrow(member_expr_type != nullptr);
-        member_expr_type = member_expr_type->GetUnaliased();
+        // For each generic parameter, we add a new symbol type to the current scope
+        // as an alias to the held type of the argument.
 
-        if (!member_expr_type->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
-            RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-                param.m_name,
-                nullptr,
-                CloneAstNode(arg->GetExpr()),
-                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
-                arg->GetLocation()
-            ));
+        DebugLog(LogType::Debug, "held_type for value_of %s\n", value_of->GetName().Data());
 
-            m_block->AddChild(param_override);
-        }
+        SymbolTypePtr_t held_type = value_of->GetHeldType();
+        AssertThrow(held_type != nullptr);
+
+        scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
+            param.m_name,
+            { held_type }
+        ));
+
+        RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
+            param.m_name,
+            nullptr,
+            CloneAstNode(arg->GetExpr()),
+            IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
+            arg->GetLocation()
+        ));
+
+        m_block->AddChild(param_override);
     }
 
     // TODO: Cache instantiations so we don't create a new one for every set of arguments
@@ -156,6 +202,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     // If the current return type is a placeholder, we need to set it to the inner expression's implicit return type
     if (m_expr_type->IsPlaceholderType()) {
         m_expr_type = m_inner_expr->GetExprType();
+        m_expr_type = m_expr_type->GetUnaliased();
     } else {
         SemanticAnalyzer::Helpers::EnsureLooseTypeAssignmentCompatibility(
             visitor,
@@ -165,6 +212,24 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             m_location
         );
     }
+
+    // // @TODO Will this work with other modules?
+
+    // const UInt expr_scope_depth = generic_expr->GetScopeDepth();
+
+    // // add it to the generic instance cache, for the scope of the original generic expression
+    // Scope *expr_scope = visitor->GetCompilationUnit()->GetCurrentModule()->m_scopes.FindClosestMatch(
+    //     [expr_scope_depth](const TreeNode<Scope> *node, const Scope &scope) 
+    //     {
+    //         return node->m_depth == expr_scope_depth;
+    //     }
+    // );
+
+    // AssertThrow(expr_scope != nullptr);
+
+    // expr_scope->GetGenericInstanceCache().Add(generic_instance_cache_key, m_inner_expr);
+
+    // m_is_new_instantiation = true;
 }
 
 std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, Module *mod)
@@ -176,6 +241,39 @@ std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, 
 
     AssertThrow(m_block != nullptr);
     return m_block->Build(visitor, mod);
+
+
+    // std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    // // Build the arguments
+    // chunk->Append(Compiler::BuildArgumentsStart(
+    //     visitor,
+    //     mod,
+    //     m_substituted_args
+    // ));
+
+    // const Int stack_size_before = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    
+    // // Build the original expression.
+    // // Usage of arguments in the expression will be replaced with the substituted arguments.
+    // chunk->Append(m_expr->Build(visitor, mod));
+
+    // const Int stack_size_now = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+
+    // AssertThrowMsg(
+    //     stack_size_now == stack_size_before,
+    //     "Stack size mismatch detected! Internal record of stack does not match. (%d != %d)",
+    //     stack_size_now,
+    //     stack_size_before
+    // );
+
+    // chunk->Append(Compiler::BuildArgumentsEnd(
+    //     visitor,
+    //     mod,
+    //     m_substituted_args.Size()
+    // ));
+
+    // return chunk;
 }
 
 void AstTemplateInstantiation::Optimize(AstVisitor *visitor, Module *mod)

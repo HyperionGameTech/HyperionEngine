@@ -58,7 +58,6 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
 
         auto enum_underlying_type = held_type->GetGenericInstanceInfo().m_generic_args.Front().m_type;
         AssertThrow(enum_underlying_type != nullptr);
-
         enum_underlying_type = enum_underlying_type->GetUnaliased();
 
         // for enum types, we use the underlying type.
@@ -85,43 +84,33 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    if (held_type != nullptr) {
-        if (FindPrototypeType(held_type)) {
-            m_symbol_type = held_type;
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_type_missing_prototype,
-                m_location,
-                held_type->ToString()
-            ));
-        }
-
-            // if (found_symbol_type != held_type && found_symbol_type != nullptr) {
-            //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            //         LEVEL_ERROR,
-            //         Msg_type_missing_prototype,
-            //         m_location,
-            //         expr_type->ToString() + " (expanded: " + found_symbol_type->ToString() + ")"
-            //     ));
-            // } else {
-            //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            //         LEVEL_ERROR,
-            //         Msg_type_missing_prototype,
-            //         m_location,
-            //         expr_type->ToString()
-            //     ));
-            // }
-        // }
+    if (FindPrototypeType(held_type)) {
+        m_symbol_type = held_type;
     } else {
-        // m_symbol_type = constructor_type;
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_WARN,
-            Msg_not_a_constant_type,
+            LEVEL_ERROR,
+            Msg_type_missing_prototype,
             m_location,
             held_type->ToString()
         ));
     }
+
+        // if (found_symbol_type != held_type && found_symbol_type != nullptr) {
+        //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+        //         LEVEL_ERROR,
+        //         Msg_type_missing_prototype,
+        //         m_location,
+        //         expr_type->ToString() + " (expanded: " + found_symbol_type->ToString() + ")"
+        //     ));
+        // } else {
+        //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+        //         LEVEL_ERROR,
+        //         Msg_type_missing_prototype,
+        //         m_location,
+        //         expr_type->ToString()
+        //     ));
+        // }
+    // }
 
     AssertThrow(m_symbol_type != nullptr);
     AssertThrow(m_prototype_type != nullptr);

@@ -32,6 +32,9 @@ public:
     SourceLocation &GetLocation() { return m_location; }
     const SourceLocation &GetLocation() const { return m_location; }
 
+    UInt GetScopeDepth() const { return m_scope_depth; }
+    void SetScopeDepth(UInt depth) { m_scope_depth = depth; }
+
     virtual void Visit(AstVisitor *visitor, Module *mod) = 0;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) = 0;
@@ -43,7 +46,8 @@ public:
     virtual RC<AstStatement> Clone() const = 0;
 
 protected:
-    SourceLocation m_location;
+    SourceLocation  m_location;
+    UInt            m_scope_depth;
 };
 
 template <typename T>

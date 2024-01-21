@@ -49,9 +49,12 @@ std::unique_ptr<Buildable> AstContinueStatement::Build(AstVisitor *visitor, Modu
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    const auto *closest_loop = visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree().FindClosestMatch([](const InstructionStreamContext &context) {
-        return context.GetType() == INSTRUCTION_STREAM_CONTEXT_LOOP;
-    });
+    const auto *closest_loop = visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree().FindClosestMatch(
+        [](const TreeNode<InstructionStreamContext> *, const InstructionStreamContext &context)
+        {
+            return context.GetType() == INSTRUCTION_STREAM_CONTEXT_LOOP;
+        }
+    );
 
     AssertThrowMsg(closest_loop != nullptr, "No loop context found");
 

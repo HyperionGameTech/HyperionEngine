@@ -11,6 +11,7 @@
 #include <core/lib/String.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/FlatSet.hpp>
+#include <core/lib/Optional.hpp>
 #include <Types.hpp>
 
 namespace hyperion::compiler {
@@ -83,6 +84,8 @@ public:
     /** Look up a symbol in this module by name */
     SymbolTypePtr_t LookupSymbolType(const String &name);
 
+    Optional<GenericInstanceCache::CachedObject> LookupGenericInstance(const GenericInstanceCache::Key &key);
+
     Tree<Scope> m_scopes;
 
 private:
@@ -95,10 +98,45 @@ private:
     /** A link to where this module exists in the import tree */
     TreeNode<Module*>   *m_tree_link;
 
-    SymbolTypePtr_t PerformLookup(
-        Proc<SymbolTypePtr_t, TreeNode<Scope> *> &&pred1,
-        Proc<SymbolTypePtr_t, Module *> &&pred2
-    );
+    template <class T>
+    T PerformLookup(
+        Proc<T, TreeNode<Scope> *> &&pred1,
+        Proc<T, Module *> &&pred2
+    )
+    {
+        TreeNode<Scope> *top = m_scopes.TopNode();
+
+        while (top) {
+            if (auto result = pred1(top)) {
+                // a result was found
+                return result;
+            }
+
+            top = top->m_parent;
+        }
+
+        if (m_tree_link && m_tree_link->m_parent) {
+            if (Module *other = m_tree_link->m_parent->Get()) {
+                if (other->GetLocation().GetFileName() == m_location.GetFileName()) {
+                    return pred2(other);
+                } else {
+                    // we are outside of file scope, so loop until root/global module found
+                    auto *link = m_tree_link->m_parent;
+
+                    while (link->m_parent) {
+                        link = link->m_parent;
+                    }
+
+                    AssertThrow(link->Get() != nullptr);
+                    AssertThrow(link->Get()->GetName() == Config::global_module_name);
+
+                    return pred2(link->Get());
+                }
+            }
+        }
+
+        return T { };
+    }
 };
 
 struct ScopeGuard : TreeNodeGuard<Scope>

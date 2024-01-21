@@ -37,10 +37,16 @@ AstVariableDeclaration::AstVariableDeclaration(
 
 void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
-    AstDeclaration::Visit(visitor, mod);
+    // If it is for a class or function definition, visit the
+    // declaration here so it will be available for the body.
+    const bool visit_before_body = (m_flags & (FLAG_CLASS | FLAG_FUNCTION));
 
-    if (m_identifier != nullptr) {
-        m_identifier->GetFlags() |= m_flags;
+    if (visit_before_body) {
+        AstDeclaration::Visit(visitor, mod);
+
+        if (m_identifier != nullptr) {
+            m_identifier->GetFlags() |= m_flags;
+        }
     }
 
     m_symbol_type = BuiltinTypes::UNDEFINED;
@@ -75,11 +81,33 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         if (has_user_specified_type) {
             m_proto->Visit(visitor, mod);
 
-            AssertThrow(m_proto->GetHeldType() != nullptr);
-            m_symbol_type = m_proto->GetHeldType();
+            auto *value_of = m_proto->GetDeepValueOf();
+            AssertThrow(value_of != nullptr);
 
-            if (m_identifier != nullptr) {
-                m_identifier->SetSymbolType(m_symbol_type);
+            SymbolTypePtr_t proto_expr_type = value_of->GetExprType();
+            AssertThrow(proto_expr_type != nullptr);
+            proto_expr_type = proto_expr_type->GetUnaliased();
+
+            SymbolTypePtr_t proto_held_type = value_of->GetHeldType();
+            if (proto_held_type != nullptr) {
+                proto_held_type = proto_held_type->GetUnaliased();
+            }
+
+            if (proto_expr_type->IsPlaceholderType()) {
+                m_symbol_type = BuiltinTypes::PLACEHOLDER;
+            } else if (proto_held_type == nullptr) {
+                // Add error that invalid type was specified.
+
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_not_a_type,
+                    m_proto->GetLocation(),
+                    proto_expr_type->ToString()
+                ));
+
+                m_symbol_type = BuiltinTypes::UNDEFINED;
+            } else {
+                m_symbol_type = proto_held_type;
             }
 
 #if HYP_SCRIPT_ANY_ONLY_FUNCTION_PARAMATERS
@@ -131,7 +159,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             m_real_assignment.Reset(new AstUndefined(m_location));
         }
 
-        // Set identifier currentl value in advance,
+        // Set identifier current value in advance,
         // so from type declarations we can use the current type.
         // Note: m_identifier will only be nullptr if declaration has failed.
         if (m_identifier != nullptr) {
@@ -262,9 +290,16 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
         return;
     }
+    
+    if (!visit_before_body) {
+        // visit now
+        AstDeclaration::Visit(visitor, mod);
+    }
 
     if (m_identifier != nullptr) {
+        m_identifier->GetFlags() |= m_flags;
         m_identifier->SetSymbolType(m_symbol_type);
+        m_identifier->SetCurrentValue(m_real_assignment);
     }
 }
 

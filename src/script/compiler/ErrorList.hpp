@@ -32,7 +32,13 @@ public:
         { return m_errors[index]; }
 
     void AddError(const CompilerError &error)
-        { m_errors.Insert(error); }
+    {
+        if (ErrorsSuppressed()) {
+            return;
+        }
+
+        m_errors.Insert(error);
+    }
 
     void ClearErrors()
         { m_errors.Clear(); }
@@ -40,11 +46,25 @@ public:
     void Concatenate(const ErrorList &other)
         { m_errors.Merge(other.m_errors); }
 
+    bool ErrorsSuppressed() const
+        { return m_error_suppression_depth > 0; }
+
+    void SuppressErrors(bool suppress)
+    {
+        if (suppress) {
+            m_error_suppression_depth++;
+        } else {
+            AssertThrow(m_error_suppression_depth > 0);
+            m_error_suppression_depth--;
+        }
+    }
+
     bool HasFatalErrors() const;
     std::ostream &WriteOutput(std::ostream &os) const;
 
 private:
-    FlatSet<CompilerError> m_errors;
+    FlatSet<CompilerError>  m_errors;
+    UInt                    m_error_suppression_depth;
 };
 
 } // namespace hyperion::compiler

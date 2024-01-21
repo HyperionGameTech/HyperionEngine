@@ -11,28 +11,38 @@
 namespace hyperion::compiler {
 
 ErrorList::ErrorList()
+    : m_error_suppression_depth(0)
 {
 }
 
 ErrorList::ErrorList(const ErrorList &other)
-    : m_errors(other.m_errors)
+    : m_errors(other.m_errors),
+      m_error_suppression_depth(other.m_error_suppression_depth)
 {
 }
 
 ErrorList &ErrorList::operator=(const ErrorList &other)
 {
     m_errors = other.m_errors;
+    m_error_suppression_depth = other.m_error_suppression_depth;
+
     return *this;
 }
 
 ErrorList::ErrorList(ErrorList &&other) noexcept
-    : m_errors(std::move(other.m_errors))
+    : m_errors(std::move(other.m_errors)),
+      m_error_suppression_depth(other.m_error_suppression_depth)
 {
+    other.m_error_suppression_depth = 0;
 }
 
 ErrorList &ErrorList::operator=(ErrorList &&other) noexcept
 {
     m_errors = std::move(other.m_errors);
+    m_error_suppression_depth = other.m_error_suppression_depth;
+
+    other.m_error_suppression_depth = 0;
+
     return *this;
 }
 

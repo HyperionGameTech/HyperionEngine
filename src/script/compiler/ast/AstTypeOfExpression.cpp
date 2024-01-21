@@ -1,7 +1,6 @@
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstTypeName.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Configuration.hpp>
 

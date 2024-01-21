@@ -41,10 +41,22 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
     m_symbol_type = BuiltinTypes::UNDEFINED;
 
     if (m_command_name == "inspect_type") {
-        SymbolTypePtr_t expr_type = m_expr->GetExprType();
-        AssertThrow(expr_type != nullptr);
+        auto *value_of = m_expr->GetDeepValueOf();
+        AssertThrow(value_of != nullptr);
 
-        m_result_value = RC<AstString>::Construct(expr_type->ToString(), m_location);
+        SymbolTypePtr_t held_type = value_of->GetHeldType();
+        if (held_type == nullptr) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_custom_error,
+                m_location,
+                "No held type found for expression"
+            ));
+
+            return;
+        }
+
+        m_result_value = RC<AstString>::Construct(held_type->ToString(), m_location);
     } else if (m_command_name == "log") {
         const auto *value_of = m_expr->GetDeepValueOf();
 
@@ -60,12 +72,24 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
             DebugLog(LogType::Warn, "$meta::log(): No value found for expression\n");
         }
     } else if (m_command_name == "fields") {
-        SymbolTypePtr_t expr_type = m_expr->GetExprType();
-        AssertThrow(expr_type != nullptr);
+        auto *value_of = m_expr->GetDeepValueOf();
+        AssertThrow(value_of != nullptr);
+
+        SymbolTypePtr_t held_type = value_of->GetHeldType();
+        if (held_type == nullptr) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_custom_error,
+                m_location,
+                "No held type found for expression"
+            ));
+
+            return;
+        }
 
         Array<RC<AstExpression>> field_names;
 
-        for (const auto &member : expr_type->GetMembers()) {
+        for (const auto &member : held_type->GetMembers()) {
             field_names.PushBack(RC<AstString>::Construct(std::get<0>(member), m_location));
         }
 

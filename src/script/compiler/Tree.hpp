@@ -64,6 +64,7 @@ struct TreeNode
     TreeNode<T>         *m_parent = nullptr;
     Array<TreeNode<T>*> m_siblings;
     ValueStorage<T>     m_value;
+    UInt                m_depth = 0;
 };
 
 template <typename T>
@@ -153,6 +154,7 @@ public:
     {
         TreeNode<T> *node = new TreeNode<T>(std::forward<Args>(args)...);
         node->m_parent = m_top;
+        node->m_depth = m_top ? m_top->m_depth + 1 : 0;
 
         if (m_top) {
             m_top->m_siblings.PushBack(node);
@@ -176,7 +178,7 @@ public:
         TreeNode<T> *top = m_top;
 
         while (top) {
-            if (lambda(top->m_value.Get())) {
+            if (lambda(top, top->m_value.Get())) {
                 return &top->m_value.Get();
             }
 

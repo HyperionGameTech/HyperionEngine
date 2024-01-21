@@ -1834,7 +1834,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(Bool require_keyword)
 {
     const SourceLocation location = CurrentLocation();
 
-    IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST;
+    IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_FUNCTION;
 
     if (require_keyword) {
         if (!ExpectKeyword(Keyword_func, true)) {
@@ -2155,6 +2155,9 @@ RC<AstStatement> Parser::ParseTypeDefinition()
                 }
             } else {
                 assignment = ParseTypeExpression(false, false, is_proxy_class, identifier.GetValue());
+
+                // It is a class, add the class flag so it can hoist properly
+                flags |= IdentifierFlags::FLAG_CLASS;
             }
 
             if (assignment == nullptr) {
