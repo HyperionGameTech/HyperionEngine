@@ -1431,6 +1431,8 @@ RC<AstStatement> Parser::ParseForLoop()
             return nullptr;
         }
 
+        SkipStatementTerminators();
+
         RC<AstBlock> block;
         if (!(block = ParseBlock(false))) {
             return nullptr;

@@ -19,68 +19,6 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 
 Builtins::Builtins()
 {
-    m_vars["any"].Reset(new AstTypeRef(
-        BuiltinTypes::ANY, SourceLocation::eof
-    ));
-
-    m_vars["Class"].Reset(new AstTypeRef(
-        BuiltinTypes::CLASS_TYPE, SourceLocation::eof
-    ));
-
-    m_vars["Object"].Reset(new AstTypeRef(
-        BuiltinTypes::OBJECT, SourceLocation::eof
-    ));
-
-    m_vars["void"].Reset(new AstTypeRef(
-        BuiltinTypes::VOID_TYPE, SourceLocation::eof
-    ));
-
-    m_vars["int"].Reset(new AstTypeRef(
-        BuiltinTypes::INT, SourceLocation::eof
-    ));
-
-    m_vars["uint"].Reset(new AstTypeRef(
-        BuiltinTypes::UNSIGNED_INT, SourceLocation::eof
-    ));
-
-    m_vars["float"].Reset(new AstTypeRef(
-        BuiltinTypes::FLOAT, SourceLocation::eof
-    ));
-
-    m_vars["bool"].Reset(new AstTypeRef(
-        BuiltinTypes::BOOLEAN, SourceLocation::eof
-    ));
-
-    m_vars["string"].Reset(new AstTypeRef(
-        BuiltinTypes::STRING, SourceLocation::eof
-    ));
-
-    m_vars["Function"].Reset(new AstTypeRef(
-        BuiltinTypes::FUNCTION, SourceLocation::eof
-    ));
-
-    m_vars["Array"].Reset(new AstTemplateExpression(
-        RC<AstTypeRef>(new AstTypeRef(
-            BuiltinTypes::ARRAY, SourceLocation::eof
-        )),
-        {
-            RC<AstParameter>(new AstParameter(
-                "of", nullptr, nullptr, false, false, false, SourceLocation::eof
-            ))
-        },
-        nullptr,
-        SourceLocation::eof
-    ));
-
-    // for (const auto &it : m_vars) {
-    //     m_ast.Push(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-    //         it.first,
-    //         nullptr,
-    //         it.second,
-    //         IdentifierFlags::FLAG_CONST,
-    //         BUILTIN_SOURCE_LOCATION
-    //     )));
-    // }
 }
 
 void Builtins::Visit(AstVisitor *visitor, CompilationUnit *unit)
@@ -125,18 +63,6 @@ void Builtins::Visit(AstVisitor *visitor, CompilationUnit *unit)
     }
 
     // visitor->GetAstIterator()->Prepend(std::move(ast));
-}
-
-std::unique_ptr<BytecodeChunk> Builtins::Build(CompilationUnit *unit)
-{
-    // Compiler compiler(&m_ast, unit);
-    // std::unique_ptr<BytecodeChunk> chunk = compiler.Compile();
-
-    // m_ast.ResetPosition();
-
-    // return chunk;
-
-    return nullptr;
 }
 
 } // namespace hyperion::compiler

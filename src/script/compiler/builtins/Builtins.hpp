@@ -27,14 +27,8 @@ public:
      */
     void Visit(AstVisitor *visitor, CompilationUnit *unit);
 
-    /** This will return bytecode containing builtins
-     */
-    std::unique_ptr<BytecodeChunk> Build(CompilationUnit *unit);
-
 private:
     static const SourceLocation BUILTIN_SOURCE_LOCATION;
-
-    HashMap<String, RC<AstExpression>> m_vars;
 };
 
 } // namespace hyperion::compiler

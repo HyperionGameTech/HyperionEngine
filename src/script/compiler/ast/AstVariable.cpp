@@ -42,17 +42,6 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
     case IDENTIFIER_TYPE_VARIABLE: {
         AssertThrow(m_properties.GetIdentifier() != nullptr);
 
-#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
-        // clone the AST node so we don't double-visit
-        if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
-            const AstConstant *constant_value = nullptr;
-
-            if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
-                m_inline_value = CloneAstNode(constant_value);
-            }
-        }
-#endif
-
         // if alias or const, load direct value.
         // if it's an alias then it will just refer to whatever other variable
         // is being referenced. if it is const, load the direct value held in the variable
@@ -64,6 +53,17 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
         const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
         const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
         const bool is_substitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
+
+#if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
+        // clone the AST node so we don't double-visit
+        if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
+            const AstConstant *constant_value = nullptr;
+
+            if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
+                m_inline_value = CloneAstNode(constant_value);
+            }
+        }
+#endif
 
         if (false) {//is_member) { // temporarily disabled; allows for self.<variable name> to be used without prefixing with 'self.'
             m_self_member_access.Reset(new AstMember(
@@ -122,15 +122,17 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             // where it would inline the default assignment instead of the passed in value
             m_should_inline = force_inline || (!is_generic && is_const && !is_argument);
 
-            if (m_inline_value == nullptr) {
-                m_should_inline = false;
-            }
-
             if (m_should_inline) {
-                // set access options for this variable based on those of the current value
-                m_access_options = m_inline_value->GetAccessOptions();
-                // if alias, accept the current value instead
-                m_inline_value->Visit(visitor, mod);
+                if (m_inline_value != nullptr) {
+                    // set access options for this variable based on those of the current value
+                    m_access_options = m_inline_value->GetAccessOptions();
+                    // if alias, accept the current value instead
+                    m_inline_value->Visit(visitor, mod);
+                } else {
+                    m_should_inline = false;
+                }
+            } else {
+                m_inline_value.Reset();
             }
 #else
             static constexpr bool force_inline = false;
@@ -409,7 +411,7 @@ bool AstVariable::IsLiteral() const
             return false;
         }
 
-        if (expr_type->GetTypeClass() != TYPE_BUILTIN) {
+        if (!(expr_type->IsIntegral() || expr_type->IsFloat())) {
             return false;
         }
     } else {
@@ -474,7 +476,38 @@ SymbolTypePtr_t AstVariable::GetExprType() const
 
 bool AstVariable::IsMutable() const
 {
-    return !IsLiteral();
+    if (IsLiteral()) {
+        return false;
+    }
+
+    if (m_type_ref != nullptr) {
+        return m_type_ref->IsMutable();
+    }
+
+    if (m_inline_value != nullptr) {
+        return m_inline_value->IsMutable();
+    }
+
+    // if (m_closure_member_access != nullptr) {
+    //     return m_closure_member_access->IsMutable();
+    // }
+
+    if (m_self_member_access != nullptr) {
+        return m_self_member_access->IsMutable();
+    }
+
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
+        const Identifier *ident_unaliased = ident->Unalias();
+        AssertThrow(ident_unaliased != nullptr);
+
+        const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
+
+        if (is_const) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 const AstExpression *AstVariable::GetValueOf() const
