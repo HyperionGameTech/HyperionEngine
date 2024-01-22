@@ -703,7 +703,7 @@ RC<AstExpression> Parser::ParseParentheses()
                 m_token_stream->Next();
 
                 // function return type
-                if (Match(TK_COLON)) {
+                if (Match(TK_RIGHT_ARROW)) {
                     found_function_token = true;
                 }
                 

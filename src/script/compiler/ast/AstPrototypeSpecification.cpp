@@ -19,10 +19,10 @@
 namespace hyperion::compiler {
 
 AstPrototypeSpecification::AstPrototypeSpecification(
-    const RC<AstExpression> &proto,
+    const RC<AstExpression> &expr,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
-    m_expr(proto)
+    m_expr(expr)
 {
 }
 

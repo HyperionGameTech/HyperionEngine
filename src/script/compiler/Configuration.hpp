@@ -13,7 +13,7 @@
 #define HYP_SCRIPT_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE 0 // new String() => load_str [%0, u32(0), ""]
 #define HYP_SCRIPT_ENABLE_VARIABLE_INLINING 1
 #define HYP_SCRIPT_AUTO_SELF_INSERTION 0
-#define HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS 0 // wip, has issues with generic classes
+#define HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS 1
 
 namespace hyperion::compiler {
 

@@ -67,6 +67,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
     m_target_type = m_target->GetExprType();
     AssertThrow(m_target_type != nullptr);
+    m_target_type = m_target_type->GetUnaliased();
 
     if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG)) {
         // TODO: implement

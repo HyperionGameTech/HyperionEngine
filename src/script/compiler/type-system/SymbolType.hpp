@@ -312,6 +312,7 @@ public:
     bool IsNullType() const;
     bool IsNullableType() const;
     bool IsArrayType() const;
+    bool IsVarArgsType() const;
 
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;
@@ -321,8 +322,8 @@ public:
     */
     bool IsGenericExpressionType() const;
 
-    /*! \brief Is this type an uninstantiated generic type? (e.g. `List<T>`) */
-    bool IsGenericType() const;
+    /*! \brief Is this type a function type? (e.g. `Function(Int, Int) -> Int`) */
+    bool IsFunctionType() const;
 
     /*! \brief Is this type a primitive type? (e.g. Int, Float) */
     bool IsPrimitive() const;

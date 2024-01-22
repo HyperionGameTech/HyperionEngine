@@ -52,6 +52,10 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
     }
 
+    if (m_proto != nullptr) {
+        m_proto->Visit(visitor, mod);
+    }
+
     if (!has_user_specified_type && !has_user_assigned) {
         // error; requires either type, or assignment.
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -67,8 +71,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
         /* ===== handle type specification ===== */
         if (has_user_specified_type) {
-            m_proto->Visit(visitor, mod);
-
             auto *value_of = m_proto->GetDeepValueOf();
             AssertThrow(value_of != nullptr);
 

@@ -510,6 +510,11 @@ bool SymbolType::IsArrayType() const
         || HasBase(*BuiltinTypes::VAR_ARGS);
 }
 
+bool SymbolType::IsVarArgsType() const
+{
+    return IsOrHasBase(*BuiltinTypes::VAR_ARGS);
+}
+
 bool SymbolType::IsGenericParameter() const
 {
     return m_type_class == TYPE_GENERIC_PARAMETER;
@@ -520,9 +525,9 @@ bool SymbolType::IsGenericExpressionType() const
     return GetBaseType() == BuiltinTypes::GENERIC_VARIABLE_TYPE;
 }
 
-bool SymbolType::IsGenericType() const
+bool SymbolType::IsFunctionType() const
 {
-    return m_flags & SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
+    return IsOrHasBase(*BuiltinTypes::FUNCTION);
 }
 
 bool SymbolType::IsPrimitive() const

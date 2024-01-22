@@ -85,7 +85,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_generic_expression_invalid_arguments, "Generic expression requires arguments: '%'" },
     { Msg_generic_expression_requires_assignment, "'%' is missing assignment (all generics must have a value)" },
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
-    { Msg_not_a_data_member, "'%' is not a member of type '%'" },
+    { Msg_not_a_data_member, "'%' not found in %" },
     { Msg_not_a_constant_type, "% is not a constant. An exception will be thrown at runtime if this object is not a class." },
     { Msg_type_missing_prototype, "Type % is missing '$proto' member." },
     { Msg_cannot_inline_variable, "Unable to inline variable which is marked as force inline" },

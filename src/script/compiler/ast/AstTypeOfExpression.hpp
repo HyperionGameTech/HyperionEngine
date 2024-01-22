@@ -15,16 +15,14 @@ namespace hyperion::compiler {
 
 class AstTypeRef;
 
-class AstTypeOfExpression : public AstPrototypeSpecification {
+class AstTypeOfExpression : public AstPrototypeSpecification
+{
 public:
     AstTypeOfExpression(
         const RC<AstExpression> &expr,
         const SourceLocation &location
     );
     virtual ~AstTypeOfExpression() = default;
-
-    virtual const RC<AstExpression> &GetExpr() const override
-        { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -39,8 +37,6 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
     
 private:
-    RC<AstExpression>   m_expr;
-
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     RC<AstTypeRef>      m_type_ref;
     SymbolTypePtr_t     m_held_type;

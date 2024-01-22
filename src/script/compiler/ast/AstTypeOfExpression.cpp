@@ -17,14 +17,12 @@ namespace hyperion::compiler {
 AstTypeOfExpression::AstTypeOfExpression(
     const RC<AstExpression> &expr,
     const SourceLocation &location
-) : AstPrototypeSpecification(nullptr, location),
-    m_expr(expr)
+) : AstPrototypeSpecification(expr, location)
 {
 }
 
 void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
 {
-
     AssertThrow(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 

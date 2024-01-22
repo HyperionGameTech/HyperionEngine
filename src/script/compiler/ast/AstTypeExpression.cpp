@@ -15,6 +15,8 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
+#include <core/lib/Optional.hpp>
+
 #include <script/Hasher.hpp>
 #include <system/Debug.hpp>
 
@@ -143,7 +145,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         bool proto_found = false;
         bool base_found = false;
         bool name_found = false;
-        bool invoke_found = false;
 
         for (const auto &mem : m_static_members) {
             AssertThrow(mem != nullptr);
@@ -154,8 +155,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                 base_found = true;
             } else if (mem->GetName() == "name") {
                 name_found = true;
-            } else if (mem->GetName() == "$invoke") {
-                invoke_found = true;
             }
         }
 
@@ -252,7 +251,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // ===== INSTANCE DATA MEMBERS =====
 
-    SymbolMember_t constructor_member;
+    Optional<SymbolMember_t> constructor_member;
 
     // open the scope for data members
     {
@@ -308,16 +307,26 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
 #if HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS
+    bool invoke_found = false;
+
+    // Find the $invoke member on the class object (if it exists)
+    for (SymbolMember_t &it : m_symbol_type->GetMembers()) {
+        if (std::get<0>(it) == "$invoke") {
+            invoke_found = true;
+            break;
+        }
+    }
+
     if (!invoke_found && !IsProxyClass() && !IsEnum()) { // Add an '$invoke' static member, if not already defined.
-        ScopeGuard invoke_scope(mod, SCOPE_TYPE_FUNCTION, 0);
-
         Array<RC<AstParameter>> invoke_params;
-        invoke_params.Reserve(2); // for 'self', varargs
+        invoke_params.Reserve(1);
+
+        // Add `self: typeof SelfType`
         invoke_params.PushBack(RC<AstParameter>(new AstParameter(
-            "self", // self: Class
+            "self", // self: typeof SelfType
             RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                RC<AstVariable>(new AstVariable(
-                    class_type->GetName(),
+                RC<AstTypeRef>(new AstTypeRef(
+                    BuiltinTypes::CLASS_TYPE,
                     m_location
                 )),
                 m_location
@@ -329,106 +338,88 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         )));
 
-        invoke_params.PushBack(RC<AstParameter>(new AstParameter(
-            "args", // args: Any...
-            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                RC<AstVariable>(new AstVariable(
-                    BuiltinTypes::ANY->GetName(),
-                    m_location
-                )),
-                m_location
-            )),
-            nullptr,
-            true,
-            false,
-            false,
-            m_location
-        )));
+        if (constructor_member.HasValue()) {
+            // We need to get the arguments for the constructor member, if possible
 
-        Array<RC<AstArgument>> invoke_args;
-        invoke_args.Reserve(2); // for 'self', varargs
-        invoke_args.PushBack(RC<AstArgument>(new AstArgument(
-            RC<AstVariable>(new AstVariable(
-                "self",
-                m_location
-            )),
-            false,
-            false,
-            false,
-            false,
-            "self",
-            m_location
-        )));
+            const SymbolMember_t &constructor_member_ref = constructor_member.Get();
 
-        invoke_args.PushBack(RC<AstArgument>(new AstArgument(
-            RC<AstVariable>(new AstVariable(
-                "args",
-                m_location
-            )),
-            true,
-            false,
-            false,
-            false,
-            "args",
-            m_location
-        )));
+            SymbolTypePtr_t constructor_member_type = std::get<1>(constructor_member_ref);
+            AssertThrow(constructor_member_type != nullptr);
+            constructor_member_type = constructor_member_type->GetUnaliased();
 
-        // if (SymbolTypePtr_t constructor_member_type = std::get<1>(constructor_member)) {
-        //     if (constructor_member_type->IsGeneric()) {
-        //         invoke_params.Reserve(1 + constructor_member_type->GetGenericInstanceInfo().m_generic_args.Size());
-        //         invoke_args.Reserve(1 + constructor_member_type->GetGenericInstanceInfo().m_generic_args.Size());
+            // Rely on the fact that the constructor member type is a function type
+            if (constructor_member_type->IsFunctionType() && constructor_member_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
+                // Get params from generic expression type
+                const Array<GenericInstanceTypeInfo::Arg> &params = constructor_member_type->GetGenericInstanceInfo().m_generic_args;
+                AssertThrowMsg(params.Size() >= 1, "Generic param list must have at least one parameter (return type should be first).");
 
-        //         for (const auto &param : constructor_member_type->GetGenericInstanceInfo().m_generic_args) {
-        //             RC<AstPrototypeSpecification> param_type_spec(new AstPrototypeSpecification(
-        //                 RC<AstVariable>(new AstVariable(
-        //                     param.m_type->GetName(),
-        //                     m_location
-        //                 )),
-        //                 m_location
-        //             ));
+                // `self` not guaranteed to be first parameter, so reserve with what we know we have
+                invoke_params.Reserve(params.Size() - 1);
+
+                // Start at 2 to skip the return type and `self` parameter - it will be supplied by `new SelfType()`
+                for (SizeType i = 2; i < params.Size(); i++) {
+                    const GenericInstanceTypeInfo::Arg &param = params[i];
+
+                    SymbolTypePtr_t param_type = param.m_type;
+                    AssertThrow(param_type != nullptr);
+                    param_type = param_type->GetUnaliased();
+
+                    const bool is_variadic = param_type->IsVarArgsType() && i == params.Size() - 1;
+
+                    RC<AstPrototypeSpecification> param_type_spec(new AstPrototypeSpecification(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            param_type,
+                            m_location
+                        )),
+                        m_location
+                    ));
                     
-        //             invoke_params.PushBack(RC<AstParameter>(new AstParameter(
-        //                 param.m_name,
-        //                 param_type_spec,
-        //                 CloneAstNode(param.m_default_value),
-        //                 false,
-        //                 param.m_is_const,
-        //                 param.m_is_ref,
-        //                 m_location
-        //             )));
+                    invoke_params.PushBack(RC<AstParameter>(new AstParameter(
+                        param.m_name,
+                        param_type_spec,
+                        CloneAstNode(param.m_default_value),
+                        is_variadic,
+                        param.m_is_const,
+                        param.m_is_ref,
+                        m_location
+                    )));
+                }
+            }
+        }
 
-        //             invoke_args.PushBack(RC<AstArgument>(new AstArgument(
-        //                 RC<AstVariable>(new AstVariable(
-        //                     param.m_name,
-        //                     m_location
-        //                 )),
-        //                 false,
-        //                 false,
-        //                 param.m_is_ref,
-        //                 param.m_is_const,
-        //                 param.m_name,
-        //                 m_location
-        //             )));
-        //         }
-        //     }
-        // }
+        // we don't provide `self` (the class) to the new expression
+        
+        Array<RC<AstArgument>> invoke_args;
+        invoke_args.Reserve(invoke_params.Size() - 1);
+        
+        // Pass each parameter as an argument to the constructor
+        for (SizeType index = 1; index < invoke_params.Size(); index++) {
+            const RC<AstParameter> &param = invoke_params[index];
+            AssertThrow(param != nullptr);
 
-        RC<AstPrototypeSpecification> self_type_spec(new AstPrototypeSpecification(
-            RC<AstVariable>(new AstVariable(
-                m_symbol_type->GetName(),
+            invoke_args.PushBack(RC<AstArgument>(new AstArgument(
+                RC<AstVariable>(new AstVariable(
+                    param->GetName(),
+                    m_location
+                )),
+                false,
+                false,
+                param->IsRef(),
+                param->IsConst(),
+                param->GetName(),
                 m_location
-            )),
-            m_location
-        ));
+            )));
+        }
 
         RC<AstBlock> invoke_block(new AstBlock(m_location));
 
         // Add AstNewExpression to the block
+        // `new Self($invoke_args...)`
         invoke_block->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
             RC<AstNewExpression>(new AstNewExpression(
                 RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                    RC<AstVariable>(new AstVariable(
-                        m_symbol_type->GetName(),
+                    RC<AstTypeRef>(new AstTypeRef(
+                        m_symbol_type,
                         m_location
                     )),
                     m_location
@@ -437,7 +428,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     invoke_args,
                     m_location
                 )),
-                true,
+                true, // enable constructor call
                 m_location
             )),
             m_location
@@ -445,29 +436,35 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
         RC<AstFunctionExpression> invoke_expr(new AstFunctionExpression(
             invoke_params,
-            nullptr,
+            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstTypeRef>(new AstTypeRef(
+                    m_symbol_type,
+                    m_location
+                )),
+                m_location
+            )),
             invoke_block,
             m_location
         ));
 
-        // Add $invoke member to the prototype type
-
         invoke_expr->Visit(visitor, mod);
 
-        // add it to the list of static members
-        m_static_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-            "$invoke",
-            nullptr,
-            invoke_expr,
-            IdentifierFlags::FLAG_CONST,
-            m_location
-        )));
+        DebugLog(LogType::Debug, "$invoke static member for %s = %s\n", m_name.Data(), invoke_expr->GetExprType()->ToString(true).Data());
+
+        // // add it to the list of static members
+        // m_static_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        //     "$invoke",
+        //     nullptr,
+        //     invoke_expr,
+        //     IdentifierFlags::FLAG_CONST,
+        //     m_location
+        // )));
 
         // Add $invoke member to the symbol type
         m_symbol_type->AddMember(SymbolMember_t {
             "$invoke",
             invoke_expr->GetExprType(),
-            invoke_expr
+            CloneAstNode(invoke_expr)
         });
     }
 #endif

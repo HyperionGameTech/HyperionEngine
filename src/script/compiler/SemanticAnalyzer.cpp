@@ -317,7 +317,7 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInst
         AssertThrow(arg_base != nullptr);
 
         // check if it is an instance of varargs type
-        if (arg_base == BuiltinTypes::VAR_ARGS) {
+        if (arg_base->IsVarArgsType()) {
             AssertThrow(!last_generic_arg_type->GetGenericInstanceInfo().m_generic_args.Empty());
 
             return last_generic_arg_type->GetGenericInstanceInfo().m_generic_args.Front().m_type;
