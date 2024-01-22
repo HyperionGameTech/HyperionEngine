@@ -5,6 +5,7 @@
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 
 #include <string>
 #include <memory>
@@ -107,9 +108,13 @@ protected:
 
     SymbolTypePtr_t                     m_symbol_type;
 
-    RC<AstTypeObject>                   m_expr;
+    RC<AstTypeObject>                   m_type_object;
+    RC<AstTypeObject>                   m_prototype_expr;
+    RC<AstTypeRef>                      m_type_ref;
     Array<RC<AstVariableDeclaration>>   m_outside_members;
     Array<RC<AstVariableDeclaration>>   m_combined_members;
+    bool                                m_is_uninstantiated_generic;
+    bool                                m_is_visited;
 
     RC<AstTypeExpression> CloneImpl() const
     {

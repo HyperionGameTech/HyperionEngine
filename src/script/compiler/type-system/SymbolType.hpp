@@ -48,8 +48,9 @@ using SymbolTypeFlags = UInt32;
 
 enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
-    SYMBOL_TYPE_FLAGS_NONE  = 0x0,
-    SYMBOL_TYPE_FLAGS_PROXY = 0x1
+    SYMBOL_TYPE_FLAGS_NONE                      = 0x0,
+    SYMBOL_TYPE_FLAGS_PROXY                     = 0x1,
+    SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC    = 0x2
 };
 
 struct AliasTypeInfo
@@ -285,10 +286,10 @@ public:
     bool FindPrototypeMember(const String &name, SymbolMember_t &out, UInt &out_index) const;
     bool FindPrototypeMemberDeep(const String &name, SymbolMember_t &out) const;
 
-    const RC<AstTypeObject> &GetTypeObject() const
+    const Weak<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }
 
-    void SetTypeObject(const RC<AstTypeObject> &type_object)
+    void SetTypeObject(const Weak<AstTypeObject> &type_object)
         { m_type_object = type_object; }
 
     bool IsOrHasBase(const SymbolType &base_type) const;
@@ -315,8 +316,13 @@ public:
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;
 
-    /*! \brief Is this type an uninstantiated generic type? (e.g. List<T>) */
-    bool IsGeneric() const;
+    /*! \brief Is this type an uninstantiated generic type expression? (e.g. `Generic<T> -> List<T>`)
+        (Note: this is different from IsGenericType() which checks if this type is the underlying generic type)
+    */
+    bool IsGenericExpressionType() const;
+
+    /*! \brief Is this type an uninstantiated generic type? (e.g. `List<T>`) */
+    bool IsGenericType() const;
 
     /*! \brief Is this type a primitive type? (e.g. Int, Float) */
     bool IsPrimitive() const;
@@ -344,6 +350,8 @@ public:
         }
 
         switch (m_type_class) {
+        case TYPE_BUILTIN:
+            break;
         case TYPE_ALIAS:
             if (auto aliasee = m_alias_info.m_aliasee.lock()) {
                 hc.Add(aliasee->GetHashCode());
@@ -369,6 +377,8 @@ public:
             break;
         case TYPE_GENERIC_PARAMETER:
             break;
+        case TYPE_USER_DEFINED:
+            break;
         }
 
         return hc;
@@ -383,7 +393,7 @@ private:
     // type that this type is based off of
     SymbolTypePtr_t             m_base;
 
-    RC<AstTypeObject>           m_type_object;
+    Weak<AstTypeObject>         m_type_object;
 
     // if this is an alias of another type
     AliasTypeInfo               m_alias_info;

@@ -781,6 +781,7 @@ public:
         void BindAll(
             APIInstance &api_instance,
             vm::VM *vm,
+            AstVisitor *visitor,
             CompilationUnit *compilation_unit
         );
 
@@ -790,6 +791,7 @@ public:
             NativeVariableDefine &def,
             Module *mod,
             vm::VM *vm,
+            AstVisitor *visitor,
             CompilationUnit *compilation_unit
         );
 
@@ -798,6 +800,7 @@ public:
             NativeFunctionDefine &def,
             Module *mod,
             vm::VM *vm,
+            AstVisitor *visitor,
             CompilationUnit *compilation_unit
         );
 
@@ -806,6 +809,7 @@ public:
             const TypeDefine &def,
             Module *mod,
             vm::VM *vm,
+            AstVisitor *visitor,
             CompilationUnit *compilation_unit
         );
 
@@ -856,6 +860,7 @@ public:
 
     void BindAll(
         vm::VM *vm,
+        AstVisitor *visitor,
         CompilationUnit *compilation_unit
     );
 

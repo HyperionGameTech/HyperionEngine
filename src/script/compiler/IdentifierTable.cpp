@@ -1,6 +1,7 @@
 #include <script/compiler/IdentifierTable.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 
 #include <system/Debug.hpp>
 
@@ -112,7 +113,7 @@ void IdentifierTable::BindTypeToIdentifier(const String &name, SymbolTypePtr_t s
     AddIdentifier(
         name,
         0,
-        RC<AstTypeObject>(new AstTypeObject(symbol_type, nullptr, SourceLocation::eof)),
+        RC<AstTypeRef>(new AstTypeRef(symbol_type, SourceLocation::eof)),
         symbol_type->GetBaseType()
     );
 }

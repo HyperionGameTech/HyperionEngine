@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -276,11 +277,16 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             BuiltinTypes::OBJECT
         );
 
-        auto prototype_value = RC<AstTypeObject>(new AstTypeObject(
+        RC<AstTypeObject> prototype_value(new AstTypeObject(
             prototype_type,
-            nullptr,
+            BuiltinTypes::FUNCTION, // @TODO check this
             m_location
         ));
+
+        prototype_type->SetTypeObject(prototype_value);
+        // prototype_value->Visit(visitor, mod);
+
+        // prototype type will be registered by AstTypeObject
 
         m_closure_type = SymbolType::GenericInstance(
             BuiltinTypes::CLOSURE_TYPE,
@@ -291,13 +297,16 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 SymbolMember_t {
                     "$proto",
                     prototype_type,
-                    prototype_value
+                    RC<AstTypeRef>(new AstTypeRef(
+                        prototype_type,
+                        m_location
+                    ))
                 }
             }
         );
 
         // register type
-        visitor->GetCompilationUnit()->RegisterType(m_closure_type);
+        // visitor->GetCompilationUnit()->RegisterType(m_closure_type);
 
         // allow generic instance to be reused
         visitor->GetCompilationUnit()->GetCurrentModule()->
@@ -305,7 +314,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
         AssertThrow(prototype_value != nullptr);
 
-        m_closure_object = prototype_value;
+        m_closure_object = prototype_value; // @TODO test
         m_closure_object->Visit(visitor, mod);
     }
 

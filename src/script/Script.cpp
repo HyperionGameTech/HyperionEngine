@@ -56,10 +56,6 @@ bool Script::Compile()
         return false;
     }
 
-    // bind all set vars if an api instance has been set
-    ScriptBindings::DeclareAll(m_api_instance);
-    m_api_instance.BindAll(&m_vm, &m_compilation_unit);
-
     SourceStream source_stream(&m_source_file);
 
     TokenStream token_stream(TokenStreamInfo {
@@ -71,13 +67,17 @@ bool Script::Compile()
 
     AstIterator ast_iterator;
 
+    SemanticAnalyzer semantic_analyzer(&ast_iterator, &m_compilation_unit);
+
     Builtins builtins;
-    builtins.Visit(&m_compilation_unit);
+    builtins.Visit(&semantic_analyzer, &m_compilation_unit);
+
+    ScriptBindings::DeclareAll(m_api_instance);
+    m_api_instance.BindAll(&m_vm, &semantic_analyzer, &m_compilation_unit);
 
     Parser parser(&ast_iterator, &token_stream, &m_compilation_unit);
     parser.Parse();
 
-    SemanticAnalyzer semantic_analyzer(&ast_iterator, &m_compilation_unit);
     semantic_analyzer.Analyze();
 
     m_errors = m_compilation_unit.GetErrorList();
@@ -96,16 +96,16 @@ bool Script::Compile()
 
         Compiler compiler(&ast_iterator, &m_compilation_unit);
 
-        if (auto builtins_result = builtins.Build(&m_compilation_unit)) {            
-            m_bytecode_chunk.Append(std::move(builtins_result));
-        } else {
-            DebugLog(
-                LogType::Error,
-                "Failed to add builtins to script\n"
-            );
+        // if (auto builtins_result = builtins.Build(&m_compilation_unit)) {            
+        //     m_bytecode_chunk.Append(std::move(builtins_result));
+        // } else {
+        //     DebugLog(
+        //         LogType::Error,
+        //         "Failed to add builtins to script\n"
+        //     );
 
-            return false;
-        }
+        //     return false;
+        // }
 
         if (auto compile_result = compiler.Compile()) {
             // HYP_BREAKPOINT;

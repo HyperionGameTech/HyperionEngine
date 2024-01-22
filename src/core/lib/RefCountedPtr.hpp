@@ -805,22 +805,9 @@ public:
         { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
     
     HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> Lock()
+    RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
-        rc.m_ref = Base::m_ref;
-
-        if (Base::m_ref) {
-            ++Base::m_ref->strong_count;
-        }
-
-        return rc;
-    }
-    
-    HYP_FORCE_INLINE
-    RefCountedPtr<const T, CountType> Lock() const
-    {
-        RefCountedPtr<const T, CountType> rc;
         rc.m_ref = Base::m_ref;
 
         if (Base::m_ref) {

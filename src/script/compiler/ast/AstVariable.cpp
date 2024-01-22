@@ -2,6 +2,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/Scope.hpp>
 #include <script/compiler/Keywords.hpp>
 
@@ -211,6 +212,20 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             mod->GenerateFullModuleName()
         ));
         break;
+    case IDENTIFIER_TYPE_TYPE: {
+        SymbolTypePtr_t held_type = GetHeldType();
+        AssertThrow(held_type != nullptr);
+        held_type = held_type->GetUnaliased();
+
+        m_type_ref.Reset(new AstTypeRef(
+            held_type,
+            m_location
+        ));
+
+        m_type_ref->Visit(visitor, mod);
+
+        break;
+    }
     default:
         break;
     }
@@ -228,9 +243,13 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
     } else if (m_self_member_access != nullptr) {
         m_self_member_access->SetAccessMode(m_access_mode);
         return m_self_member_access->Build(visitor, mod);
+    } else if (m_type_ref != nullptr) {
+        m_type_ref->SetAccessMode(m_access_mode);
+        return m_type_ref->Build(visitor, mod);
     }
     
-    AssertThrow(m_properties.GetIdentifier() != nullptr);
+    AssertThrow(m_properties.GetIdentifierType() == IDENTIFIER_TYPE_VARIABLE);
+    AssertThrowMsg(m_properties.GetIdentifier() != nullptr, "Identifier not found for variable %s", m_name.Data());
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
     if (m_should_inline) {
@@ -245,7 +264,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
         Int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
         Int stack_location = m_properties.GetIdentifier()->GetStackLocation();
 
-        AssertThrowMsg(stack_location != -1, "Variable %s has invalid stack location stored; maybe the AstVariable is not built?", m_name.Data());
+        AssertThrowMsg(stack_location != -1, "Variable %s has invalid stack location stored; maybe the AstVariableDeclaration was not built?", m_name.Data());
 
         Int offset = stack_size - stack_location;
 
@@ -311,6 +330,10 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
 
 void AstVariable::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->Optimize(visitor, mod);
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->Optimize(visitor, mod);
     }
@@ -331,6 +354,10 @@ RC<AstStatement> AstVariable::Clone() const
 
 Tribool AstVariable::IsTrue() const
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->IsTrue();
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->IsTrue();
     }
@@ -348,6 +375,10 @@ Tribool AstVariable::IsTrue() const
 
 bool AstVariable::MayHaveSideEffects() const
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->MayHaveSideEffects();
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->MayHaveSideEffects();
     }
@@ -389,6 +420,10 @@ bool AstVariable::IsLiteral() const
         return false;
     }
 
+    if (m_type_ref != nullptr) {
+        return m_type_ref->IsLiteral();
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->IsLiteral();
     }
@@ -417,6 +452,10 @@ bool AstVariable::IsLiteral() const
 
 SymbolTypePtr_t AstVariable::GetExprType() const
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->GetExprType();
+    }
+ 
     if (m_inline_value != nullptr) {
         return m_inline_value->GetExprType();
     }
@@ -443,6 +482,10 @@ bool AstVariable::IsMutable() const
 
 const AstExpression *AstVariable::GetValueOf() const
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->GetValueOf();
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->GetValueOf();
     }
@@ -452,6 +495,10 @@ const AstExpression *AstVariable::GetValueOf() const
 
 const AstExpression *AstVariable::GetDeepValueOf() const
 {
+    if (m_type_ref != nullptr) {
+        return m_type_ref->GetDeepValueOf();
+    }
+
     if (m_inline_value != nullptr) {
         return m_inline_value->GetDeepValueOf();
     }

@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -35,7 +36,9 @@ AstTypeExpression::AstTypeExpression(
     m_function_members(function_members),
     m_static_members(static_members),
     m_enum_underlying_type(enum_underlying_type),
-    m_is_proxy_class(is_proxy_class)
+    m_is_proxy_class(is_proxy_class),
+    m_is_uninstantiated_generic(false),
+    m_is_visited(false)
 {
 }
 
@@ -63,8 +66,14 @@ AstTypeExpression::AstTypeExpression(
 void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 {   
     AssertThrow(visitor != nullptr && mod != nullptr);
+    AssertThrow(!m_is_visited);
 
-    auto prototype_type = SymbolType::Object(
+    m_is_uninstantiated_generic = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG);
+
+    // Create scope
+    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
+
+    SymbolTypePtr_t prototype_type = SymbolType::Object(
         "$$" + m_name + "Prototype",
         {},
         BuiltinTypes::OBJECT
@@ -75,13 +84,16 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_base_specification != nullptr) {
         m_base_specification->Visit(visitor, mod);
 
+        AssertThrow(m_base_specification->GetExprType() != nullptr);
+
         if (auto base_type_inner = m_base_specification->GetHeldType()) {
             base_type = base_type_inner;
         } else {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_internal_error,
-                m_location
+                Msg_not_a_type,
+                m_location,
+                m_base_specification->GetExprType()->ToString()
             ));
         }
     }
@@ -97,9 +109,9 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             }
         );
 
-        m_expr.Reset(new AstTypeObject(
+        m_type_object.Reset(new AstTypeObject(
             m_symbol_type,
-            nullptr,
+            BuiltinTypes::CLASS_TYPE,
             m_enum_underlying_type,
             m_is_proxy_class,
             m_location
@@ -115,9 +127,13 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
         }
 
-        m_expr.Reset(new AstTypeObject(
+        if (m_is_uninstantiated_generic) {
+            m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
+        }
+
+        m_type_object.Reset(new AstTypeObject(
             m_symbol_type,
-            RC<AstVariable>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location)),
+            BuiltinTypes::CLASS_TYPE,
             m_enum_underlying_type,
             m_is_proxy_class,
             m_location
@@ -147,9 +163,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             m_symbol_type->AddMember(SymbolMember_t {
                 "$proto",
                 prototype_type,
-                RC<AstTypeObject>(new AstTypeObject(
+                RC<AstTypeRef>(new AstTypeRef(
                     prototype_type,
-                    nullptr,
                     m_location
                 ))
             });
@@ -159,9 +174,10 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             m_symbol_type->AddMember(SymbolMember_t {
                 "base",
                 BuiltinTypes::CLASS_TYPE,
-                m_base_specification != nullptr
-                    ? CloneAstNode(m_base_specification->GetExpr())
-                    : RC<AstExpression>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location))
+                RC<AstTypeRef>(new AstTypeRef(
+                    base_type,
+                    m_location
+                ))
             });
         }
 
@@ -177,11 +193,10 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    m_symbol_type->SetTypeObject(m_expr);
+    m_symbol_type->SetTypeObject(m_type_object);
 
-    // Create scope
-
-    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
+    // Add the symbol type to the identifier table so that it can be used within the type definition.
+    scope->GetIdentifierTable().AddSymbolType(m_symbol_type);
 
     // if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) { // add symbol type to be usable within members
     //     SymbolTypePtr_t placeholder_type = m_symbol_type;
@@ -199,15 +214,15 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     //     scope->GetIdentifierTable().AddSymbolType(placeholder_type);
     // }
 
-    // {
-    //     // type alias
-    //     SymbolTypePtr_t internal_type = SymbolType::Alias(
-    //         "Self",
-    //         { m_symbol_type }
-    //     );
+    {
+        // type alias for 'Self' type
+        SymbolTypePtr_t internal_type = SymbolType::Alias(
+            "Self",
+            { m_symbol_type }
+        );
 
-    //     scope->GetIdentifierTable().AddSymbolType(internal_type);
-    // }
+        scope->GetIdentifierTable().AddSymbolType(internal_type);
+    }
 
     // ===== STATIC DATA MEMBERS ======
     {
@@ -235,8 +250,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // ===== INSTANCE DATA MEMBERS =====
 
-    m_combined_members.Reserve(m_data_members.Size() + m_function_members.Size());
-
     SymbolMember_t constructor_member;
 
     // open the scope for data members
@@ -256,8 +269,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment()
                 ));
-
-                m_combined_members.PushBack(mem);
             }
         }
 
@@ -290,8 +301,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                 }
                 
                 prototype_type->AddMember(std::move(member));
-
-                m_combined_members.PushBack(mem);
             }
         }
     }
@@ -461,23 +470,69 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 #endif
 
-    m_expr->Visit(visitor, mod);
+    { // create a type object for the prototype type
+        m_prototype_expr.Reset(new AstTypeObject(
+            prototype_type,
+            BuiltinTypes::CLASS_TYPE,
+            m_location
+        ));
+
+        prototype_type->SetTypeObject(m_prototype_expr);
+        m_prototype_expr->Visit(visitor, mod); // will register the type. it will be built later.
+    }
+
+    { // Finally we visit the newly created AstTypeObject, this will Register our SymbolType
+        m_type_object->Visit(visitor, mod);
+    }
+
+    { // create a type ref for the symbol type
+        m_type_ref.Reset(new AstTypeRef(
+            m_symbol_type,
+            m_location
+        ));
+
+        m_type_ref->Visit(visitor, mod);
+    }
+
+    m_is_visited = true;
 }
 
 std::unique_ptr<Buildable> AstTypeExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(m_symbol_type != nullptr);
+    AssertThrow(m_symbol_type->GetId() != -1);
+
+    AssertThrow(m_is_visited);
+
+    AssertThrowMsg(!m_is_uninstantiated_generic, "Cannot build an uninstantiated generic type.");
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    AssertThrow(m_expr != nullptr);
-    chunk->Append(m_expr->Build(visitor, mod));
+    if (m_prototype_expr != nullptr) {
+        chunk->Append(m_prototype_expr->Build(visitor, mod));
+    }
+
+    AssertThrow(m_type_object != nullptr);
+    chunk->Append(m_type_object->Build(visitor, mod));
+
+    AssertThrow(m_type_ref != nullptr);
+    chunk->Append(m_type_ref->Build(visitor, mod));
 
     return chunk;
 }
 
 void AstTypeExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_expr != nullptr);
-    m_expr->Optimize(visitor, mod);
+    AssertThrow(m_is_visited);
+
+    AssertThrow(m_type_object != nullptr);
+    m_type_object->Optimize(visitor, mod);
+
+    AssertThrow(m_prototype_expr != nullptr);
+    m_prototype_expr->Optimize(visitor, mod);
+
+    AssertThrow(m_type_ref != nullptr);
+    m_type_ref->Optimize(visitor, mod);
 }
 
 RC<AstStatement> AstTypeExpression::Clone() const
@@ -502,9 +557,7 @@ bool AstTypeExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstTypeExpression::GetExprType() const
 {
-    AssertThrow(m_expr != nullptr);
-
-    return m_expr->GetExprType();
+    return BuiltinTypes::CLASS_TYPE;
 }
 
 SymbolTypePtr_t AstTypeExpression::GetHeldType() const
@@ -516,16 +569,18 @@ SymbolTypePtr_t AstTypeExpression::GetHeldType() const
 
 const AstExpression *AstTypeExpression::GetValueOf() const
 {
-    AssertThrow(m_expr != nullptr);
+    AssertThrow(m_is_visited);
+    AssertThrow(m_type_ref != nullptr);
 
-    return m_expr->GetValueOf();
+    return m_type_ref->GetValueOf();
 }
 
 const AstExpression *AstTypeExpression::GetDeepValueOf() const
 {
-    AssertThrow(m_expr != nullptr);
+    AssertThrow(m_is_visited);
+    AssertThrow(m_type_ref != nullptr);
 
-    return m_expr->GetDeepValueOf();
+    return m_type_ref->GetDeepValueOf();
 }
 
 const String &AstTypeExpression::GetName() const

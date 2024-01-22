@@ -15,7 +15,7 @@
 namespace hyperion::compiler {
 
 AstObject::AstObject(
-    const SymbolTypeWeakPtr_t &symbol_type,
+    const SymbolTypePtr_t &symbol_type,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_symbol_type(symbol_type)
@@ -24,22 +24,66 @@ AstObject::AstObject(
 
 void AstObject::Visit(AstVisitor *visitor, Module *mod)
 {
-    auto sp = m_symbol_type.lock();
-    AssertThrow(sp != nullptr);
+    AssertThrow(m_symbol_type != nullptr);
+    SymbolTypePtr_t expr_type = m_symbol_type->GetUnaliased();
+
+    // add all to m_members
+    for (const SymbolMember_t &mem : expr_type->GetMembers()) {
+        String mem_name = std::get<0>(mem);
+
+        SymbolTypePtr_t mem_type = std::get<1>(mem);
+        AssertThrow(mem_type != nullptr);
+        mem_type = mem_type->GetUnaliased();
+
+        RC<AstExpression> mem_value = CloneAstNode(std::get<2>(mem));
+
+        if (mem_value == nullptr) {
+            mem_value = CloneAstNode(mem_type->GetDefaultValue());
+        }
+
+        if (mem_value == nullptr) {
+            // add error
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_type_no_default_assignment,
+                m_location,
+                mem_name
+            ));
+
+            continue;
+        }
+
+        m_members.PushBack({
+            std::move(mem_name),
+            std::move(mem_type),
+            std::move(mem_value)
+        });
+    }
+
+    // visit all members
+    for (ObjectMember &mem : m_members) {
+        if (mem.value != nullptr) {
+            mem.value->Visit(visitor, mod);
+        }
+    }
 }
 
 std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    auto sp = m_symbol_type.lock();
-    AssertThrow(sp != nullptr);
+    AssertThrow(m_symbol_type != nullptr);
+    SymbolTypePtr_t expr_type = m_symbol_type->GetUnaliased();
 
-    int static_id = sp->GetId();
+    DebugLog(LogType::Debug, "Building object of type %s\n", expr_type->ToString().Data());
+
+    int static_id = expr_type->GetId();
     AssertThrow(static_id != -1);
+
 
     // get active register
     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
     // store object's register location
     UInt8 obj_reg = rp;
     // store the original register location of the object
@@ -48,10 +92,10 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
     {
         auto instr_type = BytecodeUtil::Make<BuildableType>();
         instr_type->reg = obj_reg;
-        instr_type->name = sp->GetName();
+        instr_type->name = expr_type->GetName();
 
-        for (const SymbolMember_t &mem : sp->GetMembers()) {
-            instr_type->members.PushBack(std::get<0>(mem));
+        for (const ObjectMember &mem : m_members) {
+            instr_type->members.PushBack(mem.name);
         }
 
         chunk->Append(std::move(instr_type));
@@ -79,21 +123,14 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
     // for each data member, load the default value
     Int i = 0;
 
-    for (const auto &mem : sp->GetMembers()) {
-        const SymbolTypePtr_t &mem_type = std::get<1>(mem);
+    for (const ObjectMember &mem : m_members) {
+        SymbolTypePtr_t mem_type = mem.type;
         AssertThrow(mem_type != nullptr);
+        mem_type = mem_type->GetUnaliased();
 
-        // if there has not been an assignment provided,
-        // use the default value of the members's type.
-        if (std::get<2>(mem) != nullptr) {
-            chunk->Append(std::get<2>(mem)->Build(visitor, mod));
-        } else {
-            // load the data member's default value.
-            AssertThrowMsg(mem_type->GetDefaultValue() != nullptr,
-                "Default value should not be null (and no assignment was provided)");
-            
-            chunk->Append(mem_type->GetDefaultValue()->Build(visitor, mod));
-        }
+        // should not get here because of the error in Visit()
+        AssertThrow(mem.value != nullptr);
+        chunk->Append(mem.value->Build(visitor, mod));
 
         // claim register for the data member
         visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
@@ -124,7 +161,7 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         }
 
         { // comment for debug
-            chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(mem)));
+            chunk->Append(BytecodeUtil::Make<Comment>("Store member " + mem.name));
         }
 
         // unclaim register
@@ -184,15 +221,18 @@ Tribool AstObject::IsTrue() const
 
 bool AstObject::MayHaveSideEffects() const
 {
+    for (const ObjectMember &mem : m_members) {
+        if (mem.value != nullptr && mem.value->MayHaveSideEffects()) {
+            return true;
+        }
+    }
+
     return false;
 }
 
 SymbolTypePtr_t AstObject::GetExprType() const
 {
-    auto sp = m_symbol_type.lock();
-    AssertThrow(sp != nullptr);
-
-    return sp;
+    return m_symbol_type;
 }
 
 } // namespace hyperion::compiler

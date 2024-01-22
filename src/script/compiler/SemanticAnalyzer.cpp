@@ -808,6 +808,7 @@ void SemanticAnalyzer::Analyze(bool expect_module_decl)
         auto node = m_ast_iterator->Next();
         AssertThrow(node != nullptr);
 
+        // this will not work due to nseted Visit() calls
         node->SetScopeDepth(m_compilation_unit->GetCurrentModule()->m_scopes.TopNode()->m_depth);
 
         node->Visit(this, mod);

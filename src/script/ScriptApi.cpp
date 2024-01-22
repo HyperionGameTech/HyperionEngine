@@ -1,8 +1,10 @@
 #include <script/ScriptApi.hpp>
 #include <script/compiler/Parser.hpp>
+#include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/vm/VM.hpp>
 #include <script/Hasher.hpp>
 
@@ -93,13 +95,15 @@ static Pair<API::NativeMemberDefine, SymbolMember_t> InitNativeMemberDefine(API:
 
     AssertThrow(member.value_type != nullptr);
 
+    SymbolMember_t symbol_member {
+        member.name,
+        member.value_type,
+        CloneAstNode(member.value_type->GetDefaultValue())
+    };
+
     return {
         std::move(member),
-        SymbolMember_t {
-            member.name,
-            member.value_type,
-            member.value_type->GetDefaultValue()
-        }
+        std::move(symbol_member)
     };
 }
 
@@ -321,6 +325,7 @@ API::ModuleDefine &API::ModuleDefine::Function(
 void API::ModuleDefine::BindAll(
     APIInstance &api_instance,
     VM *vm,
+    AstVisitor *visitor,
     CompilationUnit *compilation_unit
 )
 {
@@ -348,6 +353,7 @@ void API::ModuleDefine::BindAll(
             def,
             mod,
             vm,
+            visitor,
             compilation_unit
         );
     }
@@ -358,6 +364,7 @@ void API::ModuleDefine::BindAll(
             def,
             mod,
             vm,
+            visitor,
             compilation_unit
         );
     }
@@ -368,6 +375,7 @@ void API::ModuleDefine::BindAll(
             def,
             mod,
             vm,
+            visitor,
             compilation_unit
         );
     }
@@ -386,6 +394,7 @@ void API::ModuleDefine::BindNativeVariable(
     NativeVariableDefine &def,
     Module *mod,
     VM *vm,
+    AstVisitor *visitor,
     CompilationUnit *compilation_unit
 )
 {
@@ -435,6 +444,7 @@ void API::ModuleDefine::BindNativeFunction(
     NativeFunctionDefine &def,
     Module *mod,
     VM *vm,
+    AstVisitor *visitor,
     CompilationUnit *compilation_unit
 )
 {
@@ -525,6 +535,7 @@ void API::ModuleDefine::BindType(
     const TypeDefine &def,
     Module *mod,
     VM *vm,
+    AstVisitor *visitor,
     CompilationUnit *compilation_unit
 )
 {
@@ -620,15 +631,37 @@ void API::ModuleDefine::BindType(
         });
 
         if (proto_it == prototype_members.End()) {
-            auto proto_type = SymbolType::Object(
+            SymbolTypePtr_t prototype_type = SymbolType::Object(
                 def.name + "Instance",
                 prototype_member_types,
                 BuiltinTypes::OBJECT
             );
 
+            {
+                RC<AstTypeObject> prototype_type_object(new AstTypeObject(
+                    prototype_type,
+                    BuiltinTypes::CLASS_TYPE,
+                    SourceLocation::eof
+                ));
+
+                // InitNativeMemberDefine() uses the default value of the member's SymbolType
+                prototype_type->SetDefaultValue(RC<AstTypeRef>(new AstTypeRef(
+                    prototype_type,
+                    SourceLocation::eof
+                )));
+
+                // Push it to the ast visitor so that it will be visited,
+                // also it will remain in memory as SymbolType holds a weak pointer
+
+                // type will be registered when it is visited
+                visitor->GetAstIterator()->Push(prototype_type_object);
+
+                prototype_type->SetTypeObject(prototype_type_object);
+            }
+
             auto init_value = InitNativeMemberDefine(NativeMemberDefine(
                 "$proto",
-                proto_type,
+                prototype_type,
                 vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })
             ));
             
@@ -653,8 +686,23 @@ void API::ModuleDefine::BindType(
 
     AssertThrow(class_symbol_type != nullptr);
     AssertThrow(class_symbol_type->GetBaseType() != nullptr);
+    
+    {
+        RC<AstTypeObject> ast_type_object(new AstTypeObject(
+            class_symbol_type,
+            BuiltinTypes::CLASS_TYPE,
+            SourceLocation::eof
+        ));
 
-    compilation_unit->RegisterType(class_symbol_type);
+        // Push it to the ast visitor so that it will be visited,
+        // also it will remain in memory as SymbolType holds a weak pointer
+
+        // type will be registered when it is visited
+        visitor->GetAstIterator()->Push(ast_type_object);
+
+        class_symbol_type->SetTypeObject(ast_type_object);
+    }
+
     // add the type to the identifier table, so it's usable
     Scope &top_scope = mod->m_scopes.Top();
     top_scope.GetIdentifierTable().AddSymbolType(class_symbol_type);
@@ -672,9 +720,8 @@ void API::ModuleDefine::BindType(
         );
 
         // set the value of the constant so that code can use it
-        native_variable_define.current_value.Reset(new AstTypeObject(
+        native_variable_define.current_value.Reset(new AstTypeRef(
             class_symbol_type,
-            nullptr,
             SourceLocation::eof
         ));
 
@@ -683,6 +730,7 @@ void API::ModuleDefine::BindType(
             native_variable_define,
             mod,
             vm,
+            visitor,
             compilation_unit
         );
     }
@@ -785,7 +833,7 @@ API::ModuleDefine &APIInstance::Module(const String &name)
     return m_module_defs.Back();
 }
 
-void APIInstance::BindAll(VM *vm, CompilationUnit *compilation_unit)
+void APIInstance::BindAll(VM *vm, AstVisitor *visitor, CompilationUnit *compilation_unit)
 {
     m_vm = vm;
 
@@ -795,6 +843,7 @@ void APIInstance::BindAll(VM *vm, CompilationUnit *compilation_unit)
         module_def.BindAll(
             *this,
             vm,
+            visitor,
             compilation_unit
         );
     }

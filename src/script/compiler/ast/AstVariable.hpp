@@ -7,6 +7,8 @@
 
 namespace hyperion::compiler {
 
+class AstTypeRef;
+
 class AstVariable : public AstIdentifier
 {
 public:
@@ -33,6 +35,7 @@ private:
     // used to get locals from outer function in a closure
     RC<AstMember>       m_closure_member_access;
     RC<AstMember>       m_self_member_access;
+    RC<AstTypeRef>      m_type_ref;
     RC<AstExpression>   m_inline_value;
     bool                m_should_inline;
     bool                m_is_in_ref_assignment;

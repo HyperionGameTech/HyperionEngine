@@ -9,6 +9,7 @@ const UInt16 StaticMemory::static_size = 65535;
 StaticMemory::StaticMemory()
     : m_data(new Value[static_size])
 {
+    Memory::MemSet(m_data, 0, static_size * sizeof(Value));
 }
 
 StaticMemory::~StaticMemory()

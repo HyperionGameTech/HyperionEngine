@@ -40,7 +40,6 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t held_type = value_of->GetHeldType();
 
     if (held_type == nullptr) {
-        // Not a type.
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_not_a_type,

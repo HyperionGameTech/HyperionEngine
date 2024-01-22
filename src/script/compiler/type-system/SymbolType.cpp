@@ -35,7 +35,7 @@ SymbolType::SymbolType(
     m_default_value(default_value),
     m_members(members),
     m_base(base),
-    m_id(0),
+    m_id(-1),
     m_flags(SYMBOL_TYPE_FLAGS_NONE)
 {
 }
@@ -515,9 +515,14 @@ bool SymbolType::IsGenericParameter() const
     return m_type_class == TYPE_GENERIC_PARAMETER;
 }
 
-bool SymbolType::IsGeneric() const
+bool SymbolType::IsGenericExpressionType() const
 {
     return GetBaseType() == BuiltinTypes::GENERIC_VARIABLE_TYPE;
+}
+
+bool SymbolType::IsGenericType() const
+{
+    return m_flags & SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
 }
 
 bool SymbolType::IsPrimitive() const
@@ -593,9 +598,9 @@ SymbolTypePtr_t SymbolType::Object(
         members
     ));
 
-    symbol_type->SetDefaultValue(RC<AstObject>(
-        new AstObject(symbol_type, SourceLocation::eof)
-    ));
+    // symbol_type->SetDefaultValue(RC<AstObject>(
+    //     new AstObject(symbol_type, SourceLocation::eof)
+    // ));
     
     return symbol_type;
 }
@@ -612,9 +617,9 @@ SymbolTypePtr_t SymbolType::Object(const String &name,
         members
     ));
 
-    symbol_type->SetDefaultValue(RC<AstObject>(
-        new AstObject(symbol_type, SourceLocation::eof)
-    ));
+    // symbol_type->SetDefaultValue(RC<AstObject>(
+    //     new AstObject(symbol_type, SourceLocation::eof)
+    // ));
     
     return symbol_type;
 }
@@ -862,7 +867,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
 
     auto default_value = base->GetDefaultValue();
 
-    res->SetId(base->GetId());
+    // res->SetId(base->GetId());
     res->SetDefaultValue(default_value);
     res->m_generic_instance_info = info;
 
@@ -908,9 +913,9 @@ SymbolTypePtr_t SymbolType::Extend(
         members
     ));
 
-    symbol_type->SetDefaultValue(RC<AstObject>(
-        new AstObject(symbol_type, SourceLocation::eof)
-    ));
+    // symbol_type->SetDefaultValue(RC<AstObject>(
+    //     new AstObject(symbol_type, SourceLocation::eof)
+    // ));
 
     symbol_type->m_generic_info             = base->m_generic_info;
     symbol_type->m_generic_instance_info    = base->m_generic_instance_info;

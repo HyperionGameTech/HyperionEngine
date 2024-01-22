@@ -12,6 +12,7 @@
 namespace hyperion::compiler {
 
 class AstVariableDeclaration;
+class AstTypeObject;
 
 class AstTemplateExpression final : public AstExpression
 {
@@ -64,7 +65,7 @@ private:
     SymbolTypePtr_t                     m_symbol_type;
     RC<AstBlock>                        m_block;
     bool                                m_is_visited = false;
-    Array<RC<AstVariableDeclaration>>   m_generic_param_placeholders;
+    Array<RC<AstTypeObject>>            m_generic_param_type_objects;
 
     RC<AstTemplateExpression> CloneImpl() const
     {

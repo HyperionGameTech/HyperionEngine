@@ -171,21 +171,22 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
         SymbolTypePtr_t held_type = value_of->GetHeldType();
         AssertThrow(held_type != nullptr);
+        held_type = held_type->GetUnaliased();
 
         scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
             param.m_name,
             { held_type }
         ));
 
-        RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-            param.m_name,
-            nullptr,
-            CloneAstNode(arg->GetExpr()),
-            IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
-            arg->GetLocation()
-        ));
+        // RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
+        //     param.m_name,
+        //     nullptr,
+        //     CloneAstNode(arg->GetExpr()),
+        //     IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
+        //     arg->GetLocation()
+        // ));
 
-        m_block->AddChild(param_override);
+        // m_block->AddChild(param_override);
     }
 
     // TODO: Cache instantiations so we don't create a new one for every set of arguments

@@ -38,10 +38,12 @@ public:
     AstNodeBuilder &GetAstNodeBuilder() { return m_ast_node_builder; }
     const AstNodeBuilder &GetAstNodeBuilder() const { return m_ast_node_builder; }
 
+    const Array<SymbolTypePtr_t> &GetRegisteredTypes() const { return m_registered_types; }
+
     /**
         Allows a non-builtin type to be used
     */
-    void RegisterType(SymbolTypePtr_t &type_ptr);
+    void RegisterType(const SymbolTypePtr_t &type_ptr);
 
     /** Looks up the module with the name, taking scope into account.
         Modules with the name that are in the current module or any module
@@ -61,6 +63,7 @@ private:
     ErrorList               m_error_list;
     InstructionStream       m_instruction_stream;
     AstNodeBuilder          m_ast_node_builder;
+    Array<SymbolTypePtr_t>  m_registered_types;
 
     // the global module
     RC<Module>              m_global_module;

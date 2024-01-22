@@ -6,18 +6,20 @@
 
 namespace hyperion::compiler {
 
+class AstTypeRef;
+
 class AstTypeObject : public AstExpression
 {
 public:
     AstTypeObject(
         const SymbolTypePtr_t &symbol_type,
-        const RC<AstVariable> &proto,
+        const SymbolTypePtr_t &base_symbol_type, // base here is usually CLASS_TYPE - it is not the same as polymorphic base
         const SourceLocation &location
     );
 
     AstTypeObject(
         const SymbolTypePtr_t &symbol_type,
-        const RC<AstVariable> &proto,
+        const SymbolTypePtr_t &base_symbol_type,
         const SymbolTypePtr_t &enum_underlying_type,
         bool is_proxy_class,
         const SourceLocation &location
@@ -33,6 +35,9 @@ public:
 
     bool IsProxyClass() const
         { return m_is_proxy_class; }
+
+    bool IsVisited() const
+        { return m_is_visited; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -50,7 +55,7 @@ public:
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeObject>());
         hc.Add(m_symbol_type ? m_symbol_type->GetHashCode() : HashCode());
-        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_base_symbol_type ? m_base_symbol_type->GetHashCode() : HashCode());
         hc.Add(m_enum_underlying_type ? m_enum_underlying_type->GetHashCode() : HashCode());
         hc.Add(m_is_proxy_class);
 
@@ -59,11 +64,12 @@ public:
 
 private:
     SymbolTypePtr_t             m_symbol_type;
-    RC<AstVariable>             m_proto;
+    SymbolTypePtr_t             m_base_symbol_type;
     SymbolTypePtr_t             m_enum_underlying_type;
     bool                        m_is_proxy_class;
 
     // set while analyzing
+    RC<AstTypeRef>              m_base_type_ref;
     Array<RC<AstExpression>>    m_member_expressions;
     bool                        m_is_visited;
 
@@ -71,7 +77,7 @@ private:
     {
         return RC<AstTypeObject>(new AstTypeObject(
             m_symbol_type,
-            CloneAstNode(m_proto),
+            m_base_symbol_type,
             m_enum_underlying_type,
             m_is_proxy_class,
             m_location

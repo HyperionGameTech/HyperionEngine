@@ -89,6 +89,8 @@ void AstAsExpression::Visit(AstVisitor *visitor, Module *mod)
             target_type->ToString(),
             held_type->ToString()
         ));
+
+        return;
     }
 }
 
@@ -97,12 +99,23 @@ std::unique_ptr<Buildable> AstAsExpression::Build(AstVisitor *visitor, Module *m
     AssertThrow(m_target != nullptr);
     AssertThrow(m_type_specification != nullptr);
 
-    if (m_is_type == TRI_TRUE) {
-        // just build the target
-        return m_target->Build(visitor, mod);
+    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    bool type_spec_built = false;
+
+    // if the type spec has side effects, build it in even though it's not needed for the cast
+    if (m_type_specification->MayHaveSideEffects()) {
+        chunk->Append(m_type_specification->Build(visitor, mod));
+
+        type_spec_built = true;
     }
 
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+    if (m_is_type == TRI_TRUE) {
+        // just build the target
+        chunk->Append(m_target->Build(visitor, mod));
+
+        return chunk;
+    }
 
     const UInt8 src_register = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
@@ -129,10 +142,13 @@ std::unique_ptr<Buildable> AstAsExpression::Build(AstVisitor *visitor, Module *m
     } else if (held_type->IsBoolean()) {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_BOOL, dst_register, src_register));
     } else {
-        AssertThrow(m_dynamic_type_expr != nullptr);
+        // dynamic type needs to load the type object into the dst register.
+        // if the type spec has side effects, it's already built in
+        if (!type_spec_built) {
+            chunk->Append(m_type_specification->Build(visitor, mod));
 
-        // dynamic type needs to load the type object into the dst register
-        chunk->Append(m_dynamic_type_expr->Build(visitor, mod));
+            type_spec_built = true;
+        }
 
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dst_register, src_register));
     }

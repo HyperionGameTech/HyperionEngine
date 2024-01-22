@@ -37,18 +37,6 @@ AstVariableDeclaration::AstVariableDeclaration(
 
 void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
-    // If it is for a class or function definition, visit the
-    // declaration here so it will be available for the body.
-    const bool visit_before_body = (m_flags & (FLAG_CLASS | FLAG_FUNCTION));
-
-    if (visit_before_body) {
-        AstDeclaration::Visit(visitor, mod);
-
-        if (m_identifier != nullptr) {
-            m_identifier->GetFlags() |= m_flags;
-        }
-    }
-
     m_symbol_type = BuiltinTypes::UNDEFINED;
 
     const bool has_user_assigned = m_assignment != nullptr;
@@ -159,12 +147,15 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             m_real_assignment.Reset(new AstUndefined(m_location));
         }
 
-        // Set identifier current value in advance,
-        // so from type declarations we can use the current type.
-        // Note: m_identifier will only be nullptr if declaration has failed.
-        if (m_identifier != nullptr) {
-            m_identifier->SetCurrentValue(m_real_assignment);
-        }
+        // // Set identifier current value in advance,
+        // // so from type declarations we can use the current type.
+        // // Note: m_identifier will only be nullptr if declaration has failed.
+        // if (m_identifier != nullptr) {
+        //     auto *expression_value_of = m_real_assignment->GetDeepValueOf();
+        //     AssertThrow(expression_value_of != nullptr);
+
+        //     m_identifier->SetCurrentValue(CloneAstNode(expression_value_of));
+        // }
 
         // if the variable has been assigned to an anonymous type,
         // rename the type to be the name of this variable
@@ -291,15 +282,19 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
     
-    if (!visit_before_body) {
-        // visit now
-        AstDeclaration::Visit(visitor, mod);
-    }
+    AstDeclaration::Visit(visitor, mod);
 
     if (m_identifier != nullptr) {
         m_identifier->GetFlags() |= m_flags;
         m_identifier->SetSymbolType(m_symbol_type);
-        m_identifier->SetCurrentValue(m_real_assignment);
+
+        // set current value to be the assignment
+        if (!m_identifier->GetCurrentValue()) {
+            auto *expression_value_of = m_real_assignment->GetDeepValueOf();
+            AssertThrow(expression_value_of != nullptr);
+
+            m_identifier->SetCurrentValue(CloneAstNode(expression_value_of));
+        }
     }
 }
 
@@ -317,6 +312,11 @@ std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Mo
     if (!Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
+
+        // if the type specification has side effects, compile it in
+        if (m_proto != nullptr && m_proto->MayHaveSideEffects()) {
+            chunk->Append(m_proto->Build(visitor, mod));
+        }
 
         chunk->Append(m_real_assignment->Build(visitor, mod));
 

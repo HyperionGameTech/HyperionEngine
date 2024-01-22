@@ -16,16 +16,16 @@
 
 namespace hyperion::compiler {
 
+class AstVisitor;
+
 class Builtins
 {
 public:
     Builtins();
 
-    const AstIterator &GetAst() const { return m_ast; }
-
     /** This will analyze the builtins, and add them to the syntax tree.
      */
-    void Visit(CompilationUnit *unit);
+    void Visit(AstVisitor *visitor, CompilationUnit *unit);
 
     /** This will return bytecode containing builtins
      */
@@ -35,7 +35,6 @@ private:
     static const SourceLocation BUILTIN_SOURCE_LOCATION;
 
     HashMap<String, RC<AstExpression>> m_vars;
-    AstIterator m_ast;
 };
 
 } // namespace hyperion::compiler

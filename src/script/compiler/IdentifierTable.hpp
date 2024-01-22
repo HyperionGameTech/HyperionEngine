@@ -20,9 +20,6 @@ public:
     IdentifierTable(const IdentifierTable &other);
 
     int CountUsedVariables() const;
-    
-    Array<RC<Identifier>> &GetIdentifiers()
-        { return m_identifiers; }
 
     const Array<RC<Identifier>> &GetIdentifiers() const
         { return m_identifiers; }

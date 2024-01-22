@@ -48,14 +48,14 @@ public:
     // return the top value from the stack
     HYP_FORCE_INLINE Value &Top()
     {
-        AssertThrowMsg(m_sp > 0, "stack underflow");
+        AssertThrowMsg(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1];
     }
 
     // return the top value from the stack
     HYP_FORCE_INLINE const Value &Top() const
     {
-        AssertThrowMsg(m_sp > 0, "stack underflow");
+        AssertThrowMsg(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1];
     }
 
@@ -76,14 +76,14 @@ public:
     // pop top value from the stack
     HYP_FORCE_INLINE void Pop()
     {
-        AssertThrowMsg(m_sp > 0, "stack underflow");
+        AssertThrowMsg(m_sp > 0, "pop from empty stack");
         m_sp--;
     }
 
     // pop top n value(s) from the stack
     HYP_FORCE_INLINE void Pop(SizeType count)
     {
-        AssertThrowMsg(m_sp >= count, "stack underflow");
+        AssertThrowMsg(m_sp >= count, "pop from empty stack");
         m_sp -= count;
     }
 

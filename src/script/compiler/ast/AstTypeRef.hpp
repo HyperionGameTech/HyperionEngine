@@ -1,16 +1,19 @@
-#ifndef AST_OBJECT_HPP
-#define AST_OBJECT_HPP
+#ifndef AST_TYPE_REF_HPP
+#define AST_TYPE_REF_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <core/lib/DynArray.hpp>
 
 namespace hyperion::compiler {
 
-class AstObject : public AstExpression
+class AstTypeRef : public AstExpression
 {
 public:
-    AstObject(const SymbolTypePtr_t &symbol_type, const SourceLocation &location);
-    virtual ~AstObject() override = default;
+    AstTypeRef(
+        const SymbolTypePtr_t &symbol_type,
+        const SourceLocation &location
+    );
+
+    virtual ~AstTypeRef() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -20,32 +23,27 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
+
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual SymbolTypePtr_t GetHeldType() const override;
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstObject>());
-        hc.Add(m_symbol_type != nullptr ? m_symbol_type->GetHashCode() : HashCode());
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeRef>());
+        hc.Add(m_symbol_type ? m_symbol_type->GetHashCode() : HashCode());
 
         return hc;
     }
 
 private:
-    struct ObjectMember
-    {
-        String              name;
-        SymbolTypePtr_t     type;
-        RC<AstExpression>   value;
-    };
-
-    SymbolTypePtr_t     m_symbol_type;
-
+    SymbolTypePtr_t             m_symbol_type;
+    
     // set while analyzing
-    Array<ObjectMember> m_members;
+    bool                        m_is_visited;
 
-    RC<AstObject> CloneImpl() const
+    RC<AstTypeRef> CloneImpl() const
     {
-        return RC<AstObject>(new AstObject(
+        return RC<AstTypeRef>(new AstTypeRef(
             m_symbol_type,
             m_location
         ));

@@ -9,8 +9,6 @@
 
 #include <system/Debug.hpp>
 
-#include <iostream>
-
 namespace hyperion::compiler {
 
 CompilationUnit::CompilationUnit()
@@ -28,8 +26,20 @@ CompilationUnit::CompilationUnit()
 
 CompilationUnit::~CompilationUnit() = default;
 
-void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
+void CompilationUnit::RegisterType(const SymbolTypePtr_t &type_ptr)
 {
+    AssertThrow(type_ptr != nullptr);
+
+    AssertThrowMsg(
+        type_ptr->GetTypeObject().Lock() != nullptr,
+        "Type object must be assigned to SymbolType before RegisterType() is called. SymbolType name: %s",
+        type_ptr->GetName().Data()
+    );
+
+    if (m_registered_types.Contains(type_ptr)) {
+        return;
+    }
+
     Array<NamesPair_t> names;
 
     for (auto &mem : type_ptr->GetMembers()) {
@@ -66,6 +76,8 @@ void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
     }
 
     type_ptr->SetId(id);
+
+    m_registered_types.PushBack(type_ptr);
 }
 
 Module *CompilationUnit::LookupModule(const String &name)

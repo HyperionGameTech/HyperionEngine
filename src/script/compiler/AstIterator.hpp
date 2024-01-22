@@ -16,6 +16,9 @@ public:
     AstIterator();
     AstIterator(const AstIterator &other);
 
+    void Prepend(AstIterator &&other, bool reset_position = false);
+    void Append(AstIterator &&other);
+
     void Push(const RC<AstStatement> &statement)
         { m_list.PushBack(statement); }
 
@@ -49,7 +52,7 @@ public:
     const SourceLocation &GetLocation() const { return m_list[m_position]->m_location; }
 
 private:
-    SizeType m_position;
+    SizeType                m_position;
     Array<RC<AstStatement>> m_list;
 };
 

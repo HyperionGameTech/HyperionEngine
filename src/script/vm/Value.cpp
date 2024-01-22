@@ -129,63 +129,63 @@ void Value::Mark()
 const char *Value::GetTypeString() const
 {
     switch (m_type) {
-        case NONE:
-            return "<Uninitialized data>";
-        case I8:
-            return "Int8";
-        case I16:
-            return "Int16";
-        case I32:
-            return "Int32";
-        case I64:
-            return "Int64";
-        case U8:
-            return "UInt8";
-        case U16:
-            return "UInt16";
-        case U32:
-            return "UInt32";
-        case U64:
-            return "UInt64";
-        case F32:
-            return "Float";
-        case F64:
-            return "Double";
-        case BOOLEAN:
-            return "Bool";
-        case VALUE_REF:
-            AssertThrow(m_value.value_ref != nullptr);
+    case NONE:
+        return "<Uninitialized data>";
+    case I8:
+        return "Int8";
+    case I16:
+        return "Int16";
+    case I32:
+        return "Int32";
+    case I64:
+        return "Int64";
+    case U8:
+        return "UInt8";
+    case U16:
+        return "UInt16";
+    case U32:
+        return "UInt32";
+    case U64:
+        return "UInt64";
+    case F32:
+        return "Float";
+    case F64:
+        return "Double";
+    case BOOLEAN:
+        return "Bool";
+    case VALUE_REF:
+        AssertThrow(m_value.value_ref != nullptr);
 
-            if (m_value.value_ref != this) {
-                return m_value.value_ref->GetTypeString();
-            } else {
-                return "<Circular Reference>";
-            }
+        if (m_value.value_ref != this) {
+            return m_value.value_ref->GetTypeString();
+        } else {
+            return "<Circular Reference>";
+        }
 
-        case HEAP_POINTER: 
-            if (m_value.ptr == nullptr) {
-                return "Null";
-            } else if (m_value.ptr->GetPointer<VMString>()) {
-                return "String";
-            } else if (m_value.ptr->GetPointer<VMArray>() || m_value.ptr->GetPointer<VMArraySlice>()) {
-                return "Array";
-            } else if (m_value.ptr->GetPointer<VMMemoryBuffer>()) {
-                return "MemoryBuffer";
-            } else if (m_value.ptr->GetPointer<VMStruct>()) {
-                return "Struct";
-            } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
-                return "Object"; // TODO prototype name
-            }
+    case HEAP_POINTER: 
+        if (m_value.ptr == nullptr) {
+            return "Null";
+        } else if (m_value.ptr->GetPointer<VMString>()) {
+            return "String";
+        } else if (m_value.ptr->GetPointer<VMArray>() || m_value.ptr->GetPointer<VMArraySlice>()) {
+            return "Array";
+        } else if (m_value.ptr->GetPointer<VMMemoryBuffer>()) {
+            return "MemoryBuffer";
+        } else if (m_value.ptr->GetPointer<VMStruct>()) {
+            return "Struct";
+        } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
+            return "Object"; // TODO prototype name
+        }
 
-            return "<Unknown pointer type>";
+        return "<Unknown pointer type>";
 
-        case FUNCTION: // fallthrough
-        case NATIVE_FUNCTION: return "Function";
-        case ADDRESS: return "<Function address>";
-        case FUNCTION_CALL: return "<Stack frame>";
-        case TRY_CATCH_INFO: return "<Try catch info>";
-        case USER_DATA: return "UserData";
-        default: return "<Invalid type>";
+    case FUNCTION: // fallthrough
+    case NATIVE_FUNCTION: return "Function";
+    case ADDRESS: return "<Function address>";
+    case FUNCTION_CALL: return "<Stack frame>";
+    case TRY_CATCH_INFO: return "<Try catch info>";
+    case USER_DATA: return "UserData";
+    default: return "<Invalid type>";
     }
 }
 
@@ -197,106 +197,106 @@ VMString Value::ToString() const
     const int depth = 3;
 
     switch (m_type) {
-        case Value::I8: {
-            int n = snprintf(buf, buf_size, "%" PRId8, m_value.i8);
-            return VMString(buf, n);
+    case Value::I8: {
+        int n = snprintf(buf, buf_size, "%" PRId8, m_value.i8);
+        return VMString(buf, n);
+    }
+    case Value::I16: {
+        int n = snprintf(buf, buf_size, "%" PRId16, m_value.i16);
+        return VMString(buf, n);
+    }
+    case Value::I32: {
+        int n = snprintf(buf, buf_size, "%" PRId32, m_value.i32);
+        return VMString(buf, n);
+    }
+    case Value::I64: {
+        int n = snprintf(buf, buf_size, "%" PRId64, m_value.i64);
+        return VMString(buf, n);
+    }
+
+    case Value::U8: {
+        int n = snprintf(buf, buf_size, "%" PRIu8, m_value.u8);
+        return VMString(buf, n);
+    }
+    case Value::U16: {
+        int n = snprintf(buf, buf_size, "%" PRIu16, m_value.u16);
+        return VMString(buf, n);
+    }
+    case Value::U32: {
+        int n = snprintf(buf, buf_size, "%" PRIu32, m_value.u32);
+        return VMString(buf, n);
+    }
+    case Value::U64: {
+        int n = snprintf(buf, buf_size, "%" PRIu64, m_value.u64);
+        return VMString(buf, n);
+    }
+    case Value::F32: {
+        int n = snprintf(
+            buf,
+            buf_size,
+            "%g",
+            m_value.f
+        );
+        return VMString(buf, n);
+    }
+
+    case Value::F64: {
+        int n = snprintf(
+            buf,
+            buf_size,
+            "%g",
+            m_value.d
+        );
+        return VMString(buf, n);
+    }
+
+    case Value::BOOLEAN:
+        return BOOLEAN_STRINGS[m_value.b];
+
+    case Value::VALUE_REF:
+        AssertThrow(m_value.value_ref != nullptr);
+        if (m_value.value_ref == this) {
+            return VMString("<Circular Reference>");
+        } else {
+            return m_value.value_ref->ToString();
         }
-        case Value::I16: {
-            int n = snprintf(buf, buf_size, "%" PRId16, m_value.i16);
-            return VMString(buf, n);
-        }
-        case Value::I32: {
-            int n = snprintf(buf, buf_size, "%" PRId32, m_value.i32);
-            return VMString(buf, n);
-        }
-        case Value::I64: {
-            int n = snprintf(buf, buf_size, "%" PRId64, m_value.i64);
+
+    case Value::HEAP_POINTER: {
+        if (m_value.ptr == nullptr) {
+            return NULL_STRING;
+        } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
+            return *string;
+        } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
+            std::stringstream ss;
+            array->GetRepresentation(ss, true, depth);
+            const std::string &str = ss.str();
+            return VMString(str.c_str());
+        } else if (VMMemoryBuffer *memory_buffer = m_value.ptr->GetPointer<VMMemoryBuffer>()) {
+            std::stringstream ss;
+            memory_buffer->GetRepresentation(ss, true, depth);
+            const std::string &str = ss.str();
+            return VMString(str.c_str());
+        } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
+            std::stringstream ss;
+            slice->GetRepresentation(ss, true, depth);
+            const std::string &str = ss.str();
+            return VMString(str.c_str());
+        } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
+            std::stringstream ss;
+            object->GetRepresentation(ss, true, depth);
+            const std::string &str = ss.str();
+            return VMString(str.c_str());
+        } else {
+            // return memory address as string
+            int n = snprintf(buf, buf_size, "%p", (void*)m_value.ptr);
             return VMString(buf, n);
         }
 
-        case Value::U8: {
-            int n = snprintf(buf, buf_size, "%" PRIu8, m_value.u8);
-            return VMString(buf, n);
-        }
-        case Value::U16: {
-            int n = snprintf(buf, buf_size, "%" PRIu16, m_value.u16);
-            return VMString(buf, n);
-        }
-        case Value::U32: {
-            int n = snprintf(buf, buf_size, "%" PRIu32, m_value.u32);
-            return VMString(buf, n);
-        }
-        case Value::U64: {
-            int n = snprintf(buf, buf_size, "%" PRIu64, m_value.u64);
-            return VMString(buf, n);
-        }
-        case Value::F32: {
-            int n = snprintf(
-                buf,
-                buf_size,
-                "%g",
-                m_value.f
-            );
-            return VMString(buf, n);
-        }
+        break;
+    }
 
-        case Value::F64: {
-            int n = snprintf(
-                buf,
-                buf_size,
-                "%g",
-                m_value.d
-            );
-            return VMString(buf, n);
-        }
-
-        case Value::BOOLEAN:
-            return BOOLEAN_STRINGS[m_value.b];
-
-        case Value::VALUE_REF:
-            AssertThrow(m_value.value_ref != nullptr);
-            if (m_value.value_ref == this) {
-                return VMString("<Circular Reference>");
-            } else {
-                return m_value.value_ref->ToString();
-            }
-
-        case Value::HEAP_POINTER: {
-            if (m_value.ptr == nullptr) {
-                return NULL_STRING;
-            } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
-                return *string;
-            } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
-                std::stringstream ss;
-                array->GetRepresentation(ss, true, depth);
-                const std::string &str = ss.str();
-                return VMString(str.c_str());
-            } else if (VMMemoryBuffer *memory_buffer = m_value.ptr->GetPointer<VMMemoryBuffer>()) {
-                std::stringstream ss;
-                memory_buffer->GetRepresentation(ss, true, depth);
-                const std::string &str = ss.str();
-                return VMString(str.c_str());
-            } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
-                std::stringstream ss;
-                slice->GetRepresentation(ss, true, depth);
-                const std::string &str = ss.str();
-                return VMString(str.c_str());
-            } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
-                std::stringstream ss;
-                object->GetRepresentation(ss, true, depth);
-                const std::string &str = ss.str();
-                return VMString(str.c_str());
-            } else {
-                // return memory address as string
-                int n = snprintf(buf, buf_size, "%p", (void*)m_value.ptr);
-                return VMString(buf, n);
-            }
-
-            break;
-        }
-
-        default:
-            return VMString(GetTypeString());
+    default:
+        return VMString(GetTypeString());
     }
 }
 

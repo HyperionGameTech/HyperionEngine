@@ -103,6 +103,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         is_proxy_class = m_target_type->IsProxyClass();
 
         if (is_proxy_class) {
+            // @TODO: Ensure it works after changes to AstTypeObject/AstTypeExpression
             if (m_target_type->GetTypeObject() != nullptr) {
                 // load the type by name
                 m_proxy_expr.Reset(new AstPrototypeSpecification(
@@ -190,7 +191,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         field_type = field_type->GetUnaliased();
         AssertThrow(field_type != nullptr);
 
-        if (m_enable_generic_member_substitution && field_type->IsGeneric()) {
+        if (m_enable_generic_member_substitution && field_type->IsGenericExpressionType()) {
             // @FIXME
             // Cloning the member will unfortunately will break closure captures used
             // in a member function, but it's the best we can do for now.

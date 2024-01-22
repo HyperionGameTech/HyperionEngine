@@ -10,6 +10,7 @@
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 
 namespace hyperion::compiler {
@@ -57,16 +58,15 @@ const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
         SymbolMember_t {
             "$proto",
             BuiltinTypes::ANY,
-            nullptr
+            RC<AstNil>(new AstNil(SourceLocation::eof))
         },
         SymbolMember_t {
             "base",
             BuiltinTypes::OBJECT,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::OBJECT,
-                nullptr,
                 SourceLocation::eof
-            )),
+            ))
         }
         /*SymbolMember_t {
             "name",
@@ -82,20 +82,12 @@ const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
     "Enum",
     Array<SymbolMember_t> {
         SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "EmptyEnumLiteral", nullptr
-            ),
-            nullptr
-        },
-        SymbolMember_t {
             "base",
             BuiltinTypes::OBJECT,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::OBJECT,
-                nullptr,
                 SourceLocation::eof
-            )),
+            ))
         }
     },
     GenericTypeInfo { 1 },
@@ -140,9 +132,8 @@ const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
         SymbolMember_t {
             "base",
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::CLASS_TYPE,
-                nullptr,
                 SourceLocation::eof
             )),
         }
@@ -167,9 +158,8 @@ const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
         SymbolMember_t {
             "base",
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::CLASS_TYPE,
-                nullptr,
                 SourceLocation::eof
             )),
         }
@@ -193,9 +183,8 @@ const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
         SymbolMember_t {
             "base",
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::CLASS_TYPE,
-                nullptr,
                 SourceLocation::eof
             )),
         }
@@ -270,11 +259,10 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
         SymbolMember_t {
             "base",
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::CLASS_TYPE,
-                nullptr,
                 SourceLocation::eof
-            )),
+            ))
         }
     },
     GenericTypeInfo { -1 },

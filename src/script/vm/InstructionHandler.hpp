@@ -434,7 +434,11 @@ public:
         }
 
         Value parent_class_value = thread->m_regs[reg];
-        AssertThrow(parent_class_value.GetType() == Value::HEAP_POINTER);
+        AssertThrowMsg(parent_class_value.GetType() == Value::HEAP_POINTER,
+            "Parent class for type %s must be a heap pointer, got %s",
+            type_name,
+            parent_class_value.GetTypeString()
+        );
 
         // create prototype object
         hv->Assign(VMObject(members, size, parent_class_value.m_value.ptr));
@@ -719,29 +723,34 @@ public:
         AssertThrow(index < state->m_static_memory.static_size);
 
         // ensure we will not be overwriting something that is marked ALWAYS_ALIVE
-        // (will cause a memory leak)
+        // will cause a memory leak if we overwrite it, or if we did change the flag,
+        // it could cause corruption in places where we expect something to always exist.
         if (state->m_static_memory[index].m_type == Value::HEAP_POINTER) {
             HeapValue *hv = state->m_static_memory[index].m_value.ptr;
             if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE)) {
-                state->ThrowException(
-                    thread,
-                    Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
-                );
+                // state->ThrowException(
+                //     thread,
+                //     Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
+                // );
 
-                return;
+                // return;
+
+
+                // TEMP, hack
+                hv->DisableFlags(GC_ALWAYS_ALIVE);
             }
         }
 
         // Mark our new value as ALWAYS_ALIVE if applicable.
         if (thread->m_regs[reg].m_type == Value::HEAP_POINTER) {
-            HeapValue *hv = thread->m_regs[reg].m_value.ptr;
-            if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE)) {
+            if (HeapValue *hv = thread->m_regs[reg].m_value.ptr) {
                 thread->m_regs[reg].m_value.ptr->EnableFlags(GC_ALWAYS_ALIVE);
             }
         }
 
         // copy value from register to static memory at index
-        state->m_static_memory[index].AssignValue(thread->m_regs[reg], true);
+        // moves to static do not impact refs
+        state->m_static_memory[index].AssignValue(thread->m_regs[reg], false);
     }
 
     HYP_FORCE_INLINE void MovMem(BCRegister dst_reg, UInt8 index, BCRegister src_reg)
@@ -1244,13 +1253,19 @@ public:
         Value &res = thread->m_regs[dst];
 
         while (base_ptr != nullptr) {
+            // @TODO Depth limit
+
             // the NEW instruction makes a copy of the $proto data member
             // of the prototype object.
-            VMObject *proto_obj = base_ptr->GetPointer<VMObject>();
-            AssertThrowMsg(proto_obj != nullptr, "NEW operand should be a VMObject");
+            VMObject *base_vm_object = base_ptr->GetPointer<VMObject>();
+            AssertThrowMsg(base_vm_object != nullptr, "NEW operand should be a VMObject");
 
-            Member *proto_mem = proto_obj->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
-            AssertThrow(proto_mem != nullptr);
+            Member *proto_mem = base_vm_object->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
+
+            if (!proto_mem) {
+                // This base class does not have a prototype member.
+                break;
+            }
 
             if (proto_mem->value.m_type != Value::HEAP_POINTER) {
                 if (depth == 0) {
@@ -1286,7 +1301,7 @@ public:
 
             member_spans.PushBack({ proto_member_object->GetMembers(), proto_member_object->GetSize() });
 
-            Member *base_member = proto_obj->LookupMemberFromHash(VMObject::BASE_MEMBER_HASH, false);
+            Member *base_member = base_vm_object->LookupMemberFromHash(VMObject::BASE_MEMBER_HASH, false);
 
             if (base_member) {
                 AssertThrowMsg(base_member->value.m_type == Value::HEAP_POINTER, "Base class must be pointer type (%d), got %d", Value::HEAP_POINTER, base_member->value.m_type);
@@ -1307,6 +1322,7 @@ public:
         // The topmost type (first in the chain)
         // MUST be first so that loads/stores using member index match up!
         Array<Member> all_members;
+        all_members.Reserve(1);
 
         for (auto &it : member_spans) {
             for (SizeType index = 0; index < it.size; index++) {
