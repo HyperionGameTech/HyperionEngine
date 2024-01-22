@@ -9,9 +9,11 @@
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
-#define HYP_SCRIPT_TYPEOF_RETURN_OBJECT 0
+#define HYP_SCRIPT_TYPEOF_RETURN_OBJECT 1
 
 namespace hyperion::compiler {
+
+class AstTypeRef;
 
 class AstTypeOfExpression : public AstPrototypeSpecification {
 public:
@@ -31,15 +33,19 @@ public:
     virtual RC<AstStatement> Clone() const override;
 
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual SymbolTypePtr_t GetHeldType() const override;
   
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
     
 private:
-    RC<AstExpression> m_expr;
+    RC<AstExpression>   m_expr;
 
-#if !HYP_SCRIPT_TYPEOF_RETURN_OBJECT
-    RC<AstExpression> m_string_expr;
+#if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
+    RC<AstTypeRef>      m_type_ref;
+    SymbolTypePtr_t     m_held_type;
+#else
+    RC<AstExpression>   m_string_expr;
 #endif
 
     inline RC<AstTypeOfExpression> CloneImpl() const

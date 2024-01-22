@@ -207,6 +207,28 @@ SymbolTypePtr_t Module::LookupSymbolType(const String &name)
         }
     );
 }
+Variant<RC<Identifier>, SymbolTypePtr_t> Module::LookUpIdentifierOrSymbolType(const String &name)
+{
+    return PerformLookup<Variant<RC<Identifier>, SymbolTypePtr_t>>(
+        [&name](TreeNode<Scope> *top) -> Variant<RC<Identifier>, SymbolTypePtr_t>
+        {
+            if (SymbolTypePtr_t symbol_type = top->Get().GetIdentifierTable().LookupSymbolType(name)) {
+                return Variant<RC<Identifier>, SymbolTypePtr_t>(symbol_type);
+            }
+
+            if (RC<Identifier> result = top->Get().GetIdentifierTable().LookUpIdentifier(name)) {
+                return Variant<RC<Identifier>, SymbolTypePtr_t>(result);
+            }
+
+            return Variant<RC<Identifier>, SymbolTypePtr_t>();
+        },
+        [&name](Module *mod) -> Variant<RC<Identifier>, SymbolTypePtr_t>
+        {
+            return mod->LookUpIdentifierOrSymbolType(name);
+        }
+    );
+}
+
 
 Optional<GenericInstanceCache::CachedObject> Module::LookupGenericInstance(const GenericInstanceCache::Key &key)
 {

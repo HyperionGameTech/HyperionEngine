@@ -573,6 +573,10 @@ struct Variant
     bool operator!=(const Variant &other) const
         { return !(m_holder == other.m_holder); }
 
+    HYP_FORCE_INLINE
+    explicit operator bool() const
+        { return m_holder.IsValid(); }
+
     template <class T>
     HYP_FORCE_INLINE bool Is() const
         { return m_holder.template Is<T>(); }

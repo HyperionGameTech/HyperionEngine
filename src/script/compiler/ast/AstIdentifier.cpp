@@ -20,17 +20,24 @@ AstIdentifier::AstIdentifier(const String &name, const SourceLocation &location)
 
 void AstIdentifier::PerformLookup(AstVisitor *visitor, Module *mod)
 {
-    // the variable must exist in the active scope or a parent scope
-    if ((m_properties.m_identifier = mod->LookUpIdentifier(m_name, false))) {
-        m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
-    } else if ((m_properties.m_identifier = visitor->GetCompilationUnit()->GetGlobalModule()->LookUpIdentifier(m_name, false))) {
+    if (auto identifier_or_symbol_type = mod->LookUpIdentifierOrSymbolType(m_name)) {
+        if (identifier_or_symbol_type.Is<RC<Identifier>>()) {
+            m_properties.m_identifier = identifier_or_symbol_type.Get<RC<Identifier>>();
+            m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
+        } else if (identifier_or_symbol_type.Is<SymbolTypePtr_t>()) {
+            m_properties.m_found_type = identifier_or_symbol_type.Get<SymbolTypePtr_t>();
+            m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
+        }
+
+        return;
+    }
+
+    if ((m_properties.m_identifier = visitor->GetCompilationUnit()->GetGlobalModule()->LookUpIdentifier(m_name, false))) {
         // if the identifier was not found,
         // look in the global module to see if it is a global function.
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     } else if (mod->LookupNestedModule(m_name) != nullptr) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_MODULE);
-    } else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
-        m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
     } else {
         // nothing was found
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_NOT_FOUND);

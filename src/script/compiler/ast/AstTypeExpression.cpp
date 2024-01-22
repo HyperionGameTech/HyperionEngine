@@ -196,7 +196,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     m_symbol_type->SetTypeObject(m_type_object);
 
     // Add the symbol type to the identifier table so that it can be used within the type definition.
-    scope->GetIdentifierTable().AddSymbolType(m_symbol_type);
+    // scope->GetIdentifierTable().AddSymbolType(m_symbol_type);
 
     // if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) { // add symbol type to be usable within members
     //     SymbolTypePtr_t placeholder_type = m_symbol_type;
@@ -214,14 +214,16 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     //     scope->GetIdentifierTable().AddSymbolType(placeholder_type);
     // }
 
-    {
-        // type alias for 'Self' type
-        SymbolTypePtr_t internal_type = SymbolType::Alias(
-            "Self",
+    { // add type aliases to be usable within members
+        scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
+            "SelfType",
             { m_symbol_type }
-        );
+        ));
 
-        scope->GetIdentifierTable().AddSymbolType(internal_type);
+        scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
+            m_symbol_type->GetName(),
+            { m_symbol_type }
+        ));
     }
 
     // ===== STATIC DATA MEMBERS ======

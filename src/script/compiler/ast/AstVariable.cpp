@@ -212,9 +212,11 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             mod->GenerateFullModuleName()
         ));
         break;
-    case IDENTIFIER_TYPE_TYPE: {
-        SymbolTypePtr_t held_type = GetHeldType();
-        AssertThrow(held_type != nullptr);
+    default:
+        break;
+    }
+
+    if (auto held_type = GetHeldType()) {
         held_type = held_type->GetUnaliased();
 
         m_type_ref.Reset(new AstTypeRef(
@@ -223,11 +225,6 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
         ));
 
         m_type_ref->Visit(visitor, mod);
-
-        break;
-    }
-    default:
-        break;
     }
 }
 

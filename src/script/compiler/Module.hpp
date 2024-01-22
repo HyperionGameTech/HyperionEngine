@@ -1,8 +1,6 @@
 #ifndef HYPERION_COMPILER_MODULE_HPP
 #define HYPERION_COMPILER_MODULE_HPP
 
-#include <core/lib/Proc.hpp>
-
 #include <script/compiler/Scope.hpp>
 #include <script/SourceLocation.hpp>
 #include <script/compiler/Tree.hpp>
@@ -12,6 +10,8 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/Optional.hpp>
+#include <core/lib/Variant.hpp>
+#include <core/lib/Proc.hpp>
 #include <Types.hpp>
 
 namespace hyperion::compiler {
@@ -84,20 +84,13 @@ public:
     /** Look up a symbol in this module by name */
     SymbolTypePtr_t LookupSymbolType(const String &name);
 
+    Variant<RC<Identifier>, SymbolTypePtr_t> LookUpIdentifierOrSymbolType(const String &name);
+
     Optional<GenericInstanceCache::CachedObject> LookupGenericInstance(const GenericInstanceCache::Key &key);
 
     Tree<Scope> m_scopes;
 
 private:
-    String              m_name;
-    SourceLocation      m_location;
-
-    // module scan paths
-    FlatSet<String>     m_scan_paths;
-
-    /** A link to where this module exists in the import tree */
-    TreeNode<Module*>   *m_tree_link;
-
     template <class T>
     T PerformLookup(
         Proc<T, TreeNode<Scope> *> &&pred1,
@@ -137,6 +130,15 @@ private:
 
         return T { };
     }
+
+    String              m_name;
+    SourceLocation      m_location;
+
+    // module scan paths
+    FlatSet<String>     m_scan_paths;
+
+    /** A link to where this module exists in the import tree */
+    TreeNode<Module*>   *m_tree_link;
 };
 
 struct ScopeGuard : TreeNodeGuard<Scope>

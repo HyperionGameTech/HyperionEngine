@@ -75,7 +75,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_type_not_defined_globally, "Type definitions are not allowed in local scopes" },
     { Msg_identifier_is_type, "'%' is the name of a type, expected an identifier" },
     { Msg_mismatched_types, "Mismatched types '%' and '%'" },
-    { Msg_mismatched_types_assignment, "Cannot assign a variable of type '%' to an expression of type '%'" },
+    { Msg_mismatched_types_assignment, "Cannot assign % to %" },
     { Msg_implicit_any_mismatch, "An explicit cast to '%' is required" },
     { Msg_type_not_generic, "Type '%' is not generic" },
     { Msg_generic_parameters_missing, "Generic type '%' requires % parameter(s)" },

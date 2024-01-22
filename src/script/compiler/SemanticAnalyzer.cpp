@@ -770,8 +770,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             LEVEL_ERROR,
             Msg_mismatched_types_assignment,
             location,
-            symbol_type->ToString(),
-            assignment_type->ToString()
+            assignment_type->ToString(),
+            symbol_type->ToString()
         );
 
         if (assignment_type->IsAnyType()) {

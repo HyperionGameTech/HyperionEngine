@@ -63,36 +63,39 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         held_type = enum_underlying_type;
     }
 
-    m_symbol_type = BuiltinTypes::UNDEFINED;
-    m_prototype_type = BuiltinTypes::UNDEFINED;
+    m_symbol_type = held_type;
+    FindPrototypeType(held_type);
+
+    // m_symbol_type = BuiltinTypes::UNDEFINED;
+    // m_prototype_type = BuiltinTypes::UNDEFINED;
     
-    if (held_type->IsAnyType()) {
-        // it is a dynamic type
-        m_symbol_type = BuiltinTypes::ANY;
-        m_prototype_type = BuiltinTypes::ANY;
-        m_default_value = BuiltinTypes::ANY->GetDefaultValue();
+    // if (held_type->IsAnyType()) {
+    //     // it is a dynamic type
+    //     m_symbol_type = BuiltinTypes::ANY;
+    //     m_prototype_type = BuiltinTypes::ANY;
+    //     m_default_value = BuiltinTypes::ANY->GetDefaultValue();
 
-        return;
-    }
+    //     return;
+    // }
     
-    if (held_type->IsPlaceholderType()) {
-        m_symbol_type = BuiltinTypes::PLACEHOLDER;
-        m_prototype_type = BuiltinTypes::PLACEHOLDER;
-        m_default_value = BuiltinTypes::PLACEHOLDER->GetDefaultValue();
+    // if (held_type->IsPlaceholderType()) {
+    //     m_symbol_type = BuiltinTypes::PLACEHOLDER;
+    //     m_prototype_type = BuiltinTypes::PLACEHOLDER;
+    //     m_default_value = BuiltinTypes::PLACEHOLDER->GetDefaultValue();
 
-        return;
-    }
+    //     return;
+    // }
 
-    if (FindPrototypeType(held_type)) {
-        m_symbol_type = held_type;
-    } else {
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_type_missing_prototype,
-            m_location,
-            held_type->ToString()
-        ));
-    }
+    // if (FindPrototypeType(held_type)) {
+    //     m_symbol_type = held_type;
+    // } else {
+    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+    //         LEVEL_ERROR,
+    //         Msg_type_missing_prototype,
+    //         m_location,
+    //         held_type->ToString()
+    //     ));
+    // }
 
         // if (found_symbol_type != held_type && found_symbol_type != nullptr) {
         //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
