@@ -43,7 +43,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
 {
     AstMember::Visit(visitor, mod);
 
-    auto self_target = CloneAstNode(m_target);
+    RC<AstExpression> self_target = CloneAstNode(m_target);
 
     RC<AstArgument> self_arg(new AstArgument(
         self_target,
@@ -70,7 +70,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     // visit each argument
-    for (auto &arg : args_with_self) {
+    for (const RC<AstArgument> &arg : args_with_self) {
         AssertThrow(arg != nullptr);
 
         // note, visit in current module rather than module access
@@ -79,7 +79,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+    Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         visitor,
         mod,
         m_symbol_type,
@@ -87,42 +87,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         m_location
     );
 
-    if (substituted.first != nullptr) {
-        m_return_type = substituted.first;
-
-        if (m_return_type->IsOrHasBase(*BuiltinTypes::UNDEFINED)) {
-            // error occured during parsing.
-
-            return;
-        }
-
-        // change args to be newly ordered vector
-        m_substituted_args = CloneAllAstNodes(substituted.second);
-
-        // visit each argument (again, substituted)
-        for (auto &arg : m_substituted_args) {
-            AssertThrow(arg != nullptr);
-            
-            arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
-        }
-
-        // should never be empty; self is needed
-        if (m_substituted_args.Empty()) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_internal_error,
-                m_location
-            ));
-        } else {
-            SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
-                visitor,
-                mod,
-                m_symbol_type,
-                m_substituted_args,
-                m_location
-            );
-        }
-    } else {
+    if (!substituted.HasValue()) {
         m_return_type = BuiltinTypes::UNDEFINED;
 
         // not a function type
@@ -132,6 +97,39 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location,
             m_symbol_type->ToString()
         ));
+
+        return;
+    }
+
+    AssertThrow(substituted->return_type != nullptr);
+ 
+    m_return_type = substituted->return_type;
+
+    // change args to be newly ordered array
+    m_substituted_args = CloneAllAstNodes(substituted->params);
+
+    // visit each argument (again, substituted)
+    for (const RC<AstArgument> &arg : m_substituted_args) {
+        AssertThrow(arg != nullptr);
+        
+        arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+    }
+
+    // should never be empty; self is needed
+    if (m_substituted_args.Empty()) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_internal_error,
+            m_location
+        ));
+    } else {
+        SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
+            visitor,
+            mod,
+            m_symbol_type,
+            m_substituted_args,
+            m_location
+        );
     }
 }
 

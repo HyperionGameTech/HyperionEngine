@@ -34,7 +34,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_maximum_number_of_arguments, "Maximum number of arguments exceeded" },
     { Msg_arg_type_incompatible, "% cannot be passed as %" },
     { Msg_incompatible_cast, "% cannot be converted to %" },
-    { Msg_named_arg_not_found, "Could not find a parameter named '%'. Parameters are: %." },
+    { Msg_named_arg_not_found, "Could not find a parameter named '%'" },
     { Msg_redeclared_identifier, "Identifier '%' has already been declared in this scope" },
     { Msg_redeclared_identifier_type, "'%' is the name of a type and cannot be used as an identifier" },
     { Msg_undeclared_identifier, "'%' is not declared in module %" },

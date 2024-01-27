@@ -121,7 +121,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     // visit each argument
-    for (auto &arg : args_with_self) {
+    for (const RC<AstArgument> &arg : args_with_self) {
         AssertThrow(arg != nullptr);
 
         // note, visit in current module rather than module access
@@ -130,7 +130,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+    Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         visitor,
         mod,
         unaliased,
@@ -138,7 +138,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         m_location
     );
 
-    if (substituted.first == nullptr) {
+    if (!substituted.HasValue()) {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -150,10 +150,12 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    m_return_type = substituted.first;
+    AssertThrow(substituted->return_type != nullptr);
 
-    // change args to be newly ordered vector
-    m_substituted_args = CloneAllAstNodes(substituted.second);
+    m_return_type = substituted->return_type;
+
+    // change args to be newly ordered array
+    m_substituted_args = CloneAllAstNodes(substituted->params);
 
     for (const RC<AstArgument> &arg : m_substituted_args) {
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());

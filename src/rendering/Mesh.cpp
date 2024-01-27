@@ -683,7 +683,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         BuiltinTypes::VOID_TYPE,
                         {
                             { "self", BuiltinTypes::ANY },
-                            { "vertices", BuiltinTypes::ARRAY }
+                            { "vertices", BuiltinTypes::ANY }
                         },
                         CxxMemberFnWrapped< void, Handle<Mesh>, Mesh, const Array<Vertex> &, &Mesh::SetVertices >
                     ),
@@ -692,7 +692,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         BuiltinTypes::VOID_TYPE,
                         {
                             { "self", BuiltinTypes::ANY },
-                            { "indices", BuiltinTypes::ARRAY }
+                            { "indices", BuiltinTypes::ANY }
                         },
                         CxxMemberFnWrapped< void, Handle<Mesh>, Mesh, const Array<Mesh::Index> &, &Mesh::SetIndices >
                     )

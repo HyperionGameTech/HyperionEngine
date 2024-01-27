@@ -112,12 +112,24 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(expr_type != nullptr);
 
-    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+    Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         visitor, mod,
         expr_type,
         m_generic_args,
         m_location
     );
+
+    if (!substituted.HasValue()) {
+        // not a function type
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_function,
+            m_location,
+            expr_type->ToString()
+        ));
+
+        return;
+    }
 
     SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
         visitor, mod,
@@ -126,13 +138,12 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         m_location
     );
 
-    m_expr_type = substituted.first;
-    m_substituted_args = substituted.second;
+    AssertThrow(substituted->return_type != nullptr);
 
-    if (m_expr_type == nullptr) {
-        // error should occur
-        return;
-    }
+    m_expr_type = substituted->return_type;
+    m_substituted_args = substituted->params;
+
+    AssertThrow(m_expr_type != nullptr);
 
     GenericInstanceCache::Key generic_instance_cache_key;
     // { // look in generic instance cache

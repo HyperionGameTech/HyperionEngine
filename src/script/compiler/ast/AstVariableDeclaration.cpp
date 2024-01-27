@@ -137,7 +137,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                             m_symbol_type->GetGenericInfo().m_num_parameters
                         ));
                     }
-                } else if (!m_symbol_type->IsGenericParameter() && !m_symbol_type->IsProxyClass()) { // generic parameters will be resolved upon instantiation
+                } else if (!m_symbol_type->IsGenericParameter()) {
                     // no default assignment for this type
                     no_default_assignment = true;
                 }
@@ -285,8 +285,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     }
     
     AstDeclaration::Visit(visitor, mod);
-
-    AssertThrow(m_real_assignment != nullptr);
 
     if (m_identifier != nullptr) {
         m_identifier->GetFlags() |= m_flags;

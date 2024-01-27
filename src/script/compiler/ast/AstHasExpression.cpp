@@ -60,7 +60,7 @@ void AstHasExpression::Visit(AstVisitor *visitor, Module *mod)
     if (target_type->IsAnyType() || target_type->IsPlaceholderType()) {
         m_has_member = TRI_INDETERMINATE;
     } else if (target_type->IsClass()) {
-        SymbolMember_t member;
+        SymbolTypeMember member;
 
         if (target_type->FindMemberDeep(m_field_name, member)) {
             m_has_member = TRI_TRUE;

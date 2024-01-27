@@ -211,6 +211,18 @@ public:
             m_has_value = false;
         }
     }
+
+    T *operator->()
+        { return &Get(); }
+
+    const T *operator->() const
+        { return &Get(); }
+
+    T &operator*()
+        { return Get(); }
+
+    const T &operator*() const
+        { return Get(); }
     
     bool HasValue() const { return m_has_value; }
     bool Any() const { return m_has_value; }

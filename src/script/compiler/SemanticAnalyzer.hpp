@@ -6,9 +6,10 @@
 #include <script/compiler/Enums.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 
+#include <core/lib/Optional.hpp>
+
 #include <memory>
 #include <utility>
-#include <set>
 
 namespace hyperion::compiler {
 
@@ -17,7 +18,7 @@ class Module;
 
 struct SubstitutionResult {
     RC<AstArgument> arg;
-    Int             index = -1;
+    SizeType        index = SizeType(-1);
 };
 
 struct ArgInfo
@@ -33,21 +34,21 @@ public:
     struct Helpers
     {
     private:
-        static Int FindFreeSlot(
-            Int current_index,
-            const FlatSet<Int> &used_indices,
+        static SizeType FindFreeSlot(
+            SizeType current_index,
+            const FlatSet<SizeType> &used_indices,
             const Array<GenericInstanceTypeInfo::Arg> &generic_args,
             Bool is_variadic,
-            Int num_supplied_args
+            SizeType num_supplied_args
         );
 
-        static Int ArgIndex(
-            Int current_index,
+        static SizeType ArgIndex(
+            SizeType current_index,
             const ArgInfo &arg_info,
-            const FlatSet<Int> &used_indices,
+            const FlatSet<SizeType> &used_indices,
             const Array<GenericInstanceTypeInfo::Arg> &generic_args,
             Bool is_variadic = false,
-            Int num_supplied_args = -1
+            SizeType num_supplied_args = -1
         );
 
     public:
@@ -64,7 +65,7 @@ public:
             const SourceLocation &location
         );
 
-        static FunctionTypeSignature_t ExtractGenericArgs(
+        static Optional<SymbolTypeFunctionSignature> ExtractGenericArgs(
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &symbol_type, 
@@ -86,7 +87,7 @@ public:
             const SymbolTypePtr_t &param_type
         );
 
-        static FunctionTypeSignature_t SubstituteFunctionArgs(
+        static Optional<SymbolTypeFunctionSignature> SubstituteFunctionArgs(
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &symbol_type, 

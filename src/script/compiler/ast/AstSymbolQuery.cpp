@@ -91,8 +91,8 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
 
         Array<RC<AstExpression>> field_names;
 
-        for (const auto &member : held_type->GetMembers()) {
-            field_names.PushBack(RC<AstString>::Construct(std::get<0>(member), m_location));
+        for (const SymbolTypeMember &member : held_type->GetMembers()) {
+            field_names.PushBack(RC<AstString>::Construct(member.name, m_location));
         }
 
         m_result_value = RC<AstArrayExpression>(new AstArrayExpression(

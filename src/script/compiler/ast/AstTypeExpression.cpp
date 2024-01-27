@@ -161,7 +161,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (!proto_found) { // no custom '$proto' member, add default.
-            m_symbol_type->AddMember(SymbolMember_t {
+            m_symbol_type->AddMember(SymbolTypeMember {
                 "$proto",
                 prototype_type,
                 RC<AstTypeRef>(new AstTypeRef(
@@ -172,7 +172,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (!base_found) { // no custom 'base' member, add default
-            m_symbol_type->AddMember(SymbolMember_t {
+            m_symbol_type->AddMember(SymbolTypeMember {
                 "base",
                 BuiltinTypes::CLASS_TYPE,
                 RC<AstTypeRef>(new AstTypeRef(
@@ -183,7 +183,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (!name_found) { // no custom 'name' member, add default
-            m_symbol_type->AddMember(SymbolMember_t {
+            m_symbol_type->AddMember(SymbolTypeMember {
                 "name",
                 BuiltinTypes::STRING,
                 RC<AstString>(new AstString(
@@ -247,7 +247,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(mem->GetIdentifier() != nullptr);
             SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
             
-            m_symbol_type->AddMember(SymbolMember_t {
+            m_symbol_type->AddMember(SymbolTypeMember {
                 mem_name,
                 mem_type,
                 mem->GetRealAssignment()
@@ -257,7 +257,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // ===== INSTANCE DATA MEMBERS =====
 
-    Optional<SymbolMember_t> constructor_member;
+    Optional<SymbolTypeMember> constructor_member;
 
     // open the scope for data members
     {
@@ -265,21 +265,21 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
         // Do data members first so we can use them all in functions.
 
-        for (const auto &mem : m_data_members) {
+        for (const RC<AstVariableDeclaration> &mem : m_data_members) {
             if (mem != nullptr) {
                 mem->Visit(visitor, mod);
 
                 AssertThrow(mem->GetIdentifier() != nullptr);
                 
-                prototype_type->AddMember(SymbolMember_t(
+                prototype_type->AddMember(SymbolTypeMember {
                     mem->GetName(),
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment()
-                ));
+                });
             }
         }
 
-        for (const auto &mem : m_function_members) {
+        for (const RC<AstVariableDeclaration> &mem : m_function_members) {
             if (mem != nullptr) {
                 // if name of the method matches that of the class, it is the constructor.
                 const bool is_constructor_definition = mem->GetName() == m_name;
@@ -297,11 +297,11 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
                 AssertThrow(mem->GetIdentifier() != nullptr);
 
-                SymbolMember_t member(
+                SymbolTypeMember member {
                     mem->GetName(),
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment()
-                );
+                };
 
                 if (is_constructor_definition) {
                     constructor_member = member;
@@ -316,8 +316,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     bool invoke_found = false;
 
     // Find the $invoke member on the class object (if it exists)
-    for (SymbolMember_t &it : m_symbol_type->GetMembers()) {
-        if (std::get<0>(it) == "$invoke") {
+    for (const SymbolTypeMember &it : m_symbol_type->GetMembers()) {
+        if (it.name == "$invoke") {
             invoke_found = true;
             break;
         }
@@ -347,14 +347,14 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         if (constructor_member.HasValue()) {
             // We need to get the arguments for the constructor member, if possible
 
-            const SymbolMember_t &constructor_member_ref = constructor_member.Get();
+            const SymbolTypeMember &constructor_member_ref = constructor_member.Get();
 
-            SymbolTypePtr_t constructor_member_type = std::get<1>(constructor_member_ref);
+            SymbolTypePtr_t constructor_member_type = constructor_member_ref.type;
             AssertThrow(constructor_member_type != nullptr);
             constructor_member_type = constructor_member_type->GetUnaliased();
 
             // Rely on the fact that the constructor member type is a function type
-            if (constructor_member_type->IsFunctionType() && constructor_member_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
+            if (constructor_member_type->IsGenericInstanceType()) {
                 // Get params from generic expression type
                 const Array<GenericInstanceTypeInfo::Arg> &params = constructor_member_type->GetGenericInstanceInfo().m_generic_args;
                 AssertThrowMsg(params.Size() >= 1, "Generic param list must have at least one parameter (return type should be first).");
@@ -454,7 +454,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         ));
 
         invoke_expr->Visit(visitor, mod);
-        
+
         // // add it to the list of static members
         // m_static_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         //     "$invoke",
@@ -465,7 +465,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         // )));
 
         // Add $invoke member to the symbol type
-        m_symbol_type->AddMember(SymbolMember_t {
+        m_symbol_type->AddMember(SymbolTypeMember {
             "$invoke",
             invoke_expr->GetExprType(),
             CloneAstNode(invoke_expr)

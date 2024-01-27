@@ -31,7 +31,9 @@ static SymbolTypePtr_t MakeGenericInstanceType(const API::NativeFunctionDefine &
     );
 }
 
-static Pair<API::NativeMemberDefine, SymbolMember_t> InitNativeMemberDefine(API::NativeMemberDefine member)
+static Pair<API::NativeMemberDefine, SymbolTypeMember> InitNativeMemberDefine(
+    API::NativeMemberDefine member
+)
 {
     if (member.member_type == API::NativeMemberDefine::MEMBER_TYPE_FUNCTION) {
         auto function_type = SymbolType::Function(
@@ -95,7 +97,7 @@ static Pair<API::NativeMemberDefine, SymbolMember_t> InitNativeMemberDefine(API:
 
     AssertThrow(member.value_type != nullptr);
 
-    SymbolMember_t symbol_member {
+    SymbolTypeMember symbol_member {
         member.name,
         member.value_type,
         CloneAstNode(member.value_type->GetDefaultValue())
@@ -424,15 +426,15 @@ void API::ModuleDefine::BindNativeVariable(
     ExecutionThread *main_thread = vm->GetState().GetMainThread();
 
     switch (def.value_type) {
-        case NativeVariableDefine::INITIALIZER: {
-            def.value.m_type = Value::HEAP_POINTER;
-            def.value.m_value.ptr = nullptr;
-            // call the initializer
-            def.initializer_ptr(&vm->GetState(), main_thread, &def.value);
-            break;
-        }
-        case NativeVariableDefine::VALUE:
-            break;
+    case NativeVariableDefine::INITIALIZER: {
+        def.value.m_type = Value::HEAP_POINTER;
+        def.value.m_value.ptr = nullptr;
+        // call the initializer
+        def.initializer_ptr(&vm->GetState(), main_thread, &def.value);
+        break;
+    }
+    case NativeVariableDefine::VALUE:
+        break;
     }
 
     // push the object to the main thread's stack
@@ -491,9 +493,9 @@ void API::ModuleDefine::BindNativeFunction(
         function_type = std::move(generic_type);
 
         Array<RC<AstParameter>> generic_params;
-        generic_params.Reserve(def.generic_instance_info.Get().m_generic_args.Size());
+        generic_params.Reserve(def.generic_instance_info->m_generic_args.Size());
 
-        for (auto &arg : def.generic_instance_info.Get().m_generic_args) {
+        for (const GenericInstanceTypeInfo::Arg &arg : def.generic_instance_info->m_generic_args) {
             generic_params.PushBack(RC<AstParameter>(new AstParameter(
                 arg.m_name,
                 nullptr,
@@ -541,7 +543,7 @@ void API::ModuleDefine::BindType(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    const String type_name = def.name;
+    const String &type_name = def.name;
 
     if (mod->LookupSymbolType(type_name)) {
         // error; redeclaration of type in module
@@ -557,22 +559,20 @@ void API::ModuleDefine::BindType(
         return;
     }
 
-    SymbolTypePtr_t class_symbol_type;
-
     Array<NativeMemberDefine> prototype_members;
     prototype_members.Reserve(1 + def.members.Size()); // +1 for __intern
 
-    Array<SymbolMember_t> prototype_member_types;
+    Array<SymbolTypeMember> prototype_member_types;
     prototype_member_types.Reserve(1 + def.members.Size()); // +1 for __intern
 
-    Array<SymbolMember_t> class_instance_member_types;
+    Array<SymbolTypeMember> class_instance_member_types;
     class_instance_member_types.Reserve(2 + def.static_members.Size());
 
     Array<NativeMemberDefine> class_instance_members;
     class_instance_members.Reserve(2 + def.static_members.Size());
 
     // add static members
-    for (const auto &member : def.static_members) {
+    for (const NativeMemberDefine &member : def.static_members) {
         auto init_value = InitNativeMemberDefine(member);
 
         class_instance_members.PushBack(std::move(init_value.first));
@@ -598,7 +598,7 @@ void API::ModuleDefine::BindType(
         }
     }
 
-    for (const auto &member : def.members) {
+    for (const NativeMemberDefine &member : def.members) {
         auto init_value = InitNativeMemberDefine(member);
 
         prototype_members.PushBack(std::move(init_value.first));
@@ -670,22 +670,11 @@ void API::ModuleDefine::BindType(
         }
     }
 
-    if (def.base_class != nullptr) {
-        class_symbol_type = SymbolType::Extend(
-            def.name,
-            def.base_class,
-            class_instance_member_types
-        );
-    } else {
-        class_symbol_type = SymbolType::Extend(
-            def.name,
-            BuiltinTypes::CLASS_TYPE,
-            class_instance_member_types
-        );
-    }
-
-    AssertThrow(class_symbol_type != nullptr);
-    AssertThrow(class_symbol_type->GetBaseType() != nullptr);
+    SymbolTypePtr_t class_symbol_type = SymbolType::Extend(
+        def.name,
+        def.base_class ? def.base_class : BuiltinTypes::CLASS_TYPE,
+        class_instance_member_types
+    );
     
     {
         RC<AstTypeObject> ast_type_object(new AstTypeObject(
@@ -784,7 +773,7 @@ void API::ModuleDefine::BindType(
         Array<vm::Member> member_data;
         member_data.Reserve(class_instance_members.Size());
 
-        for (const auto &member : class_instance_members) {
+        for (const NativeMemberDefine &member : class_instance_members) {
             vm::Member member_data_instance;
             std::strncpy(member_data_instance.name, member.name.Data(), 255);
             member_data_instance.hash = hash_fnv_1(member.name.Data());

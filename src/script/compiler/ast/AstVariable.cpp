@@ -166,7 +166,11 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                     }
                 }
 
-                if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
+                const SymbolTypeFlags flags = m_properties.GetIdentifier()->GetFlags();
+
+                // if the variable is declared in a function, and is not a generic substitution,
+                // we add it to the closure capture list.
+                if ((flags & FLAG_DECLARED_IN_FUNCTION) && !(flags & FLAG_GENERIC_SUBSTITUTION)) {
                     // lookup the variable by depth to make sure it was declared in the current function
                     if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
                         Scope *function_scope = m_properties.GetFunctionScope();

@@ -84,7 +84,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     // start looking at the target type,
     // iterate through base type
     SymbolTypePtr_t field_type = nullptr;
-    SymbolMember_t member;
+    SymbolTypeMember member;
 
     for (UInt depth = 0; field_type == nullptr && m_target_type != nullptr; depth++) {
         AssertThrow(m_target_type != nullptr);
@@ -120,7 +120,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             // convert thing.DoThing()
             // to ThingProxy.DoThing(thing)
             if (m_target_type->FindMember(m_field_name, member, m_found_index)) {
-                field_type = std::move(std::get<1>(member));
+                field_type = member.type;
             }
 
             break;
@@ -137,7 +137,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                     m_found_index = field_index;
                 }
 
-                field_type = std::move(std::get<1>(member));
+                field_type = member.type;
 
                 break;
             }
@@ -174,7 +174,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                         m_found_index = field_index;
                     }
 
-                    field_type = std::move(std::get<1>(member));
+                    field_type = member.type;
                 }
             }
         }
@@ -189,41 +189,12 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             // Cloning the member will unfortunately will break closure captures used
             // in a member function, but it's the best we can do for now.
             // it also will cause too many clones to be made, making a larger bytecode chunk.
-            m_override_expr = CloneAstNode(std::get<2>(member));
+            m_override_expr = CloneAstNode(member.expr);
             AssertThrowMsg(m_override_expr != nullptr, "member %s is generic but has no value", m_field_name.Data());
 
             m_override_expr->Visit(visitor, mod);
 
             m_symbol_type = m_override_expr->GetExprType();
-
-
-            // Replace it with `target.class.$proto.field_name<generic_args>`
-            // if it is a generic type.
-
-            // RC<AstMember> replaced_member_expr(new AstMember(
-            //     m_field_name,
-            //     RC<AstMember>(new AstMember(
-            //         "$proto",
-            //         RC<AstMember>(new AstMember(
-            //             Keyword::ToString(Keyword_class).Get(),
-            //             CloneAstNode(m_target),
-            //             m_location
-            //         )),
-            //         m_location
-            //     )),
-            //     m_location
-            // ));
-            
-            // // set it to false so we don't recurse
-            // replaced_member_expr->m_enable_generic_member_substitution = false;
-
-            // m_override_expr = std::move(replaced_member_expr);
-
-            // m_override_expr->SetAccessMode(m_access_mode);
-            // m_override_expr->Visit(visitor, mod);
-
-            // m_symbol_type = m_override_expr->GetExprType();
-            // m_held_type = m_override_expr->GetHeldType();
         } else {
             m_symbol_type = field_type;
         }

@@ -192,7 +192,7 @@ static HYP_SCRIPT_FUNCTION(ArrayPush)
     vm::Value *target_ptr = params.args[0];
     AssertThrow(target_ptr != nullptr);
 
-    vm::Exception e("ArrayPush() requires an array argument");
+    vm::Exception e("__array_push() requires an array argument");
 
     if (target_ptr->GetType() == vm::Value::ValueType::HEAP_POINTER) {
         vm::VMArray *array_ptr = nullptr;
@@ -222,7 +222,7 @@ static HYP_SCRIPT_FUNCTION(ArrayPop)
     vm::Value *target_ptr = params.args[0];
     AssertThrow(target_ptr != nullptr);
 
-    vm::Exception e("ArrayPop() requires an array argument");
+    vm::Exception e("__array_pop() requires an array argument");
 
     vm::Value value; // value that was popped from array
 

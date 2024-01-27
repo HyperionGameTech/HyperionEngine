@@ -141,15 +141,15 @@ bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_
         return true;
     }
 
-    SymbolMember_t proto_member;
+    SymbolTypeMember proto_member;
 
     if (symbol_type->FindMember("$proto", proto_member)) {
-        m_prototype_type = std::get<1>(proto_member);
+        m_prototype_type = proto_member.type;
         AssertThrow(m_prototype_type != nullptr);
         m_prototype_type = m_prototype_type->GetUnaliased();
 
         if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
-            m_default_value = std::get<2>(proto_member);
+            m_default_value = proto_member.expr;
         }
 
         return true;

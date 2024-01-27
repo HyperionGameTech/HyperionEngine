@@ -30,25 +30,29 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     // use strict numbers so that floats cannot be passed as explicit ints
     // @NOTE: do not add error for undefined, it causes too many unnecessary errors
     //        that would've already been conveyed via 'not declared' errors
-    if (arg_type != BuiltinTypes::UNDEFINED) {
-        if (!param_type->TypeCompatible(*arg_type, true)) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_arg_type_incompatible,
-                location,
-                arg_type->ToString(),
-                param_type->ToString()
-            ));
-        }
+    if (arg_type == BuiltinTypes::UNDEFINED) {
+        return;
     }
+
+    if (param_type->TypeCompatible(*arg_type, true)) {
+        return;
+    }
+
+    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+        LEVEL_ERROR,
+        Msg_arg_type_incompatible,
+        location,
+        arg_type->ToString(),
+        param_type->ToString()
+    ));
 }
 
-Int SemanticAnalyzer::Helpers::FindFreeSlot(
-    int current_index,
-    const FlatSet<int> &used_indices,
+SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
+    SizeType current_index,
+    const FlatSet<SizeType> &used_indices,
     const Array<GenericInstanceTypeInfo::Arg> &generic_args,
     bool is_variadic,
-    int num_supplied_args
+    SizeType num_supplied_args
 )
 {
     const SizeType num_params = generic_args.Size();
@@ -69,28 +73,28 @@ Int SemanticAnalyzer::Helpers::FindFreeSlot(
     }
 
     // no slot available
-    return -1;
+    return SizeType(-1);
 }
 
-Int SemanticAnalyzer::Helpers::ArgIndex(
-    Int current_index,
+SizeType SemanticAnalyzer::Helpers::ArgIndex(
+    SizeType current_index,
     const ArgInfo &arg_info,
-    const FlatSet<Int> &used_indices,
+    const FlatSet<SizeType> &used_indices,
     const Array<GenericInstanceTypeInfo::Arg> &generic_args,
     Bool is_variadic,
-    Int num_supplied_args
+    SizeType num_supplied_args
 )
 {
     if (arg_info.is_named) {
-        for (int j = 0; j < generic_args.Size(); j++) {
-            const String &generic_arg_name = generic_args[j].m_name;
+        for (SizeType i = 0; i < generic_args.Size(); i++) {
+            const String &generic_arg_name = generic_args[i].m_name;
 
-            if (generic_arg_name == arg_info.name && used_indices.Find(j) == used_indices.End()) {
-                return j;
+            if (generic_arg_name == arg_info.name && used_indices.Find(i) == used_indices.End()) {
+                return i;
             }
         }
 
-        return -1;
+        return SizeType(-1);
     }
 
     return FindFreeSlot(
@@ -117,17 +121,18 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     const auto FindArgForInputType = [&]() -> const SubstitutionResult *
     {
-        Int generic_arg_index = -1;
+        SizeType generic_arg_index = SizeType(-1);
 
         for (SizeType index = 0; index < generic_args.Size(); index++) {
             if (generic_args[index].m_name == input_type->GetName()) {
-                generic_arg_index = Int(index);
+                generic_arg_index = index;
 
                 break;
             }
         }
 
-        const auto substitution_result_it = substitution_results.FindIf([generic_arg_index](const SubstitutionResult &substitution_result) {
+        const auto substitution_result_it = substitution_results.FindIf([generic_arg_index](const SubstitutionResult &substitution_result)
+        {
             return substitution_result.index == generic_arg_index;
         });
 
@@ -177,15 +182,7 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         auto base_type = input_type->GetBaseType();
         AssertThrow(base_type != nullptr);
 
-        /*base_type = SubstituteGenericParameters(
-            visitor,
-            mod,
-            base_type,
-            args,
-            location
-        );*/
-
-        const auto &generic_instance_info = input_type->GetGenericInstanceInfo();
+        const GenericInstanceTypeInfo &generic_instance_info = input_type->GetGenericInstanceInfo();
 
         Array<GenericInstanceTypeInfo::Arg> res_args = generic_instance_info.m_generic_args;
 
@@ -207,18 +204,18 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             }
         );
 
-        for (const SymbolMember_t &member : input_type->GetMembers()) {
+        for (const SymbolTypeMember &member : input_type->GetMembers()) {
             substituted_type->AddMember({
-                std::get<0>(member),
+                member.name,
                 SubstituteGenericParameters(
                     visitor,
                     mod,
-                    std::get<1>(member),
+                    member.type,
                     generic_args,
                     substitution_results,
                     location
                 ),
-                std::get<2>(member)
+                member.expr
             });
         }
 
@@ -229,7 +226,7 @@ SymbolTypePtr_t SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
 }
 
-FunctionTypeSignature_t SemanticAnalyzer::Helpers::ExtractGenericArgs(
+Optional<SymbolTypeFunctionSignature> SemanticAnalyzer::Helpers::ExtractGenericArgs(
     AstVisitor *visitor,
     Module *mod,
     const SymbolTypePtr_t &symbol_type, 
@@ -247,12 +244,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::ExtractGenericArgs(
     const Array<GenericInstanceTypeInfo::Arg> &generic_args = symbol_type->GetGenericInstanceInfo().m_generic_args;
 
     if (generic_args.Empty()) {
-        DebugLog(LogType::Error, "No generic args in type %s\t%d\n", symbol_type->ToString(true).Data(), symbol_type->GetTypeClass());
-
-        return FunctionTypeSignature_t {
-            nullptr,
-            {}
-        };
+        return { };
     }
 
     // make sure the "return type" of the function is not null
@@ -271,10 +263,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::ExtractGenericArgs(
     for (const auto &substitution_result : substitution_results) {
         if (!substitution_result.arg) {
             // Error occurred
-            return FunctionTypeSignature_t {
-                nullptr,
-                {}
-            };
+            return { };
         }
     }
     
@@ -297,7 +286,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::ExtractGenericArgs(
         res_args.PushBack(substitution_result.arg);
     }
 
-    return FunctionTypeSignature_t {
+    return SymbolTypeFunctionSignature {
         return_type,
         res_args
     };
@@ -388,7 +377,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
             for (SizeType index = 0; index < args.Size(); index++) {
                 substitution_results[index].arg = args[index];
-                substitution_results[index].index = Int(index);
+                substitution_results[index].index = index;
             }
 
             return substitution_results;
@@ -396,7 +385,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     );
 }
 
-FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+Optional<SymbolTypeFunctionSignature> SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor *visitor, Module *mod, 
     const SymbolTypePtr_t &symbol_type, 
     const Array<RC<AstArgument>> &args,
@@ -430,7 +419,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 }
             }
 
-            FlatSet<int> used_indices;
+            FlatSet<SizeType> used_indices;
 
             Array<SubstitutionResult> substitution_results;
             substitution_results.Resize(num_generic_args);
@@ -466,14 +455,14 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     const ArgDataPair &arg = named_args[i];
                     AssertThrow(std::get<1>(arg) != nullptr);
 
-                    const int found_index = ArgIndex(
+                    const SizeType found_index = ArgIndex(
                         i,
                         std::get<0>(arg),
                         used_indices,
                         generic_args
                     );
 
-                    if (found_index != -1) {
+                    if (found_index != SizeType(-1)) {
                         used_indices.Insert(found_index);
 
                         // found successfully, check type compatibility
@@ -501,33 +490,12 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                         substitution_results[found_index].arg->SetIsPassConst(generic_args[found_index].m_is_const);
                         substitution_results[found_index].index = found_index;
                     } else {
-                        std::stringstream ss;
-
-                        ss << "[";
-
-                        for (SizeType i = 0; i < generic_args.Size(); i++) {
-                            const auto &arg = generic_args[i];
-
-                            if (arg.m_name.Any()) {
-                                ss << arg.m_name << ": " << (arg.m_type != nullptr ? arg.m_type->ToString() : "??");
-                            } else {
-                                ss << "$" << i << ": " << (arg.m_type != nullptr ? arg.m_type->ToString() : "??");
-                            }
-
-                            if (i != generic_args.Size() - 1) {
-                                ss << ", ";
-                            }
-                        }
-
-                        ss << "]";
-
                         // not found so add error
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
                             Msg_named_arg_not_found,
                             std::get<1>(arg)->GetLocation(),
-                            std::get<0>(arg).name,
-                            ss.str()
+                            std::get<0>(arg).name
                         ));
                     }
                 }
@@ -537,7 +505,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     const ArgDataPair &arg = unnamed_args[i];
                     AssertThrow(std::get<1>(arg) != nullptr);
 
-                    Int found_index = ArgIndex(
+                    SizeType found_index = ArgIndex(
                         i,
                         std::get<0>(arg),
                         used_indices,
@@ -569,8 +537,8 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                         arg_type->SetIsPassByRef(is_ref);
                         arg_type->SetIsPassConst(is_const);
 
-                        if (found_index == -1 || found_index >= substitution_results.Size()) {
-                            found_index = Int(substitution_results.Size());
+                        if (found_index == SizeType(-1) || found_index >= substitution_results.Size()) {
+                            found_index = substitution_results.Size();
 
                             // at end, push to make room
                             substitution_results.Resize(substitution_results.Size() + 1);
@@ -589,7 +557,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                             std::move(arg_type),
                             found_index
                         };
-                    } else if (found_index != -1) {
+                    } else if (found_index != SizeType(-1)) {
                         AssertThrowMsg(
                             SizeType(found_index) < substitution_results.Size(),
                             "Index out of bounds: %llu >= %llu",
@@ -635,7 +603,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     }
                 }
 
-                Int unused_index_counter = 0;
+                SizeType unused_index_counter = 0;
 
                 for (auto it = unused_indices.Begin(); it != unused_indices.End();) {
                     const SizeType unused_index = *it;
@@ -678,15 +646,15 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     arg_info.name = substituted_arg->GetName();
                     arg_info.type = substituted_arg->GetExprType();
 
-                    Int found_index = ArgIndex(
+                    SizeType found_index = ArgIndex(
                         unused_index_counter,
                         arg_info,
                         used_indices,
                         generic_args
                     );
 
-                    if (found_index == -1) {
-                        found_index = Int(substitution_results.Size());
+                    if (found_index == SizeType(-1)) {
+                        found_index = substitution_results.Size();
                         substitution_results.Resize(substitution_results.Size() + 1);
                     }
 

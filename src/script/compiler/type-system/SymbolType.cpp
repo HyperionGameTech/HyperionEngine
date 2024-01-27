@@ -5,6 +5,8 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
+#include <core/lib/FlatSet.hpp>
+
 #include <system/Debug.hpp>
 #include <util/UTF8.hpp>
 
@@ -28,7 +30,7 @@ SymbolType::SymbolType(
     SymbolTypeClass type_class,
     const SymbolTypePtr_t &base,
     const RC<AstExpression> &default_value,
-    const Array<SymbolMember_t> &members
+    const Array<SymbolTypeMember> &members
 ) : m_name(name),
     m_type_class(type_class),
     m_default_value(default_value),
@@ -70,7 +72,23 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
 
         return true;
         
-    case TYPE_GENERIC_INSTANCE:
+    case TYPE_GENERIC_INSTANCE: {
+        if (m_generic_instance_info.m_generic_args.Size() != other.m_generic_instance_info.m_generic_args.Size()) {
+            return false;
+        }
+
+        SymbolTypePtr_t base = m_base;
+        AssertThrow(base != nullptr);
+        
+        // check for compatibility between instances
+        SymbolTypePtr_t other_base = other.GetBaseType();
+        AssertThrow(other_base != nullptr);
+
+        if (!base->TypeEqual(*other_base)) {
+            return false;
+        } 
+
+        // check all params
         if (m_generic_instance_info.m_generic_args.Size() != other.m_generic_instance_info.m_generic_args.Size()) {
             return false;
         }
@@ -83,49 +101,46 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
             AssertThrow(instance_arg_type != nullptr);
             AssertThrow(other_arg_type != nullptr);
 
-            if (instance_arg_type != other_arg_type) {
+            if (!instance_arg_type->TypeEqual(*other_arg_type)) {
                 return false; // have to do this for now to prevent infinte recursion
             }
-
-            // if (instance_arg_type == other_arg_type) {
-            //     continue;
-            // }
-
-            // if (!instance_arg_type->TypeEqual(*other_arg_type)) {
-            //     return false;
-            // }
         }
 
-        // do not go to end (where members are compared)
-        return true;
-
+        break;
+    }
     default:
         break;
     }
 
+    // early out if members are not equal
     if (m_members.Size() != other.m_members.Size()) {
         return false;
     }
 
-    for (const SymbolMember_t &i : m_members) {
-        auto &left_type = std::get<1>(i);
-        AssertThrow(left_type != nullptr);
+    for (const SymbolTypeMember &left_member : m_members) {
+        const SymbolTypePtr_t &left_member_type = left_member.type;
+        AssertThrow(left_member_type != nullptr);
 
-        bool right_member_found = false;
+        SymbolTypeMember right_member;
 
-        for (const SymbolMember_t &j : other.m_members) {
-            auto &right_type = std::get<1>(j);
-            AssertThrow(right_type != nullptr);
+        if (!other.FindMember(left_member.name, right_member)) {
+            DebugLog(LogType::Debug,
+                "SymbolType::TypeEqual: member '%s' not found in other type '%s'\n",
+                left_member.name.Data(),
+                other.m_name.Data());
 
-            if (left_type == right_type || left_type->TypeEqual(*right_type)) {
-                right_member_found = true;
-
-                continue;
-            }
+            return false;
         }
 
-        if (!right_member_found) {
-            // none found. return false.
+        AssertThrow(right_member.type != nullptr);
+
+        if (!right_member.type->TypeEqual(*left_member_type)) {
+            DebugLog(LogType::Debug,
+                "SymbolType::TypeEqual: member '%s' type '%s' != '%s'\n",
+                left_member.name.Data(),
+                left_member_type->ToString(true).Data(),
+                right_member.type->ToString(true).Data());
+
             return false;
         }
     }
@@ -135,8 +150,7 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
 
 bool SymbolType::TypeCompatible(
     const SymbolType &right,
-    bool strict_numbers,
-    bool strict_const
+    bool strict_numbers
 ) const
 {
     if (TypeEqual(*BuiltinTypes::UNDEFINED) || right.TypeEqual(*BuiltinTypes::UNDEFINED)) {
@@ -202,7 +216,7 @@ bool SymbolType::TypeCompatible(
             SymbolTypePtr_t other_base = right.GetBaseType();
             AssertThrow(other_base != nullptr);
 
-            if (!TypeCompatible(*other_base, strict_numbers) && !base->TypeCompatible(*other_base, strict_numbers)) {
+            if (!base->TypeEqual(*other_base)) {
                 return false;
             } 
 
@@ -257,19 +271,19 @@ bool SymbolType::TypeCompatible(
 
 const SymbolTypePtr_t SymbolType::FindMember(const String &name) const
 {
-    for (const SymbolMember_t &member : m_members) {
-        if (std::get<0>(member) == name) {
-            return std::get<1>(member);
+    for (const SymbolTypeMember &member : m_members) {
+        if (member.name == name) {
+            return member.type;
         }
     }
 
     return nullptr;
 }
 
-bool SymbolType::FindMember(const String &name, SymbolMember_t &out) const
+bool SymbolType::FindMember(const String &name, SymbolTypeMember &out) const
 {
-    for (const SymbolMember_t &member : m_members) {
-        if (std::get<0>(member) == name) {
+    for (const SymbolTypeMember &member : m_members) {
+        if (member.name == name) {
             out = member;
             return true;
         }
@@ -278,13 +292,13 @@ bool SymbolType::FindMember(const String &name, SymbolMember_t &out) const
     return false;
 }
 
-bool SymbolType::FindMember(const String &name, SymbolMember_t &out, UInt &out_index) const
+bool SymbolType::FindMember(const String &name, SymbolTypeMember &out, UInt &out_index) const
 {
     // get member index from name
     for (SizeType i = 0; i < m_members.Size(); i++) {
-        const SymbolMember_t &member = m_members[i];
+        const SymbolTypeMember &member = m_members[i];
 
-        if (std::get<0>(member) == name) {
+        if (member.name == name) {
             // only set m_found_index if found in first level.
             // for members from base objects,
             // we load based on hash.
@@ -298,7 +312,7 @@ bool SymbolType::FindMember(const String &name, SymbolMember_t &out, UInt &out_i
     return false;
 }
 
-bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out) const
+bool SymbolType::FindMemberDeep(const String &name, SymbolTypeMember &out) const
 {
     UInt out_index;
     UInt out_depth;
@@ -306,14 +320,14 @@ bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out) const
     return FindMemberDeep(name, out, out_index, out_depth);
 }
 
-bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index) const
+bool SymbolType::FindMemberDeep(const String &name, SymbolTypeMember &out, UInt &out_index) const
 {
     UInt out_depth;
 
     return FindMemberDeep(name, out, out_index, out_depth);
 }
 
-bool SymbolType::FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index, UInt &out_depth) const
+bool SymbolType::FindMemberDeep(const String &name, SymbolTypeMember &out, UInt &out_index, UInt &out_depth) const
 {
     out_depth = 0;
 
@@ -352,7 +366,7 @@ const SymbolTypePtr_t SymbolType::FindPrototypeMember(const String &name) const
 }
 
 
-bool SymbolType::FindPrototypeMember(const String &name, SymbolMember_t &out) const
+bool SymbolType::FindPrototypeMember(const String &name, SymbolTypeMember &out) const
 {
     if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
         return proto_type->FindMember(name, out);
@@ -363,12 +377,12 @@ bool SymbolType::FindPrototypeMember(const String &name, SymbolMember_t &out) co
 
 bool SymbolType::FindPrototypeMemberDeep(const String &name) const
 {
-    SymbolMember_t out;
+    SymbolTypeMember out;
 
     return FindPrototypeMemberDeep(name, out);
 }
 
-bool SymbolType::FindPrototypeMemberDeep(const String &name, SymbolMember_t &out) const
+bool SymbolType::FindPrototypeMemberDeep(const String &name, SymbolTypeMember &out) const
 {
     if (FindPrototypeMember(name, out)) {
         return true;
@@ -387,7 +401,7 @@ bool SymbolType::FindPrototypeMemberDeep(const String &name, SymbolMember_t &out
     return false;
 }
 
-bool SymbolType::FindPrototypeMember(const String &name, SymbolMember_t &out, UInt &out_index) const
+bool SymbolType::FindPrototypeMember(const String &name, SymbolTypeMember &out, UInt &out_index) const
 {
     bool found = false;
 
@@ -395,9 +409,9 @@ bool SymbolType::FindPrototypeMember(const String &name, SymbolMember_t &out, UI
     if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
         // get member index from name
         for (SizeType i = 0; i < proto_type->GetMembers().Size(); i++) {
-            const SymbolMember_t &member = proto_type->GetMembers()[i];
+            const SymbolTypeMember &member = proto_type->GetMembers()[i];
 
-            if (std::get<0>(member) == name) {
+            if (member.name == name) {
                 // only set m_found_index if found in first level.
                 // for members from base objects,
                 // we load based on hash.
@@ -535,11 +549,6 @@ bool SymbolType::IsGenericBaseType() const
     return m_type_class == TYPE_GENERIC;
 }
 
-bool SymbolType::IsFunctionType() const
-{
-    return IsOrHasBase(*BuiltinTypes::FUNCTION);
-}
-
 bool SymbolType::IsPrimitive() const
 {
     return IsOrHasBase(*BuiltinTypes::PRIMITIVE_TYPE);
@@ -602,7 +611,7 @@ SymbolTypePtr_t SymbolType::Primitive(
 
 SymbolTypePtr_t SymbolType::Object(
     const String &name,
-    const Array<SymbolMember_t> &members
+    const Array<SymbolTypeMember> &members
 )
 {
     SymbolTypePtr_t symbol_type(new SymbolType(
@@ -621,7 +630,7 @@ SymbolTypePtr_t SymbolType::Object(
 }
 
 SymbolTypePtr_t SymbolType::Object(const String &name,
-    const Array<SymbolMember_t> &members,
+    const Array<SymbolTypeMember> &members,
     const SymbolTypePtr_t &base)
 {
     SymbolTypePtr_t symbol_type(new SymbolType(
@@ -640,7 +649,7 @@ SymbolTypePtr_t SymbolType::Object(const String &name,
 }
 
 SymbolTypePtr_t SymbolType::Generic(const String &name,
-    const Array<SymbolMember_t> &members, 
+    const Array<SymbolTypeMember> &members, 
     const GenericTypeInfo &info,
     const SymbolTypePtr_t &base)
 {
@@ -659,7 +668,7 @@ SymbolTypePtr_t SymbolType::Generic(const String &name,
 
 SymbolTypePtr_t SymbolType::Generic(const String &name,
     const RC<AstExpression> &default_value,
-    const Array<SymbolMember_t> &members, 
+    const Array<SymbolTypeMember> &members, 
     const GenericTypeInfo &info,
     const SymbolTypePtr_t &base)
 {
@@ -795,7 +804,7 @@ String SymbolType::ToString(Bool include_parameter_names) const
 SymbolTypePtr_t SymbolType::GenericInstance(
     const SymbolTypePtr_t &base,
     const GenericInstanceTypeInfo &info,
-    const Array<SymbolMember_t> &members
+    const Array<SymbolTypeMember> &members
 )
 {
     AssertThrowMsg(info.m_generic_args.Size() >= 1,
@@ -806,13 +815,13 @@ SymbolTypePtr_t SymbolType::GenericInstance(
 
     const String name = base->GetName();
 
-    Array<SymbolMember_t> all_members;
+    Array<SymbolTypeMember> all_members;
     all_members.Reserve(base->GetMembers().Size() + members.Size());
 
-    for (const SymbolMember_t &member : base->GetMembers()) {
+    for (const SymbolTypeMember &member : base->GetMembers()) {
         const auto overriden_member_it = members.FindIf([&member](const auto &other_member)
         {
-            return std::get<0>(other_member) == std::get<0>(member);
+            return other_member.name == member.name;
         });
 
         if (overriden_member_it != members.End()) {
@@ -820,7 +829,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
             continue;
         }
 
-        if (std::get<1>(member)->GetTypeClass() == TYPE_GENERIC_PARAMETER) {
+        if (member.type->GetTypeClass() == TYPE_GENERIC_PARAMETER) {
             // if members of the generic/template class are of the type T (generic parameter)
             // we need to make sure that the number of parameters supplied are equal.
             AssertThrow(base->GetGenericInfo().m_params.Size() == info.m_generic_args.Size());
@@ -828,44 +837,44 @@ SymbolTypePtr_t SymbolType::GenericInstance(
             // find parameter and substitute it
             const auto generic_param_it = base->GetGenericInfo().m_params.FindIf([&](const SymbolTypePtr_t &it)
             {
-                return it->GetName() == std::get<1>(member)->GetName();
+                return it->GetName() == member.name;
             });
 
             if (generic_param_it != base->GetGenericInfo().m_params.End()) {
                 RC<AstExpression> default_value;
 
-                if ((default_value = std::get<2>(member))) {
+                if ((default_value = member.expr)) {
                     default_value = CloneAstNode(default_value);
                 }
 
-                all_members.PushBack(SymbolMember_t {
-                    std::get<0>(member),
+                all_members.PushBack(SymbolTypeMember {
+                    member.name,
                     info.m_generic_args[std::distance(base->GetGenericInfo().m_params.Begin(), generic_param_it)].m_type,
                     default_value
                 });
             } else {
                 // substitution error, set type to be undefined
-                all_members.PushBack(SymbolMember_t {
-                    std::get<0>(member),
+                all_members.PushBack(SymbolTypeMember {
+                    member.name,
                     BuiltinTypes::UNDEFINED,
-                    std::get<2>(member)
+                    member.expr
                 });
             }
         } else {
             // push copy (clone assignment value)
-            all_members.PushBack(SymbolMember_t {
-                std::get<0>(member),
-                std::get<1>(member),
-                CloneAstNode(std::get<2>(member))
+            all_members.PushBack(SymbolTypeMember {
+                member.name,
+                member.type,
+                CloneAstNode(member.expr)
             });
         }
     }
 
-    for (const SymbolMember_t &member : members) {
-        all_members.PushBack(SymbolMember_t {
-            std::get<0>(member),
-            std::get<1>(member),
-            CloneAstNode(std::get<2>(member))
+    for (const SymbolTypeMember &member : members) {
+        all_members.PushBack(SymbolTypeMember {
+            member.name,
+            member.type,
+            CloneAstNode(member.expr)
         });
     }
 
@@ -917,7 +926,7 @@ SymbolTypePtr_t SymbolType::GenericParameter(
 SymbolTypePtr_t SymbolType::Extend(
     const String &name,
     const SymbolTypePtr_t &base,
-    const Array<SymbolMember_t> &members
+    const Array<SymbolTypeMember> &members
 )
 {
     AssertThrow(base != nullptr);
@@ -947,14 +956,14 @@ SymbolTypePtr_t SymbolType::Extend(
 SymbolTypePtr_t PrototypedObject(
     const String &name,
     const SymbolTypePtr_t &base,
-    const Array<SymbolMember_t> &prototype_members
+    const Array<SymbolTypeMember> &prototype_members
 )
 {
     return SymbolType::Extend(
         name,
         base,
-        Array<SymbolMember_t> {
-            SymbolMember_t {
+        Array<SymbolTypeMember> {
+            SymbolTypeMember {
                 "$proto",
                 SymbolType::Object(
                     name + "Instance",

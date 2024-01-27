@@ -62,29 +62,29 @@ void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
     m_member_expressions.Resize(m_symbol_type->GetMembers().Size());
 
     for (SizeType index = 0; index < m_symbol_type->GetMembers().Size(); index++) {
-        const SymbolMember_t &member = m_symbol_type->GetMembers()[index];
+        const SymbolTypeMember &member = m_symbol_type->GetMembers()[index];
 
-        SymbolTypePtr_t member_type = std::get<1>(member);
+        SymbolTypePtr_t member_type = member.type;
         AssertThrow(member_type != nullptr);
         member_type = member_type->GetUnaliased();
 
-        AstExpression *previous_expression = nullptr;
+        RC<AstExpression> previous_expr;
 
-        if (std::get<2>(member) != nullptr) {
-            previous_expression = std::get<2>(member).Get();
+        if (member.expr != nullptr) {
+            previous_expr = member.expr;
         } else {
-            previous_expression = member_type->GetDefaultValue().Get();
+            previous_expr = member_type->GetDefaultValue();
         }
 
         AssertThrowMsg(
-            previous_expression != nullptr,
+            previous_expr != nullptr,
             "No assigned value for member %s and no default value for type (%s)",
-            std::get<0>(member).Data(),
-            member_type->ToString().Data()
+            member.name.Data(),
+            member_type->ToString(true).Data()
         );
 
-        m_member_expressions[index] = CloneAstNode(previous_expression);
-        m_member_expressions[index]->SetExpressionFlags(previous_expression->GetExpressionFlags());
+        m_member_expressions[index] = CloneAstNode(previous_expr);
+        m_member_expressions[index]->SetExpressionFlags(previous_expr->GetExpressionFlags());
     }
 
     for (const RC<AstExpression> &expr : m_member_expressions) {
@@ -139,8 +139,8 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         instr_type->reg = obj_reg;
         instr_type->name = m_symbol_type->GetName();
 
-        for (const SymbolMember_t &mem : m_symbol_type->GetMembers()) {
-            instr_type->members.PushBack(std::get<0>(mem));
+        for (const SymbolTypeMember &mem : m_symbol_type->GetMembers()) {
+            instr_type->members.PushBack(mem.name);
         }
 
         chunk->Append(std::move(instr_type));
@@ -197,7 +197,7 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
             rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
 
             { // comment for debug
-                chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(m_symbol_type->GetMembers()[index])));
+                chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_symbol_type->GetMembers()[index].name));
             }
         }
 

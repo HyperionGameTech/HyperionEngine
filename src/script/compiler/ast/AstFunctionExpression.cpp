@@ -191,7 +191,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     }
     
     // create data members to copy closure parameters
-    Array<SymbolMember_t> closure_obj_members;
+    Array<SymbolTypeMember> closure_obj_members;
 
     for (const auto &it : function_scope->GetClosureCaptures()) {
         const String &name = it.first;
@@ -205,7 +205,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
         
-        closure_obj_members.PushBack(SymbolMember_t {
+        closure_obj_members.PushBack(SymbolTypeMember {
             identifier->GetName(),
             identifier->GetSymbolType(),
             current_value
@@ -286,15 +286,40 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     function_type = function_type->GetUnaliased();
 
     if (function_type != BuiltinTypes::UNDEFINED) {
+        const int current_symbol_type_id = function_type->GetId();
+        AssertThrow(current_symbol_type_id != -1);
+
+        const RC<AstTypeObject> current_type_object = function_type->GetTypeObject().Lock();
+        AssertThrow(current_type_object != nullptr);
+
+        const SymbolTypeFlags current_flags = function_type->GetFlags();
+
         function_type = SymbolType::GenericInstance(
             function_type,
             GenericInstanceTypeInfo {
                 generic_param_types
             }
         );
+
+        // Reuse the same ID
+        function_type->SetId(current_symbol_type_id);
+        function_type->SetTypeObject(current_type_object);
+        function_type->SetFlags(current_flags);
     }
 
     if (m_is_closure) {
+        String closure_name = "$$closure";
+
+        for (const auto &it : function_scope->GetClosureCaptures()) {
+            const String &name = it.first;
+            const RC<Identifier> &identifier = it.second;
+
+            AssertThrow(identifier != nullptr);
+            AssertThrow(identifier->GetSymbolType() != nullptr);
+
+            closure_name += "$" + name;
+        }
+
         // add $invoke to call this object
         m_closure_type_expr.Reset(new AstTypeExpression(
             "__closure",
@@ -320,11 +345,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
 
-        for (auto &it : closure_obj_members) {
+        for (const SymbolTypeMember &member : closure_obj_members) {
             m_closure_type_expr->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                std::get<0>(it),
+                member.name,
                 nullptr,
-                std::get<2>(it),
+                member.expr,
                 IdentifierFlags::FLAG_NONE,
                 m_location
             )));
@@ -335,6 +360,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         SymbolTypePtr_t closure_held_type = m_closure_type_expr->GetHeldType();
         AssertThrow(closure_held_type != nullptr);
         closure_held_type = closure_held_type->GetUnaliased();
+
+        if (closure_held_type != BuiltinTypes::UNDEFINED) {
+            AssertThrow(closure_held_type->GetId() != -1);
+            AssertThrow(closure_held_type->GetTypeObject().Lock() != nullptr);
+        }
 
         m_function_type_expr.Reset(new AstPrototypeSpecification(
             RC<AstTypeRef>(new AstTypeRef(

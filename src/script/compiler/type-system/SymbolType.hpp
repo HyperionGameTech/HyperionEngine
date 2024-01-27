@@ -31,8 +31,18 @@ using SymbolTypeWeakPtr_t = std::weak_ptr<SymbolType>;
 //     RC<AstExpression> expr;
 // };
 
-using SymbolMember_t = std::tuple<String, SymbolTypePtr_t, RC<AstExpression>>;
-using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, Array<RC<AstArgument>>>;
+struct SymbolTypeFunctionSignature
+{
+    SymbolTypePtr_t         return_type;
+    Array<RC<AstArgument>>  params;
+};
+
+struct SymbolTypeMember
+{
+    String              name;
+    SymbolTypePtr_t     type;
+    RC<AstExpression>   expr;
+};
 
 enum SymbolTypeClass
 {
@@ -109,12 +119,12 @@ public:
 
     static SymbolTypePtr_t Object(
         const String &name,
-        const Array<SymbolMember_t> &members
+        const Array<SymbolTypeMember> &members
     );
 
     static SymbolTypePtr_t Object(
         const String &name,
-        const Array<SymbolMember_t> &members,
+        const Array<SymbolTypeMember> &members,
         const SymbolTypePtr_t &base
     );
 
@@ -123,7 +133,7 @@ public:
     */
     static SymbolTypePtr_t Generic(
         const String &name,
-        const Array<SymbolMember_t> &members, 
+        const Array<SymbolTypeMember> &members, 
         const GenericTypeInfo &info,
         const SymbolTypePtr_t &base
     );
@@ -131,7 +141,7 @@ public:
     static SymbolTypePtr_t Generic(
         const String &name, 
         const RC<AstExpression> &default_value, 
-        const Array<SymbolMember_t> &members, 
+        const Array<SymbolTypeMember> &members, 
         const GenericTypeInfo &info,
         const SymbolTypePtr_t &base
     );
@@ -144,7 +154,7 @@ public:
     static SymbolTypePtr_t GenericInstance(
         const SymbolTypePtr_t &base,
         const GenericInstanceTypeInfo &info,
-        const Array<SymbolMember_t> &members
+        const Array<SymbolTypeMember> &members
     );
 
     static SymbolTypePtr_t GenericInstance(
@@ -160,13 +170,13 @@ public:
     static SymbolTypePtr_t Extend(
         const String &name,
         const SymbolTypePtr_t &base,
-        const Array<SymbolMember_t> &members
+        const Array<SymbolTypeMember> &members
     );
     
     static SymbolTypePtr_t PrototypedObject(
         const String &name,
         const SymbolTypePtr_t &base,
-        const Array<SymbolMember_t> &prototype_members
+        const Array<SymbolTypeMember> &prototype_members
     );
 
     static SymbolTypePtr_t TypePromotion(
@@ -199,7 +209,7 @@ public:
         SymbolTypeClass type_class, 
         const SymbolTypePtr_t &base,
         const RC<AstExpression> &default_value,
-        const Array<SymbolMember_t> &members
+        const Array<SymbolTypeMember> &members
     );
         
     SymbolType(const SymbolType &other)             = delete;
@@ -218,16 +228,16 @@ public:
     void SetDefaultValue(const RC<AstExpression> &default_value)
         { m_default_value = default_value; }
     
-    Array<SymbolMember_t> &GetMembers()
+    Array<SymbolTypeMember> &GetMembers()
         { return m_members; }
 
-    const Array<SymbolMember_t> &GetMembers() const
+    const Array<SymbolTypeMember> &GetMembers() const
         { return m_members; }
 
-    void SetMembers(const Array<SymbolMember_t> &members)
+    void SetMembers(const Array<SymbolTypeMember> &members)
         { m_members = members; }
 
-    void AddMember(const SymbolMember_t &member)
+    void AddMember(const SymbolTypeMember &member)
         { m_members.PushBack(member); }
 
     AliasTypeInfo &GetAliasInfo()
@@ -260,6 +270,7 @@ public:
 
     SymbolTypeFlags GetFlags() const { return m_flags; }
     SymbolTypeFlags &GetFlags() { return m_flags; }
+    void SetFlags(SymbolTypeFlags flags) { m_flags = flags; }
 
     String ToString(Bool include_parameter_names = false) const;
 
@@ -268,25 +279,24 @@ public:
     bool TypeEqual(const SymbolType &other) const;
     bool TypeCompatible(
         const SymbolType &other,
-        bool strict_numbers,
-        bool strict_const = false
+        bool strict_numbers
     ) const;
 
     bool operator==(const SymbolType &other) const { return TypeEqual(other); }
     bool operator!=(const SymbolType &other) const { return !operator==(other); }
 
     const SymbolTypePtr_t FindMember(const String &name) const;
-    bool FindMember(const String &name, SymbolMember_t &out) const;
-    bool FindMember(const String &name, SymbolMember_t &out, UInt &out_index) const;
-    bool FindMemberDeep(const String &name, SymbolMember_t &out) const;
-    bool FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index) const;
-    bool FindMemberDeep(const String &name, SymbolMember_t &out, UInt &out_index, UInt &out_depth) const;
+    bool FindMember(const String &name, SymbolTypeMember &out) const;
+    bool FindMember(const String &name, SymbolTypeMember &out, UInt &out_index) const;
+    bool FindMemberDeep(const String &name, SymbolTypeMember &out) const;
+    bool FindMemberDeep(const String &name, SymbolTypeMember &out, UInt &out_index) const;
+    bool FindMemberDeep(const String &name, SymbolTypeMember &out, UInt &out_index, UInt &out_depth) const;
 
     const SymbolTypePtr_t FindPrototypeMember(const String &name) const;
-    bool FindPrototypeMember(const String &name, SymbolMember_t &out) const;
-    bool FindPrototypeMember(const String &name, SymbolMember_t &out, UInt &out_index) const;
+    bool FindPrototypeMember(const String &name, SymbolTypeMember &out) const;
+    bool FindPrototypeMember(const String &name, SymbolTypeMember &out, UInt &out_index) const;
     bool FindPrototypeMemberDeep(const String &name) const;
-    bool FindPrototypeMemberDeep(const String &name, SymbolMember_t &out) const;
+    bool FindPrototypeMemberDeep(const String &name, SymbolTypeMember &out) const;
 
     const Weak<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }
@@ -329,9 +339,6 @@ public:
     /*! \brief Is this type a Generic base type (e.g Array, Function, etc.) */
     bool IsGenericBaseType() const;
 
-    /*! \brief Is this type a function type? (e.g. `Function(Int, Int) -> Int`) */
-    bool IsFunctionType() const;
-
     /*! \brief Is this type a primitive type? (e.g. Int, Float) */
     bool IsPrimitive() const;
 
@@ -349,12 +356,9 @@ public:
         hc.Add(m_base ? m_base->GetHashCode() : 0);
         hc.Add(m_flags);
 
-        for (const auto &member : m_members) {
-            auto &member_name = std::get<0>(member);
-            auto &member_type = std::get<1>(member);
-
-            hc.Add(member_name);
-            hc.Add(member_type ? member_type->GetHashCode() : 0);
+        for (const SymbolTypeMember &member : m_members) {
+            hc.Add(member.name);
+            hc.Add(member.type ? member.type->GetHashCode() : 0);
         }
 
         switch (m_type_class) {
@@ -399,7 +403,7 @@ public:
 private:
     String                      m_name;
     RC<AstExpression>           m_default_value;
-    Array<SymbolMember_t>       m_members;
+    Array<SymbolTypeMember>       m_members;
 
     // type that this type is based off of
     SymbolTypePtr_t             m_base;

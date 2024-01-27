@@ -44,15 +44,15 @@ void CompilationUnit::RegisterType(const SymbolTypePtr_t &type_ptr)
 
     Array<NamesPair_t> names;
 
-    for (auto &mem : type_ptr->GetMembers()) {
-        String mem_name = std::get<0>(mem);
+    for (const SymbolTypeMember &member : type_ptr->GetMembers()) {
+        const String &member_name = member.name;
 
         Array<UInt8> array_elements;
-        array_elements.Resize(mem_name.Size());
-        Memory::MemCpy(array_elements.Data(), mem_name.Data(), mem_name.Size());
+        array_elements.Resize(member_name.Size());
+        Memory::MemCpy(array_elements.Data(), member_name.Data(), member_name.Size());
 
         names.PushBack(NamesPair_t {
-            mem_name.Size(),
+            member_name.Size(),
             std::move(array_elements)
         });
     }

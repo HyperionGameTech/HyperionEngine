@@ -29,9 +29,7 @@ struct BuiltinTypes
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t MODULE_INFO;
     static const SymbolTypePtr_t GENERATOR;
-    static const SymbolTypePtr_t CLOSURE_TYPE;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
-    static const SymbolTypePtr_t ARRAY;
 };
 
 } // namespace hyperion::compiler
