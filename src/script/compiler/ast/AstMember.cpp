@@ -4,6 +4,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -104,25 +105,16 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         is_proxy_class = m_target_type->IsProxyClass();
 
         if (is_proxy_class) {
-            // @TODO: Ensure it works after changes to AstTypeObject/AstTypeExpression
-            if (m_target_type->GetTypeObject() != nullptr) {
-                // load the type by name
-                m_proxy_expr.Reset(new AstPrototypeSpecification(
-                    RC<AstVariable>(new AstVariable(
-                        m_target_type->ToString(),
-                        m_location
-                    )),
+            // load the type by name
+            m_proxy_expr.Reset(new AstPrototypeSpecification(
+                RC<AstTypeRef>(new AstTypeRef(
+                    m_target_type,
                     m_location
-                ));
+                )),
+                m_location
+            ));
 
-                m_proxy_expr->Visit(visitor, mod);
-            } else {
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_internal_error,
-                    m_location
-                ));
-            }
+            m_proxy_expr->Visit(visitor, mod);
 
             // if it is a proxy class,
             // convert thing.DoThing()

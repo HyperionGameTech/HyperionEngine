@@ -21,6 +21,9 @@ public:
     );
     virtual ~AstCallExpression() = default;
 
+    Array<RC<AstArgument>> &GetArguments()
+        { return m_args; }
+
     const Array<RC<AstArgument>> &GetArguments() const
         { return m_args; }
     

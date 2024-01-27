@@ -138,24 +138,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         m_location
     );
 
-    if (substituted.first != nullptr) {
-        m_return_type = substituted.first;
-
-        // change args to be newly ordered vector
-        m_substituted_args = CloneAllAstNodes(substituted.second);
-
-        for (const RC<AstArgument> &arg : m_substituted_args) {
-            arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
-        }
-    
-        SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
-            visitor,
-            mod,
-            unaliased,
-            m_substituted_args,
-            m_location
-        );
-    } else {
+    if (substituted.first == nullptr) {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -163,7 +146,26 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location,
             target_type->ToString()
         ));
+
+        return;
     }
+
+    m_return_type = substituted.first;
+
+    // change args to be newly ordered vector
+    m_substituted_args = CloneAllAstNodes(substituted.second);
+
+    for (const RC<AstArgument> &arg : m_substituted_args) {
+        arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+    }
+
+    SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
+        visitor,
+        mod,
+        unaliased,
+        m_substituted_args,
+        m_location
+    );
 
     if (m_substituted_args.Size() > MathUtil::MaxSafeValue<UInt8>()) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

@@ -5,7 +5,8 @@
 
 namespace hyperion::compiler {
 
-class AstTrue : public AstConstant {
+class AstTrue : public AstConstant
+{
 public:
     AstTrue(const SourceLocation &location);
 

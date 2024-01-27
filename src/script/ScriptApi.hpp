@@ -3,6 +3,7 @@
 
 #include <script/vm/VMObject.hpp>
 #include <script/vm/VMArray.hpp>
+#include <script/vm/VMMap.hpp>
 #include <script/vm/VMString.hpp>
 #include <script/vm/Value.hpp>
 #include <script/vm/InstructionHandler.hpp>

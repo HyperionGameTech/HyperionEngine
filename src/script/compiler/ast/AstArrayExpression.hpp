@@ -8,6 +8,9 @@
 
 namespace hyperion::compiler {
 
+class AstTypeObject;
+class AstPrototypeSpecification;
+
 class AstArrayExpression : public AstExpression
 {
 public:
@@ -42,10 +45,13 @@ public:
     }
 
 protected:
-    Array<RC<AstExpression>>    m_members;
+    Array<RC<AstExpression>>        m_members;
 
     // set while analyzing
-    SymbolTypePtr_t             m_held_type;
+    Array<RC<AstExpression>>        m_replaced_members;
+    SymbolTypePtr_t                 m_held_type;
+    SymbolTypePtr_t                 m_expr_type;
+    RC<AstPrototypeSpecification>   m_array_type_expr;
 
     RC<AstArrayExpression> CloneImpl() const
     {

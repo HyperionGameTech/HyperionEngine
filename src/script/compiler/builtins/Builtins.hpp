@@ -2,9 +2,8 @@
 #define BUILTINS_HPP
 
 #include <script/SourceLocation.hpp>
-#include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/AstIterator.hpp>
-#include <script/compiler/ast/AstExpression.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/emit/BytecodeChunk.hpp>
 
 #include <core/lib/HashMap.hpp>
@@ -17,18 +16,40 @@
 namespace hyperion::compiler {
 
 class AstVisitor;
+class CompilationUnit;
 
 class Builtins
 {
 public:
-    Builtins();
+    Builtins(CompilationUnit *unit);
+
+    RC<AstVariableDeclaration> FindVariable(const String &name) const
+    {
+        auto it = m_vars.FindIf([&name](const auto &var)
+        {
+            if (!var) {
+                return false;
+            }
+
+            return var->GetName() == name;
+        });
+
+        if (it == m_vars.End()) {
+            return nullptr;
+        }
+
+        return *it;
+    }
 
     /** This will analyze the builtins, and add them to the syntax tree.
      */
-    void Visit(AstVisitor *visitor, CompilationUnit *unit);
+    void Visit(AstVisitor *visitor);
 
 private:
     static const SourceLocation BUILTIN_SOURCE_LOCATION;
+
+    CompilationUnit                     *m_unit;
+    Array<RC<AstVariableDeclaration>>   m_vars;
 };
 
 } // namespace hyperion::compiler

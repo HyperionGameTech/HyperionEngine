@@ -30,7 +30,7 @@ enum ErrorMessage
     Msg_invalid_operator_for_type,
     Msg_cannot_overload_operator,
     Msg_invalid_symbol_query,
-    Msg_const_modified,
+    Msg_expression_cannot_be_modified,
     Msg_const_missing_assignment,
     Msg_ref_missing_assignment,
     Msg_cannot_create_reference,
@@ -90,7 +90,7 @@ enum ErrorMessage
     Msg_pure_function_scope,
 
     /* ARRAYS */
-    Msg_not_an_array,
+    Msg_invalid_subscript,
 
     /* TYPES */
     Msg_not_a_type,
@@ -99,6 +99,7 @@ enum ErrorMessage
     Msg_redefined_builtin_type,
     Msg_type_not_defined_globally,
     Msg_identifier_is_type,
+    Msg_cannot_determine_implicit_type,
     Msg_mismatched_types,
     Msg_mismatched_types_assignment,
     Msg_implicit_any_mismatch,

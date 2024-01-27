@@ -286,16 +286,17 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     
     AstDeclaration::Visit(visitor, mod);
 
+    AssertThrow(m_real_assignment != nullptr);
+
     if (m_identifier != nullptr) {
         m_identifier->GetFlags() |= m_flags;
         m_identifier->SetSymbolType(m_symbol_type);
 
         // set current value to be the assignment
         if (!m_identifier->GetCurrentValue()) {
-            auto *expression_value_of = m_real_assignment->GetDeepValueOf();
-            AssertThrow(expression_value_of != nullptr);
-
-            m_identifier->SetCurrentValue(CloneAstNode(expression_value_of));
+            // Note: we do not call CloneAstNode() on the assignment,
+            // because we need to use GetExprType(), which requires that the node has been visited.
+            m_identifier->SetCurrentValue(m_real_assignment);
         }
     }
 }

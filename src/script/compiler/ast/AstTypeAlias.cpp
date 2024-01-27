@@ -26,6 +26,7 @@ void AstTypeAlias::Visit(AstVisitor *visitor, Module *mod)
 
     SymbolTypePtr_t aliasee_type = m_aliasee->GetHeldType();
     AssertThrow(aliasee_type != nullptr);
+    aliasee_type = aliasee_type->GetUnaliased();
 
     // make sure name isn't already defined
     if (mod->LookupSymbolType(m_name)) {

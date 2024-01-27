@@ -1,9 +1,10 @@
-#ifndef ARRAY_HPP
-#define ARRAY_HPP
+#ifndef VM_SCRIPT_VM_ARRAY_HPP
+#define VM_SCRIPT_VM_ARRAY_HPP
 
 #include <script/vm/Value.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <system/Debug.hpp>
 
@@ -53,6 +54,8 @@ public:
         bool add_type_name = true,
         int depth = 3
     ) const;
+
+    HashCode GetHashCode() const;
 
 private:
     static SizeType GetCapacityForSize(SizeType new_size)

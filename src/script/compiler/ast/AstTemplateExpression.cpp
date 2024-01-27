@@ -49,61 +49,52 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_block.Reset(new AstBlock(m_location));
 
-
     // visit params before expression to make declarations
     // for things that may be used in the expression
 
-    // m_generic_param_placeholders.Resize(m_generic_params.Size());
-
     m_generic_param_type_objects.Reserve(m_generic_params.Size());
 
-    {
-        UInt index = 0;
+    for (auto &generic_param : m_generic_params) {
+        AssertThrow(generic_param != nullptr);
 
-        for (auto &generic_param : m_generic_params) {
-            AssertThrow(generic_param != nullptr);
+        SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
 
-            SymbolTypePtr_t generic_param_type = SymbolType::GenericParameter(generic_param->GetName());
-
-            RC<AstTypeObject> generic_param_type_object(new AstTypeObject(
-                generic_param_type,
-                BuiltinTypes::CLASS_TYPE,
-                m_location
-            ));
-
-            generic_param_type->SetTypeObject(generic_param_type_object);
-
-            mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(generic_param_type);
-
-            // when visited, will register the SymbolType
-            m_block->AddChild(generic_param_type_object);
-
-            m_generic_param_type_objects.PushBack(std::move(generic_param_type_object));
-
-            // auto var_decl = RC<AstVariableDeclaration>(new AstVariableDeclaration(
-            //     generic_param->GetName(),
-            //     nullptr,
-            //     nullptr,
-            //     IdentifierFlags::FLAG_CONST,
-            //     m_location
-            // ));
-
-            // if (generic_param->GetDefaultValue() != nullptr) {
-            //     var_decl->SetAssignment(generic_param->GetDefaultValue());
-            // } else {
-            //     var_decl->SetAssignment(RC<AstTypeRef>(new AstTypeRef(
-            //         generic_param_type, SourceLocation::eof
-            //     )));
-            // }
-
-            // if (generic_param->GetPrototypeSpecification() != nullptr) {
-            //     var_decl->SetPrototypeSpecification(generic_param->GetPrototypeSpecification());
-            // }
-
-            // m_block->AddChild(var_decl);
-
-            // m_generic_param_placeholders[index++] = var_decl;
+        if (generic_param->IsVariadic()) {
+            base_type = BuiltinTypes::VAR_ARGS;
         }
+
+        SymbolTypePtr_t generic_param_type = SymbolType::GenericParameter(
+            generic_param->GetName(),
+            base_type
+        );
+
+        RC<AstTypeObject> generic_param_type_object(new AstTypeObject(
+            generic_param_type,
+            base_type,
+            m_location
+        ));
+
+        generic_param_type->SetTypeObject(generic_param_type_object);
+
+        mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(generic_param_type);
+
+        // when visited, will register the SymbolType
+        m_block->AddChild(generic_param_type_object);
+
+        m_generic_param_type_objects.PushBack(std::move(generic_param_type_object));
+
+        auto var_decl = RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            generic_param->GetName(),
+            nullptr,
+            RC<AstTypeRef>(new AstTypeRef(
+                generic_param_type,
+                SourceLocation::eof
+            )),
+            IdentifierFlags::FLAG_CONST,
+            m_location
+        ));
+
+        m_block->AddChild(var_decl);
     }
     
     if (m_return_type_specification != nullptr) {
@@ -128,7 +119,6 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_return_type_specification != nullptr) {
         AssertThrow(explicit_return_type != nullptr);
         
-
         expr_return_type = explicit_return_type;
     } else {
         expr_return_type = BuiltinTypes::PLACEHOLDER;
@@ -142,12 +132,6 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_generic_params.Size() == m_generic_param_type_objects.Size());
 
     for (SizeType i = 0; i < m_generic_params.Size(); i++) {
-        // const RC<AstVariableDeclaration> &placeholder = m_generic_param_placeholders[i];
-        // AssertThrow(placeholder != nullptr);
-
-        // SymbolTypePtr_t param_type = placeholder->GetExprType();
-        // AssertThrow(param_type != nullptr);
-
         RC<AstParameter> &param = m_generic_params[i];
         RC<AstTypeObject> &param_type_object = m_generic_param_type_objects[i];
 

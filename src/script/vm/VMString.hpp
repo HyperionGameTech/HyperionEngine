@@ -3,6 +3,7 @@
 
 #include <core/lib/String.hpp>
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <cstring>
 
@@ -40,8 +41,12 @@ public:
     explicit operator String() const
         { return m_str; }
 
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+        { return m_str.GetHashCode(); }
+
 private:
-    String m_str;
+    String  m_str;
 };
 
 } // namespace vm

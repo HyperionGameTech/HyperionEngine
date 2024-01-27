@@ -69,8 +69,7 @@ bool Script::Compile()
 
     SemanticAnalyzer semantic_analyzer(&ast_iterator, &m_compilation_unit);
 
-    Builtins builtins;
-    builtins.Visit(&semantic_analyzer, &m_compilation_unit);
+    m_compilation_unit.GetBuiltins().Visit(&semantic_analyzer);
 
     ScriptBindings::DeclareAll(m_api_instance);
     m_api_instance.BindAll(&m_vm, &semantic_analyzer, &m_compilation_unit);

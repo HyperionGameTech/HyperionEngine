@@ -2,6 +2,7 @@
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/emit/StaticObject.hpp>
 #include <script/compiler/emit/NamesPair.hpp>
+#include <script/compiler/builtins/Builtins.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 
@@ -15,7 +16,8 @@ CompilationUnit::CompilationUnit()
     : m_global_module(new Module(
           hyperion::compiler::Config::global_module_name,
           SourceLocation::eof
-      ))
+      )),
+      m_builtins(this)
 {
     m_global_module->SetImportTreeLink(m_module_tree.TopNode());
 

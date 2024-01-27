@@ -36,7 +36,7 @@ thread_local FilePointerMap file_pointer_map;
 APIInstance::ClassBindings ScriptBindings::class_bindings = {};
 // static APIInstance::ClassBindings class_bindings = {};
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetName)
+static HYP_SCRIPT_FUNCTION(NodeGetName)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -64,7 +64,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetName)
     HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetLocalTranslation)
+static HYP_SCRIPT_FUNCTION(NodeGetLocalTranslation)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -93,7 +93,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetLocalTranslation)
 }
 
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3ToString)
+static HYP_SCRIPT_FUNCTION(Vector3ToString)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -118,7 +118,19 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3ToString)
     HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
+static HYP_SCRIPT_FUNCTION(GetHashCode)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Value *target_ptr = params.args[0];
+    AssertThrow(target_ptr != nullptr);
+
+    const HashCode hash_code = target_ptr->GetHashCode();
+
+    HYP_SCRIPT_RETURN_UINT64(hash_code.Value());
+}
+
+static HYP_SCRIPT_FUNCTION(ArraySize)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -132,7 +144,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
     std::snprintf(
         buffer,
         buffer_size,
-        "ArraySize() is undefined for type '%s'",
+        "__array_size() is undefined for type '%s'",
         target_ptr->GetTypeString()
     );
     vm::Exception e(buffer);
@@ -173,7 +185,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
     HYP_SCRIPT_RETURN_INT64(len);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPush)
+static HYP_SCRIPT_FUNCTION(ArrayPush)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 2);
 
@@ -203,7 +215,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPush)
     HYP_SCRIPT_RETURN(*target_ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPop)
+static HYP_SCRIPT_FUNCTION(ArrayPop)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -246,7 +258,245 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPop)
     HYP_SCRIPT_RETURN(value);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Puts)
+static HYP_SCRIPT_FUNCTION(ArrayGet)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Value *target_ptr = params.args[0];
+    AssertThrow(target_ptr != nullptr);
+
+    vm::Exception e("__array_get() requires an array argument");
+
+    vm::Value value; // value that was popped from array
+
+    if (target_ptr->GetType() == vm::Value::ValueType::HEAP_POINTER) {
+        vm::VMArray *array_ptr = nullptr;
+
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((array_ptr = target_ptr->GetValue().ptr->GetPointer<vm::VMArray>()) != nullptr) {
+            vm::Number index;
+
+            if (!params.args[1]->GetSignedOrUnsigned(&index)) {
+                params.handler->state->ThrowException(
+                    params.handler->thread,
+                    vm::Exception::InvalidArgsException("__array_get() expects an integer as the second argument")
+                );
+
+                return;
+            }
+
+            if (index.flags & vm::Number::FLAG_SIGNED) {
+                if (index.i < 0 || index.i >= array_ptr->GetSize()) {
+                    params.handler->state->ThrowException(
+                        params.handler->thread,
+                        vm::Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+            
+                value = Value(array_ptr->AtIndex(index.i));
+            } else {
+                if (index.u >= array_ptr->GetSize()) {
+                    params.handler->state->ThrowException(
+                        params.handler->thread,
+                        vm::Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+                
+                value = Value(array_ptr->AtIndex(index.u));
+            }
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, e);
+    }
+
+    // return popped value
+    HYP_SCRIPT_RETURN(value);
+}
+
+static HYP_SCRIPT_FUNCTION(ArraySet)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 3);
+
+    vm::Value *target_ptr = params.args[0];
+    AssertThrow(target_ptr != nullptr);
+
+    vm::Exception e("__array_set() requires an array argument");
+
+    vm::Value value; // value that was popped from array
+
+    if (target_ptr->GetType() == vm::Value::ValueType::HEAP_POINTER) {
+        vm::VMArray *array_ptr = nullptr;
+
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((array_ptr = target_ptr->GetValue().ptr->GetPointer<vm::VMArray>()) != nullptr) {
+            vm::Number index;
+
+            if (!params.args[1]->GetSignedOrUnsigned(&index)) {
+                params.handler->state->ThrowException(
+                    params.handler->thread,
+                    vm::Exception::InvalidArgsException("__array_set() expects an integer as the second argument")
+                );
+
+                return;
+            }
+
+            if (index.flags & vm::Number::FLAG_SIGNED) {
+                if (index.i < 0 || index.i >= array_ptr->GetSize()) {
+                    params.handler->state->ThrowException(
+                        params.handler->thread,
+                        vm::Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+            
+                array_ptr->AtIndex(index.i) = *params.args[2];
+                array_ptr->AtIndex(index.i).Mark();
+            } else {
+                if (index.u >= array_ptr->GetSize()) {
+                    params.handler->state->ThrowException(
+                        params.handler->thread,
+                        vm::Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+                
+                array_ptr->AtIndex(index.u) = *params.args[2];
+                array_ptr->AtIndex(index.u).Mark();
+            }
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, e);
+    }
+
+    // return same value
+    HYP_SCRIPT_RETURN(*target_ptr);
+}
+
+static HYP_SCRIPT_FUNCTION(MapNew)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 0);
+
+    // create heap value for map
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+
+    AssertThrow(ptr != nullptr);
+    ptr->Assign(vm::VMMap());
+
+    vm::Value res;
+    // assign register value to the allocated object
+    res.m_type = vm::Value::HEAP_POINTER;
+    res.m_value.ptr = ptr;
+
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN(res);
+}
+
+static HYP_SCRIPT_FUNCTION(MapGet)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Value *target_ptr = params.args[0];
+    AssertThrow(target_ptr != nullptr);
+
+    static const vm::Exception e("__map_get() requires a map argument");
+
+    if (target_ptr->GetType() == vm::Value::ValueType::HEAP_POINTER) {
+        vm::VMMap *map_ptr = nullptr;
+
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((map_ptr = target_ptr->GetValue().ptr->GetPointer<vm::VMMap>()) != nullptr) {
+            Value *key_ptr = params.args[1];
+
+            // Get hashcode of key
+            const HashCode key_hash = key_ptr->GetHashCode();
+
+            vm::Value *value = map_ptr->GetElement({ *key_ptr, key_hash.Value() });
+
+            if (value == nullptr) {
+                const VMString key_string = key_ptr->ToString();
+
+                params.handler->state->ThrowException(
+                    params.handler->thread,
+                    vm::Exception::KeyNotFoundException(key_string.GetData())
+                );
+
+                return;
+            }
+
+            HYP_SCRIPT_RETURN(*value);
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, e);
+    }
+}
+
+static HYP_SCRIPT_FUNCTION(MapSet)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 3);
+
+    vm::Value *target_ptr = params.args[0];
+    AssertThrow(target_ptr != nullptr);
+
+    static const vm::Exception e("__map_set() requires a map argument");
+
+    vm::Value value; // value that was popped from array
+
+    if (target_ptr->GetType() == vm::Value::ValueType::HEAP_POINTER) {
+        vm::VMMap *map_ptr = nullptr;
+
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((map_ptr = target_ptr->GetValue().ptr->GetPointer<vm::VMMap>()) != nullptr) {
+            Value *key_ptr = params.args[1];
+            Value *value_ptr = params.args[2];
+
+            // Get hashcode of key
+            const HashCode key_hash = key_ptr->GetHashCode();
+
+            map_ptr->SetElement({ *key_ptr, key_hash.Value() }, *value_ptr);
+
+            // mark value that was set
+            value_ptr->Mark();
+
+            // return value that was set
+            HYP_SCRIPT_RETURN(*value_ptr);
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, e);
+    }
+}
+
+static HYP_SCRIPT_FUNCTION(Puts)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -269,7 +519,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Puts)
     HYP_SCRIPT_RETURN_INT32(puts_result);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::ToString)
+static HYP_SCRIPT_FUNCTION(ToString)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -289,7 +539,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ToString)
     HYP_SCRIPT_RETURN(res);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Format)
+static HYP_SCRIPT_FUNCTION(Format)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -376,7 +626,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Format)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Print)
+static HYP_SCRIPT_FUNCTION(Print)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -452,7 +702,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Print)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Malloc)
+static HYP_SCRIPT_FUNCTION(Malloc)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -487,7 +737,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Malloc)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
+static HYP_SCRIPT_FUNCTION(Free)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -1181,6 +1431,28 @@ static HYP_SCRIPT_FUNCTION(Runtime_GetMemoryAddress)
     HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
+static HYP_SCRIPT_FUNCTION(Runtime_GetTypeString)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Value *arg0 = params.args[0];
+
+    if (!arg0) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    const char *type_str = arg0->GetTypeString();
+
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(VMString(type_str));
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
+}
+
 static HYP_SCRIPT_FUNCTION(Runtime_IsInstance)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
@@ -1633,7 +1905,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             {
                 {
                     "members",
-                    BuiltinTypes::ARRAY
+                    BuiltinTypes::ANY
                 }
             },
             Runtime_MakeStruct
@@ -1758,9 +2030,17 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             "GetFunctionBytecode",
             BuiltinTypes::STRING,
             {
-                { "value", BuiltinTypes::FUNCTION }
+                { "value", BuiltinTypes::ANY }
             },
             Runtime_GetFunctionBytecode
+        )
+        .Function(
+            "GetTypeString",
+            BuiltinTypes::STRING,
+            {
+                { "value", BuiltinTypes::ANY }
+            },
+            Runtime_GetTypeString
         )
         .Function(
             "IsInstance",
@@ -1809,7 +2089,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         )
         .Function(
             "GetMembers",
-            BuiltinTypes::ARRAY,
+            BuiltinTypes::ANY,
             {
                 { "object", BuiltinTypes::ANY }
             },
@@ -2253,7 +2533,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 #endif
         .Variable("NaN", MathUtil::NaN<Float>())
         .Function(
-            "ArraySize",
+            "__array_size",
             BuiltinTypes::INT,
             {
                 { "self", BuiltinTypes::ANY } // one of: VMArray, VMString, VMObject
@@ -2261,10 +2541,10 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             ArraySize
         )
         .Function(
-            "ArrayPush",
-            BuiltinTypes::ARRAY,
+            "__array_push",
+            BuiltinTypes::ANY,
             {
-                { "self", BuiltinTypes::ARRAY },
+                { "self", BuiltinTypes::ANY },
                 {
                     "args",
                     SymbolType::GenericInstance(
@@ -2280,13 +2560,71 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             ArrayPush
         )
         .Function(
-            "ArrayPop",
+            "__array_pop",
             BuiltinTypes::ANY, // returns object that was popped
             {
-                { "self", BuiltinTypes::ARRAY }
+                { "self", BuiltinTypes::ANY }
             },
             ArrayPop
         )
+        .Function(
+            "__array_get",
+            BuiltinTypes::ANY,
+            {
+                { "self", BuiltinTypes::ANY },
+                { "index", BuiltinTypes::INT }
+            },
+            ArrayGet
+        )
+        .Function(
+            "__array_set",
+            BuiltinTypes::ANY,
+            {
+                { "self", BuiltinTypes::ANY },
+                { "index", BuiltinTypes::INT },
+                { "value", BuiltinTypes::ANY }
+            },
+            ArraySet
+        )
+
+        // hashcode
+        .Function(
+            "__hash",
+            BuiltinTypes::UNSIGNED_INT,
+            {
+                { "self", BuiltinTypes::ANY }
+            },
+            GetHashCode
+        )
+
+        // map functions
+        .Function(
+            "__map_new",
+            BuiltinTypes::ANY,
+            {
+            },
+            MapNew
+        )
+        .Function(
+            "__map_get",
+            BuiltinTypes::ANY,
+            {
+                { "self", BuiltinTypes::ANY },
+                { "key", BuiltinTypes::ANY }
+            },
+            MapGet
+        )
+        .Function(
+            "__map_set",
+            BuiltinTypes::ANY,
+            {
+                { "self", BuiltinTypes::ANY },
+                { "key", BuiltinTypes::ANY },
+                { "value", BuiltinTypes::ANY }
+            },
+            MapSet
+        )
+
         .Function(
             "Puts",
             BuiltinTypes::INT,

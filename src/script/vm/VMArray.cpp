@@ -202,5 +202,16 @@ void VMArray::GetRepresentation(
     ss << ']';
 }
 
+HashCode VMArray::GetHashCode() const
+{
+    HashCode hash_code = 0;
+
+    for (SizeType i = 0; i < m_size; i++) {
+        hash_code.Add(m_buffer[i].GetHashCode());
+    }
+
+    return hash_code;
+}
+
 } // namespace vm
 } // namespace hyperion

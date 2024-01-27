@@ -81,9 +81,6 @@ public:
     virtual bool IsMutable() const
         { return false; }
 
-    virtual ExprAccess GetExprAccess() const
-        { return EXPR_ACCESS_PUBLIC; }
-
     ExpressionFlags GetExpressionFlags() const
         { return m_expression_flags; }
 

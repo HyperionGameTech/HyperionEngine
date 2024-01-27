@@ -1,7 +1,6 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <script/compiler/ast/AstObject.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
@@ -156,12 +155,12 @@ bool SymbolType::TypeCompatible(
         return true;
     }
 
-    if (IsProxyClass()) {
-        // TODO:
-        // have proxy class declare which class it is a proxy for,
-        // then check that the types match?
-        return true;
-    }
+    // if (IsProxyClass()) {
+    //     // TODO:
+    //     // have proxy class declare which class it is a proxy for,
+    //     // then check that the types match?
+    //     return true;
+    // }
 
     if (IsNullType()) {
         return right.IsNullableType();
@@ -362,6 +361,13 @@ bool SymbolType::FindPrototypeMember(const String &name, SymbolMember_t &out) co
     return false;
 }
 
+bool SymbolType::FindPrototypeMemberDeep(const String &name) const
+{
+    SymbolMember_t out;
+
+    return FindPrototypeMemberDeep(name, out);
+}
+
 bool SymbolType::FindPrototypeMemberDeep(const String &name, SymbolMember_t &out) const
 {
     if (FindPrototypeMember(name, out)) {
@@ -504,12 +510,6 @@ bool SymbolType::IsNullableType() const
     return IsOrHasBase(*BuiltinTypes::OBJECT);
 }
 
-bool SymbolType::IsArrayType() const
-{
-    return IsOrHasBase(*BuiltinTypes::ARRAY)
-        || HasBase(*BuiltinTypes::VAR_ARGS);
-}
-
 bool SymbolType::IsVarArgsType() const
 {
     return IsOrHasBase(*BuiltinTypes::VAR_ARGS);
@@ -523,6 +523,16 @@ bool SymbolType::IsGenericParameter() const
 bool SymbolType::IsGenericExpressionType() const
 {
     return GetBaseType() == BuiltinTypes::GENERIC_VARIABLE_TYPE;
+}
+
+bool SymbolType::IsGenericInstanceType() const
+{
+    return m_type_class == TYPE_GENERIC_INSTANCE;
+}
+
+bool SymbolType::IsGenericBaseType() const
+{
+    return m_type_class == TYPE_GENERIC;
 }
 
 bool SymbolType::IsFunctionType() const
@@ -723,12 +733,7 @@ String SymbolType::ToString(Bool include_parameter_names) const
         const GenericInstanceTypeInfo &info = m_generic_instance_info;
 
         if (info.m_generic_args.Any()) {
-            if (IsArrayType()) {
-                const SymbolTypePtr_t &held_type = info.m_generic_args.Front().m_type;
-                AssertThrow(held_type != nullptr);
-
-                return held_type->ToString() + "[]";
-            } else if (IsOrHasBase(*BuiltinTypes::VAR_ARGS)) {
+            if (IsVarArgsType()) {
                 const SymbolTypePtr_t &held_type = info.m_generic_args.Front().m_type;
                 AssertThrow(held_type != nullptr);
 
@@ -749,12 +754,20 @@ String SymbolType::ToString(Bool include_parameter_names) const
                         has_return_type = true;
                         return_type_name = generic_arg_type->ToString();
                     } else {
+                        if (info.m_generic_args[i].m_is_const) {
+                            res += "const ";
+                        }
+
+                        if (info.m_generic_args[i].m_is_ref) {
+                            res += "ref ";
+                        }
+
                         if (include_parameter_names && generic_arg_name.Any()) {
                             res += generic_arg_name;
                             res += ": ";
                         }
 
-                        res += generic_arg_type->ToString();
+                        res += generic_arg_type->ToString(include_parameter_names);
 
                         if (i != info.m_generic_args.Size() - 1) {
                             res += ", ";
@@ -789,7 +802,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
         "Generic Instances must have at least 1 argument (@return is the first argument and must always be present)");
 
     AssertThrow(base != nullptr);
-    AssertThrow(base->GetTypeClass() == TYPE_GENERIC_INSTANCE || base->GetTypeClass() == TYPE_GENERIC);
+    //AssertThrow(base->GetTypeClass() == TYPE_GENERIC_INSTANCE || base->GetTypeClass() == TYPE_GENERIC);
 
     const String name = base->GetName();
 
@@ -825,35 +838,35 @@ SymbolTypePtr_t SymbolType::GenericInstance(
                     default_value = CloneAstNode(default_value);
                 }
 
-                all_members.PushBack(SymbolMember_t(
+                all_members.PushBack(SymbolMember_t {
                     std::get<0>(member),
                     info.m_generic_args[std::distance(base->GetGenericInfo().m_params.Begin(), generic_param_it)].m_type,
                     default_value
-                ));
+                });
             } else {
                 // substitution error, set type to be undefined
-                all_members.PushBack(SymbolMember_t(
+                all_members.PushBack(SymbolMember_t {
                     std::get<0>(member),
                     BuiltinTypes::UNDEFINED,
                     std::get<2>(member)
-                ));
+                });
             }
         } else {
             // push copy (clone assignment value)
-            all_members.PushBack(SymbolMember_t(
+            all_members.PushBack(SymbolMember_t {
                 std::get<0>(member),
                 std::get<1>(member),
                 CloneAstNode(std::get<2>(member))
-            ));
+            });
         }
     }
 
     for (const SymbolMember_t &member : members) {
-        all_members.PushBack(SymbolMember_t(
+        all_members.PushBack(SymbolMember_t {
             std::get<0>(member),
             std::get<1>(member),
             CloneAstNode(std::get<2>(member))
-        ));
+        });
     }
 
     // if the generic's default value is nullptr,
@@ -867,7 +880,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
         TYPE_GENERIC_INSTANCE,
         base,
         nullptr,
-        members
+        members// TEMP all_members
     ));
 
     auto default_value = base->GetDefaultValue();
@@ -888,13 +901,14 @@ SymbolTypePtr_t SymbolType::GenericInstance(
 }
 
 SymbolTypePtr_t SymbolType::GenericParameter(
-    const String &name
+    const String &name,
+    const SymbolTypePtr_t &base
 )
 {
     SymbolTypePtr_t res(new SymbolType(
         name,
         TYPE_GENERIC_PARAMETER,
-        BuiltinTypes::CLASS_TYPE
+        base
     ));
     
     return res;
@@ -988,6 +1002,8 @@ SymbolTypePtr_t SymbolType::TypePromotion(
             return BuiltinTypes::INT;
         }
     }
+
+    // @TODO Check for common base
 
     return BuiltinTypes::UNDEFINED;
 }

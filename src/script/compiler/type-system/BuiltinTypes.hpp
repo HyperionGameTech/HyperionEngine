@@ -24,13 +24,14 @@ struct BuiltinTypes
     static const SymbolTypePtr_t BOOLEAN;
     static const SymbolTypePtr_t STRING;
     static const SymbolTypePtr_t FUNCTION;
-    static const SymbolTypePtr_t ARRAY;
+    static const SymbolTypePtr_t HASH_MAP;
     static const SymbolTypePtr_t VAR_ARGS;
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t MODULE_INFO;
     static const SymbolTypePtr_t GENERATOR;
     static const SymbolTypePtr_t CLOSURE_TYPE;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
+    static const SymbolTypePtr_t ARRAY;
 };
 
 } // namespace hyperion::compiler

@@ -537,6 +537,8 @@ RC<AstExpression> Parser::ParseTerm(
         expr = ParseParentheses();
     } else if (Match(TK_OPEN_BRACKET)) {
         expr = ParseArrayExpression();
+    } else if (Match(TK_OPEN_BRACE)) {
+        expr = ParseHashMap();
     } else if (Match(TK_INTEGER)) {
         expr = ParseIntegerLiteral();
     } else if (Match(TK_FLOAT)) {
@@ -632,7 +634,7 @@ RC<AstExpression> Parser::ParseTerm(
         }
 
         if (!override_square_brackets && Match(TK_OPEN_BRACKET)) {
-            expr = ParseArrayAccess(expr);
+            expr = ParseArrayAccess(expr, override_commas, override_fat_arrows, override_angle_brackets, override_square_brackets, override_parentheses, override_question_mark);
         }
 
         // if (!override_angle_brackets && MatchOperator("<")) {
@@ -1121,10 +1123,19 @@ RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
     return expr;
 }
 
-RC<AstArrayAccess> Parser::ParseArrayAccess(RC<AstExpression> target)
+RC<AstArrayAccess> Parser::ParseArrayAccess(
+    RC<AstExpression> target,
+    Bool override_commas,
+    Bool override_fat_arrows,
+    Bool override_angle_brackets,
+    Bool override_square_brackets,
+    Bool override_parentheses,
+    Bool override_question_mark
+)
 {
     if (Token token = Expect(TK_OPEN_BRACKET, true)) {
         RC<AstExpression> expr;
+        RC<AstExpression> rhs;
 
         if (Match(TK_CLOSE_BRACKET, true)) {
             m_compilation_unit->GetErrorList().AddError(CompilerError(
@@ -1137,10 +1148,29 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(RC<AstExpression> target)
             Expect(TK_CLOSE_BRACKET, true);
         }
 
+        // check for assignment operator
+        Token operator_token = Token::EMPTY;
+
+        if (Token operator_token = Match(TK_OPERATOR)) {
+            if (Operator::IsBinaryOperator(operator_token.GetValue(), OperatorType::ASSIGNMENT)) {
+                // eat the operator token
+                m_token_stream->Next();
+
+                rhs = ParseExpression(
+                    override_commas,
+                    override_fat_arrows,
+                    override_angle_brackets,
+                    override_question_mark
+                );
+            }
+        }
+        
         if (expr != nullptr) {
             return RC<AstArrayAccess>(new AstArrayAccess(
                 target,
                 expr,
+                rhs,
+                true, // allow operator overloading for []
                 token.GetLocation()
             ));
         }
@@ -1687,10 +1717,10 @@ RC<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
         true   // override ()
     )) {
         if (Token token = Match(TK_OPEN_BRACKET, true)) {
-            // array braces at the end of a type are syntactical sugar for `Array(T)`
+            // array braces at the end of a type are syntactical sugar for `Array<T>`
             term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 RC<AstVariable>(new AstVariable(
-                    BuiltinTypes::ARRAY->GetName(),
+                    "array",
                     token.GetLocation()
                 )),
                 {
@@ -1954,7 +1984,11 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
                 location
             ));
         } else {
-            block = ParseBlock(false);
+            SkipStatementTerminators();
+
+            bool use_braces = !Match(TK_OPEN_BRACE, false).Empty();
+
+            block = ParseBlock(use_braces);
         }
 
         if (block != nullptr) {
@@ -1994,6 +2028,74 @@ RC<AstArrayExpression> Parser::ParseArrayExpression()
     }
 
     return nullptr;
+}
+
+RC<AstHashMap> Parser::ParseHashMap()
+{
+    if (Token token = Expect(TK_OPEN_BRACE, true)) {
+        Array<RC<AstExpression>> keys;
+        Array<RC<AstExpression>> values;
+
+        do {
+            // skip newline tokens
+            while (Match(TK_NEWLINE, true));
+
+            if (Match(TK_CLOSE_BRACE, false)) {
+                break;
+            }
+
+            Token ident_token = Token::EMPTY;
+
+            // check for identifier, string, or keyword. if found, assume it is a key, with colon and value after
+            if (((ident_token = Match(TK_IDENT)) || (ident_token = Match(TK_KEYWORD)) || (ident_token = Match(TK_STRING))) && MatchAhead(TK_COLON, 1)) {
+                m_token_stream->Next(); // eat the token
+                m_token_stream->Next(); // eat the colon
+                
+                keys.PushBack(RC<AstString>(new AstString(
+                    ident_token.GetValue(),
+                    ident_token.GetLocation()
+                )));
+            } else {
+                if (auto key = ParseExpression(true)) {
+                    keys.PushBack(std::move(key));
+                } else {
+                    // add error
+                    m_compilation_unit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_illegal_expression,
+                        CurrentLocation()
+                    ));
+                }
+
+                Expect(TK_FAT_ARROW, true);
+            }
+
+            if (auto value = ParseExpression(true)) {
+                values.PushBack(std::move(value));
+            } else {
+                // add error
+                m_compilation_unit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_illegal_expression,
+                    CurrentLocation()
+                ));
+            }
+        } while (Match(TK_COMMA, true));
+        
+        // skip newline tokens
+        while (Match(TK_NEWLINE, true));
+
+        Expect(TK_CLOSE_BRACE, true);
+
+        return RC<AstHashMap>(new AstHashMap(
+            keys,
+            values,
+            token.GetLocation()
+        ));
+    }
+
+    return nullptr;
+
 }
 
 RC<AstExpression> Parser::ParseValueOfExpression()
@@ -2343,7 +2445,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
         // note: a variable may be declared with ANY name if it enquoted
 
         // if parentheses matched, it will be a function:
-        /* type Whatever { 
+        /* class Whatever { 
             do_something() {
             // ...
             }

@@ -70,15 +70,26 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    if (m_instance_type != nullptr && m_instance_type->IsProxyClass()) {
+    if (m_prototype_type == nullptr) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
-            Msg_proxy_class_cannot_be_constructed,
-            m_location
+            Msg_type_missing_prototype,
+            m_location,
+            expr_type->ToString()
         ));
 
         return;
     }
+
+    // if (m_instance_type != nullptr && m_instance_type->IsProxyClass()) {
+    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+    //         LEVEL_ERROR,
+    //         Msg_proxy_class_cannot_be_constructed,
+    //         m_location
+    //     ));
+
+    //     return;
+    // }
 
     if (m_enable_constructor_call) {
         static constexpr const char *construct_method_name = "$construct";

@@ -68,18 +68,25 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstTypeOfExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    auto chunk = BytecodeUtil::Make<BytecodeChunk>();
+    chunk->Append(AstPrototypeSpecification::Build(visitor, mod));
+
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     AssertThrow(m_type_ref != nullptr);
 
-    return m_type_ref->Build(visitor, mod);
+    chunk->Append(m_type_ref->Build(visitor, mod));
 #else
     AssertThrow(m_string_expr != nullptr);
-    return m_string_expr->Build(visitor, mod);
+    chunk->Append(m_string_expr->Build(visitor, mod));
 #endif
+
+    return chunk;
 }
 
 void AstTypeOfExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    AstPrototypeSpecification::Optimize(visitor, mod);
+    
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     AssertThrow(m_type_ref != nullptr);
 

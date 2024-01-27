@@ -4,6 +4,7 @@
 #include <script/vm/VMMemoryBuffer.hpp>
 #include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
+#include <script/vm/VMMap.hpp>
 #include <script/vm/HeapValue.hpp>
 #include <script/Hasher.hpp>
 
@@ -132,27 +133,27 @@ const char *Value::GetTypeString() const
     case NONE:
         return "<Uninitialized data>";
     case I8:
-        return "Int8";
+        return "int8";
     case I16:
-        return "Int16";
+        return "int16";
     case I32:
-        return "Int32";
+        return "int32";
     case I64:
-        return "Int64";
+        return "int64";
     case U8:
-        return "UInt8";
+        return "uint8";
     case U16:
-        return "UInt16";
+        return "uint16";
     case U32:
-        return "UInt32";
+        return "uint32";
     case U64:
-        return "UInt64";
+        return "uint64";
     case F32:
-        return "Float";
+        return "float";
     case F64:
-        return "Double";
+        return "double";
     case BOOLEAN:
-        return "Bool";
+        return "bool";
     case VALUE_REF:
         AssertThrow(m_value.value_ref != nullptr);
 
@@ -260,7 +261,10 @@ VMString Value::ToString() const
         } else {
             return m_value.value_ref->ToString();
         }
-
+    case Value::USER_DATA: {
+        int n = snprintf(buf, buf_size, "%p", m_value.user_data);
+        return VMString(buf, n);
+    }
     case Value::HEAP_POINTER: {
         if (m_value.ptr == nullptr) {
             return NULL_STRING;
@@ -284,6 +288,11 @@ VMString Value::ToString() const
         } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
             std::stringstream ss;
             object->GetRepresentation(ss, true, depth);
+            const std::string &str = ss.str();
+            return VMString(str.c_str());
+        } else if (VMMap *map = m_value.ptr->GetPointer<VMMap>()) {
+            std::stringstream ss;
+            map->GetRepresentation(ss, true, depth);
             const std::string &str = ss.str();
             return VMString(str.c_str());
         } else {
@@ -335,6 +344,8 @@ void Value::ToRepresentation(
             slice->GetRepresentation(ss, add_type_name, depth);
         } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
             object->GetRepresentation(ss, add_type_name, depth);
+        } else if (VMMap *map = m_value.ptr->GetPointer<VMMap>()) {
+            map->GetRepresentation(ss, add_type_name, depth);
         } else {
             if (add_type_name) {
                 ss << GetTypeString();
@@ -351,6 +362,60 @@ void Value::ToRepresentation(
         break;
     default:
         ss << ToString().GetData();
+    }
+}
+
+HashCode Value::GetHashCode() const
+{
+    switch (m_type) {
+    case Value::I8:
+        return HashCode::GetHashCode(m_value.i8);
+    case Value::I16:
+        return HashCode::GetHashCode(m_value.i16);
+    case Value::I32:
+        return HashCode::GetHashCode(m_value.i32);
+    case Value::I64:
+        return HashCode::GetHashCode(m_value.i64);
+    case Value::U8:
+        return HashCode::GetHashCode(m_value.u8);
+    case Value::U16:
+        return HashCode::GetHashCode(m_value.u16);
+    case Value::U32:
+        return HashCode::GetHashCode(m_value.u32);
+    case Value::U64:
+        return HashCode::GetHashCode(m_value.u64);
+    case Value::F32:
+        return HashCode::GetHashCode(m_value.f);
+    case Value::F64:
+        return HashCode::GetHashCode(m_value.d);
+    case Value::BOOLEAN:
+        return HashCode::GetHashCode(m_value.b);
+    case Value::VALUE_REF:
+        AssertThrow(m_value.value_ref != nullptr);
+        return m_value.value_ref->GetHashCode();
+    case Value::HEAP_POINTER:
+        if (m_value.ptr == nullptr) {
+            return HashCode::GetHashCode(0);
+        } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
+            return string->GetHashCode();
+        } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
+            return array->GetHashCode();
+        } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
+            return slice->GetHashCode();
+        } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
+            return object->GetHashCode();
+        } else {
+            return HashCode::GetHashCode(m_value.ptr);
+        }
+    case Value::USER_DATA:
+        // hash the void*
+        return HashCode::GetHashCode(m_value.user_data);
+    default: {
+        // If we get here, just stringify the value and hash that.
+        const VMString str = ToString();
+
+        return str.GetHashCode();
+    }
     }
 }
 

@@ -43,8 +43,23 @@ public:
     void SetName(const String &name)
         { m_name = name; }
 
-    const Array<RC<AstVariableDeclaration>> &GetMembers() const
-        { return m_combined_members; }
+    Array<RC<AstVariableDeclaration>> &GetDataMembers()
+        { return m_data_members; }
+
+    const Array<RC<AstVariableDeclaration>> &GetDataMembers() const
+        { return m_data_members; }
+
+    Array<RC<AstVariableDeclaration>> &GetFunctionMembers()
+        { return m_function_members; }
+
+    const Array<RC<AstVariableDeclaration>> &GetFunctionMembers() const
+        { return m_function_members; }
+
+    Array<RC<AstVariableDeclaration>> &GetStaticMembers()
+        { return m_static_members; }
+
+    const Array<RC<AstVariableDeclaration>> &GetStaticMembers() const
+        { return m_function_members; }
 
     bool IsEnum() const
         { return m_enum_underlying_type != nullptr; }

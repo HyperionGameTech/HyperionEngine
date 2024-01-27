@@ -311,5 +311,17 @@ void VMObject::GetRepresentation(
     ss << "}";
 }
 
-} // namespace vm
+HashCode VMObject::GetHashCode() const
+{
+    // Hash of memory address
+
+    // @NOTE: If we ever implement a generational garbage collector,
+    // we'll need to change this to something else. Perhaps
+    // we could use a hash of an ID that is unique to each
+    // object.
+
+    return HashCode::GetHashCode(static_cast<const void *>(this));
+}
+
 } // namespace hyperion
+} // namespace vm

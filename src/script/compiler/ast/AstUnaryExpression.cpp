@@ -119,7 +119,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
         if (!m_target->IsMutable()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_const_modified,
+                Msg_expression_cannot_be_modified,
                 m_target->GetLocation()
             ));
         }

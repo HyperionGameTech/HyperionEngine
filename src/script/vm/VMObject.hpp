@@ -4,6 +4,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/VMTypeInfo.hpp>
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <sstream>
 #include <cstdint>
@@ -118,6 +119,8 @@ public:
         bool add_type_name = true,
         int depth = 3
     ) const;
+
+    HashCode GetHashCode() const;
 
 private:
     HeapValue   *m_class_ptr;

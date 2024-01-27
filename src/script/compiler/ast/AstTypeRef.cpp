@@ -36,7 +36,18 @@ void AstTypeRef::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstTypeRef::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_symbol_type != nullptr);
-    AssertThrowMsg(m_symbol_type->GetId() != -1, "SymbolType %s not registered, invalid type ref", m_symbol_type->GetName().Data());
+
+    AssertThrowMsg(
+        m_symbol_type->GetId() != -1,
+        "SymbolType %s not registered, invalid type ref",
+        m_symbol_type->ToString(true).Data()
+    );
+
+    AssertThrowMsg(
+        m_symbol_type->GetTypeObject() != nullptr,
+        "SymbolType %s has no type object set, invalid type ref",
+        m_symbol_type->ToString(true).Data()
+    );
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 

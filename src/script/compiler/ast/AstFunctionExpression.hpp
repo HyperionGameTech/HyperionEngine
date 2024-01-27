@@ -13,6 +13,8 @@
 
 namespace hyperion::compiler {
 
+class AstTypeExpression;
+
 class AstFunctionExpression : public AstExpression
 {
 public:
@@ -69,15 +71,15 @@ protected:
 
     Bool                            m_is_closure;
 
-    RC<AstExpression>               m_closure_object;
     RC<AstParameter>                m_closure_self_param;
+    RC<AstPrototypeSpecification>   m_function_type_expr;
+    RC<AstTypeExpression>           m_closure_type_expr;
     RC<AstBlock>                    m_block_with_parameters;
 
     Bool                            m_is_constructor_definition;
 
     SymbolTypePtr_t                 m_symbol_type;
     SymbolTypePtr_t                 m_return_type;
-    SymbolTypePtr_t                 m_closure_type;
 
     Int                             m_closure_object_location;
 

@@ -5,6 +5,7 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstHashMap.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/ast/AstUnsignedInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
@@ -168,31 +169,6 @@ const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
     BuiltinTypes::CLASS_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
-    "Array",
-    Array<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "EmptyArrayLiteral", nullptr
-            ),
-            RC<AstArrayExpression>(new AstArrayExpression(
-                {}, SourceLocation::eof
-            ))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::CLASS_TYPE,
-                SourceLocation::eof
-            )),
-        }
-    },
-    GenericTypeInfo { 1 },
-    BuiltinTypes::CLASS_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
     "<varargs-type>",
     RC<AstArrayExpression>(new AstArrayExpression(
@@ -266,6 +242,31 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
         }
     },
     GenericTypeInfo { -1 },
+    BuiltinTypes::CLASS_TYPE
+);
+
+const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
+    "Array",
+    Array<SymbolMember_t> {
+        SymbolMember_t {
+            "$proto",
+            SymbolType::Primitive(
+                "EmptyArrayLiteral", nullptr
+            ),
+            RC<AstArrayExpression>(new AstArrayExpression(
+                {}, SourceLocation::eof
+            ))
+        },
+        SymbolMember_t {
+            "base",
+            BuiltinTypes::CLASS_TYPE,
+            RC<AstTypeRef>(new AstTypeRef(
+                BuiltinTypes::CLASS_TYPE,
+                SourceLocation::eof
+            )),
+        }
+    },
+    GenericTypeInfo { 1 },
     BuiltinTypes::CLASS_TYPE
 );
 

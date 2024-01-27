@@ -11,9 +11,9 @@
 
 #include <util/Defines.hpp>
 
+#include <HashCode.hpp>
+
 #include <sstream>
-#include <utility>
-#include <cstdint>
 
 
 namespace hyperion {
@@ -370,6 +370,8 @@ struct Value
         bool add_type_name = true,
         int depth = 3
     ) const;
+
+    HashCode GetHashCode() const;
 };
 
 } // namespace vm

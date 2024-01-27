@@ -71,6 +71,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(!m_is_visited);
 
     m_is_uninstantiated_generic = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG);
+    bool has_custom_proto = false;
 
     // Create scope
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
@@ -151,6 +152,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
             if (mem->GetName() == "$proto") {
                 proto_found = true;
+                has_custom_proto = true;
             } else if (mem->GetName() == "base") {
                 base_found = true;
             } else if (mem->GetName() == "name") {
@@ -189,6 +191,10 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     m_location
                 ))
             });
+        }
+
+        if (has_custom_proto) {
+            m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
         }
     }
 
@@ -448,9 +454,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         ));
 
         invoke_expr->Visit(visitor, mod);
-
-        DebugLog(LogType::Debug, "$invoke static member for %s = %s\n", m_name.Data(), invoke_expr->GetExprType()->ToString(true).Data());
-
+        
         // // add it to the list of static members
         // m_static_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         //     "$invoke",

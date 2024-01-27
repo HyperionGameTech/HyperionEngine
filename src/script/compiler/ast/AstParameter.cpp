@@ -81,6 +81,8 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
                 }
             }
         );
+
+        AssertThrow(m_symbol_type->IsVarArgsType());
     }
 
     if (m_identifier != nullptr) {

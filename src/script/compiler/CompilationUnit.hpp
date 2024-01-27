@@ -3,6 +3,7 @@
 
 #include <script/compiler/Module.hpp>
 #include <script/compiler/ErrorList.hpp>
+#include <script/compiler/builtins/Builtins.hpp>
 #include <script/compiler/emit/InstructionStream.hpp>
 #include <script/compiler/ast/AstNodeBuilder.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
@@ -11,6 +12,7 @@
 #include <core/lib/String.hpp>
 #include <core/lib/HashMap.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/UniquePtr.hpp>
 
 #include <memory>
 
@@ -23,22 +25,41 @@ public:
     CompilationUnit(const CompilationUnit &other) = delete;
     ~CompilationUnit();
 
-    Module *GetGlobalModule() { return m_global_module.Get(); }
-    const Module *GetGlobalModule() const { return m_global_module.Get(); }
+    Module *GetGlobalModule()
+        { return m_global_module.Get(); }
 
-    Module *GetCurrentModule() { return m_module_tree.Top(); }
-    const Module *GetCurrentModule() const { return m_module_tree.Top(); }
+    const Module *GetGlobalModule() const
+        { return m_global_module.Get(); }
+
+    Module *GetCurrentModule()
+        { return m_module_tree.Top(); }
+
+    const Module *GetCurrentModule() const
+        { return m_module_tree.Top(); }
 
     ErrorList &GetErrorList() { return m_error_list; }
     const ErrorList &GetErrorList() const { return m_error_list; }
 
-    InstructionStream &GetInstructionStream() { return m_instruction_stream; }
-    const InstructionStream &GetInstructionStream() const { return m_instruction_stream; }
+    InstructionStream &GetInstructionStream()
+        { return m_instruction_stream; }
 
-    AstNodeBuilder &GetAstNodeBuilder() { return m_ast_node_builder; }
-    const AstNodeBuilder &GetAstNodeBuilder() const { return m_ast_node_builder; }
+    const InstructionStream &GetInstructionStream() const
+        { return m_instruction_stream; }
 
-    const Array<SymbolTypePtr_t> &GetRegisteredTypes() const { return m_registered_types; }
+    AstNodeBuilder &GetAstNodeBuilder()
+        { return m_ast_node_builder; }
+
+    const AstNodeBuilder &GetAstNodeBuilder() const
+        { return m_ast_node_builder; }
+
+    const Array<SymbolTypePtr_t> &GetRegisteredTypes() const
+        { return m_registered_types; }
+
+    Builtins &GetBuiltins()
+        { return m_builtins; }
+
+    const Builtins &GetBuiltins() const
+        { return m_builtins; }
 
     /**
         Allows a non-builtin type to be used
@@ -64,6 +85,7 @@ private:
     InstructionStream       m_instruction_stream;
     AstNodeBuilder          m_ast_node_builder;
     Array<SymbolTypePtr_t>  m_registered_types;
+    Builtins                m_builtins;
 
     // the global module
     RC<Module>              m_global_module;

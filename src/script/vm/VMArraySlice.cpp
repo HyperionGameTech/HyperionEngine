@@ -76,5 +76,18 @@ void VMArraySlice::GetRepresentation(
     ss << ']';
 }
 
+HashCode VMArraySlice::GetHashCode() const
+{
+    AssertThrow(m_ary != nullptr);
+
+    HashCode hash_code = 0;
+
+    for (SizeType i = m_start; i < m_end; i++) {
+        hash_code.Add(m_ary->AtIndex(i).GetHashCode());
+    }
+
+    return hash_code;
 }
-}
+
+} // namespace vm
+} // namespace hyperion

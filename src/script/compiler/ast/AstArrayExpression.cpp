@@ -1,4 +1,11 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstArgument.hpp>
+#include <script/compiler/ast/AstAsExpression.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTemplateInstantiation.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Configuration.hpp>
@@ -29,6 +36,10 @@ AstArrayExpression::AstArrayExpression(
 
 void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+    m_expr_type = BuiltinTypes::UNDEFINED;
+
+    m_replaced_members.Reserve(m_members.Size());
+
     FlatSet<SymbolTypePtr_t> held_types;
 
     for (auto &member : m_members) {
@@ -40,6 +51,8 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
         } else {
             held_types.Insert(BuiltinTypes::ANY);
         }
+
+        m_replaced_members.PushBack(CloneAstNode(member));
     }
 
     for (const auto &it : held_types) {
@@ -53,7 +66,7 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
         if (m_held_type->IsAnyType() || m_held_type->IsPlaceholderType()) {
             // take first item found that is not `Any`
             m_held_type = it;
-        } else if (m_held_type->TypeCompatible(*it, false)) {
+        } else if (m_held_type->TypeCompatible(*it, false)) { // allow non-strict numbers because we can do a cast
             m_held_type = SymbolType::TypePromotion(m_held_type, it);
         } else {
             // more than one differing type, use Any.
@@ -61,11 +74,98 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
             break;
         }
     }
+
+    for (SizeType index = 0; index < m_replaced_members.Size(); index++) {
+        auto &replaced_member = m_replaced_members[index];
+        AssertThrow(replaced_member != nullptr);
+
+        auto &member = m_members[index];
+        AssertThrow(member != nullptr);
+
+        if (SymbolTypePtr_t expr_type = member->GetExprType()) {
+            if (!expr_type->TypeEqual(*m_held_type)) {
+                // replace with a cast to the held type
+                replaced_member.Reset(new AstAsExpression(
+                    replaced_member,
+                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            m_held_type,
+                            member->GetLocation()
+                        )),
+                        member->GetLocation()
+                    )),
+                    member->GetLocation()
+                ));
+            }
+        }
+
+        replaced_member->Visit(visitor, mod);
+    }
+
+    m_array_type_expr.Reset(new AstPrototypeSpecification(
+        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+            RC<AstVariable>(new AstVariable(
+                "array",
+                m_location
+            )),
+            {
+                RC<AstArgument>(new AstArgument(
+                    RC<AstTypeRef>(new AstTypeRef(
+                        m_held_type,
+                        m_location
+                    )),
+                    false,
+                    false,
+                    false,
+                    false,
+                    "T",
+                    m_location
+                ))
+            },
+            m_location
+        )),
+        m_location
+    ));
+
+    m_array_type_expr->Visit(visitor, mod);
+
+    SymbolTypePtr_t array_type = m_array_type_expr->GetHeldType();
+    
+    if (array_type == nullptr) {
+        // error already reported
+        return;
+    }
+
+    array_type = array_type->GetUnaliased();
+
+    // @TODO: Cache generic instance types
+    m_expr_type = array_type;
+
+    // m_type_object.Reset(new AstTypeObject(
+    //     m_expr_type,
+    //     BuiltinTypes::CLASS_TYPE,
+    //     m_location
+    // ));
+
+    // m_expr_type->SetTypeObject(m_type_object);
+
+    // visitor->GetCompilationUnit()->GetCurrentModule()->
+    //     m_scopes.Root().GetIdentifierTable().AddSymbolType(m_expr_type);
+
+    //m_type_object->Visit(visitor, mod);
 }
 
 std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    // if (m_type_object != nullptr) {
+    //     chunk->Append(m_type_object->Build(visitor, mod));
+    // }
+
+    if (m_array_type_expr != nullptr) {
+        chunk->Append(m_array_type_expr->Build(visitor, mod));
+    }
 
     const Bool has_side_effects = MayHaveSideEffects();
     const UInt32 array_size = UInt32(m_members.Size());
@@ -106,7 +206,7 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
     // assign all array items
     Int index = 0;
 
-    for (auto &member : m_members) {
+    for (auto &member : m_replaced_members) {
         chunk->Append(member->Build(visitor, mod));
 
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -185,7 +285,11 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
 
 void AstArrayExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    for (auto &member : m_members) {
+    if (m_array_type_expr != nullptr) {
+        m_array_type_expr->Optimize(visitor, mod);
+    }
+
+    for (auto &member : m_replaced_members) {
         if (member != nullptr) {
             member->Optimize(visitor, mod);
         }
@@ -206,7 +310,7 @@ bool AstArrayExpression::MayHaveSideEffects() const
 {
     bool side_effects = false;
 
-    for (const auto &member : m_members) {
+    for (const auto &member : m_replaced_members) {
         AssertThrow(member != nullptr);
         
         if (member->MayHaveSideEffects()) {
@@ -220,14 +324,11 @@ bool AstArrayExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstArrayExpression::GetExprType() const
 {
-    return SymbolType::GenericInstance(
-        BuiltinTypes::ARRAY,
-        GenericInstanceTypeInfo {
-            {
-                { "of", m_held_type }
-            }
-        }
-    );
+    if (m_expr_type == nullptr) {
+        return BuiltinTypes::UNDEFINED;
+    }
+
+    return m_expr_type;
 }
 
 } // namespace hyperion::compiler

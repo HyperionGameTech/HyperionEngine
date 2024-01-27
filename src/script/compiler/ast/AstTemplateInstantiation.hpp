@@ -13,6 +13,7 @@
 namespace hyperion::compiler {
 
 class AstVariableDeclaration;
+class AstTypeObject;
 
 class AstTemplateInstantiation : public AstExpression
 {
@@ -59,8 +60,10 @@ private:
     RC<AstExpression>       m_inner_expr;
     RC<AstBlock>            m_block;
     RC<AstExpression>       m_target_expr;
+    RC<AstTypeObject>       m_type_object;
     Array<RC<AstArgument>>  m_substituted_args;
     SymbolTypePtr_t         m_expr_type;
+    SymbolTypePtr_t         m_held_type;
     bool                    m_is_visited = false;
     bool                    m_is_new_instantiation = false;
 

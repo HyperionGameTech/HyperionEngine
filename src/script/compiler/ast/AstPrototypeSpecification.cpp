@@ -115,7 +115,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     // }
 
     AssertThrow(m_symbol_type != nullptr);
-    AssertThrow(m_prototype_type != nullptr);
+    // AssertThrow(m_prototype_type != nullptr);
 }
 
 std::unique_ptr<Buildable> AstPrototypeSpecification::Build(AstVisitor *visitor, Module *mod)
@@ -134,6 +134,8 @@ bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_
 {
     if (symbol_type->GetTypeClass() == TYPE_BUILTIN || symbol_type->IsGenericParameter()) {
         m_prototype_type = symbol_type;
+        m_prototype_type = m_prototype_type->GetUnaliased();
+
         m_default_value = symbol_type->GetDefaultValue();
 
         return true;
@@ -143,6 +145,8 @@ bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_
 
     if (symbol_type->FindMember("$proto", proto_member)) {
         m_prototype_type = std::get<1>(proto_member);
+        AssertThrow(m_prototype_type != nullptr);
+        m_prototype_type = m_prototype_type->GetUnaliased();
 
         if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
             m_default_value = std::get<2>(proto_member);
@@ -199,7 +203,11 @@ const AstExpression *AstPrototypeSpecification::GetDeepValueOf() const
 
 SymbolTypePtr_t AstPrototypeSpecification::GetHeldType() const
 {
-    return m_symbol_type;
+    if (m_symbol_type != nullptr) {
+        return m_symbol_type;
+    }
+
+    return AstExpression::GetHeldType();
 }
 
 } // namespace hyperion::compiler

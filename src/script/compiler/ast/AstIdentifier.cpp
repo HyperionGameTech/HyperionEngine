@@ -118,29 +118,6 @@ const AstExpression *AstIdentifier::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-ExprAccess AstIdentifier::GetExprAccess() const
-{
-    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
-        ExprAccess expr_access = EXPR_ACCESS_NONE;
-
-        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PUBLIC) {
-            expr_access |= EXPR_ACCESS_PUBLIC;
-        }
-
-        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PRIVATE) {
-            expr_access |= EXPR_ACCESS_PRIVATE;
-        }
-
-        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PROTECTED) {
-            expr_access |= EXPR_ACCESS_PROTECTED;
-        }
-
-        return expr_access;
-    }
-
-    return AstExpression::GetExprAccess();
-}
-
 const String &AstIdentifier::GetName() const
 {
     return m_name;

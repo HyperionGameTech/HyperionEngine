@@ -35,7 +35,7 @@ public:
     private:
         static Int FindFreeSlot(
             Int current_index,
-            const std::set<Int> &used_indices,
+            const FlatSet<Int> &used_indices,
             const Array<GenericInstanceTypeInfo::Arg> &generic_args,
             Bool is_variadic,
             Int num_supplied_args
@@ -44,7 +44,7 @@ public:
         static Int ArgIndex(
             Int current_index,
             const ArgInfo &arg_info,
-            const std::set<Int> &used_indices,
+            const FlatSet<Int> &used_indices,
             const Array<GenericInstanceTypeInfo::Arg> &generic_args,
             Bool is_variadic = false,
             Int num_supplied_args = -1
@@ -67,7 +67,7 @@ public:
         static FunctionTypeSignature_t ExtractGenericArgs(
             AstVisitor *visitor,
             Module *mod,
-            const SymbolTypePtr_t &identifier_type, 
+            const SymbolTypePtr_t &symbol_type, 
             const Array<RC<AstArgument>> &args,
             const SourceLocation &location,
             Array<SubstitutionResult>(*fn) (
@@ -89,7 +89,7 @@ public:
         static FunctionTypeSignature_t SubstituteFunctionArgs(
             AstVisitor *visitor,
             Module *mod,
-            const SymbolTypePtr_t &identifier_type, 
+            const SymbolTypePtr_t &symbol_type, 
             const Array<RC<AstArgument>> &args,
             const SourceLocation &location
         );
@@ -97,7 +97,7 @@ public:
         static void EnsureFunctionArgCompatibility(
             AstVisitor *visitor,
             Module *mod,
-            const SymbolTypePtr_t &identifier_type, 
+            const SymbolTypePtr_t &symbol_type, 
             const Array<RC<AstArgument>> &args,
             const SourceLocation &location
         );

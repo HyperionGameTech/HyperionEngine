@@ -13,6 +13,7 @@
 #include <script/compiler/ast/AstFunctionDefinition.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstHashMap.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
@@ -130,7 +131,15 @@ private:
     RC<AstModuleAccess> ParseModuleAccess();
     RC<AstModuleProperty> ParseModuleProperty();
     RC<AstExpression> ParseMemberExpression(RC<AstExpression> target);
-    RC<AstArrayAccess> ParseArrayAccess(RC<AstExpression> target);
+    RC<AstArrayAccess> ParseArrayAccess(
+        RC<AstExpression> target,
+        Bool override_commas = false,
+        Bool override_fat_arrows = false,
+        Bool override_angle_brackets = false,
+        Bool override_square_brackets = false,
+        Bool override_parentheses = false,
+        Bool override_question_mark = false
+    );
     RC<AstHasExpression> ParseHasExpression(RC<AstExpression> target);
     RC<AstIsExpression> ParseIsExpression(RC<AstExpression> target);
     RC<AstAsExpression> ParseAsExpression(RC<AstExpression> target);
@@ -174,6 +183,7 @@ private:
         Array<RC<AstParameter>> params = {}
     );
     RC<AstArrayExpression> ParseArrayExpression();
+    RC<AstHashMap> ParseHashMap();
     RC<AstExpression> ParseValueOfExpression();
     RC<AstTypeOfExpression> ParseTypeOfExpression();
     Array<RC<AstParameter>> ParseFunctionParameters();

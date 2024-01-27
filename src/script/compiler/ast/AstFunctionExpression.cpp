@@ -1,8 +1,11 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
+#include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -84,13 +87,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     ));
 
     if (m_is_closure) {
-        // m_block_with_parameters->PrependChild(m_closure_self_param);
         m_closure_self_param->Visit(visitor, mod);
     }
 
     for (SizeType index = 0; index < m_parameters.Size(); index++) {
         AssertThrow(m_parameters[index] != nullptr);
-        // m_block_with_parameters->PrependChild(m_parameters[index - 1]);
         m_parameters[index]->Visit(visitor, mod);
     }
 
@@ -107,11 +108,6 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (m_is_constructor_definition) {
-        // m_return_type = mod->LookupSymbolType("Self");
-        // AssertThrowMsg(m_return_type != nullptr, "Self type alias not found in constructor definition");
-
-        // m_return_type = m_return_type->GetUnaliased();
-        
         // add implicit 'return self' at the end
         m_block_with_parameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
             RC<AstVariable>(new AstVariable(
@@ -248,78 +244,120 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         generic_param_types.PushBack(it);
     }
 
-    m_symbol_type = SymbolType::GenericInstance(
-        BuiltinTypes::FUNCTION, 
-        GenericInstanceTypeInfo {
-            generic_param_types
-        }
-    );
+
+    Array<RC<AstArgument>> generic_params;
+    generic_params.Reserve(generic_param_types.Size());
+
+    for (auto &it : generic_param_types) {
+        generic_params.PushBack(RC<AstArgument>(new AstArgument(
+            RC<AstTypeRef>(new AstTypeRef(
+                it.m_type,
+                m_location
+            )),
+            false,
+            false,
+            false,
+            false,
+            it.m_name,
+            m_location
+        )));
+    }
+
+    RC<AstPrototypeSpecification> function_type_spec(new AstPrototypeSpecification(
+        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+            RC<AstVariable>(new AstVariable(
+                "function",
+                m_location
+            )),
+            generic_params,
+            m_location
+        )),
+        m_location
+    ));
+
+    function_type_spec->Visit(visitor, mod);
+
+    SymbolTypePtr_t function_type = function_type_spec->GetHeldType();
+
+    if (function_type == nullptr) {
+        function_type = BuiltinTypes::UNDEFINED;
+    }
+
+    function_type = function_type->GetUnaliased();
+
+    if (function_type != BuiltinTypes::UNDEFINED) {
+        function_type = SymbolType::GenericInstance(
+            function_type,
+            GenericInstanceTypeInfo {
+                generic_param_types
+            }
+        );
+    }
 
     if (m_is_closure) {
         // add $invoke to call this object
-
-        closure_obj_members.PushBack(SymbolMember_t {
-            "$invoke",
-            m_symbol_type,
-            RC<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
-        });
-
-        // visit each member
-        for (SymbolMember_t &member : closure_obj_members) {
-            if (std::get<2>(member) != nullptr) {
-                std::get<2>(member)->Visit(visitor, mod);
-            }
-        }
-
-        SymbolTypePtr_t prototype_type = SymbolType::Object(
-            "ClosureInstance", // Prototype type
-            closure_obj_members,
-            BuiltinTypes::OBJECT
-        );
-
-        RC<AstTypeObject> prototype_value(new AstTypeObject(
-            prototype_type,
-            BuiltinTypes::FUNCTION, // @TODO check this
+        m_closure_type_expr.Reset(new AstTypeExpression(
+            "__closure",
+            nullptr,
+            {},
+            {
+                RC<AstVariableDeclaration>(new AstVariableDeclaration(
+                    "$invoke",
+                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            function_type,
+                            m_location
+                        )),
+                        m_location
+                    )),
+                    RC<AstNil>(new AstNil(m_location)), // placeholder; set to function type later
+                    IdentifierFlags::FLAG_CONST,
+                    m_location
+                ))
+            },
+            {},
+            false, // not proxy class
             m_location
         ));
 
-        prototype_type->SetTypeObject(prototype_value);
-        // prototype_value->Visit(visitor, mod);
+        for (auto &it : closure_obj_members) {
+            m_closure_type_expr->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+                std::get<0>(it),
+                nullptr,
+                std::get<2>(it),
+                IdentifierFlags::FLAG_NONE,
+                m_location
+            )));
+        }
 
-        // prototype type will be registered by AstTypeObject
+        m_closure_type_expr->Visit(visitor, mod);
 
-        m_closure_type = SymbolType::GenericInstance(
-            BuiltinTypes::CLOSURE_TYPE,
-            GenericInstanceTypeInfo {
-                generic_param_types
-            },
-            {
-                SymbolMember_t {
-                    "$proto",
-                    prototype_type,
-                    RC<AstTypeRef>(new AstTypeRef(
-                        prototype_type,
-                        m_location
-                    ))
-                }
-            }
-        );
+        SymbolTypePtr_t closure_held_type = m_closure_type_expr->GetHeldType();
+        AssertThrow(closure_held_type != nullptr);
+        closure_held_type = closure_held_type->GetUnaliased();
 
-        // register type
-        // visitor->GetCompilationUnit()->RegisterType(m_closure_type);
+        m_function_type_expr.Reset(new AstPrototypeSpecification(
+            RC<AstTypeRef>(new AstTypeRef(
+                closure_held_type,
+                m_location
+            )),
+            m_location
+        ));
 
-        // allow generic instance to be reused
-        visitor->GetCompilationUnit()->GetCurrentModule()->
-            m_scopes.Root().GetIdentifierTable().AddSymbolType(m_closure_type);
+        m_function_type_expr->Visit(visitor, mod);
 
-        AssertThrow(prototype_value != nullptr);
-
-        m_closure_object = prototype_value; // @TODO test
-        m_closure_object->Visit(visitor, mod);
+        m_symbol_type = std::move(closure_held_type);
+    } else {
+        m_symbol_type = std::move(function_type);
+        m_function_type_expr = std::move(function_type_spec);
     }
 
     // we do +1 to account for closure self var.
-    if (m_parameters.Size() + (m_is_closure ? 1 : 0) > MathUtil::MaxSafeValue<UInt8>()) {
+    const SizeType num_arguments = m_is_closure
+        ? m_parameters.Size() + 1
+        : m_parameters.Size();
+
+    if (num_arguments > MathUtil::MaxSafeValue<UInt8>()) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_maximum_number_of_arguments,
@@ -338,6 +376,14 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
     );
     
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    if (m_closure_type_expr != nullptr) {
+        chunk->Append(m_closure_type_expr->Build(visitor, mod));
+    }
+
+    if (m_function_type_expr != nullptr && !m_is_closure) {
+        chunk->Append(m_function_type_expr->Build(visitor, mod));
+    }
 
     if (m_is_closure && m_closure_self_param != nullptr) {
         chunk->Append(m_closure_self_param->Build(visitor, mod));
@@ -406,7 +452,7 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
     chunk->Append(std::move(func));
 
     if (m_is_closure) {
-        AssertThrow(m_closure_object != nullptr);
+        AssertThrow(m_function_type_expr != nullptr);
 
         const UInt8 func_expr_reg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
@@ -416,10 +462,21 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
 
         const UInt8 closure_obj_reg = rp;
 
-        chunk->Append(m_closure_object->Build(visitor, mod));
+        // load __closure into register
+        chunk->Append(BytecodeUtil::Make<Comment>("Load __closure object"));
+        chunk->Append(m_function_type_expr->Build(visitor, mod));
 
-        const UInt32 hash = hash_fnv_1("$invoke");
-        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
+        // set $proto.$invoke to the function object
+
+        // load $proto
+        chunk->Append(BytecodeUtil::Make<Comment>("Load $proto"));
+        const UInt32 proto_hash = hash_fnv_1("$proto");
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, proto_hash));
+
+        // store into $invoke
+        chunk->Append(BytecodeUtil::Make<Comment>("Store $invoke"));
+        const UInt32 invoke_hash = hash_fnv_1("$invoke");
+        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, invoke_hash));
         
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -469,6 +526,14 @@ std::unique_ptr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor *
 
 void AstFunctionExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_closure_type_expr != nullptr) {
+        m_closure_type_expr->Optimize(visitor, mod);
+    }
+
+    if (m_function_type_expr != nullptr) {
+        m_function_type_expr->Optimize(visitor, mod);
+    }
+
     for (auto &param : m_parameters) {
         if (param != nullptr) {
             param->Optimize(visitor, mod);
@@ -498,8 +563,11 @@ bool AstFunctionExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstFunctionExpression::GetExprType() const
 {
-    if (m_is_closure && m_closure_type != nullptr) {
-        return m_closure_type;
+    if (m_is_closure && m_closure_type_expr != nullptr) {
+        SymbolTypePtr_t held_type = m_closure_type_expr->GetHeldType();
+        AssertThrow(held_type != nullptr);
+
+        return held_type->GetUnaliased();
     }
 
     return m_symbol_type;

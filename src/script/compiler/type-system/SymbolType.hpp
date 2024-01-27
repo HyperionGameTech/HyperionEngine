@@ -153,7 +153,8 @@ public:
     );
 
     static SymbolTypePtr_t GenericParameter(
-        const String &name
+        const String &name,
+        const SymbolTypePtr_t &base
     );
     
     static SymbolTypePtr_t Extend(
@@ -284,6 +285,7 @@ public:
     const SymbolTypePtr_t FindPrototypeMember(const String &name) const;
     bool FindPrototypeMember(const String &name, SymbolMember_t &out) const;
     bool FindPrototypeMember(const String &name, SymbolMember_t &out, UInt &out_index) const;
+    bool FindPrototypeMemberDeep(const String &name) const;
     bool FindPrototypeMemberDeep(const String &name, SymbolMember_t &out) const;
 
     const Weak<AstTypeObject> &GetTypeObject() const
@@ -311,7 +313,6 @@ public:
     bool IsPlaceholderType() const;
     bool IsNullType() const;
     bool IsNullableType() const;
-    bool IsArrayType() const;
     bool IsVarArgsType() const;
 
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
@@ -321,6 +322,12 @@ public:
         (Note: this is different from IsGenericType() which checks if this type is the underlying generic type)
     */
     bool IsGenericExpressionType() const;
+
+    /*! \brief Is this type an instantiated generic type? (e.g. `List<Int>`) */
+    bool IsGenericInstanceType() const;
+
+    /*! \brief Is this type a Generic base type (e.g Array, Function, etc.) */
+    bool IsGenericBaseType() const;
 
     /*! \brief Is this type a function type? (e.g. `Function(Int, Int) -> Int`) */
     bool IsFunctionType() const;
@@ -385,9 +392,12 @@ public:
         return hc;
     }
 
+    // if this is an instance of a generic type
+    SymbolTypeClass             m_type_class;
+    GenericInstanceTypeInfo     m_generic_instance_info;
+
 private:
     String                      m_name;
-    SymbolTypeClass             m_type_class;
     RC<AstExpression>           m_default_value;
     Array<SymbolMember_t>       m_members;
 
@@ -402,8 +412,6 @@ private:
     FunctionTypeInfo            m_function_info;
     // if this is a generic type
     GenericTypeInfo             m_generic_info;
-    // if this is an instance of a generic type
-    GenericInstanceTypeInfo     m_generic_instance_info;
     // if this is a generic param
     GenericParameterTypeInfo    m_generic_param_info;
 

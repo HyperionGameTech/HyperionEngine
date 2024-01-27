@@ -143,9 +143,12 @@ Exception Exception::OutOfBoundsException()
     return Exception("Index out of bounds of Array");
 }
 
-Exception Exception::MemberNotFoundException()
+Exception Exception::MemberNotFoundException(UInt32 hash_code)
 {
-    return Exception("Invalid member access");
+    char buffer[256];
+    std::snprintf(buffer, 256, "Member with hash code %u not found", hash_code);
+
+    return Exception(buffer);
 }
 
 Exception Exception::FileOpenException(const char *file_name)
@@ -191,6 +194,14 @@ Exception Exception::DuplicateExportException()
 {
     char buffer[256];
     std::snprintf(buffer, 256, "Duplicate exported symbol");
+
+    return Exception(buffer);
+}
+
+Exception Exception::KeyNotFoundException(const char *key)
+{
+    char buffer[256];
+    std::snprintf(buffer, 256, "Key `%s` not found", key);
 
     return Exception(buffer);
 }

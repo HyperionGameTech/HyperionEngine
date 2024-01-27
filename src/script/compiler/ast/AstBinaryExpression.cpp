@@ -61,8 +61,8 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         target_type = target_type->GetUnaliased();
         AssertThrow(target_type != nullptr);
 
-        const auto operator_string = m_op->LookupStringValue();
-        const auto overload_function_name = "operator" + operator_string;
+        const String operator_string = m_op->LookupStringValue();
+        const String overload_function_name = "operator" + operator_string;
 
         RC<AstExpression> call_operator_overload_expr;
         
@@ -130,7 +130,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 sub_bin_expr,
                 m_location
             ));
-        } else if (target_type->FindPrototypeMember(overload_function_name)) {
+        } else if (target_type->FindPrototypeMemberDeep(overload_function_name)) {
             // @TODO: This check currently won't hit for a class type,
             // unless we add something like "final classes".
 
@@ -138,6 +138,8 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (m_operator_overload != nullptr) {
+            m_operator_overload->SetAccessMode(GetAccessMode());
+            m_operator_overload->SetExpressionFlags(GetExpressionFlags());
             m_operator_overload->Visit(visitor, mod);
 
             return;
@@ -199,7 +201,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         if (!m_left->IsMutable()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_const_modified,
+                Msg_expression_cannot_be_modified,
                 m_location
             ));
         }

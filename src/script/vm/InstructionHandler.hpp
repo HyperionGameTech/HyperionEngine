@@ -471,8 +471,6 @@ public:
                 AssertThrow(index < obj_ptr->GetSize());
                 thread->m_regs[dst].AssignValue(obj_ptr->GetMember(index).value, false);
                 return;
-            } else {
-                HYP_BREAKPOINT;
             }
         }
 
@@ -501,7 +499,7 @@ public:
                 } else {
                     state->ThrowException(
                         thread,
-                        Exception::MemberNotFoundException()
+                        Exception::MemberNotFoundException(hash)
                     );
                 }
                 return;
@@ -828,7 +826,7 @@ public:
         if (member == nullptr) {
             state->ThrowException(
                 thread,
-                Exception::MemberNotFoundException()
+                Exception::MemberNotFoundException(hash)
             );
             return;
         }
@@ -1272,16 +1270,14 @@ public:
                     // simply copy the value into the new value as it is not a heap pointer.
                     res.m_type = proto_mem->value.m_type;
                     res.m_value = proto_mem->value.m_value;
-
-                    break;
                 } else {
                     state->ThrowException(
                         thread,
                         Exception::InvalidConstructorException()
                     );
-
-                    return;
                 }
+
+                return;
             }
 
             if (proto_mem->value.m_value.ptr == nullptr) {
@@ -1291,10 +1287,16 @@ public:
             VMObject *proto_member_object = nullptr;
 
             if (!(proto_member_object = proto_mem->value.m_value.ptr->GetPointer<VMObject>())) {
-                state->ThrowException(
-                    thread,
-                    Exception::InvalidConstructorException()
-                );
+                if (depth == 0) {
+                    // simply copy the value into the new value as it is not a heap pointer.
+                    res.m_type = proto_mem->value.m_type;
+                    res.m_value = proto_mem->value.m_value;
+                } else {
+                    state->ThrowException(
+                        thread,
+                        Exception::InvalidConstructorException()
+                    );
+                }
 
                 return;
             }

@@ -3,6 +3,7 @@
 #include <script/vm/VMArray.hpp>
 #include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
+#include <script/vm/VMMap.hpp>
 
 #include <iostream>
 
@@ -47,6 +48,11 @@ void HeapValue::Mark()
 
         for (SizeType i = 0; i < size; i++) {
             slice->AtIndex(i).Mark();
+        }
+    } else if (VMMap *map = GetPointer<VMMap>()) {
+        for (auto &pair : map->GetMap()) {
+            pair.first.key.Mark();
+            pair.second.Mark();
         }
     }
 }

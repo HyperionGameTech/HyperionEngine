@@ -56,7 +56,9 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
             return;
         }
 
-        m_result_value = RC<AstString>::Construct(held_type->ToString(), m_location);
+        held_type = held_type->GetUnaliased();
+
+        m_result_value = RC<AstString>::Construct(held_type->ToString(true), m_location);
     } else if (m_command_name == "log") {
         const auto *value_of = m_expr->GetDeepValueOf();
 

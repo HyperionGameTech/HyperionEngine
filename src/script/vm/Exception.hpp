@@ -30,7 +30,7 @@ public:
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();
     static Exception OutOfBoundsException();
-    static Exception MemberNotFoundException();
+    static Exception MemberNotFoundException(UInt32 hash_code);
     static Exception FileOpenException(const char *file_name);
     static Exception UnopenedFileWriteException();
     static Exception UnopenedFileReadException();
@@ -38,6 +38,7 @@ public:
     static Exception LibraryLoadException(const char *lib_name);
     static Exception LibraryFunctionLoadException(const char *func_name);
     static Exception DuplicateExportException();
+    static Exception KeyNotFoundException(const char *key);
 
 private:
     char *m_str;

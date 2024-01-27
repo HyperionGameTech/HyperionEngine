@@ -49,7 +49,7 @@ void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(!m_is_visited);
 
     AssertThrow(m_symbol_type != nullptr);
-    AssertThrowMsg(m_symbol_type->GetId() == -1, "Type %s already registered", m_symbol_type->GetName().Data());
+    AssertThrowMsg(m_symbol_type->GetId() == -1, "Type %s already registered", m_symbol_type->ToString(true).Data());
 
     if (m_base_symbol_type != nullptr) {
         SymbolTypePtr_t base_type = m_base_symbol_type->GetUnaliased();

@@ -3,8 +3,7 @@
 
 #include <script/vm/VMArray.hpp>
 #include <script/vm/Value.hpp>
-
-#include <cstdint>
+#include <HashCode.hpp>
 
 namespace hyperion {
 namespace vm {
@@ -37,10 +36,12 @@ public:
         int depth = 3
     ) const;
 
+    HashCode GetHashCode() const;
+
 private:
-    VMArray *m_ary;
-    SizeType m_start;
-    SizeType m_end;
+    VMArray     *m_ary;
+    SizeType    m_start;
+    SizeType    m_end;
 };
 
 }

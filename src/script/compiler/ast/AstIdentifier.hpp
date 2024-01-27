@@ -86,8 +86,6 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override = 0;
     virtual SymbolTypePtr_t GetHeldType() const override;
 
-    virtual ExprAccess GetExprAccess() const override;
-
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
 
