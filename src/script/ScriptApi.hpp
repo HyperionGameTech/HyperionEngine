@@ -14,18 +14,20 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
+#include <script/ScriptApi2.hpp>
+
 #include <core/lib/Variant.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/LinkedList.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/Optional.hpp>
+#include <core/lib/Any.hpp>
+#include <core/Util.hpp>
 
 #include <Types.hpp>
 
 #include <util/Defines.hpp>
-
-#include <unordered_map>
 
 #ifndef __cplusplus
 #error Script requires a C++ compiler
@@ -373,451 +375,6 @@ class APIInstance;
 template <class T>
 constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T> || std::is_same_v<vm::VMArray, T> || std::is_same_v<vm::VMStruct, T>;
 
-class API
-{
-public:
-    struct NativeVariableDefine
-    {
-        String name;
-        SymbolTypePtr_t type;
-        enum { INITIALIZER, VALUE } value_type;
-        NativeInitializerPtr_t initializer_ptr;
-        vm::Value value;
-        bool is_const;
-        RC<AstExpression> current_value; // defaults to DefaultValue() of type
-
-        NativeVariableDefine(
-            const String &name,
-            const SymbolTypePtr_t &type,
-            NativeInitializerPtr_t initializer_ptr,
-            bool is_const = false
-        ) : name(name),
-            type(type),
-            value_type(INITIALIZER),
-            initializer_ptr(initializer_ptr),
-            is_const(is_const)
-        {
-        }
-
-        NativeVariableDefine(
-            const String &name,
-            const SymbolTypePtr_t &type,
-            const vm::Value &value,
-            bool is_const = false
-        ) : name(name),
-            type(type),
-            value_type(VALUE),
-            value(value),
-            is_const(is_const)
-        {
-        }
-
-        NativeVariableDefine(const NativeVariableDefine &other)
-            : name(other.name),
-              type(other.type),
-              value_type(other.value_type),
-              initializer_ptr(other.initializer_ptr),
-              value(other.value),
-              is_const(other.is_const),
-              current_value(other.current_value)
-        {
-        }
-    };
-
-    struct NativeFunctionDefine
-    {
-        String                              function_name;
-        SymbolTypePtr_t                     return_type;
-        Optional<GenericInstanceTypeInfo>   generic_instance_info;
-        Array<GenericInstanceTypeInfo::Arg> param_types;
-        NativeFunctionPtr_t                 ptr;
-
-        NativeFunctionDefine() = default;
-
-        NativeFunctionDefine(
-            const String &function_name,
-            const SymbolTypePtr_t &return_type,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        ) : function_name(function_name),
-            return_type(return_type),
-            param_types(param_types),
-            ptr(ptr)
-        {
-        }
-
-        NativeFunctionDefine(
-            const String &function_name,
-            const SymbolTypePtr_t &return_type,
-            const GenericInstanceTypeInfo &generic_instance_info,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        ) : function_name(function_name),
-            return_type(return_type),
-            generic_instance_info(generic_instance_info),
-            param_types(param_types),
-            ptr(ptr)
-        {
-        }
-
-        NativeFunctionDefine(const NativeFunctionDefine &other)
-            : function_name(other.function_name),
-              return_type(other.return_type),
-              generic_instance_info(other.generic_instance_info),
-              param_types(other.param_types),
-              ptr(other.ptr)
-        {
-        }
-
-        NativeFunctionDefine &operator=(const NativeFunctionDefine &other)
-        {
-            function_name = other.function_name;
-            return_type = other.return_type;
-            generic_instance_info = other.generic_instance_info;
-            param_types = other.param_types;
-            ptr = other.ptr;
-
-            return *this;
-        }
-
-        NativeFunctionDefine(NativeFunctionDefine &&other) noexcept
-            : function_name(std::move(other.function_name)),
-              return_type(std::move(other.return_type)),
-              generic_instance_info(std::move(other.generic_instance_info)),
-              param_types(std::move(other.param_types)),
-              ptr(other.ptr)
-        {
-        }
-
-        NativeFunctionDefine &operator=(NativeFunctionDefine &&other) noexcept
-        {
-            function_name = std::move(other.function_name);
-            return_type = std::move(other.return_type);
-            generic_instance_info = std::move(other.generic_instance_info);
-            param_types = std::move(other.param_types);
-            ptr = other.ptr;
-
-            return *this;
-        }
-    };
-
-    struct NativeMemberDefine
-    {
-        String                                              name;
-        enum { MEMBER_TYPE_VALUE, MEMBER_TYPE_FUNCTION }    member_type;
-        vm::Value                                           value;
-        SymbolTypePtr_t                                     value_type;
-        NativeFunctionDefine                                fn;
-
-        NativeMemberDefine(
-            const String &name,
-            const SymbolTypePtr_t &value_type,
-            const vm::Value &value
-        ) : name(name),
-            member_type(MEMBER_TYPE_VALUE),
-            value(value),
-            value_type(value_type)
-        {
-        }
-
-        NativeMemberDefine(
-            const String &name,
-            const NativeFunctionDefine &fn
-        ) : name(name),
-            member_type(MEMBER_TYPE_FUNCTION),
-            value(vm::Value::NONE, vm::Value::ValueData { .ptr = nullptr }),
-            fn(fn)
-        {
-        }
-
-        NativeMemberDefine(
-            const String &name,
-            const SymbolTypePtr_t &return_type,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        ) : NativeMemberDefine(
-                name,
-                NativeFunctionDefine(
-                    name,
-                    return_type,
-                    param_types,
-                    ptr
-                )
-            )
-        {
-        }
-
-        NativeMemberDefine(
-            const String &name,
-            const SymbolTypePtr_t &return_type,
-            const GenericInstanceTypeInfo &generic_instance_info,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        ) : NativeMemberDefine(
-                name,
-                NativeFunctionDefine(
-                    name,
-                    return_type,
-                    generic_instance_info,
-                    param_types,
-                    ptr
-                )
-            )
-        {
-        }
-
-        NativeMemberDefine(const NativeMemberDefine &other)
-            : name(other.name),
-              member_type(other.member_type),
-              value(other.value),
-              value_type(other.value_type),
-              fn(other.fn)
-        {
-        }
-
-        NativeMemberDefine &operator=(const NativeMemberDefine &other)
-        {
-            name = other.name;
-            member_type = other.member_type;
-            value = other.value;
-            value_type = other.value_type;
-            fn = other.fn;
-
-            return *this;
-        }
-
-        NativeMemberDefine(NativeMemberDefine &&other) noexcept
-            : name(std::move(other.name)),
-              member_type(other.member_type),
-              value(std::move(other.value)),
-              value_type(std::move(other.value_type)),
-              fn(std::move(other.fn))
-        {
-        }
-
-        NativeMemberDefine &operator=(NativeMemberDefine &&other) noexcept
-        {
-            name = std::move(other.name);
-            member_type = other.member_type;
-            value = std::move(other.value);
-            value_type = std::move(other.value_type);
-            fn = std::move(other.fn);
-
-            return *this;
-        }
-    };
-
-    struct TypeDefine
-    {
-        String                      name;
-        TypeID                      native_type_id;
-        SymbolTypePtr_t             base_class;
-        Array<NativeMemberDefine>   members;
-        Array<NativeMemberDefine>   static_members;
-
-        TypeDefine() = default;
-        TypeDefine(const TypeDefine &other) = default;
-
-        TypeDefine(
-            const String &name,
-            TypeID native_type_id,
-            const SymbolTypePtr_t &base_class,
-            const Array<NativeMemberDefine> &members
-        ) : name(name),
-            native_type_id(native_type_id),
-            base_class(base_class),
-            members(members)
-        {
-        }
-
-        TypeDefine(
-            const String &name,
-            TypeID native_type_id,
-            const SymbolTypePtr_t &base_class,
-            const Array<NativeMemberDefine> &members,
-            const Array<NativeMemberDefine> &static_members
-        ) : name(name),
-            native_type_id(native_type_id),
-            base_class(base_class),
-            members(members),
-            static_members(static_members)
-        {
-        }
-
-        TypeDefine(
-            const String &name,
-            TypeID native_type_id,
-            const Array<NativeMemberDefine> &members,
-            const Array<NativeMemberDefine> &static_members
-        ) : TypeDefine(
-                name,
-                native_type_id,
-                nullptr,
-                members,
-                static_members
-            )
-        {
-        }
-
-        TypeDefine(
-            const String &name,
-            TypeID native_type_id,
-            const Array<NativeMemberDefine> &members
-        ) : name(name),
-            native_type_id(native_type_id),
-            base_class(nullptr),
-            members(members)
-        {
-        }
-    };
-
-    struct ModuleDefine
-    {
-    public:
-        ModuleDefine(
-            APIInstance &api_instance,
-            const String &name
-        ) : m_api_instance(api_instance),
-            m_name(name)
-        {
-        }
-
-        String m_name;
-        Array<TypeDefine> m_type_defs;
-        Array<NativeFunctionDefine> m_function_defs;
-        Array<NativeVariableDefine> m_variable_defs;
-        RC<Module> m_mod;
-
-        template <class T>
-        ModuleDefine &Class(
-            const String &class_name,
-            const SymbolTypePtr_t &base_class,
-            const Array<NativeMemberDefine> &members
-        );
-
-        template <class T>
-        ModuleDefine &Class(
-            const String &class_name,
-            const SymbolTypePtr_t &base_class,
-            const Array<NativeMemberDefine> &members,
-            const Array<NativeMemberDefine> &static_members
-        );
-
-        template <class T>
-        ModuleDefine &Class(
-            const String &class_name,
-            const Array<NativeMemberDefine> &members
-        );
-
-        template <class T>
-        ModuleDefine &Class(
-            const String &class_name,
-            const Array<NativeMemberDefine> &members,
-            const Array<NativeMemberDefine> &static_members
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            const SymbolTypePtr_t &variable_type,
-            NativeInitializerPtr_t ptr
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            const SymbolTypePtr_t &variable_type,
-            const vm::Value &value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            Int32 value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            Int64 alue
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            UInt32 value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            UInt64 value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            Float value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            bool value
-        );
-
-        ModuleDefine &Variable(
-            const String &variable_name,
-            const SymbolTypePtr_t &variable_type,
-            UserData_t ptr
-        );
-
-        ModuleDefine &Function(
-            const String &function_name,
-            const SymbolTypePtr_t &return_type,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        );
-
-        ModuleDefine &Function(
-            const String &function_name,
-            const SymbolTypePtr_t &return_type,
-            const GenericInstanceTypeInfo &generic_instance_info,
-            const Array<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr
-        );
-
-        void BindAll(
-            APIInstance &api_instance,
-            vm::VM *vm,
-            AstVisitor *visitor,
-            CompilationUnit *compilation_unit
-        );
-
-    private:
-        void BindNativeVariable(
-            APIInstance &api_instance,
-            NativeVariableDefine &def,
-            Module *mod,
-            vm::VM *vm,
-            AstVisitor *visitor,
-            CompilationUnit *compilation_unit
-        );
-
-        void BindNativeFunction(
-            APIInstance &api_instance,
-            NativeFunctionDefine &def,
-            Module *mod,
-            vm::VM *vm,
-            AstVisitor *visitor,
-            CompilationUnit *compilation_unit
-        );
-
-        void BindType(
-            APIInstance &api_instance,
-            const TypeDefine &def,
-            Module *mod,
-            vm::VM *vm,
-            AstVisitor *visitor,
-            CompilationUnit *compilation_unit
-        );
-
-        APIInstance &m_api_instance;
-    };
-};
-
 #pragma region Script API Instance
 
 // class ClassBindingMap : TypeMap<RC<ClassBase>>
@@ -857,99 +414,10 @@ public:
     const SourceFile &GetSourceFile() const
         { return m_source_file; }
 
-    API::ModuleDefine &Module(const String &name);
-
-    void BindAll(
-        vm::VM *vm,
-        AstVisitor *visitor,
-        CompilationUnit *compilation_unit
-    );
-
 private:
-    vm::VM *m_vm;
-    SourceFile m_source_file;
-    LinkedList<API::ModuleDefine> m_module_defs;
+    vm::VM      *m_vm;
+    SourceFile  m_source_file;
 };
-
-#pragma endregion
-
-#pragma region ModuleDefine helper methods
-
-template <class T>
-API::ModuleDefine &API::ModuleDefine::Class(
-    const String &class_name,
-    const SymbolTypePtr_t &base_class,
-    const Array<NativeMemberDefine> &members
-)
-{
-    m_api_instance.class_bindings.class_names.Set<T>(class_name);
-
-    m_type_defs.PushBack(TypeDefine(
-        class_name,
-        TypeID::ForType<T>(),
-        base_class,
-        members
-    ));
-
-    return *this;
-}
-
-template <class T>
-API::ModuleDefine &API::ModuleDefine::Class(
-    const String &class_name,
-    const SymbolTypePtr_t &base_class,
-    const Array<NativeMemberDefine> &members,
-    const Array<NativeMemberDefine> &static_members
-)
-{
-    m_api_instance.class_bindings.class_names.Set<T>(class_name);
-
-    m_type_defs.PushBack(TypeDefine(
-        class_name,
-        TypeID::ForType<T>(),
-        base_class,
-        members,
-        static_members
-    ));
-
-    return *this;
-}
-
-template <class T>
-API::ModuleDefine &API::ModuleDefine::Class(
-    const String &class_name,
-    const Array<NativeMemberDefine> &members
-)
-{
-    m_api_instance.class_bindings.class_names.Set<T>(class_name);
-
-    m_type_defs.PushBack(TypeDefine(
-        class_name,
-        TypeID::ForType<T>(),
-        members
-    ));
-
-    return *this;
-}
-
-template <class T>
-API::ModuleDefine &API::ModuleDefine::Class(
-    const String &class_name,
-    const Array<NativeMemberDefine> &members,
-    const Array<NativeMemberDefine> &static_members
-)
-{
-    m_api_instance.class_bindings.class_names.Set<T>(class_name);
-
-    m_type_defs.PushBack(TypeDefine(
-        class_name,
-        TypeID::ForType<T>(),
-        members,
-        static_members
-    ));
-
-    return *this;
-}
 
 #pragma endregion
 
@@ -1335,6 +803,23 @@ struct ConvertImpl<void *>
 };
 
 template <>
+struct ConvertImpl<const void *>
+{
+    Optional<const void *> operator()(APIInstance &api_instance, const vm::Value &value) const
+    {
+        Optional<void *> result = ConvertImpl<void *>()(api_instance, value);
+
+        if (!result.HasValue()) {
+            return { };
+        }
+
+        return {
+            const_cast<const void *>(ConvertImpl<void *>()(api_instance, value).GetOr(nullptr))
+        };
+    }
+};
+
+template <>
 struct ConvertImpl<vm::VMString *>
 {
     Optional<vm::VMString *> operator()(APIInstance &, const vm::Value &value) const
@@ -1372,6 +857,21 @@ struct ConvertImpl<vm::VMArray *>
         vm::VMArray *ptr;
 
         if (value.GetPointer<vm::VMArray>(&ptr)) {
+            return ptr;
+        }
+
+        return { };
+    }
+};
+
+template <>
+struct ConvertImpl<vm::VMMap *>
+{
+    Optional<vm::VMMap *> operator()(APIInstance &, const vm::Value &value) const
+    {
+        vm::VMMap *ptr;
+
+        if (value.GetPointer<vm::VMMap>(&ptr)) {
             return ptr;
         }
 
@@ -1454,6 +954,21 @@ struct ConvertImpl<vm::VMStruct>
     }
 };
 
+template <>
+struct ConvertImpl<vm::VMMap>
+{
+    vm::VMMap *operator()(APIInstance &, const vm::Value &value) const
+    {
+        vm::VMMap *ptr;
+
+        if (value.GetPointer<vm::VMMap>(&ptr)) {
+            return ptr;
+        }
+
+        return nullptr;
+    }
+};
+
 template <class T>
 struct ConvertImpl<T *> // embedded C++ object (as pointer)
 {
@@ -1478,6 +993,25 @@ struct ConvertImpl<T *> // embedded C++ object (as pointer)
         return { };
     }
 };
+
+#if 0
+
+template <>
+struct ConvertImpl<AnyPtr>
+{
+    Optional<AnyPtr> operator()(APIInstance &api_instance, const vm::Value &value) const
+    {
+        AnyPtr any_ptr = value.ToAnyPtr();
+
+        if (any_ptr.Is<void>()) {
+            return { };
+        }
+
+        return any_ptr;
+    }
+};
+
+#endif
 
 template <class T, SizeType NumInlineBytes>
 struct ConvertImpl<Array<T, NumInlineBytes>>
@@ -1730,7 +1264,20 @@ auto GetArgument(sdk::Params &params)
     auto converted = ConvertScriptObject<T>(params.api_instance, *value);
 
     if (!converted.HasValue()) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Unexpected type for argument, could not convert to expected type"));
+        char buffer[1024];
+
+        std::snprintf(
+            buffer,
+            sizeof(buffer),
+            "Unexpected type for argument at index %d, could not convert to expected type `%s`",
+            Index,
+            TypeName<T>().Data()
+        );
+
+        params.handler->state->ThrowException(
+            params.handler->thread,
+            vm::Exception(buffer)
+        );
 
         return T { };
     }
@@ -1747,6 +1294,9 @@ auto GetArgument(sdk::Params &params)
 #pragma region Native Script Binding Helper Structs
 
 struct ScriptBindingsBase;
+struct ScriptBindingsHolder;
+
+extern ScriptBindingsHolder g_script_bindings;
 
 struct ScriptBindingsHolder
 {
@@ -1757,7 +1307,7 @@ struct ScriptBindingsHolder
 
     void AddBinding(ScriptBindingsBase *script_bindings);
 
-    void GenerateAll(APIInstance &api_instance);
+    void GenerateAll(scriptapi2::Context &);
 };
 
 struct ScriptBindingsBase
@@ -1765,7 +1315,7 @@ struct ScriptBindingsBase
     ScriptBindingsBase(TypeID type_id);
     virtual ~ScriptBindingsBase() = default;
 
-    virtual void Generate(APIInstance &) = 0;
+    virtual void Generate(scriptapi2::Context &) = 0;
 };
 
 #pragma endregion

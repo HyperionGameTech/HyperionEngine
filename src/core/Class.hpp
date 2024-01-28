@@ -12,25 +12,6 @@
 
 namespace hyperion {
 
-using ClassField = API::NativeMemberDefine;
-using ClassFields = Array<ClassField>; //FlatMap<ANSIString, FieldInfo>;
-// global variable of all class fields
-// this must strictly be used on one thread
-
-struct ClassInitializerBase
-{
-    static TypeMap<ClassFields> class_fields;
-};
-
-template <class Class>
-struct ClassInitializer : ClassInitializerBase
-{
-    ClassInitializer(std::add_pointer_t<ClassFields(void)> &&fn)
-    {
-        ClassInitializerBase::class_fields.Set<Class>(fn());
-    }
-};
-
 class ClassBase
 {
 public:

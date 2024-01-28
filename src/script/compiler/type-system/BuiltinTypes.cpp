@@ -1,5 +1,4 @@
 #include <script/compiler/type-system/BuiltinTypes.hpp>
-#include <script/compiler/type-system/SymbolType.hpp>
 
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
@@ -15,6 +14,10 @@
 #include <script/compiler/ast/AstUndefined.hpp>
 
 namespace hyperion::compiler {
+
+const SymbolTypeTrait BuiltinTypeTraits::variadic = {
+    "@variadic"
+};
 
 const SymbolTypePtr_t BuiltinTypes::PRIMITIVE_TYPE = SymbolType::Primitive(
     "<primitive-type>",
@@ -169,17 +172,6 @@ const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
     BuiltinTypes::CLASS_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
-    "<varargs-type>",
-    RC<AstArrayExpression>(new AstArrayExpression(
-        {},
-        SourceLocation::eof
-    )),
-    {},
-    GenericTypeInfo { 1 },
-    BuiltinTypes::CLASS_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "<null-type>",
     RC<AstNil>(new AstNil(SourceLocation::eof)),
@@ -200,19 +192,6 @@ const SymbolTypePtr_t BuiltinTypes::MODULE_INFO = SymbolType::Object(
             BuiltinTypes::STRING->GetDefaultValue()
         }
     }
-);
-
-const SymbolTypePtr_t BuiltinTypes::GENERATOR = SymbolType::Generic(
-    "Generator",
-    RC<AstFunctionExpression>(new AstFunctionExpression(
-        {},
-        nullptr, 
-        RC<AstBlock>(new AstBlock(SourceLocation::eof)),
-        SourceLocation::eof
-    )),
-    {},
-    GenericTypeInfo{ 1 },
-    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(

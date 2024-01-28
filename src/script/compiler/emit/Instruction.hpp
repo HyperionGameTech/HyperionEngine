@@ -123,10 +123,10 @@ struct StoreLocal : public Buildable
 
 struct PopLocal : public Buildable
 {
-    size_t amt;
+    UInt16 amt;
 
     PopLocal() = default;
-    PopLocal(size_t amt)
+    PopLocal(UInt16 amt)
         : amt(amt)
     {
     }

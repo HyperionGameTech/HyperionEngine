@@ -18,10 +18,10 @@ namespace hyperion::compiler {
 
 Parser::Parser(AstIterator *ast_iterator,
     TokenStream *token_stream,
-    CompilationUnit *compilation_unit)
-    : m_ast_iterator(ast_iterator),
-      m_token_stream(token_stream),
-      m_compilation_unit(compilation_unit)
+    CompilationUnit *compilation_unit
+) : m_ast_iterator(ast_iterator),
+    m_token_stream(token_stream),
+    m_compilation_unit(compilation_unit)
 {
 }
 
@@ -1341,7 +1341,7 @@ RC<AstIfStatement> Parser::ParseIfStatement()
         }
 
         RC<AstBlock> block;
-        if (!(block = ParseBlock(false, true))) {
+        if (!(block = ParseBlock(true, true))) {
             return nullptr;
         }
 
@@ -1359,16 +1359,16 @@ RC<AstIfStatement> Parser::ParseIfStatement()
                 }
             } else {
                 // parse block after "else keyword
-                if (!(else_block = ParseBlock(false, true))) {
+                if (!(else_block = ParseBlock(true, true))) {
                     return nullptr;
                 }
             }
         }
 
-        // expect "end" keyword
-        if (!ExpectKeyword(Keyword_end, true)) {
-            return nullptr;
-        }
+        // // expect "end" keyword
+        // if (!ExpectKeyword(Keyword_end, true)) {
+        //     return nullptr;
+        // }
 
         return RC<AstIfStatement>(new AstIfStatement(
             conditional,
@@ -1398,7 +1398,7 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
         }
 
         RC<AstBlock> block;
-        if (!(block = ParseBlock(false))) {
+        if (!(block = ParseBlock(true))) {
             return nullptr;
         }
 
@@ -1464,7 +1464,7 @@ RC<AstStatement> Parser::ParseForLoop()
         SkipStatementTerminators();
 
         RC<AstBlock> block;
-        if (!(block = ParseBlock(false))) {
+        if (!(block = ParseBlock(true))) {
             return nullptr;
         }
 
@@ -1505,17 +1505,17 @@ RC<AstStatement> Parser::ParseContinueStatement()
 RC<AstTryCatch> Parser::ParseTryCatchStatement()
 {
     if (Token token = ExpectKeyword(Keyword_try, true)) {
-        RC<AstBlock> try_block = ParseBlock(false, true);
+        RC<AstBlock> try_block = ParseBlock(true, true);
         RC<AstBlock> catch_block;
 
         if (ExpectKeyword(Keyword_catch, true)) {
             // TODO: Add exception argument
-            catch_block = ParseBlock(false);
+            catch_block = ParseBlock(true);
         } else {
-            // No catch keyword, expect 'end'
-            if (!ExpectKeyword(Keyword_end, true)) {
-                return nullptr;
-            }
+            // // No catch keyword, expect 'end'
+            // if (!ExpectKeyword(Keyword_end, true)) {
+            //     return nullptr;
+            // }
         }
 
         if (try_block != nullptr && catch_block != nullptr) {
@@ -1986,9 +1986,9 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
         } else {
             SkipStatementTerminators();
 
-            bool use_braces = !Match(TK_OPEN_BRACE, false).Empty();
+            // bool use_braces = !Match(TK_OPEN_BRACE, false).Empty();
 
-            block = ParseBlock(use_braces);
+            block = ParseBlock(true);
         }
 
         if (block != nullptr) {
@@ -2347,7 +2347,11 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
 
     SkipStatementTerminators();
 
-    while (!MatchKeyword(Keyword_end, true)) {
+    if (!Expect(TK_OPEN_BRACE, true)) {
+        return nullptr;
+    }
+
+    while (!Match(TK_CLOSE_BRACE, true)) {
         const SourceLocation location = CurrentLocation();
         Token specifier_token = Token::EMPTY;
 
@@ -2634,7 +2638,11 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
     
     Array<EnumEntry> entries;
 
-    while (!MatchKeyword(Keyword_end, false)) {
+    if (!Expect(TK_OPEN_BRACE, true)) {
+        return nullptr;
+    }
+
+    while (!Match(TK_CLOSE_BRACE, true)) {
         EnumEntry entry { };
 
         if (const Token ident = Expect(TK_IDENT, true)) {
@@ -2652,12 +2660,12 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
 
         while (Match(TK_NEWLINE, true));
 
-        if (!MatchKeyword(Keyword_end, false)) {
+        if (!Match(TK_CLOSE_BRACE, false)) {
             Expect(TK_COMMA, true);
         }
     }
 
-    ExpectKeyword(Keyword_end, true);
+    // ExpectKeyword(Keyword_end, true);
 
     return RC<AstEnumExpression>(new AstEnumExpression(
         enum_name,

@@ -5,6 +5,7 @@
 #include <core/lib/TypeID.hpp>
 #include <core/lib/CMemory.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/Any.hpp>
 #include <Types.hpp>
 #include <Constants.hpp>
 
@@ -436,6 +437,19 @@ public:
     UniquePtr()
         : Base()
     {
+    }
+
+    explicit UniquePtr(Any &&value)
+        : Base()
+    {
+        Base::m_holder.type_id = value.m_type_id;
+        Base::m_holder.base_type_id = value.m_type_id;
+        Base::m_holder.value = value.m_ptr;
+        Base::m_holder.dtor = value.m_delete_function;
+
+        value.m_ptr = nullptr;
+        value.m_delete_function = nullptr;
+        value.m_type_id = TypeID::ForType<void>();
     }
 
     UniquePtr(const Base &other) = delete;

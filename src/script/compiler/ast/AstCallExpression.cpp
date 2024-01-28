@@ -62,10 +62,10 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             RC<AstArgument> self_arg(new AstArgument(
                 self_target,
                 false,
-                true,
                 false,
                 false,
-                Keyword::ToString(Keywords::Keyword_self).Get(),
+                false,
+                "self",
                 self_target->GetLocation()
             ));
             
@@ -144,7 +144,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             LEVEL_ERROR,
             Msg_not_a_function,
             m_location,
-            target_type->ToString()
+            target_type->ToString(true)
         ));
 
         return;

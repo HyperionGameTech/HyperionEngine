@@ -411,8 +411,34 @@ static struct SceneScriptBindings : ScriptBindingsBase
     {
     }
 
-    virtual void Generate(APIInstance &api_instance) override
+    virtual void Generate(scriptapi2::Context &context) override
     {
+        context.Class<Handle<Scene>>(
+            "Scene",
+            {
+                // {
+                //     "$construct",
+                //     "function<Scene, Scene>",
+                //     CxxFn< Handle<Scene>, void *, ScriptCreateObject<Scene> >
+                // }
+            },
+            {
+                {
+                    "Foo",
+                    "function<int, Class>",
+                    CxxFn<
+                        Int32,
+                        void *,
+                        [](void *ptr) -> Int32
+                        {
+                            // temp test
+                            return 42;
+                        }
+                    >
+                }
+            }
+        );
+
         // api_instance.Module(Config::global_module_name)
         //     .Function(
         //         "TestSceneFunction",
@@ -429,6 +455,7 @@ static struct SceneScriptBindings : ScriptBindingsBase
         //         >
         //     );
 
+#if 0
         api_instance.Module(Config::global_module_name)
             .Class<Handle<Scene>>(
                 "Scene",
@@ -474,6 +501,7 @@ static struct SceneScriptBindings : ScriptBindingsBase
                     )
                 }
             );
+#endif
     }
 } scene_script_bindings = { };
 

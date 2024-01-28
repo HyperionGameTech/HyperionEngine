@@ -21,10 +21,12 @@ void ScriptingSystem::Process(EntityManager &entity_manager, GameCounter::TickUn
 
             script_component.flags |= SCRIPT_COMPONENT_FLAG_INIT;
 
-            if (script->Compile()) {
+            scriptapi2::Context context;
+
+            if (script->Compile(context)) {
                 script->Bake();
                 script->Decompile(&utf::cout);
-                script->Run(); // Run the script once to initialize the global state
+                script->Run(context); // Run the script once to initialize the global state
 
                 // If the script has a target object, setup our handles
                 if (script_component.target_name.Length()) {

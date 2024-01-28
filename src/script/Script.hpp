@@ -28,6 +28,10 @@ namespace hyperion {
 using namespace compiler;
 using namespace vm;
 
+namespace scriptapi2 {
+class Context;
+} // namespace scriptapi2
+
 namespace v2 {
 
 class Engine;
@@ -82,14 +86,14 @@ public:
     Bool IsBaked() const { return m_baked_bytes.Any(); }
     Bool IsCompiled() const { return m_bytecode_chunk.buildables.Any(); }
 
-    Bool Compile();
+    Bool Compile(scriptapi2::Context &context);
 
     InstructionStream Decompile(utf::utf8_ostream *os = nullptr) const;
 
     void Bake();
     void Bake(BuildParams &build_params);
 
-    void Run();
+    void Run(scriptapi2::Context &context);
 
     template <class T>
     constexpr Value CreateArgument(T &&item)

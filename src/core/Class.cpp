@@ -2,8 +2,6 @@
 
 namespace hyperion {
 
-TypeMap<ClassFields> ClassInitializerBase::class_fields = {};
-
 GlobalClassTable g_global_class_table = { };
 
 // RegisteredClass GlobalClassTable::Register(ClassBase *class_object)

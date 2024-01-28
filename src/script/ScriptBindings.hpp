@@ -5,6 +5,10 @@
 
 namespace hyperion {
 
+namespace scriptapi2 {
+class Context;
+} // namespace scriptapi2
+
 class ScriptBindings
 {
 public:

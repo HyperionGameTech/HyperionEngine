@@ -36,6 +36,9 @@ public:
     const void *GetBuffer() const
         { return m_bytes.Data(); }
 
+    const ByteBuffer &GetByteBuffer() const
+        { return m_bytes; }
+
     void GetRepresentation(
         std::stringstream &ss,
         bool add_type_name = true,

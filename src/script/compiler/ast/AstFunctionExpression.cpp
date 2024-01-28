@@ -111,7 +111,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         // add implicit 'return self' at the end
         m_block_with_parameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
             RC<AstVariable>(new AstVariable(
-                Keyword::ToString(Keywords::Keyword_self).Get(),
+                "self",
                 m_block_with_parameters->GetLocation()
             )),
             m_block_with_parameters->GetLocation()
@@ -285,27 +285,27 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     function_type = function_type->GetUnaliased();
 
-    if (function_type != BuiltinTypes::UNDEFINED) {
-        const int current_symbol_type_id = function_type->GetId();
-        AssertThrow(current_symbol_type_id != -1);
+    // if (function_type != BuiltinTypes::UNDEFINED) {
+    //     const int current_symbol_type_id = function_type->GetId();
+    //     AssertThrow(current_symbol_type_id != -1);
 
-        const RC<AstTypeObject> current_type_object = function_type->GetTypeObject().Lock();
-        AssertThrow(current_type_object != nullptr);
+    //     const RC<AstTypeObject> current_type_object = function_type->GetTypeObject().Lock();
+    //     AssertThrow(current_type_object != nullptr);
 
-        const SymbolTypeFlags current_flags = function_type->GetFlags();
+    //     const SymbolTypeFlags current_flags = function_type->GetFlags();
 
-        function_type = SymbolType::GenericInstance(
-            function_type,
-            GenericInstanceTypeInfo {
-                generic_param_types
-            }
-        );
+    //     function_type = SymbolType::GenericInstance(
+    //         function_type,
+    //         GenericInstanceTypeInfo {
+    //             generic_param_types
+    //         }
+    //     );
 
-        // Reuse the same ID
-        function_type->SetId(current_symbol_type_id);
-        function_type->SetTypeObject(current_type_object);
-        function_type->SetFlags(current_flags);
-    }
+    //     // Reuse the same ID
+    //     function_type->SetId(current_symbol_type_id);
+    //     function_type->SetTypeObject(current_type_object);
+    //     function_type->SetFlags(current_flags);
+    // }
 
     if (m_is_closure) {
         String closure_name = "$$closure";

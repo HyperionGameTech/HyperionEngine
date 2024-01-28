@@ -8,6 +8,9 @@
 
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/dis/DecompilationUnit.hpp>
+
+#include <script/Script.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/Entity.hpp>
@@ -17,8 +20,6 @@
 #include <math/MathUtil.hpp>
  
 #include <core/lib/TypeMap.hpp>
-
-#include "compiler/dis/DecompilationUnit.hpp"
 
 namespace hyperion {
 
@@ -1727,9 +1728,11 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
             dyn_module.Reset(new DynModule);
             UniquePtr<Script> script(new Script(source_file));
 
-            if (script->Compile()) {
+            scriptapi2::Context context;
+
+            if (script->Compile(context)) {
                 script->Bake();
-                script->Run();
+                script->Run(context);
             } else {
                 DebugLog(
                     LogType::Error,
@@ -1834,6 +1837,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
 
+#if 0
     api_instance.Module(Config::global_module_name)
         .Class<Name>(
             "Name",
@@ -2695,6 +2699,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             },
             Free
         );
+#endif
 }
 
 } // namespace hyperion

@@ -1,4 +1,9 @@
 #include <script/compiler/ast/AstParameter.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTemplateInstantiation.hpp>
+#include <script/compiler/ast/AstArgument.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/AstVisitor.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -71,17 +76,43 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    // if variadic, then make it array of whatever type it is
+    // if variadic, then change symbol type to `varargs<T>`
     if (m_is_variadic) {
-        m_symbol_type = SymbolType::GenericInstance(
-            BuiltinTypes::VAR_ARGS,
-            GenericInstanceTypeInfo {
+        m_varargs_type_spec.Reset(new AstPrototypeSpecification(
+            RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+                RC<AstVariable>(new AstVariable(
+                    "varargs",
+                    m_location
+                )),
                 {
-                    { m_name, m_symbol_type }
-                }
-            }
-        );
+                    RC<AstArgument>(new AstArgument(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            m_symbol_type,
+                            m_location
+                        )),
+                        false,
+                        false,
+                        false,
+                        false,
+                        "T",
+                        m_location
+                    ))
+                },
+                m_location
+            )),
+            m_location
+        ));
 
+        m_varargs_type_spec->Visit(visitor, mod);
+
+        auto *varargs_value_of = m_varargs_type_spec->GetDeepValueOf();
+        AssertThrow(varargs_value_of != nullptr);
+
+        SymbolTypePtr_t held_type = varargs_value_of->GetHeldType();
+        AssertThrow(held_type != nullptr);
+        held_type = held_type->GetUnaliased();
+
+        m_symbol_type = held_type;
         AssertThrow(m_symbol_type->IsVarArgsType());
     }
 
@@ -109,6 +140,10 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_identifier != nullptr);
 
+    if (m_varargs_type_spec != nullptr) {
+        chunk->Append(m_varargs_type_spec->Build(visitor, mod));
+    }
+
     // get current stack size
     const Int stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
     // set identifier stack location
@@ -130,6 +165,9 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
 
 void AstParameter::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_varargs_type_spec != nullptr) {
+        m_varargs_type_spec->Optimize(visitor, mod);
+    }
 }
 
 RC<AstStatement> AstParameter::Clone() const

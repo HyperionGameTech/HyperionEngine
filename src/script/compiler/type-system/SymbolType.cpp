@@ -233,14 +233,7 @@ bool SymbolType::TypeCompatible(
                 AssertThrow(param_type != nullptr);
                 AssertThrow(other_param_type != nullptr);
 
-                if (param_type == other_param_type) {
-                    continue;
-                } else if (param_type->TypeEqual(*other_param_type)) {
-                    continue;
-                } else if (param_type->IsAnyType() || other_param_type->IsAnyType()
-                        || param_type->IsPlaceholderType() || other_param_type->IsPlaceholderType()) {
-                    continue;
-                } else {
+                if (!param_type->TypeEqual(*other_param_type)) {
                     return false;
                 }
             }
@@ -428,6 +421,29 @@ bool SymbolType::FindPrototypeMember(const String &name, SymbolTypeMember &out, 
     return found;
 }
 
+bool SymbolType::HasTrait(const SymbolTypeTrait &trait) const
+{
+    SymbolTypeMember member;
+
+    // trait names are prefixed with '@'
+    if (FindMember(trait.name, member)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool SymbolType::HasTraitDeep(const SymbolTypeTrait &trait) const
+{
+    SymbolTypeMember member;
+
+    if (FindMemberDeep(trait.name, member)) {
+        return true;
+    }
+
+    return false;
+}
+
 bool SymbolType::IsOrHasBase(const SymbolType &base_type) const
 {
     return TypeEqual(base_type) || HasBase(base_type);
@@ -526,7 +542,7 @@ bool SymbolType::IsNullableType() const
 
 bool SymbolType::IsVarArgsType() const
 {
-    return IsOrHasBase(*BuiltinTypes::VAR_ARGS);
+    return HasTraitDeep(BuiltinTypeTraits::variadic);
 }
 
 bool SymbolType::IsGenericParameter() const

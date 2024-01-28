@@ -819,21 +819,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case POP_N:
-    {
-        UInt8 n;
-        bs.Read(&n);
-
-        if (os != nullptr) {
-            (*os)
-                << "pop_n ["
-                << "u8(" << (int)n << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case PUSH_ARRAY:
     {
         UInt8 dst;
@@ -848,6 +833,36 @@ void DecompilationUnit::DecodeNext(
                 << "% " << (int)dst << ", "
                 << "% " << (int)src
                 << "]" << std::endl;
+        }
+
+        break;
+    }
+    case ADD_SP:
+    {
+        UInt16 val;
+        bs.Read(&val);
+
+        if (os != nullptr) {
+            (*os)
+                << "add_sp ["
+                    << "u16(" << val << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case SUB_SP:
+    {
+        UInt16 val;
+        bs.Read(&val);
+
+        if (os != nullptr) {
+            (*os)
+                << "sub_sp ["
+                    << "u16(" << val << ")"
+                << "]"
+                << std::endl;
         }
 
         break;

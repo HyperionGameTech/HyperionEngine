@@ -133,10 +133,10 @@ void CodeGenerator::Visit(StoreLocal *node)
 void CodeGenerator::Visit(PopLocal *node)
 {
     if (node->amt > 1) {
-        m_ibs.Put(Instructions::POP_N);
+        m_ibs.Put(Instructions::SUB_SP);
 
-        byte as_byte = (byte)node->amt;
-        m_ibs.Put(as_byte);
+        UInt16 as_u16 = (UInt16)node->amt;
+        m_ibs.Put(as_u16);
     } else {
         m_ibs.Put(Instructions::POP);
     }

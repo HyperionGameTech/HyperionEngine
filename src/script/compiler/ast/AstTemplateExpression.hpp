@@ -65,7 +65,6 @@ private:
     SymbolTypePtr_t                     m_symbol_type;
     RC<AstBlock>                        m_block;
     bool                                m_is_visited = false;
-    Array<RC<AstTypeObject>>            m_generic_param_type_objects;
 
     RC<AstTemplateExpression> CloneImpl() const
     {

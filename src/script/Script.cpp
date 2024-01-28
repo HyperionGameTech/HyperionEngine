@@ -45,7 +45,7 @@ void Script::Init()
     BasicObject::Init();
 }
 
-bool Script::Compile()
+bool Script::Compile(scriptapi2::Context &context)
 {
     if (!m_source_file.IsValid()) {
         DebugLog(
@@ -71,8 +71,10 @@ bool Script::Compile()
 
     m_compilation_unit.GetBuiltins().Visit(&semantic_analyzer);
 
-    ScriptBindings::DeclareAll(m_api_instance);
-    m_api_instance.BindAll(&m_vm, &semantic_analyzer, &m_compilation_unit);
+    // Generate script bindings into our Context for our C++ classes
+    g_script_bindings.GenerateAll(context);
+
+    context.Visit(&semantic_analyzer, &m_compilation_unit);
 
     Parser parser(&ast_iterator, &token_stream, &m_compilation_unit);
     parser.Parse();
@@ -155,10 +157,11 @@ void Script::Bake(BuildParams &build_params)
     m_bs = BytecodeStream(m_baked_bytes.Data(), m_baked_bytes.Size());
 }
 
-void Script::Run()
+void Script::Run(scriptapi2::Context &context)
 {
     AssertThrow(IsCompiled() && IsBaked());
 
+    context.BindAll(&m_vm);
     m_vm.Execute(&m_bs);
 }
 

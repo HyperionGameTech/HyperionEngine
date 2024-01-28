@@ -89,16 +89,32 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
             return;
         }
 
-        Array<RC<AstExpression>> field_names;
+        held_type = held_type->GetUnaliased();
 
-        for (const SymbolTypeMember &member : held_type->GetMembers()) {
-            field_names.PushBack(RC<AstString>::Construct(member.name, m_location));
+        String field_names;
+
+        for (SizeType i = 0; i < held_type->GetMembers().Size(); ++i) {
+            const SymbolTypeMember &member = held_type->GetMembers()[i];
+
+            if (i > 0) {
+                field_names += ",";
+            }
+
+            field_names += member.name;
         }
 
-        m_result_value = RC<AstArrayExpression>(new AstArrayExpression(
-            field_names,
-            m_location
-        ));
+        m_result_value = RC<AstString>::Construct(field_names, m_location);
+
+        // Array<RC<AstExpression>> field_names;
+
+        // for (const SymbolTypeMember &member : held_type->GetMembers()) {
+        //     field_names.PushBack(RC<AstString>::Construct(member.name, m_location));
+        // }
+
+        // m_result_value = RC<AstArrayExpression>(new AstArrayExpression(
+        //     field_names,
+        //     m_location
+        // ));
 
         m_result_value->Visit(visitor, mod);
     } else if (m_command_name == "compiles") {
@@ -129,7 +145,9 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
 
         UniquePtr<Script> script(new Script(source_file));
 
-        if (script->Compile()) {
+        scriptapi2::Context context;
+
+        if (script->Compile(context)) {
             script->Bake();
 
             m_result_value = RC<AstTrue>(new AstTrue(m_location));

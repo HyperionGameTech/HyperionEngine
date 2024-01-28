@@ -5,7 +5,6 @@
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
 #include <math/Transform.hpp>
-#include <script/Script.hpp>
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <GameCounter.hpp>
 #include <Types.hpp>
@@ -50,28 +49,6 @@ class Controller
     friend class Entity;
 
 protected:
-    enum ScriptMethods
-    {
-        SCRIPT_METHOD_ON_ADDED,
-        SCRIPT_METHOD_ON_REMOVED,
-        SCRIPT_METHOD_ON_TICK,
-
-        SCRIPT_METHOD_0,
-        SCRIPT_METHOD_1,
-        SCRIPT_METHOD_2,
-        SCRIPT_METHOD_3,
-        SCRIPT_METHOD_4,
-        SCRIPT_METHOD_5,
-        SCRIPT_METHOD_6,
-        SCRIPT_METHOD_7,
-        SCRIPT_METHOD_8,
-        SCRIPT_METHOD_9,
-        SCRIPT_METHOD_10,
-        SCRIPT_METHOD_11,
-
-        SCRIPT_METHOD_MAX
-    };
-
 public:
     Controller(Bool receives_update = true);
     Controller(const Controller &other) = delete;
@@ -98,15 +75,6 @@ public:
 
     Bool ReceivesUpdate() const
         { return m_receives_update; }
-
-    Bool HasScript() const
-        { return m_script.IsValid(); }
-
-    Bool IsScriptValid() const
-        { return m_script_valid; }
-
-    void SetScript(const Handle<Script> &script);
-    void SetScript(Handle<Script> &&script);
 
     virtual void OnAdded();
     virtual void OnRemoved();
@@ -143,15 +111,6 @@ public:
         return fbom::FBOMResult::FBOM_OK;
     }
 #endif
-
-protected:
-    Bool CreateScriptedObjects();
-    virtual Bool CreateScriptedMethods();
-    
-    Script::ObjectHandle m_self_object;
-    FixedArray<Script::FunctionHandle, SCRIPT_METHOD_MAX> m_script_methods;
-    Handle<Script> m_script;
-    Bool m_script_valid;
 
 private:
     String m_name;

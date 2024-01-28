@@ -5,6 +5,7 @@
 #include <core/lib/ValueStorage.hpp>
 #include <core/lib/TypeID.hpp>
 #include <core/lib/CMemory.hpp>
+#include <core/lib/Any.hpp>
 #include <Types.hpp>
 #include <Constants.hpp>
 #include <system/Debug.hpp>

@@ -437,18 +437,18 @@ std::unique_ptr<Buildable> Compiler::PopStack(AstVisitor *visitor, Int amt)
     for (Int i = 0; i < amt;) {
         Int j = 0;
 
-        while (j < MathUtil::MaxSafeValue<UInt8>() && i < amt) {
+        while (j < MathUtil::MaxSafeValue<UInt16>() && i < amt) {
             j++, i++;
         }
         
         if (j > 0) {
-            AssertThrow(j <= MathUtil::MaxSafeValue<UInt8>());
+            AssertThrow(j <= MathUtil::MaxSafeValue<UInt16>());
 
-            auto instr_pop_n = BytecodeUtil::Make<RawOperation<>>();
-            instr_pop_n->opcode = POP_N;
-            instr_pop_n->Accept<UInt8>(j);
+            auto instr_sub_sp = BytecodeUtil::Make<RawOperation<>>();
+            instr_sub_sp->opcode = SUB_SP;
+            instr_sub_sp->Accept<UInt16>(j);
 
-            return instr_pop_n;
+            return instr_sub_sp;
         }
     }
 

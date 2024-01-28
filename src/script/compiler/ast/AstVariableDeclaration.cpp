@@ -301,39 +301,46 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Module *mod)
 {
-    // if (m_is_generic) {
-    //     // generics do not build anything
-    //     return nullptr;
-    // }
-
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     AssertThrow(m_real_assignment != nullptr);
 
-    if (!Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
+    if (!Config::cull_unused_objects || m_identifier->GetUseCount() > 0 || (m_flags & IdentifierFlags::FLAG_NATIVE)) {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
 
-        // if the type specification has side effects, compile it in
-        if (m_proto != nullptr && m_proto->MayHaveSideEffects()) {
-            chunk->Append(m_proto->Build(visitor, mod));
-        }
+        // If the variable is native, it does not need to be built,
+        // as it will be replaced with a native function ptr or
+        // vm::Value object.
+        if (!(m_flags & IdentifierFlags::FLAG_NATIVE)) {
+            // if the type specification has side effects, compile it in
+            if (m_proto != nullptr && m_proto->MayHaveSideEffects()) {
+                chunk->Append(m_proto->Build(visitor, mod));
+            }
 
-        chunk->Append(m_real_assignment->Build(visitor, mod));
+            chunk->Append(m_real_assignment->Build(visitor, mod));
 
-        // get active register
-        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+            // get active register
+            UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        { // add instruction to store on stack
-            auto instr_push = BytecodeUtil::Make<RawOperation<>>();
-            instr_push->opcode = PUSH;
-            instr_push->Accept<UInt8>(rp);
-            chunk->Append(std::move(instr_push));
-        }
+            { // add instruction to store on stack
+                auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+                instr_push->opcode = PUSH;
+                instr_push->Accept<UInt8>(rp);
+                chunk->Append(std::move(instr_push));
+            }
 
-        { // add a comment for debugging to know where the var exists 
+            // add a comment for debugging to know where the var exists 
             chunk->Append(BytecodeUtil::Make<Comment>(" Var `" + m_name + "` at stack location: "
                 + String::ToString(m_identifier->GetStackLocation())));
+        } else {
+            chunk->Append(BytecodeUtil::Make<Comment>(" Native variable `" + m_name + "` will be replaced at runtime"));
+            { // add instruction increase stack pointer by 1
+                auto instr_add_sp = BytecodeUtil::Make<RawOperation<>>();
+                instr_add_sp->opcode = ADD_SP;
+                instr_add_sp->Accept<UInt16>(1);
+                chunk->Append(std::move(instr_add_sp));
+            }
         }
 
         // increment stack size

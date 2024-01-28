@@ -536,15 +536,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case POP_N: {
-        UInt8 n; bs->Read(&n);
-        
-        handler.PopN(
-            n
-        );
-
-        break;
-    }
     case PUSH_ARRAY: {
         BCRegister dst; bs->Read(&dst);
         BCRegister src; bs->Read(&src);
@@ -552,6 +543,24 @@ HYP_FORCE_INLINE static void HandleInstruction(
         handler.PushArray(
             dst,
             src
+        );
+
+        break;
+    }
+    case ADD_SP: {
+        UInt16 val; bs->Read(&val);
+
+        handler.AddSp(
+            val
+        );
+
+        break;
+    }
+    case SUB_SP: {
+        UInt16 val; bs->Read(&val);
+
+        handler.SubSp(
+            val
         );
 
         break;

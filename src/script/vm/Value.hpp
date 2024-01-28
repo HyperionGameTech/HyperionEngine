@@ -3,6 +3,8 @@
 
 #include <core/lib/TypeID.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/Any.hpp>
+#include <core/lib/UniquePtr.hpp>
 
 #include <script/vm/VMString.hpp>
 #include <Types.hpp>
@@ -360,6 +362,11 @@ struct Value
             ? CompareFlags::EQUAL
             : CompareFlags::NONE;
     }
+
+#if 0
+    Any ToAny() const;
+    AnyPtr ToAnyPtr() const;
+#endif
 
     void Mark();
 

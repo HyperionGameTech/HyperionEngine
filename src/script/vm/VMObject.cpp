@@ -56,10 +56,10 @@ ObjectMap::ObjectBucket &ObjectMap::ObjectBucket::operator=(const ObjectBucket &
     return *this;
 }
 
-void ObjectMap::ObjectBucket::Resize(size_t capacity)
+void ObjectMap::ObjectBucket::Resize(SizeType capacity)
 {
     if (m_capacity < capacity) {
-        const size_t new_capacity = COMPUTE_CAPACITY(capacity);
+        const SizeType new_capacity = COMPUTE_CAPACITY(capacity);
         // create new bucket and copy
         Member **new_data = new Member*[new_capacity];
         Memory::MemCpy(
@@ -172,7 +172,7 @@ VMObject::VMObject(HeapValue *class_ptr)
     }
 }
 
-VMObject::VMObject(const Member *members, size_t size, HeapValue *class_ptr)
+VMObject::VMObject(const Member *members, SizeType size, HeapValue *class_ptr)
     : m_class_ptr(class_ptr)
 {
     AssertThrow(members != nullptr);
@@ -259,7 +259,7 @@ void VMObject::SetMember(const char *name, const Value &value)
     new_object_map->Push(hash, &new_members[new_size - 1]);
 
     delete[] m_members;
-    delete[] m_object_map;
+    delete m_object_map;
 
     m_members = new_members;
     m_object_map = new_object_map;
@@ -281,7 +281,7 @@ void VMObject::GetRepresentation(
 
     ss << "{";
 
-    for (size_t i = 0; i < size; i++) {
+    for (SizeType i = 0; i < size; i++) {
         vm::Member &mem = m_members[i];
 
         ss << mem.name << ": ";

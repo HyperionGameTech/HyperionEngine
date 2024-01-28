@@ -6,6 +6,7 @@
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
+#include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
@@ -28,6 +29,7 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 Builtins::Builtins(CompilationUnit *unit)
     : m_unit(unit)
 {
+#if 0
     m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         "array",
         nullptr,
@@ -760,6 +762,56 @@ Builtins::Builtins(CompilationUnit *unit)
         IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC,
         BUILTIN_SOURCE_LOCATION
     )));
+#endif
+
+    // Variadic args wrapper, to be used in the `function` type
+    // like: `function<ReturnType, varargs<T>>`
+    m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+        "varargs",
+        nullptr,
+        RC<AstTemplateExpression>(new AstTemplateExpression(
+            RC<AstTypeExpression>(new AstTypeExpression(
+                "varargs",
+                nullptr,
+                {},
+                {
+                },
+                {
+                    // variadic trait
+                    RC<AstVariableDeclaration>(new AstVariableDeclaration(
+                        BuiltinTypeTraits::variadic.name,
+                        nullptr,
+                        RC<AstTrue>(new AstTrue(BUILTIN_SOURCE_LOCATION)),
+                        IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_TRAIT,
+                        BUILTIN_SOURCE_LOCATION
+                    ))
+                },
+                true, // proxy class, so we can use Map<K, V>.length() like {}.length()
+                BUILTIN_SOURCE_LOCATION
+            )),
+            {
+                RC<AstParameter>(new AstParameter(
+                    "T",
+                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            BuiltinTypes::CLASS_TYPE,
+                            BUILTIN_SOURCE_LOCATION
+                        )),
+                        BUILTIN_SOURCE_LOCATION
+                    )),
+                    nullptr,
+                    false,
+                    false,
+                    false,
+                    BUILTIN_SOURCE_LOCATION
+                ))
+            },
+            nullptr,
+            BUILTIN_SOURCE_LOCATION
+        )),
+        IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC,
+        BUILTIN_SOURCE_LOCATION
+    )));
 
     m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         "function",
@@ -772,84 +824,6 @@ Builtins::Builtins(CompilationUnit *unit)
                 {
                 },
                 {
-                    /*// 'call' internal compiler member, used to determine parameter types
-                    RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                        "$__internal_call",
-                        nullptr,
-                        RC<AstFunctionExpression>(new AstFunctionExpression(
-                            {
-                                RC<AstParameter>(new AstParameter(
-                                    "args",
-                                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                                        RC<AstVariable>(new AstVariable(
-                                            "Args",
-                                            BUILTIN_SOURCE_LOCATION
-                                        )),
-                                        BUILTIN_SOURCE_LOCATION
-                                    )),
-                                    nullptr,
-                                    true, // variadic
-                                    false,
-                                    false,
-                                    BUILTIN_SOURCE_LOCATION
-                                ))
-                            },
-                            // Return `ReturnType`
-                            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                                RC<AstVariable>(new AstVariable(
-                                    "ReturnType",
-                                    BUILTIN_SOURCE_LOCATION
-                                )),
-                                BUILTIN_SOURCE_LOCATION
-                            )),
-                            RC<AstBlock>(new AstBlock(
-                                {
-                                    RC<AstReturnStatement>(new AstReturnStatement(
-                                        RC<AstCallExpression>(new AstCallExpression(
-                                            RC<AstVariable>(new AstVariable(
-                                                "__function_call",
-                                                BUILTIN_SOURCE_LOCATION
-                                            )),
-                                            {
-                                                RC<AstArgument>(new AstArgument(
-                                                    RC<AstVariable>(new AstVariable(
-                                                        "self",
-                                                        BUILTIN_SOURCE_LOCATION
-                                                    )),
-                                                    false,
-                                                    false,
-                                                    false,
-                                                    false,
-                                                    "",
-                                                    BUILTIN_SOURCE_LOCATION
-                                                )),
-
-                                                RC<AstArgument>(new AstArgument(
-                                                    RC<AstVariable>(new AstVariable(
-                                                        "Args",
-                                                        BUILTIN_SOURCE_LOCATION
-                                                    )),
-                                                    false,
-                                                    false,
-                                                    false,
-                                                    false,
-                                                    "",
-                                                    BUILTIN_SOURCE_LOCATION
-                                                ))
-                                            },
-                                            false,
-                                            BUILTIN_SOURCE_LOCATION
-                                        )),
-                                        BUILTIN_SOURCE_LOCATION
-                                    ))
-                                },
-                                BUILTIN_SOURCE_LOCATION
-                            )),
-                            BUILTIN_SOURCE_LOCATION
-                        )),
-                        IdentifierFlags::FLAG_CONST,
-                        BUILTIN_SOURCE_LOCATION
-                    ))*/
                 },
                 true, // proxy class, so we can use Map<K, V>.length() like {}.length()
                 BUILTIN_SOURCE_LOCATION
@@ -909,7 +883,6 @@ void Builtins::Visit(AstVisitor *visitor)
         BuiltinTypes::FLOAT,
         BuiltinTypes::BOOLEAN,
         BuiltinTypes::STRING
-        //BuiltinTypes::FUNCTION
     };
 
     AstIterator ast;

@@ -127,6 +127,99 @@ void Value::Mark()
     }
 }
 
+#if 0
+
+Any Value::ToAny() const
+{
+    switch (m_type) {
+    case Value::I8:
+        return Any(m_value.i8);
+    case Value::I16:
+        return Any(m_value.i16);
+    case Value::I32:
+        return Any(m_value.i32);
+    case Value::I64:
+        return Any(m_value.i64);
+    case Value::U8:
+        return Any(m_value.u8);
+    case Value::U16:
+        return Any(m_value.u16);
+    case Value::U32:
+        return Any(m_value.u32);
+    case Value::U64:
+        return Any(m_value.u64);
+    case Value::F32:
+        return Any(m_value.f);
+    case Value::F64:
+        return Any(m_value.d);
+    case Value::BOOLEAN:
+        return Any(m_value.b);
+    case Value::VALUE_REF:
+        AssertThrow(m_value.value_ref != nullptr);
+        AssertThrowMsg(m_value.value_ref != this, "Circular reference detected!");
+        return m_value.value_ref->ToAny();
+    case Value::HEAP_POINTER:
+        if (m_value.ptr == nullptr) {
+            return Any(static_cast<const void *>(nullptr));
+        } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
+            return Any(string->GetString());
+        } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
+            Array<Any> any_array;
+            any_array.Reserve(array->GetSize());
+
+            for (SizeType i = 0; i < array->GetSize(); ++i) {
+                any_array.PushBack(array->AtIndex(i).ToAny());
+            }
+
+            return Any(std::move(any_array));
+        } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
+            Array<Any> any_array;
+            any_array.Reserve(slice->GetSize());
+
+            for (SizeType i = 0; i < slice->GetSize(); ++i) {
+                any_array.PushBack(slice->AtIndex(i).ToAny());
+            }
+
+            return Any(std::move(any_array));
+        } else if (VMMemoryBuffer *memory_buffer = m_value.ptr->GetPointer<VMMemoryBuffer>()) {
+            return Any(memory_buffer->GetByteBuffer());
+        } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
+            HashMap<String, Any> any_map;
+
+            for (SizeType i = 0; i < object->GetSize(); ++i) {
+                const Member &member = object->GetMember(i);
+
+                any_map[member.name] = member.value.ToAny();
+            }
+
+            return Any(std::move(any_map));
+        } else if (VMMap *map = m_value.ptr->GetPointer<VMMap>()) {
+            const auto &hash_map = map->GetMap();
+
+            HashMap<Any, Any> any_map;
+
+            for (const auto &pair : hash_map) {
+                any_map[pair.first.key.ToAny()] = pair.second.ToAny();
+            }
+
+            return Any(std::move(any_map));
+        } else {
+            return Any(static_cast<const void *>(m_value.ptr));
+        }
+    case Value::USER_DATA:
+        return Any(static_cast<const void *>(m_value.user_data));
+    default:
+        return Any::Empty();
+    }
+}
+
+AnyPtr Value::ToAnyPtr() const
+{
+    return AnyPtr(ToAny());
+}
+
+#endif
+
 const char *Value::GetTypeString() const
 {
     switch (m_type) {

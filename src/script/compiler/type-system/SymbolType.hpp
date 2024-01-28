@@ -98,6 +98,28 @@ struct GenericParameterTypeInfo
 {
 };
 
+struct SymbolTypeTrait
+{
+    String  name;
+
+    HYP_FORCE_INLINE
+    bool operator==(const SymbolTypeTrait &other) const
+        { return name == other.name; }
+
+    HYP_FORCE_INLINE
+    bool operator!=(const SymbolTypeTrait &other) const
+        { return !operator==(other); }
+   
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+
+        return hc;
+    }
+};
+
 class SymbolType : public std::enable_shared_from_this<SymbolType>
 {
 public:
@@ -297,6 +319,9 @@ public:
     bool FindPrototypeMember(const String &name, SymbolTypeMember &out, UInt &out_index) const;
     bool FindPrototypeMemberDeep(const String &name) const;
     bool FindPrototypeMemberDeep(const String &name, SymbolTypeMember &out) const;
+
+    bool HasTrait(const SymbolTypeTrait &trait) const;
+    bool HasTraitDeep(const SymbolTypeTrait &trait) const;
 
     const Weak<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }

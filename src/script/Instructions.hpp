@@ -96,11 +96,14 @@ enum Instructions : hyperion::UInt8
     PUSH,  // push [% src]
     /* Pop stack once */
     POP,   // pop
-    /* Pop stack n amount of times */
-    POP_N, // pop_n [u8 n]
 
     /* Push a value to the array in %dst_array */
     PUSH_ARRAY, // push_array [% dst, % src]
+
+    /* Add a value to the stack pointer */
+    ADD_SP, // add_sp [u16 val]
+    /* Subtract a value from the stack pointer */
+    SUB_SP, // sub_sp [u16 val]
 
     /* Jump to address stored in register */
     JMP, // jmp [% reg]

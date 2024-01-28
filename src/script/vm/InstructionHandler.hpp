@@ -468,7 +468,12 @@ public:
                 );
                 return;
             } else if (VMObject *obj_ptr = hv->GetPointer<VMObject>()) {
-                AssertThrow(index < obj_ptr->GetSize());
+                AssertThrowMsg(
+                    index < obj_ptr->GetSize(),
+                    "Index out of bounds (%u >= %llu)",
+                    index,
+                    obj_ptr->GetSize()
+                );
                 thread->m_regs[dst].AssignValue(obj_ptr->GetMember(index).value, false);
                 return;
             }
@@ -1116,11 +1121,6 @@ public:
         thread->m_stack.Pop();
     }
 
-    HYP_FORCE_INLINE void PopN(UInt8 n)
-    {
-        thread->m_stack.Pop(n);
-    }
-
     HYP_FORCE_INLINE void PushArray(BCRegister dst_reg, BCRegister src_reg)
     {
         Value &dst = thread->m_regs[dst_reg];
@@ -1152,6 +1152,16 @@ public:
 
         array->Push(thread->m_regs[src_reg]);
         array->AtIndex(array->GetSize() - 1).Mark();
+    }
+    
+    HYP_FORCE_INLINE void AddSp(UInt16 n)
+    {
+        thread->m_stack.m_sp += n;
+    }
+
+    HYP_FORCE_INLINE void SubSp(UInt16 n)
+    {
+        thread->m_stack.m_sp -= n;
     }
 
     HYP_FORCE_INLINE void Jmp(BCAddress addr)

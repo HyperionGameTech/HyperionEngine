@@ -303,47 +303,4 @@ static NodeProxy ScriptCreateNodeProxy(void *)
     return NodeProxy(new Node);
 }
 
-static struct NodeProxyScriptBindings : ScriptBindingsBase
-{
-    NodeProxyScriptBindings()
-        : ScriptBindingsBase(TypeID::ForType<NodeProxy>())
-    {
-    }
-
-    virtual void Generate(APIInstance &api_instance) override
-    {
-        api_instance.Module(Config::global_module_name)
-            .Class<NodeProxy>(
-                "NodeProxy",
-                {
-                    API::NativeMemberDefine(
-                        "$construct",
-                        BuiltinTypes::ANY,
-                        {
-                            { "self", BuiltinTypes::ANY }
-                        },
-                        CxxFn< NodeProxy, void *, ScriptCreateNodeProxy >
-                    ),
-                    API::NativeMemberDefine(
-                        "GetName",
-                        BuiltinTypes::STRING,
-                        {
-                            { "self", BuiltinTypes::ANY }
-                        },
-                        CxxMemberFn< const String &, NodeProxy, &NodeProxy::GetName >
-                    ),
-                    API::NativeMemberDefine(
-                        "SetName",
-                        BuiltinTypes::VOID_TYPE,
-                        {
-                            { "self", BuiltinTypes::ANY },
-                            { "name", BuiltinTypes::STRING }
-                        },
-                        CxxMemberFn< void, NodeProxy, const String &, &NodeProxy::SetName >
-                    )
-                }
-            );
-    }
-} node_proxy_script_bindings = { };
-
 } // namespace hyperion::v2

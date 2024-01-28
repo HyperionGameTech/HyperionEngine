@@ -1,12 +1,21 @@
 #ifndef BUILTIN_TYPES_HPP
 #define BUILTIN_TYPES_HPP
 
+#include <script/compiler/type-system/SymbolType.hpp>
+
 #include <memory>
 
 namespace hyperion::compiler {
 
 class SymbolType;
 using SymbolTypePtr_t = std::shared_ptr<SymbolType>;
+
+class SymbolTypeTrait;
+
+struct BuiltinTypeTraits
+{
+    static const SymbolTypeTrait variadic;
+};
 
 struct BuiltinTypes
 {
@@ -25,10 +34,8 @@ struct BuiltinTypes
     static const SymbolTypePtr_t STRING;
     static const SymbolTypePtr_t FUNCTION;
     static const SymbolTypePtr_t HASH_MAP;
-    static const SymbolTypePtr_t VAR_ARGS;
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t MODULE_INFO;
-    static const SymbolTypePtr_t GENERATOR;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
 };
 

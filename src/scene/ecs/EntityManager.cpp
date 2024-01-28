@@ -5,6 +5,8 @@
 
 namespace hyperion::v2 {
 
+EntityManager::ComponentSetMutexHolder EntityManager::s_component_set_mutex_holder = { };
+
 ID<Entity> EntityManager::AddEntity()
 {
     auto handle = CreateObject<Entity>();
@@ -19,6 +21,8 @@ void EntityManager::RemoveEntity(ID<Entity> id)
     if (it == m_entities.End()) {
         return;
     }
+
+    Mutex::Guard guard(m_entity_sets_mutex);
 
     for (auto &pair : it->second.components) {
         const TypeID component_type_id = pair.first;
@@ -57,6 +61,8 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
 
     const auto other_entity_it = other.m_entities.Find(id);
     AssertThrow(other_entity_it != other.m_entities.End());
+
+    Mutex::Guard guard(m_entity_sets_mutex);
 
     for (const auto &pair : entity_data.components) {
         const TypeID component_type_id = pair.first;

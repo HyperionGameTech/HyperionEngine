@@ -69,7 +69,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             m_self_member_access.Reset(new AstMember(
                 m_name,
                 RC<AstVariable>(new AstVariable(
-                    Keyword::ToString(Keywords::Keyword_self).Get(),
+                    "self",
                     m_location
                 )),
                 m_location

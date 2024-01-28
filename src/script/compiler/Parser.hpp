@@ -78,29 +78,6 @@ public:
 
     void Parse(Bool expect_module_decl = true);
 
-private:
-    int m_template_argument_depth = 0; // until a better way is found..
-
-    AstIterator *m_ast_iterator;
-    TokenStream *m_token_stream;
-    CompilationUnit *m_compilation_unit;
-
-    Token Match(TokenClass token_class, Bool read = false);
-    Token MatchAhead(TokenClass token_class, int n);
-    Token MatchKeyword(Keywords keyword, Bool read = false);
-    Token MatchKeywordAhead(Keywords keyword, int n);
-    Token MatchOperator(const String &op, Bool read = false);
-    Token MatchOperatorAhead(const String &op, int n);
-    Token Expect(TokenClass token_class, Bool read = false);
-    Token ExpectKeyword(Keywords keyword, Bool read = false);
-    Token ExpectOperator(const String &op, Bool read = false);
-    Token MatchIdentifier(Bool allow_keyword = false, Bool read = false);
-    Token ExpectIdentifier(Bool allow_keyword = false, Bool read = false);
-    Bool ExpectEndOfStmt();
-    SourceLocation CurrentLocation() const;
-    void SkipStatementTerminators();
-    Int OperatorPrecedence(const Operator *&out);
-
     RC<AstStatement> ParseStatement(
         Bool top_level = false,
         Bool read_terminators = true
@@ -208,6 +185,29 @@ private:
     RC<AstModuleImportPart> ParseModuleImportPart(Bool allow_braces = false);
     RC<AstReturnStatement> ParseReturnStatement();
     RC<AstExpression> ParseMetaProperty();
+
+private:
+    int m_template_argument_depth = 0; // until a better way is found..
+
+    AstIterator *m_ast_iterator;
+    TokenStream *m_token_stream;
+    CompilationUnit *m_compilation_unit;
+
+    Token Match(TokenClass token_class, Bool read = false);
+    Token MatchAhead(TokenClass token_class, int n);
+    Token MatchKeyword(Keywords keyword, Bool read = false);
+    Token MatchKeywordAhead(Keywords keyword, int n);
+    Token MatchOperator(const String &op, Bool read = false);
+    Token MatchOperatorAhead(const String &op, int n);
+    Token Expect(TokenClass token_class, Bool read = false);
+    Token ExpectKeyword(Keywords keyword, Bool read = false);
+    Token ExpectOperator(const String &op, Bool read = false);
+    Token MatchIdentifier(Bool allow_keyword = false, Bool read = false);
+    Token ExpectIdentifier(Bool allow_keyword = false, Bool read = false);
+    Bool ExpectEndOfStmt();
+    SourceLocation CurrentLocation() const;
+    void SkipStatementTerminators();
+    Int OperatorPrecedence(const Operator *&out);
 };
 
 } // namespace hyperion::compiler

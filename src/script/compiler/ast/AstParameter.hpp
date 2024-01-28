@@ -74,6 +74,7 @@ private:
 
     // Set while analyzing
     SymbolTypePtr_t                 m_symbol_type;
+    RC<AstExpression>               m_varargs_type_spec;
 
     RC<AstParameter> CloneImpl() const
     {

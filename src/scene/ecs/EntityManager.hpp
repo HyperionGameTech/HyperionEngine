@@ -164,6 +164,17 @@ struct EntityListener
 
 class EntityManager
 {
+    static struct ComponentSetMutexHolder
+    {
+        template <class Component>
+        static Mutex &GetMutex()
+        {
+            static Mutex mutex;
+
+            return mutex;
+        }
+    } s_component_set_mutex_holder;
+
 public:
     EntityManager(Scene *scene)
         : m_scene(scene)
@@ -208,6 +219,8 @@ public:
     template <class Component>
     Component &GetComponent(ID<Entity> entity)
     {
+        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
         
@@ -229,6 +242,8 @@ public:
     template <class Component>
     Component *TryGetComponent(ID<Entity> entity)
     {
+        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+
         auto it = m_entities.Find(entity);
 
         if (it == m_entities.End()) {
@@ -258,19 +273,21 @@ public:
     const Component *TryGetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent<Component>(entity); }
 
-    template <class ... Components>
-    std::tuple<Components &...> GetComponents(ID<Entity> entity)
-        { return std::tuple<Components &...>(GetComponent<Components>(entity)...); }
+    // template <class ... Components>
+    // std::tuple<Components &...> GetComponents(ID<Entity> entity)
+    //     { return std::tuple<Components &...>(GetComponent<Components>(entity)...); }
 
-    template <class ... Components>
-    std::tuple<const Components &...> GetComponents(ID<Entity> entity) const
-        { return std::tuple<const Components &...>(GetComponent<Components>(entity)...); }
+    // template <class ... Components>
+    // std::tuple<const Components &...> GetComponents(ID<Entity> entity) const
+    //     { return std::tuple<const Components &...>(GetComponent<Components>(entity)...); }
 
     ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
 
     template <class Component>
     void AddComponent(ID<Entity> entity, Component &&component)
     {
+        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
@@ -298,6 +315,8 @@ public:
     template <class Component>
     void RemoveComponent(ID<Entity> entity)
     {
+        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 

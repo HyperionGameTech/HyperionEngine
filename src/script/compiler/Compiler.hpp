@@ -87,7 +87,7 @@ public:
     /** Build a binary operation such as ADD, SUB, MUL, etc. */
     static std::unique_ptr<Buildable> BuildBinOp(UInt8 opcode, AstVisitor *visitor, Module *mod, Compiler::ExprInfo info);
     /** Pops from the stack N times. If N is greater than 1,
-        the POP_N instruction is generated. Otherwise, the POP
+        the SUB_SP instruction is generated. Otherwise, the POP
         instruction is generated.
     */
     static std::unique_ptr<Buildable> PopStack(AstVisitor *visitor, Int amt);

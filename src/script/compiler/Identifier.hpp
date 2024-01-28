@@ -33,6 +33,8 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_CONSTRUCTOR            = 0x4000,
     FLAG_CLASS                  = 0x8000,
     FLAG_FUNCTION               = 0x10000,
+    FLAG_NATIVE                 = 0x20000,
+    FLAG_TRAIT                  = 0x40000
 };
 
 class Identifier
@@ -48,7 +50,12 @@ public:
         { return Unalias()->m_stack_location; }
 
     void SetStackLocation(Int stack_location)
-        { Unalias()->m_stack_location = stack_location; }
+    {
+        Identifier *unaliased = Unalias();
+        AssertThrowMsg(unaliased->m_stack_location == -1, "Stack location already set, cannot set again");
+
+        unaliased->m_stack_location = stack_location;
+    }
 
     void IncUseCount() const
         { Unalias()->m_usecount++; }
@@ -89,15 +96,15 @@ public:
     const Identifier *Unalias() const { return (m_aliasee != nullptr) ? m_aliasee : this; }
 
 private:
-    String m_name;
-    Int m_index;
-    Int m_stack_location;
-    mutable Int m_usecount;
-    IdentifierFlagBits m_flags;
-    Identifier *m_aliasee;
-    RC<AstExpression> m_current_value;
-    SymbolTypePtr_t m_symbol_type;
-    bool m_is_reassigned;
+    String              m_name;
+    Int                 m_index;
+    Int                 m_stack_location;
+    mutable Int         m_usecount;
+    IdentifierFlagBits  m_flags;
+    Identifier          *m_aliasee;
+    RC<AstExpression>   m_current_value;
+    SymbolTypePtr_t     m_symbol_type;
+    bool                m_is_reassigned;
 
     Array<GenericInstanceTypeInfo::Arg> m_template_params;
 };

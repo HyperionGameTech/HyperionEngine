@@ -21,6 +21,135 @@
 
 namespace hyperion::compiler {
 
+// AstTemplateInstantiationWrapper
+AstTemplateInstantiationWrapper::AstTemplateInstantiationWrapper(
+    const RC<AstExpression> &expr,
+    const Array<GenericInstanceTypeInfo::Arg> &generic_args,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_expr(expr),
+    m_generic_args(generic_args)
+{
+}
+
+void AstTemplateInstantiationWrapper::Visit(AstVisitor *visitor, Module *mod)
+{
+    AssertThrow(m_expr != nullptr);
+
+    m_expr->Visit(visitor, mod);
+
+    auto *value_of = m_expr->GetDeepValueOf();
+    AssertThrow(value_of != nullptr);
+
+    m_expr_type = value_of->GetExprType();
+    AssertThrow(m_expr_type != nullptr);
+    m_expr_type = m_expr_type->GetUnaliased();
+
+    m_held_type = value_of->GetHeldType();
+
+    if (m_held_type != nullptr) {
+        m_held_type = m_held_type->GetUnaliased();
+
+        MakeSymbolTypeGenericInstance(m_held_type);
+    }
+}
+
+void AstTemplateInstantiationWrapper::MakeSymbolTypeGenericInstance(SymbolTypePtr_t &symbol_type)
+{
+    // Set it to a GenericInstance version,
+    // So we can use the params that were provided, later
+    if (symbol_type != BuiltinTypes::UNDEFINED) {
+        const int current_symbol_type_id = symbol_type->GetId();
+        AssertThrow(current_symbol_type_id != -1);
+
+        const RC<AstTypeObject> current_type_object = symbol_type->GetTypeObject().Lock();
+        AssertThrow(current_type_object != nullptr);
+
+        const SymbolTypeFlags current_flags = symbol_type->GetFlags();
+
+        symbol_type = SymbolType::GenericInstance(
+            symbol_type,
+            GenericInstanceTypeInfo {
+                m_generic_args
+            }
+        );
+
+        // Reuse the same ID
+        symbol_type->SetId(current_symbol_type_id);
+        symbol_type->SetTypeObject(current_type_object);
+        symbol_type->SetFlags(current_flags);
+    }
+}
+
+std::unique_ptr<Buildable> AstTemplateInstantiationWrapper::Build(AstVisitor *visitor, Module *mod)
+{
+    AssertThrow(m_expr != nullptr);
+
+    return m_expr->Build(visitor, mod);
+}
+
+void AstTemplateInstantiationWrapper::Optimize(AstVisitor *visitor, Module *mod)
+{
+    AssertThrow(m_expr != nullptr);
+
+    m_expr->Optimize(visitor, mod);
+}
+
+RC<AstStatement> AstTemplateInstantiationWrapper::Clone() const
+{
+    return CloneImpl();
+}
+
+Tribool AstTemplateInstantiationWrapper::IsTrue() const
+{
+    if (m_expr != nullptr) {
+        return m_expr->IsTrue();
+    }
+
+    return Tribool::Indeterminate();
+}
+
+bool AstTemplateInstantiationWrapper::MayHaveSideEffects() const
+{
+    if (m_expr != nullptr) {
+        return m_expr->MayHaveSideEffects();
+    }
+
+    return true;
+}
+
+SymbolTypePtr_t AstTemplateInstantiationWrapper::GetExprType() const
+{
+    if (m_expr_type != nullptr) {
+        return m_expr_type;
+    }
+
+    return BuiltinTypes::UNDEFINED;
+}
+
+SymbolTypePtr_t AstTemplateInstantiationWrapper::GetHeldType() const
+{
+    if (m_held_type != nullptr) {
+        return m_held_type;
+    }
+
+    return AstExpression::GetHeldType();
+}
+
+const AstExpression *AstTemplateInstantiationWrapper::GetValueOf() const
+{
+    // do not return the inner expression - we want to keep the wrapper
+    return AstExpression::GetValueOf();
+}
+
+const AstExpression *AstTemplateInstantiationWrapper::GetDeepValueOf() const
+{
+    // do not return the inner expression - we want to keep the wrapper
+    return AstExpression::GetDeepValueOf();
+}
+
+// AstTemplateInstantiation
+
 AstTemplateInstantiation::AstTemplateInstantiation(
     const RC<AstExpression> &expr,
     const Array<RC<AstArgument>> &generic_args,
@@ -56,13 +185,13 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             any_args_placeholder = true;
         }
 
-        if (arg->MayHaveSideEffects()) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_generic_arg_may_not_have_side_effects,
-                arg->GetLocation()
-            ));
-        }
+        // if (arg->MayHaveSideEffects()) {
+        //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+        //         LEVEL_ERROR,
+        //         Msg_generic_arg_may_not_have_side_effects,
+        //         arg->GetLocation()
+        //     ));
+        // }
     }
 
     // if (any_args_placeholder) {
@@ -106,10 +235,6 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    // @TODO: Evaluate the inner expr at the same scope as the generic expression so
-    // referenced variables are resolved correctly.
-    m_inner_expr = CloneAstNode(generic_expr);
-
     AssertThrow(expr_type != nullptr);
 
     Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
@@ -120,10 +245,10 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     );
 
     if (!substituted.HasValue()) {
-        // not a function type
+        // not a generic if it doesnt resolve
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
-            Msg_not_a_function,
+            Msg_type_not_generic,
             m_location,
             expr_type->ToString()
         ));
@@ -170,6 +295,9 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     const Array<GenericInstanceTypeInfo::Arg> &params = expr_type->GetGenericInstanceInfo().m_generic_args;
     AssertThrow(params.Size() >= 1);
 
+    Array<GenericInstanceTypeInfo::Arg> args;
+    args.Resize(m_substituted_args.Size());
+
     // temporarily define all generic parameters as constants
     for (SizeType index = 0; index < m_substituted_args.Size(); index++) {
         RC<AstArgument> &arg = m_substituted_args[index];
@@ -206,8 +334,13 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             param_name = params[index + 1].m_name;
         } else {
             // if there are more arguments than generic parameters, we just use a generic name
-            param_name = String("Arg") + String::ToString(index);
+            param_name = params.Back().m_name + String::ToString(index);
         }
+
+        args[index] = GenericInstanceTypeInfo::Arg {
+            param_name,
+            held_type
+        };
 
         scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
             param_name,
@@ -228,9 +361,12 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         m_block->AddChild(param_override);
     }
 
-    // TODO: Cache instantiations so we don't create a new one for every set of arguments
-
-    AssertThrow(m_inner_expr != nullptr);
+    // Set up the expression wrapper
+    m_inner_expr.Reset(new AstTemplateInstantiationWrapper(
+        CloneAstNode(generic_expr),
+        args,
+        m_location
+    ));
 
     m_block->AddChild(m_inner_expr);
     m_block->Visit(visitor, mod);
@@ -398,7 +534,7 @@ const AstExpression *AstTemplateInstantiation::GetValueOf() const
 const AstExpression *AstTemplateInstantiation::GetDeepValueOf() const
 {
     if (m_inner_expr != nullptr) {
-        AssertThrow(m_inner_expr.Get() != this);
+        AssertThrow(m_inner_expr->GetExpr().Get() != this);
 
         return m_inner_expr->GetDeepValueOf();
     }

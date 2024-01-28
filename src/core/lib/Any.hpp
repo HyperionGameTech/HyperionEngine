@@ -12,11 +12,20 @@
 
 namespace hyperion {
 
+namespace detail {
+template <class T>
+class UniquePtr;
+} // namespace detail
+
 class Any
 {
     using DeleteFunction = std::add_pointer_t<void(void *)>;
 
 public:
+    // UniquePtr is a friend class
+    template <class T>
+    friend class detail::UniquePtr;
+
     Any()
         : m_type_id(TypeID::ForType<void>()),
           m_ptr(nullptr),
@@ -24,9 +33,12 @@ public:
     {
     }
 
+    static Any Empty()
+        { return Any(); }
+
     /*! \brief Construct a new T into the Any, without needing to use any move or copy constructors. */
     template <class T, class ...Args>
-    static auto Construct(Args &&... args)
+    static Any Construct(Args &&... args)
     {
         Any any;
         any.m_type_id = TypeID::ForType<T>();
@@ -151,6 +163,12 @@ public:
      */
     HYP_FORCE_INLINE const void *GetPointer() const
         { return m_ptr; }
+
+    /**
+     * \brief Get the delete function for the held object.
+    */
+    HYP_FORCE_INLINE DeleteFunction GetDeleteFunction() const
+        { return m_delete_function; }
 
     /**
      * \brief Returns true if the Any has a value.
