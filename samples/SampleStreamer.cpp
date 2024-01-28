@@ -341,7 +341,7 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");
+        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//"models/sponza/sponza.obj");//living_room/living_room.obj");
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
@@ -380,7 +380,7 @@ void SampleStreamer::InitGame()
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            node.Scale(0.01f);
+            node.Scale(3.01f);
             node.SetName("test_model");
             
             GetScene()->GetRoot().AddChild(node);

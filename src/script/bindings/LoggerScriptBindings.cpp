@@ -115,7 +115,7 @@ static struct LoggerScriptBindings : ScriptBindingsBase
                 },
                 {
                     "log",
-                    "function< int, Class, uint, String, varargs<any> >", // @TODO: Variadic arguments
+                    "function< int, Class, uint, String, varargs<any> >",
                     [](sdk::Params params)
                     {
                         HYP_SCRIPT_CHECK_ARGS(>=, 3);
@@ -126,7 +126,7 @@ static struct LoggerScriptBindings : ScriptBindingsBase
                         }
 
                         const UInt64 channel_id = (channel_id_num.flags & vm::Number::FLAG_SIGNED)
-                            ? static_cast<UInt64>(channel_id_num.i)
+                            ? UInt64(channel_id_num.i)
                             : channel_id_num.u;
 
                         vm::VMString *format_string_ptr = nullptr;

@@ -9,12 +9,12 @@ namespace hyperion {
 class LogChannelIDGenerator
 {
 public:
-    LogChannelIDGenerator()                                                 = default;
-    LogChannelIDGenerator(const LogChannelIDGenerator &other)               = delete;
-    LogChannelIDGenerator &operator=(const LogChannelIDGenerator &other)    = delete;
-    LogChannelIDGenerator(LogChannelIDGenerator &&other) noexcept           = delete;
-    LogChannelIDGenerator &operator=(LogChannelIDGenerator &&other) noexcept= delete;
-    ~LogChannelIDGenerator()                                                = default;
+    LogChannelIDGenerator()                                                     = default;
+    LogChannelIDGenerator(const LogChannelIDGenerator &other)                   = delete;
+    LogChannelIDGenerator &operator=(const LogChannelIDGenerator &other)        = delete;
+    LogChannelIDGenerator(LogChannelIDGenerator &&other) noexcept               = delete;
+    LogChannelIDGenerator &operator=(LogChannelIDGenerator &&other) noexcept    = delete;
+    ~LogChannelIDGenerator()                                                    = default;
 
     UInt32 ForName(Name name)
     {
