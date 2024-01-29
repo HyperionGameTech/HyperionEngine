@@ -834,58 +834,6 @@ SymbolTypePtr_t SymbolType::GenericInstance(
     Array<SymbolTypeMember> all_members;
     all_members.Reserve(base->GetMembers().Size() + members.Size());
 
-    for (const SymbolTypeMember &member : base->GetMembers()) {
-        const auto overriden_member_it = members.FindIf([&member](const auto &other_member)
-        {
-            return other_member.name == member.name;
-        });
-
-        if (overriden_member_it != members.End()) {
-            // if member is overriden, skip it
-            continue;
-        }
-
-        if (member.type->GetTypeClass() == TYPE_GENERIC_PARAMETER) {
-            // if members of the generic/template class are of the type T (generic parameter)
-            // we need to make sure that the number of parameters supplied are equal.
-            AssertThrow(base->GetGenericInfo().m_params.Size() == info.m_generic_args.Size());
-            
-            // find parameter and substitute it
-            const auto generic_param_it = base->GetGenericInfo().m_params.FindIf([&](const SymbolTypePtr_t &it)
-            {
-                return it->GetName() == member.name;
-            });
-
-            if (generic_param_it != base->GetGenericInfo().m_params.End()) {
-                RC<AstExpression> default_value;
-
-                if ((default_value = member.expr)) {
-                    default_value = CloneAstNode(default_value);
-                }
-
-                all_members.PushBack(SymbolTypeMember {
-                    member.name,
-                    info.m_generic_args[std::distance(base->GetGenericInfo().m_params.Begin(), generic_param_it)].m_type,
-                    default_value
-                });
-            } else {
-                // substitution error, set type to be undefined
-                all_members.PushBack(SymbolTypeMember {
-                    member.name,
-                    BuiltinTypes::UNDEFINED,
-                    member.expr
-                });
-            }
-        } else {
-            // push copy (clone assignment value)
-            all_members.PushBack(SymbolTypeMember {
-                member.name,
-                member.type,
-                CloneAstNode(member.expr)
-            });
-        }
-    }
-
     for (const SymbolTypeMember &member : members) {
         all_members.PushBack(SymbolTypeMember {
             member.name,
@@ -894,18 +842,37 @@ SymbolTypePtr_t SymbolType::GenericInstance(
         });
     }
 
-    // if the generic's default value is nullptr,
-    // create a new default value for the instance of type AstObject
-    // the reason we do this is so that a new 'Type' is generated for user-defined
-    // generics, but built-in generics like Function and Array can play by
-    // their own rules
+    SymbolTypePtr_t current_base = base;
+
+    while (current_base != nullptr) {
+        for (const SymbolTypeMember &member : current_base->GetMembers()) {
+            const auto overriden_member_it = all_members.FindIf([&member](const auto &other_member)
+            {
+                return other_member.name == member.name;
+            });
+
+            if (overriden_member_it != all_members.End()) {
+                // if member is overriden, skip it
+                continue;
+            }
+
+            // push copy (clone assignment value)
+            all_members.PushBack(SymbolTypeMember {
+                member.name,
+                member.type,
+                CloneAstNode(member.expr)
+            });
+        }
+
+        current_base = current_base->GetBaseType();
+    }
 
     SymbolTypePtr_t res(new SymbolType(
         name,
         TYPE_GENERIC_INSTANCE,
         base,
         nullptr,
-        members// TEMP all_members
+        all_members
     ));
 
     auto default_value = base->GetDefaultValue();

@@ -395,7 +395,7 @@ RC<AstStatement> Parser::ParseStatement(
             res = ParseImport();
         } else if (MatchKeyword(Keyword_export, false)) {
             res = ParseExportStatement();
-        } else if (MatchKeyword(Keyword_let, false)
+        } else if (MatchKeyword(Keyword_var, false)
             || MatchKeyword(Keyword_const, false)
             || MatchKeyword(Keyword_ref, false))
         {
@@ -689,7 +689,7 @@ RC<AstExpression> Parser::ParseParentheses()
         } else {
             Bool found_function_token = false;
 
-            if (MatchKeyword(Keyword_const) || MatchKeyword(Keyword_let)) {
+            if (MatchKeyword(Keyword_const) || MatchKeyword(Keyword_var)) {
                 found_function_token = true;
             } else {
                 expr = ParseExpression(true);
@@ -1778,7 +1778,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     const SourceLocation location = CurrentLocation();
 
     static const Keywords prefix_keywords[] = {
-        Keyword_let,
+        Keyword_var,
         Keyword_const,
         Keyword_ref
     };
@@ -2381,7 +2381,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
         // does /not/ handle, above.
         const SizeType position_before = m_token_stream->GetPosition();
 
-        if (MatchKeyword(Keyword_let, true)) {
+        if (MatchKeyword(Keyword_var, true)) {
             is_variable = true;
         }
 

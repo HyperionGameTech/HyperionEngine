@@ -5,6 +5,7 @@
 #include <core/lib/Variant.hpp>
 #include <core/lib/TypeID.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/Mutex.hpp>
 
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/CompilationUnit.hpp>
@@ -105,27 +106,84 @@ struct ClassDefinition
     RC<AstVariableDeclaration>  var_decl;
 };
 
-class Context
+struct GlobalDefinition
+{
+    Symbol                      symbol;
+
+    RC<AstVariableDeclaration>  var_decl;
+};
+
+class Context;
+class ClassBuilder
 {
 public:
-    template <class T>
-    Context &Class(
+    ClassBuilder(Context *context, ClassDefinition class_definition);
+    ClassBuilder(const ClassBuilder &other)                 = delete;
+    ClassBuilder &operator=(const ClassBuilder &other)      = delete;
+    ClassBuilder(ClassBuilder &&other) noexcept             = default;
+    ClassBuilder &operator=(ClassBuilder &&other) noexcept  = default;
+    ~ClassBuilder()                                         = default;
+
+    ClassBuilder &Member(
         String name,
-        Array<Symbol> members,
-        Array<Symbol> static_members
-    )
+        String type_string,
+        Value value
+    );
+
+    ClassBuilder &Method(
+        String name,
+        String type_string,
+        NativeFunctionPtr_t fn
+    );
+
+    ClassBuilder &StaticMember(
+        String name,
+        String type_string,
+        Value value
+    );
+
+    ClassBuilder &StaticMethod(
+        String name,
+        String type_string,
+        NativeFunctionPtr_t fn
+    );
+
+    void Build();
+
+private:
+    Context         *m_context;
+    ClassDefinition m_class_definition;
+};
+
+class Context
+{
+    friend class ClassBuilder;
+
+public:
+    template <class T>
+    ClassBuilder Class(String name)
     {
         ClassDefinition def {
             TypeID::ForType<T>(),
             std::move(name),
-            std::move(members),
-            std::move(static_members)
+            {},
+            {}
         };
 
-        m_class_definitions.PushBack(std::move(def));
-
-        return *this;
+        return ClassBuilder(this, std::move(def));
     }
+
+    Context &Global(
+        String name,
+        String type_string,
+        Value value
+    );
+
+    Context &Global(
+        String name,
+        String type_string,
+        NativeFunctionPtr_t fn
+    );
 
     void Visit(
         AstVisitor *visitor,
@@ -140,7 +198,9 @@ public:
 private:
     static RC<AstExpression> ParseTypeExpression(const String &type_string);
 
-    Array<ClassDefinition> m_class_definitions;
+    Array<GlobalDefinition>     m_globals;
+    Array<ClassDefinition>      m_class_definitions;
+    Mutex                       m_mutex;
 };
 
 } // namespace scriptapi2

@@ -177,8 +177,6 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
         auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
         instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(stack_size - target_stack_location);
         chunk->Append(std::move(instr_load_offset));
-
-        // HYP_BREAKPOINT;
     }
 
     // now we load the member into the register, we call that

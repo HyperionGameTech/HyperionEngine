@@ -14,7 +14,7 @@ enum Keywords
     Keyword_import,
     Keyword_export,
     Keyword_use,
-    Keyword_let,
+    Keyword_var,
     Keyword_const,
     Keyword_static,
     Keyword_public,

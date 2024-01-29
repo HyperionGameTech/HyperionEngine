@@ -129,7 +129,6 @@ Exception Exception::InvalidConstructorException()
 
 Exception Exception::NullReferenceException()
 {
-    HYP_BREAKPOINT;
     return Exception("Null object dereferenced");
 }
 

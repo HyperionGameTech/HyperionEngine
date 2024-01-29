@@ -18,6 +18,122 @@
 namespace hyperion {
 namespace scriptapi2 {
 
+// ClassBuilder
+
+ClassBuilder::ClassBuilder(Context *context, ClassDefinition class_definition)
+    : m_context(context),
+      m_class_definition(std::move(class_definition))
+{
+    AssertThrow(m_context != nullptr);
+}
+
+ClassBuilder &ClassBuilder::Member(
+    String name,
+    String type_string,
+    Value value
+)
+{
+    m_class_definition.members.PushBack(Symbol {
+        name,
+        type_string,
+        value
+    });
+
+    return *this;
+}
+
+ClassBuilder &ClassBuilder::Method(
+    String name,
+    String type_string,
+    NativeFunctionPtr_t fn
+)
+{
+    m_class_definition.static_members.PushBack(Symbol {
+        name,
+        type_string,
+        fn
+    });
+
+    return *this;
+}
+
+ClassBuilder &ClassBuilder::StaticMember(
+    String name,
+    String type_string,
+    Value value
+)
+{
+    m_class_definition.static_members.PushBack(Symbol {
+        name,
+        type_string,
+        value
+    });
+
+    return *this;
+}
+
+ClassBuilder &ClassBuilder::StaticMethod(
+    String name,
+    String type_string,
+    NativeFunctionPtr_t fn
+)
+{
+    m_class_definition.static_members.PushBack(Symbol {
+        name,
+        type_string,
+        fn
+    });
+
+    return *this;
+}
+
+void ClassBuilder::Build()
+{
+    Mutex::Guard guard(m_context->m_mutex);
+
+    m_context->m_class_definitions.PushBack(std::move(m_class_definition));
+}
+
+// Context
+
+Context &Context::Global(
+    String name,
+    String type_string,
+    Value value
+)
+{
+    Mutex::Guard guard(m_mutex);
+    
+    m_globals.PushBack(GlobalDefinition {
+        Symbol {
+            name,
+            type_string,
+            value
+        }
+    });
+
+    return *this;
+}
+
+Context &Context::Global(
+    String name,
+    String type_string,
+    NativeFunctionPtr_t fn
+)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_globals.PushBack(GlobalDefinition {
+        Symbol {
+            name,
+            type_string,
+            fn
+        }
+    });
+
+    return *this;
+}
+
 RC<AstExpression> Context::ParseTypeExpression(const String &type_string)
 {
     AstIterator ast_iterator;
@@ -55,6 +171,33 @@ void Context::Visit(
     CompilationUnit *compilation_unit
 )
 {
+    Mutex::Guard guard(m_mutex);
+
+    for (GlobalDefinition &global : m_globals) {
+        RC<AstPrototypeSpecification> type_spec = ParseTypeExpression(global.symbol.type.type_string).Cast<AstPrototypeSpecification>();
+        AssertThrow(type_spec != nullptr);
+
+        global.var_decl.Reset(new AstVariableDeclaration(
+            global.symbol.name,
+            type_spec,
+            RC<AstAsExpression>(new AstAsExpression(
+                RC<AstNil>(new AstNil(SourceLocation::eof)),
+                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstTypeRef>(new AstTypeRef(
+                        BuiltinTypes::ANY,
+                        SourceLocation::eof
+                    )),
+                    SourceLocation::eof
+                )),
+                SourceLocation::eof
+            )),
+            IdentifierFlags::FLAG_NATIVE,
+            SourceLocation::eof
+        ));
+
+        visitor->GetAstIterator()->Push(global.var_decl);
+    }
+
     for (ClassDefinition &class_definition : m_class_definitions) {
         Array<RC<AstVariableDeclaration>> members;
         members.Resize(class_definition.members.Size());
@@ -124,6 +267,38 @@ void Context::Visit(
 
 void Context::BindAll(APIInstance &api_instance, VM *vm)
 {
+    Mutex::Guard guard(m_mutex);
+
+    for (const GlobalDefinition &global : m_globals) {
+        AssertThrow(global.var_decl != nullptr);
+        AssertThrow(global.var_decl->GetIdentifier() != nullptr);
+
+        const int stack_location = global.var_decl->GetIdentifier()->GetStackLocation();
+        AssertThrowMsg(
+            stack_location != -1,
+            "Global %s has no stack location",
+            global.symbol.name.Data()
+        );
+
+        Value value { Value::NONE, {} };
+
+        if (global.symbol.value.Is<Value>()) {
+            value = global.symbol.value.Get<Value>();
+        } else if (global.symbol.value.Is<NativeFunctionPtr_t>()) {
+            value = {
+                Value::NATIVE_FUNCTION,
+                { .native_func = global.symbol.value.Get<NativeFunctionPtr_t>() }
+            };
+        } else {
+            AssertThrow(false);
+        }
+
+        VMState &vm_state = vm->GetState();
+
+        AssertThrow(vm_state.GetMainThread()->GetStack().STACK_SIZE > stack_location);
+        vm_state.GetMainThread()->GetStack().GetData()[stack_location] = value;
+    }
+
     for (const ClassDefinition &class_definition : m_class_definitions) {
         AssertThrow(class_definition.expr != nullptr);
 

@@ -29,7 +29,6 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 Builtins::Builtins(CompilationUnit *unit)
     : m_unit(unit)
 {
-#if 0
     m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         "array",
         nullptr,
@@ -500,6 +499,7 @@ Builtins::Builtins(CompilationUnit *unit)
         BUILTIN_SOURCE_LOCATION
     )));
 
+#if 0
     m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
         "map",
         nullptr,

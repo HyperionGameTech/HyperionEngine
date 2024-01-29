@@ -658,6 +658,42 @@ Token Lexer::ReadIdentifier()
 
     // read operator in the case that the string is "operator", like c++
     if (value == "operator") {
+        // allow for other operators not defined in operator list such as "operator[]" and "operator[]="
+        static const String other_operators[] {
+            "[]=", "[]"
+        };
+
+        for (const String &op : other_operators) {
+            // check if next tokens are the operator
+            
+            const SizeType len = op.Length();
+
+            int pos_change = 0;
+
+            bool is_operator = true;
+
+            for (SizeType i = 0; i < len; i++) {
+                if (m_source_stream.Peek() != op.GetChar(i)) {
+                    is_operator = false;
+                    break;
+                }
+
+                int char_pos_change = 0;
+                m_source_stream.Next(char_pos_change);
+                m_source_location.GetColumn() += char_pos_change;
+
+                pos_change += char_pos_change;
+            }
+
+            if (is_operator) {
+                return Token(TK_IDENT, "operator" + op, location);
+            }
+
+            // rewind
+            m_source_stream.GoBack(pos_change);
+            m_source_location.GetColumn() -= pos_change;
+        }
+
         if (Token operator_token = ReadOperator()) {
             value += operator_token.GetValue();
 

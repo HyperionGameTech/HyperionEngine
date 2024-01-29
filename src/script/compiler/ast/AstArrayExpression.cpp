@@ -129,7 +129,10 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_array_type_expr->Visit(visitor, mod);
 
-    SymbolTypePtr_t array_type = m_array_type_expr->GetHeldType();
+    auto *array_type_expr_value_of = m_array_type_expr->GetDeepValueOf();
+    AssertThrow(array_type_expr_value_of != nullptr);
+
+    SymbolTypePtr_t array_type = array_type_expr_value_of->GetHeldType();
     
     if (array_type == nullptr) {
         // error already reported

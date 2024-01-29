@@ -109,7 +109,6 @@ bool Script::Compile(scriptapi2::Context &context)
         // }
 
         if (auto compile_result = compiler.Compile()) {
-            // HYP_BREAKPOINT;
             m_bytecode_chunk.Append(std::move(compile_result));
         } else {
             DebugLog(
