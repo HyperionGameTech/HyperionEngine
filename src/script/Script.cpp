@@ -160,8 +160,8 @@ void Script::Bake(BuildParams &build_params)
 void Script::Run(scriptapi2::Context &context)
 {
     AssertThrow(IsCompiled() && IsBaked());
-
-    context.BindAll(&m_vm);
+    
+    context.BindAll(m_api_instance, &m_vm);
     m_vm.Execute(&m_bs);
 }
 

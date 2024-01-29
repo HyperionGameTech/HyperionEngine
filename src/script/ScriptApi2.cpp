@@ -1,4 +1,5 @@
 #include <script/ScriptApi2.hpp>
+#include <script/ScriptApi.hpp>
 
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
@@ -121,7 +122,7 @@ void Context::Visit(
     }
 }
 
-void Context::BindAll(VM *vm)
+void Context::BindAll(APIInstance &api_instance, VM *vm)
 {
     for (const ClassDefinition &class_definition : m_class_definitions) {
         AssertThrow(class_definition.expr != nullptr);
@@ -200,18 +201,6 @@ void Context::BindAll(VM *vm)
         Array<Member> proto_object_members;
         proto_object_members.Resize(class_definition.members.Size());
 
-        if (proto_object_members.Empty()) {
-            // TEMP HACK: Add a dummy member to prevent the object map from being empty
-            proto_object_members.PushBack(Member {
-                "dummy",
-                hash_fnv_1("dummy"),
-                Value {
-                    Value::NONE,
-                    {}
-                }
-            });
-        }
-
         for (SizeType i = 0; i < class_definition.members.Size(); ++i) {
             const Symbol &symbol = class_definition.members[i];
 
@@ -231,6 +220,16 @@ void Context::BindAll(VM *vm)
             proto_object_members[i].value = symbol_value;
         }
 
+        // Add __intern member
+        proto_object_members.PushBack(Member {
+            "__intern",
+            hash_fnv_1("__intern"),
+            Value {
+                Value::NONE,
+                {}
+            }
+        });
+
         HeapValue *proto_object_heap_value = vm_state.HeapAlloc(vm_state.GetMainThread());
         proto_object_heap_value->Assign(VMObject(proto_object_members.Data(), proto_object_members.Size(), class_object_heap_value));
         proto_object_heap_value->Mark();
@@ -243,6 +242,9 @@ void Context::BindAll(VM *vm)
             Value::HEAP_POINTER,
             { .ptr = proto_object_heap_value }
         });
+
+        api_instance.class_bindings.class_prototypes.Set(class_definition.name, proto_object_heap_value);
+        api_instance.class_bindings.class_names.Set(class_definition.native_type_id, class_definition.name);
 
         Value value {
             Value::HEAP_POINTER,

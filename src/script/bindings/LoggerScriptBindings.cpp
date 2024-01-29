@@ -40,7 +40,7 @@ static String FormatString(const String &str, const Array<vm::Value> &args)
 
                 if (index_str.Any()) {
                     if (!StringUtil::Parse<int>(index_str, &index)) {
-                        i = j + 1;
+                        i = j;
 
                         continue;
                     }
@@ -52,7 +52,7 @@ static String FormatString(const String &str, const Array<vm::Value> &args)
                     result += args[index].ToString().GetString();
                 }
 
-                i = j + 1;
+                i = j;
             }
         } else {
             result += str[i];

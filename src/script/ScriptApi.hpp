@@ -405,8 +405,8 @@ public:
     } class_bindings;
 
     APIInstance(const SourceFile &source_file);
-    APIInstance(const APIInstance &other) = delete;
-    ~APIInstance() = default;
+    APIInstance(const APIInstance &other)       = delete;
+    ~APIInstance()                              = default;
 
     vm::VM *GetVM() const
         { return m_vm; }

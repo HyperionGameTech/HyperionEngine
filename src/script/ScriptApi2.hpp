@@ -17,6 +17,8 @@
 
 namespace hyperion {
 
+class APIInstance;
+
 namespace scriptapi2 {
 
 using namespace vm;
@@ -131,6 +133,7 @@ public:
     );
 
     void BindAll(
+        APIInstance &api_instance,
         VM *vm
     );
 

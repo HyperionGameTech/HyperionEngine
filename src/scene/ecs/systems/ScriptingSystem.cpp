@@ -44,7 +44,7 @@ void ScriptingSystem::Process(EntityManager &entity_manager, GameCounter::TickUn
                     // Setup our script method handles
                     script->GetMember(script_component.target_object, "OnAdded", script_component.script_methods[SCRIPT_METHOD_ON_ADDED]);
                     script->GetMember(script_component.target_object, "OnRemoved", script_component.script_methods[SCRIPT_METHOD_ON_REMOVED]);
-                    script->GetMember(script_component.target_object, "OnTick", script_component.script_methods[SCRIPT_METHOD_ON_TICK]);
+                    script->GetMember(script_component.target_object, "OnUpdate", script_component.script_methods[SCRIPT_METHOD_ON_UPDATE]);
                 }
             }
 
@@ -68,9 +68,9 @@ void ScriptingSystem::Process(EntityManager &entity_manager, GameCounter::TickUn
             continue;
         }
 
-        if (!script_component.script_methods[SCRIPT_METHOD_ON_TICK].IsNull()) {
+        if (!script_component.script_methods[SCRIPT_METHOD_ON_UPDATE].IsNull()) {
             script->CallFunction(
-                script_component.script_methods[SCRIPT_METHOD_ON_TICK],
+                script_component.script_methods[SCRIPT_METHOD_ON_UPDATE],
                 script_component.target_object,
                 delta
             );

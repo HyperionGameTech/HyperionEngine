@@ -254,18 +254,18 @@ public:
 
 private:
 
-    APIInstance m_api_instance;
+    APIInstance     m_api_instance;
 
-    SourceFile  m_source_file;
+    SourceFile      m_source_file;
     CompilationUnit m_compilation_unit;
-    ErrorList m_errors;
+    ErrorList       m_errors;
 
-    BytecodeChunk m_bytecode_chunk;
+    BytecodeChunk   m_bytecode_chunk;
 
-    Bytes m_baked_bytes;
+    Bytes           m_baked_bytes;
 
-    VM m_vm;
-    BytecodeStream m_bs;
+    VM              m_vm;
+    BytecodeStream  m_bs;
 };
 
 } // namespace v2
