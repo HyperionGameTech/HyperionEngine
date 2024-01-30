@@ -130,44 +130,49 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-        visitor,
-        mod,
-        unaliased,
-        args_with_self,
-        m_location
-    );
+    if (unaliased->IsAnyType()) {
+        m_return_type = BuiltinTypes::ANY;
+        m_substituted_args = args_with_self; // NOTE: do not clone because we don't need to visit again.
+    } else {
+        Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+            visitor,
+            mod,
+            unaliased,
+            args_with_self,
+            m_location
+        );
 
-    if (!substituted.HasValue()) {
-        // not a function type
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_not_a_function,
-            m_location,
-            target_type->ToString(true)
-        ));
+        if (!substituted.HasValue()) {
+            // not a function type
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_not_a_function,
+                m_location,
+                target_type->ToString(true)
+            ));
 
-        return;
+            return;
+        }
+
+        AssertThrow(substituted->return_type != nullptr);
+
+        m_return_type = substituted->return_type;
+
+        // change args to be newly ordered array
+        m_substituted_args = CloneAllAstNodes(substituted->params);
+
+        for (const RC<AstArgument> &arg : m_substituted_args) {
+            arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+        }
+
+        SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
+            visitor,
+            mod,
+            unaliased,
+            m_substituted_args,
+            m_location
+        );
     }
-
-    AssertThrow(substituted->return_type != nullptr);
-
-    m_return_type = substituted->return_type;
-
-    // change args to be newly ordered array
-    m_substituted_args = CloneAllAstNodes(substituted->params);
-
-    for (const RC<AstArgument> &arg : m_substituted_args) {
-        arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
-    }
-
-    SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
-        visitor,
-        mod,
-        unaliased,
-        m_substituted_args,
-        m_location
-    );
 
     if (m_substituted_args.Size() > MathUtil::MaxSafeValue<UInt8>()) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

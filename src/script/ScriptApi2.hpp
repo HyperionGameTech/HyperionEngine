@@ -3,6 +3,7 @@
 
 #include <core/lib/String.hpp>
 #include <core/lib/Variant.hpp>
+#include <core/lib/Optional.hpp>
 #include <core/lib/TypeID.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/Mutex.hpp>
@@ -12,6 +13,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstParameter.hpp>
 
 #include <script/vm/Value.hpp>
 #include <script/vm/VM.hpp>
@@ -99,10 +101,11 @@ struct ClassDefinition
 {
     TypeID                      native_type_id;
     String                      name;
+    Optional<String>            generic_params_string;
     Array<Symbol>               members;
     Array<Symbol>               static_members;
 
-    RC<AstTypeExpression>       expr;
+    RC<AstExpression>           expr;
     RC<AstVariableDeclaration>  var_decl;
 };
 
@@ -161,11 +164,12 @@ class Context
 
 public:
     template <class T>
-    ClassBuilder Class(String name)
+    ClassBuilder Class(String name, Optional<String> generic_params_string = { })
     {
         ClassDefinition def {
             TypeID::ForType<T>(),
             std::move(name),
+            std::move(generic_params_string),
             {},
             {}
         };
@@ -196,6 +200,7 @@ public:
     );
 
 private:
+    static Array<RC<AstParameter>> ParseGenericParams(const String &generic_params_string);
     static RC<AstExpression> ParseTypeExpression(const String &type_string);
 
     Array<GlobalDefinition>     m_globals;

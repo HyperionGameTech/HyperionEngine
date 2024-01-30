@@ -45,7 +45,7 @@ void AstAsExpression::Visit(AstVisitor *visitor, Module *mod)
     auto *target_value_of = m_target->GetDeepValueOf();
     AssertThrow(target_value_of != nullptr);
 
-    SymbolTypePtr_t target_type = target_value_of->GetHeldType();
+    SymbolTypePtr_t target_type = target_value_of->GetExprType();
     if (target_type == nullptr) {
         return; // should be caught by the type specification
     }
@@ -80,7 +80,7 @@ void AstAsExpression::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    if (!target_type->TypeCompatible(*held_type, true)) {
+    if (!target_type->TypeCompatible(*held_type, false)) {
         // not compatible
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -132,6 +132,8 @@ std::unique_ptr<Buildable> AstAsExpression::Build(AstVisitor *visitor, Module *m
     SymbolTypePtr_t held_type = value_of->GetHeldType();
     AssertThrow(held_type != nullptr);
     held_type = held_type->GetUnaliased();
+
+    AssertThrow(!held_type->IsAnyType());
 
     if (held_type->IsSignedIntegral()) {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dst_register, src_register));

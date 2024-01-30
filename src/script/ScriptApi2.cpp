@@ -6,6 +6,7 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstAsExpression.hpp>
+#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/TokenStream.hpp>
 #include <script/compiler/Lexer.hpp>
@@ -48,7 +49,7 @@ ClassBuilder &ClassBuilder::Method(
     NativeFunctionPtr_t fn
 )
 {
-    m_class_definition.static_members.PushBack(Symbol {
+    m_class_definition.members.PushBack(Symbol {
         name,
         type_string,
         fn
@@ -155,7 +156,7 @@ RC<AstExpression> Context::ParseTypeExpression(const String &type_string)
 
     Parser parser(&ast_iterator, &token_stream, &compilation_unit);
     
-    auto type_spec = parser.ParsePrototypeSpecification();
+    RC<AstPrototypeSpecification> type_spec = parser.ParsePrototypeSpecification();
 
     AssertThrowMsg(
         !compilation_unit.GetErrorList().HasFatalErrors(),
@@ -164,6 +165,38 @@ RC<AstExpression> Context::ParseTypeExpression(const String &type_string)
     );
 
     return type_spec;
+}
+
+Array<RC<AstParameter>> Context::ParseGenericParams(const String &generic_params_string)
+{
+    AstIterator ast_iterator;
+
+    SourceFile source_file(SourceLocation::eof.GetFileName(), generic_params_string.Size() + 1);
+
+    ByteBuffer temp(generic_params_string.Size() + 1, generic_params_string.Data());
+    source_file.ReadIntoBuffer(temp);
+
+    // use the lexer and parser on this file buffer
+    TokenStream token_stream(TokenStreamInfo {
+        SourceLocation::eof.GetFileName()
+    });
+
+    CompilationUnit compilation_unit;
+
+    Lexer lexer(SourceStream(&source_file), &token_stream, &compilation_unit);
+    lexer.Analyze();
+
+    Parser parser(&ast_iterator, &token_stream, &compilation_unit);
+    
+    Array<RC<AstParameter>> generic_params = parser.ParseGenericParameters();
+
+    AssertThrowMsg(
+        !compilation_unit.GetErrorList().HasFatalErrors(),
+        "Failed to parse generic parameters: %s",
+        generic_params_string.Data()
+    );
+
+    return generic_params;
 }
 
 void Context::Visit(
@@ -206,11 +239,11 @@ void Context::Visit(
         static_members.Resize(class_definition.static_members.Size());
 
         FixedArray<Pair<Array<RC<AstVariableDeclaration>> *, Array<Symbol> *>, 2> member_arrays {
-            Pair<Array<RC<AstVariableDeclaration>> *, Array<Symbol> *>{
+            Pair<Array<RC<AstVariableDeclaration>> *, Array<Symbol> *> {
                 &members,
                 &class_definition.members
             },
-            Pair<Array<RC<AstVariableDeclaration>> *, Array<Symbol> *>{
+            Pair<Array<RC<AstVariableDeclaration>> *, Array<Symbol> *> {
                 &static_members,
                 &class_definition.static_members
             }
@@ -253,11 +286,29 @@ void Context::Visit(
             SourceLocation::eof
         ));
 
+        IdentifierFlagBits identifier_flags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
+
+        if (class_definition.generic_params_string.HasValue()) {
+            const Array<RC<AstParameter>> generic_params = ParseGenericParams(*class_definition.generic_params_string);
+
+            if (generic_params.Any()) {
+                class_definition.expr.Reset(new AstTemplateExpression(
+                    class_definition.expr,
+                    generic_params,
+                    nullptr,
+                    AST_TEMPLATE_EXPRESSION_FLAG_NATIVE,
+                    SourceLocation::eof
+                ));
+
+                identifier_flags |= IdentifierFlags::FLAG_GENERIC;
+            }
+        }
+
         class_definition.var_decl.Reset(new AstVariableDeclaration(
             class_definition.name,
             nullptr,
             class_definition.expr,
-            IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE,
+            identifier_flags,
             SourceLocation::eof
         ));
 
@@ -313,7 +364,7 @@ void Context::BindAll(APIInstance &api_instance, VM *vm)
         );
 
         // Ensure class SymbolType is registered
-        auto held_type = class_definition.expr->GetHeldType();
+        SymbolTypePtr_t held_type = class_definition.expr->GetHeldType();
         AssertThrow(held_type != nullptr);
         held_type = held_type->GetUnaliased();
 
@@ -322,6 +373,8 @@ void Context::BindAll(APIInstance &api_instance, VM *vm)
             "Class %s has no ID",
             class_definition.name.Data()
         );
+
+        DebugLog(LogType::Debug, "Index for %s = %d\n", held_type->ToString(true).Data(), held_type->GetId());
 
         // Load the class object from the VM - it is stored in StaticMemory
         // at the index
@@ -432,6 +485,8 @@ void Context::BindAll(APIInstance &api_instance, VM *vm)
         // Set class object in global scope
         AssertThrow(vm_state.GetMainThread()->GetStack().STACK_SIZE > stack_location);
         vm_state.GetMainThread()->GetStack().GetData()[stack_location] = value;
+
+        DebugLog(LogType::Info, "Set class %s at index %d\n", class_definition.name.Data(), index);
     }
 }
 

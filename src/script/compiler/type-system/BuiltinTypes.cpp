@@ -144,34 +144,6 @@ const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
     }
 );
 
-const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
-    "Function",
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "$proto",
-            SymbolType::Primitive(
-                "EmptyFunctionLiteral", nullptr
-            ),
-            RC<AstFunctionExpression>(new AstFunctionExpression(
-                {},
-                nullptr,
-                RC<AstBlock>(new AstBlock(SourceLocation::eof)),
-                SourceLocation::eof
-            ))
-        },
-        SymbolTypeMember {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::CLASS_TYPE,
-                SourceLocation::eof
-            )),
-        }
-    },
-    GenericTypeInfo{ -1 },
-    BuiltinTypes::CLASS_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "<null-type>",
     RC<AstNil>(new AstNil(SourceLocation::eof)),

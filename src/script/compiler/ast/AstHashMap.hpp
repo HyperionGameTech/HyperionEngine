@@ -60,6 +60,7 @@ private:
     Array<RC<AstExpression>>        m_replaced_keys;
     Array<RC<AstExpression>>        m_replaced_values;
     RC<AstPrototypeSpecification>   m_map_type_expr;
+    RC<AstExpression>               m_array_expr;
     SymbolTypePtr_t                 m_key_type;
     SymbolTypePtr_t                 m_value_type;
     SymbolTypePtr_t                 m_expr_type;

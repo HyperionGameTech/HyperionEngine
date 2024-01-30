@@ -14,6 +14,7 @@
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
+#include <script/compiler/emit/StorageOperation.hpp>
 
 #include <system/Debug.hpp>
 #include <util/UTF8.hpp>
@@ -25,11 +26,28 @@ AstTemplateExpression::AstTemplateExpression(
     const RC<AstExpression> &expr,
     const Array<RC<AstParameter>> &generic_params,
     const RC<AstPrototypeSpecification> &return_type_specification,
+    AstTemplateExpressionFlags flags,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_expr(expr),
     m_generic_params(generic_params),
-    m_return_type_specification(return_type_specification)
+    m_return_type_specification(return_type_specification),
+    m_flags(flags)
+{
+}
+
+AstTemplateExpression::AstTemplateExpression(
+    const RC<AstExpression> &expr,
+    const Array<RC<AstParameter>> &generic_params,
+    const RC<AstPrototypeSpecification> &return_type_specification,
+    const SourceLocation &location
+) : AstTemplateExpression(
+        expr,
+        generic_params,
+        return_type_specification,
+        AST_TEMPLATE_EXPRESSION_FLAG_NONE,
+        location
+    )
 {
 }
 
@@ -85,6 +103,9 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(generic_param_type_object_value_of_type != nullptr);
             generic_param_type = generic_param_type_object_value_of_type->GetUnaliased();
         }
+
+        // Keep it around because SymbolType holds a weak reference to it
+        m_generic_param_type_objects.PushBack(std::move(generic_param_type_object));
 
         RC<AstVariableDeclaration> var_decl;
 
@@ -215,6 +236,24 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_symbol_type != nullptr);
 
+    if (m_flags & AST_TEMPLATE_EXPRESSION_FLAG_NATIVE) {
+        AssertThrowMsg(m_symbol_type->GetId() == -1, "For native generic expressions, symbol type must not yet be registered");
+
+        m_symbol_type->SetFlags(m_symbol_type->GetFlags() | SYMBOL_TYPE_FLAGS_NATIVE);
+
+        // Create dummy type object
+        m_native_dummy_type_object.Reset(new AstTypeObject(
+            m_symbol_type,
+            BuiltinTypes::CLASS_TYPE,
+            m_location
+        ));
+
+        m_symbol_type->SetTypeObject(m_native_dummy_type_object);
+
+        // Register our type
+        visitor->GetCompilationUnit()->RegisterType(m_symbol_type);
+    }
+
     mod->m_scopes.Close();
 
     // dirty hacky way to make uninstantiated generic types be treated similarly to c++ templates
@@ -224,6 +263,29 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstTemplateExpression::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_is_visited);
+
+    // // build the expression
+    // if (m_flags & AST_TEMPLATE_EXPRESSION_FLAG_NATIVE) {
+    //     auto chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    //     AssertThrowMsg(m_symbol_type->GetId() != -1, "For native generic expressions, symbol type must be registered");
+
+    //     // AssertThrow(m_native_dummy_type_object != nullptr);
+    //     // chunk->Append(m_native_dummy_type_object->Build(visitor, mod));
+
+    //     chunk->Append(m_block->Build(visitor, mod));
+
+    //     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    //     // store the result which is in rp into static memory
+    //     chunk->Append(BytecodeUtil::Make<Comment>("Store native generic class " + m_symbol_type->GetName() + " in static data at index " + String::ToString(m_symbol_type->GetId())));
+
+    //     auto instr_store_static = BytecodeUtil::Make<StorageOperation>();
+    //     instr_store_static->GetBuilder().Store(rp).Static().ByIndex(m_symbol_type->GetId());
+    //     chunk->Append(std::move(instr_store_static));
+
+    //     return chunk;
+    // }
 
     return nullptr; // Uninstantiated generic types are not buildable
 }
@@ -271,12 +333,6 @@ const AstExpression *AstTemplateExpression::GetValueOf() const
 
 const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 {
-    // if (m_expr != nullptr) {
-    //     AssertThrow(m_expr.Get() != this);
-
-    //     return m_expr->GetDeepValueOf();
-    // }
-
     return AstExpression::GetDeepValueOf();
 }
 

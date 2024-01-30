@@ -38,6 +38,9 @@ public:
     VMMap &operator=(VMMap &&other) noexcept;
     ~VMMap();
 
+    SizeType GetSize() const
+        { return m_map.Size(); }
+
     HashMap<VMMapKey, VMMapValue> &GetMap()
         { return m_map; }
 

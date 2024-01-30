@@ -373,7 +373,7 @@ using namespace compiler;
 class APIInstance;
 
 template <class T>
-constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T> || std::is_same_v<vm::VMArray, T> || std::is_same_v<vm::VMStruct, T>;
+constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T> || std::is_same_v<vm::VMStruct, T>;
 
 #pragma region Script API Instance
 
@@ -410,6 +410,9 @@ public:
 
     vm::VM *GetVM() const
         { return m_vm; }
+
+    void SetVM(vm::VM *vm)
+        { m_vm = vm; }
 
     const SourceFile &GetSourceFile() const
         { return m_source_file; }
@@ -486,6 +489,16 @@ struct CxxToScriptValueImpl
 
             return final_value;
         }
+    }
+};
+
+/*! \brief Identity conversion for VM values. No conversion is performed. */
+template <>
+struct CxxToScriptValueImpl<vm::Value>
+{
+    vm::Value operator()(APIInstance &, vm::Value value) const
+    {
+        return value;
     }
 };
 
@@ -613,12 +626,12 @@ struct CxxToScriptValueImpl<String>
 
 
 template <class T>
-struct ConvertImpl;
+struct ScriptToCxxValueImpl;
 
 template <class T>
 static inline auto ConvertScriptObjectInternal(APIInstance &api_instance, const vm::Value &value)
 {
-    ConvertImpl<T> impl;
+    ScriptToCxxValueImpl<T> impl;
 
     return impl(api_instance, value);
 }
@@ -638,7 +651,7 @@ static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Valu
 }
 
 template <class T>
-struct ConvertImpl
+struct ScriptToCxxValueImpl
 {
     static_assert(!is_vm_object_type<NormalizedType<T>>, "Should not receive a VM object type as it is handled by other specializations");
 
@@ -664,83 +677,99 @@ struct ConvertImpl
     }
 };
 
+/*! \brief Identity conversion for VM values. No conversion is performed. */
 template <>
-struct ConvertImpl<Int32>
+struct ScriptToCxxValueImpl<vm::Value>
+{
+    Optional<vm::Value> operator()(APIInstance &, const vm::Value &value) const
+    {
+        return { value };
+    }
+};
+
+/*! \brief Conversion from VM values to int32 */
+template <>
+struct ScriptToCxxValueImpl<Int32>
 {
     Optional<Int32> operator()(APIInstance &, const vm::Value &value) const
     {
         vm::Number num { };
 
         if (value.GetSignedOrUnsigned(&num)) {
-            return static_cast<Int32>((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
+            return Int32((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
         }
 
         return { };
     }
 };
 
+/*! \brief Conversion from VM values to int64 */
 template <>
-struct ConvertImpl<Int64>
+struct ScriptToCxxValueImpl<Int64>
 {
     Optional<Int64> operator()(APIInstance &, const vm::Value &value) const
     {
         vm::Number num { };
 
         if (value.GetSignedOrUnsigned(&num)) {
-            return static_cast<Int64>((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
+            return Int64((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
         }
 
         return { };
     }
 };
 
+/*! \brief Conversion from VM values to uint32 */
 template <>
-struct ConvertImpl<UInt32>
+struct ScriptToCxxValueImpl<UInt32>
 {
     Optional<UInt32> operator()(APIInstance &, const vm::Value &value) const
     {
         vm::Number num { };
 
         if (value.GetSignedOrUnsigned(&num)) {
-            return static_cast<UInt32>((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
+            return UInt32((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
         }
 
         return { };
     }
 };
 
+/*! \brief Conversion from VM values to uint64 */
 template <>
-struct ConvertImpl<UInt64>
+struct ScriptToCxxValueImpl<UInt64>
 {
     Optional<UInt64> operator()(APIInstance &, const vm::Value &value) const
     {
         vm::Number num { };
 
         if (value.GetSignedOrUnsigned(&num)) {
-            return static_cast<UInt64>((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
+            return UInt64((num.flags & vm::Number::FLAG_UNSIGNED) ? num.u : num.i);
         }
 
         return { };
     }
 };
 
+/*! \brief Conversion from VM values to float */
 template <>
-struct ConvertImpl<Float>
+struct ScriptToCxxValueImpl<Float>
 {
     Optional<Float> operator()(APIInstance &, const vm::Value &value) const
     {
         Double dbl;
 
         if (value.GetFloatingPointCoerce(&dbl)) {
-            return static_cast<Float>(dbl);
+            return Float(dbl);
         }
 
         return { };
     }
 };
 
+/*! \brief Conversion from VM values to double */
 template <>
-struct ConvertImpl<Double>
+struct ScriptToCxxValueImpl<Double>
 {
     Optional<Double> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -754,8 +783,9 @@ struct ConvertImpl<Double>
     }
 };
 
+/*! \brief Conversion from VM values to bool */
 template <>
-struct ConvertImpl<Bool>
+struct ScriptToCxxValueImpl<Bool>
 {
     Optional<Bool> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -769,8 +799,9 @@ struct ConvertImpl<Bool>
     }
 };
 
+/*! \brief Conversion from VM values to String */
 template <>
-struct ConvertImpl<String>
+struct ScriptToCxxValueImpl<String>
 {
     Optional<String> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -784,9 +815,9 @@ struct ConvertImpl<String>
     }
 };
 
-
+/*! \brief Conversion from VM values to void * */
 template <>
-struct ConvertImpl<void *>
+struct ScriptToCxxValueImpl<void *>
 {
     Optional<void *> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -802,25 +833,26 @@ struct ConvertImpl<void *>
     }
 };
 
+/*! \brief Conversion from VM values to const void * */
 template <>
-struct ConvertImpl<const void *>
+struct ScriptToCxxValueImpl<const void *>
 {
     Optional<const void *> operator()(APIInstance &api_instance, const vm::Value &value) const
     {
-        Optional<void *> result = ConvertImpl<void *>()(api_instance, value);
+        Optional<void *> result = ScriptToCxxValueImpl<void *>()(api_instance, value);
 
         if (!result.HasValue()) {
             return { };
         }
 
         return {
-            const_cast<const void *>(ConvertImpl<void *>()(api_instance, value).GetOr(nullptr))
+            const_cast<const void *>(ScriptToCxxValueImpl<void *>()(api_instance, value).GetOr(nullptr))
         };
     }
 };
 
 template <>
-struct ConvertImpl<vm::VMString *>
+struct ScriptToCxxValueImpl<vm::VMString *>
 {
     Optional<vm::VMString *> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -835,7 +867,7 @@ struct ConvertImpl<vm::VMString *>
 };
 
 template <>
-struct ConvertImpl<vm::VMObject *>
+struct ScriptToCxxValueImpl<vm::VMObject *>
 {
     Optional<vm::VMObject *> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -849,38 +881,38 @@ struct ConvertImpl<vm::VMObject *>
     }
 };
 
+// template <>
+// struct ScriptToCxxValueImpl<vm::VMArray *>
+// {
+//     Optional<vm::VMArray *> operator()(APIInstance &, const vm::Value &value) const
+//     {
+//         vm::VMArray *ptr;
+
+//         if (value.GetPointer<vm::VMArray>(&ptr)) {
+//             return ptr;
+//         }
+
+//         return { };
+//     }
+// };
+
+// template <>
+// struct ScriptToCxxValueImpl<vm::VMMap *>
+// {
+//     Optional<vm::VMMap *> operator()(APIInstance &, const vm::Value &value) const
+//     {
+//         vm::VMMap *ptr;
+
+//         if (value.GetPointer<vm::VMMap>(&ptr)) {
+//             return ptr;
+//         }
+
+//         return { };
+//     }
+// };
+
 template <>
-struct ConvertImpl<vm::VMArray *>
-{
-    Optional<vm::VMArray *> operator()(APIInstance &, const vm::Value &value) const
-    {
-        vm::VMArray *ptr;
-
-        if (value.GetPointer<vm::VMArray>(&ptr)) {
-            return ptr;
-        }
-
-        return { };
-    }
-};
-
-template <>
-struct ConvertImpl<vm::VMMap *>
-{
-    Optional<vm::VMMap *> operator()(APIInstance &, const vm::Value &value) const
-    {
-        vm::VMMap *ptr;
-
-        if (value.GetPointer<vm::VMMap>(&ptr)) {
-            return ptr;
-        }
-
-        return { };
-    }
-};
-
-template <>
-struct ConvertImpl<vm::VMStruct *>
+struct ScriptToCxxValueImpl<vm::VMStruct *>
 {
     Optional<vm::VMStruct *> operator()(APIInstance &, const vm::Value &value) const
     {
@@ -895,7 +927,7 @@ struct ConvertImpl<vm::VMStruct *>
 };
 
 template <>
-struct ConvertImpl<vm::VMString>
+struct ScriptToCxxValueImpl<vm::VMString>
 {
     vm::VMString *operator()(APIInstance &, const vm::Value &value) const
     {
@@ -910,7 +942,7 @@ struct ConvertImpl<vm::VMString>
 };
 
 template <>
-struct ConvertImpl<vm::VMObject>
+struct ScriptToCxxValueImpl<vm::VMObject>
 {
     vm::VMObject *operator()(APIInstance &, const vm::Value &value) const
     {
@@ -924,23 +956,23 @@ struct ConvertImpl<vm::VMObject>
     }
 };
 
+// template <>
+// struct ScriptToCxxValueImpl<vm::VMArray>
+// {
+//     vm::VMArray *operator()(APIInstance &, const vm::Value &value) const
+//     {
+//         vm::VMArray *ptr;
+
+//         if (value.GetPointer<vm::VMArray>(&ptr)) {
+//             return ptr;
+//         }
+
+//         return nullptr;
+//     }
+// };
+
 template <>
-struct ConvertImpl<vm::VMArray>
-{
-    vm::VMArray *operator()(APIInstance &, const vm::Value &value) const
-    {
-        vm::VMArray *ptr;
-
-        if (value.GetPointer<vm::VMArray>(&ptr)) {
-            return ptr;
-        }
-
-        return nullptr;
-    }
-};
-
-template <>
-struct ConvertImpl<vm::VMStruct>
+struct ScriptToCxxValueImpl<vm::VMStruct>
 {
     vm::VMStruct *operator()(APIInstance &, const vm::Value &value) const
     {
@@ -954,23 +986,23 @@ struct ConvertImpl<vm::VMStruct>
     }
 };
 
-template <>
-struct ConvertImpl<vm::VMMap>
-{
-    vm::VMMap *operator()(APIInstance &, const vm::Value &value) const
-    {
-        vm::VMMap *ptr;
+// template <>
+// struct ScriptToCxxValueImpl<vm::VMMap>
+// {
+//     vm::VMMap *operator()(APIInstance &, const vm::Value &value) const
+//     {
+//         vm::VMMap *ptr;
 
-        if (value.GetPointer<vm::VMMap>(&ptr)) {
-            return ptr;
-        }
+//         if (value.GetPointer<vm::VMMap>(&ptr)) {
+//             return ptr;
+//         }
 
-        return nullptr;
-    }
-};
+//         return nullptr;
+//     }
+// };
 
 template <class T>
-struct ConvertImpl<T *> // embedded C++ object (as pointer)
+struct ScriptToCxxValueImpl<T *> // embedded C++ object (as pointer)
 {
     static_assert(!is_vm_object_type<NormalizedType<std::remove_pointer_t<T>>>, "Should not receive a VM object type as it is handled by other specializations");
 
@@ -979,6 +1011,8 @@ struct ConvertImpl<T *> // embedded C++ object (as pointer)
         vm::VMObject *object = nullptr;
 
         if (!value.GetPointer<vm::VMObject>(&object)) {
+            DebugLog(LogType::Warn, "Unable to convert VM value to C++ object pointer of type %s\n", TypeName<T>().Data());
+
             return { };
         }
         
@@ -990,6 +1024,8 @@ struct ConvertImpl<T *> // embedded C++ object (as pointer)
             return t_ptr;
         }
 
+        DebugLog(LogType::Warn, "Unable to convert VM value to C++ object pointer of type %s: No __intern value or __intern was not set to a %s pointer\n", TypeName<T>().Data(), TypeName<T>().Data());
+
         return { };
     }
 };
@@ -997,7 +1033,7 @@ struct ConvertImpl<T *> // embedded C++ object (as pointer)
 #if 0
 
 template <>
-struct ConvertImpl<AnyPtr>
+struct ScriptToCxxValueImpl<AnyPtr>
 {
     Optional<AnyPtr> operator()(APIInstance &api_instance, const vm::Value &value) const
     {
@@ -1014,7 +1050,7 @@ struct ConvertImpl<AnyPtr>
 #endif
 
 template <class T, SizeType NumInlineBytes>
-struct ConvertImpl<Array<T, NumInlineBytes>>
+struct ScriptToCxxValueImpl<Array<T, NumInlineBytes>>
 {
     Optional<Array<T, NumInlineBytes>> operator()(APIInstance &api_instance, const vm::Value &value) const
     {
@@ -1026,7 +1062,7 @@ struct ConvertImpl<Array<T, NumInlineBytes>>
             result.Resize(ary->GetSize());
 
             for (SizeType index = 0; index < ary->GetSize(); index++) {
-                ConvertImpl<T> element_convert_impl;
+                ScriptToCxxValueImpl<T> element_convert_impl;
                 
                 auto element_result = element_convert_impl(api_instance, ary->AtIndex(index));
 
@@ -1047,7 +1083,7 @@ struct ConvertImpl<Array<T, NumInlineBytes>>
 /*template <class T>
 static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value, T &&out) -> std::enable_if_t<std::is_class_v<NormalizedType<std::remove_pointer_t<T>>> && !(is_vm_object_type<NormalizedType<std::remove_pointer_t<T>>>), bool>
 {
-    ConvertImpl<ScriptClassWrapper<NormalizedType<std::remove_pointer_t<T>>>> impl;
+    ScriptToCxxValueImpl<ScriptClassWrapper<NormalizedType<std::remove_pointer_t<T>>>> impl;
 
     return impl(api_instance, value, out);
 }*/

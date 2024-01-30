@@ -410,6 +410,18 @@ public:
         }
     }
 
+    template <class T, class U = T>
+    static constexpr U Pow(T value, T exponent)
+    {
+        if constexpr (std::is_same_v<U, double>) {
+            return pow(static_cast<double>(value), static_cast<double>(exponent));
+        } else if constexpr (std::is_same_v<U, float>) {
+            return powf(static_cast<float>(value), static_cast<float>(exponent));
+        } else {
+            return static_cast<U>(powf(static_cast<float>(value), static_cast<float>(exponent)));
+        }
+    }
+
     template <class T>
     static constexpr Bool IsPowerOfTwo(T value)
         { return (value & (value - 1)) == 0; }

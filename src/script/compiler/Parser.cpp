@@ -1720,7 +1720,7 @@ RC<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
             // array braces at the end of a type are syntactical sugar for `Array<T>`
             term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 RC<AstVariable>(new AstVariable(
-                    "array",
+                    "Array",
                     token.GetLocation()
                 )),
                 {

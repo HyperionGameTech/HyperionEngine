@@ -486,23 +486,24 @@ HashCode Value::GetHashCode() const
     case Value::VALUE_REF:
         AssertThrow(m_value.value_ref != nullptr);
         return m_value.value_ref->GetHashCode();
-    case Value::HEAP_POINTER:
-        if (m_value.ptr == nullptr) {
-            return HashCode::GetHashCode(0);
-        } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
-            return string->GetHashCode();
-        } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
-            return array->GetHashCode();
-        } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
-            return slice->GetHashCode();
-        } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
-            return object->GetHashCode();
-        } else {
-            return HashCode::GetHashCode(m_value.ptr);
-        }
+    // case Value::HEAP_POINTER:
+    //     if (m_value.ptr == nullptr) {
+    //         return HashCode::GetHashCode(0);
+    //     } else if (VMString *string = m_value.ptr->GetPointer<VMString>()) {
+    //         return string->GetHashCode();
+    //     } else if (VMArray *array = m_value.ptr->GetPointer<VMArray>()) {
+    //         return array->GetHashCode();
+    //     } else if (VMArraySlice *slice = m_value.ptr->GetPointer<VMArraySlice>()) {
+    //         return slice->GetHashCode();
+    //     } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
+    //         return object->GetHashCode();
+    //     } else {
+    //         return HashCode::GetHashCode(m_value.ptr);
+    //     }
     case Value::USER_DATA:
         // hash the void*
         return HashCode::GetHashCode(m_value.user_data);
+    case Value::HEAP_POINTER: // fallthrough
     default: {
         // If we get here, just stringify the value and hash that.
         const VMString str = ToString();

@@ -52,6 +52,7 @@ protected:
     SymbolTypePtr_t                 m_held_type;
     SymbolTypePtr_t                 m_expr_type;
     RC<AstPrototypeSpecification>   m_array_type_expr;
+    RC<AstExpression>               m_array_from_call;
 
     RC<AstArrayExpression> CloneImpl() const
     {

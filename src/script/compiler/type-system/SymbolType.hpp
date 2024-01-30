@@ -3,6 +3,7 @@
 
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/DynArray.hpp>
+#include <core/lib/FlatSet.hpp>
 #include <core/lib/String.hpp>
 #include <Types.hpp>
 
@@ -60,7 +61,8 @@ enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
     SYMBOL_TYPE_FLAGS_NONE                      = 0x0,
     SYMBOL_TYPE_FLAGS_PROXY                     = 0x1,
-    SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC    = 0x2
+    SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC    = 0x2,
+    SYMBOL_TYPE_FLAGS_NATIVE                    = 0x4
 };
 
 struct AliasTypeInfo
@@ -168,11 +170,6 @@ public:
         const SymbolTypePtr_t &base
     );
 
-    static SymbolTypePtr_t Function(
-        const SymbolTypePtr_t &return_type,
-        const Array<GenericInstanceTypeInfo::Arg> &params
-    );
-
     static SymbolTypePtr_t GenericInstance(
         const SymbolTypePtr_t &base,
         const GenericInstanceTypeInfo &info,
@@ -193,12 +190,6 @@ public:
         const String &name,
         const SymbolTypePtr_t &base,
         const Array<SymbolTypeMember> &members
-    );
-    
-    static SymbolTypePtr_t PrototypedObject(
-        const String &name,
-        const SymbolTypePtr_t &base,
-        const Array<SymbolTypeMember> &prototype_members
     );
 
     static SymbolTypePtr_t TypePromotion(
@@ -375,50 +366,9 @@ public:
 
     HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(m_name);
-        hc.Add(m_type_class);
-        hc.Add(m_base ? m_base->GetHashCode() : 0);
-        hc.Add(m_flags);
+        FlatSet<String> duplicate_names;
 
-        for (const SymbolTypeMember &member : m_members) {
-            hc.Add(member.name);
-            hc.Add(member.type ? member.type->GetHashCode() : 0);
-        }
-
-        switch (m_type_class) {
-        case TYPE_BUILTIN:
-            break;
-        case TYPE_ALIAS:
-            if (auto aliasee = m_alias_info.m_aliasee.lock()) {
-                hc.Add(aliasee->GetHashCode());
-            } else {
-                hc.Add(0);
-            }
-
-            break;
-        case TYPE_GENERIC:
-            hc.Add(m_generic_info.m_num_parameters);
-
-            for (const auto &param : m_generic_info.m_params) {
-                hc.Add(param ? param->GetHashCode() : 0);
-            }
-
-            break;
-        case TYPE_GENERIC_INSTANCE:
-            for (const auto &arg : m_generic_instance_info.m_generic_args) {
-                hc.Add(arg.m_name);
-                hc.Add(arg.m_type ? arg.m_type->GetHashCode() : 0);
-            }
-
-            break;
-        case TYPE_GENERIC_PARAMETER:
-            break;
-        case TYPE_USER_DEFINED:
-            break;
-        }
-
-        return hc;
+        return GetHashCodeWithDuplicateRemoval(duplicate_names);
     }
 
     // if this is an instance of a generic type
@@ -426,9 +376,11 @@ public:
     GenericInstanceTypeInfo     m_generic_instance_info;
 
 private:
+    HashCode GetHashCodeWithDuplicateRemoval(FlatSet<String> &duplicate_names) const;
+
     String                      m_name;
     RC<AstExpression>           m_default_value;
-    Array<SymbolTypeMember>       m_members;
+    Array<SymbolTypeMember>     m_members;
 
     // type that this type is based off of
     SymbolTypePtr_t             m_base;

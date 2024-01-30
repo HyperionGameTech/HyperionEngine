@@ -124,7 +124,8 @@ struct Value
         USER_DATA,
         ADDRESS,
         FUNCTION_CALL,
-        TRY_CATCH_INFO
+        TRY_CATCH_INFO,
+        INVALID_STATE_OBJECT // used for error handling in native functions
     } m_type;
 
     union ValueData
@@ -168,6 +169,10 @@ struct Value
         {
             BCAddress catch_address;
         } try_catch_info;
+
+        struct {
+            const char *error_message; // make sure it is a string literal, as it is not managed
+        } invalid_state_object;
     } m_value;
 
     Value() = default;

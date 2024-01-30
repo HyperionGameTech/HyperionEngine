@@ -3,6 +3,7 @@
 
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
+#include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
 #include <core/lib/FlatSet.hpp>
@@ -47,6 +48,9 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
         return true;
     }
 
+
+    return GetHashCode() == other.GetHashCode();
+
     if (m_name != other.m_name) {
         return false;
     }
@@ -70,6 +74,9 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
             return false;
         }
 
+        return true;
+
+    case TYPE_GENERIC_PARAMETER:
         return true;
         
     case TYPE_GENERIC_INSTANCE: {
@@ -101,6 +108,12 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
             AssertThrow(instance_arg_type != nullptr);
             AssertThrow(other_arg_type != nullptr);
 
+            // DebugLog(LogType::Debug, "Compare generic instance args: %s == %s %llu %llu\n",
+            //     instance_arg_type->ToString(true).Data(),
+            //     other_arg_type->ToString(true).Data(),
+            //     instance_arg_type->m_generic_instance_info.m_generic_args.Size(),
+            //     other_arg_type->m_generic_instance_info.m_generic_args.Size());
+
             if (!instance_arg_type->TypeEqual(*other_arg_type)) {
                 return false; // have to do this for now to prevent infinte recursion
             }
@@ -124,22 +137,28 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
         SymbolTypeMember right_member;
 
         if (!other.FindMember(left_member.name, right_member)) {
-            DebugLog(LogType::Debug,
-                "SymbolType::TypeEqual: member '%s' not found in other type '%s'\n",
-                left_member.name.Data(),
-                other.m_name.Data());
+            // DebugLog(LogType::Debug,
+            //     "SymbolType::TypeEqual: member '%s' not found in other type '%s'\n",
+            //     left_member.name.Data(),
+            //     other.m_name.Data());
 
             return false;
         }
 
         AssertThrow(right_member.type != nullptr);
 
+        // DebugLog(LogType::Debug,
+        //     "SymbolType::TypeEqual: check member '%s' type '%s' == '%s'\n",
+        //     left_member.name.Data(),
+        //     left_member_type->ToString(true).Data(),
+        //     right_member.type->ToString(true).Data());
+
         if (!right_member.type->TypeEqual(*left_member_type)) {
-            DebugLog(LogType::Debug,
-                "SymbolType::TypeEqual: member '%s' type '%s' != '%s'\n",
-                left_member.name.Data(),
-                left_member_type->ToString(true).Data(),
-                right_member.type->ToString(true).Data());
+            // DebugLog(LogType::Debug,
+            //     "SymbolType::TypeEqual: member '%s' type '%s' != '%s'\n",
+            //     left_member.name.Data(),
+            //     left_member_type->ToString(true).Data(),
+            //     right_member.type->ToString(true).Data());
 
             return false;
         }
@@ -701,42 +720,6 @@ SymbolTypePtr_t SymbolType::Generic(const String &name,
     return res;
 }
 
-SymbolTypePtr_t SymbolType::Function(
-    const SymbolTypePtr_t &return_type,
-    const Array<GenericInstanceTypeInfo::Arg> &params
-)
-{
-    Array<RC<AstParameter>> parameters; // TODO
-    RC<AstBlock> block(new AstBlock(SourceLocation::eof));
-    RC<AstFunctionExpression> value(new AstFunctionExpression(
-        parameters, nullptr, block, SourceLocation::eof
-    ));
-
-    value->SetReturnType(return_type);
-
-    Array<GenericInstanceTypeInfo::Arg> generic_param_types;
-    generic_param_types.Reserve(params.Size() + 1);
-
-    generic_param_types.PushBack({
-        "@return", return_type
-    });
-
-    for (auto &it : params) {
-        generic_param_types.PushBack(it);
-    }
-
-    auto function_type = GenericInstance(
-        BuiltinTypes::FUNCTION,
-        GenericInstanceTypeInfo{generic_param_types}
-    );
-
-    AssertThrow(function_type != nullptr);
-
-    function_type->SetDefaultValue(value);
-
-    return function_type;
-}
-
 String SymbolType::ToString(Bool include_parameter_names) const
 {
     String res = m_name;
@@ -877,8 +860,8 @@ SymbolTypePtr_t SymbolType::GenericInstance(
 
     auto default_value = base->GetDefaultValue();
 
-    // res->SetId(base->GetId());
     res->SetDefaultValue(default_value);
+    res->SetFlags(base->GetFlags());
     res->m_generic_instance_info = info;
 
     return res;
@@ -934,28 +917,6 @@ SymbolTypePtr_t SymbolType::Extend(
     symbol_type->m_function_info            = base->m_function_info;
     
     return symbol_type;
-}
-    
-SymbolTypePtr_t PrototypedObject(
-    const String &name,
-    const SymbolTypePtr_t &base,
-    const Array<SymbolTypeMember> &prototype_members
-)
-{
-    return SymbolType::Extend(
-        name,
-        base,
-        Array<SymbolTypeMember> {
-            SymbolTypeMember {
-                "$proto",
-                SymbolType::Object(
-                    name + "Instance",
-                    prototype_members
-                ),
-                nullptr
-            }
-        }
-    );
 }
 
 SymbolTypePtr_t SymbolType::TypePromotion(
@@ -1089,6 +1050,65 @@ SymbolTypePtr_t SymbolType::SubstituteGenericParams(
     }
 
     return lptr;
+}
+
+HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String> &duplicate_names) const
+{
+    if (duplicate_names.Contains(m_name)) {
+        return HashCode();
+    }
+
+    duplicate_names.Insert(m_name);
+    
+    HashCode hc;
+    hc.Add(m_name);
+    hc.Add(m_type_class);
+    hc.Add(m_base ? m_base->GetHashCodeWithDuplicateRemoval(duplicate_names) : HashCode());
+    hc.Add(m_flags);
+
+    switch (m_type_class) {
+    case TYPE_BUILTIN:
+        break;
+    case TYPE_ALIAS:
+        if (auto aliasee = m_alias_info.m_aliasee.lock()) {
+            hc.Add(aliasee->GetHashCodeWithDuplicateRemoval(duplicate_names));
+        } else {
+            hc.Add(HashCode());
+        }
+
+        break;
+    case TYPE_GENERIC:
+        hc.Add(m_generic_info.m_num_parameters);
+
+        for (const auto &param : m_generic_info.m_params) {
+            hc.Add(param ? param->GetHashCodeWithDuplicateRemoval(duplicate_names) : HashCode());
+        }
+
+        break;
+    case TYPE_GENERIC_INSTANCE:
+        for (const auto &arg : m_generic_instance_info.m_generic_args) {
+            hc.Add(arg.m_name);
+            hc.Add(arg.m_type ? arg.m_type->GetHashCodeWithDuplicateRemoval(duplicate_names) : HashCode());
+        }
+
+        break;
+    case TYPE_GENERIC_PARAMETER:
+        break;
+    case TYPE_USER_DEFINED:
+        break;
+    }
+
+    for (const SymbolTypeMember &member : m_members) {
+        hc.Add(member.name);
+
+        if (!member.type) {
+            continue;
+        }
+
+        hc.Add(member.type->GetHashCodeWithDuplicateRemoval(duplicate_names));
+    }
+
+    return hc;
 }
 
 } // namespace hyperion::compiler

@@ -3,12 +3,14 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
+#include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
+#include <script/compiler/Compiler.hpp>
 #include <script/compiler/Configuration.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -18,6 +20,7 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
+#include <script/Hasher.hpp>
 #include <system/Debug.hpp>
 
 #include <core/lib/FlatSet.hpp>
@@ -162,7 +165,7 @@ void AstHashMap::Visit(AstVisitor *visitor, Module *mod)
     m_map_type_expr.Reset(new AstPrototypeSpecification(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
-                "map",
+                "Map",
                 m_location
             )),
             {
@@ -217,84 +220,108 @@ void AstHashMap::Visit(AstVisitor *visitor, Module *mod)
 
     m_expr_type = map_type;
 
-    { // create a block with a call to __map_new and member assignments
-        m_block.Reset(new AstBlock(m_location));
+    Array<RC<AstExpression>> key_value_array_expressions;
+    key_value_array_expressions.Reserve(m_replaced_keys.Size());
 
-        m_block->AddChild(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-            "__map",
-            nullptr,
-            visitor->GetCompilationUnit()->GetAstNodeBuilder()
-                .Module(Config::global_module_name)
-                .Function("__map_new")
-                .Call({ }),
-            IdentifierFlags::FLAG_NONE,
+    for (SizeType i = 0; i < m_replaced_keys.Size(); ++i) {
+        auto &key = m_replaced_keys[i];
+        AssertThrow(key != nullptr);
+
+        auto &value = m_replaced_values[i];
+        AssertThrow(value != nullptr);
+
+        Array<RC<AstExpression>> key_value_pair;
+        key_value_pair.Reserve(2);
+
+        key_value_pair.PushBack(key);
+        key_value_pair.PushBack(value);
+
+        key_value_array_expressions.PushBack(RC<AstArrayExpression>(new AstArrayExpression(
+            key_value_pair,
             m_location
         )));
-
-        for (SizeType i = 0; i < m_replaced_keys.Size(); ++i) {
-            auto &key = m_replaced_keys[i];
-            AssertThrow(key != nullptr);
-
-            auto &value = m_replaced_values[i];
-            AssertThrow(value != nullptr);
-
-            m_block->AddChild(visitor->GetCompilationUnit()->GetAstNodeBuilder()
-                .Module(Config::global_module_name)
-                .Function("__map_set")
-                .Call({
-                    RC<AstArgument>(new AstArgument(
-                        RC<AstVariable>(new AstVariable(
-                            "__map",
-                            m_location
-                        )),
-                        false,
-                        false,
-                        false,
-                        false,
-                        "map",
-                        m_location
-                    )),
-                    RC<AstArgument>(new AstArgument(
-                        key,
-                        false,
-                        false,
-                        false,
-                        false,
-                        "key",
-                        m_location
-                    )),
-                    RC<AstArgument>(new AstArgument(
-                        value,
-                        false,
-                        false,
-                        false,
-                        false,
-                        "value",
-                        m_location
-                    ))
-                }));
-        }
-
-        // return __map
-        m_block->AddChild(RC<AstVariable>(new AstVariable(
-            "__map",
-            m_location
-        )));
-
-        m_block->Visit(visitor, mod);
     }
+
+    m_array_expr.Reset(new AstArrayExpression(
+        key_value_array_expressions,
+        m_location
+    ));
+    
+    m_array_expr->Visit(visitor, mod);
 }
 
 std::unique_ptr<Buildable> AstHashMap::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    if (m_map_type_expr != nullptr) {
-        chunk->Append(m_map_type_expr->Build(visitor, mod));
+    AssertThrow(m_map_type_expr != nullptr);
+    chunk->Append(m_map_type_expr->Build(visitor, mod));
+    
+    // get active register
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    { // keep type obj in memory so we can do Map<K, V>.from(...), so push it to the stack
+        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+        instr_push->opcode = PUSH;
+        instr_push->Accept<UInt8>(rp);
+        chunk->Append(std::move(instr_push));
     }
 
-    AssertThrow(m_block != nullptr);
-    chunk->Append(m_block->Build(visitor, mod));
+    int class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+    AssertThrow(m_array_expr != nullptr);
+    chunk->Append(m_array_expr->Build(visitor, mod));
+
+    const UInt8 array_reg = rp;
+
+    // move array to stack
+    { 
+        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+        instr_push->opcode = PUSH;
+        instr_push->Accept<UInt8>(rp);
+        chunk->Append(std::move(instr_push));
+    }
+    
+    int array_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    // increment stack size
+    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+    { // load class from stack back into register
+        auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
+        instr_load_offset->GetBuilder()
+            .Load(rp)
+            .Local()
+            .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - class_stack_location);
+
+        chunk->Append(std::move(instr_load_offset));
+    }
+
+    { // load member `from` from array type expr
+        constexpr UInt32 from_hash = hash_fnv_1("from");
+
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, from_hash));
+    }
+
+    // Here map class and array should be the 2 items on the stack
+    // so we call `from`, and the class will be the first arg, and the array will be the second arg
+
+    { // call the `from` method
+        chunk->Append(Compiler::BuildCall(
+            visitor,
+            mod,
+            nullptr, // no target -- handled above
+            UInt8(2) // self, array
+        ));
+    }
+
+    // decrement stack size for array type expr
+    chunk->Append(BytecodeUtil::Make<PopLocal>(2));
+
+    // pop array and type from stack
+    for (UInt i = 0; i < 2; i++) {
+        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+    }
 
     return chunk;
 }
@@ -305,18 +332,8 @@ void AstHashMap::Optimize(AstVisitor *visitor, Module *mod)
         m_map_type_expr->Optimize(visitor, mod);
     }
 
-    if (m_block != nullptr) {
-        m_block->Optimize(visitor, mod);
-    }
-
-    for (auto &key : m_replaced_keys) {
-        AssertThrow(key != nullptr);
-        key->Optimize(visitor, mod);
-    }
-
-    for (auto &value : m_replaced_values) {
-        AssertThrow(value != nullptr);
-        value->Optimize(visitor, mod);
+    if (m_array_expr != nullptr) {
+        m_array_expr->Optimize(visitor, mod);
     }
 }
 

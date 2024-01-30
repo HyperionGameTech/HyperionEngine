@@ -601,9 +601,17 @@ public:
                 return;
             }
 
+            char buffer[256];
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "Expected Array or MemoryBuffer, got %s",
+                sv.GetTypeString()
+            );
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array or MemoryBuffer")
+                Exception(buffer)
             );
 
             return;
@@ -846,9 +854,17 @@ public:
         Value &sv = thread->m_regs[dst_reg];
 
         if (sv.m_type != Value::HEAP_POINTER) {
+            char buffer[256];
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "Expected Array or MemoryBuffer, got %s",
+                sv.GetTypeString()
+            );
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array or MemoryBuffer")
+                Exception(buffer)
             );
             return;
         }
@@ -916,10 +932,19 @@ public:
                 return;
             }
 
+            char buffer[256];
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "Expected Array or MemoryBuffer, got %s",
+                sv.GetTypeString()
+            );
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array or MemoryBuffer")
+                Exception(buffer)
             );
+
             return;
         }
 
@@ -952,10 +977,19 @@ public:
         Value &sv = thread->m_regs[dst_reg];
 
         if (sv.m_type != Value::HEAP_POINTER) {
+            char buffer[256];
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "Expected Array or MemoryBuffer, got %s",
+                sv.GetTypeString()
+            );
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array or MemoryBuffer")
+                Exception(buffer)
             );
+
             return;
         }
 
@@ -1038,10 +1072,19 @@ public:
                 return;
             }
 
+            char buffer[256];
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "Expected Array or MemoryBuffer, got %s",
+                index_register_value.GetTypeString()
+            );
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array or MemoryBuffer")
+                Exception(buffer)
             );
+
             return;
         }
 

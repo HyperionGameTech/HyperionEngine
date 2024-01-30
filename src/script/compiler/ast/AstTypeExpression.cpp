@@ -507,7 +507,7 @@ std::unique_ptr<Buildable> AstTypeExpression::Build(AstVisitor *visitor, Module 
 
     AssertThrow(m_is_visited);
 
-    AssertThrowMsg(!m_is_uninstantiated_generic, "Cannot build an uninstantiated generic type.");
+    // AssertThrowMsg(!m_is_uninstantiated_generic, "Cannot build an uninstantiated generic type.");
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 

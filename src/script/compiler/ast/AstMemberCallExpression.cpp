@@ -79,40 +79,53 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-        visitor,
-        mod,
-        m_symbol_type,
-        args_with_self,
-        m_location
-    );
+    if (m_symbol_type->IsAnyType()) {
+        m_return_type = BuiltinTypes::ANY;
+        m_substituted_args = args_with_self; // NOTE: do not clone because we don't need to visit again.
+    } else {
+        Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+            visitor,
+            mod,
+            m_symbol_type,
+            args_with_self,
+            m_location
+        );
 
-    if (!substituted.HasValue()) {
-        m_return_type = BuiltinTypes::UNDEFINED;
+        if (!substituted.HasValue()) {
+            m_return_type = BuiltinTypes::UNDEFINED;
 
-        // not a function type
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_not_a_function,
-            m_location,
-            m_symbol_type->ToString(true)
-        ));
+            // not a function type
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_not_a_function,
+                m_location,
+                m_symbol_type->ToString(true)
+            ));
 
-        return;
-    }
+            return;
+        }
 
-    AssertThrow(substituted->return_type != nullptr);
- 
-    m_return_type = substituted->return_type;
+        AssertThrow(substituted->return_type != nullptr);
+    
+        m_return_type = substituted->return_type;
 
-    // change args to be newly ordered array
-    m_substituted_args = CloneAllAstNodes(substituted->params);
+        // change args to be newly ordered array
+        m_substituted_args = CloneAllAstNodes(substituted->params);
 
-    // visit each argument (again, substituted)
-    for (const RC<AstArgument> &arg : m_substituted_args) {
-        AssertThrow(arg != nullptr);
-        
-        arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+        // visit each argument (again, substituted)
+        for (const RC<AstArgument> &arg : m_substituted_args) {
+            AssertThrow(arg != nullptr);
+            
+            arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
+        }
+
+        SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
+            visitor,
+            mod,
+            m_symbol_type,
+            m_substituted_args,
+            m_location
+        );
     }
 
     // should never be empty; self is needed
@@ -122,14 +135,6 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
             Msg_internal_error,
             m_location
         ));
-    } else {
-        SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
-            visitor,
-            mod,
-            m_symbol_type,
-            m_substituted_args,
-            m_location
-        );
     }
 }
 
@@ -198,7 +203,7 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
         visitor,
         mod,
         nullptr, // no target -- handled above
-        static_cast<uint8_t>(m_substituted_args.Size() + 1) // call w/ self as first arg
+        UInt8(m_substituted_args.Size() + 1) // call w/ self as first arg
     ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(

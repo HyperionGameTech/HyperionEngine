@@ -2,12 +2,15 @@
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
+#include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
+#include <script/compiler/Compiler.hpp>
 #include <script/compiler/Configuration.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -17,6 +20,7 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
+#include <script/Hasher.hpp>
 #include <system/Debug.hpp>
 
 #include <core/lib/FlatSet.hpp>
@@ -102,10 +106,42 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
         replaced_member->Visit(visitor, mod);
     }
 
+    // Call Array<T>.from([ ... ])
+
+    // m_array_from_call.Reset(new AstCallExpression(
+    //     RC<AstMember>(new AstMember(
+    //         "from",
+    //         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+    //             RC<AstVariable>(new AstVariable(
+    //                 "Array",
+    //                 m_location
+    //             )),
+    //             {
+    //                 RC<AstArgument>(new AstArgument(
+    //                     RC<AstTypeRef>(new AstTypeRef(
+    //                         m_held_type,
+    //                         m_location
+    //                     )),
+    //                     false,
+    //                     false,
+    //                     false,
+    //                     false,
+    //                     "T",
+    //                     m_location
+    //                 ))
+    //             },
+    //             m_location
+    //         )),
+    //         m_location
+    //     )),
+    //     m_location
+    // ));
+
+
     m_array_type_expr.Reset(new AstPrototypeSpecification(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
-                "array",
+                "Array",
                 m_location
             )),
             {
@@ -143,38 +179,30 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // @TODO: Cache generic instance types
     m_expr_type = array_type;
-
-    // m_type_object.Reset(new AstTypeObject(
-    //     m_expr_type,
-    //     BuiltinTypes::CLASS_TYPE,
-    //     m_location
-    // ));
-
-    // m_expr_type->SetTypeObject(m_type_object);
-
-    // visitor->GetCompilationUnit()->GetCurrentModule()->
-    //     m_scopes.Root().GetIdentifierTable().AddSymbolType(m_expr_type);
-
-    //m_type_object->Visit(visitor, mod);
 }
 
 std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    // if (m_type_object != nullptr) {
-    //     chunk->Append(m_type_object->Build(visitor, mod));
-    // }
-
-    if (m_array_type_expr != nullptr) {
-        chunk->Append(m_array_type_expr->Build(visitor, mod));
-    }
-
-    const Bool has_side_effects = MayHaveSideEffects();
-    const UInt32 array_size = UInt32(m_members.Size());
+    AssertThrow(m_array_type_expr != nullptr);
+    chunk->Append(m_array_type_expr->Build(visitor, mod));
     
     // get active register
     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    { // keep type obj in memory so we can do Array<T>.from(...), so push it to the stack
+        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+        instr_push->opcode = PUSH;
+        instr_push->Accept<UInt8>(rp);
+        chunk->Append(std::move(instr_push));
+    }
+
+    int class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+    const Bool has_side_effects = true;//MayHaveSideEffects();
+    const UInt32 array_size = UInt32(m_members.Size());
 
     { // add NEW_ARRAY instruction
         auto instr_new_array = BytecodeUtil::Make<RawOperation<>>();
@@ -183,22 +211,21 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
         instr_new_array->Accept<UInt32>(array_size);
         chunk->Append(std::move(instr_new_array));
     }
-    
-    Int stack_size_before = 0;
 
-    if (has_side_effects) {
-        // move to stack temporarily
-        { // store value of the right hand side on the stack
-            auto instr_push = BytecodeUtil::Make<RawOperation<>>();
-            instr_push->opcode = PUSH;
-            instr_push->Accept<UInt8>(rp);
-            chunk->Append(std::move(instr_push));
-        }
-        
-        stack_size_before = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        // increment stack size
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-    } else {
+    const UInt8 array_reg = rp;
+
+    // move array to stack
+    { 
+        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+        instr_push->opcode = PUSH;
+        instr_push->Accept<UInt8>(rp);
+        chunk->Append(std::move(instr_push));
+    }
+    
+    int array_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+    
+    if (!has_side_effects) {
         // claim register for array
         visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
 
@@ -207,9 +234,9 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
     }
 
     // assign all array items
-    Int index = 0;
+    for (SizeType index = 0; index < m_replaced_members.Size(); index++) {
+        auto &member = m_replaced_members[index];
 
-    for (auto &member : m_replaced_members) {
         chunk->Append(member->Build(visitor, mod));
 
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -220,8 +247,8 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
             // get active register
             rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-            const Int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-            const Int diff = stack_size_after - stack_size_before;
+            const int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+            const int diff = stack_size_after - array_stack_location;
             AssertThrow(diff == 1);
 
             { // load array from stack back into register
@@ -236,7 +263,7 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
                 auto instr_mov_array_idx = BytecodeUtil::Make<RawOperation<>>();
                 instr_mov_array_idx->opcode = MOV_ARRAYIDX;
                 instr_mov_array_idx->Accept<UInt8>(rp);
-                instr_mov_array_idx->Accept<UInt32>(index);
+                instr_mov_array_idx->Accept<UInt32>(UInt32(index));
                 instr_mov_array_idx->Accept<UInt8>(rp - 1);
                 chunk->Append(std::move(instr_mov_array_idx));
             }
@@ -250,12 +277,10 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
             auto instr_mov_array_idx = BytecodeUtil::Make<RawOperation<>>();
             instr_mov_array_idx->opcode = MOV_ARRAYIDX;
             instr_mov_array_idx->Accept<UInt8>(rp - 1);
-            instr_mov_array_idx->Accept<UInt32>(index);
+            instr_mov_array_idx->Accept<UInt32>(UInt32(index));
             instr_mov_array_idx->Accept<UInt8>(rp);
             chunk->Append(std::move(instr_mov_array_idx));
         }
-
-        index++;
     }
 
     if (!has_side_effects) {
@@ -263,23 +288,41 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         // get active register
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-    } else {
-        // move from stack to register 0
-    
-        int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        int diff = stack_size_after - stack_size_before;
-        AssertThrow(diff == 1);
-        
-        { // load array from stack back into register
-            auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
-            instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(diff);
-            chunk->Append(std::move(instr_load_offset));
-        }
+    }
 
-        // pop the array from the stack
-        chunk->Append(BytecodeUtil::Make<PopLocal>(1));
+    { // load array type expr from stack back into register
+        auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
+        instr_load_offset->GetBuilder()
+            .Load(rp)
+            .Local()
+            .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - class_stack_location);
 
-        // decrement stack size
+        chunk->Append(std::move(instr_load_offset));
+    }
+
+    { // load member `from` from array type expr
+        constexpr UInt32 from_hash = hash_fnv_1("from");
+
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, from_hash));
+    }
+
+    // Here array type and array should be the 2 items on the stack
+    // so we call `from`, and the array type class will be the first arg, and the array will be the second arg
+
+    { // call the `from` method
+        chunk->Append(Compiler::BuildCall(
+            visitor,
+            mod,
+            nullptr, // no target -- handled above
+            UInt8(2) // self, array
+        ));
+    }
+
+    // decrement stack size for array type expr
+    chunk->Append(BytecodeUtil::Make<PopLocal>(2));
+
+    // pop array and type from stack
+    for (UInt i = 0; i < 2; i++) {
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
     }
 

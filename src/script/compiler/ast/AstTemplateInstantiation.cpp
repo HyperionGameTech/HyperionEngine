@@ -389,6 +389,24 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     
     m_held_type = m_inner_expr->GetHeldType();
 
+    // If expr type is native just load the original type.
+    if (expr_type->GetFlags() & SYMBOL_TYPE_FLAGS_NATIVE) {
+        AssertThrowMsg(m_held_type != nullptr, "Native generic type must have a held type");
+        
+        AssertThrowMsg(m_held_type->GetId() != -1,
+            "For native generic types, the original generic type must be registered");
+
+        m_block.Reset(new AstBlock({}, m_location));
+
+        // Add a type ref to the original type
+        m_block->AddChild(RC<AstTypeRef>(new AstTypeRef(
+            m_held_type,
+            m_location
+        )));
+
+        m_block->Visit(visitor, mod);
+    }
+
     // m_held_type = SymbolType::GenericInstance(
     //     m_held_type,
     //     { params }
@@ -422,8 +440,24 @@ std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, 
 
     auto chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    if (m_held_type != nullptr) {
+        chunk->Append(BytecodeUtil::Make<Comment>(String("Begin generic instantiation for type `" ) + m_held_type->ToString() + String("`")));
+    } else {
+        AssertThrow(m_expr_type != nullptr);
+
+        chunk->Append(BytecodeUtil::Make<Comment>(String("Begin generic instantiation for expression of type `" ) + m_expr_type->ToString() + String("`")));
+    }
+
     AssertThrow(m_block != nullptr);
     chunk->Append(m_block->Build(visitor, mod));
+
+    if (m_held_type != nullptr) {
+        chunk->Append(BytecodeUtil::Make<Comment>(String("End generic instantiation for type `" ) + m_held_type->ToString() + String("`")));
+    } else {
+        AssertThrow(m_expr_type != nullptr);
+
+        chunk->Append(BytecodeUtil::Make<Comment>(String("End generic instantiation for expression of type `" ) + m_expr_type->ToString() + String("`")));
+    }
 
     return chunk;
 

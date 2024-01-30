@@ -14,6 +14,14 @@ namespace hyperion::compiler {
 class AstVariableDeclaration;
 class AstTypeObject;
 
+using AstTemplateExpressionFlags = UInt32;
+
+enum AstTemplateExpressionFlagBits : AstTemplateExpressionFlags
+{
+    AST_TEMPLATE_EXPRESSION_FLAG_NONE   = 0x0,
+    AST_TEMPLATE_EXPRESSION_FLAG_NATIVE = 0x1
+};
+
 class AstTemplateExpression final : public AstExpression
 {
 public:
@@ -21,6 +29,13 @@ public:
         const RC<AstExpression> &expr,
         const Array<RC<AstParameter>> &generic_params,
         const RC<AstPrototypeSpecification> &return_type_specification,
+        const SourceLocation &location
+    );
+    AstTemplateExpression(
+        const RC<AstExpression> &expr,
+        const Array<RC<AstParameter>> &generic_params,
+        const RC<AstPrototypeSpecification> &return_type_specification,
+        AstTemplateExpressionFlags flags,
         const SourceLocation &location
     );
     virtual ~AstTemplateExpression() override = default;
@@ -60,10 +75,13 @@ private:
     RC<AstExpression>                   m_expr;
     Array<RC<AstParameter>>             m_generic_params;
     RC<AstPrototypeSpecification>       m_return_type_specification;
+    AstTemplateExpressionFlags          m_flags;
 
     // set while analyzing
     SymbolTypePtr_t                     m_symbol_type;
     RC<AstBlock>                        m_block;
+    RC<AstTypeObject>                   m_native_dummy_type_object;
+    Array<RC<AstTypeObject>>            m_generic_param_type_objects;
     bool                                m_is_visited = false;
 
     RC<AstTemplateExpression> CloneImpl() const
@@ -72,6 +90,7 @@ private:
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_generic_params),
             CloneAstNode(m_return_type_specification),
+            m_flags,
             m_location
         ));
     }
