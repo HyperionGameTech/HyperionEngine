@@ -49,6 +49,22 @@ public:
     ComponentContainerFactoryBase *GetFactory() const
         { return m_factory; }
 
+    /*! \brief Tries to get the component with the given ID from the component container.
+     *
+     *  \param id The ID of the component to get.
+     *
+     *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
+    */
+    virtual void *TryGetComponent(ComponentID id) = 0;
+
+    /*! \brief Tries to get the component with the given ID from the component container.
+     *
+     *  \param id The ID of the component to get.
+     *
+     *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
+    */
+    virtual const void *TryGetComponent(ComponentID id) const = 0;
+
     /*! \brief Checks if the component container has a component with the given ID.
      *
      *  \param id The ID of the component to check.
@@ -104,6 +120,28 @@ public:
 
     virtual Bool HasComponent(ComponentID id) const override
         { return m_components.Contains(id); }
+
+    virtual void *TryGetComponent(ComponentID id) override
+    {
+        auto it = m_components.Find(id);
+
+        if (it == m_components.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+    virtual const void *TryGetComponent(ComponentID id) const override
+    {
+        auto it = m_components.Find(id);
+
+        if (it == m_components.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
 
     HYP_FORCE_INLINE
     Component &GetComponent(ComponentID id)

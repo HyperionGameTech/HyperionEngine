@@ -165,6 +165,15 @@ void Builtins::Visit(AstVisitor *visitor)
             RC<AstString>(new AstString(type_ptr->GetName(), BUILTIN_SOURCE_LOCATION))
         });
 
+        // Add "$proto" so we can use is_instance to check if a value is an instance of a type
+        if (type_ptr->IsPrimitive() && type_ptr->GetDefaultValue() != nullptr) {
+            type_ptr->AddMember({
+                "$proto",
+                type_ptr,
+                type_ptr->GetDefaultValue()
+            });
+        }
+
         RC<AstTypeObject> type_object(new AstTypeObject(
             type_ptr,
             type_ptr->GetBaseType(),

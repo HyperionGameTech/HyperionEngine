@@ -340,7 +340,7 @@ static HYP_FORCE_INLINE Handle<T> CreateObject(Args &&... args)
 // Version of CreateObject for within scripts,
 // taking single void * parameter for the allocated object
 template <class T>
-static HYP_FORCE_INLINE Handle<T> ScriptCreateObject(void *)
+static HYP_FORCE_INLINE Handle<T> ScriptCreateObject(const void *)
 {
     return CreateObject<T>();
 }

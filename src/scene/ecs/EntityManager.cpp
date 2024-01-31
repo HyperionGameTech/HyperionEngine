@@ -5,6 +5,8 @@
 
 namespace hyperion::v2 {
 
+EntityManager::ComponentSetMutexHolder::MutexMap EntityManager::ComponentSetMutexHolder::s_mutex_map = { };
+
 EntityManager::ComponentSetMutexHolder EntityManager::s_component_set_mutex_holder = { };
 
 ID<Entity> EntityManager::AddEntity()

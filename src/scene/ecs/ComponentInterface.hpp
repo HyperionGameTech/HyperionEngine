@@ -4,13 +4,16 @@
 #include <core/lib/TypeID.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/Optional.hpp>
-#include <core/lib/Any.hpp>
+#include <core/lib/Variant.hpp>
 #include <core/Name.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+
+#include <math/Vector2.hpp>
+#include <math/Vector3.hpp>
+#include <math/Vector4.hpp>
+#include <math/Matrix4.hpp>
+#include <math/Quaternion.hpp>
 
 namespace hyperion::v2 {
-
-using namespace fbom;
 
 class ComponentInterfaceBase;
 
@@ -18,24 +21,33 @@ using ComponentPropertyFlags = UInt32;
 
 enum ComponentPropertyFlagBits : ComponentPropertyFlags
 {
-    COMPONENT_PROPERTY_FLAG_NONE    = 0x0,
-    COMPONENT_PROPERTY_FLAG_READ    = 0x1,
-    COMPONENT_PROPERTY_FLAG_WRITE   = 0x2,
-    COMPONENT_PROPERTY_FLAG_READ_WRITE = COMPONENT_PROPERTY_FLAG_READ | COMPONENT_PROPERTY_FLAG_WRITE
+    COMPONENT_PROPERTY_FLAG_NONE        = 0x0,
+    COMPONENT_PROPERTY_FLAG_READ        = 0x1,
+    COMPONENT_PROPERTY_FLAG_WRITE       = 0x2,
+    COMPONENT_PROPERTY_FLAG_READ_WRITE  = COMPONENT_PROPERTY_FLAG_READ | COMPONENT_PROPERTY_FLAG_WRITE
 };
 
 class ComponentProperty
 {
 public:
-    using Getter = std::add_pointer_t<Any (const void *component)>;
-    using Setter = std::add_pointer_t<void (void *component, Any &&value)>;
+    using Value = Variant<bool, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Vec3f, Vec3i, Vec3u, Vec4f, Vec4i, Vec4u, Quaternion, Matrix4>;
 
-    ComponentProperty() = default;
+    using Getter = std::add_pointer_t<Value (const void *component)>;
+    using Setter = std::add_pointer_t<void (void *component, Value &&value)>;
+
+    ComponentProperty()
+        : m_name(Name::invalid),
+          m_flags(COMPONENT_PROPERTY_FLAG_NONE),
+          m_getter(nullptr),
+          m_setter(nullptr)
+    {
+    }
 
     ComponentProperty(Name name, Getter &&getter)
         : m_name(name),
           m_flags(COMPONENT_PROPERTY_FLAG_READ),
-          m_getter(std::move(getter))
+          m_getter(std::move(getter)),
+          m_setter(nullptr)
     {
     }
 
@@ -97,7 +109,7 @@ public:
     ComponentInterfaceBase(ComponentInterfaceBase &&) noexcept              = delete;
     ComponentInterfaceBase &operator=(ComponentInterfaceBase &&) noexcept   = delete;
 
-    virtual ~ComponentInterfaceBase() = default;
+    virtual ~ComponentInterfaceBase()                                       = default;
 
     TypeID GetTypeID() const
         { return m_type_id; }
@@ -105,6 +117,7 @@ public:
     const Array<ComponentProperty> &GetProperties() const
         { return m_properties; }
 
+    ComponentProperty *GetProperty(Name name);
     const ComponentProperty *GetProperty(Name name) const;
 
 protected:

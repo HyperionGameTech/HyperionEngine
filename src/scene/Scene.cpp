@@ -413,9 +413,6 @@ static struct SceneScriptBindings : ScriptBindingsBase
 
     virtual void Generate(scriptapi2::Context &context) override
     {
-        context.Class<Handle<Scene>>("Scene")
-            .Build();
-
         // api_instance.Module(Config::global_module_name)
         //     .Function(
         //         "TestSceneFunction",

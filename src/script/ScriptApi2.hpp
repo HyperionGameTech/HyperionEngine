@@ -112,6 +112,7 @@ struct ClassDefinition
 struct GlobalDefinition
 {
     Symbol                      symbol;
+    Optional<String>            generic_params_string;
 
     RC<AstVariableDeclaration>  var_decl;
 };
@@ -185,6 +186,20 @@ public:
 
     Context &Global(
         String name,
+        String generic_params_string,
+        String type_string,
+        Value value
+    );
+
+    Context &Global(
+        String name,
+        String type_string,
+        NativeFunctionPtr_t fn
+    );
+
+    Context &Global(
+        String name,
+        String generic_params_string,
         String type_string,
         NativeFunctionPtr_t fn
     );

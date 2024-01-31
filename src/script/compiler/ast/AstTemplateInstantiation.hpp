@@ -128,7 +128,7 @@ private:
     SymbolTypePtr_t                     m_expr_type;
     SymbolTypePtr_t                     m_held_type;
     bool                                m_is_visited = false;
-    bool                                m_is_new_instantiation = false;
+    bool                                m_is_native = false;
 
     RC<AstTemplateInstantiation> CloneImpl() const
     {

@@ -27,6 +27,17 @@ ComponentInterfaceBase::ComponentInterfaceBase(TypeID type_id, Array<ComponentPr
     component_interface_holder.AddComponentInterface(this);
 }
 
+ComponentProperty *ComponentInterfaceBase::GetProperty(Name name)
+{
+    for (auto &property : m_properties) {
+        if (property.GetName() == name) {
+            return &property;
+        }
+    }
+
+    return nullptr;
+}
+
 const ComponentProperty *ComponentInterfaceBase::GetProperty(Name name) const
 {
     for (auto &property : m_properties) {

@@ -166,12 +166,61 @@ class EntityManager
 {
     static struct ComponentSetMutexHolder
     {
+        struct MutexMap
+        {
+            // Mutex for accessing the map
+            Mutex                       mutex;
+
+            // Maps component type ID to mutex, used for accessing components via dynamic TypeID
+            HashMap<TypeID, Mutex *>    map;
+
+            MutexMap()                                  = default;
+            MutexMap(const MutexMap &)                  = delete;
+            MutexMap &operator=(const MutexMap &)       = delete;
+            MutexMap(MutexMap &&) noexcept              = delete;
+            MutexMap &operator=(MutexMap &&) noexcept   = delete;
+            ~MutexMap()                                 = default;
+        };
+
+        struct MutexDeclaration
+        {
+            Mutex mutex;
+
+            MutexDeclaration(TypeID type_id, MutexMap &mutex_map)
+            {
+                Mutex::Guard guard(mutex_map.mutex);
+
+                mutex_map.map.Set(type_id, &mutex);
+            }
+
+            MutexDeclaration(const MutexDeclaration &)                  = delete;
+            MutexDeclaration &operator=(const MutexDeclaration &)       = delete;
+            MutexDeclaration(MutexDeclaration &&) noexcept              = delete;
+            MutexDeclaration &operator=(MutexDeclaration &&) noexcept   = delete;
+            ~MutexDeclaration()                                         = default;
+        };
+
+        static MutexMap s_mutex_map;
+
         template <class Component>
         static Mutex &GetMutex()
         {
-            static Mutex mutex;
+            static MutexDeclaration mutex_declaration(TypeID::ForType<Component>(), s_mutex_map);
 
-            return mutex;
+            return mutex_declaration.mutex;
+        }
+
+        static Mutex *TryGetMutex(TypeID component_type_id)
+        {
+            Mutex::Guard guard(s_mutex_map.mutex);
+
+            auto it = s_mutex_map.map.Find(component_type_id);
+
+            if (it == s_mutex_map.map.End()) {
+                return nullptr;
+            }
+
+            return it->second;
         }
     } s_component_set_mutex_holder;
 
@@ -272,6 +321,48 @@ public:
     template <class Component>
     const Component *TryGetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent<Component>(entity); }
+
+    /*! \brief Gets a component using the dynamic type ID.
+     *
+     *  \param[in] component_type_id The type ID of the component to get.
+     *  \param[in] entity The entity to get the component from.
+     *
+     *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
+     */
+    void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
+    {
+        Mutex *mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+
+        if (!mutex) {
+            // No mutex found for this component type, so it doesn't exist
+
+            return nullptr;
+        }
+
+        Mutex::Guard guard(*mutex);
+
+        auto it = m_entities.Find(entity);
+        AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
+        
+        AssertThrowMsg(it->second.HasComponent(component_type_id), "Entity does not have component");
+
+        const ComponentID component_id = it->second.GetComponentID(component_type_id);
+
+        auto component_container_it = m_containers.Find(component_type_id);
+        AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+
+        return component_container_it->second->TryGetComponent(component_id);
+    }
+
+    /*! \brief Gets a component using the dynamic type ID.
+     *
+     *  \param[in] component_type_id The type ID of the component to get.
+     *  \param[in] entity The entity to get the component from.
+     *
+     *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
+     */
+    const void *TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
+        { return const_cast<EntityManager *>(this)->TryGetComponent(component_type_id, entity); }
 
     // template <class ... Components>
     // std::tuple<Components &...> GetComponents(ID<Entity> entity)
@@ -441,6 +532,17 @@ private:
         }
 
         return static_cast<ComponentContainer<Component> &>(*it->second);
+    }
+
+    ComponentContainerBase *TryGetContainer(TypeID component_type_id)
+    {
+        auto it = m_containers.Find(component_type_id);
+        
+        if (it == m_containers.End()) {
+            return nullptr;
+        }
+
+        return it->second.Get();
     }
 
     template <class SystemType>

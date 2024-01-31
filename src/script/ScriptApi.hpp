@@ -16,6 +16,8 @@
 
 #include <script/ScriptApi2.hpp>
 
+#include <scene/ecs/ComponentInterface.hpp>
+
 #include <core/lib/Variant.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/DynArray.hpp>
@@ -357,6 +359,9 @@
 #pragma endregion
 
 namespace hyperion {
+
+using v2::ComponentProperty;
+
 namespace vm {
 // forward declarations
 class VM;
@@ -376,24 +381,6 @@ template <class T>
 constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T> || std::is_same_v<vm::VMStruct, T>;
 
 #pragma region Script API Instance
-
-// class ClassBindingMap : TypeMap<RC<ClassBase>>
-// {
-//     template <class T>
-//     void SetClass(RC<ClassBase> class_object, vm::HeapValue *hv)
-//     {
-//         AssertThrow(class_object != nullptr);
-//         AssertThrowMsg(class_object->GetScriptHeapValue() == nullptr, "Class already has heap value assigned");
-
-//         class_object->SetScriptHeapValue(hv);
-
-//         TypeMap::template Set<T>(std::move(class_object));
-//     }
-
-//     template <class T>
-//     const RC<ClassBase> &GetClass() const
-//         { return TypeMap::template Get<T>(); }
-// };
 
 class APIInstance
 {
@@ -1088,7 +1075,162 @@ static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Valu
     return impl(api_instance, value, out);
 }*/
 
-#pragma endregion
+
+#pragma region ComponentProperty conversion Helpers
+
+template <>
+struct CxxToScriptValueImpl<ComponentProperty::Value>
+{
+    vm::Value operator()(APIInstance &api_instance, const ComponentProperty::Value &value) const
+    {
+        if (!value.IsValid()) {
+            return vm::Value { vm::Value::HEAP_POINTER, { .ptr = nullptr } };
+        }
+
+        if (value.Is<bool>()) {
+            return CxxToScriptValueImpl<bool>()(api_instance, value.Get<bool>());
+        }
+
+        if (value.Is<Int8>()) {
+            return CxxToScriptValueImpl<Int8>()(api_instance, value.Get<Int8>());
+        }
+
+        if (value.Is<Int16>()) {
+            return CxxToScriptValueImpl<Int16>()(api_instance, value.Get<Int16>());
+        }
+
+        if (value.Is<Int32>()) {
+            return CxxToScriptValueImpl<Int32>()(api_instance, value.Get<Int32>());
+        }
+
+        if (value.Is<Int64>()) {
+            return CxxToScriptValueImpl<Int64>()(api_instance, value.Get<Int64>());
+        }
+
+        if (value.Is<UInt8>()) {
+            return CxxToScriptValueImpl<UInt8>()(api_instance, value.Get<UInt8>());
+        }
+
+        if (value.Is<UInt16>()) {
+            return CxxToScriptValueImpl<UInt16>()(api_instance, value.Get<UInt16>());
+        }
+
+        if (value.Is<UInt32>()) {
+            return CxxToScriptValueImpl<UInt32>()(api_instance, value.Get<UInt32>());
+        }
+
+        if (value.Is<UInt64>()) {
+            return CxxToScriptValueImpl<UInt64>()(api_instance, value.Get<UInt64>());
+        }
+
+        if (value.Is<Float>()) {
+            return CxxToScriptValueImpl<Float>()(api_instance, value.Get<Float>());
+        }
+
+        if (value.Is<Double>()) {
+            return CxxToScriptValueImpl<Double>()(api_instance, value.Get<Double>());
+        }
+
+        if (value.Is<String>()) {
+            return CxxToScriptValueImpl<String>()(api_instance, value.Get<String>());
+        }
+
+        if (value.Is<Vec3f>()) {
+            return CxxToScriptValueImpl<Vec3f>()(api_instance, value.Get<Vec3f>());
+        }
+
+        if (value.Is<Vec3i>()) {
+            return CxxToScriptValueImpl<Vec3i>()(api_instance, value.Get<Vec3i>());
+        }
+
+        if (value.Is<Vec3u>()) {
+            return CxxToScriptValueImpl<Vec3u>()(api_instance, value.Get<Vec3u>());
+        }
+
+        if (value.Is<Vec4f>()) {
+            return CxxToScriptValueImpl<Vec4f>()(api_instance, value.Get<Vec4f>());
+        }
+
+        if (value.Is<Vec4i>()) {
+            return CxxToScriptValueImpl<Vec4i>()(api_instance, value.Get<Vec4i>());
+        }
+
+        if (value.Is<Vec4u>()) {
+            return CxxToScriptValueImpl<Vec4u>()(api_instance, value.Get<Vec4u>());
+        }
+
+        if (value.Is<Quaternion>()) {
+            return CxxToScriptValueImpl<Quaternion>()(api_instance, value.Get<Quaternion>());
+        }
+
+        if (value.Is<Matrix4>()) {
+            return CxxToScriptValueImpl<Matrix4>()(api_instance, value.Get<Matrix4>());
+        }
+
+        AssertThrowMsg(false, "Unhandled type for component property value conversion");
+
+        return vm::Value { vm::Value::NONE, { } };
+    }
+};
+
+template <>
+struct ScriptToCxxValueImpl<ComponentProperty::Value>
+{
+    Optional<ComponentProperty::Value> operator()(APIInstance &api_instance, const vm::Value &value) const
+    {
+        switch (value.GetType()) {
+        case vm::Value::ValueType::BOOLEAN:
+            return ComponentProperty::Value(value.GetValue().b);
+
+        case vm::Value::ValueType::I8:
+            return ComponentProperty::Value(value.GetValue().i8);
+
+        case vm::Value::ValueType::I16:
+            return ComponentProperty::Value(value.GetValue().i16);
+
+        case vm::Value::ValueType::I32:
+            return ComponentProperty::Value(value.GetValue().i32);
+
+        case vm::Value::ValueType::I64:
+            return ComponentProperty::Value(value.GetValue().i64);
+
+        case vm::Value::ValueType::U8:
+            return ComponentProperty::Value(value.GetValue().u8);
+
+        case vm::Value::ValueType::U16:
+            return ComponentProperty::Value(value.GetValue().u16);
+
+        case vm::Value::ValueType::U32:
+            return ComponentProperty::Value(value.GetValue().u32);
+
+        case vm::Value::ValueType::U64:
+            return ComponentProperty::Value(value.GetValue().u64);
+
+        case vm::Value::ValueType::F32:
+            return ComponentProperty::Value(value.GetValue().f);
+
+        case vm::Value::ValueType::F64:
+            return ComponentProperty::Value(value.GetValue().d);
+
+        case vm::Value::ValueType::HEAP_POINTER: {
+            vm::VMObject *object = nullptr;
+
+            AssertThrowMsg(false, "not implemented yet");
+
+            break;
+        }
+
+        default:
+            break;
+        }
+
+        return { };
+    }
+};
+
+#pragma endregion // ComponentProperty conversion Helpers
+
+#pragma endregion // Conversion Helpers
 
 #pragma region Get Argument Helpers
 
@@ -1237,61 +1379,6 @@ struct GetArgumentImpl<vm::VMStruct>
     }
 };
 
-#if 0
-
-template <int index, class ReturnType, class Ty = std::conditional_t<std::is_class_v<ReturnType>, std::add_pointer_t<ReturnType>, ReturnType>>
-typename std::enable_if_t<
-    !std::is_class_v<NormalizedType<ReturnType>> || is_vm_object_type<ReturnType>,
-    Ty
->
-GetArgument(sdk::Params &params)
-{
-    static_assert(!std::is_same_v<void, ReturnType>);
-    
-    //return GetArgumentImpl<ReturnType>()(index, params);
-    
-
-    vm::Value *value = params.args[index];
-    
-    auto converted = ConvertScriptObject<Ty>(params.api_instance, *value);
-
-    if (!converted.HasValue()) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Unexpected type for argument, could not convert to expected type"));
-
-        return { };
-    }
-    
-    return converted.Get();
-}
-
-template <int index, class ReturnType, class Ty = NormalizedType<ReturnType>>
-typename std::enable_if_t<
-    std::is_class_v<NormalizedType<ReturnType>> && !(is_vm_object_type<NormalizedType<ReturnType>>),
-    Ty &
->
-GetArgument(sdk::Params &params)
-{
-    //HYP_SCRIPT_GET_ARG_PTR_1(index, vm::VMObject, arg0);
-    //HYP_SCRIPT_GET_MEMBER_PTR(arg0, "__intern", NormalizedType<ReturnType>, member);
-    //return *member;
-    
-    //return GetArgumentImpl<ReturnType>()(index, params);
-
-    vm::Value *value = params.args[index];
-    
-    auto converted = ConvertScriptObject<Ty *>(params.api_instance, *value);
-
-    if (!converted.HasValue()) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Unexpected type for argument, could not convert to expected type"));
-        
-        AssertThrowMsg(false, "Re-implement this in a secure way!");
-    }
-    
-    return *converted.Get();
-}
-
-#else
-
 template <int Index, class T>
 auto GetArgument(sdk::Params &params)
 {
@@ -1320,8 +1407,6 @@ auto GetArgument(sdk::Params &params)
     
     return converted.Get();
 }
-
-#endif
 
 #pragma endregion
 

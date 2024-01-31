@@ -17,16 +17,22 @@ struct EntityData
     TypeMap<ComponentID>    components;
 
     template <class Component>
-    Bool HasComponent() const
+    bool HasComponent() const
         { return components.Contains<Component>(); }
 
+    bool HasComponent(TypeID component_type_id) const
+        { return components.Contains(component_type_id); }
+
     template <class ... Components>
-    Bool HasComponents() const
+    bool HasComponents() const
         { return (HasComponent<Components>() && ...); }
 
     template <class Component>
     ComponentID GetComponentID() const
         { return components.At<Component>(); }
+
+    ComponentID GetComponentID(TypeID component_type_id) const
+        { return components.At(component_type_id); }
 };
 
 class EntityContainer

@@ -391,44 +391,25 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     // If expr type is native just load the original type.
     if (expr_type->GetFlags() & SYMBOL_TYPE_FLAGS_NATIVE) {
-        AssertThrowMsg(m_held_type != nullptr, "Native generic type must have a held type");
-        
-        AssertThrowMsg(m_held_type->GetId() != -1,
-            "For native generic types, the original generic type must be registered");
+        m_is_native = true;
 
         m_block.Reset(new AstBlock({}, m_location));
 
-        // Add a type ref to the original type
-        m_block->AddChild(RC<AstTypeRef>(new AstTypeRef(
-            m_held_type,
-            m_location
-        )));
+        if (m_held_type != nullptr) {
+            AssertThrowMsg(m_held_type->GetId() != -1,
+                "For native generic types, the original generic type must be registered");
+
+            // Add a type ref to the original type
+            m_block->AddChild(RC<AstTypeRef>(new AstTypeRef(
+                m_held_type,
+                m_location
+            )));
+        } else {
+            m_block->AddChild(CloneAstNode(m_expr));
+        }
 
         m_block->Visit(visitor, mod);
     }
-
-    // m_held_type = SymbolType::GenericInstance(
-    //     m_held_type,
-    //     { params }
-    // );
-
-    // // @TODO Will this work with other modules?
-
-    // const UInt expr_scope_depth = generic_expr->GetScopeDepth();
-
-    // // add it to the generic instance cache, for the scope of the original generic expression
-    // Scope *expr_scope = visitor->GetCompilationUnit()->GetCurrentModule()->m_scopes.FindClosestMatch(
-    //     [expr_scope_depth](const TreeNode<Scope> *node, const Scope &scope) 
-    //     {
-    //         return node->m_depth == expr_scope_depth;
-    //     }
-    // );
-
-    // AssertThrow(expr_scope != nullptr);
-
-    // expr_scope->GetGenericInstanceCache().Add(generic_instance_cache_key, m_inner_expr);
-
-    // m_is_new_instantiation = true;
 }
 
 std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, Module *mod)

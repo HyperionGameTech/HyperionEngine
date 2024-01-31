@@ -38,7 +38,22 @@ void CompilationUnit::RegisterType(const SymbolTypePtr_t &type_ptr)
         type_ptr->GetName().Data()
     );
 
-    if (m_registered_types.Contains(type_ptr)) {
+    // @TODO Use a more efficient data structure
+    // for registered_types like an IntrusiveHashSet or something
+
+    const HashCode type_ptr_hash_code = type_ptr->GetHashCode();
+
+    auto registered_types_it = m_registered_types.FindIf([type_ptr_hash_code](const SymbolTypePtr_t &type)
+    {
+        return type->GetHashCode() == type_ptr_hash_code;
+    });
+
+    if (registered_types_it != m_registered_types.End()) {
+        AssertThrow((*registered_types_it)->GetId() != -1);
+
+        // re-use the id because the type is already registered
+        type_ptr->SetId((*registered_types_it)->GetId());
+
         return;
     }
 

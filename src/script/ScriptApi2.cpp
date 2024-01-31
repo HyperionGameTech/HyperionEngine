@@ -92,6 +92,16 @@ void ClassBuilder::Build()
 {
     Mutex::Guard guard(m_context->m_mutex);
 
+    // Add `native_type_id` member to class
+    m_class_definition.static_members.PushBack({
+        "native_type_id",
+        { "uint" },
+        vm::Value {
+            vm::Value::U32,
+            { .u32 = m_class_definition.native_type_id.Value() }
+        }
+    });
+
     m_context->m_class_definitions.PushBack(std::move(m_class_definition));
 }
 
@@ -118,6 +128,27 @@ Context &Context::Global(
 
 Context &Context::Global(
     String name,
+    String generic_params_string,
+    String type_string,
+    Value value
+)
+{
+    Mutex::Guard guard(m_mutex);
+    
+    m_globals.PushBack(GlobalDefinition {
+        Symbol {
+            name,
+            type_string,
+            value
+        },
+        std::move(generic_params_string)
+    });
+
+    return *this;
+}
+
+Context &Context::Global(
+    String name,
     String type_string,
     NativeFunctionPtr_t fn
 )
@@ -130,6 +161,27 @@ Context &Context::Global(
             type_string,
             fn
         }
+    });
+
+    return *this;
+}
+
+Context &Context::Global(
+    String name,
+    String generic_params_string,
+    String type_string,
+    NativeFunctionPtr_t fn
+)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_globals.PushBack(GlobalDefinition {
+        Symbol {
+            name,
+            type_string,
+            fn
+        },
+        std::move(generic_params_string)
     });
 
     return *this;
@@ -207,24 +259,46 @@ void Context::Visit(
     Mutex::Guard guard(m_mutex);
 
     for (GlobalDefinition &global : m_globals) {
+        IdentifierFlagBits identifier_flags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
+
         RC<AstPrototypeSpecification> type_spec = ParseTypeExpression(global.symbol.type.type_string).Cast<AstPrototypeSpecification>();
         AssertThrow(type_spec != nullptr);
 
-        global.var_decl.Reset(new AstVariableDeclaration(
-            global.symbol.name,
-            type_spec,
-            RC<AstAsExpression>(new AstAsExpression(
-                RC<AstNil>(new AstNil(SourceLocation::eof)),
-                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        BuiltinTypes::ANY,
-                        SourceLocation::eof
-                    )),
+        RC<AstExpression> expr(new AstAsExpression(
+            RC<AstNil>(new AstNil(SourceLocation::eof)),
+            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstTypeRef>(new AstTypeRef(
+                    BuiltinTypes::ANY,
                     SourceLocation::eof
                 )),
                 SourceLocation::eof
             )),
-            IdentifierFlags::FLAG_NATIVE,
+            SourceLocation::eof
+        ));
+
+        if (global.generic_params_string.HasValue()) {
+            const Array<RC<AstParameter>> generic_params = ParseGenericParams(*global.generic_params_string);
+
+            if (generic_params.Any()) {
+                expr.Reset(new AstTemplateExpression(
+                    expr,
+                    generic_params,
+                    type_spec,
+                    AST_TEMPLATE_EXPRESSION_FLAG_NATIVE,
+                    SourceLocation::eof
+                ));
+
+                identifier_flags |= IdentifierFlags::FLAG_GENERIC;
+
+                type_spec.Reset(); // reset type_spec so we don't double-visit it
+            }
+        }
+
+        global.var_decl.Reset(new AstVariableDeclaration(
+            global.symbol.name,
+            type_spec,
+            expr,
+            identifier_flags,
             SourceLocation::eof
         ));
 
@@ -373,8 +447,6 @@ void Context::BindAll(APIInstance &api_instance, VM *vm)
             "Class %s has no ID",
             class_definition.name.Data()
         );
-
-        DebugLog(LogType::Debug, "Index for %s = %d\n", held_type->ToString(true).Data(), held_type->GetId());
 
         // Load the class object from the VM - it is stored in StaticMemory
         // at the index

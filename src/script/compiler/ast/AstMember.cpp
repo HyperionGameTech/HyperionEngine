@@ -41,24 +41,6 @@ AstMember::AstMember(
 
 void AstMember::Visit(AstVisitor *visitor, Module *mod)
 {
-    if (m_field_name == Keyword::ToString(Keyword_class).Get()) {
-        // transform x.class into GetClass(x)
-        // and allow us to hold the type object
-        m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
-            .Module(Config::global_module_name)
-            .Function("GetClass")
-            .Call({ RC<AstArgument>(new AstArgument(m_target, false, false, false, false, "", m_location)) });
-
-        m_override_expr->Visit(visitor, mod);
-
-        AssertThrow(m_target != nullptr);
-
-        m_symbol_type = m_override_expr->GetExprType();
-        m_held_type = m_target->GetExprType();
-
-        return;
-    }
-
     AssertThrow(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
