@@ -33,8 +33,7 @@ public:
     enum class Type : UInt32
     {
         NODE,
-        BONE,
-        UI_NODE
+        BONE
     };
 
     enum Flags : UInt32

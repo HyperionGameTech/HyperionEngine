@@ -4,6 +4,7 @@
 #include <math/Vector3.hpp>
 #include <math/Matrix4.hpp>
 #include <math/Transform.hpp>
+#include <math/BoundingBox.hpp>
 
 #include <core/lib/CMemory.hpp>
 
@@ -95,6 +96,25 @@ extern "C" struct ManagedTransform
 
 static_assert(std::is_trivial_v<ManagedTransform>, "ManagedTransform must be a trivial type to be used in C#");
 static_assert(sizeof(ManagedTransform) == 112, "ManagedTransform must be 64 bytes to be used in C#");
+
+extern "C" struct ManagedBoundingBox
+{
+    ManagedVec3f min;
+    ManagedVec3f max;
+
+    ManagedBoundingBox() = default;
+
+    ManagedBoundingBox(const BoundingBox &b)
+        : min(b.GetMin()), max(b.GetMax())
+    {
+    }
+
+    operator BoundingBox() const
+        { return BoundingBox { min, max }; }
+};
+
+static_assert(std::is_trivial_v<ManagedBoundingBox>, "ManagedBoundingBox must be a trivial type to be used in C#");
+static_assert(sizeof(ManagedBoundingBox) == 32, "ManagedBoundingBox must be 32 bytes to be used in C#");
 
 } // namespace hyperion::v2
 

@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Hyperion {
+namespace Hyperion
+{
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct Quaternion
     {

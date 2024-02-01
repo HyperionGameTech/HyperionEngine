@@ -1,5 +1,6 @@
 #include <runtime/dotnet/ManagedHandle.hpp>
 #include <runtime/dotnet/scene/ManagedNode.hpp>
+#include <runtime/dotnet/scene/ManagedSceneTypes.hpp>
 #include <runtime/dotnet/math/ManagedMathTypes.hpp>
 
 #include <scene/NodeProxy.hpp>
@@ -33,6 +34,28 @@ extern "C" {
         node->SetName(name);
     }
 
+    ManagedEntity Node_GetEntity(ManagedNode managed_node)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return { };
+        }
+
+        return node->GetEntity();
+    }
+
+    void Node_SetEntity(ManagedNode managed_node, ManagedEntity managed_entity)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->SetEntity(managed_entity);
+    }
+
     ManagedNode Node_AddChild(ManagedNode managed_node)
     {
         NodeProxy parent_node_proxy = CreateNodeProxyFromManagedNode(managed_node);
@@ -54,27 +77,61 @@ extern "C" {
             return ManagedNode();
         }
 
-        auto it = node->FindChild(name);
+        NodeProxy child_node = node->FindChildByName(name);
 
-        if (it == node->GetChildren().End()) {
+        if (!child_node) {
             return ManagedNode { nullptr };
         }
 
-        return CreateManagedNodeFromNodeProxy(*it);
+        return CreateManagedNodeFromNodeProxy(std::move(child_node));
     }
 
-    Transform Node_GetWorldTransform(ManagedNode managed_node)
+    ManagedNode Node_FindChildWithEntity(ManagedNode managed_node, ManagedEntity entity)
     {
         Node *node = managed_node.GetNode();
 
         if (node == nullptr) {
-            return Transform();
+            return ManagedNode();
+        }
+
+        NodeProxy child_node = node->FindChildWithEntity(entity);
+
+        if (!child_node) {
+            return ManagedNode { nullptr };
+        }
+
+        return CreateManagedNodeFromNodeProxy(std::move(child_node));
+    }
+
+    bool Node_RemoveChild(ManagedNode managed_node, ManagedNode managed_child)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return false;
+        }
+
+        NodeProxy child = CreateNodeProxyFromManagedNode(managed_child);
+
+        if (!child) {
+            return false;
+        }
+
+        return node->RemoveChild(&child);
+    }
+
+    ManagedTransform Node_GetWorldTransform(ManagedNode managed_node)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return { };
         }
 
         return node->GetWorldTransform();
     }
 
-    void Node_SetWorldTransform(ManagedNode managed_node, Transform transform)
+    void Node_SetWorldTransform(ManagedNode managed_node, ManagedTransform transform)
     {
         Node *node = managed_node.GetNode();
 
@@ -85,18 +142,18 @@ extern "C" {
         node->SetWorldTransform(transform);
     }
 
-    Transform Node_GetLocalTransform(ManagedNode managed_node)
+    ManagedTransform Node_GetLocalTransform(ManagedNode managed_node)
     {
         Node *node = managed_node.GetNode();
 
         if (node == nullptr) {
-            return Transform();
+            return { };
         }
 
         return node->GetLocalTransform();
     }
 
-    void Node_SetLocalTransform(ManagedNode managed_node, Transform transform)
+    void Node_SetLocalTransform(ManagedNode managed_node, ManagedTransform transform)
     {
         Node *node = managed_node.GetNode();
 
@@ -144,13 +201,22 @@ extern "C" {
     {
         Node *node = managed_node.GetNode();
 
-        DebugLog(LogType::Debug, "Setting local translation to: %f, %f, %f\n", translation.x, translation.y, translation.z);
-
         if (node == nullptr) {
             return;
         }
 
         node->SetLocalTranslation(translation);
+    }
+
+    void Node_Translate(ManagedNode managed_node, ManagedVec3f translation)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->Translate(translation);
     }
 
     ManagedQuaternion Node_GetWorldRotation(ManagedNode managed_node)
@@ -197,6 +263,17 @@ extern "C" {
         node->SetLocalRotation(rotation);
     }
 
+    void Node_Rotate(ManagedNode managed_node, ManagedQuaternion rotation)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->Rotate(rotation);
+    }
+
     ManagedVec3f Node_GetWorldScale(ManagedNode managed_node)
     {
         Node *node = managed_node.GetNode();
@@ -239,5 +316,38 @@ extern "C" {
         }
 
         node->SetLocalScale(scale);
+    }
+
+    void Node_Scale(ManagedNode managed_node, ManagedVec3f scale)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->Scale(scale);
+    }
+
+    ManagedBoundingBox Node_GetWorldAABB(ManagedNode managed_node)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return { };
+        }
+
+        return node->GetWorldAABB();
+    }
+
+    ManagedBoundingBox Node_GetLocalAABB(ManagedNode managed_node)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return { };
+        }
+
+        return node->GetLocalAABB();
     }
 }

@@ -30,4 +30,9 @@ extern "C" {
 
         return CreateManagedNodeFromNodeProxy(scene->GetRoot());
     }
+
+    EntityManager *Scene_GetEntityManager(ManagedHandle scene_handle)
+    {
+        return CreateHandleFromManagedHandle<Scene>(scene_handle)->GetEntityManager().Get();
+    }
 }

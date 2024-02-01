@@ -16,12 +16,12 @@ enum VisibilityStateFlagBits : VisibilityStateFlags
 
 struct VisibilityStateComponent
 {
-    VisibilityStateFlags flags = VISIBILITY_STATE_FLAG_NONE;
+    VisibilityStateFlags    flags = VISIBILITY_STATE_FLAG_NONE;
 
-    VisibilityState visibility_state;
-    OctantID        octant_id = OctantID::invalid;
+    VisibilityState         visibility_state;
+    OctantID                octant_id = OctantID::invalid;
 
-    HashCode        last_aabb_hash;
+    HashCode                last_aabb_hash;
 };
 
 } // namespace hyperion::v2

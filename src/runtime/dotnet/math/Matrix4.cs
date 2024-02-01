@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Hyperion {
+namespace Hyperion
+{
     [StructLayout(LayoutKind.Explicit, Size = 64)]
     public struct Matrix4
     {

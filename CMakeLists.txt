@@ -290,12 +290,12 @@ if(CSHARP_SOURCES)
 
     
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <PropertyGroup>\n")
-    # set the library version to 1.0
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Version>1.0.0</Version>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <OutputType>Library</OutputType>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Nullable>enable</Nullable>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  </PropertyGroup>\n")
 
     file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <ItemGroup>\n")

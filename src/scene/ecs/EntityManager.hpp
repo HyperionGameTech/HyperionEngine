@@ -253,16 +253,36 @@ public:
     void MoveEntity(ID<Entity> id, EntityManager &other);
     
     HYP_FORCE_INLINE
-    Bool HasEntity(ID<Entity> id) const
+    bool HasEntity(ID<Entity> id) const
         { return m_entities.Find(id) != m_entities.End(); }
 
     template <class Component>
-    Bool HasComponent(ID<Entity> entity) const
+    bool HasComponent(ID<Entity> entity) const
     {
+        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
         return it->second.HasComponent<Component>();
+    }
+
+    bool HasComponent(TypeID component_type_id, ID<Entity> entity)
+    {
+        Mutex *mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+
+        if (!mutex) {
+            // No mutex found for this component type, so it doesn't exist
+
+            return false;
+        }
+
+        Mutex::Guard guard(*mutex);
+
+        auto it = m_entities.Find(entity);
+        AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
+
+        return it->second.HasComponent(component_type_id);
     }
 
     template <class Component>
@@ -375,7 +395,7 @@ public:
     ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
 
     template <class Component>
-    void AddComponent(ID<Entity> entity, Component &&component)
+    ComponentID AddComponent(ID<Entity> entity, Component &&component)
     {
         Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
 
@@ -401,6 +421,8 @@ public:
                 entity_set_it->second->OnEntityUpdated(entity);
             }
         }
+
+        return component_id;
     }
 
     template <class Component>
@@ -476,41 +498,6 @@ public:
         }
 
         return static_cast<EntitySet<Components...> &>(*entity_sets_it->second);
-    }
-
-    template <class ... Components>
-    EntityListenerID AddEntityListener(EntityListener &&listener)
-    {
-        const EntitySetTypeID type_id = EntitySet<Components...>::type_id;
-
-        auto entity_listeners_it = m_entity_listeners.Find(type_id);
-
-        if (entity_listeners_it == m_entity_listeners.End()) {
-            auto entity_listeners_insert_result = m_entity_listeners.Set(type_id, { });
-
-            entity_listeners_it = entity_listeners_insert_result.first;
-        }
-
-        const EntityListenerID id = entity_listeners_it->second.Any()
-            ? entity_listeners_it->second.Back().first + 1
-            : 1; // Start at 1 so that 0 can be used as an invalid ID
-
-        entity_listeners_it->second.Insert(id, std::move(listener));
-
-        return id;
-    }
-
-    template <class ... Components>
-    Bool RemoveEntityListener(EntityListenerID id)
-    {
-        const EntitySetTypeID type_id = EntitySet<Components...>::type_id;
-
-        auto entity_listeners_it = m_entity_listeners.Find(type_id);
-        if (entity_listeners_it == m_entity_listeners.End()) {
-            return false;
-        }
-
-        return entity_listeners_it->second.Erase(id);
     }
 
     template <class SystemType, class ...Args>

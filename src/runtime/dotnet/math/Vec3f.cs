@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Hyperion {
+namespace Hyperion
+{
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct Vec3f
     {
@@ -133,9 +134,19 @@ namespace Hyperion {
             return new Vec3f(left.x * right.x, left.y * right.y, left.z * right.z);
         }
 
+        public static Vec3f operator*(Vec3f left, float right)
+        {
+            return new Vec3f(left.x * right, left.y * right, left.z * right);
+        }
+
         public static Vec3f operator/(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x / right.x, left.y / right.y, left.z / right.z);
+        }
+
+        public static Vec3f operator/(Vec3f left, float right)
+        {
+            return new Vec3f(left.x / right, left.y / right, left.z / right);
         }
 
         // @TODO: Remaining methods
