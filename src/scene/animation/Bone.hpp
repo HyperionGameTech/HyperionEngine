@@ -52,9 +52,9 @@ private:
     void SetSkeleton(Skeleton *skeleton);
     Skeleton *GetSkeleton() const { return m_skeleton; }
 
-    Skeleton *m_skeleton;
-    Matrix4 m_bone_matrix;
-    Keyframe m_keyframe;
+    Skeleton    *m_skeleton;
+    Matrix4     m_bone_matrix;
+    Keyframe    m_keyframe;
 };
 
 } // namespace hyperion::v2

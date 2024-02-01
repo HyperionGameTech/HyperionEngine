@@ -94,10 +94,9 @@ class RefCountedPtrBase
 {
     friend class WeakRefCountedPtrBase<CountType>;
 
-protected:
+public:
     using RefCountDataType = RefCountData<CountType>;
 
-public:
     RefCountedPtrBase()
         : m_ref(nullptr)
     {
@@ -213,6 +212,18 @@ public:
     RefCountDataType *GetRefCountData() const
         { return m_ref; }
 
+    /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
+    HYP_FORCE_INLINE
+    void SetRefCountData(RefCountDataType *ref, bool inc_ref = true)
+    {
+        DropRefCount();
+        m_ref = ref;
+
+        if (inc_ref && m_ref != nullptr) {
+            IncRefCount();
+        }
+    }
+
     template <class T>
     HYP_FORCE_INLINE
     RefCountedPtr<T, CountType> CastUnsafe()
@@ -225,6 +236,17 @@ public:
         }
 
         return rc;
+    }
+
+    /*! \brief Releases the reference to the currently held value, if any, and returns it.
+        * The caller is responsible for handling the reference count of the returned value.
+    */
+    RefCountDataType *Release()
+    {
+        RefCountDataType *ref = m_ref;
+        m_ref = nullptr;
+
+        return ref;
     }
 
 protected:
@@ -711,6 +733,7 @@ public:
     HYP_FORCE_INLINE
     RefCountDataType *GetRefCountData() const
         { return m_ref; }
+
 
 protected:
     explicit WeakRefCountedPtrBase(RefCountDataType *ref)

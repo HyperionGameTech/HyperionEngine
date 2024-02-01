@@ -1,4 +1,5 @@
 #include <HyperionEngine.hpp>
+#include <dotnet_support/DotNetSystem.hpp>
 
 namespace hyperion {
 
@@ -16,6 +17,8 @@ void InitializeApplication(RC<Application> application)
     g_safe_deleter = new SafeDeleter;
 
     g_engine->Initialize(application);
+
+    dotnet::DotNetSystem::GetInstance().Initialize();
 }
 
 } // namespace hyperion

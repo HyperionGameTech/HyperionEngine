@@ -9,10 +9,10 @@
 using std::abs;
 
 namespace hyperion {
-class Quaternion {
+struct alignas(16) Quaternion
+{
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
 
-public:
     static const Quaternion identity;
 
     float x, y, z, w;

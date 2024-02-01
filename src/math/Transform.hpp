@@ -52,11 +52,12 @@ public:
     }
 
 private:
-    Vector3 m_translation;
-    Vector3 m_scale;
-    Quaternion m_rotation;
-    Matrix4 m_matrix;
+    Vector3     m_translation;
+    Vector3     m_scale;
+    Quaternion  m_rotation;
+    Matrix4     m_matrix;
 };
+
 } // namespace hyperion
 
 #endif

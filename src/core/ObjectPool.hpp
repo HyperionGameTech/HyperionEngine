@@ -4,7 +4,9 @@
 #include <core/Containers.hpp>
 #include <core/IDCreator.hpp>
 #include <core/ID.hpp>
+#include <core/lib/Mutex.hpp>
 #include <core/Name.hpp>
+#include <core/lib/HashMap.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
@@ -24,12 +26,20 @@ struct HandleDefinition;
 template <class T>
 constexpr bool has_opaque_handle_defined = implementation_exists<HandleDefinition<T>>;
 
-template <class T>
-class ObjectContainer
+class ObjectContainerBase
 {
 public:
-    static constexpr SizeType max_size = HandleDefinition<T>::max_size;
+    virtual ~ObjectContainerBase() = default;
 
+    virtual void IncRefStrong(UInt index) = 0;
+    virtual void IncRefWeak(UInt index) = 0;
+    virtual void DecRefStrong(UInt index) = 0;
+    virtual void DecRefWeak(UInt index) = 0;
+};
+
+template <class T>
+class ObjectContainer : public ObjectContainerBase
+{
     struct ObjectBytes
     {
         alignas(T) UByte bytes[sizeof(T)];
@@ -108,15 +118,19 @@ public:
             { return ref_count_strong.load() != 0; }
     };
 
+public:
+    static constexpr SizeType max_size = HandleDefinition<T>::max_size;
+
     ObjectContainer()
         : m_size(0)
     {
     }
 
-    ObjectContainer(const ObjectContainer &other) = delete;
-    ObjectContainer &operator=(const ObjectContainer &other) = delete;
-
-    ~ObjectContainer() = default;
+    ObjectContainer(const ObjectContainer &other)                   = delete;
+    ObjectContainer &operator=(const ObjectContainer &other)        = delete;
+    ObjectContainer(ObjectContainer &&other) noexcept               = delete;
+    ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
+    virtual ~ObjectContainer() override                             = default;
 
     HYP_FORCE_INLINE UInt NextIndex()
     {
@@ -132,24 +146,24 @@ public:
         return index;
     }
 
-    HYP_FORCE_INLINE void IncRefStrong(UInt index)
+    virtual void IncRefStrong(UInt index) override
     {
         m_data[index].IncRefStrong();
     }
 
-    HYP_FORCE_INLINE void IncRefWeak(UInt index)
+    virtual void IncRefWeak(UInt index) override
     {
         m_data[index].IncRefWeak();
     }
 
-    HYP_FORCE_INLINE void DecRefStrong(UInt index)
+    virtual void DecRefStrong(UInt index) override
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
             IDCreator<>::template ForType<T>().FreeID(index + 1);
         }
     }
 
-    HYP_FORCE_INLINE void DecRefWeak(UInt index)
+    virtual void DecRefWeak(UInt index) override
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
             IDCreator<>::template ForType<T>().FreeID(index + 1);
@@ -175,7 +189,66 @@ private:
 
 class ObjectPool
 {
-    static SizeType total_memory_size;
+    static struct ObjectContainerHolder
+    {
+        struct ObjectContainerMap
+        {
+            // Mutex for accessing the map
+            Mutex                                   mutex;
+
+            // Maps component type ID to object container
+            HashMap<TypeID, ObjectContainerBase *>  map;
+
+            ObjectContainerMap()                                            = default;
+            ObjectContainerMap(const ObjectContainerMap &)                  = delete;
+            ObjectContainerMap &operator=(const ObjectContainerMap &)       = delete;
+            ObjectContainerMap(ObjectContainerMap &&) noexcept              = delete;
+            ObjectContainerMap &operator=(ObjectContainerMap &&) noexcept   = delete;
+            ~ObjectContainerMap()                                           = default;
+        };
+
+        template <class T>
+        struct ObjectContainerDeclaration
+        {
+            ObjectContainer<T>  container;
+
+            ObjectContainerDeclaration(TypeID type_id, ObjectContainerMap &object_container_map)
+            {
+                Mutex::Guard guard(object_container_map.mutex);
+
+                object_container_map.map.Set(type_id, &container);
+            }
+
+            ObjectContainerDeclaration(const ObjectContainerDeclaration &)                  = delete;
+            ObjectContainerDeclaration &operator=(const ObjectContainerDeclaration &)       = delete;
+            ObjectContainerDeclaration(ObjectContainerDeclaration &&) noexcept              = delete;
+            ObjectContainerDeclaration &operator=(ObjectContainerDeclaration &&) noexcept   = delete;
+            ~ObjectContainerDeclaration()                                                   = default;
+        };
+
+        static ObjectContainerMap s_object_container_map;
+
+        template <class T>
+        static ObjectContainer<T> &GetObjectContainer()
+        {
+            static ObjectContainerDeclaration<T> object_container_declaration(TypeID::ForType<T>(), s_object_container_map);
+
+            return object_container_declaration.container;
+        }
+
+        static ObjectContainerBase *TryGetObjectContainer(TypeID type_id)
+        {
+            Mutex::Guard guard(s_object_container_map.mutex);
+
+            auto it = s_object_container_map.map.Find(type_id);
+
+            if (it == s_object_container_map.map.End()) {
+                return nullptr;
+            }
+
+            return it->second;
+        }
+    } s_object_container_holder;
 
 public:
     template <class T>
@@ -183,9 +256,12 @@ public:
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 
-        static ObjectContainer<T> container;
+        return s_object_container_holder.GetObjectContainer<T>();
+    }
 
-        return container;
+    ObjectContainerBase *TryGetContainer(TypeID type_id)
+    {
+        return s_object_container_holder.TryGetObjectContainer(type_id);
     }
 };
 
@@ -231,6 +307,8 @@ public:
 DEF_HANDLE(Texture,                      16384);
 DEF_HANDLE(Camera,                       64);
 DEF_HANDLE(Entity,                       32768);
+DEF_HANDLE(Node,                         65536);
+DEF_HANDLE(Bone,                         65536);
 DEF_HANDLE(Mesh,                         65536);
 DEF_HANDLE(Framebuffer,                  256);
 DEF_HANDLE(Shader,                       16384);

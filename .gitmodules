@@ -4,10 +4,16 @@
 [submodule "submodules/libdatachannel"]
 	path = submodules/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel
-	branch = v0.19
+	commit = v0.19
 [submodule "submodules/zlib"]
 	path = submodules/zlib
 	url = https://github.com/madler/zlib
 [submodule "submodules/webgpu"]
 	path = submodules/webgpu
 	url = https://github.com/eliemichel/WebGPU-binaries
+[submodule "submodules/dotnet/runtime"]
+	path = submodules/dotnet/runtime
+	url = https://github.com/dotnet/runtime
+[submodule "runtime"]
+	path = runtime
+	url = https://github.com/dotnet/runtime

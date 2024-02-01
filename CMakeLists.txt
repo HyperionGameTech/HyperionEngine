@@ -7,6 +7,17 @@ project(${BUILD_NAME} CXX C)
 
 set(RENDERING_BACKEND "Vulkan" CACHE STRING "Rendering backend to use")
 
+# set HYP_PLATFORM_NAME
+if(WIN32)
+    set(HYP_PLATFORM_NAME "windows")
+elseif(APPLE)
+    set(HYP_PLATFORM_NAME "macos")
+elseif(UNIX)
+    set(HYP_PLATFORM_NAME "linux")
+else()
+    message(FATAL_ERROR "Unsupported platform")
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(NATIVE false CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 else()
@@ -39,6 +50,10 @@ find_package(PkgConfig)
 pkg_check_modules(GST gstreamer-1.0>=1.4
                       gstreamer-video-1.0>=1.4
                       gstreamer-app-1.0>=1.4)
+
+# # TODO: Add windows, linux mono support
+# set(ENV{PKG_CONFIG_PATH} "/Library/Frameworks/Mono.framework/Versions/Current/lib/pkgconfig")
+# pkg_check_modules(MONO mono-2)
                       
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -82,6 +97,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
 file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
+
+file(GLOB_RECURSE CSHARP_SOURCES "src/*.cs")
+
+# # store sources that are in runtime folder in a separate list
+# file(GLOB_RECURSE RUNTIME_SOURCES "src/runtime/*.cpp" "src/runtime/*.c")
+# # remove sources that are in runtime folder
+# list(FILTER SOURCES EXCLUDE REGEX ".*runtime/.*")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -150,6 +172,80 @@ if(GST_FOUND)
     )
 endif()
 
+# if dotnet headers exist, set HYP_DOTNET to 1
+if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
+    # set CLI_CMAKE_PKG_RID
+
+    # if(WIN32)
+    #     set(CLI_CMAKE_PKG_RID "win-x64")
+    # elseif(APPLE)
+    #     set(CLI_CMAKE_PKG_RID "osx-x64")
+    # elseif(UNIX)
+    #     set(CLI_CMAKE_PKG_RID "linux-x64")
+    # else()
+    #     message(FATAL_ERROR "Unsupported platform for .NET core")
+    # endif()
+
+    # # set CLI_CMAKE_COMMIT_HASH
+    # execute_process(
+    #     COMMAND git rev-parse HEAD
+    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/dotnet
+    #     OUTPUT_VARIABLE CLI_CMAKE_COMMIT_HASH
+    #     OUTPUT_STRIP_TRAILING_WHITESPACE
+    # )
+
+    # # set CLI_CMAKE_FALLBACK_OS
+    # if(WIN32)
+    #     set(CLI_CMAKE_FALLBACK_OS "win")
+    # elseif(APPLE)
+    #     set(CLI_CMAKE_FALLBACK_OS "osx")
+    # elseif(UNIX)
+    #     set(CLI_CMAKE_FALLBACK_OS "linux")
+    # else()
+    #     message(FATAL_ERROR "Unsupported platform for .NET core")
+    # endif()
+
+    # Run dotnet.sh to build the dotnet runtime
+
+    # copy all .so and .a files to lib/<platform name>
+
+    execute_process(
+        COMMAND ${CMAKE_SOURCE_DIR}/submodules/dotnet/build.sh
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/dotnet
+    )
+
+
+    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so" "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.a")
+
+    foreach(DOTNET_LIB ${DOTNET_LIBS})
+        message(STATUS "Copying ${DOTNET_LIB} to ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}")
+    
+        file(COPY ${DOTNET_LIB} DESTINATION ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME})
+    endforeach()
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.a")
+        message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.a")
+        add_definitions(-DHYP_DOTNET=1)
+    else()
+        message(WARNING "Dotnet headers found, but libnethost.a not found.")
+    endif()
+
+    # add_custom_command(
+    #     OUTPUT ${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/src/native/corehost/nethost/libnethost.so
+    #     COMMAND ${CMAKE_SOURCE_DIR}/submodules/dotnet/build.sh
+    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/dotnet
+    # )
+
+    # add_subdirectory(submodules/dotnet/runtime/src/native/corehost/nethost/)
+
+    # Find the nethost library, which is required for .NET core
+    # to find host fxr 
+    # find_package(nethost REQUIRED)
+
+endif()
+
 # if aftermath lib exists on windows, link to it
 if(WIN32)
     if(EXISTS "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.lib")
@@ -178,9 +274,52 @@ set(COMMON_LIBRARIES
     ${SDL2_LIBRARIES}
 )
 
-
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
-add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+# for all csharp sources, compile them into a Class library
+# use `dotnet` to compile them
+if(CSHARP_SOURCES)
 
+    # make a directory for the .csproj file
+    set(CSHARP_PROJECT_DIR ${CMAKE_CURRENT_BINARY_DIR}/HyperionRuntime)
+    file(MAKE_DIRECTORY ${CSHARP_PROJECT_DIR})
+
+
+    # generate .csproj file
+    file(WRITE ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+
+    
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <PropertyGroup>\n")
+    # set the library version to 1.0
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Version>1.0.0</Version>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <OutputType>Library</OutputType>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Nullable>enable</Nullable>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  </PropertyGroup>\n")
+
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />")
+    foreach(CSHARP_SOURCE ${CSHARP_SOURCES})
+        file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Compile Include=\"${CSHARP_SOURCE}\" />\n")
+    endforeach()
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  </ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "</Project>\n")
+
+    # build it
+    execute_process(
+        COMMAND dotnet build
+        WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
+    )
+
+    # move the dll up to the build directory
+    file(GLOB CSHARP_DLLS "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll")
+
+    foreach(CSHARP_DLL ${CSHARP_DLLS})
+        message(STATUS "Copying ${CSHARP_DLL} to ${CMAKE_CURRENT_BINARY_DIR}")
+        file(COPY ${CSHARP_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    endforeach()
+endif()
+
+add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 add_subdirectory(samples)

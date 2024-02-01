@@ -4,18 +4,17 @@
 #include <core/Containers.hpp>
 #include <core/Name.hpp>
 #include <core/lib/String.hpp>
-#include <GameCounter.hpp>
-#include "Entity.hpp"
-#include "NodeProxy.hpp"
-#include <HashCode.hpp>
+
+#include <scene/Entity.hpp>
+#include <scene/NodeProxy.hpp>
 
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>
+#include <math/Matrix4.hpp>
 
+#include <GameCounter.hpp>
+#include <HashCode.hpp>
 #include <Types.hpp>
-
-#include <vector>
-#include <memory>
 
 namespace hyperion::v2 {
 
