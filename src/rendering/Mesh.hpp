@@ -43,15 +43,15 @@ public:
     Mesh();
 
     Mesh(
-        const Array<Vertex> &vertices,
-        const Array<Index> &indices,
+        Array<Vertex> vertices,
+        Array<Index> indices,
         Topology topology,
         const VertexAttributeSet &vertex_attributes
     );
 
     Mesh(
-        const Array<Vertex> &vertices,
-        const Array<Index> &indices,
+        Array<Vertex> vertices,
+        Array<Index> indices,
         Topology topology = Topology::TRIANGLES
     );
 
@@ -68,11 +68,11 @@ public:
                                                                    
     const Array<Vertex> &GetVertices() const { return m_vertices; }
 
-    void SetVertices(const Array<Vertex> &vertices);
-    void SetIndices(const Array<Index> &indices);
+    void SetVertices(Array<Vertex> vertices);
+    void SetIndices(Array<Index> indices);
 
-    void SetVertices(const Array<Vertex> &vertices, const Array<Index> &indices)
-        { m_vertices = vertices; m_indices = indices; }
+    void SetVertices(Array<Vertex> vertices, Array<Index> indices)
+        { m_vertices = std::move(vertices); m_indices = std::move(indices); }
 
     const Array<Index> &GetIndices() const { return m_indices; }
 

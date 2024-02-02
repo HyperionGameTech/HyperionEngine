@@ -24,6 +24,8 @@ struct VisibilityStateComponent
     HashCode                last_aabb_hash;
 };
 
+static_assert(sizeof(VisibilityStateComponent) == 80, "VisibilityStateComponent must be 80 bytes to match C#");
+
 } // namespace hyperion::v2
 
 #endif

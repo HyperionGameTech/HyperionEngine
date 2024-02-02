@@ -4,12 +4,20 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
+#include <core/lib/TypeID.hpp>
+
 #include <Engine.hpp>
 #include <Types.hpp>
 
+using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
+    UInt32 Scene_GetTypeID()
+    {
+        return TypeID::ForType<Scene>().Value();
+    }
+
     ManagedHandle Scene_Create()
     {
         return CreateManagedHandleFromHandle(CreateObject<Scene>());

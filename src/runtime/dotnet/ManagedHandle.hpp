@@ -11,20 +11,24 @@ namespace hyperion::v2 {
 
 extern "C" struct ManagedHandle
 {
-    UInt32  type_id;
     UInt32  id;
+
+    // Called from C# to increment the reference count
+    // when an object is constructed with the handle
+    void IncRef(UInt32 type_id);
 
     // Called from C# to release the handle
     // and decrement the reference count
-    void Dispose();
+    void DecRef(UInt32 type_id);
 };
 
+static_assert(sizeof(ManagedHandle) == 4, "ManagedHandle must be 4 bytes to match C# struct size");
 static_assert(std::is_trivial_v<ManagedHandle>, "ManagedHandle must be a trivial type to be used in C#");
 
 template <class T>
-static inline ManagedHandle CreateManagedHandleFromHandle(Handle<T> &&handle)
+static inline ManagedHandle CreateManagedHandleFromHandle(Handle<T> handle)
 {
-    ManagedHandle result { TypeID::ForType<T>().Value(), handle.GetID().Value() };
+    ManagedHandle result { handle.GetID().Value() };
 
     // Take ownership of the handle,
     // but do not increment the reference count
@@ -36,8 +40,6 @@ static inline ManagedHandle CreateManagedHandleFromHandle(Handle<T> &&handle)
 template <class T>
 static inline Handle<T> CreateHandleFromManagedHandle(ManagedHandle handle)
 {
-    AssertThrowMsg(handle.type_id == TypeID::ForType<T>().Value(), "Type mismatch");
-
     return Handle<T>(ID<T> { handle.id });
 }
 

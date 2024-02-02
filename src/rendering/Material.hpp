@@ -201,7 +201,7 @@ public:
             return UInt(type);
         }
 
-        void Copy(unsigned char dst[4]) const
+        void Copy(UInt8 *dst) const
         {
             std::memcpy(dst, &values, Size());
         }

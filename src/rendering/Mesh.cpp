@@ -127,8 +127,8 @@ Mesh::Mesh()
 }
 
 Mesh::Mesh(
-    const Array<Vertex> &vertices,
-    const Array<Index> &indices,
+    Array<Vertex> vertices,
+    Array<Index> indices,
     Topology topology,
     const VertexAttributeSet &vertex_attributes
 ) : BasicObject(),
@@ -138,20 +138,20 @@ Mesh::Mesh(
         .vertex_attributes = vertex_attributes,
         .topology = topology
     },
-    m_vertices(vertices),
-    m_indices(indices),
+    m_vertices(std::move(vertices)),
+    m_indices(std::move(indices)),
     m_aabb(BoundingBox::empty)
 {
     CalculateAABB();
 }
 
 Mesh::Mesh(
-    const Array<Vertex> &vertices,
-    const Array<Index> &indices,
+    Array<Vertex> vertices,
+    Array<Index> indices,
     Topology topology
 ) : Mesh(
-        vertices,
-        indices,
+        std::move(vertices),
+        std::move(indices),
         topology,
         renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
     )
@@ -263,24 +263,22 @@ void Mesh::Init()
     SetReady(true);
 }
 
-void Mesh::SetVertices(const Array<Vertex> &vertices)
+void Mesh::SetVertices(Array<Vertex> vertices)
 {
-    m_vertices.Resize(vertices.Size());
-    m_indices.Resize(vertices.Size());
+    m_vertices = std::move(vertices);
 
-    for (SizeType index = 0; index < vertices.Size(); index++) {
-        m_vertices[index] = vertices[index];
+    m_indices.Resize(m_vertices.Size());
+
+    for (SizeType index = 0; index < m_vertices.Size(); index++) {
         m_indices[index] = Index(index);
     }
 
     CalculateAABB();
 }
 
-void Mesh::SetIndices(const Array<Index> &indices)
+void Mesh::SetIndices(Array<Index> indices)
 {
-    m_indices.Resize(indices.Size());
-
-    Memory::MemCpy(m_indices.Data(), indices.Data(), indices.Size() * sizeof(Index));
+    m_indices = std::move(indices);
 }
 
 /* Copy our values into the packed vertex buffer, and increase the index for the next possible

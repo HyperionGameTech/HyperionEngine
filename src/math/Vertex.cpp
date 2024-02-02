@@ -17,21 +17,21 @@ bool Vertex::operator==(const Vertex &other) const
         && bone_indices == other.bone_indices;
 }
 
-Vertex &Vertex::operator=(const Vertex &other)
-{
-    position = other.position;
-    normal = other.normal;
-    texcoord0 = other.texcoord0;
-    texcoord1 = other.texcoord1;
-    tangent = other.tangent;
-    bitangent = other.bitangent;
-    num_indices = other.num_indices;
-    num_weights = other.num_weights;
-    bone_weights = other.bone_weights;
-    bone_indices = other.bone_indices;
+// Vertex &Vertex::operator=(const Vertex &other)
+// {
+//     position = other.position;
+//     normal = other.normal;
+//     texcoord0 = other.texcoord0;
+//     texcoord1 = other.texcoord1;
+//     tangent = other.tangent;
+//     bitangent = other.bitangent;
+//     num_indices = other.num_indices;
+//     num_weights = other.num_weights;
+//     bone_weights = other.bone_weights;
+//     bone_indices = other.bone_indices;
 
-    return *this;
-}
+//     return *this;
+// }
 
 Vertex Vertex::operator*(float scalar) const
 {

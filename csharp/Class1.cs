@@ -72,6 +72,38 @@ namespace MyNamespace
             var transformComponent2 = entityManager.GetComponent<TransformComponent>(entity);
             Logger.Log(LogType.Info, "Hello from C#, transformComponent: {0}", transformComponent2.transform);
 
+            List<Vertex> vertices = new List<Vertex>
+            {
+                new Vertex(new Vec3f(0, 0, 0), new Vec2f(0, 0), new Vec3f(0, 0, 1)),
+                new Vertex(new Vec3f(1, 0, 0), new Vec2f(1, 0), new Vec3f(0, 0, 1)),
+                new Vertex(new Vec3f(1, 1, 0), new Vec2f(1, 1), new Vec3f(0, 0, 1)),
+                new Vertex(new Vec3f(0, 1, 0), new Vec2f(0, 1), new Vec3f(0, 0, 1))
+            };
+
+            List<uint> indices = new List<uint>
+            {
+                0, 1, 2,
+                2, 3, 0
+            };
+
+            var meshComponentId = scene.EntityManager.AddComponent<MeshComponent>(entity, new MeshComponent
+            {
+                Mesh = new Mesh(vertices, indices),
+                Material = new Material()
+            });
+
+            var meshComponent = entityManager.GetComponent<MeshComponent>(entity);
+            Logger.Log(LogType.Info, "Hello from C#, meshComponentId: {0}", meshComponentId);
+            Logger.Log(LogType.Info, "Hello from C#, mesh component: {0}", meshComponent);
+            meshComponent.Mesh.Init();
+            meshComponent.Material[MaterialKey.Albedo] = new MaterialParameter(1.0f, 0.0f, 0.0f, 1.0f);
+            meshComponent.Material[MaterialKey.Roughness] = new MaterialParameter(0.5f);
+            Logger.Log(LogType.Info, "Hello from C#, material param albedo type: {0}", meshComponent.Material[MaterialKey.Albedo].Type);
+            Logger.Log(LogType.Info, "Hello from C#, material param albedo: {0}", meshComponent.Material[MaterialKey.Albedo]);
+
+            meshComponent.Material.Textures[TextureKey.AlbedoMap] = new Texture();
+            meshComponent.Material.Textures[TextureKey.AlbedoMap].Init();
+            Logger.Log(LogType.Info, "Hello from C#, material texture albedo map: {0}", meshComponent.Material.Textures[TextureKey.AlbedoMap].ID);
             
             bool childRemoved = root.RemoveChild(myNode);
             Logger.Log(LogType.Info, "Hello from C#, childRemoved: {0}", childRemoved);

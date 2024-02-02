@@ -20,11 +20,12 @@ namespace Hyperion
         public Scene(ManagedHandle handle)
         {
             this.handle = handle;
+            this.handle.IncRef(Scene_GetTypeID());
         }
 
         public void Dispose()
         {
-            handle.Dispose();
+            handle.DecRef(Scene_GetTypeID());
         }
 
         public ManagedHandle Handle
@@ -58,6 +59,9 @@ namespace Hyperion
                 return entityManager;
             }
         }
+        
+        [DllImport("libhyperion", EntryPoint = "Scene_GetTypeID")]
+        private static extern TypeID Scene_GetTypeID();
 
         [DllImport("libhyperion", EntryPoint = "Scene_Create")]
         private static extern ManagedHandle Scene_Create();

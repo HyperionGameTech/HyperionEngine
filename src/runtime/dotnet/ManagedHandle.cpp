@@ -4,7 +4,16 @@
 
 namespace hyperion::v2 {
 
-void ManagedHandle::Dispose()
+void ManagedHandle::IncRef(UInt32 type_id)
+{
+    ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
+
+    if (container != nullptr) {
+        container->IncRefStrong(IDBase { id }.ToIndex());
+    }
+}
+
+void ManagedHandle::DecRef(UInt32 type_id)
 {
     ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
 
@@ -13,19 +22,21 @@ void ManagedHandle::Dispose()
     }
 
     id = IDBase().Value();
-    type_id = TypeID::ForType<void>().Value();
 }
 
 } // namespace hyperion::v2
 
+using namespace hyperion;
+using namespace hyperion::v2;
+
 extern "C" {
-    void ManagedHandle_Dispose(hyperion::v2::ManagedHandle handle)
+    void ManagedHandle_IncRef(UInt32 type_id, ManagedHandle handle)
     {
-        handle.Dispose();
+        handle.IncRef(type_id);
     }
 
-    hyperion::UInt32 ManagedHandle_GetID(hyperion::v2::ManagedHandle handle)
+    void ManagedHandle_DecRef(UInt32 type_id, ManagedHandle handle)
     {
-        return handle.id;
+        handle.DecRef(type_id);
     }
 }

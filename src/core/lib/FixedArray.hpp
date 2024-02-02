@@ -41,7 +41,40 @@ public:
 
     static constexpr SizeType size = Sz;
 
+    template <class OtherType, SizeType OtherSize>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const FixedArray<OtherType, OtherSize> &other) const
+    {
+        if (std::addressof(other) == this) {
+            return true;
+        }
+
+        if (size != other.size) {
+            return false;
+        }
+
+        auto it = Begin();
+        auto other_it = other.Begin();
+        const auto _end = End();
+
+        for (; it != _end; ++it, ++other_it) {
+            if (!(*it == *other_it)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    template <class OtherType, SizeType OtherSize>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(const FixedArray<OtherType, OtherSize> &other) const
+        { return !(*this == other); }
+
     template <class Function>
+    [[nodiscard]]
     HYP_FORCE_INLINE
     FixedArray Map(Function &&fn) const
     {
@@ -57,14 +90,17 @@ public:
         return impl.Contains(value);
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T &At(KeyType index)
         { AssertThrow(index < Sz); return m_values[index]; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const T &At(KeyType index) const
         { AssertThrow(index < Sz); return m_values[index]; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T &operator[](KeyType index)
         { return m_values[index]; }
@@ -74,6 +110,7 @@ public:
     const T &operator[](KeyType index) const
         { return m_values[index]; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     constexpr SizeType Size() const
         { return Sz; }
@@ -283,7 +320,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    SizeType Size() const
+    constexpr SizeType Size() const
         { return Sz; }
 
     HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)

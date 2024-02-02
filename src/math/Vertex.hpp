@@ -4,23 +4,26 @@
 #define MAX_BONE_WEIGHTS 4
 #define MAX_BONE_INDICES 4
 
-#include "Vector2.hpp"
-#include "Vector3.hpp"
-#include "Transform.hpp"
-#include "Matrix4.hpp"
+#include <core/lib/FixedArray.hpp>
+
+#include <math/Vector2.hpp>
+#include <math/Vector3.hpp>
+#include <math/Transform.hpp>
+#include <math/Matrix4.hpp>
+
 #include <HashCode.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
-#include <array>
-#include <cstring>
+#include <type_traits>
 
 namespace hyperion {
 
-class Vertex {
+struct alignas(16) Vertex
+{
     friend Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
     friend Vertex operator*(const Transform &transform, const Vertex &vertex);
-public:
+
     Vertex()
         : num_indices(0),
           num_weights(0)
@@ -82,7 +85,7 @@ public:
     }
     
     bool operator==(const Vertex &other) const;
-    Vertex &operator=(const Vertex &other);
+    // Vertex &operator=(const Vertex &other);
     Vertex operator*(float scalar) const;
     Vertex &operator*=(float scalar);
 
@@ -130,23 +133,24 @@ public:
         return hc;
     }
 
-private:
-    Vector3 position;
-    Vector3 normal;
-    Vector2 texcoord0;
-    Vector2 texcoord1;
-    Vector3 tangent;
-    Vector3 bitangent;
+    Vec3f                               position;
+    Vec3f                               normal;
+    Vec3f                               tangent;
+    Vec3f                               bitangent;
+    Vec2f                               texcoord0;
+    Vec2f                               texcoord1;
 
-    uint8_t num_indices,
-            num_weights;
+    FixedArray<Float, MAX_BONE_WEIGHTS> bone_weights;
+    FixedArray<UInt, MAX_BONE_INDICES>  bone_indices;
 
-    std::array<Float, MAX_BONE_WEIGHTS> bone_weights;
-    std::array<UInt,  MAX_BONE_INDICES> bone_indices;
+    UInt8                               num_indices;
+    UInt8                               num_weights;
 };
 
 Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
 Vertex operator*(const Transform &transform, const Vertex &vertex);
+
+static_assert(sizeof(Vertex) == 128, "Vertex size is not 128 bytes, ensure size matches C# Vertex struct size");
 
 } // namespace hyperion
 
