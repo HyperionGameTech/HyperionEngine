@@ -48,15 +48,15 @@ public:
         }
 
         // // TEMP! Find a better way to do this.
-        const FilePath hyperion_runtime_path = FilePath::Current() / "build" / "HyperionRuntime.dll";
+        const FilePath hyperion_runtime_path = FilePath::Current() / "build" / "HyperionInterop.dll";
 
         m_root_assembly.Reset(new Assembly());
 
         InitializeAssemblyDelegate initialize_assembly = (InitializeAssemblyDelegate)GetDelegate(
             hyperion_runtime_path.Data(),
-            "Hyperion.NativeInterop, HyperionRuntime",
+            "Hyperion.NativeInterop, HyperionInterop",
             "InitializeAssembly",
-            "InitializeAssemblyDelegate, HyperionRuntime"
+            "InitializeAssemblyDelegate, HyperionInterop"
         );
         AssertThrow(initialize_assembly != nullptr);
 
@@ -66,19 +66,19 @@ public:
 
         // AssertThrowMsg(
         //     is_initialized,
-        //     "Failed to initialize NativeInterop class in HyperionRuntime.dll assembly"
+        //     "Failed to initialize NativeInterop class in HyperionInterop.dll assembly"
         // );
 
         ClassObject *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
 
         AssertThrowMsg(
             native_interop_class_object != nullptr,
-            "Failed to find NativeInterop class in HyperionRuntime.dll assembly"
+            "Failed to find NativeInterop class in HyperionInterop.dll assembly"
         );
 
         AssertThrowMsg(
             native_interop_class_object->HasMethod("InitializeAssembly"),
-            "Failed to find InitializeAssembly() method in NativeInterop class in HyperionRuntime.dll assembly"
+            "Failed to find InitializeAssembly() method in NativeInterop class in HyperionInterop.dll assembly"
         );
     }
 

@@ -1,5 +1,5 @@
-#include <runtime/dotnet/ManagedHandle.hpp>
-#include <runtime/dotnet/scene/ManagedNode.hpp>
+#include <dotnet/runtime/ManagedHandle.hpp>
+#include <dotnet/runtime/scene/ManagedNode.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>

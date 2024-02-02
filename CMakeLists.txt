@@ -98,7 +98,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
 file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
 
-file(GLOB_RECURSE CSHARP_SOURCES "src/*.cs")
+file(GLOB_RECURSE CSHARP_CORE_SOURCES "src/dotnet/core/**.cs")
+file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs")
+file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
 
 # # store sources that are in runtime folder in a separate list
 # file(GLOB_RECURSE RUNTIME_SOURCES "src/runtime/*.cpp" "src/runtime/*.c")
@@ -276,35 +278,38 @@ set(COMMON_LIBRARIES
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
-# for all csharp sources, compile them into a Class library
-# use `dotnet` to compile them
-if(CSHARP_SOURCES)
-
+function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file
-    set(CSHARP_PROJECT_DIR ${CMAKE_CURRENT_BINARY_DIR}/HyperionRuntime)
+    set(CSHARP_PROJECT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${output_name})
     file(MAKE_DIRECTORY ${CSHARP_PROJECT_DIR})
 
 
     # generate .csproj file
-    file(WRITE ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+    file(WRITE ${CSHARP_PROJECT_DIR}/${output_name}.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
 
     
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <PropertyGroup>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Version>1.0.0</Version>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <OutputType>Library</OutputType>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Nullable>enable</Nullable>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  </PropertyGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  <PropertyGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <Version>1.0.0</Version>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <OutputType>Library</OutputType>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <Nullable>enable</Nullable>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  </PropertyGroup>\n")
 
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  <ItemGroup>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />")
-    foreach(CSHARP_SOURCE ${CSHARP_SOURCES})
-        file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "    <Compile Include=\"${CSHARP_SOURCE}\" />\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  <ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+    foreach(CSHARP_SOURCE ${csharp_sources})
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <Compile Include=\"${CSHARP_SOURCE}\" />\n")
     endforeach()
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "  </ItemGroup>\n")
-    file(APPEND ${CSHARP_PROJECT_DIR}/HyperionRuntime.csproj "</Project>\n")
+
+    # if name is not equal to HyperionCore then add a reference to HyperionCore
+    if(NOT ${output_name} STREQUAL "HyperionCore")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <ProjectReference Include=\"../HyperionCore/HyperionCore.csproj\" />\n")
+    endif()
+
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  </ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "</Project>\n")
 
     # build it
     execute_process(
@@ -319,6 +324,22 @@ if(CSHARP_SOURCES)
         message(STATUS "Copying ${CSHARP_DLL} to ${CMAKE_CURRENT_BINARY_DIR}")
         file(COPY ${CSHARP_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
     endforeach()
+endfunction()
+
+# for all csharp sources, compile them into a Class library
+# use `dotnet` to compile them
+
+if(CSHARP_CORE_SOURCES)
+    # pass the sources to the function as a list
+    create_csharp_library(HyperionCore "${CSHARP_CORE_SOURCES}")
+endif()
+
+if(CSHARP_RUNTIME_SOURCES)
+    create_csharp_library(HyperionRuntime "${CSHARP_RUNTIME_SOURCES}")
+endif()
+
+if(CSHARP_INTEROP_SOURCES)
+    create_csharp_library(HyperionInterop "${CSHARP_INTEROP_SOURCES}")
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})

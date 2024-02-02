@@ -6,9 +6,9 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <runtime/dotnet/ManagedHandle.hpp>
-#include <runtime/dotnet/scene/ManagedSceneTypes.hpp>
-#include <runtime/dotnet/math/ManagedMathTypes.hpp>
+#include <dotnet/runtime/ManagedHandle.hpp>
+#include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
+#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>

@@ -1,5 +1,5 @@
-#include <runtime/dotnet/ManagedHandle.hpp>
-#include <runtime/dotnet/math/ManagedMathTypes.hpp>
+#include <dotnet/runtime/ManagedHandle.hpp>
+#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <rendering/Material.hpp>
 
