@@ -4,9 +4,10 @@
 #include <core/lib/RefCountedPtr.hpp>
 
 #include <dotnet_support/Types.hpp>
+#include <dotnet_support/Assembly.hpp>
+#include <dotnet_support/ClassObject.hpp>
 
 namespace hyperion {
-
 namespace dotnet {
 namespace detail {
 
@@ -15,7 +16,9 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual Delegate GetDelegate(
+    virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
+
+    virtual void *GetDelegate(
         const char *assembly_path,
         const char *type_name,
         const char *method_name,
@@ -39,6 +42,8 @@ public:
     DotNetSystem(DotNetSystem &&) noexcept              = delete;
     DotNetSystem &operator=(DotNetSystem &&) noexcept   = delete;
     ~DotNetSystem();
+
+    RC<Assembly> LoadAssembly(const char *path) const;
 
     bool IsEnabled() const;
 

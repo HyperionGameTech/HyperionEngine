@@ -56,6 +56,11 @@ namespace Hyperion
             Logger_Log((int)logLevel, fileName + ":" + funcName, line, formattedMessage);
         }
 
+        public static void TestMethod(int x, string str)
+        {
+            Log(LogType.Info, "Test method called with x: {0}, y: {1}", x, str);
+        }
+
         [DllImport("libhyperion", EntryPoint = "Logger_Log")]
         private static extern void Logger_Log(int logLevel, string funcName, uint line, string message);
     }

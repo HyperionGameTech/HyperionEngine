@@ -71,9 +71,9 @@ public:
         { return m_render_lists[index]; }
 
 private:
-    FixedArray<RenderList *, max_scenes> m_render_lists;
-    FixedArray<RenderList, max_scenes> m_render_lists_by_id_index;
-    std::atomic<UInt> m_num_render_lists;
+    FixedArray<RenderList *, max_scenes>    m_render_lists;
+    FixedArray<RenderList, max_scenes>      m_render_lists_by_id_index;
+    std::atomic<UInt>                       m_num_render_lists;
 };
 
 class World : public BasicObject<STUB_CLASS(World)>
