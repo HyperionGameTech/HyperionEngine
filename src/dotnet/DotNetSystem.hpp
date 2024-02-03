@@ -5,7 +5,8 @@
 
 #include <dotnet/Types.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/ClassObject.hpp>
+#include <dotnet/Class.hpp>
+#include <dotnet/Object.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
 
 namespace hyperion {

@@ -6,6 +6,11 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
+    internal struct StoredManagedMethod
+    {
+        public MethodInfo methodInfo;
+    }
+
     internal class ManagedMethodCache
     {
         private static ManagedMethodCache? instance = null;

@@ -4,7 +4,7 @@
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/ObjectPool.hpp>
-#include <core/Class.hpp>
+#include <core/ClassInfo.hpp>
 #include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Handle.hpp>
@@ -27,7 +27,7 @@ using renderer::Instance;
 using renderer::Device;
 
 template <class T, class ClassName>
-struct StubbedClass : public Class<ClassName>
+struct StubbedClass : public ClassInfo<ClassName>
 {
     using InnerType = T;
 
@@ -165,7 +165,7 @@ public:
     }
 
 protected:
-    using Class = Type;
+    using ClassType = Type;
     using Base = BasicObject<Type>;
 
     void Teardown()

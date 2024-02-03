@@ -10,7 +10,7 @@
 #include <core/lib/Variant.hpp>
 #include <core/lib/ByteBuffer.hpp>
 #include <core/lib/UniqueID.hpp>
-#include <core/Class.hpp>
+#include <core/ClassInfo.hpp>
 #include <math/MathUtil.hpp>
 #include <Constants.hpp>
 #include <asset/ByteWriter.hpp>

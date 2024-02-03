@@ -8,40 +8,7 @@ public delegate void InitializeAssemblyDelegate(IntPtr classHolderPtr, string as
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(IntPtr managedMethodPtr, IntPtr thisPtr, IntPtr paramsPtr, IntPtr outPtr);
-
-    internal class StoredManagedObject : IDisposable
-    {
-        public Guid guid;
-        public object obj;
-        public GCHandle gcHandle;
-
-        public StoredManagedObject(Guid guid, object obj)
-        {
-            this.guid = guid;
-            this.obj = obj;
-            this.gcHandle = GCHandle.Alloc(this.obj);
-        }
-
-        public void Dispose()
-        {
-            gcHandle.Free();
-        }
-
-        public ManagedObject ToManagedObject()
-        {
-            return new ManagedObject
-            {
-                guid = guid,
-                ptr = GCHandle.ToIntPtr(gcHandle)
-            };
-        }
-    }
-
-    internal struct StoredManagedMethod
-    {
-        public MethodInfo methodInfo;
-    }
+    public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
 
     public class NativeInterop
     {
@@ -92,7 +59,7 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            NewObjectDelegate newObjectDelegate = new NewObjectDelegate(() =>
+            managedClass.NewObjectFunction = new NewObjectDelegate(() =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
@@ -107,25 +74,10 @@ namespace Hyperion
                 
                 constructorInfo.Invoke(obj, null);
 
-                ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(obj);
-
-                return managedObject;
+                return ManagedObjectCache.Instance.AddObject(obj);
             });
 
-            FreeObjectDelegate freeObjectDelegate = new FreeObjectDelegate((ManagedObject obj) =>
-            {
-                StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(obj.guid);
-
-                if (storedObject == null)
-                {
-                    throw new Exception("Failed to find object with guid: " + obj.guid);
-                }
-
-                ManagedObjectCache.Instance.RemoveObject(obj.guid);
-            });
-
-            managedClass.NewObjectFunction = newObjectDelegate;
-            managedClass.FreeObjectFunction = freeObjectDelegate;
+            managedClass.FreeObjectFunction = new FreeObjectDelegate(FreeObject);
 
             return managedClass;
         }
@@ -134,7 +86,7 @@ namespace Hyperion
         {
             int numParams = methodInfo.GetParameters().Length;
 
-            if (numParams == 0)
+            if (numParams == 0 || paramsPtr == IntPtr.Zero)
             {
                 parameters = Array.Empty<object>();
 
@@ -165,10 +117,9 @@ namespace Hyperion
             }
         }
 
-        public static unsafe void InvokeMethod(IntPtr managedMethodPtr, IntPtr thisPtr, IntPtr paramsPtr, IntPtr outPtr)
+        public static unsafe void InvokeMethod(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr)
         {
-            ManagedMethod managedMethod = Unsafe.Read<ManagedMethod>((void*)managedMethodPtr);
-            MethodInfo methodInfo = ManagedMethodCache.Instance.GetMethod(managedMethod.guid);
+            MethodInfo methodInfo = ManagedMethodCache.Instance.GetMethod(managedMethodGuid);
 
             Type returnType = methodInfo.ReturnType;
             Type thisType = methodInfo.DeclaringType;
@@ -177,20 +128,20 @@ namespace Hyperion
             HandleParameters(paramsPtr, methodInfo, out parameters);
 
             object? thisObject = null;
-            GCHandle? thisGCHandle = null;
 
             if (!methodInfo.IsStatic)
             {
-                thisGCHandle = GCHandle.FromIntPtr(thisPtr);
-                thisObject = thisGCHandle.Value.Target;
+                StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+
+                if (storedObject == null)
+                {
+                    throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
+                }
+
+                thisObject = storedObject.obj;
             }
 
             object returnValue = methodInfo.Invoke(thisObject, parameters);
-
-            if (thisGCHandle != null)
-            {
-                thisGCHandle.Value.Free();
-            }
 
             if (returnType == typeof(void))
             {
@@ -204,7 +155,8 @@ namespace Hyperion
             }
 
             // write the return value to the outPtr
-            // there MUST be enough space allocated at the outPtr
+            // there MUST be enough space allocated at the outPtr,
+            // or else this will cause memory corruption
             if (returnType.IsValueType)
             {
                 Marshal.StructureToPtr(returnValue, outPtr, false);
@@ -220,6 +172,11 @@ namespace Hyperion
             }
 
             throw new NotImplementedException("Return type not implemented");
+        }
+
+        public static void FreeObject(ManagedObject obj)
+        {
+            ManagedObjectCache.Instance.RemoveObject(obj.guid);
         }
 
         [DllImport("libhyperion", EntryPoint = "ManagedClass_Create")]

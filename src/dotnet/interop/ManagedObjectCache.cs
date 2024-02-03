@@ -6,6 +6,34 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
+    internal class StoredManagedObject : IDisposable
+    {
+        public Guid guid;
+        public object obj;
+        public GCHandle gcHandle;
+
+        public StoredManagedObject(Guid guid, object obj)
+        {
+            this.guid = guid;
+            this.obj = obj;
+            this.gcHandle = GCHandle.Alloc(this.obj);
+        }
+
+        public void Dispose()
+        {
+            gcHandle.Free();
+        }
+
+        public ManagedObject ToManagedObject()
+        {
+            return new ManagedObject
+            {
+                guid = guid,
+                ptr = GCHandle.ToIntPtr(gcHandle)
+            };
+        }
+    }
+
     internal class ManagedObjectCache
     {
         private static ManagedObjectCache? instance = null;

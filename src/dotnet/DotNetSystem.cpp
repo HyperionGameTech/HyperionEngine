@@ -69,7 +69,7 @@ public:
         //     "Failed to initialize NativeInterop class in HyperionInterop.dll assembly"
         // );
 
-        ClassObject *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
+        Class *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
 
         AssertThrowMsg(
             native_interop_class_object != nullptr,
@@ -109,7 +109,7 @@ public:
             filepath.Data()
         );
 
-        ClassObject *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
+        Class *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
         AssertThrow(native_interop_class_object != nullptr);
 
         // Call our InitializeAssembly method to load all the classes and methods into the class object holder for the assembly

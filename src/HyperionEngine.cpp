@@ -33,17 +33,19 @@ void InitializeApplication(RC<Application> application)
         float x;
     };
 
-    if (dotnet::ClassObject *class_object = script_assembly->GetClassObjectHolder().FindClassByName("MyClass")) {
-        class_object->InvokeStaticMethod<void>("MyMethod");
+    if (dotnet::Class *class_object = script_assembly->GetClassObjectHolder().FindClassByName("TestGame")) {
+        // class_object->InvokeStaticMethod<void>("MyMethod");
 
-        dotnet::ManagedObject instance_object = class_object->NewObject();
-        DebugLog(LogType::Info, "New object: %p\n", instance_object.ptr);
+        auto instance_object = class_object->NewObject();
+        instance_object->InvokeMethod<void>("Initialize");
 
-        Int32 invoke_method_result = class_object->InvokeMethod<Int32>("InstanceMethod", instance_object);
+        // testing
+        for (int i = 0; i < 10; ++i) {
+            instance_object->InvokeMethod<void, float>("Update", 0.166f);
+        }
 
-        class_object->FreeObject(instance_object);
-
-        DebugLog(LogType::Info, "Successfully invoked MyClass.InstanceMethod, returned: %d\n", invoke_method_result);
+        // Free the instance object
+        instance_object.Reset();
     } else {
         DebugLog(LogType::Error, "Failed to find MyClass in script assembly\n");
     }

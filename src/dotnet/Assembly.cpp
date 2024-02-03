@@ -1,6 +1,6 @@
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/ClassObject.hpp>
+#include <dotnet/Class.hpp>
 
 namespace hyperion {
 namespace dotnet {
@@ -13,14 +13,14 @@ Assembly::~Assembly()
 {
 }
 
-// ClassObjectHolder
+// ClassHolder
 
-ClassObjectHolder::ClassObjectHolder()
+ClassHolder::ClassHolder()
     : m_invoke_method_fptr(nullptr)
 {
 }
 
-ClassObject *ClassObjectHolder::GetOrCreateClassObject(Int32 type_hash, const char *type_name)
+Class *ClassHolder::GetOrCreateClassObject(Int32 type_hash, const char *type_name)
 {
     auto it = m_class_objects.Find(type_hash);
 
@@ -28,12 +28,12 @@ ClassObject *ClassObjectHolder::GetOrCreateClassObject(Int32 type_hash, const ch
         return it->second.Get();
     }
 
-    it = m_class_objects.Insert(type_hash, UniquePtr<ClassObject>::Construct(this, type_name)).first;
+    it = m_class_objects.Insert(type_hash, UniquePtr<Class>::Construct(this, type_name)).first;
 
     return it->second.Get();
 }
 
-ClassObject *ClassObjectHolder::FindClassByName(const char *type_name)
+Class *ClassHolder::FindClassByName(const char *type_name)
 {
     for (auto &pair : m_class_objects) {
         if (pair.second->GetName() == type_name) {

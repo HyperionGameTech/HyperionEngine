@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_CORE_CLASS_HPP
-#define HYPERION_V2_CORE_CLASS_HPP
+#ifndef HYPERION_V2_CORE_CLASS_INFO_HPP
+#define HYPERION_V2_CORE_CLASS_INFO_HPP
 
 #include <core/lib/DynArray.hpp>
 #include <core/lib/TypeMap.hpp>
@@ -12,15 +12,15 @@
 
 namespace hyperion {
 
-class ClassBase
+class ClassInfoBase
 {
 public:
-    ClassBase()
+    ClassInfoBase()
         : m_class_ptr(nullptr)
     {
     }
 
-    virtual ~ClassBase() = default;
+    virtual ~ClassInfoBase() = default;
 
     vm::HeapValue *GetScriptHeapValue() const
         { return m_class_ptr; }
@@ -42,18 +42,18 @@ struct RegisteredClass
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
 
-    const RC<ClassBase> &GetRefCounted() const;
+    const RC<ClassInfoBase> &GetRefCounted() const;
 };
 
-struct GlobalClassTable
+struct GlobalClassInfoTable
 {
     static constexpr UInt max_class_objects = 1024;
 
-    HeapArray<RC<ClassBase>, max_class_objects> class_objects;
+    HeapArray<RC<ClassInfoBase>, max_class_objects> class_objects;
     std::mutex mtx;
     UInt index = 0;
 
-    template <class Class>
+    template <class ClassInfo>
     RegisteredClass Register()
     {
         std::lock_guard guard(mtx);
@@ -61,59 +61,54 @@ struct GlobalClassTable
         AssertThrowMsg(index < max_class_objects, "Too many class objects registered");
 
         UInt object_index = index++;
-        class_objects[object_index].Reset(new Class);
+        class_objects[object_index].Reset(new ClassInfo);
 
         return { object_index };
     }
 };
 
-extern GlobalClassTable g_global_class_table;
+extern GlobalClassInfoTable g_global_class_info_table;
 
-template <class Class>
+template <class ClassInfo>
 struct ClassInstance
 {
     RegisteredClass registered_class;
 
     ClassInstance()
     {
-        registered_class = g_global_class_table.Register<Class>();
+        registered_class = g_global_class_info_table.Register<ClassInfo>();
         AssertThrow(registered_class.IsValid());
     }
 };
 
 template <class ClassName>
-class Class : public ClassBase
+class ClassInfo : public ClassInfoBase
 {
     using ClassNameSequence = typename ClassName::Sequence;
 
 public:
     static constexpr const char *GetName() { return ClassNameSequence::Data(); }
 
-    Class()
-        : ClassBase()
+    ClassInfo()
+        : ClassInfoBase()
     {
         // class_fields.Set<decltype(*this)>({ });
     }
 
-    Class(const Class &other) = delete;
-    Class &operator=(const Class &other) = delete;
+    ClassInfo(const ClassInfo &other) = delete;
+    ClassInfo &operator=(const ClassInfo &other) = delete;
 
-    Class(Class &&other) = delete;
-    Class &operator=(Class &&other) noexcept = delete;
+    ClassInfo(ClassInfo &&other) = delete;
+    ClassInfo &operator=(ClassInfo &&other) noexcept = delete;
 
-    virtual ~Class() = default;
+    virtual ~ClassInfo() = default;
 
-    static const Class &GetInstance()
+    static const ClassInfo &GetInstance()
     {
-        static ClassInstance<Class> instance;
+        static ClassInstance<ClassInfo> instance;
 
-        return *static_cast<Class *>(instance.registered_class.GetRefCounted().Get());
+        return *static_cast<ClassInfo *>(instance.registered_class.GetRefCounted().Get());
     }
-
-    // ClassFields &GetFields()
-    // {
-    //     return class_fields.At<decltype(*this)>();
-    // }
 };
 } // namespace hyperion
 

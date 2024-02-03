@@ -1,10 +1,10 @@
-#include "Class.hpp"
+#include <core/ClassInfo.hpp>
 
 namespace hyperion {
 
-GlobalClassTable g_global_class_table = { };
+GlobalClassInfoTable g_global_class_info_table = { };
 
-// RegisteredClass GlobalClassTable::Register(ClassBase *class_object)
+// RegisteredClass GlobalClassInfoTable::Register(ClassInfoBase *class_object)
 // {
 //     std::lock_guard guard(mtx);
 
@@ -16,39 +16,39 @@ GlobalClassTable g_global_class_table = { };
 //     return { object_index };
 // }
 
-const RC<ClassBase> &RegisteredClass::GetRefCounted() const
+const RC<ClassInfoBase> &RegisteredClass::GetRefCounted() const
 {
-    static const RC<ClassBase> null_class = nullptr;
+    static const RC<ClassInfoBase> null_class = nullptr;
 
     if (!IsValid()) {
         return null_class;
     }
 
-    return g_global_class_table.class_objects[index];
+    return g_global_class_info_table.class_objects[index];
 }
 
-// ClassBase &RegisteredClass::operator*()
+// ClassInfoBase &RegisteredClass::operator*()
 // {
 //     AssertThrow(IsValid());
 
 //     return *g_global_class_table.class_objects[index];
 // }
 
-// const ClassBase &RegisteredClass::operator*() const
+// const ClassInfoBase &RegisteredClass::operator*() const
 // {
 //     AssertThrow(IsValid());
 
 //     return *g_global_class_table.class_objects[index];
 // }
 
-// ClassBase *RegisteredClass::operator->()
+// ClassInfoBase *RegisteredClass::operator->()
 // {
 //     AssertThrow(IsValid());
 
 //     return g_global_class_table.class_objects[index].Get();
 // }
 
-// const ClassBase *RegisteredClass::operator->() const
+// const ClassInfoBase *RegisteredClass::operator->() const
 // {
 //     AssertThrow(IsValid());
 

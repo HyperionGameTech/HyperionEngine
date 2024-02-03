@@ -3,6 +3,19 @@ using System.Runtime.InteropServices;
 
 using Hyperion;
 
+public class TestGame : Game
+{
+    public override void Initialize()
+    {
+        Logger.Log(LogType.Info, "Hello from C#, game initialized");
+    }
+
+    public override void Update(float deltaTime)
+    {
+        Logger.Log(LogType.Info, "Hello from C#, game updated with delta: {0}", deltaTime);
+    }
+}
+
 public class MyClass
 {
     public int InstanceMethod()

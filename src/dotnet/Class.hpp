@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_DOTNET_CLASS_OBJECT_HPP
-#define HYPERION_V2_DOTNET_CLASS_OBJECT_HPP
+#ifndef HYPERION_V2_DOTNET_CLASS_HPP
+#define HYPERION_V2_DOTNET_CLASS_HPP
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -15,8 +15,9 @@
 #include <dotnet/interop/ManagedObject.hpp>
 
 namespace hyperion::dotnet {
-class ClassObject;
-class ClassObjectHolder;
+class Object;
+class Class;
+class ClassHolder;
 } // namespace hyperion::dotnet
 
 extern "C" {
@@ -24,38 +25,37 @@ extern "C" {
     struct ManagedClass
     {
         hyperion::Int32                 type_hash;
-        hyperion::dotnet::ClassObject   *class_object;
+        hyperion::dotnet::Class   *class_object;
     };
 }
 
 namespace hyperion::dotnet {
 
-class ClassObject
+class Class
 {
-private:
-    String                          m_name;
-    HashMap<String, ManagedMethod>  m_methods;
-
 public:
     // Function to create a new object of this class with the given arguments
     using NewObjectFunction     = ManagedObject(*)(void);
     using FreeObjectFunction    = void(*)(ManagedObject);
 
-    ClassObject(ClassObjectHolder *parent, String name)
+    Class(ClassHolder *parent, String name)
         : m_parent(parent),
           m_name(std::move(name)),
           m_new_object_fptr(nullptr)
     {
     }
 
-    ClassObject(const ClassObject &)                = delete;
-    ClassObject &operator=(const ClassObject &)     = delete;
-    ClassObject(ClassObject &&) noexcept            = delete;
-    ClassObject &operator=(ClassObject &&) noexcept = delete;
-    ~ClassObject()                                  = default;
+    Class(const Class &)                = delete;
+    Class &operator=(const Class &)     = delete;
+    Class(Class &&) noexcept            = delete;
+    Class &operator=(Class &&) noexcept = delete;
+    ~Class()                            = default;
 
     const String &GetName() const
         { return m_name; }
+
+    ClassHolder *GetParent() const
+        { return m_parent; }
 
     NewObjectFunction GetNewObjectFunction() const
         { return m_new_object_fptr; }
@@ -75,31 +75,16 @@ public:
     void AddMethod(const String &method_name, ManagedMethod &&method_object)
         { m_methods[method_name] = std::move(method_object); }
 
-    ManagedObject NewObject();
-    void FreeObject(ManagedObject object);
+    const HashMap<String, ManagedMethod> &GetMethods() const
+        { return m_methods; }
 
-    template <class ReturnType, class... Args>
-    ReturnType InvokeMethod(const String &method_name, ManagedObject instance, Args &&... args)
-    {
-        static_assert(std::is_void_v<ReturnType> || std::is_trivial_v<ReturnType>, "Return type must be trivial to be used in interop");
-        static_assert(std::is_void_v<ReturnType> || std::is_object_v<ReturnType>, "Return type must be either a value type or a pointer type to be used in interop (no references)");
-
-        auto it = m_methods.Find(method_name);
-        AssertThrowMsg(it != m_methods.End(), "Method not found");
-
-        ManagedMethod &method_object = it->second;
-
-        void *args_vptr[] = { &args... };
-
-        if constexpr (std::is_void_v<ReturnType>) {
-            InvokeMethod(&method_object, instance.ptr, args_vptr, nullptr);
-        } else {
-            ValueStorage<ReturnType> return_value_storage;
-            void *result_vptr = InvokeMethod(&method_object, instance.ptr, args_vptr, return_value_storage.GetPointer());
-
-            return return_value_storage.Get();
-        }
-    }
+    /*! \brief Create a new managed object of this class.
+     *     The new object will be managed by the .NET runtime and will be freed when the unique pointer goes out of scope.
+     *      The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
+     *
+     *  \return A unique pointer to the new managed object.
+     */
+    UniquePtr<Object> NewObject();
 
     template <class ReturnType, class... Args>
     ReturnType InvokeStaticMethod(const String &method_name, Args &&... args)
@@ -110,26 +95,30 @@ public:
         auto it = m_methods.Find(method_name);
         AssertThrowMsg(it != m_methods.End(), "Method not found");
 
-        ManagedMethod &method_object = it->second;
+        const ManagedMethod &method_object = it->second;
 
         void *args_vptr[] = { &args... };
 
         if constexpr (std::is_void_v<ReturnType>) {
-            InvokeMethod(&method_object, nullptr, args_vptr, nullptr);
+            InvokeStaticMethod(&method_object, args_vptr, nullptr);
         } else {
             ValueStorage<ReturnType> return_value_storage;
-            void *result_vptr = InvokeMethod(&method_object, nullptr, args_vptr, return_value_storage.GetPointer());
+            void *result_vptr = InvokeStaticMethod(&method_object, args_vptr, return_value_storage.GetPointer());
 
             return return_value_storage.Get();
         }
     }
 
 private:
-    void *InvokeMethod(ManagedMethod *method_object, void *this_vptr, void **args_vptr, void *return_value_vptr);
+    void *InvokeStaticMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr);
 
-    ClassObjectHolder   *m_parent;
-    NewObjectFunction   m_new_object_fptr;
-    FreeObjectFunction  m_free_object_fptr;
+    String                          m_name;
+    HashMap<String, ManagedMethod>  m_methods;
+
+    ClassHolder                     *m_parent;
+
+    NewObjectFunction               m_new_object_fptr;
+    FreeObjectFunction              m_free_object_fptr;
 };
 
 } // namespace hyperion::dotnet

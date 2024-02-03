@@ -6,6 +6,7 @@
 #include <core/lib/RefCountedPtr.hpp>
 
 #include <dotnet/Types.hpp>
+#include <dotnet/interop/ManagedGuid.hpp>
 
 namespace hyperion {
 namespace dotnet {
@@ -15,22 +16,22 @@ extern "C" {
 }
 
 
-class ClassObject;
+class Class;
 
-class ClassObjectHolder
+class ClassHolder
 {
 public:
-    using InvokeMethodFunction = void *(*)(ManagedMethod *, void *, void **, void *);
+    using InvokeMethodFunction = void *(*)(ManagedGuid, ManagedGuid, void **, void *);
 
-    ClassObjectHolder();
-    ClassObjectHolder(const ClassObjectHolder &)                    = delete;
-    ClassObjectHolder &operator=(const ClassObjectHolder &)         = delete;
-    ClassObjectHolder(ClassObjectHolder &&) noexcept                = delete;
-    ClassObjectHolder &operator=(ClassObjectHolder &&) noexcept     = delete;
-    ~ClassObjectHolder()                                            = default;
+    ClassHolder();
+    ClassHolder(const ClassHolder &)                    = delete;
+    ClassHolder &operator=(const ClassHolder &)         = delete;
+    ClassHolder(ClassHolder &&) noexcept                = delete;
+    ClassHolder &operator=(ClassHolder &&) noexcept     = delete;
+    ~ClassHolder()                                            = default;
 
-    ClassObject *GetOrCreateClassObject(Int32 type_hash, const char *type_name);
-    ClassObject *FindClassByName(const char *type_name);
+    Class *GetOrCreateClassObject(Int32 type_hash, const char *type_name);
+    Class *FindClassByName(const char *type_name);
 
     InvokeMethodFunction GetInvokeMethodFunction() const
         { return m_invoke_method_fptr; }
@@ -39,7 +40,7 @@ public:
         { m_invoke_method_fptr = invoke_method_fptr; }
 
 private:
-    HashMap<Int32, UniquePtr<ClassObject>>  m_class_objects;
+    HashMap<Int32, UniquePtr<Class>>  m_class_objects;
 
     // Function pointer to invoke a managed method
     InvokeMethodFunction                    m_invoke_method_fptr;
@@ -55,14 +56,14 @@ public:
     Assembly &operator=(Assembly &&) noexcept   = delete;
     ~Assembly();
 
-    ClassObjectHolder &GetClassObjectHolder()
+    ClassHolder &GetClassObjectHolder()
         { return m_class_object_holder; }
 
-    const ClassObjectHolder &GetClassObjectHolder() const
+    const ClassHolder &GetClassObjectHolder() const
         { return m_class_object_holder; }
 
 private:
-    ClassObjectHolder   m_class_object_holder;
+    ClassHolder   m_class_object_holder;
 };
 
 } // namespace dotnet

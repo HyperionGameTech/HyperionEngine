@@ -8,7 +8,7 @@
 #include <core/lib/Pair.hpp>
 #include <core/lib/String.hpp>
 
-#include <dotnet/ClassObject.hpp>
+#include <dotnet/Class.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
@@ -23,27 +23,27 @@ extern "C" {
         // g_invoke_method_fptr = reinterpret_cast<void *(*)(ManagedMethod *, void **)>(invoke_method_fptr);
 
         // // test
-        // ClassObject *logger_class_object = s_class_object_holder.FindClassByName("Logger");
+        // Class *logger_class_object = s_class_object_holder.FindClassByName("Logger");
 
         // if (logger_class_object) {
         //     void *return_value = logger_class_object->InvokeMethod<void *, Int32, char *>("TestMethod", 9, "hello hello world!!!");
         // }
     }
 
-    void NativeInterop_SetInvokeMethodFunction(ClassObjectHolder *class_holder, ClassObjectHolder::InvokeMethodFunction invoke_method_fptr)
+    void NativeInterop_SetInvokeMethodFunction(ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_method_fptr)
     {
         AssertThrow(class_holder != nullptr);
 
         class_holder->SetInvokeMethodFunction(invoke_method_fptr);
     }
 
-    ManagedClass ManagedClass_Create(ClassObjectHolder *class_holder, Int32 type_hash, const char *type_name)
+    ManagedClass ManagedClass_Create(ClassHolder *class_holder, Int32 type_hash, const char *type_name)
     {
         AssertThrow(class_holder != nullptr);
 
         DebugLog(LogType::Debug, "(C++) Creating managed class: %s\t%p\n", type_name, class_holder);
 
-        ClassObject *class_object = class_holder->GetOrCreateClassObject(type_hash, type_name);
+        Class *class_object = class_holder->GetOrCreateClassObject(type_hash, type_name);
 
         return ManagedClass { type_hash, class_object };
     }
@@ -64,7 +64,7 @@ extern "C" {
         managed_class.class_object->AddMethod(method_name, std::move(method_object));
     }
 
-    void ManagedClass_SetNewObjectFunction(ManagedClass managed_class, ClassObject::NewObjectFunction new_object_fptr)
+    void ManagedClass_SetNewObjectFunction(ManagedClass managed_class, Class::NewObjectFunction new_object_fptr)
     {
         if (!managed_class.class_object) {
             return;
@@ -73,7 +73,7 @@ extern "C" {
         managed_class.class_object->SetNewObjectFunction(new_object_fptr);
     }
 
-    void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, ClassObject::FreeObjectFunction free_object_fptr)
+    void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, Class::FreeObjectFunction free_object_fptr)
     {
         if (!managed_class.class_object) {
             return;
