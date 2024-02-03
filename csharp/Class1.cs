@@ -5,7 +5,7 @@ using Hyperion;
 
 public class TestGame : Game
 {
-    public override void Initialize()
+    public override void Init()
     {
         Logger.Log(LogType.Info, "Hello from C#, game initialized");
     }

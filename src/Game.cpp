@@ -4,12 +4,22 @@
 
 #include <system/Debug.hpp>
 
+#include <dotnet/DotNetSystem.hpp>
+
 namespace hyperion::v2 {
 
 Game::Game(RC<Application> application)
     : m_application(application),
       m_is_init(false),
       m_input_manager(new InputManager())
+{
+}
+
+Game::Game(RC<Application> application, Optional<ManagedGameInfo> managed_game_info)
+    : m_application(application),
+      m_is_init(false),
+      m_input_manager(new InputManager()),
+      m_managed_game_info(std::move(managed_game_info))
 {
 }
 
@@ -28,6 +38,14 @@ void Game::Init()
     AssertThrowMsg(m_application != nullptr, "No valid Application instance was provided to Game constructor!");
     if (m_application->GetCurrentWindow()) {
         m_input_manager->SetWindow(m_application->GetCurrentWindow());
+    }
+
+    if (m_managed_game_info.HasValue()) {
+        if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
+            if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
+                m_managed_game_object = class_ptr->NewObject();
+            }
+        }
     }
 
     m_scene = CreateObject<Scene>(
@@ -51,6 +69,10 @@ void Game::Update(GameCounter::TickUnit delta)
 {
     g_engine->GetWorld()->Update(delta);
 
+    if (m_managed_game_object) {
+        m_managed_game_object->InvokeMethod<void, float>("Update", float(delta));
+    }
+
     Logic(delta);
 }
 
@@ -59,6 +81,10 @@ void Game::InitGame()
     Threads::AssertOnThread(THREAD_GAME);
 
     m_ui.Init();
+
+    if (m_managed_game_object) {
+        m_managed_game_object->InvokeMethod<void>("Init");
+    }
 }
 
 void Game::InitRender()

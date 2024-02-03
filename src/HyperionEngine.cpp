@@ -20,35 +20,35 @@ void InitializeApplication(RC<Application> application)
 
     dotnet::DotNetSystem::GetInstance().Initialize();
 
-    RC<dotnet::Assembly> script_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("csharp/bin/Debug/net8.0/csharp.dll");
+    // RC<dotnet::Assembly> script_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("csharp/bin/Debug/net8.0/csharp.dll");
 
-    if (!script_assembly) {
-        DebugLog(LogType::Error, "Failed to load script assembly\n");
-        return;
-    }
+    // if (!script_assembly) {
+    //     DebugLog(LogType::Error, "Failed to load script assembly\n");
+    //     return;
+    // }
 
-    struct MyTestStruct
-    {
-        UInt32 value;
-        float x;
-    };
+    // struct MyTestStruct
+    // {
+    //     UInt32 value;
+    //     float x;
+    // };
 
-    if (dotnet::Class *class_object = script_assembly->GetClassObjectHolder().FindClassByName("TestGame")) {
-        // class_object->InvokeStaticMethod<void>("MyMethod");
+    // if (dotnet::Class *class_object = script_assembly->GetClassObjectHolder().FindClassByName("TestGame")) {
+    //     // class_object->InvokeStaticMethod<void>("MyMethod");
 
-        auto instance_object = class_object->NewObject();
-        instance_object->InvokeMethod<void>("Initialize");
+    //     auto instance_object = class_object->NewObject();
+    //     instance_object->InvokeMethod<void>("Initialize");
 
-        // testing
-        for (int i = 0; i < 10; ++i) {
-            instance_object->InvokeMethod<void, float>("Update", 0.166f);
-        }
+    //     // testing
+    //     for (int i = 0; i < 10; ++i) {
+    //         instance_object->InvokeMethod<void, float>("Update", 0.166f);
+    //     }
 
-        // Free the instance object
-        instance_object.Reset();
-    } else {
-        DebugLog(LogType::Error, "Failed to find MyClass in script assembly\n");
-    }
+    //     // Free the instance object
+    //     instance_object.Reset();
+    // } else {
+    //     DebugLog(LogType::Error, "Failed to find MyClass in script assembly\n");
+    // }
 }
 
 } // namespace hyperion

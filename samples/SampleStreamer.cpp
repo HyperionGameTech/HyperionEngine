@@ -88,7 +88,10 @@
 
 
 SampleStreamer::SampleStreamer(RC<Application> application)
-    : Game(application)
+    : Game(application, ManagedGameInfo {
+          "csharp/bin/Debug/net8.0/csharp.dll",
+          "TestGame"
+      })
 {
 }
 

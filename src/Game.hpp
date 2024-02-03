@@ -2,18 +2,37 @@
 #define HYPERION_V2_GAME_H
 
 #include <GameCounter.hpp>
+
 #include <core/lib/UniquePtr.hpp>
+#include <core/lib/Optional.hpp>
+
 #include <input/InputManager.hpp>
+
 #include <scene/Scene.hpp>
+
 #include <ui/UIScene.hpp>
+
 #include <rendering/backend/RendererFrame.hpp>
+
 #include <system/Application.hpp>
+
+#include <dotnet/Assembly.hpp>
+#include <dotnet/Object.hpp>
 
 namespace hyperion::v2 {
 
 using renderer::Frame;
 
+using dotnet::Object;
+using dotnet::Assembly;
+
 class Engine;
+
+struct ManagedGameInfo
+{
+    String assembly_name;
+    String class_name;
+};
 
 class Game
 {
@@ -21,6 +40,7 @@ class Game
 
 public:
     Game(RC<Application> application);
+    Game(RC<Application> application, Optional<ManagedGameInfo> managed_game_info);
     virtual ~Game();
 
     const Handle<Scene> &GetScene() const
@@ -54,15 +74,20 @@ protected:
     const UniquePtr<InputManager> &GetInputManager() const
         { return m_input_manager; }
 
-    RC<Application> m_application;
+    RC<Application>             m_application;
 
-    UniquePtr<InputManager> m_input_manager;
-    Handle<Scene> m_scene;
+    UniquePtr<InputManager>     m_input_manager;
+    Handle<Scene>               m_scene;
 
-    UIScene m_ui;
+    UIScene                     m_ui;
+
+    RC<Assembly>                m_managed_assembly;
+    UniquePtr<Object>           m_managed_game_object;
 
 private:
-    bool m_is_init;
+    bool                        m_is_init;
+
+    Optional<ManagedGameInfo>   m_managed_game_info;
 };
 
 } // namespace hyperion::v2

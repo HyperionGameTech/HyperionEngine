@@ -5,6 +5,21 @@ namespace Hyperion
 {
     public class Engine
     {
+        private static Engine? instance = null;
+
+        public static Engine Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new Engine(Engine_GetInstance());
+                }
+
+                return instance;
+            }
+        }
+
         private IntPtr ptr;
 
         private World world;
@@ -29,20 +44,5 @@ namespace Hyperion
 
         [DllImport("libhyperion", EntryPoint = "Engine_GetWorld")]
         private static extern IntPtr Engine_GetWorld(IntPtr enginePtr);
-
-        private static Engine? instance = null;
-
-        public static Engine Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new Engine(Engine_GetInstance());
-                }
-
-                return instance;
-            }
-        }
     }
 }
