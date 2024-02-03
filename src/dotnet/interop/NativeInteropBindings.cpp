@@ -8,8 +8,10 @@
 #include <core/lib/Pair.hpp>
 #include <core/lib/String.hpp>
 
-#include <dotnet_support/ClassObject.hpp>
-#include <dotnet_support/Assembly.hpp>
+#include <dotnet/ClassObject.hpp>
+#include <dotnet/Assembly.hpp>
+#include <dotnet/interop/ManagedMethod.hpp>
+#include <dotnet/interop/ManagedGuid.hpp>
 
 using namespace hyperion;
 using namespace hyperion::v2;
@@ -28,11 +30,11 @@ extern "C" {
         // }
     }
 
-    void NativeInterop_SetInvokeMethodFunction(ClassObjectHolder *class_holder, void *invoke_method_fptr)
+    void NativeInterop_SetInvokeMethodFunction(ClassObjectHolder *class_holder, ClassObjectHolder::InvokeMethodFunction invoke_method_fptr)
     {
         AssertThrow(class_holder != nullptr);
 
-        class_holder->SetInvokeMethodFunction(reinterpret_cast<ClassObjectHolder::InvokeMethodFunction>(invoke_method_fptr));
+        class_holder->SetInvokeMethodFunction(invoke_method_fptr);
     }
 
     ManagedClass ManagedClass_Create(ClassObjectHolder *class_holder, Int32 type_hash, const char *type_name)
@@ -46,20 +48,38 @@ extern "C" {
         return ManagedClass { type_hash, class_object };
     }
 
-    void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, void *method_info_ptr)
+    void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, ManagedGuid guid)
     {
         DebugLog(LogType::Debug, "(C++) Adding method...\n");
 
-        if (!managed_class.class_object || !method_name || !method_info_ptr) {
+        if (!managed_class.class_object || !method_name) {
             return;
         }
 
         DebugLog(LogType::Debug, "(C++) Adding method: %s to class: %s\n", method_name, managed_class.class_object->GetName().Data());
 
         ManagedMethod method_object;
-        method_object.method_info_ptr = method_info_ptr;
+        method_object.guid = guid;
 
         managed_class.class_object->AddMethod(method_name, std::move(method_object));
+    }
+
+    void ManagedClass_SetNewObjectFunction(ManagedClass managed_class, ClassObject::NewObjectFunction new_object_fptr)
+    {
+        if (!managed_class.class_object) {
+            return;
+        }
+
+        managed_class.class_object->SetNewObjectFunction(new_object_fptr);
+    }
+
+    void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, ClassObject::FreeObjectFunction free_object_fptr)
+    {
+        if (!managed_class.class_object) {
+            return;
+        }
+
+        managed_class.class_object->SetFreeObjectFunction(free_object_fptr);
     }
 
     // const char *ManagedClass_GetName(ManagedClass *managed_class)

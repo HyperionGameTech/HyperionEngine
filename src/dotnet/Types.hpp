@@ -1,5 +1,5 @@
-#ifndef HYP_DOTNET_SUPPORT_TYPES_HPP
-#define HYP_DOTNET_SUPPORT_TYPES_HPP
+#ifndef HYP_DOTNET_TYPES_HPP
+#define HYP_DOTNET_TYPES_HPP
 
 #include <type_traits>
 

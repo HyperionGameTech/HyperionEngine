@@ -4,35 +4,38 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-public delegate IntPtr InitializeAssemblyDelegate(IntPtr classHolderPtr, string assemblyPath);
+public delegate void InitializeAssemblyDelegate(IntPtr classHolderPtr, string assemblyPath);
 
 namespace Hyperion
 {
-    public delegate IntPtr InvokeMethodDelegate(IntPtr managedMethodPtr, IntPtr paramsPtr);
+    public delegate void InvokeMethodDelegate(IntPtr managedMethodPtr, IntPtr thisPtr, IntPtr paramsPtr, IntPtr outPtr);
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ManagedMethod
+    internal class StoredManagedObject : IDisposable
     {
-        public IntPtr methodInfoPtr;
-    }
+        public Guid guid;
+        public object obj;
+        public GCHandle gcHandle;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ManagedClass
-    {
-        private int typeHash;
-        private IntPtr classObjectPtr;
-
-        public ManagedMethod AddMethod(string methodName, IntPtr methodInfoPtr)
+        public StoredManagedObject(Guid guid, object obj)
         {
-            return ManagedClass_AddMethod(this, methodName, methodInfoPtr);
+            this.guid = guid;
+            this.obj = obj;
+            this.gcHandle = GCHandle.Alloc(this.obj);
         }
 
-        // Add a function pointer to the managed class
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern ManagedMethod ManagedClass_AddMethod(ManagedClass managedClass, string methodName, IntPtr methodInfoPtr);
+        public void Dispose()
+        {
+            gcHandle.Free();
+        }
 
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_GetName")]
-        private static extern string ManagedClass_GetName(ManagedClass managedClass);
+        public ManagedObject ToManagedObject()
+        {
+            return new ManagedObject
+            {
+                guid = guid,
+                ptr = GCHandle.ToIntPtr(gcHandle)
+            };
+        }
     }
 
     internal struct StoredManagedMethod
@@ -42,15 +45,11 @@ namespace Hyperion
 
     public class NativeInterop
     {
-        private static Dictionary<Type, List<StoredManagedMethod>> delegateCache = new Dictionary<Type, List<StoredManagedMethod>>();
-
         public static InitializeAssemblyDelegate InitializeAssemblyDelegate = InitializeAssembly;
         public static InvokeMethodDelegate InvokeMethodDelegate = InvokeMethod;
 
-        public static IntPtr InitializeAssembly(IntPtr classHolderPtr, string assemblyPath)
+        public static void InitializeAssembly(IntPtr classHolderPtr, string assemblyPath)
         {
-            Logger.Log(LogType.Debug, "Initializing assembly: " + assemblyPath + " ptr: " + classHolderPtr);
-
             Assembly assembly = Assembly.LoadFrom(assemblyPath);
 
             if (assembly == null)
@@ -69,107 +68,158 @@ namespace Hyperion
             }
 
             NativeInterop_SetInvokeMethodFunction(classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
-
-            return IntPtr.Zero;
-
-            // So C++ can use InvokeMethod to call C# methods
-            // NativeInterop_Initialize(Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
         }
 
         private static ManagedClass InitManagedClass(IntPtr classHolderPtr, Type type)
         {
-            Logger.Log(LogType.Debug, "Initializing managed class: " + type.Name + " ptr: " + classHolderPtr);
-
             ManagedClass managedClass = ManagedClass_Create(classHolderPtr, type.GetHashCode(), type.Name);
 
             MethodInfo[] methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
 
             foreach (MethodInfo methodInfo in methodInfos)
             {
-                Logger.Log(LogType.Debug, "Adding method: " + methodInfo.Name);
-
-                // get intptr to the MethodInfo object
-                IntPtr methodInfoPtr = Marshal.UnsafeAddrOfPinnedArrayElement(Unsafe.As<MethodInfo[]>(new MethodInfo[] { methodInfo }), 0);
-
-                ManagedMethod managedMethod = managedClass.AddMethod(methodInfo.Name, methodInfoPtr);
-
-                if (!delegateCache.ContainsKey(type))
+                // Skip constructors
+                if (methodInfo.IsConstructor)
                 {
-                    delegateCache.Add(type, new List<StoredManagedMethod>());
+                    continue;
                 }
 
                 // Add the objects being pointed to to the delegate cache so they don't get GC'd
-                delegateCache[type].Add(new StoredManagedMethod
-                {
-                    methodInfo = methodInfo
-                });
+                Guid guid = Guid.NewGuid();
+                ManagedMethod managedMethod = managedClass.AddMethod(methodInfo.Name, guid);
+
+                ManagedMethodCache.Instance.AddMethod(guid, methodInfo);
             }
+
+            // Add new object, free object delegates
+            NewObjectDelegate newObjectDelegate = new NewObjectDelegate(() =>
+            {
+                // Allocate the object
+                object obj = RuntimeHelpers.GetUninitializedObject(type);
+
+                // Call the constructor
+                ConstructorInfo constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+
+                if (constructorInfo == null)
+                {
+                    throw new Exception("Failed to find empty constructor for type: " + type.Name);
+                }
+                
+                constructorInfo.Invoke(obj, null);
+
+                ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(obj);
+
+                return managedObject;
+            });
+
+            FreeObjectDelegate freeObjectDelegate = new FreeObjectDelegate((ManagedObject obj) =>
+            {
+                StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(obj.guid);
+
+                if (storedObject == null)
+                {
+                    throw new Exception("Failed to find object with guid: " + obj.guid);
+                }
+
+                ManagedObjectCache.Instance.RemoveObject(obj.guid);
+            });
+
+            managedClass.NewObjectFunction = newObjectDelegate;
+            managedClass.FreeObjectFunction = freeObjectDelegate;
 
             return managedClass;
         }
 
-        public static unsafe IntPtr InvokeMethod(IntPtr managedMethodPtr, IntPtr paramsPtr)
+        private static void HandleParameters(IntPtr paramsPtr, MethodInfo methodInfo, out object?[] parameters)
         {
-            ManagedMethod managedMethod = Unsafe.Read<ManagedMethod>((void*)managedMethodPtr);
-            MethodInfo* methodInfo = (MethodInfo*)managedMethod.methodInfoPtr;
+            int numParams = methodInfo.GetParameters().Length;
 
-            // @TODO: params, 'this', return value
-            object[]? parameters = null;
+            if (numParams == 0)
+            {
+                parameters = Array.Empty<object>();
 
-            int numParams = methodInfo->GetParameters().Length;
-
-            if (numParams > 0) {
-                parameters = new object[numParams];
-
-                int paramsOffset = 0;
-
-                for (int i = 0; i < numParams; i++)
-                {
-                    Type paramType = methodInfo->GetParameters()[i].ParameterType;
-
-                    // params is stored as void**
-                    IntPtr paramAddress = Marshal.ReadIntPtr(paramsPtr, paramsOffset);
-                    paramsOffset += IntPtr.Size;
-
-                    try
-                    {
-                        // if (paramType.IsValueType)
-                        // {
-                        //     parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
-
-                        //     continue;
-                        // }
-
-                        if (paramType == typeof(string))
-                        {
-                            // paramAddress is a void* pointing to const char* (another layer of indirection)
-                            parameters[i] = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(paramAddress));
-
-                            // parameters[i] = Marshal.PtrToStringAnsi(paramAddress);
-
-                            continue;
-                        }
-
-                        // if (paramType == typeof(IntPtr))
-                        // {
-                        //     parameters[i] = paramAddress;
-
-                        //     continue;
-                        // }
-
-                        parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new Exception("Failed to marshal parameter: " + e.Message);
-                    }
-
-                }
+                return;
             }
 
-            methodInfo->Invoke(null, parameters);
+            parameters = new object[numParams];
 
-            return IntPtr.Zero;
+            int paramsOffset = 0;
+
+            for (int i = 0; i < numParams; i++)
+            {
+                Type paramType = methodInfo.GetParameters()[i].ParameterType;
+
+                // params is stored as void**
+                IntPtr paramAddress = Marshal.ReadIntPtr(paramsPtr, paramsOffset);
+                paramsOffset += IntPtr.Size;
+
+                // Helper for strings
+                if (paramType == typeof(string))
+                {
+                    parameters[i] = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(paramAddress));
+
+                    continue;
+                }
+
+                parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
+            }
+        }
+
+        public static unsafe void InvokeMethod(IntPtr managedMethodPtr, IntPtr thisPtr, IntPtr paramsPtr, IntPtr outPtr)
+        {
+            ManagedMethod managedMethod = Unsafe.Read<ManagedMethod>((void*)managedMethodPtr);
+            MethodInfo methodInfo = ManagedMethodCache.Instance.GetMethod(managedMethod.guid);
+
+            Type returnType = methodInfo.ReturnType;
+            Type thisType = methodInfo.DeclaringType;
+
+            object[]? parameters = null;
+            HandleParameters(paramsPtr, methodInfo, out parameters);
+
+            object? thisObject = null;
+            GCHandle? thisGCHandle = null;
+
+            if (!methodInfo.IsStatic)
+            {
+                thisGCHandle = GCHandle.FromIntPtr(thisPtr);
+                thisObject = thisGCHandle.Value.Target;
+            }
+
+            object returnValue = methodInfo.Invoke(thisObject, parameters);
+
+            if (thisGCHandle != null)
+            {
+                thisGCHandle.Value.Free();
+            }
+
+            if (returnType == typeof(void))
+            {
+                // No need to fill out the outPtr
+                return;
+            }
+
+            if (returnType == typeof(string))
+            {
+                throw new NotImplementedException("String return type not implemented");
+            }
+
+            // write the return value to the outPtr
+            // there MUST be enough space allocated at the outPtr
+            if (returnType.IsValueType)
+            {
+                Marshal.StructureToPtr(returnValue, outPtr, false);
+
+                return;
+            }
+
+            if (returnType == typeof(IntPtr))
+            {
+                Marshal.WriteIntPtr(outPtr, (IntPtr)returnValue);
+
+                return;
+            }
+
+            throw new NotImplementedException("Return type not implemented");
         }
 
         [DllImport("libhyperion", EntryPoint = "ManagedClass_Create")]

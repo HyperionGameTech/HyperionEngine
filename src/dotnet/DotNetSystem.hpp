@@ -1,11 +1,12 @@
-#ifndef HYPERION_DOTNET_SUPPORT_DOT_NET_SYSTEM_HPP
-#define HYPERION_DOTNET_SUPPORT_DOT_NET_SYSTEM_HPP
+#ifndef HYPERION_DOTNET_DOT_NET_SYSTEM_HPP
+#define HYPERION_DOTNET_DOT_NET_SYSTEM_HPP
 
 #include <core/lib/RefCountedPtr.hpp>
 
-#include <dotnet_support/Types.hpp>
-#include <dotnet_support/Assembly.hpp>
-#include <dotnet_support/ClassObject.hpp>
+#include <dotnet/Types.hpp>
+#include <dotnet/Assembly.hpp>
+#include <dotnet/ClassObject.hpp>
+#include <dotnet/interop/ManagedObject.hpp>
 
 namespace hyperion {
 namespace dotnet {

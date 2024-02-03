@@ -5,7 +5,13 @@ using Hyperion;
 
 public class MyClass
 {
-    public static IntPtr MyMethod()
+    public int InstanceMethod()
+    {
+        Logger.Log(LogType.Info, "Hello from C#, instance method called");
+        return 9999;
+    }
+
+    public static void MyMethod()
     {
         // NativeInterop.Initialize("build/HyperionRuntime.dll");
 
@@ -102,7 +108,5 @@ public class MyClass
         Logger.Log(LogType.Info, "Hello from C#, childRemoved: {0}", childRemoved);
         // see if this breaks:
         Logger.Log(LogType.Info, "Hello from C#, myNode name: {0}", myNode.Name);
-
-        return IntPtr.Zero;
     }
 }

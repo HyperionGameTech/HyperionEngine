@@ -1,6 +1,6 @@
-#include <dotnet_support/DotNetSystem.hpp>
-#include <dotnet_support/Assembly.hpp>
-#include <dotnet_support/ClassObject.hpp>
+#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/Assembly.hpp>
+#include <dotnet/ClassObject.hpp>
 
 namespace hyperion {
 namespace dotnet {

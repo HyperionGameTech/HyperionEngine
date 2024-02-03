@@ -1,4 +1,4 @@
-#include <dotnet_support/DotNetSystem.hpp>
+#include <dotnet/DotNetSystem.hpp>
 
 #include <util/fs/FsUtil.hpp>
 #include <asset/ByteWriter.hpp>
@@ -119,7 +119,7 @@ public:
             filepath.Data()
         );
 
-        native_interop_class_object->InvokeMethod<void *, void *, char *>("InitializeAssembly", reinterpret_cast<void *>(&assembly->GetClassObjectHolder()), filepath.Data());
+        native_interop_class_object->InvokeStaticMethod<void, void *, char *>("InitializeAssembly", reinterpret_cast<void *>(&assembly->GetClassObjectHolder()), filepath.Data());
 
         return assembly;
     }

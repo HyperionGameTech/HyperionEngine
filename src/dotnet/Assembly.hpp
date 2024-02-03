@@ -1,25 +1,26 @@
-#ifndef HYP_DOTNET_SUPPORT_ASSEMBLY_HPP
-#define HYP_DOTNET_SUPPORT_ASSEMBLY_HPP
+#ifndef HYP_DOTNET_ASSEMBLY_HPP
+#define HYP_DOTNET_ASSEMBLY_HPP
 
 #include <core/lib/Mutex.hpp>
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 
-#include <dotnet_support/Types.hpp>
+#include <dotnet/Types.hpp>
+
+namespace hyperion {
+namespace dotnet {
 
 extern "C" {
     struct ManagedMethod;
 }
 
-namespace hyperion {
-namespace dotnet {
 
 class ClassObject;
 
 class ClassObjectHolder
 {
 public:
-    using InvokeMethodFunction = void *(*)(ManagedMethod *, void **);
+    using InvokeMethodFunction = void *(*)(ManagedMethod *, void *, void **, void *);
 
     ClassObjectHolder();
     ClassObjectHolder(const ClassObjectHolder &)                    = delete;
