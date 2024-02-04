@@ -30,20 +30,23 @@ void AssetBatch::LoadAsync(UInt num_batches)
 
     for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
         const UInt offset_index = batch_index * items_per_batch;
-        const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
+        const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
         AssertThrow(max_index >= offset_index);
 
-        Array<Proc<void, AssetManager *, AssetMap *>> batch_procs;
+        Array<UniquePtr<ProcessAssetFunctorBase>> batch_procs;
         batch_procs.Reserve(max_index - offset_index);
 
         for (UInt i = offset_index; i < max_index; ++i) {
+            AssertThrow(i < procs.Size());
+            AssertThrow(procs[i] != nullptr);
             batch_procs.PushBack(std::move(procs[i]));
         }
 
-        AddTask([asset_manager = asset_manager, batch_procs = std::move(batch_procs), asset_map = enqueued_assets.Get()](...) mutable {
+        AddTask([asset_manager = asset_manager, batch_procs = std::move(batch_procs), asset_map = enqueued_assets.Get()](...) mutable
+        {
             for (auto &proc : batch_procs) {
-                proc(asset_manager, asset_map);
+                proc->operator()(asset_manager, asset_map);
             }
         });
     }
@@ -70,7 +73,7 @@ AssetMap AssetBatch::ForceLoad()
     AssertThrowMsg(enqueued_assets != nullptr, "AssetBatch is in invalid state");
 
     for (auto &proc : procs) {
-        proc(asset_manager, enqueued_assets.Get());
+        (*proc)(asset_manager, enqueued_assets.Get());
     }
 
     procs.Clear();
@@ -79,6 +82,36 @@ AssetMap AssetBatch::ForceLoad()
     // enqueued_assets is cleared now
 
     return results;
+}
+
+void AssetBatch::Add(const String &key, const String &path)
+{
+    AssertThrowMsg(
+        IsCompleted(),
+        "Cannot add assets while loading!"
+    );
+
+    AssertThrowMsg(
+        enqueued_assets != nullptr,
+        "AssetBatch is in invalid state"
+    );
+
+    enqueued_assets->Set(key, EnqueuedAsset {
+        .path = path
+    });
+
+    UniquePtr<ProcessAssetFunctorBase> functor_ptr = asset_manager->CreateProcessAssetFunctor(
+        key,
+        path,
+        &callbacks
+    );
+
+    AssertThrowMsg(
+        functor_ptr != nullptr,
+        "Failed to create ProcessAssetFunctor - perhaps the asset type is not registered or the path is invalid"
+    );
+
+    procs.PushBack(std::move(functor_ptr));
 }
 
 static RC<AssetBatch> ScriptCreateAssetBatch(void *)

@@ -10,6 +10,14 @@ namespace Hyperion
     {
         public IntPtr refPtr;
 
+        public bool Valid
+        {
+            get
+            {
+                return refPtr != IntPtr.Zero;
+            }
+        }
+
         public void Dispose()
         {
             ManagedNode_Dispose(this);
@@ -24,6 +32,11 @@ namespace Hyperion
     public class Node : IDisposable
     {
         private ManagedNode managedNode;
+
+        public Node()
+        {
+            this.managedNode = Node_Create();
+        }
 
         public Node(ManagedNode managedNode)
         {
@@ -49,14 +62,19 @@ namespace Hyperion
 
         public Node AddChild()
         {
-            ManagedNode childManagedNode = Node_AddChild(managedNode);
+            return AddChild(new Node());
+        }
 
-            if (childManagedNode.refPtr == IntPtr.Zero)
+        public Node AddChild(Node node)
+        {
+            if (node == null)
             {
-                throw new Exception("Failed to add child node");
+                throw new ArgumentNullException(nameof(node));
             }
 
-            return new Node(childManagedNode);
+            Node_AddChild(managedNode, node.managedNode);
+
+            return node;
         }
 
         public Node? FindChild(string name)
@@ -217,6 +235,9 @@ namespace Hyperion
             }
         }
 
+        [DllImport("libhyperion", EntryPoint = "Node_Create")]
+        private static extern ManagedNode Node_Create();
+
         [DllImport("libhyperion", EntryPoint = "Node_GetName")]
         private static extern IntPtr Node_GetName(ManagedNode managedNode);
 
@@ -224,7 +245,7 @@ namespace Hyperion
         private static extern void Node_SetName(ManagedNode managedNode, string name);
 
         [DllImport("libhyperion", EntryPoint = "Node_AddChild")]
-        private static extern ManagedNode Node_AddChild(ManagedNode parent);
+        private static extern ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child);
 
         [DllImport("libhyperion", EntryPoint = "Node_FindChild")]
         private static extern ManagedNode Node_FindChild(ManagedNode managedNode, string name);

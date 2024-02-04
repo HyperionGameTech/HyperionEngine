@@ -17,6 +17,7 @@ void ManagedNode::Dispose()
 
     ref = nullptr;
 
+    // Decrement the ref count, data will be deleted if the ref count reaches 0
     rc.Reset();
 }
 

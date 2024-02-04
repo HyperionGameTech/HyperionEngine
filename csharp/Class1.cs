@@ -7,12 +7,17 @@ public class TestGame : Game
 {
     public override void Init()
     {
-        Logger.Log(LogType.Info, "Hello from C#, game initialized");
+        var assetBatch = new AssetBatch(AssetManager);
+        assetBatch.Add("test_model", "models/house.obj");
+        assetBatch.LoadAsync();
+
+        var assetMap = assetBatch.AwaitResults();
+        
+        Scene.Root.AddChild(assetMap["test_model"].GetNode());
     }
 
     public override void Update(float deltaTime)
     {
-        Logger.Log(LogType.Info, "Hello from C#, game updated with delta: {0}", deltaTime);
     }
 }
 

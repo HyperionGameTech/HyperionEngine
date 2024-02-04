@@ -42,10 +42,14 @@ class AssetManager
     friend class AssetLoader;
 
 public:
+    using ProcessAssetFunctorFactory = std::add_pointer_t<UniquePtr<ProcessAssetFunctorBase>(const String & /* key */, const String & /* path */, AssetBatchCallbacks * /* callbacks */)>;
+
     AssetManager();
-    AssetManager(const AssetManager &other) = delete;
-    AssetManager &operator=(const AssetManager &other) = delete;
-    ~AssetManager() = default;
+    AssetManager(const AssetManager &other)                 = delete;
+    AssetManager &operator=(const AssetManager &other)      = delete;
+    AssetManager(AssetManager &&other) noexcept             = delete;
+    AssetManager &operator=(AssetManager &&other) noexcept  = delete;
+    ~AssetManager()                                         = default;
 
     const FilePath &GetBasePath() const
         { return m_base_path; }
@@ -53,7 +57,7 @@ public:
     void SetBasePath(const FilePath &base_path)
         { m_base_path = base_path; }
 
-    template <class Loader, class ... Formats>
+    template <class Loader, class ResultType, class ... Formats>
     void Register(Formats &&... formats)
     {
         static_assert(std::is_base_of_v<AssetLoaderBase, Loader>,
@@ -66,8 +70,16 @@ public:
         };
 
         for (auto &str : format_strings) {
-            m_loaders[str] = UniquePtr<Loader>::Construct();
+            m_loaders[str] = {
+                TypeID::ForType<Loader>(),
+                UniquePtr<Loader>::Construct()
+            };
         }
+
+        m_functor_factories.Set<Loader>([](const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr) -> UniquePtr<ProcessAssetFunctorBase>
+        {
+            return UniquePtr<ProcessAssetFunctorBase>(new ProcessAssetFunctor<ResultType>(key, path, callbacks_ptr));
+        });
     }
     
 
@@ -109,33 +121,12 @@ public:
             return cache_pool->Get(path);
         }
 
-        const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
+        AssetLoaderBase *loader = GetLoader(path);
 
-        if (extension.Empty()) {
-            out_result = { LoaderResult::Status::ERR_NO_LOADER, "File has no extension; cannot determine loader to use" };
+        if (!loader) {
+            DebugLog(LogType::Warn, "No registered loader for path: %s\n", path.Data());
 
-            return AssetLoaderWrapper<Normalized>::EmptyResult();
-        }
-
-        AssetLoaderBase *loader = nullptr;
-
-        { // find loader for the requested type
-            const auto it = m_loaders.Find(extension);
-
-            if (it != m_loaders.End()) {
-                loader = it->second.Get();
-            } else {
-                for (auto &loader_it : m_loaders) {
-                    if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
-                        loader = loader_it.second.Get();
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (loader == nullptr) {
-            out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given type" };
+            out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the path" };
 
             return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
@@ -170,7 +161,7 @@ public:
         UInt path_index = 0;
 
         for (const auto &path : paths_array) {
-            batch->Add<T>(String::ToString(path_index++), path);
+            batch->Add(String::ToString(path_index++), path);
         }
 
         batch->LoadAsync();
@@ -188,9 +179,7 @@ public:
     }
 
     RC<AssetBatch> CreateBatch()
-    {
-        return RC<AssetBatch>::Construct(this);
-    }
+        { return RC<AssetBatch>::Construct(this); }
 
     AssetCache *GetAssetCache()
         { return m_asset_cache.Get(); }
@@ -198,96 +187,72 @@ public:
     const AssetCache *GetAssetCache() const
         { return m_asset_cache.Get(); }
 
+    template <class Loader>
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
+    {
+        auto it = m_functor_factories.Find<Loader>();
+        AssertThrow(it != m_functor_factories.End());
+
+        return it->second(key, path, callbacks_ptr);
+    }
+
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
+    {
+        auto it = m_functor_factories.Find(loader_type_id);
+        AssertThrow(it != m_functor_factories.End());
+
+        return it->second(key, path, callbacks_ptr);
+    }
+
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
+    {
+        const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
+
+        if (extension.Empty()) {
+            DebugLog(LogType::Warn, "No extension found for path: %s\n", path.Data());
+
+            return nullptr;
+        }
+
+        TypeID loader_type_id = TypeID::ForType<void>();
+
+        const auto it = m_loaders.Find(extension);
+
+        if (it != m_loaders.End()) {
+            loader_type_id = it->second.first;
+        } else {
+            for (auto &loader_it : m_loaders) {
+                if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
+                    loader_type_id = loader_it.second.first;
+                    break;
+                }
+            }
+        }
+
+        // no loader found
+        if (loader_type_id == TypeID::ForType<void>()) {
+            DebugLog(LogType::Warn, "No loader found for path: %s\n", path.Data());
+
+            return nullptr;
+        }
+
+        // use the loader type id to create the functor
+        return CreateProcessAssetFunctor(loader_type_id, key, path, callbacks_ptr);
+    }
+
 private:
+    AssetLoaderBase *GetLoader(const FilePath &path);
+
     void RegisterDefaultLoaders();
 
     ObjectPool &GetObjectPool();
 
-    UniquePtr<AssetCache> m_asset_cache;
+    UniquePtr<AssetCache>                                       m_asset_cache;
 
-    FilePath m_base_path;
-    FlatMap<String, UniquePtr<AssetLoaderBase>> m_loaders;
-};
+    FilePath                                                    m_base_path;
 
-class AssetLoader : public AssetLoaderBase
-{
-protected:
-    static inline auto GetTryFilepaths(const FilePath &filepath, const FilePath &original_filepath)
-    {
-        const FilePath current_path = FilePath::Current();
-
-        FixedArray<FilePath, 3> paths {
-            FilePath::Relative(original_filepath, current_path),
-            FilePath::Relative(filepath, current_path),
-            filepath
-        };
-
-        return paths;
-    }
-
-public:
-    virtual ~AssetLoader() = default;
-
-    virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final
-    {
-        LoadedAsset asset;
-        asset.result = LoaderResult {
-            LoaderResult::Status::ERR_NOT_FOUND,
-            "File could not be found"
-        };
-
-        const FilePath original_filepath(path);
-        const FilePath filepath = GetRebasedFilepath(asset_manager, original_filepath);
-        const auto paths = GetTryFilepaths(filepath, original_filepath);
-
-        for (const auto &path : paths) {
-            BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE> reader;
-
-            if (!path.Open(reader)) {
-                // could not open... try next path
-                DebugLog(
-                    LogType::Warn,
-                    "Could not open file at path : %s, trying next path...\n",
-                    path.Data()
-                );
-
-                continue;
-            }
-
-            LoaderState state {
-                &asset_manager,
-                path.Data(),
-                std::move(reader)
-            };
-
-            asset = LoadAsset(state);
-
-            reader.Close();
-
-            if (asset.result) {
-                break; // stop searching when value result is found
-            }
-        }
-
-        return asset;
-    }
-
-protected:
-    virtual LoadedAsset LoadAsset(LoaderState &state) const = 0;
-
-    FilePath GetRebasedFilepath(const AssetManager &asset_manager, const FilePath &filepath) const
-    {
-        const FilePath relative_filepath = FilePath::Relative(filepath, FilePath::Current());
-
-        if (asset_manager.GetBasePath().Any()) {
-            return FilePath::Join(
-                asset_manager.GetBasePath().Data(),
-                relative_filepath.Data()
-            );
-        }
-
-        return relative_filepath;
-    }
+    FlatMap<String, Pair<TypeID, UniquePtr<AssetLoaderBase>>>   m_loaders;
+    TypeMap<ProcessAssetFunctorFactory>                         m_functor_factories;
 };
 
 } // namespace hyperion::v2

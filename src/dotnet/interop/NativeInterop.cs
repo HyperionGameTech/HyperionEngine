@@ -41,7 +41,7 @@ namespace Hyperion
         {
             ManagedClass managedClass = ManagedClass_Create(classHolderPtr, type.GetHashCode(), type.Name);
 
-            MethodInfo[] methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            MethodInfo[] methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy);
 
             foreach (MethodInfo methodInfo in methodInfos)
             {

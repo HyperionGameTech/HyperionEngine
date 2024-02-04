@@ -62,11 +62,11 @@ struct AssetBatchCallbackData
     {
     }
 
-    AssetBatchCallbackData(const AssetBatchCallbackData &) = default;
-    AssetBatchCallbackData &operator=(const AssetBatchCallbackData &) = default;
-    AssetBatchCallbackData(AssetBatchCallbackData &&) noexcept = default;
-    AssetBatchCallbackData &operator=(AssetBatchCallbackData &&) noexcept = default;
-    ~AssetBatchCallbackData() = default;
+    AssetBatchCallbackData(const AssetBatchCallbackData &)                  = default;
+    AssetBatchCallbackData &operator=(const AssetBatchCallbackData &)       = default;
+    AssetBatchCallbackData(AssetBatchCallbackData &&) noexcept              = default;
+    AssetBatchCallbackData &operator=(AssetBatchCallbackData &&) noexcept   = default;
+    ~AssetBatchCallbackData()                                               = default;
 
     const String &GetAssetKey()
         { return data.Get<EnqueuedAssetDataType>().first.get(); }
@@ -77,40 +77,75 @@ struct AssetBatchCallbackData
 
 using AssetBatchCallbacks = Callbacks<AssetBatchCallbackMessages, AssetBatchCallbackData>;
 
+template <class T>
+struct LoadObjectWrapper
+{
+    template <class AssetManager>
+    HYP_FORCE_INLINE
+    void operator()(
+        AssetManager *asset_manager,
+        AssetMap *map,
+        const String &key,
+        AssetBatchCallbacks *callbacks
+    )
+    {
+        EnqueuedAsset &asset = (*map)[key];
+
+        asset.value.Set(AssetLoaderWrapper<T>::MakeResultType(asset_manager->template Load<T>(asset.path, asset.result)));
+
+        if (asset.result == LoaderResult::Status::OK) {
+            if (callbacks) {
+                callbacks->Trigger(ASSET_BATCH_ITEM_COMPLETE, AssetBatchCallbackData(key, asset));
+            }
+        } else {
+            if (callbacks) {
+                callbacks->Trigger(ASSET_BATCH_ITEM_FAILED, AssetBatchCallbackData(key, asset));
+            }
+
+            asset.value.Reset();
+        }
+    }
+};
+
+struct ProcessAssetFunctorBase
+{
+    virtual ~ProcessAssetFunctorBase() = default;
+
+    virtual void operator()(AssetManager *asset_manager, AssetMap *asset_map) = 0;
+};
+
+template <class T>
+struct ProcessAssetFunctor : public ProcessAssetFunctorBase
+{
+    String              key;
+    String              path;
+    AssetBatchCallbacks *callbacks;
+
+    ProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks)
+        : key(key),
+          path(path),
+          callbacks(callbacks)
+    {
+    }
+
+    ProcessAssetFunctor(const ProcessAssetFunctor &)                = delete;
+    ProcessAssetFunctor &operator=(const ProcessAssetFunctor &)     = delete;
+    ProcessAssetFunctor(ProcessAssetFunctor &&) noexcept            = delete;
+    ProcessAssetFunctor &operator=(ProcessAssetFunctor &&) noexcept = delete;
+
+    virtual ~ProcessAssetFunctor() override = default;
+
+    virtual void operator()(AssetManager *asset_manager, AssetMap *asset_map) override
+    {
+        LoadObjectWrapper<T>()(asset_manager, asset_map, key, callbacks);
+    }
+};
+
 struct AssetBatch : private TaskBatch
 {
 private:
     // make it be a ptr so this can be moved
     UniquePtr<AssetMap> enqueued_assets;
-
-    template <class T>
-    struct LoadObjectWrapper
-    {
-        template <class AssetManager>
-        HYP_FORCE_INLINE void operator()(
-            AssetManager *asset_manager,
-            AssetMap *map,
-            const String &key,
-            AssetBatchCallbacks *callbacks
-        )
-        {
-            EnqueuedAsset &asset = (*map)[key];
-
-            asset.value.Set(AssetLoaderWrapper<T>::MakeResultType(asset_manager->template Load<T>(asset.path, asset.result)));
-
-            if (asset.result == LoaderResult::Status::OK) {
-                if (callbacks) {
-                    callbacks->Trigger(ASSET_BATCH_ITEM_COMPLETE, AssetBatchCallbackData(key, asset));
-                }
-            } else {
-                if (callbacks) {
-                    callbacks->Trigger(ASSET_BATCH_ITEM_FAILED, AssetBatchCallbackData(key, asset));
-                }
-
-                asset.value.Reset();
-            }
-        }
-    };
 
 public:
     using TaskBatch::IsCompleted;
@@ -123,10 +158,10 @@ public:
         AssertThrow(asset_manager != nullptr);
     }
 
-    AssetBatch(const AssetBatch &other) = delete;
-    AssetBatch &operator=(const AssetBatch &other) = delete;
-    AssetBatch(AssetBatch &&other) noexcept = delete;
-    AssetBatch &operator=(AssetBatch &&other) noexcept = delete;
+    AssetBatch(const AssetBatch &other)                 = delete;
+    AssetBatch &operator=(const AssetBatch &other)      = delete;
+    AssetBatch(AssetBatch &&other) noexcept             = delete;
+    AssetBatch &operator=(AssetBatch &&other) noexcept  = delete;
 
     ~AssetBatch()
     {
@@ -148,32 +183,7 @@ public:
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
-    template <class T>
-    void Add(const String &key, const String &path)
-    {
-        AssertThrowMsg(IsCompleted(),
-            "Cannot add assets while loading!");
-
-        AssertThrowMsg(enqueued_assets != nullptr,
-            "AssetBatch is in invalid state");
-
-        enqueued_assets->Set(key, EnqueuedAsset {
-            .path = path
-        });
-
-        struct Functor
-        {
-            String              key;
-            AssetBatchCallbacks *callbacks;
-
-            void operator()(AssetManager *asset_manager, AssetMap *asset_map)
-            {
-                LoadObjectWrapper<T>()(asset_manager, asset_map, key, callbacks);
-            }
-        };
-
-        procs.PushBack(Functor { key, &callbacks });
-    }
+    void Add(const String &key, const String &path);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */
@@ -184,8 +194,8 @@ public:
     AssetManager *asset_manager;
 
 private:
-    Array<Proc<void, AssetManager *, AssetMap *>>   procs;
-    AssetBatchCallbacks                             callbacks;
+    Array<UniquePtr<ProcessAssetFunctorBase>>   procs;
+    AssetBatchCallbacks                         callbacks;
 };
 
 } // namespace hyperion::V2

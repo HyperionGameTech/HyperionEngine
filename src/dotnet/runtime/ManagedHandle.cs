@@ -8,6 +8,14 @@ namespace Hyperion {
         [MarshalAs(UnmanagedType.U4)]
         public uint id;
 
+        public bool Valid
+        {
+            get
+            {
+                return id != 0;
+            }
+        }
+
         public void IncRef(TypeID typeId)
         {
             ManagedHandle_IncRef(typeId, this);

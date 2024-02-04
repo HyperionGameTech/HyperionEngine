@@ -45,6 +45,12 @@ namespace Hyperion
                 nativeTypeId = VisibilityStateComponent_GetNativeTypeID(),
                 addComponent = (entityManagerPtr, entity, ptr) => VisibilityStateComponent_AddComponent(entityManagerPtr, entity, ptr)
             });
+
+            RegisterComponent<LightComponent>(new ComponentDefinition
+            {
+                nativeTypeId = LightComponent_GetNativeTypeID(),
+                addComponent = (entityManagerPtr, entity, ptr) => LightComponent_AddComponent(entityManagerPtr, entity, ptr)
+            });
         }
 
         public void RegisterComponent<T>(ComponentDefinition componentDefinition) where T : IComponent
@@ -149,5 +155,12 @@ namespace Hyperion
 
         [DllImport("libhyperion", EntryPoint = "VisibilityStateComponent_AddComponent")]
         private static extern ComponentID VisibilityStateComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
+
+        // LightComponent
+        [DllImport("libhyperion", EntryPoint = "LightComponent_GetNativeTypeID")]
+        private static extern TypeID LightComponent_GetNativeTypeID();
+
+        [DllImport("libhyperion", EntryPoint = "LightComponent_AddComponent")]
+        private static extern ComponentID LightComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
     }
 }

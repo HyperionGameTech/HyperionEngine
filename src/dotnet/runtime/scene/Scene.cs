@@ -12,15 +12,19 @@ namespace Hyperion
 
         public Scene()
         {
-            handle = Scene_Create();
-            root = new Node(Scene_GetRoot(handle));
-            entityManager = new EntityManager(Scene_GetEntityManager(handle));
+            this.handle = Scene_Create();
+
+            this.root = new Node(Scene_GetRoot(this.handle));
+            this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
         public Scene(ManagedHandle handle)
         {
             this.handle = handle;
             this.handle.IncRef(Scene_GetTypeID());
+
+            this.root = new Node(Scene_GetRoot(this.handle));
+            this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
         public void Dispose()

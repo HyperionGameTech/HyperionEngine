@@ -5,6 +5,7 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
 
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
@@ -102,6 +103,17 @@ extern "C" {
     }
 
     ComponentID VisibilityStateComponent_AddComponent(EntityManager *manager, ManagedEntity entity, VisibilityStateComponent *component)
+    {
+        return manager->AddComponent(entity, std::move(*component));
+    }
+
+    // LightComponent
+    UInt32 LightComponent_GetNativeTypeID()
+    {
+        return TypeID::ForType<LightComponent>().Value();
+    }
+
+    ComponentID LightComponent_AddComponent(EntityManager *manager, ManagedEntity entity, LightComponent *component)
     {
         return manager->AddComponent(entity, std::move(*component));
     }

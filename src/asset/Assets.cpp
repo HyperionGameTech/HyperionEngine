@@ -31,20 +31,48 @@ void AssetManager::RegisterDefaultLoaders()
 {
     SetBasePath(FilePath::Join(HYP_ROOT_DIR, "res"));
 
-    Register<OBJModelLoader>("obj");
-    Register<OgreXMLModelLoader>("mesh.xml");
-    Register<OgreXMLSkeletonLoader>("skeleton.xml");
-    Register<TextureLoader>(
+    Register<OBJModelLoader, Node>("obj");
+    Register<OgreXMLModelLoader, Node>("mesh.xml");
+    Register<OgreXMLSkeletonLoader, Skeleton>("skeleton.xml");
+    Register<TextureLoader, Texture>(
         "png", "jpg", "jpeg", "tga",
         "bmp", "psd", "gif", "hdr", "tif"
     );
-    Register<MTLMaterialLoader>("mtl");
-    Register<WAVAudioLoader>("wav");
-    Register<ScriptLoader>("hypscript");
-    Register<FBOMModelLoader>("fbom");
-    Register<FBXModelLoader>("fbx");
-    Register<PLYModelLoader>("ply");
-    Register<JSONLoader>("json");
+    Register<MTLMaterialLoader, MaterialGroup>("mtl");
+    Register<WAVAudioLoader, AudioSource>("wav");
+    Register<ScriptLoader, Script>("hypscript");
+    Register<FBOMModelLoader, Node>("fbom");
+    Register<FBXModelLoader, Node>("fbx");
+    // Register<PLYModelLoader, PLYModel>("ply");
+    Register<JSONLoader, JSONValue>("json");
+}
+
+AssetLoaderBase *AssetManager::GetLoader(const FilePath &path)
+{
+    const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
+
+    if (extension.Empty()) {
+        return nullptr;
+    }
+
+    AssetLoaderBase *loader = nullptr;
+
+    { // find loader for the requested type
+        const auto it = m_loaders.Find(extension);
+
+        if (it != m_loaders.End()) {
+            loader = it->second.second.Get();
+        } else {
+            for (auto &loader_it : m_loaders) {
+                if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
+                    loader = loader_it.second.second.Get();
+                    break;
+                }
+            }
+        }
+    }
+
+    return loader;
 }
 
 } // namespace hyperion::v2

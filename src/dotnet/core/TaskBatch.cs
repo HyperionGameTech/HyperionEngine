@@ -12,7 +12,7 @@ namespace Hyperion
     /// </summary>
     public class TaskBatch : IDisposable
     {
-        private IntPtr ptr;
+        protected IntPtr ptr;
 
         public TaskBatch()
         {

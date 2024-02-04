@@ -344,8 +344,8 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//"models/sponza/sponza.obj");//living_room/living_room.obj");
-        batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+        batch->Add("test_model", "models/pica_pica/pica_pica.obj");//"models/sponza/sponza.obj");//living_room/living_room.obj");
+        batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -409,8 +409,8 @@ void SampleStreamer::InitGame()
     // Test gaussian splatting
     if (false) {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
-        batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
+        batch->Add("cameras json", "models/gaussian_splatting/cameras.json");
+        // batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
 
         batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
         {

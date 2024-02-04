@@ -76,9 +76,9 @@ struct InputState
         std::atomic_bool is_pressed{false};
     };
 
-    KeyState key_states[NUM_KEYBOARD_KEYS];
-    KeyState last_key_states[NUM_KEYBOARD_KEYS];
-    MouseButtonState mouse_button_states[NUM_MOUSE_BUTTONS];
+    KeyState            key_states[NUM_KEYBOARD_KEYS];
+    KeyState            last_key_states[NUM_KEYBOARD_KEYS];
+    MouseButtonState    mouse_button_states[NUM_MOUSE_BUTTONS];
 };
 
 class InputManager

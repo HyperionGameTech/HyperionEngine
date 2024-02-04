@@ -5,6 +5,7 @@
 #include <system/Debug.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
+#include <dotnet/runtime/ManagedHandle.hpp>
 
 namespace hyperion::v2 {
 
@@ -83,6 +84,13 @@ void Game::InitGame()
     m_ui.Init();
 
     if (m_managed_game_object) {
+        m_managed_game_object->InvokeMethod<void, ManagedHandle, void *, void *>(
+            "BeforeInit",
+            CreateManagedHandleFromHandle(m_scene),
+            m_input_manager.Get(),
+            g_asset_manager
+        );
+
         m_managed_game_object->InvokeMethod<void>("Init");
     }
 }

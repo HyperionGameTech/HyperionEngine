@@ -31,10 +31,7 @@ extern "C" {
     ManagedNode Scene_GetRoot(ManagedHandle scene_handle)
     {
         Handle<Scene> scene = CreateHandleFromManagedHandle<Scene>(scene_handle);
-
-        if (!scene) {
-            return { nullptr };
-        }
+        AssertThrow(scene.IsValid());
 
         return CreateManagedNodeFromNodeProxy(scene->GetRoot());
     }

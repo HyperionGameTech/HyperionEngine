@@ -12,6 +12,11 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
+    ManagedNode Node_Create()
+    {
+        return CreateManagedNodeFromNodeProxy(NodeProxy(new Node()));
+    }
+
     const char *Node_GetName(ManagedNode managed_node)
     {
         Node *node = managed_node.GetNode();
@@ -56,15 +61,21 @@ extern "C" {
         node->SetEntity(managed_entity);
     }
 
-    ManagedNode Node_AddChild(ManagedNode managed_node)
+    ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child)
     {
-        NodeProxy parent_node_proxy = CreateNodeProxyFromManagedNode(managed_node);
+        NodeProxy parent_node_proxy = CreateNodeProxyFromManagedNode(parent);
 
         if (!parent_node_proxy) {
             return ManagedNode { nullptr };
         }
 
-        NodeProxy child_node = parent_node_proxy.AddChild();
+        NodeProxy child_node = CreateNodeProxyFromManagedNode(child);
+
+        if (!child_node) {
+            return ManagedNode { nullptr };
+        }
+
+        parent_node_proxy.AddChild(child_node);
 
         return CreateManagedNodeFromNodeProxy(std::move(child_node));
     }

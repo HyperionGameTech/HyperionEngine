@@ -243,7 +243,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 all_filepaths.PushBack(it.second);
 
                 ++num_enqueued;
-                textures_batch->Add<Texture>(
+                textures_batch->Add(
                     it.first,
                     it.second
                 );

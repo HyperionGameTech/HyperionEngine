@@ -257,6 +257,34 @@ struct AssetLoaderWrapper<Node>
     }
 };
 
+// AssetLoader
+class AssetLoader : public AssetLoaderBase
+{
+protected:
+    static inline auto GetTryFilepaths(const FilePath &filepath, const FilePath &original_filepath)
+    {
+        const FilePath current_path = FilePath::Current();
+
+        FixedArray<FilePath, 3> paths {
+            FilePath::Relative(original_filepath, current_path),
+            FilePath::Relative(filepath, current_path),
+            filepath
+        };
+
+        return paths;
+    }
+
+public:
+    virtual ~AssetLoader() = default;
+
+    virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final;
+
+protected:
+    virtual LoadedAsset LoadAsset(LoaderState &state) const = 0;
+
+    FilePath GetRebasedFilepath(const AssetManager &asset_manager, const FilePath &filepath) const;
+};
+
 } // namespace hyperion::v2
 
 #endif
