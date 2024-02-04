@@ -51,7 +51,7 @@ public:
 
     /*! \brief Write data into the shared memory. The shared memory must have been constructed with
         READ_WRITE option. */
-    void Write(void *data, SizeType count);
+    void Write(const void *data, SizeType count);
 
 private:
     String      m_id;

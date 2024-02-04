@@ -48,7 +48,7 @@ public:
         }
 
         // // TEMP! Find a better way to do this.
-        const FilePath hyperion_runtime_path = FilePath::Current() / "build" / "HyperionInterop.dll";
+        const FilePath hyperion_runtime_path = g_asset_manager->GetBasePath() / ".." / "build" / "HyperionInterop.dll";
 
         m_root_assembly.Reset(new Assembly());
 
@@ -131,6 +131,8 @@ public:
         const char *delegate_type_name
     ) const override
     {
+        DebugLog(LogType::Info, "Loading .NET assembly: %s\n", assembly_path);
+
         if (!m_cxt) {
             HYP_THROW("Failed to get delegate: .NET runtime not initialized");
         }

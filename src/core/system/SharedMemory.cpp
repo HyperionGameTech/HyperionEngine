@@ -106,13 +106,13 @@ bool SharedMemory::Open()
 #endif
 }
 
-void SharedMemory::Write(void *data, SizeType count)
+void SharedMemory::Write(const void *data, SizeType count)
 {
     AssertThrowMsg(m_mode == Mode::READ_WRITE, "SharedMemory was not constructed with READ_WRITE mode enabled");
     AssertThrowMsg(IsOpened(), "SharedMemory not opened!\n");
     AssertThrow(count <= m_size);
 
-    Memory::Copy(m_address, data, count);
+    Memory::MemCpy(m_address, data, count);
 }
 
 } // namespace hyperion

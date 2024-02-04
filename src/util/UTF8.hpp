@@ -681,266 +681,98 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
 }
 
 #if 0
-class Utf8String {
-public:
-    Utf8String()
-        : m_data(new char[1]),
-          m_size(1),
-          m_length(0)
-    {
-        m_data[0] = '\0';
-    }
 
-    explicit Utf8String(size_t size)
-        : m_data(new char[size + 1]),
-          m_size(size + 1),
-          m_length(0)
-    {
-        hyperion::Memory::MemSet(m_data, 0, m_size);
-    }
+/*! \brief How to use:
+    if buffer length is not known, pass nullptr for \ref{result}.
+    buffer_length will be set to the size needed for \ref{result}.
+    Next, call the function again, passing in the previously mentioned
+    value for \ref{buffer_length}. The resulting string will be written into the provided
+    param, \ref{result}, so it'll need to have \ref{buffer_length} bytes allocated to it. */
+void utf8_base64encode(const char *src, SizeType src_length, char *dst, SizeType dst_length)
+{
+    static const char *base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-    Utf8String(const char *str)
-    {
-        if (str == nullptr) {
-            m_data = new char[1];
-            m_data[0] = '\0';
-            m_size = 1;
-            m_length = 0;
-        } else {
-            // copy raw bytes
-            m_size = std::strlen(str) + 1;
-            m_data = new char[m_size];
-            hyperion::Memory::StrCpy(m_data, str);
-            // recalculate length
-            m_length = utf8_strlen(m_data);
-        }
-    }
+    SizeType buffer_index = 0;
+    SizeType buffer_length_remaining = dst_length - 1;
 
-    Utf8String(const char *str, size_t size)
-    {
-        if (str == nullptr) {
-            m_size = size;
-            m_data = new char[m_size];
-            m_data[0] = '\0';
-            m_length = 0;
-        } else {
-            // copy raw bytes
-            m_size = std::max(std::strlen(str), size) + 1;
-            m_data = new char[m_size];
-            hyperion::Memory::StrCpy(m_data, str);
-            // recalculate length
-            m_length = utf8_strlen(m_data);
-        }
-    }
+    SizeType i = 0;
+    while (i < src_length) {
+        u8char bytes[3] = {0, 0, 0};
+        SizeType bytes_read = 0;
 
-    Utf8String(const Utf8String &other)
-    {
-        // copy raw bytes
-        m_size = other.m_size;
-        m_data = new char[m_size];
-        hyperion::Memory::StrCpy(m_data, other.m_data);
-        m_length = other.m_length;
-    }
-
-    ~Utf8String()
-    {
-        if (m_data != nullptr) {
-            delete[] m_data;
-        }
-    }
-
-    char *GetData() { return m_data; }
-    char *GetData() const { return m_data; }
-    size_t GetBufferSize() const { return m_size; }
-    size_t GetLength() const { return m_length; }
-
-    Utf8String &operator=(const char *str)
-    {
-        // check if there is enough space to not have to delete the data
-        size_t len = std::strlen(str) + 1;
-        if (m_data != nullptr && m_size >= len) {
-            hyperion::Memory::StrCpy(m_data, str);
-            m_length = utf8_strlen(m_data);
-        } else {
-            // must delete the data if not null
-            if (m_data) {
-                delete[] m_data;
-            }
-
-            if (!str) {
-                m_size = 1;
-                m_data = new char[m_size];
-                m_data[0] = '\0';
-                m_length = 0;
-            } else {
-                // copy raw bytes
-                m_size = len;
-                m_data = new char[m_size];
-                hyperion::Memory::StrCpy(m_data, str);
-                // recalculate length
-                m_length = utf8_strlen(m_data);
+        for (SizeType j = 0; j < 3; j++) {
+            if (i < src_length) {
+                bytes[j] = src[i++];
+                bytes_read++;
             }
         }
 
+        if (bytes_read) {
+            u32char buffer = 0;
+            for (SizeType j = 0; j < bytes_read; j++) {
+                buffer = (buffer << 8) | bytes[j];
+            }
 
-        /*if (m_data != nullptr) {
-            delete[] m_data;
+            for (SizeType j = 0; j < 4; j++) {
+                if (buffer_length_remaining) {
+                    dst[buffer_index++] = base64_chars[(buffer >> 18) & 0x3F];
+                    buffer <<= 6;
+                    buffer_length_remaining--;
+                }
+            }
+        }
+    }
+
+    if (buffer_length_remaining) {
+        dst[buffer_index++] = 0;
+    }
+}
+
+/*! \brief How to use:
+    if buffer length is not known, pass nullptr for \ref{result}.
+    buffer_length will be set to the size needed for \ref{result}.
+    Next, call the function again, passing in the previously mentioned
+    value for \ref{buffer_length}. The resulting string will be written into the provided
+    param, \ref{result}, so it'll need to have \ref{buffer_length} bytes allocated to it. */
+void utf8_base64decode(const char *src, SizeType src_length, char *dst, SizeType dst_length)
+{
+    static const char *base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    SizeType buffer_index = 0;
+    SizeType buffer_length_remaining = dst_length - 1;
+
+    SizeType i = 0;
+    while (i < src_length) {
+        u8char bytes[4] = {0, 0, 0, 0};
+        SizeType bytes_read = 0;
+
+        for (SizeType j = 0; j < 4; j++) {
+            if (i < src_length) {
+                bytes[j] = src[i++];
+                bytes_read++;
+            }
         }
 
-        if (str == nullptr) {
-            m_data = new char[1];
-            m_data[0] = '\0';
-            m_size = 1;
-            m_length = 0;
-        } else {
-            // copy raw bytes
-            m_size = std::strlen(str) + 1;
-            m_data = new char[m_size];
-            Memory::StrCpy(m_data, str);
-            // recalculate length
-            m_length = utf8_strlen(m_data);
-        }*/
+        if (bytes_read) {
+            u32char buffer = 0;
+            for (SizeType j = 0; j < bytes_read; j++) {
+                buffer = (buffer << 6) | bytes[j];
+            }
 
-        return *this;
-    }
-
-    Utf8String &operator=(const Utf8String &other)
-    {
-        /*if (m_data != nullptr) {
-            delete[] m_data;
+            for (SizeType j = 0; j < 3; j++) {
+                if (buffer_length_remaining) {
+                    dst[buffer_index++] = (buffer >> 16) & 0xFF;
+                    buffer <<= 8;
+                    buffer_length_remaining--;
+                }
+            }
         }
-
-        // copy raw bytes
-        m_size = std::strlen(other.m_data) + 1;
-        m_data = new char[m_size];
-        Memory::StrCpy(m_data, other.m_data);
-        m_length = other.m_length;
-
-        return *this;*/
-
-        return operator=(other.m_data);
     }
 
-    bool operator==(const char *str) const
-        { return !(strcmp(m_data, str)); }
-    bool operator==(const Utf8String &other) const
-        { return !(strcmp(m_data, other.m_data)); }
-    bool operator<(const char *str) const
-        { return (utf8_strcmp(m_data, str) == -1); }
-    bool operator<(const Utf8String &other) const
-        { return (utf8_strcmp(m_data, other.m_data) == -1); }
-    bool operator>(const char *str) const
-        { return (utf8_strcmp(m_data, str) == 1); }
-    bool operator>(const Utf8String &other) const
-        { return (utf8_strcmp(m_data, other.m_data) == 1); }
-
-    bool operator<=(const char *str) const
-    {
-        int i = utf8_strcmp(m_data, str);
-        return i == 0 || i == -1;
+    if (buffer_length_remaining) {
+        dst[buffer_index++] = 0;
     }
-
-    bool operator<=(const Utf8String &other) const
-    {
-        int i = utf8_strcmp(m_data, other.m_data);
-        return i == 0 || i == -1;
-    }
-
-    bool operator>=(const char *str) const
-    {
-        int i = utf8_strcmp(m_data, str);
-        return i == 0 || i == 1;
-    }
-
-    bool operator>=(const Utf8String &other) const
-    {
-        int i = utf8_strcmp(m_data, other.m_data);
-        return i == 0 || i == 1;
-    }
-
-    Utf8String operator+(const char *str) const
-    {
-        Utf8String result(m_length + strlen(str));
-
-        utf8_strcpy(result.m_data, m_data);
-        utf8_strcat(result.m_data, str);
-
-        // calculate length
-        result.m_length = utf8_strlen(result.m_data);
-
-        return result;
-    }
-
-    Utf8String operator+(const Utf8String &other) const
-    {
-        Utf8String result(m_length + other.m_length);
-
-        utf8_strcpy(result.m_data, m_data);
-        utf8_strcat(result.m_data, other.m_data);
-
-        // calculate length
-        result.m_length = utf8_strlen(result.m_data);
-
-        return result;
-    }
-
-    Utf8String &operator+=(const char *str)
-    {
-        size_t this_len = std::strlen(m_data);
-        size_t other_len = std::strlen(str);
-        size_t new_size = this_len + other_len + 1;
-
-        if (new_size <= m_size) {
-            std::strcat(m_data, str);
-        } else {
-            // we must delete and recreate the array
-            m_size = new_size;
-
-            char *new_data = new char[m_size];
-            hyperion::Memory::StrCpy(new_data, m_data);
-            std::strcat(new_data, str);
-            delete[] m_data;
-            m_data = new_data;
-        }
-
-        // recalculate length
-        m_length = utf8_strlen(m_data);
-
-        return *this;
-    }
-
-    Utf8String &operator+=(const Utf8String &other)
-    {
-        return operator+=(other.m_data);
-    }
-
-    u32char operator[](size_t index) const
-    {
-        u32char result;
-        if (m_data == nullptr || ((result = utf8_charat(m_data, index) == (u32char(-1))))) {
-            throw std::out_of_range("index out of range");
-        }
-        return result;
-    }
-
-    friend utf8_ostream &operator<<(utf8_ostream &os, const Utf8String &str)
-    {
-    #ifdef _WIN32
-        std::vector<wchar_t> buffer;
-        buffer.resize(MultiByteToWideChar(CP_UTF8, 0, str.m_data, -1, 0, 0));
-        MultiByteToWideChar(CP_UTF8, 0, str.m_data, -1, &buffer[0], buffer.size());
-        os << buffer.data();
-    #else
-        os << str.m_data;
-    #endif
-        return os;
-    }
-
-private:
-    char *m_data;
-    size_t m_size; // buffer size (not length)
-    size_t m_length;
-};
+}
 
 #endif
 

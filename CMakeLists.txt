@@ -344,3 +344,4 @@ endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 add_subdirectory(samples)
+add_subdirectory(editor)
