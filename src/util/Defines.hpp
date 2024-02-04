@@ -105,11 +105,20 @@
     #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
+#if defined(unix) || defined(__unix) || defined(__unix__)
+    #define HYP_UNIX 1
+#endif
+
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    #define HYP_LINUX 1
+#endif
+
 #ifdef __arm__
     #define HYP_ARM 1
 #endif
 
 #ifdef __APPLE__
+    #define HYP_UNIX 1
     #define HYP_APPLE 1
 
     #include <TargetConditionals.h>
@@ -125,10 +134,6 @@
         #define HYP_IOS 1
     #elif (TARGET_OS_OSX == 1)
         #define HYP_MACOS 1
-    #endif
-
-    #ifndef HYP_UNIX
-        #define HYP_UNIX 1
     #endif
 #endif
 

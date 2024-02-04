@@ -21,7 +21,6 @@ struct Pixel
     UByte bytes[byte_size];
 
     Pixel() = default;
-    
 
     void SetR(Float r)
     {
