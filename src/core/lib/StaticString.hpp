@@ -51,11 +51,34 @@ struct StaticString
         }
     }
 
+    template <typename IntegerSequence, Int Index = 0>
+    constexpr SizeType FindFirst() const
+    {
+        constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
+
+        if constexpr (Index > Sz - other_size) {
+            return -1;
+        } else {
+            Bool found = true;
+
+            for (SizeType j = 0; j < other_size && j < Sz; ++j) {
+                if (data[Index + j] != IntegerSequence{}.Data()[j]) {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found) {
+                return Index;
+            } else {
+                return FindFirst<IntegerSequence, Index + 1>();
+            }
+        }
+    }
+
     template <typename IntegerSequence, Int Index = Int(Sz) - Int(IntegerSequence::Size())>
     constexpr SizeType FindLast() const
     {
-        static_assert(Sz >= IntegerSequence::Size(), "OtherStaticString must be less than or equal to Size");
-
         constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
 
         if constexpr (Index < 0) {
@@ -63,7 +86,7 @@ struct StaticString
         } else {
             Bool found = true;
 
-            for (SizeType j = 0; j < other_size; ++j) {
+            for (SizeType j = 0; j < other_size && j < Sz; ++j) {
                 if (data[Index + j] != IntegerSequence{}.Data()[j]) {
                     found = false;
                     break;
@@ -81,15 +104,28 @@ struct StaticString
     template <SizeType Start, SizeType End>
     constexpr StaticString<End - Start + 1> Substr() const
     {
-        static_assert(Start < End, "Start must be less than End");
+        static_assert(Start <= End, "Start must be less or equal to End");
         static_assert(End <= Sz, "End must be less than or equal to Size");
 
-        // return [this]<SizeType ... Indices>(std::index_sequence<Indices...>)
-        // {
-        //     return StaticString<End - Start> { { data[Indices + Start]... } };
-        // }(detail::make_offset_index_sequence_t<End - Start, Start> { });
+        if constexpr (Start == End) {
+            return StaticString<1> { { '\0' } };
+        } else {
+            return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start> { });
+        }
+    }
 
-        return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start> { });
+    template <auto OtherStaticString>
+    constexpr auto Concat() const
+    {
+        if constexpr (Sz <= 1 && decltype(OtherStaticString)::size <= 1) {
+            return StaticString<1> { { '\0' } };
+        } else if constexpr (Sz <= 1) {
+            return OtherStaticString;
+        } else if constexpr (decltype(OtherStaticString)::size <= 1) {
+            return StaticString<Sz> { { data } };
+        } else {
+            return ConcatImpl<OtherStaticString>(std::make_index_sequence<Sz + decltype(OtherStaticString)::size - 1> { });
+        }
     }
 
     constexpr const char *Data() const
@@ -102,6 +138,16 @@ struct StaticString
     constexpr StaticString<sizeof...(Indices) + 1> MakeSubString(std::index_sequence<Indices...>) const
     {
         return { { data[Indices]..., '\0' } };
+    }
+
+    template <auto OtherStaticString, SizeType ... Indices>
+    constexpr auto ConcatImpl(std::index_sequence<Indices...>) const -> StaticString<Sz + decltype(OtherStaticString)::size - 1 /* remove extra null terminator */>
+    {
+        return {
+            {
+                (Indices < (Sz - 1) ? data[Indices] : OtherStaticString.data[Indices - Sz + 1])...
+            }
+        };
     }
 
     constexpr HashCode GetHashCode() const

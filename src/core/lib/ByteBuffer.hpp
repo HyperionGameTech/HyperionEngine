@@ -1,9 +1,7 @@
 #ifndef HYPERION_V2_LIB_BYTE_BUFFER_HPP
 #define HYPERION_V2_LIB_BYTE_BUFFER_HPP
 
-#include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/DynArray.hpp>
-#include <core/lib/Variant.hpp>
 #include <core/lib/Span.hpp>
 #include <core/lib/CMemory.hpp>
 #include <HashCode.hpp>
@@ -24,37 +22,25 @@ class ByteBuffer
     using InternalArray = Array<UByte, 1024u>;
 
 public:
-    ByteBuffer()
-    {
-        // default it to internal byte array
-        m_internal.Set<InternalArray>({ });
-    }
+    ByteBuffer() = default;
 
     ByteBuffer(SizeType count)
     {
-        // default it to internal byte array
-        m_internal.Set<InternalArray>({ });
         SetSize(count);
     }
 
     ByteBuffer(SizeType count, const void *data)
     {
-        // default it to internal byte array
-        m_internal.Set<InternalArray>({ });
         SetData(count, data);
     }
 
     explicit ByteBuffer(const ByteView &view)
     {
-        // default it to internal byte array
-        m_internal.Set<InternalArray>({ });
         SetData(view.size, view.ptr);
     }
 
     explicit ByteBuffer(const ConstByteView &view)
     {
-        // default it to internal byte array
-        m_internal.Set<InternalArray>({ });
         SetData(view.size, view.ptr);
     }
 
@@ -73,14 +59,11 @@ public:
     ByteBuffer(ByteBuffer &&other) noexcept
         : m_internal(std::move(other.m_internal))
     {
-        other.m_internal.Set<InternalArray>({ });
     }
 
     ByteBuffer &operator=(ByteBuffer &&other) noexcept
     {
         m_internal = std::move(other.m_internal);
-
-        other.m_internal.Set<InternalArray>({ });
 
         return *this;
     }
@@ -98,53 +81,29 @@ public:
 
         AssertThrow(offset + count <= Size());
 
-        if (m_internal.Is<RefCountedPtr<InternalArray>>()) {
-            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
-
-            Memory::MemCpy(byte_array->Data() + offset, data, count);
-        } else {
-            auto &byte_array = m_internal.Get<InternalArray>();
-
-            Memory::MemCpy(byte_array.Data() + offset, data, count);
-        }
+        Memory::MemCpy(m_internal.Data() + offset, data, count);
     }
 
     /**
-     * \brief Updates the ByteBuffer's data. If the size would go beyond the number of inline elements that can be stored, the ByteBuffer will switch to a reference counted internal byte array.
+     * \brief Updates the ByteBuffer's data with the given data.
      */
     void SetData(SizeType count, const void *data)
     {
+        m_internal.Resize(count);
+
         if (count == 0) {
             return;
         }
 
-        if (count > InternalArray::num_inline_elements) {
-            m_internal.Set(RefCountedPtr<InternalArray>(new InternalArray()));
-            
-            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
-            byte_array->Resize(count);
-
-            Memory::MemCpy(byte_array->Data(), data, count);
-        } else {
-            m_internal.Set(InternalArray { });
-            
-            auto &byte_array = m_internal.Get<InternalArray>();
-            byte_array.Resize(count);
-
-            Memory::MemCpy(byte_array.Data(), data, count);
-        }
+        Memory::MemCpy(m_internal.Data(), data, count);
     }
 
     /**
-     * \brief Returns a reference to the ByteBuffer's internal array. The reference is only valid as long as the ByteBuffer is not modified.
+     * \brief Returns a reference to the ByteBuffer's internal array
      */
     InternalArray &GetInternalArray()
     {
-        if (m_internal.Is<RefCountedPtr<InternalArray>>()) {
-            return *m_internal.Get<RefCountedPtr<InternalArray>>();
-        } else {
-            return m_internal.Get<InternalArray>();
-        }
+        return m_internal;
     }
 
     /**
@@ -262,19 +221,7 @@ public:
             return;
         }
 
-        if (count > InternalArray::num_inline_elements) {
-            m_internal.Set(RefCountedPtr<InternalArray>(new InternalArray()));
-
-            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
-
-            byte_array->Resize(count);
-        } else {
-            m_internal.Set(InternalArray { });
-
-            auto &byte_array = m_internal.Get<InternalArray>();
-
-            byte_array.Resize(count);
-        }
+        m_internal.Resize(count);
     }
 
     /**
@@ -293,36 +240,10 @@ public:
         { return GetInternalArray()[index]; }
 
     bool operator==(const ByteBuffer &other) const
-        { return m_internal.GetPointer() == other.m_internal.GetPointer(); }
+        { return m_internal == other.m_internal; }
 
     bool operator!=(const ByteBuffer &other) const
-        { return m_internal.GetPointer() != other.m_internal.GetPointer(); }
-
-    /**
-     * \brief Returns true if the ByteBuffer is sharing memory with other ByteBuffers.
-     */
-    bool IsShared() const
-    {
-        const auto *ptr = m_internal.TryGet<RefCountedPtr<InternalArray>>();
-
-        if (!ptr) {
-            return false;
-        }
-
-        return ptr->GetRefCountData()->UseCount() > 1;
-    }
-
-    /**
-     * \brief Returns a copy of the ByteBuffer. If the ByteBuffer is sharing memory with other ByteBuffers, the copy will be unique. Otherwise, the copy may share memory with the original.
-     */
-    ByteBuffer Lock() const
-    {
-        if (IsShared()) {
-            return Copy();
-        }
-
-        return *this;
-    }
+        { return m_internal != other.m_internal; }
 
     /**
      * \brief Returns a copy of the ByteBuffer, which is guaranteed to not share memory with the original.
@@ -336,7 +257,7 @@ public:
         { return GetInternalArray().GetHashCode(); }
 
 private:
-    Variant<InternalArray, RefCountedPtr<InternalArray>> m_internal;
+    InternalArray   m_internal;
 };
 
 } // namespace hyperion

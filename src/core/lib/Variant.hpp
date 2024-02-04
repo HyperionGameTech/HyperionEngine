@@ -1,10 +1,10 @@
 #ifndef HYPERION_V2_LIB_VARIANT_H
 #define HYPERION_V2_LIB_VARIANT_H
 
-#include "CMemory.hpp"
-#include "TypeID.hpp"
-#include <Constants.hpp>
+#include <core/lib/CMemory.hpp>
+#include <core/lib/TypeID.hpp>
 #include <core/lib/Traits.hpp>
+#include <Constants.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -244,7 +244,7 @@ public:
     }
     
     HYP_FORCE_INLINE
-    const TypeID &GetTypeID() const
+    TypeID GetTypeID() const
         { return m_current_type_id; }
     
     HYP_FORCE_INLINE
@@ -562,7 +562,7 @@ struct Variant
     }
     
     HYP_FORCE_INLINE
-    const TypeID &GetTypeID() const
+    TypeID GetTypeID() const
         { return m_holder.GetTypeID(); }
     
     HYP_FORCE_INLINE

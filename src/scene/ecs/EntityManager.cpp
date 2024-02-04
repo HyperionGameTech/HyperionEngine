@@ -52,6 +52,10 @@ void EntityManager::RemoveEntity(ID<Entity> id)
 
 void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
 {
+    if (std::addressof(*this) == std::addressof(other)) {
+        return;
+    }
+    
     const auto entity_it = m_entities.Find(id);
     AssertThrowMsg(entity_it != m_entities.End(), "Entity does not exist");
 

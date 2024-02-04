@@ -128,10 +128,10 @@ public:
     void Update(GameCounter::TickUnit delta);
 
 private:
-    SkeletonBoneData m_bone_data;
+    SkeletonBoneData        m_bone_data;
     
-    NodeProxy m_root_bone;
-    Array<Animation> m_animations;
+    NodeProxy               m_root_bone;
+    Array<Animation>        m_animations;
 
     mutable ShaderDataState m_shader_data_state;
 };

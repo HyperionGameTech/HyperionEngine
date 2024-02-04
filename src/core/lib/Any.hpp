@@ -179,7 +179,7 @@ public:
     /**
      * \brief Returns the TypeID of the held object.
      */
-    HYP_FORCE_INLINE const TypeID &GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
 
     /**
@@ -192,7 +192,7 @@ public:
     /**
      * \brief Returns true if the held object is of type {type_id}.
      */
-    HYP_FORCE_INLINE bool Is(const TypeID &type_id) const
+    HYP_FORCE_INLINE bool Is(TypeID type_id) const
         { return m_type_id == type_id; }
 
     /**

@@ -157,7 +157,7 @@ struct ID : IDBase
     HYP_FORCE_INLINE bool operator<(const ID &other) const
         { return IDBase::operator<(other); }
 
-    const TypeID &GetTypeID() const
+    TypeID GetTypeID() const
         { return TypeID::ForType<NormalizedType<T>>(); }
 
     HashCode GetHashCode() const

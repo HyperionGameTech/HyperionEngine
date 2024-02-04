@@ -10,19 +10,39 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct TypeID
     {
-        private uint id;
+        private uint value;
 
-        public TypeID(uint id)
+        public TypeID(uint value)
         {
-            this.id = id;
+            this.value = value;
         }
 
-        public uint ID
+        public uint Value
         {
             get
             {
-                return id;
+                return value;
             }
         }
+
+        /// <summary>
+        /// Returns the native TypeID for the given type, if it has been registered from C++ side
+        /// </summary>
+        /// <typeparam name="T">The C# type to lookup the TypeID of</typeparam>
+        /// <returns>TypeID</returns>
+        public static TypeID ForType<T>()
+        {
+            TypeID value = TypeID_ForDynamicType(typeof(T).Name);
+
+            if (value.Value == 0)
+            {
+                throw new InvalidOperationException($"TypeID for {typeof(T).Name} has not been registered from C++ side");
+            }
+
+            return value;
+        }
+
+        [DllImport("libhyperion", EntryPoint = "TypeID_ForDynamicType")]
+        private static extern TypeID TypeID_ForDynamicType(string typeName);
     }
 }

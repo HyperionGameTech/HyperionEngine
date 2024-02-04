@@ -184,7 +184,7 @@ public:
         { return Get() != nullptr; }
     
     HYP_FORCE_INLINE
-    const TypeID &GetTypeID() const
+    TypeID GetTypeID() const
         { return m_ref ? m_ref->type_id : TypeID::ForType<void>(); }
 
     /*! \brief Creates a new RefCountedPtr of T from the existing RefCountedPtr.
@@ -721,7 +721,7 @@ public:
         { return Get() != nullptr; }
     
     HYP_FORCE_INLINE
-    const TypeID &GetTypeID() const
+    TypeID GetTypeID() const
         { return m_ref ? m_ref->type_id : TypeID::ForType<void>(); }
 
     /*! \brief Drops the reference to the currently held value, if any.  */

@@ -46,17 +46,13 @@ void SourceFile::ReadIntoBuffer(const ByteBuffer &input_buffer)
 {
     AssertThrow(m_buffer.Size() >= input_buffer.Size());
 
-    if (auto buffer = m_buffer.Lock()) {
-        // make sure we have enough space in the buffer
-        if (m_position + input_buffer.Size() >= buffer.Size()) {
-            AssertThrow("not enough space in buffer");
-        }
+    // make sure we have enough space in the buffer
+    if (m_position + input_buffer.Size() >= m_buffer.Size()) {
+        AssertThrow("not enough space in buffer");
+    }
 
-        for (SizeType i = 0; i < input_buffer.Size(); i++) {
-            buffer.Data()[m_position++] = input_buffer.Data()[i];
-        }
-
-        m_buffer = buffer;
+    for (SizeType i = 0; i < input_buffer.Size(); i++) {
+        m_buffer.Data()[m_position++] = input_buffer.Data()[i];
     }
 }
 
@@ -64,17 +60,13 @@ void SourceFile::ReadIntoBuffer(const UByte *data, SizeType size)
 {
     AssertThrow(m_buffer.Size() >= size);
 
-    if (auto buffer = m_buffer.Lock()) {
-        // make sure we have enough space in the buffer
-        if (m_position + size >= buffer.Size()) {
-            AssertThrow("not enough space in buffer");
-        }
+    // make sure we have enough space in the buffer
+    if (m_position + size >= m_buffer.Size()) {
+        AssertThrow("not enough space in buffer");
+    }
 
-        for (SizeType i = 0; i < size; i++) {
-            buffer.Data()[m_position++] = data[i];
-        }
-
-        m_buffer = buffer;
+    for (SizeType i = 0; i < size; i++) {
+        m_buffer.Data()[m_position++] = data[i];
     }
 }
 

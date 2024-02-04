@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Hyperion {
+namespace Hyperion
+{
     [StructLayout(LayoutKind.Sequential, Size = 24)]
     public struct ManagedObject
     {

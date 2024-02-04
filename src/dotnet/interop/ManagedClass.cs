@@ -1,7 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Hyperion {
+namespace Hyperion
+{
     public delegate ManagedObject NewObjectDelegate();
     public delegate void FreeObjectDelegate(ManagedObject obj);
 

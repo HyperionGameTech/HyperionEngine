@@ -155,7 +155,7 @@ public:
     bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
 
-    [[nodiscard]] const TypeID &GetTypeID() const
+    [[nodiscard]] TypeID GetTypeID() const
         { return m_holder.type_id; }
 
     /*! \brief Destroys any currently held object.  */
@@ -198,7 +198,7 @@ protected:
     {
     }
 
-    [[nodiscard]] const TypeID &GetBaseTypeID() const
+    [[nodiscard]] TypeID GetBaseTypeID() const
         { return m_holder.base_type_id; }
 
     UniquePtrHolder m_holder;

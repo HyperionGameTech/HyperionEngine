@@ -1,7 +1,8 @@
 #ifndef HYPERION_V2_LIB_TYPE_ID_HPP
 #define HYPERION_V2_LIB_TYPE_ID_HPP
 
-#include <core/NameInternal.hpp>
+#include <core/lib/Mutex.hpp>
+#include <core/Name.hpp>
 #include <core/Util.hpp>
 
 #include <Types.hpp>
@@ -11,24 +12,50 @@
 
 namespace hyperion {
 
+using TypeIDValue = UInt32;
+
 struct TypeIDNameMap
 {
     static constexpr SizeType max_size = 4096;
 
-    Name names[max_size];
+    Name                        names[max_size];
+    HashMap<Name, TypeIDValue>  name_to_id;
+
+    mutable Mutex               mutex;
 
     HYP_FORCE_INLINE
     void Set(UInt index, Name name)
     {
         AssertThrowMsg(index < max_size, "TypeID out of range");
+
+        Mutex::Guard guard(mutex);
+
         names[index] = name;
+        name_to_id[name] = index;
     }
 
     HYP_FORCE_INLINE
     Name Get(UInt index) const
     {
         AssertThrowMsg(index < max_size, "TypeID out of range");
+
+        Mutex::Guard guard(mutex);
+
         return names[index];
+    }
+
+    HYP_FORCE_INLINE
+    TypeIDValue ReverseLookup(Name name) const
+    {
+        Mutex::Guard guard(mutex);
+
+        auto it = name_to_id.Find(name);
+
+        if (it != name_to_id.End()) {
+            return it->second;
+        }
+
+        return 0u;
     }
 };
 
@@ -52,7 +79,7 @@ struct TypeIDGenerator;
 
 struct TypeID
 {
-    using ValueType = UInt;
+    using ValueType = TypeIDValue;
 
 private:
     /*! \brief The underlying value of the TypeID object.
@@ -62,12 +89,16 @@ private:
     ValueType value;
 
 public:
+    static const TypeID void_type_id;
+
     template <class T>
-    static const TypeID &ForType()
+    static TypeID ForType()
         { return TypeIDGenerator<T>::GetID(); }
 
+    static TypeID ForName(struct Name name);
+
     constexpr TypeID() : value { } { }
-    constexpr TypeID(const ValueType &id) : value(id) {}
+    constexpr TypeID(ValueType id) : value(id) {}
     constexpr TypeID(const TypeID &other)
         : value(other.value)
     {
@@ -137,9 +168,9 @@ public:
     ValueType Value() const
         { return value; }
 
-    // HYP_FORCE_INLINE
-    // Name Name() const
-    //     { return TypeIDGeneratorBase::name_map.Get(value); }
+    HYP_FORCE_INLINE
+    Name Name() const
+        { return TypeIDGeneratorBase::name_map.Get(value); }
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
@@ -157,10 +188,7 @@ struct TypeIDGenerator : TypeIDGeneratorBase
     static const TypeID &GetID()
     {
         static const TypeID id = TypeID { ++TypeIDGeneratorBase::counter };
-        // Cannot use CreateNameFromStaticString_WithLock here, as we have an include order issue
-        // Due to the String class using Bytebuffer which uses UniquePtr/RefCountedPtr, which in turn uses TypeID
-        // Bytebuffer should be changed, when that's done, we can use CreateNameFromStaticString_WithLock
-        // static const TypeIDNameMapDefinition def(TypeIDGeneratorBase::name_map, id.Value(), CreateNameFromStaticString_WithLock(HashedName<TypeName<T>()>()));
+        static const TypeIDNameMapDefinition def(TypeIDGeneratorBase::name_map, id.Value(), CreateNameFromStaticString_WithLock(HashedName<TypeName<T>()>()));
 
         return id;
     }
