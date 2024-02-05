@@ -67,26 +67,14 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 
 
 Engine::Engine()
-    : shader_globals(nullptr)
 {
 }
 
 Engine::~Engine()
 {
-    m_placeholder_data.Destroy();
-    m_immediate_mode.Destroy();
-
-    HYP_SYNC_RENDER(); // just to clear anything remaining up 
-
+    // Delete our renderer instance
+    // Note: this should happen after everything in FinalizeStop
     AssertThrow(m_instance != nullptr);
-    (void)m_instance->GetDevice()->Wait();
-
-    if (shader_globals != nullptr) {
-        shader_globals->Destroy();
-
-        delete shader_globals;
-    }
-
     m_instance->Destroy();
 }
 
@@ -212,106 +200,107 @@ void Engine::Initialize(RC<Application> application)
         HYP_BREAKPOINT;
     }
 
-    shader_globals = new ShaderGlobals();
-    shader_globals->Create();
+    m_render_data.Reset(new ShaderGlobals());
+    m_render_data->Create();
 
-    m_placeholder_data.Create();
+    m_placeholder_data.Reset(new PlaceholderData());
+    m_placeholder_data->Create();
 
     m_world = CreateObject<World>();
     InitObject(m_world);
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffer());
+        ->SetElementBuffer<SceneShaderData>(0, m_render_data->scenes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
-        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer());
+        ->SetElementBuffer<LightShaderData>(0, m_render_data->lights.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
-        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer());
+        ->SetElementBuffer<EnvGridShaderData>(0, m_render_data->env_grids.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
-        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer());
+        ->SetElementBuffer<EnvProbeShaderData>(0, m_render_data->env_probes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
-        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer());
+        ->SetElementBuffer<CameraShaderData>(0, m_render_data->cameras.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer());
+        ->SetElementBuffer(0, m_render_data->shadow_map_data.GetBuffer());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, shader_globals->materials.GetBuffer());
+            ->SetElementBuffer(0, m_render_data->materials.GetBuffer());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffer());
+            ->SetElementBuffer<MaterialShaderData>(0, m_render_data->materials.GetBuffer());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
         ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffer()
+            .buffer = m_render_data->objects.GetBuffer()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
-            .buffer = shader_globals->skeletons.GetBuffer(),
+            .buffer = m_render_data->skeletons.GetBuffer(),
             .range = static_cast<UInt>(sizeof(SkeletonShaderData))
         });
 
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffer());
+        ->SetElementBuffer<SceneShaderData>(0, m_render_data->scenes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
-        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer());
+        ->SetElementBuffer<LightShaderData>(0, m_render_data->lights.GetBuffer());
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
-        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer());
+        ->SetElementBuffer<EnvGridShaderData>(0, m_render_data->env_grids.GetBuffer());
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
-        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer());
+        ->SetElementBuffer<EnvProbeShaderData>(0, m_render_data->env_probes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
-        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer());
+        ->SetElementBuffer<CameraShaderData>(0, m_render_data->cameras.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer());
+        ->SetElementBuffer(0, m_render_data->shadow_map_data.GetBuffer());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, shader_globals->materials.GetBuffer());
+            ->SetElementBuffer(0, m_render_data->materials.GetBuffer());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffer());
+            ->SetElementBuffer<MaterialShaderData>(0, m_render_data->materials.GetBuffer());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
         ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffer()
+            .buffer = m_render_data->objects.GetBuffer()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
-            .buffer = shader_globals->skeletons.GetBuffer(),
+            .buffer = m_render_data->skeletons.GetBuffer(),
             .range = static_cast<UInt>(sizeof(SkeletonShaderData))
         });
 
@@ -329,7 +318,7 @@ void Engine::Initialize(RC<Application> application)
         ->AddDescriptor<renderer::SamplerDescriptor>(renderer::DescriptorKey::SAMPLER);
 
     material_sampler_descriptor->SetSubDescriptor({
-        .sampler = &GetPlaceholderData().GetSamplerLinear()
+        .sampler = GetPlaceholderData()->GetSamplerLinear()
     });
 
     auto *material_textures_descriptor = m_instance->GetDescriptorPool()
@@ -339,7 +328,7 @@ void Engine::Initialize(RC<Application> application)
     for (UInt i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
         material_textures_descriptor->SetSubDescriptor({
             .element_index = i,
-            .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
         });
     }
 #endif
@@ -354,18 +343,18 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
 
         for (UInt env_probe_index = 0; env_probe_index < max_bound_reflection_probes; env_probe_index++) {
-            env_probe_textures_descriptor->SetElementSRV(env_probe_index, &GetPlaceholderData().GetImageViewCube1x1R8());
+            env_probe_textures_descriptor->SetElementSRV(env_probe_index, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
-            ->SetElementBuffer(0, shader_globals->env_probes.GetBuffer());
+            ->SetElementBuffer(0, m_render_data->env_probes.GetBuffer());
 
         auto *point_shadow_maps_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
 
         for (UInt shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
-            point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, &GetPlaceholderData().GetImageViewCube1x1R8());
+            point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
 
         // ssr result image
@@ -373,7 +362,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // ssao/gi combined result image
@@ -381,7 +370,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSAO_GI_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // ui placeholder image
@@ -389,7 +378,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // motion vectors result image
@@ -397,7 +386,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::MOTION_VECTORS_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // placeholder rt radiance image
@@ -405,7 +394,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // placeholder rt probe system uniforms
@@ -413,7 +402,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::RT_PROBE_UNIFORMS)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(ProbeSystemUniforms))
+                .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(ProbeSystemUniforms))
             });
 
         // placeholder rt probes irradiance image
@@ -421,7 +410,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_IRRADIANCE_GRID)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // placeholder rt probes irradiance image
@@ -429,27 +418,27 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_DEPTH_GRID)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::TEMPORAL_AA_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         // descriptor_set
         //     ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_VOLUMES)
-        //     ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.textures[0].image_view)
-        //     ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.textures[1].image_view)
-        //     ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.textures[2].image_view)
-        //     ->SetElementSRV(3, shader_globals->spherical_harmonics_grid.textures[3].image_view)
-        //     ->SetElementSRV(4, shader_globals->spherical_harmonics_grid.textures[4].image_view)
-        //     ->SetElementSRV(5, shader_globals->spherical_harmonics_grid.textures[5].image_view)
-        //     ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.textures[6].image_view)
-        //     ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.textures[7].image_view)
-        //     ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.textures[8].image_view);
+        //     ->SetElementSRV(0, m_render_data->spherical_harmonics_grid.textures[0].image_view)
+        //     ->SetElementSRV(1, m_render_data->spherical_harmonics_grid.textures[1].image_view)
+        //     ->SetElementSRV(2, m_render_data->spherical_harmonics_grid.textures[2].image_view)
+        //     ->SetElementSRV(3, m_render_data->spherical_harmonics_grid.textures[3].image_view)
+        //     ->SetElementSRV(4, m_render_data->spherical_harmonics_grid.textures[4].image_view)
+        //     ->SetElementSRV(5, m_render_data->spherical_harmonics_grid.textures[5].image_view)
+        //     ->SetElementSRV(6, m_render_data->spherical_harmonics_grid.textures[6].image_view)
+        //     ->SetElementSRV(7, m_render_data->spherical_harmonics_grid.textures[7].image_view)
+        //     ->SetElementSRV(8, m_render_data->spherical_harmonics_grid.textures[8].image_view);
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SH_GRID_BUFFER)
@@ -457,47 +446,47 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::VCT_VOXEL_UAV)
-            ->SetElementUAV(0, &GetPlaceholderData().GetImageView3D1x1x1R8Storage());
+            ->SetElementUAV(0, GetPlaceholderData()->GetImageView3D1x1x1R8Storage());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::VCT_VOXEL_UNIFORMS)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_NORMALS_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::VOXEL_GRID_IMAGE)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView3D1x1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView3D1x1x1R8());
     }
 
     // add placeholder scene data
@@ -509,14 +498,14 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SHADOW_MAPS);
         
         for (UInt i = 0; i < max_shadow_maps; i++) {
-            shadow_map_descriptor->SetElementSRV(i, &GetPlaceholderData().GetImageView2D1x1R8());
+            shadow_map_descriptor->SetElementSRV(i, GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         auto *environment_maps_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENVIRONMENT_MAPS);
 
         for (UInt i = 0; i < max_bound_environment_maps; i++) {
-            environment_maps_descriptor->SetElementSRV(i, &GetPlaceholderData().GetImageViewCube1x1R8());
+            environment_maps_descriptor->SetElementSRV(i, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
     }
 
@@ -527,7 +516,7 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::ENTITY_INSTANCES)
-            ->SetElementBuffer<EntityInstanceBatch>(0, shader_globals->entity_instance_batches.GetBuffer());
+            ->SetElementBuffer<EntityInstanceBatch>(0, m_render_data->entity_instance_batches.GetBuffer());
     }
 
     // add VCT descriptor placeholders
@@ -540,7 +529,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+            .image_view = GetPlaceholderData()->GetImageView3D1x1x1R8Storage()
         });
 
     // voxel uniforms
@@ -548,7 +537,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms))
+            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms))
         });
 
     // temporal blend image
@@ -556,21 +545,21 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(6)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+            .image_view = GetPlaceholderData()->GetImageView3D1x1x1R8Storage()
         });
     // voxel image (texture3D)
     vct_descriptor_set
         ->GetOrAddDescriptor<renderer::ImageDescriptor>(7)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8()
+            .image_view = GetPlaceholderData()->GetImageView3D1x1x1R8()
         });
     // voxel sampler
     vct_descriptor_set
         ->GetOrAddDescriptor<renderer::SamplerDescriptor>(8)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .sampler = &GetPlaceholderData().GetSamplerLinear()
+            .sampler = GetPlaceholderData()->GetSamplerLinear()
         });
 
 #else // svo tests
@@ -579,7 +568,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32))
+            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32))
         });
 
     // fragment list
@@ -587,7 +576,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>))
+            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>))
         });
 #endif
     
@@ -595,17 +584,17 @@ void Engine::Initialize(RC<Application> application)
         DescriptorSetRef descriptor_set_globals = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
-            ->SetElementImageSamplerCombined(0, &GetPlaceholderData().GetImageView3D1x1x1R8Storage(), &GetPlaceholderData().GetSamplerLinear());
+            ->SetElementImageSamplerCombined(0, GetPlaceholderData()->GetImageView3D1x1x1R8Storage(), GetPlaceholderData()->GetSamplerLinear());
 
         // add placeholder SSR image
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_FINAL_TEXTURE)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
         // sparse voxel octree buffer
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
 
         { // add placeholder gbuffer textures
             auto *gbuffer_textures = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_TEXTURES);
@@ -614,13 +603,13 @@ void Engine::Initialize(RC<Application> application)
 
             // not including depth texture here
             for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                gbuffer_textures->SetElementSRV(element_index, &GetPlaceholderData().GetImageView2D1x1R8());
+                gbuffer_textures->SetElementSRV(element_index, GetPlaceholderData()->GetImageView2D1x1R8());
 
                 ++element_index;
             }
 
             // add translucent bucket's albedo
-            gbuffer_textures->SetElementSRV(element_index, &GetPlaceholderData().GetImageView2D1x1R8());
+            gbuffer_textures->SetElementSRV(element_index, GetPlaceholderData()->GetImageView2D1x1R8());
 
             ++element_index;
         }
@@ -630,65 +619,65 @@ void Engine::Initialize(RC<Application> application)
             /* Depth texture */
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_DEPTH)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             /* Mip chain */
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_MIP_CHAIN)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             /* Gbuffer depth sampler */
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_DEPTH_SAMPLER)
-                ->SetElementSampler(0, &GetPlaceholderData().GetSamplerNearest());
+                ->SetElementSampler(0, GetPlaceholderData()->GetSamplerNearest());
 
             /* Gbuffer sampler */
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_SAMPLER)
-                ->SetElementSampler(0, &GetPlaceholderData().GetSamplerLinear());
+                ->SetElementSampler(0, GetPlaceholderData()->GetSamplerLinear());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEPTH_PYRAMID_RESULT)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_DIRECT)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_AMBIENT)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_IRRADIANCE_ACCUM)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RADIANCE)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_REFLECTION_PROBE)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
                 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RESULT)
-                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
                 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::BLUE_NOISE_BUFFER);
                 
             // descriptor_set_globals
             //     ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DOF_BLUR_HOR)
-            //     ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            //     ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             // descriptor_set_globals
             //     ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DOF_BLUR_VERT)
-            //     ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            //     ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
 
             // descriptor_set_globals
             //     ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DOF_BLUR_BLENDED)
-            //     ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+            //     ->SetElementSRV(0, GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         { // POST FX processing placeholders
@@ -699,7 +688,7 @@ void Engine::Initialize(RC<Application> application)
                 for (UInt effect_index = 0; effect_index < 4; effect_index++) {
                     descriptor->SetSubDescriptor({
                         .element_index = effect_index,
-                        .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                        .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
                     });
                 }
             }
@@ -714,19 +703,19 @@ void Engine::Initialize(RC<Application> application)
         rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(1)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(2)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
 
         rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(3)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
             });
     }
 #endif
@@ -736,7 +725,7 @@ void Engine::Initialize(RC<Application> application)
     m_render_list_container.Create();
 
     // has to be after we create framebuffers
-    m_immediate_mode.Create();
+    m_debug_drawer.Create();
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
@@ -751,37 +740,37 @@ void Engine::Compile()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         /* Finalize env probes */
-        shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize env grids */
-        shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->env_grids.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize shadow maps */
-        shader_globals->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize lights */
-        shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->lights.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize skeletons */
-        shader_globals->skeletons.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->skeletons.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize materials */
-        shader_globals->materials.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->materials.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize per-object data */
-        shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->objects.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize scene data */
-        shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->scenes.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize camera data */
-        shader_globals->cameras.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->cameras.UpdateBuffer(m_instance->GetDevice(), i);
 
-        /* Finalize immediate draw data */
-        shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
+        /* Finalize debug draw data */
+        m_render_data->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize instance batch data */
-        shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
+        m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
     }
     
     m_deferred_renderer.Create();
@@ -805,7 +794,8 @@ void Engine::Compile()
 
 void Engine::RequestStop()
 {
-    m_stop_requested.Set(true, MemoryOrder::RELAXED);
+    m_is_render_loop_active = false;
+    //m_stop_requested.Set(true, MemoryOrder::RELAXED);
 }
 
 void Engine::FinalizeStop()
@@ -814,11 +804,20 @@ void Engine::FinalizeStop()
 
     m_is_stopping = true;
     m_is_render_loop_active = false;
-    TaskSystem::GetInstance().Stop();
 
+    // Force execute any remaining render commands
+    HYP_SYNC_RENDER();
+
+    // Wait for any remaining frames to finish
     HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
 
+    // Stop task system
+    TaskSystem::GetInstance().Stop();
+
+    // Stop game thread and wait for it to finish
     if (game_thread != nullptr) {
+        game_thread->Stop();
+
         while (game_thread->IsRunning()) {
             HYP_SYNC_RENDER();
         }
@@ -831,24 +830,32 @@ void Engine::FinalizeStop()
 
     m_final_pass.Destroy();
 
-    g_safe_deleter->ForceReleaseAll();
+    // delete placeholder data
+    m_placeholder_data->Destroy();
 
-    HYP_SYNC_RENDER();
+    // delete debug drawer mode
+    m_debug_drawer.Destroy();
+
+    m_render_data->Destroy();
+
+    { // here we delete all the objects that will be enqueued to be deleted
+        // delete objects that are enqueued for deletion
+        g_safe_deleter->ForceReleaseAll();
+
+        // delete all render objects
+        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
+    }
 
     m_render_group_mapping.Clear();
-
-    HYP_SYNC_RENDER();
-
-    HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
 }
 
 void Engine::RenderNextFrame(Game *game)
 {
-    if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
-        FinalizeStop();
+    // if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    //     FinalizeStop();
 
-        return;
-    }
+    //     return;
+    // }
 
     auto frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
         GetGPUInstance()->GetDevice(),
@@ -1026,17 +1033,17 @@ void Engine::ResetRenderState(RenderStateMask mask)
 
 void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
 {
-    shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->cameras.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->materials.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->skeletons.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->cameras.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->materials.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->skeletons.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->env_grids.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
     m_deferred_renderer.GetPostProcessing().PerformUpdates();
     

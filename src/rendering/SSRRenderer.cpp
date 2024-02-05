@@ -162,7 +162,7 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : renderer::RenderCommand
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -406,12 +406,12 @@ void SSRRenderer::CreateDescriptorSets()
         // nearest sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(14)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(15)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         // scene data
         descriptor_set

@@ -308,15 +308,15 @@ void ParticleSpawner::CreateDescriptorSets()
             ->AddDescriptor<renderer::ImageDescriptor>(6)
             ->SetElementSRV(0, m_params.texture
                 ? m_params.texture->GetImageView()
-                : &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                : g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::SamplerDescriptor>(7)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::SamplerDescriptor>(8)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // gbuffer normals texture
         m_descriptor_sets[frame_index]

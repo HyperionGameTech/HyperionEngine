@@ -52,6 +52,8 @@ Result RenderCommands::Flush()
         HYPERION_RETURN_OK;
     }
 
+    // @TODO: Move to different container, release lock, and then execute commands.
+
     std::unique_lock lock(mtx);
 
     auto flush_result = scheduler.Flush();

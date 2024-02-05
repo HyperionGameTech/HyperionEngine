@@ -651,7 +651,9 @@ struct DeletionQueueBase
     std::mutex          mtx;
 
     virtual ~DeletionQueueBase() = default;
+
     virtual void Iterate() = 0;
+    virtual void ForceDeleteAll() = 0;
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -711,6 +713,25 @@ struct RenderObjectDeleter
             }
         }
 
+        virtual void ForceDeleteAll() override
+        {
+            if (!Base::num_items.Get(MemoryOrder::ACQUIRE)) {
+                return;
+            }
+
+            Base::mtx.lock();
+
+            for (auto &it : items) {
+                HYPERION_ASSERT_RESULT(it.first->Destroy(v2::GetEngineDevice()));
+            }
+
+            items.Clear();
+
+            Base::num_items.Set(0, MemoryOrder::RELEASE);
+
+            Base::mtx.unlock();
+        }
+
         void Push(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)
         {
             Base::num_items.Increment(1, MemoryOrder::RELAXED);
@@ -761,6 +782,16 @@ struct RenderObjectDeleter
 
         while (*queue) {
             (*queue)->Iterate();
+            ++queue;
+        }
+    }
+
+    static void ForceDeleteAll()
+    {
+        DeletionQueueBase **queue = queues.Data();
+
+        while (*queue) {
+            (*queue)->ForceDeleteAll();
             ++queue;
         }
     }

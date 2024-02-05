@@ -33,7 +33,7 @@
 namespace hyperion::v2 {
 
 class Engine;
-class ImmediateMode;
+class DebugDrawer;
 
 using renderer::Frame;
 using renderer::DescriptorSet;
@@ -56,10 +56,10 @@ struct DebugDrawCommand
 
 class DebugDrawCommandList
 {
-    friend class ImmediateMode;
+    friend class DebugDrawer;
 
-    DebugDrawCommandList(ImmediateMode *immediate_mode)
-        : m_immediate_mode(immediate_mode)
+    DebugDrawCommandList(DebugDrawer *immediate_mode)
+        : m_debug_drawer(immediate_mode)
     {
     }
 
@@ -74,26 +74,19 @@ public:
     void Commit();
 
 private:
-    ImmediateMode *m_immediate_mode;
+    DebugDrawer *m_debug_drawer;
     Array<DebugDrawCommand> m_draw_commands;
 };
 
-class ImmediateMode
+class DebugDrawer
 {
 public:
-    ImmediateMode();
-    ~ImmediateMode();
+    DebugDrawer();
+    ~DebugDrawer();
 
     void Create();
     void Destroy();
-
-    void Render(
-        
-        Frame *frame
-    );
-
-    DebugDrawCommandList DebugDrawer()
-        { return DebugDrawCommandList(this); }
+    void Render(Frame *frame);
 
     void CommitCommands(DebugDrawCommandList &&command_list);
     

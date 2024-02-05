@@ -14,15 +14,16 @@ enum class CommandName : UInt
 
 struct CommandEntry
 {
-    CommandName command_name;
+    CommandName     command_name;
     UByte           flags;
-    Array<String>   args;
+    String          json_string;
 };
 
 class CommandQueue
 {
 public:
     static constexpr UInt8 magic = 0xAE;
+    static constexpr SizeType max_size = 1024 * 1024;
 
     bool IsLocked() const
         { return m_flags & 0x1; }
@@ -66,6 +67,10 @@ public:
             return 0;
         }
 
+        if (size_uint > max_size) {
+            return 0;
+        }
+
         const UInt32 original_size = size_uint;
 
         DebugLog(LogType::Debug, "size_uint = %u\n", size_uint);
@@ -75,9 +80,8 @@ public:
 
             // read each item
             // a command consists of UInt32 = command enum
-            // uint32 for number of args
-            // and a variable number of serialized string arguments,
-            // which each with a UInt32 length param
+            // UInt32 = length of json string
+            // json string
 
             // read enum member
             UInt32 command_name_uint = 0;
@@ -96,46 +100,31 @@ public:
 
             command.flags = data[index++];
 
-            // now we read number of args
-            UInt32 num_args_uint = 0;
-            num_args_uint |= (UInt32(data[index++]) << 24);
-            num_args_uint |= (UInt32(data[index++]) << 16);
-            num_args_uint |= (UInt32(data[index++]) << 8);
-            num_args_uint |= (UInt32(data[index++]));
+            // read uint32 of string length.
+            UInt32 string_length_uint = 0;
+            string_length_uint |= (UInt32(data[index++]) << 24);
+            string_length_uint |= (UInt32(data[index++]) << 16);
+            string_length_uint |= (UInt32(data[index++]) << 8);
+            string_length_uint |= (UInt32(data[index++]));
 
-            command.args.Reserve(num_args_uint);
+            if (string_length_uint != 0) {
+                char *str = new char[string_length_uint + 1];
 
-            while (num_args_uint) {
-                // read uint32 of string length.
-                UInt32 string_length_uint = 0;
-                string_length_uint |= (UInt32(data[index++]) << 24);
-                string_length_uint |= (UInt32(data[index++]) << 16);
-                string_length_uint |= (UInt32(data[index++]) << 8);
-                string_length_uint |= (UInt32(data[index++]));
-
-                if (string_length_uint != 0) {
-                    char *str = new char[string_length_uint + 1];
-
-                    for (UInt i = 0; i < string_length_uint; i++) {
-                        if (index >= size) {
-                            // invalid data
-                            delete[] str;
-                            return 0;
-                        }
-
-                        str[i] = data[index++];
+                for (UInt i = 0; i < string_length_uint; i++) {
+                    if (index >= size) {
+                        // invalid data
+                        delete[] str;
+                        return 0;
                     }
 
-                    str[string_length_uint] = '\0';
-
-                    command.args.PushBack(str);
-
-                    delete[] str;
-                } else {
-                    command.args.PushBack(String::empty);
+                    str[i] = data[index++];
                 }
 
-                --num_args_uint;
+                str[string_length_uint] = '\0';
+
+                command.json_string = String(str);
+
+                delete[] str;
             }
 
             out.m_entries.PushBack(std::move(command));
@@ -167,22 +156,14 @@ public:
             // command flags (byte)
             out.PushBack(command.flags);
 
-            // command # of args (uint32)
-            out.PushBack((static_cast<UInt32>(command.args.Size()) & 0xff000000) >> 24);
-            out.PushBack((static_cast<UInt32>(command.args.Size()) & 0x00ff0000) >> 16);
-            out.PushBack((static_cast<UInt32>(command.args.Size()) & 0x0000ff00) >> 8);
-            out.PushBack((static_cast<UInt32>(command.args.Size()) & 0x000000ff));
+            // string size (uint32) note we encode size not length, as we are counting in bytes
+            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0xff000000) >> 24);
+            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x00ff0000) >> 16);
+            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x0000ff00) >> 8);
+            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x000000ff));
 
-            for (auto &argument : command.args) {
-                // string size (uint32) note we encode size not length, as we are counting in bytes
-                out.PushBack((static_cast<UInt32>(argument.Size()) & 0xff000000) >> 24);
-                out.PushBack((static_cast<UInt32>(argument.Size()) & 0x00ff0000) >> 16);
-                out.PushBack((static_cast<UInt32>(argument.Size()) & 0x0000ff00) >> 8);
-                out.PushBack((static_cast<UInt32>(argument.Size()) & 0x000000ff));
-
-                for (SizeType i = 0; i < argument.Size(); i++) {
-                    out.PushBack(static_cast<UByte>(argument[i]));
-                }
+            for (SizeType i = 0; i < command.json_string.Size(); i++) {
+                out.PushBack(static_cast<UByte>(command.json_string[i]));
             }
         }
 

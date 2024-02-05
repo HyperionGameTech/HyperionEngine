@@ -1,4 +1,4 @@
-#include <rendering/debug/ImmediateMode.hpp>
+#include <rendering/debug/DebugDrawer.hpp>
 #include <util/MeshBuilder.hpp>
 #include <Engine.hpp>
 
@@ -28,16 +28,16 @@ struct RENDER_COMMAND(CreateImmediateModeDescriptors) : renderer::RenderCommand
     }
 };
 
-ImmediateMode::ImmediateMode()
+DebugDrawer::DebugDrawer()
 {
     m_draw_commands.Reserve(256);
 }
 
-ImmediateMode::~ImmediateMode()
+DebugDrawer::~DebugDrawer()
 {
 }
 
-void ImmediateMode::Create()
+void DebugDrawer::Create()
 {
     m_shapes[UInt(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(8);
     m_shapes[UInt(DebugDrawShape::BOX)] = MeshBuilder::Cube();
@@ -96,7 +96,7 @@ void ImmediateMode::Create()
     }
 }
 
-void ImmediateMode::Destroy()
+void DebugDrawer::Destroy()
 {
     m_shapes = { };
 
@@ -106,7 +106,7 @@ void ImmediateMode::Destroy()
     SafeRelease(std::move(m_descriptor_sets));
 }
 
-void ImmediateMode::Render(Frame *frame)
+void DebugDrawer::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -178,7 +178,7 @@ void ImmediateMode::Render(Frame *frame)
     m_draw_commands.Clear();
 }
 
-void ImmediateMode::UpdateDrawCommands()
+void DebugDrawer::UpdateDrawCommands()
 {
     std::lock_guard guard(m_draw_commands_mutex);
 
@@ -189,7 +189,7 @@ void ImmediateMode::UpdateDrawCommands()
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
 }
 
-void ImmediateMode::CommitCommands(DebugDrawCommandList &&command_list)
+void DebugDrawer::CommitCommands(DebugDrawCommandList &&command_list)
 {
     std::lock_guard guard(m_draw_commands_mutex);
     
@@ -197,7 +197,7 @@ void ImmediateMode::CommitCommands(DebugDrawCommandList &&command_list)
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
 
-void ImmediateMode::Sphere(const Vector3 &position, Float radius, Color color)
+void DebugDrawer::Sphere(const Vector3 &position, Float radius, Color color)
 {
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
@@ -206,7 +206,7 @@ void ImmediateMode::Sphere(const Vector3 &position, Float radius, Color color)
     });
 }
 
-void ImmediateMode::Box(const Vector3 &position, const Vector3 &size, Color color)
+void DebugDrawer::Box(const Vector3 &position, const Vector3 &size, Color color)
 {
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::BOX,
@@ -215,7 +215,7 @@ void ImmediateMode::Box(const Vector3 &position, const Vector3 &size, Color colo
     });
 }
 
-void ImmediateMode::Plane(const FixedArray<Vector3, 4> &points, Color color)
+void DebugDrawer::Plane(const FixedArray<Vector3, 4> &points, Color color)
 {
     Vector3 x = (points[1] - points[0]).Normalize();
     Vector3 y = (points[2] - points[0]).Normalize();
@@ -267,7 +267,7 @@ void DebugDrawCommandList::Plane(const Vector3 &position, const Vector2 &size, C
 
 void DebugDrawCommandList::Commit()
 {
-    m_immediate_mode->CommitCommands(std::move(*this));
+    m_debug_drawer->CommitCommands(std::move(*this));
 }
 
 } // namespace hyperion::v2

@@ -29,7 +29,7 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
     {
         ImageView *result_texture_view = result_texture.IsValid()
             ? result_texture->GetImageView()
-            : &g_engine->GetPlaceholderData().GetImageView2D1x1R8();
+            : g_engine->GetPlaceholderData()->GetImageView2D1x1R8();
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // Add the final result to the global descriptor set
@@ -179,13 +179,13 @@ void TemporalAA::CreateComputePipelines()
         }
 
         if (auto *descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerLinear))) {
-            descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            descriptor->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
         } else {
             AssertThrowMsg(false, "Could not find descriptor SamplerLinear");
         }
 
         if (auto *descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerNearest))) {
-            descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            descriptor->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
         } else {
             AssertThrowMsg(false, "Could not find descriptor SamplerNearest");
         }

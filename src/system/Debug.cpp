@@ -66,7 +66,8 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     vfprintf(HYP_DEBUG_OUTPUT_STREAM, fmt, args);
     va_end(args);
 
-    //fflush(HYP_DEBUG_OUTPUT_STREAM);
+    // Flush the output stream in debug mode in case of a crash
+    fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 
 #endif

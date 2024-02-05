@@ -653,7 +653,7 @@ void EnvGrid::OnRender(Frame *frame)
                 probe_color = Color(1.0f);
             }
 
-            g_engine->GetImmediateMode().Sphere(
+            g_engine->GetDebugDrawer().Sphere(
                 probe->GetDrawProxy().world_position,
                 0.5f,
                 probe_color
@@ -804,7 +804,7 @@ void EnvGrid::CreateVoxelGridData()
 
             mip_descriptor_set
                 ->AddDescriptor<renderer::SamplerDescriptor>(2)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+                ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
             // DeferCreate(mip_descriptor_set, g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool());
 
@@ -848,13 +848,13 @@ void EnvGrid::CreateVoxelGridData()
         }
 
         if (auto *sampler_linear_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerLinear))) {
-            sampler_linear_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            sampler_linear_descriptor->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
         } else {
             AssertThrowMsg(false, "Missing descriptor for SamplerLinear");
         }
 
         if (auto *sampler_nearest_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerNearest))) {
-            sampler_nearest_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            sampler_nearest_descriptor->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
         } else {
             AssertThrowMsg(false, "Missing descriptor for SamplerNearest");
         }
@@ -950,10 +950,10 @@ void EnvGrid::CreateSHData()
         m_compute_sh_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
-            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
+            ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(2)
             ->SetElementBuffer(m_sh_tiles_buffer);
@@ -1142,19 +1142,19 @@ void EnvGrid::CreateLightFieldData()
         m_light_field_probe_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
-            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
+            ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(1)
-            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
+            ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(2)
-            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
+            ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(3)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(4)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(5)
             ->SetElementUAV(0, m_light_field_color_texture->GetImageView());
@@ -1179,7 +1179,7 @@ void EnvGrid::CreateLightFieldData()
                 ->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
         } else {
             m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(11)
-                ->SetElementUAV(0, &g_engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage());
+                ->SetElementUAV(0, g_engine->GetPlaceholderData()->GetImageView3D1x1x1R8Storage());
         }
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(12)

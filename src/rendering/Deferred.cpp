@@ -562,12 +562,12 @@ void DeferredRenderer::CreateDescriptorSets()
         /* Gbuffer depth sampler */
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_DEPTH_SAMPLER)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         /* Gbuffer sampler */
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_SAMPLER)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinearMipmap());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinearMipmap());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEPTH_PYRAMID_RESULT)
@@ -833,7 +833,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             g_engine->GetRenderState().UnsetActiveEnvProbe();
         }
 
-        g_engine->GetImmediateMode().Render(frame);
+        g_engine->GetDebugDrawer().Render(frame);
 
         m_translucent_fbo->EndCapture(frame_index, primary);
     }

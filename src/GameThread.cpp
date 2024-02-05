@@ -1,7 +1,6 @@
-#include "GameThread.hpp"
-#include "Engine.hpp"
-#include "Game.hpp"
-#include "GameCounter.hpp"
+#include <Engine.hpp>
+#include <Game.hpp>
+#include <GameCounter.hpp>
 #include <util/Defines.hpp>
 #include <math/MathUtil.hpp>
 
@@ -15,6 +14,11 @@ GameThread::GameThread()
     : Thread(Threads::thread_ids.At(THREAD_GAME)),
       m_is_running { false }
 {
+}
+
+void GameThread::Stop()
+{
+    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 void GameThread::operator()(Game *game)
@@ -31,7 +35,7 @@ void GameThread::operator()(Game *game)
     
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (!g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    while (m_is_running.Get(MemoryOrder::RELAXED)) {
         if (auto num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 
@@ -58,8 +62,6 @@ void GameThread::operator()(Game *game)
     });
 
     game->Teardown();
-
-    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 } // namespace hyperion::v2

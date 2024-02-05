@@ -12,10 +12,13 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/camera/FirstPersonCamera.hpp>
-#include <system/CommandQueue.hpp>
 #include <core/system/SharedMemory.hpp>
+#include <core/net/Socket.hpp>
+#include <core/net/MessageQueue.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/String.hpp>
+#include <system/CommandQueue.hpp>
+#include <system/StackDump.hpp>
 
 #include <sys/semaphore.h>
 #include <sys/fcntl.h>
@@ -32,7 +35,7 @@ class Editor : public Game
 {
 public:
     Editor(RC<Application> application);
-    virtual ~Editor() = default;
+    virtual ~Editor();
 
     virtual void InitGame() override;
     virtual void InitRender() override;
@@ -44,17 +47,96 @@ public:
     virtual void OnFrameEnd(Frame *frame) override;
 
 private:
-    ByteBuffer m_screen_buffer;
+    ByteBuffer          m_screen_buffer;
+    net::SocketServer   m_socket_server;
+    net::MessageQueue   m_message_queue;
 };
 
 Editor::Editor(RC<Application> application)
-    : Game(application)
+    : Game(application),
+      m_socket_server("hyperion_editor.sock")
 {
+}
+
+Editor::~Editor()
+{
+    m_socket_server.Stop();
 }
 
 void Editor::InitGame()
 {
     Game::InitGame();
+
+    { // init server
+        DebugLog(
+            LogType::Info,
+            "Starting editor socket server\n"
+        );
+
+        m_socket_server.SetEventProc(
+            HYP_NAME(OnServerStarted),
+            [](Array<net::SocketProcArgument> &&args)
+            {
+                DebugLog(
+                    LogType::Info,
+                    "Socket server started\n"
+                );
+            }
+        );
+
+        m_socket_server.SetEventProc(
+            HYP_NAME(OnError),
+            [](Array<net::SocketProcArgument> &&args)
+            {
+                DebugLog(
+                    LogType::Error,
+                    "Socket error: %s\n",
+                    args[0].Get<String>().Data()
+                );
+            }
+        );
+
+        m_socket_server.SetEventProc(
+            HYP_NAME(OnClientConnected),
+            [](Array<net::SocketProcArgument> &&args)
+            {
+                DebugLog(
+                    LogType::Info,
+                    "Socket client connected: %s\n",
+                    args[0].Get<Name>().LookupString()
+                );
+            }
+        );
+
+        m_socket_server.SetEventProc(
+            HYP_NAME(OnClientDisconnected),
+            [](Array<net::SocketProcArgument> &&args)
+            {
+                DebugLog(
+                    LogType::Info,
+                    "Socket client disconnected: %s\n",
+                    args[0].Get<Name>().LookupString()
+                );
+            }
+        );
+
+        m_socket_server.SetEventProc(
+            HYP_NAME(OnClientData),
+            [](Array<net::SocketProcArgument> &&args)
+            {
+                DebugLog(
+                    LogType::Info,
+                    "Socket message received from %s\n",
+                    args[0].Get<Name>().LookupString()
+                );
+            }
+        );
+
+        if (!m_socket_server.Start()) {
+            HYP_THROW("Failed to start editor server");
+        }
+    }
+
 
     m_scene->SetCamera(CreateObject<Camera>(
         70.0f,
@@ -171,6 +253,8 @@ void Editor::Teardown()
 
 void Editor::Logic(GameCounter::TickUnit delta)
 {
+    // Rewrite command queue
+#if 0
     if (command_queue_shared != nullptr) {
         sem_wait(semaphore);
         CommandQueue command_queue;
@@ -204,6 +288,7 @@ void Editor::Logic(GameCounter::TickUnit delta)
         command_queue.Write(*command_queue_shared);
         sem_post(semaphore);
     }
+#endif
 }
 
 void Editor::OnInputEvent(const SystemEvent &event)
@@ -227,6 +312,9 @@ void Editor::OnFrameEnd(Frame *frame)
 
         AssertThrow(m_screen_buffer.Size() == 1024 * 1024 * 4);
 
+        AssertThrow(framebuffer_shared != nullptr);
+        AssertThrow(framebuffer_shared->GetSize() == m_screen_buffer.Size());
+
         // test - write red
         // for (SizeType i = 0; i < m_screen_buffer.Size(); i += 4) {
         //     m_screen_buffer.Data()[i] = 255;
@@ -241,8 +329,57 @@ void Editor::OnFrameEnd(Frame *frame)
     }
 }
 
+void HandleSignal(int signum)
+{
+    // Dump stack trace
+    DebugLog(
+        LogType::Warn,
+        "Received signal %d\n",
+        signum
+    );
+
+    if (signum == SIGSEGV || signum == SIGABRT || signum == SIGFPE || signum == SIGTRAP || signum == SIGILL) {
+        const StackDump stack_dump;
+
+        fprintf(stderr, "Received signal %d\n", signum);
+        fprintf(stderr, "%s\n", stack_dump.ToString().Data());
+
+        fflush(stderr);
+
+        std::abort();
+
+        return;
+    }
+
+    if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
+        DebugLog(
+            LogType::Warn,
+            "Forcing stop\n"
+        );
+
+        fflush(stdout);
+
+        exit(signum);
+
+        return;
+    }
+
+    g_engine->RequestStop();
+
+    while (g_engine->IsRenderLoopActive());
+
+    exit(signum);
+}
+
 int main(int argc, char *argv[])
 {
+    signal(SIGINT, HandleSignal);
+    signal(SIGSEGV, HandleSignal);
+    signal(SIGABRT, HandleSignal);
+    signal(SIGFPE, HandleSignal);
+    signal(SIGILL, HandleSignal);
+    signal(SIGTRAP, HandleSignal);
+
     if (argc > 1) {
         framebuffer_shared = new SharedMemory(argv[1], 1024 * 1024 * 4, SharedMemory::Mode::READ_WRITE);
         AssertThrow(framebuffer_shared->Open());

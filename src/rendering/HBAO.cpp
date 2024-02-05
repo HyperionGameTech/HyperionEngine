@@ -191,7 +191,7 @@ void HBAO::Destroy()
 
                 descriptor_set_globals
                     ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSAO_GI_RESULT)
-                    ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                    ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
 
             return result;
@@ -264,12 +264,12 @@ void HBAO::CreateDescriptorSets()
         // nearest sampler
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(5)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(6)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         // scene buffer
         descriptor_set
@@ -311,12 +311,12 @@ void HBAO::CreateBlurComputeShaders()
             // nearest sampler
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(2)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+                ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
             // linear sampler
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(3)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+                ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
             // output image
             descriptor_set

@@ -142,7 +142,7 @@ void PostProcessing::Create()
                 auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(descriptor_key);
 
                 for (UInt effect_index = 0; effect_index < 8; effect_index++) {
-                    descriptor->SetElementSRV(effect_index, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                    descriptor->SetElementSRV(effect_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
                 }
             }
         }

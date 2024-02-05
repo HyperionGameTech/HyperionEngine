@@ -129,14 +129,14 @@ struct RENDER_COMMAND(DestroyProbeGridDescriptors) : renderer::RenderCommand
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_IRRADIANCE_GRID)
                 ->SetSubDescriptor({
                     .element_index = 0u,
-                    .image_view = &g_engine->GetPlaceholderData().GetImageView2D1x1R8()
+                    .image_view = g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
                 });
             
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_DEPTH_GRID)
                 ->SetSubDescriptor({
                     .element_index = 0u,
-                    .image_view = &g_engine->GetPlaceholderData().GetImageView2D1x1R8()
+                    .image_view = g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
                 });
         }
 
@@ -498,16 +498,16 @@ void ProbeGrid::CreateDescriptorSets()
             ->GetOrAddDescriptor<ImageDescriptor>(16);
         
         for (UInt i = 0; i < max_shadow_maps; i++) {
-            shadow_map_descriptor->SetElementSRV(i, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+            shadow_map_descriptor->SetElementSRV(i, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         // Nearest sampler
         descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(17)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // Linear sampler
         descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(18)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

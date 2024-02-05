@@ -16,7 +16,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderCommand.hpp>
-#include <rendering/debug/ImmediateMode.hpp>
+#include <rendering/debug/DebugDrawer.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
@@ -135,10 +135,9 @@ public:
     RenderState &GetRenderState() { return render_state; }
     const RenderState &GetRenderState() const { return render_state; }
 
-    ShaderGlobals *GetRenderData() const { return shader_globals; }
+    ShaderGlobals *GetRenderData() const { return m_render_data.Get(); }
     
-    PlaceholderData &GetPlaceholderData() { return m_placeholder_data; }
-    const PlaceholderData &GetPlaceholderData() const { return m_placeholder_data; }
+    PlaceholderData *GetPlaceholderData() const { return m_placeholder_data.Get(); }
     
     ObjectPool &GetObjectPool() { return registry; }
     const ObjectPool &GetObjectPool() const { return registry; }
@@ -152,8 +151,8 @@ public:
     ShaderCompiler &GetShaderCompiler() { return m_shader_compiler; }
     const ShaderCompiler &GetShaderCompiler() const { return m_shader_compiler; }
 
-    ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
-    const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
+    DebugDrawer &GetDebugDrawer() { return m_debug_drawer; }
+    const DebugDrawer &GetDebugDrawer() const { return m_debug_drawer; }
 
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.At(type); }
@@ -180,9 +179,6 @@ public:
 
     void AddRenderGroup(Handle<RenderGroup> &render_group);
 
-    const auto &GetRenderGroupMapping() const
-        { return m_render_group_mapping; }
-
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
@@ -194,8 +190,6 @@ public:
     void RenderDeferred(Frame *frame);
 
     void RenderNextFrame(Game *game);
-
-    ShaderGlobals *shader_globals;
 
     EngineCallbacks callbacks;
 
@@ -293,13 +287,15 @@ private:
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_group_mapping;
     std::mutex m_render_group_mapping_mutex;
 
-    PlaceholderData m_placeholder_data;
+    UniquePtr<ShaderGlobals>    m_render_data;
+
+    UniquePtr<PlaceholderData>  m_placeholder_data;
 
     Handle<World> m_world;
     
     Configuration m_configuration;
 
-    ImmediateMode m_immediate_mode;
+    DebugDrawer m_debug_drawer;
 
     FinalPass m_final_pass;
 

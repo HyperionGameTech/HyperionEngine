@@ -30,7 +30,7 @@ struct RENDER_COMMAND(SetEnvironmentMap) : renderer::RenderCommand
             if (environment_map.IsValid()) {
                 environment_maps_descriptor->SetElementSRV(index, environment_map->GetImageView());
             } else {
-                environment_maps_descriptor->SetElementSRV(index, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
+                environment_maps_descriptor->SetElementSRV(index, g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
             }
         }
 

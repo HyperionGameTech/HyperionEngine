@@ -16,7 +16,7 @@ static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<
 
     const UInt32 id_index = batch.num_entities++;
     batch.indices[id_index] = UInt32(entity_id.ToIndex());
-    g_engine->shader_globals->entity_instance_batches.MarkDirty(batch_index);
+    g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
 
     return true;
 }
@@ -66,7 +66,7 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
 
             draw_call.entity_ids[draw_call.entity_id_count++] = entity_draw_data.entity_id;
 
-            AssertThrow(draw_call.entity_id_count == g_engine->shader_globals->entity_instance_batches.Get(draw_call.batch_index).num_entities);
+            AssertThrow(draw_call.entity_id_count == g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index).num_entities);
 
             return;
         }
@@ -89,7 +89,7 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     draw_call.entity_ids[0] = entity_draw_data.entity_id;
     draw_call.entity_id_count = 1;
 
-    draw_call.batch_index = batch_index == 0 ? g_engine->shader_globals->entity_instance_batches.AcquireTicket() : batch_index;
+    draw_call.batch_index = batch_index == 0 ? g_engine->GetRenderData()->entity_instance_batches.AcquireTicket() : batch_index;
 
     PushEntityToBatch(draw_call.batch_index, entity_draw_data.entity_id);
 
@@ -125,7 +125,7 @@ void DrawCallCollection::Reset()
 {
     for (const DrawCall &draw_call : draw_calls) {
         if (draw_call.batch_index) {
-            g_engine->shader_globals->entity_instance_batches.ReleaseTicket(draw_call.batch_index);
+            g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(draw_call.batch_index);
         }
     }
 

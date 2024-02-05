@@ -53,16 +53,16 @@ void BindlessStorage::AddResource(Texture *texture)
 
         switch (texture->GetFilterMode()) {
         case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
-            sampler = &g_engine->GetPlaceholderData().GetSamplerLinearMipmap();
+            sampler = g_engine->GetPlaceholderData()->GetSamplerLinearMipmap();
 
             break;
         case FilterMode::TEXTURE_FILTER_LINEAR:
-            sampler = &g_engine->GetPlaceholderData().GetSamplerLinear();
+            sampler = g_engine->GetPlaceholderData()->GetSamplerLinear();
 
             break;
         case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
         default:
-            sampler = &g_engine->GetPlaceholderData().GetSamplerNearest();
+            sampler = g_engine->GetPlaceholderData()->GetSamplerNearest();
 
             break;
         }
@@ -94,8 +94,8 @@ void BindlessStorage::RemoveResource(ID<Texture> id)
 
         descriptor->SetElementImageSamplerCombined(
             id.ToIndex(),
-            &g_engine->GetPlaceholderData().GetImageView2D1x1R8(),
-            &g_engine->GetPlaceholderData().GetSamplerLinear()
+            g_engine->GetPlaceholderData()->GetImageView2D1x1R8(),
+            g_engine->GetPlaceholderData()->GetSamplerLinear()
         );
     }
 

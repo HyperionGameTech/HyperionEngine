@@ -179,14 +179,14 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(3)
                 ->SetSubDescriptor({
-                    .sampler = &g_engine->GetPlaceholderData().GetSamplerLinear()
+                    .sampler = g_engine->GetPlaceholderData()->GetSamplerLinear()
                 });
 
             // sampler to use
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(4)
                 ->SetSubDescriptor({
-                    .sampler = &g_engine->GetPlaceholderData().GetSamplerNearest()
+                    .sampler = g_engine->GetPlaceholderData()->GetSamplerNearest()
                 });
 
             // blurred output
@@ -200,7 +200,7 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
                 ->SetSubDescriptor({
-                    .buffer = g_engine->shader_globals->scenes.GetBuffer(),
+                    .buffer = g_engine->GetRenderData()->scenes.GetBuffer(),
                     .range = static_cast<UInt>(sizeof(SceneShaderData))
                 });
 

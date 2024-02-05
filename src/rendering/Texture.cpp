@@ -26,10 +26,10 @@ const FixedArray<std::pair<Vector3, Vector3>, 6> Texture::cubemap_directions = {
 
 struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 {
-    Texture *texture;
+    Texture                 *texture;
     renderer::ResourceState initial_state;
-    ImageRef image;
-    ImageViewRef image_view;
+    ImageRef                image;
+    ImageViewRef            image_view;
 
     RENDER_COMMAND(CreateTexture)(
         Texture *texture,
@@ -60,9 +60,9 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 
 struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 {
-    ID<Texture> id;
-    ImageRef image;
-    ImageViewRef image_view;
+    ID<Texture>     id;
+    ImageRef        image;
+    ImageViewRef    image_view;
 
     RENDER_COMMAND(DestroyTexture)(
         ID<Texture> id,
@@ -324,12 +324,12 @@ public:
                 // linear sampler
                 descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(1)
-                    ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+                    ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
                 // nearest / point sampler
                 descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(2)
-                    ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+                    ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
                 PUSH_RENDER_COMMAND(CreateMipDescriptorSet, descriptor_set);
 

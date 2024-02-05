@@ -16,9 +16,31 @@ void InitializeApplication(RC<Application> application)
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;
 
-    g_engine->Initialize(application);
+    g_engine->Initialize(std::move(application));
 
     dotnet::DotNetSystem::GetInstance().Initialize();
+}
+
+void ShutdownApplication()
+{
+    AssertThrowMsg(
+        g_engine != nullptr,
+        "Hyperion not initialized!"
+    );
+
+    dotnet::DotNetSystem::GetInstance().Shutdown();
+
+    delete g_asset_manager;
+    g_asset_manager = nullptr;
+
+    delete g_shader_manager;
+    g_shader_manager = nullptr;
+
+    delete g_material_system;
+    g_material_system = nullptr;
+
+    delete g_engine;
+    g_engine = nullptr;
 }
 
 } // namespace hyperion

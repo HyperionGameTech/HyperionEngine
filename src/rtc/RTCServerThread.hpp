@@ -12,6 +12,7 @@ class RTCServerThread final : public Thread<Scheduler<Task<void>>, RTCServer *>
 {
 public:
     RTCServerThread();
+    virtual ~RTCServerThread() override = default;
 
     void Stop();
 

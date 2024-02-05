@@ -104,7 +104,7 @@ struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : renderer::RenderCommand
             // set to placeholder image
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
-                ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         return result;
@@ -367,11 +367,11 @@ void RTRadianceRenderer::CreateDescriptorSets()
         
         // materials
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(3)
-            ->SetElementBuffer(0, g_engine->shader_globals->materials.GetBuffer());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->materials.GetBuffer());
         
         // entities
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(4)
-            ->SetElementBuffer(0, g_engine->shader_globals->objects.GetBuffer());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffer());
         
         // lights
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5)
@@ -395,12 +395,12 @@ void RTRadianceRenderer::CreateDescriptorSets()
         // nearest sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(9)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(10)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         // blue noise buffer
         descriptor_set

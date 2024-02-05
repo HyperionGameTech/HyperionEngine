@@ -541,11 +541,11 @@ void GaussianSplattingInstance::CreateDescriptorSets()
 
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::SamplerDescriptor>(7)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+                ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::SamplerDescriptor>(8)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+                ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
         }
     }
 

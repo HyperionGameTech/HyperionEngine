@@ -296,7 +296,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().Front()->GetImageView());
 
         m_blur_descriptor_sets[i]->AddDescriptor<SamplerDescriptor>(1)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         m_blur_descriptor_sets[i]->AddDescriptor<StorageImageDescriptor>(2)
             ->SetElementUAV(0, m_shadow_map->GetImageView());

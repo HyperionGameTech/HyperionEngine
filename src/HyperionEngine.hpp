@@ -9,6 +9,7 @@ namespace hyperion {
 using namespace v2;
 
 void InitializeApplication(RC<Application> application);
+void ShutdownApplication();
 
 } // namespace hyperion
 

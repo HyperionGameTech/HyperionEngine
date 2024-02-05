@@ -1,4 +1,5 @@
 ﻿#include "SampleStreamer.hpp"
+#include <system/StackDump.hpp>
 #include <util/ArgParse.hpp>
 
 #include <HyperionEngine.hpp>
@@ -8,6 +9,15 @@ using namespace hyperion;
 
 void HandleSignal(int signum)
 {
+    // Dump stack trace
+    DebugLog(
+        LogType::Warn,
+        "Received signal %d\n",
+        signum
+    );
+
+    DebugLog(LogType::Debug, "%s\n", StackDump().ToString().Data());
+
     if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
         DebugLog(
             LogType::Warn,
@@ -23,6 +33,7 @@ void HandleSignal(int signum)
 
     g_engine->RequestStop();
 
+    // Wait for the render loop to stop
     while (g_engine->IsRenderLoopActive());
 
     exit(signum);
@@ -31,6 +42,9 @@ void HandleSignal(int signum)
 int main(int argc, char **argv)
 {
     signal(SIGINT, HandleSignal);
+    
+    // handle fatal crashes
+    signal(SIGSEGV, HandleSignal);
 
     WindowFlags window_flags = WINDOW_FLAGS_NONE;
 
@@ -108,6 +122,8 @@ int main(int argc, char **argv)
 
         g_engine->RenderNextFrame(&my_game);
     }
+
+    hyperion::ShutdownApplication();
 
     return 0;
 }

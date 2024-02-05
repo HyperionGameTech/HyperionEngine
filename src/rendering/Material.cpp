@@ -146,13 +146,13 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
             descriptor_pool.AddDescriptorSet(g_engine->GetGPUDevice(), descriptor_set);
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
-            sampler_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            sampler_descriptor->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
             
             // set placeholder for all items, then manually set the actual bound items
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
             for (UInt texture_index = 0; texture_index < Material::max_textures_to_set; texture_index++) {
-                image_descriptor->SetElementSRV(texture_index, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+                image_descriptor->SetElementSRV(texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
 
             for (const auto &it : textures) {

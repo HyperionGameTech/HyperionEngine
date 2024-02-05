@@ -12,12 +12,12 @@ namespace hyperion::net {
 class MessageQueue
 {
 public:
-    MessageQueue() = default;
-    MessageQueue(const MessageQueue &other) = delete;
-    MessageQueue &operator=(const MessageQueue &other) = delete;
-    MessageQueue(MessageQueue &&other) = delete;
-    MessageQueue &operator=(MessageQueue &&other) = delete;
-    ~MessageQueue() = default;
+    MessageQueue()                                      = default;
+    MessageQueue(const MessageQueue &other)             = delete;
+    MessageQueue &operator=(const MessageQueue &other)  = delete;
+    MessageQueue(MessageQueue &&other)                  = delete;
+    MessageQueue &operator=(MessageQueue &&other)       = delete;
+    ~MessageQueue()                                     = default;
 
     void Push(json::JSONValue &&message)
     {

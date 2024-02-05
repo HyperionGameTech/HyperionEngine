@@ -142,6 +142,9 @@ void RenderGroup::Init()
         }
     }
 
+    // Do we need the callback anymore?
+    // @TODO: Refactor how global descriptor sets are created,
+    // and see if this can be removed
     OnInit(g_engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         RenderPassRef render_pass;
         
@@ -237,7 +240,7 @@ void RenderGroup::CollectDrawCalls()
         if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
             // take the batch for reuse
             if ((batch_index = draw_call->batch_index)) {
-                g_engine->shader_globals->entity_instance_batches.ResetBatch(batch_index);
+                g_engine->GetRenderData()->entity_instance_batches.ResetBatch(batch_index);
             }
 
             draw_call->batch_index = 0;
@@ -469,7 +472,7 @@ RenderAll(
                     );
 
                     for (const DrawCall &draw_call : draw_calls) {
-                        const EntityInstanceBatch &entity_batch = g_engine->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
+                        const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
 
                         BindPerObjectDescriptorSets(
                             frame,

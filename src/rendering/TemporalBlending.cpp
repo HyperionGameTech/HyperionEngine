@@ -179,12 +179,12 @@ void TemporalBlending::CreateDescriptorSets()
         // sampler to use
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(3)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         // sampler to use
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(4)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // blurred output
         descriptor_set

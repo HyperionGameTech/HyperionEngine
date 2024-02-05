@@ -56,13 +56,13 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
             // depth pyramid image (set to placeholder)
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(6)
                 ->SetSubDescriptor({
-                    .image_view = &g_engine->GetPlaceholderData().GetImageView2D1x1R8()
+                    .image_view = g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
                 });
 
             // sampler
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(7)
                 ->SetSubDescriptor({
-                    .sampler = &g_engine->GetPlaceholderData().GetSamplerNearest()
+                    .sampler = g_engine->GetPlaceholderData()->GetSamplerNearest()
                 });
 
             HYPERION_BUBBLE_ERRORS(indirect_renderer.m_descriptor_sets[frame_index]->Create(

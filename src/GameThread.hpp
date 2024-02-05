@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_GAME_THREAD_H
 #define HYPERION_V2_GAME_THREAD_H
 
-#include "GameCounter.hpp"
+#include <GameCounter.hpp>
 
 #include <core/Thread.hpp>
 #include <core/Scheduler.hpp>
@@ -20,6 +20,8 @@ public:
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
         { return m_is_running.Get(MemoryOrder::RELAXED); }
+
+    void Stop();
 
 private:
     virtual void operator()(Game *game) override;

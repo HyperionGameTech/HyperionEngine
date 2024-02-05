@@ -227,7 +227,11 @@ public:
         }
 
         std::unique_lock lock(m_mutex);
-        m_is_empty.wait(lock, [this] { return m_num_enqueued.Get(MemoryOrder::SEQUENTIAL) == 0u; });
+        m_is_empty.wait(lock, [this]
+        {
+            return m_num_enqueued.Get(MemoryOrder::SEQUENTIAL) == 0
+                || m_stop_requested.Get(MemoryOrder::RELAXED);
+        });
     }
 
     /* Move all the next pending task in the queue to an external container. */
@@ -278,7 +282,19 @@ public:
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
         std::unique_lock lock(m_mutex);
-        m_has_tasks.wait(lock, [this] { return m_num_enqueued.Get(MemoryOrder::RELAXED) != 0; });
+        m_has_tasks.wait(
+            lock,
+            [this]()
+            {
+                return m_num_enqueued.Get(MemoryOrder::RELAXED) != 0
+                    || m_stop_requested.Get(MemoryOrder::RELAXED);
+            }
+        );
+
+        // If stop was requested, return immediately
+        if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
+            return;
+        }
 
         for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
             out_container.Push(std::move(*it));
@@ -290,6 +306,12 @@ public:
         lock.unlock();
 
         m_is_empty.notify_all();
+    }
+
+    void RequestStop()
+    {
+        m_has_tasks.notify_all();
+        m_stop_requested.Set(true, MemoryOrder::RELAXED);
     }
 
     /*! Execute all scheduled tasks. May only be called from the creation thread.
@@ -354,15 +376,16 @@ private:
         return true;
     }
 
-    UInt m_id_counter = 0;
-    AtomicVar<UInt> m_num_enqueued { 0 };
-    ScheduledFunctionQueue m_scheduled_functions;
+    UInt                    m_id_counter = 0;
+    AtomicVar<UInt>         m_num_enqueued { 0 };
+    AtomicVar<Bool>         m_stop_requested { false };
+    ScheduledFunctionQueue  m_scheduled_functions;
 
-    std::mutex m_mutex;
+    std::mutex              m_mutex;
     std::condition_variable m_is_empty;
     std::condition_variable m_has_tasks;
 
-    ThreadID m_owner_thread;
+    ThreadID                m_owner_thread;
 };
 
 } // namespace hyperion::v2

@@ -34,21 +34,26 @@ class PlaceholderData
 {
 public:
     PlaceholderData();
+    PlaceholderData(const PlaceholderData &other)               = delete;
+    PlaceholderData(PlaceholderData &&other)                    = delete;
+    PlaceholderData &operator=(const PlaceholderData &other)    = delete;
+    PlaceholderData &operator=(PlaceholderData &&other)         = delete;
+    ~PlaceholderData();
 
 #define HYP_DEF_DUMMY_DATA(type, getter, member) \
     public: \
-        type &Get##getter() { return member; } \
-        const type &Get##getter() const { return member; } \
+        type##Ref &Get##getter() { return member; } \
+        const type##Ref &Get##getter() const { return member; } \
     private: \
-        type member
+        type##Ref member
 
-    HYP_DEF_DUMMY_DATA(TextureImage2D, Image2D1x1R8, m_image_2d_1x1_r8);
+    HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8, m_image_2d_1x1_r8);
     HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8, m_image_view_2d_1x1_r8);
     HYP_DEF_DUMMY_DATA(ImageView, ImageView3D1x1x1R8, m_image_view_3d_1x1x1_r8);
-    HYP_DEF_DUMMY_DATA(TextureImage3D, Image3D1x1x1R8, m_image_3d_1x1x1_r8);
+    HYP_DEF_DUMMY_DATA(Image, Image3D1x1x1R8, m_image_3d_1x1x1_r8);
     HYP_DEF_DUMMY_DATA(ImageView, ImageView3D1x1x1R8Storage, m_image_view_3d_1x1x1_r8_storage);
-    HYP_DEF_DUMMY_DATA(StorageImage, Image3D1x1x1R8Storage, m_image_3d_1x1x1_r8_storage);
-    HYP_DEF_DUMMY_DATA(TextureImageCube, ImageCube1x1R8, m_image_cube_1x1_r8);
+    HYP_DEF_DUMMY_DATA(Image, Image3D1x1x1R8Storage, m_image_3d_1x1x1_r8_storage);
+    HYP_DEF_DUMMY_DATA(Image, ImageCube1x1R8, m_image_cube_1x1_r8);
     HYP_DEF_DUMMY_DATA(ImageView, ImageViewCube1x1R8, m_image_view_cube_1x1_r8);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinear, m_sampler_linear);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinearMipmap, m_sampler_linear_mipmap);

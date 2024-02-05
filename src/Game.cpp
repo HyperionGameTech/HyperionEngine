@@ -107,8 +107,6 @@ void Game::Teardown()
         m_scene.Reset();
     }
 
-    g_engine->GetWorld().Reset();
-
     m_is_init = false;
 }
 

@@ -15,7 +15,7 @@ namespace hyperion {
 
 class StackDump
 {
-    static Array<String> CreateStackTrace(UInt depth = 100)
+    static Array<String> CreateStackTrace(UInt depth = 20)
     {
         Array<String> stack_trace;
         stack_trace.Reserve(depth);
@@ -79,7 +79,7 @@ class StackDump
     }
 
 public:
-    StackDump(UInt depth = 100)
+    StackDump(UInt depth = 20)
         : m_trace(CreateStackTrace(depth))
     {
     }
