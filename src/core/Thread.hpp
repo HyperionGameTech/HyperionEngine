@@ -17,6 +17,7 @@ struct ThreadID
 {
     static const ThreadID invalid;
 
+    static ThreadID Current();
     static ThreadID CreateDynamicThreadID(Name name);
 
     UInt32  value;
@@ -104,11 +105,11 @@ public:
 protected:
     virtual void operator()(Args ...args) = 0;
 
-    const ThreadID m_id;
-    Scheduler m_scheduler;
+    const ThreadID  m_id;
+    Scheduler       m_scheduler;
 
 private:
-    std::thread *m_thread;
+    std::thread     *m_thread;
 };
 
 template <class SchedulerType, class ...Args>
@@ -168,7 +169,8 @@ bool Thread<SchedulerType, Args...>::Start(Args ...args)
 
     std::tuple<Args...> tuple_args(std::forward<Args>(args)...);
 
-    m_thread = new std::thread([&self = *this, tuple_args] {
+    m_thread = new std::thread([&self = *this, tuple_args](...) -> void
+    {
         SetCurrentThreadID(self.GetID());
         self.m_scheduler.SetOwnerThread(self.GetID());
 

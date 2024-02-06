@@ -2,6 +2,10 @@
 #define HYPERION_V2_TASK_HPP
 
 #include <core/lib/Proc.hpp>
+#include <core/Util.hpp>
+
+// Debugging
+#include <system/StackDump.hpp>
 
 #include <Types.hpp>
 
@@ -37,20 +41,26 @@ struct Task
     TaskID      id;
     Function    fn;
 
+#ifdef HYP_DEBUG_MODE
+    String _debug_function_name;
+#endif
+
     constexpr static TaskID empty_id = TaskID { 0 };
 
     template <class Lambda>
     Task(Lambda &&lambda)
         : id { },
-          fn(std::forward<Lambda>(lambda))
+          fn(std::forward<Lambda>(lambda)),
+          _debug_function_name { StackDump(10).ToString() }
     {
     }
 
-    Task(const Task &other) = delete;
-    Task &operator=(const Task &other) = delete;
+    Task(const Task &other)             = delete;
+    Task &operator=(const Task &other)  = delete;
     Task(Task &&other) noexcept
         : id(other.id),
-          fn(std::move(other.fn))
+          fn(std::move(other.fn)),
+          _debug_function_name(std::move(other._debug_function_name))
     {
         other.id = {};
     }
@@ -59,6 +69,7 @@ struct Task
     {
         id = other.id;
         fn = std::move(other.fn);
+        _debug_function_name = std::move(other._debug_function_name);
 
         other.id = {};
 

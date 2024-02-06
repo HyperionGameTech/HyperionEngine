@@ -65,6 +65,8 @@ public:
     static ThreadType GetThreadType();
 
     static SizeType NumCores();
+
+    static void Sleep(UInt32 milliseconds);
 };
 
 } // namespace hyperion::v2

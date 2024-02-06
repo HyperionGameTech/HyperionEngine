@@ -130,14 +130,9 @@ void EntityManager::Update(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
-    // DebugLog(
-    //     LogType::Debug,
-    //     "SystemExecutionGroup::Process: Processing execution group with %zu systems\n",
-    //     m_systems.Size()
-    // );
-
-    m_systems.ParallelForEach(
-        TaskSystem::GetInstance(),
+    TaskSystem::GetInstance().ParallelForEach(
+        THREAD_POOL_GENERIC,
+        m_systems,
         [&entity_manager, delta](auto &it, UInt, UInt)
         {
             it.second->Process(entity_manager, delta);

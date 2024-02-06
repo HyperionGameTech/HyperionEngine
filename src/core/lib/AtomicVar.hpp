@@ -58,7 +58,7 @@ class AtomicVar
     std::atomic<T> m_value;
 
 public:
-    AtomicVar() : m_value { 0 }
+    AtomicVar() : m_value { T { } }
     {
     }
 
@@ -67,11 +67,11 @@ public:
     {
     }
 
-    AtomicVar(const AtomicVar &other) = delete;
-    AtomicVar &operator=(const AtomicVar &other) = delete;
-    AtomicVar(AtomicVar &&other) noexcept = delete;
-    AtomicVar &operator=(AtomicVar &&other) noexcept = delete;
-    ~AtomicVar() = default;
+    AtomicVar(const AtomicVar &other)                   = delete;
+    AtomicVar &operator=(const AtomicVar &other)        = delete;
+    AtomicVar(AtomicVar &&other) noexcept               = delete;
+    AtomicVar &operator=(AtomicVar &&other) noexcept    = delete;
+    ~AtomicVar()                                        = default;
 
     HYP_FORCE_INLINE
     T Get(MemoryOrder order) const

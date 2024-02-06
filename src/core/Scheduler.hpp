@@ -24,15 +24,54 @@
 
 namespace hyperion::v2 {
 
+class SchedulerBase
+{
+public:
+    SchedulerBase()                                             = delete;
+    SchedulerBase(const SchedulerBase &other)                   = delete;
+    SchedulerBase &operator=(const SchedulerBase &other)        = delete;
+    SchedulerBase(SchedulerBase &&other) noexcept               = delete;
+    SchedulerBase &operator=(SchedulerBase &&other) noexcept    = delete;
+    ~SchedulerBase()                                            = default;
+
+    /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
+     *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
+     */
+    void SetOwnerThread(ThreadID owner_thread)
+    {
+        m_owner_thread = owner_thread;
+    }
+
+    void RequestStop();
+
+protected:
+    SchedulerBase(ThreadID owner_thread)
+        : m_owner_thread(owner_thread)
+    {
+    }
+
+    void WakeUpOwnerThread();
+    bool WaitForTasks(std::unique_lock<std::mutex> &lock);
+
+    UInt                    m_id_counter = 0;
+    AtomicVar<UInt>         m_num_enqueued { 0 };
+    AtomicVar<bool>         m_stop_requested { false };
+
+    std::mutex              m_mutex;
+    std::condition_variable m_has_tasks;
+
+    ThreadID                m_owner_thread;
+};
+
 template <class TaskType>
-class Scheduler
+class Scheduler : public SchedulerBase
 {
 public:
     using Task = TaskType;
 
     struct ScheduledTask
     {
-        Task task;
+        Task            task;
         AtomicVar<UInt> *atomic_counter = nullptr;
 
         ScheduledTask() = default;
@@ -90,11 +129,11 @@ public:
         }
     };
 
-    using ScheduledFunctionQueue = Array<ScheduledTask>;
-    using Iterator = typename ScheduledFunctionQueue::Iterator;
+    using ScheduledFunctionQueue    = Array<ScheduledTask>;
+    using Iterator                  = typename ScheduledFunctionQueue::Iterator;
     
     Scheduler()
-        : m_owner_thread(Threads::CurrentThreadID())
+        : SchedulerBase(Threads::CurrentThreadID())
     {
     }
 
@@ -104,16 +143,15 @@ public:
     Scheduler &operator=(Scheduler &&other) = default;
     ~Scheduler() = default;
 
-    HYP_FORCE_INLINE UInt NumEnqueued() const
-        { return m_num_enqueued.Get(MemoryOrder::RELAXED); }
-
-    /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
-     *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
-     */
-    void SetOwnerThread(ThreadID owner_thread)
+    HYP_FORCE_INLINE
+    UInt NumEnqueued() const
     {
-        m_owner_thread = owner_thread;
+        return m_num_enqueued.Get(MemoryOrder::RELAXED);
     }
+
+    HYP_FORCE_INLINE
+    const Array<ScheduledTask> &GetEnqueuedTasks() const
+        { return m_enqueued_tasks; }
 
     /*! \brief Enqueue a function to be executed on the owner thread. This is to be
      * called from a non-owner thread. 
@@ -126,7 +164,9 @@ public:
 
         auto result = EnqueueInternal(std::forward<Task>(fn), nullptr /* No atomic counter */);
 
-        m_has_tasks.notify_all();
+        lock.unlock();
+
+        WakeUpOwnerThread();
 
         return result;
     }
@@ -138,11 +178,14 @@ public:
      */
     TaskID Enqueue(Task &&fn, AtomicVar<UInt> *atomic_counter)
     {
+        // debugging
         std::unique_lock lock(m_mutex);
 
         auto result = EnqueueInternal(std::forward<Task>(fn), atomic_counter);
 
-        m_has_tasks.notify_all();
+        lock.unlock();
+
+        WakeUpOwnerThread();
 
         return result;
     }
@@ -158,80 +201,10 @@ public:
         std::unique_lock lock(m_mutex);
 
         if (DequeueInternal(id)) {
-            if (m_scheduled_functions.Empty()) {
-                lock.unlock();
-
-                m_is_empty.notify_all();
-            }
-
             return true;
         }
 
         return false;
-    }
-
-    /*! \brief For each item, remove a function from the owner thread's queue, if it exists
-     * @returns a FixedArray of booleans, each holding whether or not the corresponding function was successfully dequeued */
-    template <SizeType Sz>
-    FixedArray<bool, Sz> DequeueMany(const FixedArray<TaskID, Sz> &ids)
-    {
-        FixedArray<bool, Sz> results {};
-
-        if (ids.Empty()) {
-            return results;
-        }
-        
-        std::unique_lock lock(m_mutex);
-
-        for (SizeType i = 0; i < ids.Size(); i++) {
-            const auto &id = ids[i];
-
-            if (id == Task::empty_id) {
-                results[i] = false;
-
-                continue;
-            }
-
-            if (DequeueInternal(id)) {
-                results[i] = true;
-            }
-        }
-
-        if (m_scheduled_functions.Empty()) {
-            lock.unlock();
-
-            m_is_empty.notify_all();
-        }
-
-        return results;
-    }
-
-    /*! If the current thread is the creation thread, the scheduler will be flushed and immediately return.
-     * Otherwise, the thread will block until all tasks have been executed.
-     */
-    HYP_FORCE_INLINE void FlushOrWait()
-    {
-        FlushOrWait([](auto &fn) { fn(); });
-    }
-
-    /*! If the current thread is the creation thread, the scheduler will be flushed and immediately return.
-     * Otherwise, the thread will block until all tasks have been executed.
-     */
-    template <class Executor>
-    void FlushOrWait(Executor &&executor)
-    {
-        if (Threads::IsOnThread(m_owner_thread)) {
-            Flush(std::forward<Executor>(executor));
-
-            return;
-        }
-
-        std::unique_lock lock(m_mutex);
-        m_is_empty.wait(lock, [this]
-        {
-            return m_num_enqueued.Get(MemoryOrder::SEQUENTIAL) == 0
-                || m_stop_requested.Get(MemoryOrder::RELAXED);
-        });
     }
 
     /* Move all the next pending task in the queue to an external container. */
@@ -242,17 +215,13 @@ public:
         
         std::unique_lock lock(m_mutex);
 
-        if (m_scheduled_functions.Any()) {
-            auto &front = m_scheduled_functions.Front();
+        if (m_enqueued_tasks.Any()) {
+            auto &front = m_enqueued_tasks.Front();
             out_container.Push(std::move(front));
-            m_scheduled_functions.PopFront();
+            m_enqueued_tasks.PopFront();
 
             m_num_enqueued.Decrement(1u, MemoryOrder::RELAXED);
         }
-
-        lock.unlock();
-
-        m_is_empty.notify_all();
     }
     
     /* Move all tasks in the queue to an external container. */
@@ -263,55 +232,41 @@ public:
 
         std::unique_lock lock(m_mutex);
 
-        for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
+        for (auto it = m_enqueued_tasks.Begin(); it != m_enqueued_tasks.End(); ++it) {
             out_container.Push(std::move(*it));
         }
 
-        m_scheduled_functions.Clear();
+        m_enqueued_tasks.Clear();
         m_num_enqueued.Set(0, MemoryOrder::RELAXED);
-
-        lock.unlock();
-
-        m_is_empty.notify_all();
     }
     
-    /* Move all tasks in the queue to an external container. */
+    /*! \brief Move all tasks in the queue to an external container. Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
+        * @returns a boolean value indicating whether or not the scheduler was stopped.
+    */
     template <class Container>
-    void WaitForTasks(Container &out_container)
+    bool WaitForTasks(Container &out_container)
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
         std::unique_lock lock(m_mutex);
-        m_has_tasks.wait(
-            lock,
-            [this]()
-            {
-                return m_num_enqueued.Get(MemoryOrder::RELAXED) != 0
-                    || m_stop_requested.Get(MemoryOrder::RELAXED);
-            }
-        );
+
+        if (!SchedulerBase::WaitForTasks(lock)) {
+            return false;
+        }
 
         // If stop was requested, return immediately
         if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
-            return;
+            return false;
         }
 
-        for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
+        for (auto it = m_enqueued_tasks.Begin(); it != m_enqueued_tasks.End(); ++it) {
             out_container.Push(std::move(*it));
         }
 
-        m_scheduled_functions.Clear();
+        m_enqueued_tasks.Clear();
         m_num_enqueued.Set(0, MemoryOrder::RELAXED);
 
-        lock.unlock();
-
-        m_is_empty.notify_all();
-    }
-
-    void RequestStop()
-    {
-        m_has_tasks.notify_all();
-        m_stop_requested.Set(true, MemoryOrder::RELAXED);
+        return true;
     }
 
     /*! Execute all scheduled tasks. May only be called from the creation thread.
@@ -321,10 +276,15 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
+        AssertThrowMsg(
+            !m_stop_requested.Get(MemoryOrder::RELAXED),
+            "Scheduler::Flush() called after stop requested"
+        );
+
         std::unique_lock lock(m_mutex);
 
-        while (m_scheduled_functions.Any()) {
-            auto &front = m_scheduled_functions.Front();
+        while (m_enqueued_tasks.Any()) {
+            auto &front = m_enqueued_tasks.Front();
             
             executor(front.task);
 
@@ -332,14 +292,10 @@ public:
                 front.atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
 
-            m_scheduled_functions.PopFront();
+            m_enqueued_tasks.PopFront();
         }
 
         m_num_enqueued.Set(0, MemoryOrder::RELAXED);
-
-        lock.unlock();
-
-        m_is_empty.notify_all();
     }
     
 private:
@@ -347,16 +303,17 @@ private:
     {
         fn.id = ++m_id_counter;
 
-        m_scheduled_functions.PushBack(ScheduledTask(std::forward<Task>(fn), atomic_counter));
+        m_enqueued_tasks.PushBack(ScheduledTask(std::forward<Task>(fn), atomic_counter));
 
         m_num_enqueued.Increment(1, MemoryOrder::RELAXED);
 
-        return m_scheduled_functions.Back().task.id;
+        return m_enqueued_tasks.Back().task.id;
     }
 
     Iterator Find(TaskID id)
     {
-        return m_scheduled_functions.FindIf([&id](const auto &item) {
+        return m_enqueued_tasks.FindIf([&id](const auto &item)
+        {
             return item.task.id == id;
         });
     }
@@ -365,27 +322,18 @@ private:
     {
         const auto it = Find(id);
 
-        if (it == m_scheduled_functions.End()) {
+        if (it == m_enqueued_tasks.End()) {
             return false;
         }
 
-        m_scheduled_functions.Erase(it);
+        m_enqueued_tasks.Erase(it);
 
         m_num_enqueued.Decrement(1, MemoryOrder::RELAXED);
 
         return true;
     }
 
-    UInt                    m_id_counter = 0;
-    AtomicVar<UInt>         m_num_enqueued { 0 };
-    AtomicVar<Bool>         m_stop_requested { false };
-    ScheduledFunctionQueue  m_scheduled_functions;
-
-    std::mutex              m_mutex;
-    std::condition_variable m_is_empty;
-    std::condition_variable m_has_tasks;
-
-    ThreadID                m_owner_thread;
+    ScheduledFunctionQueue  m_enqueued_tasks;
 };
 
 } // namespace hyperion::v2

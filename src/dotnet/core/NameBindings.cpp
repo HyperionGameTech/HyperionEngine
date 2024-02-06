@@ -13,8 +13,8 @@ extern "C" {
     static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
     static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
 
-    Name Name_FromString(const char *str)
+    UInt64 Name_FromString(const char *str)
     {
-        return CreateNameFromDynamicString(str);
+        return CreateNameFromDynamicString(str).hash_code;
     }
 }

@@ -296,3 +296,5 @@ xcode_project/**/*
 CMakeFiles/**/*
 
 submodules/**/**/*
+
+.cache/**/*

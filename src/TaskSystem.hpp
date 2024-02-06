@@ -8,8 +8,8 @@
 #include <util/Defines.hpp>
 #include <system/Debug.hpp>
 
-#include "Threads.hpp"
-#include "TaskThread.hpp"
+#include <Threads.hpp>
+#include <TaskThread.hpp>
 
 #include <Types.hpp>
 
@@ -120,6 +120,10 @@ public:
 
     ~TaskSystem() = default;
 
+    HYP_FORCE_INLINE
+    bool IsRunning() const
+        { return m_running.Get(MemoryOrder::RELAXED); }
+
     void Start();
     void Stop();
 
@@ -129,6 +133,11 @@ public:
     template <class Task>
     TaskRef ScheduleTask(Task &&task, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC)
     {
+        AssertThrowMsg(
+            IsRunning(),
+            "TaskSystem::Start() must be called before enqueuing tasks"
+        );
+
         TaskThreadPool &pool = GetPool(pool_name);
 
         const UInt cycle = pool.cycle.Get(MemoryOrder::RELAXED);
@@ -241,7 +250,8 @@ public:
 
 private:
     FixedArray<TaskThreadPool, THREAD_POOL_MAX> m_pools;
-    Array<TaskBatch *> m_running_batches;
+    Array<TaskBatch *>                          m_running_batches;
+    AtomicVar<bool>                             m_running;
 };
 
 } // namespace hyperion::v2

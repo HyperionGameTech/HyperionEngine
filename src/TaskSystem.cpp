@@ -11,28 +11,54 @@ TaskSystem &TaskSystem::GetInstance()
 
 void TaskSystem::Start()
 {
+    AssertThrowMsg(
+        !IsRunning(),
+        "TaskSystem::Start() has already been called"
+    );
+
     for (auto &pool : m_pools) {
         for (auto &it : pool.threads) {
             AssertThrow(it != nullptr);
             AssertThrow(it->Start());
         }
     }
+
+    m_running.Set(true, MemoryOrder::RELAXED);
 }
 
 void TaskSystem::Stop()
 {
+    AssertThrowMsg(
+        IsRunning(),
+        "TaskSystem::Start() must be called before TaskSystem::Stop()"
+    );
+
+    m_running.Set(false, MemoryOrder::RELAXED);
+
+    Array<TaskThread *> task_threads;
+
     for (auto &pool : m_pools) {
         for (auto &it : pool.threads) {
             AssertThrow(it != nullptr);
-
             it->Stop();
-            it->Join();
+
+            task_threads.PushBack(it.Get());
         }
+    }
+
+    while (task_threads.Any()) {
+        TaskThread *top = task_threads.PopBack();
+        top->Join();
     }
 }
 
 TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 {
+    AssertThrowMsg(
+        IsRunning(),
+        "TaskSystem::Start() must be called before enqueuing tasks"
+    );
+
     AssertThrow(batch != nullptr);
 
     batch->num_completed.Set(0, MemoryOrder::RELAXED);
@@ -71,7 +97,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         // this does require that there are > 1 task thread in the pool.
         do {
             if (num_spins >= 1) {
-                DebugLog(LogType::Warn, "Task thread %s: %u spins\n", current_thread_id.name.LookupString(), num_spins);
+                DebugLog(LogType::Warn, "On thread %s: %u spins while searching for available task threads\n", current_thread_id.name.LookupString(), num_spins);
 
                 if (num_spins >= max_spins) {
                     DebugLog(
@@ -93,6 +119,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
             ++num_spins;
         } while (task_thread->GetID() == current_thread_id
+            || !task_thread->IsRunning()
             || (in_task_thread && !task_thread->IsFree()));
 
         // force execution now. not ideal,
@@ -125,6 +152,11 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
 Array<Bool> TaskSystem::DequeueBatch(TaskBatch *batch)
 {
+    AssertThrowMsg(
+        IsRunning(),
+        "TaskSystem::Start() must be called before dequeuing tasks"
+    );
+
     AssertThrow(batch != nullptr);
 
     Array<Bool> results;

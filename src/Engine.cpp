@@ -1,4 +1,4 @@
-#include "Engine.hpp"
+#include <Engine.hpp>
 
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -15,6 +15,7 @@
 #include <scene/controllers/physics/RigidBodyController.hpp>
 
 #include <Game.hpp>
+#include <GameThread.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -72,10 +73,7 @@ Engine::Engine()
 
 Engine::~Engine()
 {
-    // Delete our renderer instance
-    // Note: this should happen after everything in FinalizeStop
-    AssertThrow(m_instance != nullptr);
-    m_instance->Destroy();
+    AssertThrowMsg(m_instance == nullptr, "Engine instance must be destroyed before Engine object is destroyed");
 }
 
 bool Engine::InitializeGame(Game *game)
@@ -805,23 +803,47 @@ void Engine::FinalizeStop()
     m_is_stopping = true;
     m_is_render_loop_active = false;
 
+    DebugLog(
+        LogType::Debug,
+        "Stopping all engine processes\n"
+    );
+
     // Force execute any remaining render commands
-    HYP_SYNC_RENDER();
+    // HYP_SYNC_RENDER();
 
     // Wait for any remaining frames to finish
-    HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
+    // HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
 
-    // Stop task system
-    TaskSystem::GetInstance().Stop();
+    if (TaskSystem::GetInstance().IsRunning()) { // Stop task system
+        DebugLog(
+            LogType::Debug,
+            "Stopping task system\n"
+        );
+
+        TaskSystem::GetInstance().Stop();
+
+        DebugLog(
+            LogType::Debug,
+            "Task system stopped\n"
+        );
+    }
 
     // Stop game thread and wait for it to finish
     if (game_thread != nullptr) {
+        DebugLog(
+            LogType::Debug,
+            "Stopping game thread\n"
+        );
+
         game_thread->Stop();
-
         while (game_thread->IsRunning()) {
-            HYP_SYNC_RENDER();
-        }
+            // DebugLog(
+            //     LogType::Debug,
+            //     "Waiting for game thread to stop\n"
+            // );
 
+            Threads::Sleep(1);
+        }
         game_thread->Join();
     }
 
@@ -843,10 +865,17 @@ void Engine::FinalizeStop()
         g_safe_deleter->ForceReleaseAll();
 
         // delete all render objects
+        // TEMP Hack: deletion of render objects may cause other render objects to be enqueued
+        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
+        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
+        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
         RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
     }
 
     m_render_group_mapping.Clear();
+
+    AssertThrow(m_instance != nullptr);
+    m_instance->Destroy();
 }
 
 void Engine::RenderNextFrame(Game *game)

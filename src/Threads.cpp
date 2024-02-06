@@ -144,5 +144,9 @@ SizeType Threads::NumCores()
     return std::thread::hardware_concurrency();
 }
 
+void Threads::Sleep(UInt32 milliseconds)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
 
 } // namespace hyperion::v2

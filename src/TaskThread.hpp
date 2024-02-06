@@ -11,8 +11,6 @@
 
 #include <Types.hpp>
 
-#include <atomic>
-
 namespace hyperion {
 
 class SystemWindow;
@@ -41,8 +39,9 @@ public:
 protected:
     virtual void operator()() override;
 
-    AtomicVar<Bool>                 m_is_running;
-    AtomicVar<Bool>                 m_is_free;
+    AtomicVar<bool>                 m_is_running;
+    AtomicVar<bool>                 m_stop_requested;
+    AtomicVar<bool>                 m_is_free;
 
     Queue<Scheduler::ScheduledTask> m_task_queue;
 };

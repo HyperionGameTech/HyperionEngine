@@ -5,6 +5,8 @@ namespace hyperion {
 
 void InitializeApplication(RC<Application> application)
 {
+    Threads::AssertOnThread(THREAD_MAIN);
+
     AssertThrowMsg(
         g_engine == nullptr,
         "Hyperion already initialized!"
@@ -23,10 +25,14 @@ void InitializeApplication(RC<Application> application)
 
 void ShutdownApplication()
 {
+    Threads::AssertOnThread(THREAD_MAIN);
+
     AssertThrowMsg(
         g_engine != nullptr,
         "Hyperion not initialized!"
     );
+
+    g_engine->FinalizeStop();
 
     dotnet::DotNetSystem::GetInstance().Shutdown();
 

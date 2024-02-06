@@ -26,7 +26,8 @@ public:
 private:
     virtual void operator()(Game *game) override;
 
-    AtomicVar<Bool> m_is_running;
+    AtomicVar<bool> m_is_running;
+    AtomicVar<bool> m_stop_requested;
 };
 
 } // namespace hyperion::v2

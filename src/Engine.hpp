@@ -21,11 +21,9 @@
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
 
-#include <GameThread.hpp>
 #include <Threads.hpp>
 #include <TaskSystem.hpp>
 
-#include <core/Scheduler.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/ObjectPool.hpp>
@@ -55,8 +53,9 @@ using renderer::SemaphoreChain;
 using renderer::Image;
 
 class Engine;
-class Game;
 class Framebuffer;
+class Game;
+class GameThread;
 
 extern Engine               *g_engine;
 extern AssetManager         *g_asset_manager;
@@ -139,8 +138,8 @@ public:
     
     PlaceholderData *GetPlaceholderData() const { return m_placeholder_data.Get(); }
     
-    ObjectPool &GetObjectPool() { return registry; }
-    const ObjectPool &GetObjectPool() const { return registry; }
+    ObjectPool &GetObjectPool() { return m_object_pool; }
+    const ObjectPool &GetObjectPool() const { return m_object_pool; }
 
     Handle<World> &GetWorld() { return m_world; }
     const Handle<World> &GetWorld() const { return m_world; }
@@ -266,10 +265,9 @@ public:
         return true;
     }
 
-    ObjectPool registry;
+    void FinalizeStop();
 
 private:
-    void FinalizeStop();
 
     void ResetRenderState(RenderStateMask mask);
     void UpdateBuffersAndDescriptors(UInt frame_index);
@@ -288,8 +286,9 @@ private:
     std::mutex m_render_group_mapping_mutex;
 
     UniquePtr<ShaderGlobals>    m_render_data;
-
     UniquePtr<PlaceholderData>  m_placeholder_data;
+
+    ObjectPool                  m_object_pool;
 
     Handle<World> m_world;
     

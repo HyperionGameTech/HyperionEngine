@@ -15,6 +15,11 @@ namespace hyperion::v2 {
 
 const ThreadID ThreadID::invalid = ThreadID { ~0u, HYP_NAME(InvalidThreadID) };
 
+ThreadID ThreadID::Current()
+{
+    return Threads::CurrentThreadID();
+}
+
 ThreadID ThreadID::CreateDynamicThreadID(Name name)
 {
     struct ThreadIDGenerator

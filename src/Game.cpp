@@ -1,4 +1,5 @@
 #include <Game.hpp>
+#include <GameThread.hpp>
 #include <Engine.hpp>
 #include <Threads.hpp>
 
