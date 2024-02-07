@@ -59,6 +59,12 @@ public:
      */
     virtual Bool ValidForEntity(ID<Entity> entity) const = 0;
 
+    /*! \brief Removes the given Entity from this EntitySet.
+     *
+     *  \param entity The Entity to remove.
+     */
+    virtual void RemoveEntity(ID<Entity> entity) = 0;
+
     /*! \brief To be used by the EntityManager */
     virtual void OnEntityUpdated(ID<Entity> entity) = 0;
 };

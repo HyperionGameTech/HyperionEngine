@@ -181,6 +181,30 @@ Bool DynBitset::ToUInt64(UInt64 *out) const
     }
 }
 
+DynBitset &DynBitset::Resize(SizeType num_bits, bool value)
+{
+    const SizeType previous_num_blocks = m_blocks.Size();
+    const SizeType new_num_blocks = (num_bits + (num_bits_per_block - 1)) / num_bits_per_block;
+
+    if (new_num_blocks < 2) {
+        return *this;
+    }
+
+    m_blocks.Resize(new_num_blocks);
+
+    // if the new number of blocks is greater than the previous number of blocks, set the new blocks to the value
+    if (new_num_blocks > previous_num_blocks) {
+        // if value has been set to true, set the new blocks to all 1 bits
+        if (value) {
+            for (SizeType index = previous_num_blocks; index < new_num_blocks; index++) {
+                m_blocks[index] = ~BlockType(0);
+            }
+        }
+    }
+
+    return *this;
+}
+
 SizeType DynBitset::FirstSetBitIndex() const
 {
     for (SizeType block_index = 0; block_index < m_blocks.Size(); block_index++) {

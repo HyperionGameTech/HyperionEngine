@@ -23,33 +23,33 @@ void InputManager::CheckEvent(SystemEvent *event)
     Threads::AssertOnThread(THREAD_INPUT);
 
     switch (event->GetType()) {
-        case SystemEventType::EVENT_KEYDOWN:
-            KeyDown(event->GetNormalizedKeyCode());
-            break;
-        case SystemEventType::EVENT_KEYUP:
-            KeyUp(event->GetNormalizedKeyCode());
-            break;
-        case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
-            MouseButtonDown(event->GetMouseButton());
-            break;
-        case SystemEventType::EVENT_MOUSEBUTTON_UP:
-            MouseButtonUp(event->GetMouseButton());
-            break;
-        case SystemEventType::EVENT_MOUSEMOTION:
-            UpdateMousePosition();
-            break;
-        case SystemEventType::EVENT_WINDOW_EVENT:
-        {
-            const auto window_event_type = event->GetWindowEventType();
+    case SystemEventType::EVENT_KEYDOWN:
+        KeyDown(event->GetNormalizedKeyCode());
+        break;
+    case SystemEventType::EVENT_KEYUP:
+        KeyUp(event->GetNormalizedKeyCode());
+        break;
+    case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
+        MouseButtonDown(event->GetMouseButton());
+        break;
+    case SystemEventType::EVENT_MOUSEBUTTON_UP:
+        MouseButtonUp(event->GetMouseButton());
+        break;
+    case SystemEventType::EVENT_MOUSEMOTION:
+        UpdateMousePosition();
+        break;
+    case SystemEventType::EVENT_WINDOW_EVENT:
+    {
+        const auto window_event_type = event->GetWindowEventType();
 
-            switch (window_event_type) {
-            case SystemWindowEventType::EVENT_WINDOW_RESIZED:
-                UpdateWindowSize();
-                break;
-            }
+        switch (window_event_type) {
+        case SystemWindowEventType::EVENT_WINDOW_RESIZED:
+            UpdateWindowSize();
+            break;
         }
-        default:
-            return;
+    }
+    default:
+        return;
     }
 }
 

@@ -19,9 +19,9 @@ class TerrainMeshBuilder
 {
 public:
     TerrainMeshBuilder(const PatchInfo &patch_info);
-    TerrainMeshBuilder(const TerrainMeshBuilder &other) = delete;
-    TerrainMeshBuilder &operator=(const TerrainMeshBuilder &other) = delete;
-    ~TerrainMeshBuilder() = default;
+    TerrainMeshBuilder(const TerrainMeshBuilder &other)             = delete;
+    TerrainMeshBuilder &operator=(const TerrainMeshBuilder &other)  = delete;
+    ~TerrainMeshBuilder()                                           = default;
 
     void GenerateHeights(const NoiseCombinator &noise_combinator);
     Handle<Mesh> BuildMesh() const;

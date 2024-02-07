@@ -79,6 +79,12 @@ void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, Enti
 
 void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
 {
+    FlatSet<ID<Mesh>> debug_used_mesh_ids;
+
+    for (auto &it : entity_list.entity_draw_datas) {
+        debug_used_mesh_ids.Insert(it.mesh_id);
+    }
+
     const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
 
     auto render_side_resources_it = m_render_side_resources[pass_type].Find(attributes);
@@ -91,7 +97,7 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
 
     RenderResourceManager &render_side_resources = render_side_resources_it->second;
 
-    const Bitset prev_bitsets[3] = {
+    Bitset prev_bitsets[3] = {
         render_side_resources.GetResourceUsageMap<Mesh>()->usage_bits,
         render_side_resources.GetResourceUsageMap<Material>()->usage_bits,
         render_side_resources.GetResourceUsageMap<Skeleton>()->usage_bits
@@ -101,14 +107,22 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
 
     // prevent these objects from going out of scope while rendering is happening
     for (const EntityDrawData &entity_draw_data : entity_list.entity_draw_datas) {
-        new_bitsets[0].Set(entity_draw_data.mesh_id.Value(), true);
-        new_bitsets[1].Set(entity_draw_data.material_id.Value(), true);
-        new_bitsets[2].Set(entity_draw_data.skeleton_id.Value(), true);
+        new_bitsets[0].Set(entity_draw_data.mesh_id.ToIndex(), true);
+        new_bitsets[1].Set(entity_draw_data.material_id.ToIndex(), true);
+        new_bitsets[2].Set(entity_draw_data.skeleton_id.ToIndex(), true);
     }
 
     // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
     // This will give us a list of IDs that were removed.
     for (UInt i = 0; i < std::size(prev_bitsets); i++) {
+        // If any of the bitsets are different sizes, resize them to match the largest one,
+        // this makes ~ and & operations work as expected
+        if (prev_bitsets[i].NumBits() > new_bitsets[i].NumBits()) {
+            new_bitsets[i].Resize(prev_bitsets[i].NumBits());
+        } else if (prev_bitsets[i].NumBits() < new_bitsets[i].NumBits()) {
+            prev_bitsets[i].Resize(new_bitsets[i].NumBits());
+        }
+
         SizeType first_set_bit_index;
 
         Bitset removed_id_bits = prev_bitsets[i] & ~new_bitsets[i];
@@ -118,13 +132,13 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
             // Remove the reference
             switch (i) {
             case 0:
-                render_side_resources.SetIsUsed(ID<Mesh>(first_set_bit_index), false);
+                render_side_resources.SetIsUsed(ID<Mesh>::FromIndex(first_set_bit_index), false);
                 break;
             case 1:
-                render_side_resources.SetIsUsed(ID<Material>(first_set_bit_index), false);
+                render_side_resources.SetIsUsed(ID<Material>::FromIndex(first_set_bit_index), false);
                 break;
             case 2:
-                render_side_resources.SetIsUsed(ID<Skeleton>(first_set_bit_index), false);
+                render_side_resources.SetIsUsed(ID<Skeleton>::FromIndex(first_set_bit_index), false);
                 break;
             }
 
@@ -137,13 +151,13 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
             // Create a reference to it in the resources list.
             switch (i) {
             case 0:
-                render_side_resources.SetIsUsed(ID<Mesh>(first_set_bit_index), true);
+                render_side_resources.SetIsUsed(ID<Mesh>::FromIndex(first_set_bit_index), true);
                 break;
             case 1:
-                render_side_resources.SetIsUsed(ID<Material>(first_set_bit_index), true);
+                render_side_resources.SetIsUsed(ID<Material>::FromIndex(first_set_bit_index), true);
                 break;
             case 2:
-                render_side_resources.SetIsUsed(ID<Skeleton>(first_set_bit_index), true);
+                render_side_resources.SetIsUsed(ID<Skeleton>::FromIndex(first_set_bit_index), true);
                 break;
             }
 
@@ -151,7 +165,15 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
         }
     }
 
-    // @TODO: When no resources are used, cleanup
+    DebugLog(
+        LogType::Debug,
+        "[render] Using %llu meshes for hash %llu (should be %llu)\n",
+        render_side_resources.GetResourceUsageMap<Mesh>()->usage_bits.Count(),
+        attributes.GetHashCode().Value(),
+        debug_used_mesh_ids.Size()
+    );
+
+    // @TODO: When no resources are used, remove the mapping
 
     auto &mapping = GetEntityList()[pass_type];
     auto it = mapping.Find(attributes);

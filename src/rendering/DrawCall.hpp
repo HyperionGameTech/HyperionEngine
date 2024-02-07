@@ -4,6 +4,7 @@
 #include <core/Containers.hpp>
 #include <Constants.hpp>
 #include <core/ID.hpp>
+#include <core/Util.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
@@ -75,28 +76,10 @@ private:
                 // Use SafeRelease to defer the actual destruction of the resource.
                 // This is used so that any resources that will require a mutex lock to release render side resources
                 // will not cause a deadlock.
+                DebugLog(LogType::Debug, "Safe releasing handle of type %s for resource ID: %u", TypeName<T>().Data(), it.first.Value());
+                
                 g_safe_deleter->SafeReleaseHandle(std::move(it.second));
             }
-        }
-
-        /*! \brief Takes a resource usage handle from the map. This will set the usage bit to false.
-         *
-         *  \param id The ID of the resource to take.
-         *
-         *  \return A handle to the resource, or Handle<T>::empty if the resource is not used.
-         */
-        Handle<T> TakeUsage(ID<T> id)
-        {
-            if (!usage_bits.Test(id.Value())) {
-                return Handle<T>::empty;
-            }
-
-            auto it = handles.Find(id);
-            AssertThrow(it != handles.End());
-
-            usage_bits.Set(id.Value(), false);
-
-            return std::move(it->second);
         }
     };
 
@@ -127,18 +110,6 @@ public:
     }
 
     template <class T>
-    Handle<T> TakeResourceUsage(ID<T> id)
-    {
-        if (!id) {
-            return Handle<T>::empty;
-        }
-
-        ResourceUsageMap<T> *ptr = GetResourceUsageMap<T>();
-
-        return ptr->TakeUsage(id);
-    }
-
-    template <class T>
     void SetIsUsed(ID<T> id, Handle<T> &&handle, Bool is_used)
     {
         if (!id) {
@@ -152,6 +123,7 @@ public:
 
             if (is_used) {
                 if (!handle) {
+                    // Grabs a handle from the resource manager, incrementing the reference count
                     handle = Handle<T>(id);
                 }
 

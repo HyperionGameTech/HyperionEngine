@@ -70,6 +70,13 @@ public:
     DynBitset operator^(const DynBitset &other) const;
     DynBitset &operator^=(const DynBitset &other);
 
+    /*! \brief Resizes the bitset to the given number of bits. 
+        If the new number of bits is greater than the current number of bits,
+        the new bits are set to the given value.
+        Setting num_bits to a value < 64 has no effect */
+    DynBitset &Resize(SizeType num_bits, bool value = false);
+
+    /*! \brief Returns the index of the first set bit. If no bit is set, -1 is returned. */
     SizeType FirstSetBitIndex() const;
 
     HYP_FORCE_INLINE

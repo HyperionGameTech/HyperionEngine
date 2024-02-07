@@ -144,6 +144,22 @@ public:
         return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
 
+    /*! \brief Remove an Entity from this EntitySet
+     *
+     *  \param entity The Entity to remove.
+     */
+    virtual void RemoveEntity(ID<Entity> entity) override
+    {
+        const auto entity_element_it = m_elements.FindIf([&entity](const Element &element)
+        {
+            return element.first == entity;
+        });
+
+        if (entity_element_it != m_elements.End()) {
+            m_elements.Erase(entity_element_it);
+        }
+    }
+
     /*! \brief To be used by the EntityManager */
     virtual void OnEntityUpdated(ID<Entity> entity) override
     {

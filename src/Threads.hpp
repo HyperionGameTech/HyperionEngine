@@ -29,7 +29,7 @@ enum ThreadName : ThreadMask
     THREAD_TASK_6 = 0x400,
     THREAD_TASK_7 = 0x800,
 
-    THREAD_TASK = 0xFF0u,
+    THREAD_TASK = 0xFF0u, // all task threads or'd together
 
     THREAD_PHYSICS = THREAD_GAME, // for now
 

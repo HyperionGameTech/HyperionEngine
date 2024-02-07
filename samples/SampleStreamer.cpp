@@ -18,8 +18,8 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/TerrainComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
-#include <scene/ecs/components/ScriptComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -248,6 +248,39 @@ void SampleStreamer::InitGame()
     // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     {
+        auto terrain_node = m_scene->GetRoot().AddChild();
+        auto terrain_entity = m_scene->GetEntityManager()->AddEntity();
+
+        // MeshComponent
+        m_scene->GetEntityManager()->AddComponent(terrain_entity, MeshComponent {
+            Handle<Mesh> { },
+            g_material_system->GetOrCreate({
+                .shader_definition = ShaderDefinition {
+                    HYP_NAME(Terrain),
+                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+                },
+                .bucket = Bucket::BUCKET_OPAQUE
+            })
+        });
+
+        // TerrainComponent
+        m_scene->GetEntityManager()->AddComponent(terrain_entity, TerrainComponent {
+        });
+
+        // TransformComponent
+        m_scene->GetEntityManager()->AddComponent(terrain_entity, TransformComponent {
+            Transform(
+                Vec3f::zero,
+                Vec3f::one,
+                Quaternion::Identity()
+            )
+        });
+
+        terrain_node.SetEntity(terrain_entity);
+        terrain_node.SetName("TerrainNode");
+    }
+
+    {
         auto sun = CreateObject<Light>(DirectionalLight(
             Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
             Color(1.0f, 1.0f, 1.0f),
@@ -446,11 +479,6 @@ void SampleStreamer::InitGame()
         Vector2(0.2f, 0.5f),
         "Test Button"
     );
-
-    GetUI().GetScene()->GetEntityManager()->AddComponent(test_button.GetEntity(), ScriptComponent {
-        g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"),
-        "controller"
-    });
 
     m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
 }
@@ -666,6 +694,16 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
 void SampleStreamer::Logic(GameCounter::TickUnit delta)
 {
+    if (auto terrain_node = m_scene->FindNodeByName("TerrainNode")) {
+        if (auto terrain_entity = terrain_node.GetEntity()) {
+            TerrainComponent *terrain_component = m_scene->GetEntityManager()->TryGetComponent<TerrainComponent>(terrain_entity);
+
+            if (terrain_component) {
+                terrain_component->camera_position = m_scene->GetCamera()->GetTranslation();
+            }
+        }
+    }
+
     for (auto it = m_asset_batches.Begin(); it != m_asset_batches.End();) {
         if (it->second->IsCompleted()) {
             DebugLog(LogType::Debug, "Handle completed asset batch %s\n", it->first.LookupString());

@@ -15,6 +15,7 @@
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
+#include <scene/ecs/systems/TerrainSystem.hpp>
 #include <scene/ecs/systems/ScriptingSystem.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
@@ -116,6 +117,7 @@ Scene::Scene(
     m_entity_manager->AddSystem<SkySystem>();
     m_entity_manager->AddSystem<AudioSystem>();
     m_entity_manager->AddSystem<BLASUpdaterSystem>();
+    m_entity_manager->AddSystem<TerrainSystem>();
     m_entity_manager->AddSystem<ScriptingSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
@@ -266,9 +268,14 @@ void Scene::CollectEntities(
     for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
-        // Temp
-        AssertThrow(mesh_component.material.IsValid());
-        AssertThrow(mesh_component.material->GetRenderAttributes().shader_definition.IsValid());
+        { // Temp hacks
+            if (!mesh_component.mesh.IsValid()) {
+                continue;
+            }
+
+            AssertThrow(mesh_component.material.IsValid());
+            AssertThrow(mesh_component.material->GetRenderAttributes().shader_definition.IsValid());
+        }
 
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK

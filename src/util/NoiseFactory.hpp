@@ -122,19 +122,34 @@ public:
 
     struct NoiseGeneratorInstance
     {
-        Mode mode;
-        std::unique_ptr<NoiseGenerator> generator;
-        Float multiplier; // amount to multiply a result by
-        Float bias; // amount to add to a result (pre-mult)
-        Vector3 scaling; // coord scaling
+        Mode                        mode;
+        UniquePtr<NoiseGenerator>   generator;
+        Float                       multiplier; // amount to multiply a result by
+        Float                       bias; // amount to add to a result (pre-mult)
+        Vec3f                       scaling; // coord scaling
     };
+
+    NoiseCombinator()
+        : m_seed(0)
+    {
+    }
 
     NoiseCombinator(Seed seed)
         : m_seed(seed)
     {
     }
 
-    ~NoiseCombinator() = default;
+    NoiseCombinator(const NoiseCombinator &other)                   = delete;
+    NoiseCombinator &operator=(const NoiseCombinator &other)        = delete;
+    NoiseCombinator(NoiseCombinator &&other) noexcept               = default;
+    NoiseCombinator &operator=(NoiseCombinator &&other) noexcept    = default;
+    ~NoiseCombinator()                                              = default;
+
+    Seed GetSeed() const
+        { return m_seed; }
+
+    void SetSeed(Seed seed)
+        { m_seed = seed; }
 
     template <class NoiseGeneratorType>
     NoiseCombinator &Use(
@@ -152,7 +167,7 @@ public:
             priority,
             NoiseGeneratorInstance {
                 .mode       = mode,
-                .generator  = std::make_unique<NoiseGeneratorType>(m_seed),
+                .generator  = UniquePtr<NoiseGeneratorType>::Construct(m_seed),
                 .multiplier = multiplier,
                 .bias       = bias,
                 .scaling    = scaling

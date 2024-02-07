@@ -112,6 +112,12 @@ class ObjectContainer : public ObjectContainerBase
             return *reinterpret_cast<T *>(bytes);
         }
 
+        HYP_FORCE_INLINE T *GetPointer()
+            { return reinterpret_cast<T *>(bytes); }
+
+        HYP_FORCE_INLINE const T *GetPointer() const
+            { return reinterpret_cast<const T *>(bytes); }
+
     private:
 
         HYP_FORCE_INLINE bool HasValue() const
@@ -170,7 +176,16 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE T &Get(UInt index)
+    HYP_FORCE_INLINE
+    T *GetPointer(UInt index)
+        { return m_data[index].GetPointer(); }
+
+    HYP_FORCE_INLINE
+    const T *GetPointer(UInt index) const
+        { return m_data[index].GetPointer(); }
+
+    HYP_FORCE_INLINE
+    T &Get(UInt index)
     {
         return m_data[index].Get();
     }

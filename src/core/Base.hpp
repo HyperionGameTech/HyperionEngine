@@ -183,21 +183,25 @@ protected:
     void SetReady(bool is_ready)
         { m_is_ready.store(is_ready); }
 
-    HYP_FORCE_INLINE void AssertReady() const
+    HYP_FORCE_INLINE
+    void AssertReady() const
     {
         AssertThrowMsg(
             IsReady(),
-            "Component is not in ready state; maybe Init() has not been called on it, "
+            "Object of type `%s` is not in ready state; maybe Init() has not been called on it, "
             "or the component requires an event to be sent from the Engine instance to determine that "
-            "it is ready to be constructed, and this event has not yet been sent.\n"
+            "it is ready to be constructed, and this event has not yet been sent.\n",
+            TypeName<InnerType>().Data()
         );
     }
 
-    HYP_FORCE_INLINE void AssertIsInitCalled() const
+    HYP_FORCE_INLINE
+    void AssertIsInitCalled() const
     {
         AssertThrowMsg(
             IsInitCalled(),
-            "Component has not had Init() called on it!\n"
+            "Object of type `%s` has not had Init() called on it!\n",
+            TypeName<InnerType>().Data()
         );
     }
     

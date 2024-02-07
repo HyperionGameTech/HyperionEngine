@@ -459,10 +459,11 @@ RenderAll(
 
             auto &mesh_container = GetContainer<Mesh>();
 
-            command_buffers[frame_index][index/*(command_buffer_index + batch_index) % static_cast<UInt>(command_buffers.Size())*/]->Record(
+            command_buffers[frame_index][index]->Record(
                 g_engine->GetGPUDevice(),
                 pipeline->GetConstructionInfo().render_pass,
-                [&](CommandBuffer *secondary) {
+                [&](CommandBuffer *secondary)
+                {
                     pipeline->Bind(secondary);
 
                     BindGlobalDescriptorSets(
@@ -473,6 +474,11 @@ RenderAll(
 
                     for (const DrawCall &draw_call : draw_calls) {
                         const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
+#ifdef HYP_DEBUG_MODE
+                        AssertThrow(draw_call.mesh_id.IsValid());
+                        AssertThrow(mesh_container.GetPointer(draw_call.mesh_id.ToIndex()) != nullptr);
+#endif
+
 
                         BindPerObjectDescriptorSets(
                             frame,

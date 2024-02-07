@@ -99,6 +99,14 @@ struct alignas(alignof(T) * 2) Vec2
     constexpr Vec2 operator-() const
         { return operator*(T(-1)); }
 
+    constexpr Bool operator<(const Vec2 &other) const
+    {
+        if (x != other.x) return x < other.x;
+        if (y != other.y) return y < other.y;
+
+        return false;
+    }
+
     Type Max() const;
     Type Min() const;
 
@@ -219,7 +227,12 @@ public:
         { return operator*(-1.0f); }
 
     constexpr Bool operator<(const Vec2 &other) const
-        { return x < other.x && y < other.y; }
+    {
+        if (x != other.x) return x < other.x;
+        if (y != other.y) return y < other.y;
+
+        return false;
+    }
 
     constexpr Float LengthSquared() const { return x * x + y * y; }
     Float Length() const { return std::sqrt(LengthSquared()); }

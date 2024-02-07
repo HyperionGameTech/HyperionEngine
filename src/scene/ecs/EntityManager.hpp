@@ -254,12 +254,16 @@ public:
     
     HYP_FORCE_INLINE
     bool HasEntity(ID<Entity> id) const
-        { return m_entities.Find(id) != m_entities.End(); }
+    {
+        Mutex::Guard entities_guard(m_entities_mutex);
+
+        return m_entities.Find(id) != m_entities.End();
+    }
 
     template <class Component>
     bool HasComponent(ID<Entity> entity) const
     {
-        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -269,15 +273,7 @@ public:
 
     bool HasComponent(TypeID component_type_id, ID<Entity> entity)
     {
-        Mutex *mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
-
-        if (!mutex) {
-            // No mutex found for this component type, so it doesn't exist
-
-            return false;
-        }
-
-        Mutex::Guard guard(*mutex);
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -288,7 +284,7 @@ public:
     template <class Component>
     Component &GetComponent(ID<Entity> entity)
     {
-        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -297,6 +293,8 @@ public:
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = it->second.GetComponentID<Component>();
+
+        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -311,7 +309,7 @@ public:
     template <class Component>
     Component *TryGetComponent(ID<Entity> entity)
     {
-        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
 
@@ -325,6 +323,8 @@ public:
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = it->second.GetComponentID<Component>();
+
+        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         auto component_container_it = m_containers.Find(component_type_id);
         if (component_container_it == m_containers.End()) {
@@ -351,22 +351,26 @@ public:
      */
     void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
-        Mutex *mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+        Mutex::Guard entities_guard(m_entities_mutex);
 
-        if (!mutex) {
+        auto it = m_entities.Find(entity);
+        AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
+        
+        if (!it->second.HasComponent(component_type_id)) {
+            return nullptr;
+        }
+
+        const ComponentID component_id = it->second.GetComponentID(component_type_id);
+
+        Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+
+        if (!component_set_mutex) {
             // No mutex found for this component type, so it doesn't exist
 
             return nullptr;
         }
 
-        Mutex::Guard guard(*mutex);
-
-        auto it = m_entities.Find(entity);
-        AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
-        
-        AssertThrowMsg(it->second.HasComponent(component_type_id), "Entity does not have component");
-
-        const ComponentID component_id = it->second.GetComponentID(component_type_id);
+        Mutex::Guard component_set_guard(*component_set_mutex);
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -397,13 +401,15 @@ public:
     template <class Component>
     ComponentID AddComponent(ID<Entity> entity, Component &&component)
     {
-        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
         auto component_it = it->second.components.Find<Component>();
         AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component");
+
+        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = GetContainer<Component>().AddComponent(std::move(component));
@@ -428,13 +434,15 @@ public:
     template <class Component>
     void RemoveComponent(ID<Entity> entity)
     {
-        Mutex::Guard guard(s_component_set_mutex_holder.GetMutex<Component>());
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
         auto component_it = it->second.components.Find<Component>();
         AssertThrowMsg(component_it != it->second.components.End(), "Entity does not have component");
+
+        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         const TypeID component_type_id = component_it->first;
         const ComponentID component_id = component_it->second;
@@ -554,8 +562,9 @@ private:
 
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;
+    mutable Mutex                                                           m_entities_mutex;
     FlatMap<EntitySetTypeID, UniquePtr<EntitySetBase>>                      m_entity_sets;
-    Mutex                                                                   m_entity_sets_mutex;
+    mutable Mutex                                                           m_entity_sets_mutex;
     TypeMap<FlatSet<EntitySetTypeID>>                                       m_component_entity_sets;
     FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
     Array<SystemExecutionGroup>                                             m_system_execution_groups;

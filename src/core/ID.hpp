@@ -160,6 +160,13 @@ struct ID : IDBase
     TypeID GetTypeID() const
         { return TypeID::ForType<NormalizedType<T>>(); }
 
+    static ID FromIndex(UInt index)
+    {
+        ID id;
+        id.value = index + 1;
+        return id;
+    }
+
     HashCode GetHashCode() const
     {
         HashCode hc;

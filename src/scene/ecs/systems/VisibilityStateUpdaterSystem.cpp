@@ -22,6 +22,8 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             );
 
             if (insert_result.first) {
+                AssertThrowMsg(insert_result.second != OctantID::invalid, "Invalid octant ID returned from Insert()");
+
                 visibility_state_component.octant_id = insert_result.second;
 
                 DebugLog(LogType::Debug, "Inserted entity %u into octree, inserted at %u, %u\n", entity_id.Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
@@ -45,6 +47,8 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
 
                 continue;
             }
+
+            AssertThrowMsg(update_result.second != OctantID::invalid, "Invalid octant ID returned from Update()");
 
             visibility_state_component.octant_id = update_result.second;
             visibility_state_component.last_aabb_hash = aabb_hash_code;

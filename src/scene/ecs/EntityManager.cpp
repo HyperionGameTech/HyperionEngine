@@ -13,31 +13,46 @@ ID<Entity> EntityManager::AddEntity()
 {
     auto handle = CreateObject<Entity>();
 
+    Mutex::Guard entities_guard(m_entities_mutex);
+
     return m_entities.AddEntity(std::move(handle));
 }
 
 void EntityManager::RemoveEntity(ID<Entity> id)
 {
+    Mutex::Guard entities_guard(m_entities_mutex);
+
     auto it = m_entities.Find(id);
 
     if (it == m_entities.End()) {
         return;
     }
 
-    Mutex::Guard guard(m_entity_sets_mutex);
+    // Lock the entity sets mutex
+    Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
-    for (auto &pair : it->second.components) {
-        const TypeID component_type_id = pair.first;
-        const ComponentID component_id = pair.second;
+    for (auto component_info_pair_it = it->second.components.Begin(); component_info_pair_it != it->second.components.End();) {
+        const TypeID component_type_id = component_info_pair_it->first;
+        const ComponentID component_id = component_info_pair_it->second;
 
-        auto component_it = m_containers.Find(component_type_id);
+        // Erase the component from the entity's component map
+        component_info_pair_it = it->second.components.Erase(component_info_pair_it);
 
-        AssertThrowMsg(component_it != m_containers.End(), "Component container does not exist");
-        component_it->second->RemoveComponent(component_id);
+        Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+        AssertThrowMsg(component_set_mutex, "Failed to get mutex for component type %s", component_type_id.Name().LookupString());
+
+        // Lock the mutex for the component type
+        Mutex::Guard component_set_guard(*component_set_mutex);
+
+        auto component_container_it = m_containers.Find(component_type_id);
+
+        AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+        component_container_it->second->RemoveComponent(component_id);
 
         auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 
         if (component_entity_sets_it != m_component_entity_sets.End()) {
+            // For each entity set that can contain this component type, update the entity set
             for (EntitySetTypeID entity_set_id : component_entity_sets_it->second) {
                 auto entity_set_it = m_entity_sets.Find(entity_set_id);
                 AssertThrowMsg(entity_set_it != m_entity_sets.End(), "Entity set does not exist");
@@ -55,6 +70,8 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
     if (std::addressof(*this) == std::addressof(other)) {
         return;
     }
+
+    Mutex::Guard entities_guard(m_entities_mutex);
     
     const auto entity_it = m_entities.Find(id);
     AssertThrowMsg(entity_it != m_entities.End(), "Entity does not exist");
@@ -68,11 +85,17 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
     const auto other_entity_it = other.m_entities.Find(id);
     AssertThrow(other_entity_it != other.m_entities.End());
 
-    Mutex::Guard guard(m_entity_sets_mutex);
+    Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
     for (const auto &pair : entity_data.components) {
         const TypeID component_type_id = pair.first;
         const ComponentID component_id = pair.second;
+
+        Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
+        AssertThrowMsg(component_set_mutex, "Failed to get mutex for component type %s", component_type_id.Name().LookupString());
+
+        // Lock the mutex for the component type
+        Mutex::Guard component_set_guard(*component_set_mutex);
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
