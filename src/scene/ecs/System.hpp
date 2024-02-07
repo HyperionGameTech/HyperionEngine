@@ -26,6 +26,23 @@ public:
     const Array<TypeID> &GetComponentTypeIDs() const
         { return m_component_type_ids; }
 
+    /*! \brief Returns true if all given TypeIDs are operated on by this System, false otherwise.
+     *
+     *  \param component_type_ids The TypeIDs of the components to check.
+     *
+     *  \return True if all given TypeIDs are operated on by this System, false otherwise.
+     */
+    bool ActsOnComponents(const Array<TypeID> &component_type_ids) const
+    {
+        for (const TypeID component_type_id : m_component_type_ids) {
+            if (!component_type_ids.Contains(component_type_id)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     /*! \brief Returns true if this System operates on the component with the given TypeID, false otherwise.
      *
@@ -35,9 +52,9 @@ public:
      *
      *  \return True if this System operates on the component with the given TypeID, false otherwise.
      */
-    Bool HasComponentTypeID(TypeID component_type_id, Bool include_read_only = true) const
+    bool HasComponentTypeID(TypeID component_type_id, bool include_read_only = true) const
     {
-        const Bool has_component_type_id = m_component_type_ids.Contains(component_type_id);
+        const bool has_component_type_id = m_component_type_ids.Contains(component_type_id);
 
         if (!has_component_type_id) {
             return false;
@@ -69,8 +86,8 @@ public:
         return m_component_rw_flags[index];
     }
 
-    virtual void OnEntityAdded(EntityManager &entity_manager, TypeID component_type_id, ID<Entity> entity_id) {}
-    virtual void OnEntityRemoved(EntityManager &entity_manager, TypeID component_type_id, ID<Entity> entity_id) {}
+    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity_id) {}
+    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity_id) {}
 
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) = 0;
 

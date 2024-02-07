@@ -165,14 +165,6 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
         }
     }
 
-    DebugLog(
-        LogType::Debug,
-        "[render] Using %llu meshes for hash %llu (should be %llu)\n",
-        render_side_resources.GetResourceUsageMap<Mesh>()->usage_bits.Count(),
-        attributes.GetHashCode().Value(),
-        debug_used_mesh_ids.Size()
-    );
-
     // @TODO: When no resources are used, remove the mapping
 
     auto &mapping = GetEntityList()[pass_type];

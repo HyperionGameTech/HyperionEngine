@@ -62,7 +62,9 @@ struct ResourceUsageTypeMap<Skeleton>
 class RenderResourceManager
 {
 private:
-    struct ResourceUsageMapBase { };
+    struct ResourceUsageMapBase
+    {
+    };
 
     template <class T>
     struct ResourceUsageMap : ResourceUsageMapBase
@@ -87,12 +89,12 @@ private:
 
 public:
 
-    RenderResourceManager() = default;
-    RenderResourceManager(const RenderResourceManager &other) = delete;
-    RenderResourceManager &operator=(const RenderResourceManager &other) = delete;
-    RenderResourceManager(RenderResourceManager &&other) noexcept = default;
-    RenderResourceManager &operator=(RenderResourceManager &&other) = default;
-    ~RenderResourceManager() = default;
+    RenderResourceManager()                                                 = default;
+    RenderResourceManager(const RenderResourceManager &other)               = delete;
+    RenderResourceManager &operator=(const RenderResourceManager &other)    = delete;
+    RenderResourceManager(RenderResourceManager &&other) noexcept           = default;
+    RenderResourceManager &operator=(RenderResourceManager &&other)         = default;
+    ~RenderResourceManager()                                                = default;
 
     template <class T>
     ResourceUsageMap<T> *GetResourceUsageMap()
@@ -101,7 +103,7 @@ public:
 
         if (ptr == nullptr) {
             // UniquePtr of derived class
-            m_resource_usage_maps[ResourceUsageTypeMap<T>::value] = UniquePtr<ResourceUsageMap<T>>::Construct();
+            m_resource_usage_maps[ResourceUsageTypeMap<T>::value].Reset(new ResourceUsageMap<T>());
 
             ptr = m_resource_usage_maps[ResourceUsageTypeMap<T>::value].Get();
         }
@@ -110,7 +112,7 @@ public:
     }
 
     template <class T>
-    void SetIsUsed(ID<T> id, Handle<T> &&handle, Bool is_used)
+    void SetIsUsed(ID<T> id, Handle<T> &&handle, bool is_used)
     {
         if (!id) {
             return;
@@ -118,18 +120,19 @@ public:
 
         ResourceUsageMap<T> *ptr = GetResourceUsageMap<T>();
 
-        if (is_used != ptr->usage_bits.Test(id.Value())) {
-            ptr->usage_bits.Set(id.Value(), is_used);
+        if (is_used != ptr->usage_bits.Test(id.ToIndex())) {
+            ptr->usage_bits.Set(id.ToIndex(), is_used);
 
             if (is_used) {
                 if (!handle) {
-                    // Grabs a handle from the resource manager, incrementing the reference count
+                    // Grab a handle from the resource manager, incrementing the reference count
                     handle = Handle<T>(id);
                 }
 
                 ptr->handles.Set(id, std::move(handle));
             } else {
-                ptr->handles.Set(id, Handle<T>::empty);
+                // Use SafeRelease to defer the actual destruction of the resource until after a few frames
+                g_safe_deleter->SafeReleaseHandle(std::move(ptr->handles.Get(id)));
             }
         }
     }
@@ -153,13 +156,13 @@ public:
             return false;
         }
 
-#ifndef HYP_DEBUG_MODE
-        return ptr->usage_bits.Test(id.Value())
+#if 1 //ndef HYP_DEBUG_MODE
+        return ptr->usage_bits.Test(id.ToIndex());
 
 #else
         auto it = ptr->handles.Find(id);
 
-        if (!ptr->usage_bits.Test(id.Value())) {
+        if (!ptr->usage_bits.Test(id.ToIndex())) {
             AssertThrow(it == ptr->handles.End() || !it->second.IsValid());
 
             return false;

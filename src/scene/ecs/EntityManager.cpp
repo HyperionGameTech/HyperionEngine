@@ -16,10 +16,12 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        std::unique_lock<std::mutex> guard(m_mutex);
+        const UInt current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+        EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
-        m_commands.Push(std::move(command));
+        std::unique_lock<std::mutex> guard(buffer.mutex);
 
+        buffer.commands.Push(std::move(command));
         m_count.Increment(1, MemoryOrder::RELEASE);
 
         break;
@@ -34,19 +36,27 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
+        const UInt current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+
+        EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
+
         if (!m_count.Get(MemoryOrder::ACQUIRE)) {
             return;
         }
 
-        std::unique_lock<std::mutex> guard(m_mutex);
+        std::unique_lock<std::mutex> guard(buffer.mutex);
 
-        while (m_commands.Any()) {
-            m_commands.Pop()(mgr, delta);
+        // Swap the buffer index to allow new commands to be added to buffer while executing
+        const UInt next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
+
+        m_buffer_index.Set(next_buffer_index, MemoryOrder::RELEASE);
+
+        while (buffer.commands.Any()) {
+            buffer.commands.Pop()(mgr, delta);
         }
 
-        m_count.Set(0, MemoryOrder::RELEASE);
-
-        m_has_commands.notify_all();
+        // Update count to be the number of commands in the next buffer (0 unless one of the commands added more commands to the queue)
+        m_count.Set(UInt(m_command_buffers[next_buffer_index].commands.Size()), MemoryOrder::RELEASE);
 
         break;
     }
@@ -56,6 +66,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
     }
 }
 
+#if 0
 void EntityManagerCommandQueue::WaitForFree()
 {
     switch (m_policy) {
@@ -77,12 +88,15 @@ void EntityManagerCommandQueue::WaitForFree()
         break;
     }
 }
+#endif
 
 // EntityManager
 
+#if 0
 EntityManager::ComponentSetMutexHolder::MutexMap EntityManager::ComponentSetMutexHolder::s_mutex_map = { };
 
 EntityManager::ComponentSetMutexHolder EntityManager::s_component_set_mutex_holder = { };
+#endif
 
 ID<Entity> EntityManager::AddEntity()
 {
@@ -103,14 +117,14 @@ void EntityManager::RemoveEntity(ID<Entity> id)
         return;
     }
 
+    // Notify systems of the entity being removed from this EntityManager
+    NotifySystemsOfEntityRemoved(id, it->second.components);
+
     // Lock the entity sets mutex
     Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
     for (auto component_info_pair_it = it->second.components.Begin(); component_info_pair_it != it->second.components.End();) {
         const TypeID component_type_id = component_info_pair_it->first;
-
-        NotifySystemsOfEntityRemoved(component_type_id, id);
-
         const ComponentID component_id = component_info_pair_it->second;
 
         // Erase the component from the entity's component map
@@ -157,6 +171,9 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
     const auto entity_it = m_entities.Find(id);
     AssertThrowMsg(entity_it != m_entities.End(), "Entity does not exist");
 
+    // Notify systems of the entity being removed from this EntityManager
+    NotifySystemsOfEntityRemoved(id, entity_it->second.components);
+
     const EntityData &entity_data = entity_it->second;
 
     other.m_entities.AddEntity(entity_it->first, EntityData {
@@ -168,12 +185,10 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
 
     Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
+    TypeMap<ComponentID> new_component_ids;
+
     for (const auto &pair : entity_data.components) {
         const TypeID component_type_id = pair.first;
-
-        // Notify systems
-        NotifySystemsOfEntityRemoved(component_type_id, id);
-
         const ComponentID component_id = pair.second;
 
         // Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
@@ -197,6 +212,8 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
 
         Optional<ComponentID> new_component_id = component_container_it->second->MoveComponent(component_id, *other_component_container_it->second);
         AssertThrowMsg(new_component_id.HasValue(), "Failed to move component");
+
+        new_component_ids.Set(component_type_id, new_component_id.Get());
 
         other_entity_it->second.components.Set(component_type_id, new_component_id.Get());
 
@@ -223,31 +240,45 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
                 entity_set_it->second->OnEntityUpdated(id);
             }
         }
-
-        // Notify other systems
-        other.NotifySystemsOfEntityAdded(component_type_id, id);
     }
 
     m_entities.Erase(entity_it);
+
+    // Notify systems of the entity being added to the other EntityManager
+    other.NotifySystemsOfEntityAdded(id, new_component_ids);
 }
 
-void EntityManager::NotifySystemsOfEntityAdded(TypeID component_type_id, ID<Entity> id)
+void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> id, const TypeMap<ComponentID> &component_ids)
 {
+    Array<TypeID> component_type_ids;
+    component_type_ids.Reserve(component_ids.Size());
+
+    for (const auto &pair : component_ids) {
+        component_type_ids.PushBack(pair.first);
+    }
+
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (system_it.second->HasComponentTypeID(component_type_id)) {
-                system_it.second->OnEntityAdded(*this, component_type_id, id);
+            if (system_it.second->ActsOnComponents(component_type_ids)) {
+                system_it.second->OnEntityAdded(*this, id);
             }
         }
     }
 }
 
-void EntityManager::NotifySystemsOfEntityRemoved(TypeID component_type_id, ID<Entity> id)
+void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> id, const TypeMap<ComponentID> &component_ids)
 {
+    Array<TypeID> component_type_ids;
+    component_type_ids.Reserve(component_ids.Size());
+
+    for (const auto &pair : component_ids) {
+        component_type_ids.PushBack(pair.first);
+    }
+
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (system_it.second->HasComponentTypeID(component_type_id)) {
-                system_it.second->OnEntityRemoved(*this, component_type_id, id);
+            if (system_it.second->ActsOnComponents(component_type_ids)) {
+                system_it.second->OnEntityRemoved(*this, id);
             }
         }
     }

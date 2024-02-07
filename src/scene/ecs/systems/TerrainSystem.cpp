@@ -542,14 +542,13 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                 const ID<Entity> patch_entity = state->GetPatchEntity(update.coord);
 
                 if (patch_entity.IsValid()) {
-                    DebugLog(
-                        LogType::Debug,
-                        "Remove patch entity (#%u) at [%d, %d]\n",
-                        patch_entity.Value(), update.coord.x, update.coord.y
-                    );
-
-                    // TEMP; debugging octree issue
-                    // entity_manager.RemoveEntity(patch_entity);
+                    // Push command to remove the entity
+                    entity_manager.PushCommand([patch_entity](EntityManager &mgr, GameCounter::TickUnit delta)
+                    {
+                        if (mgr.HasEntity(patch_entity)) {
+                            mgr.RemoveEntity(patch_entity);
+                        }
+                    });
                 } else {
                     DebugLog(
                         LogType::Warn,
@@ -602,6 +601,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
             }
 
             // Push command to update patch state
+            // @FIXME: thread safety issues with using state here
             entity_manager.PushCommand([entity = it.second, is_in_range, state](EntityManager &mgr, GameCounter::TickUnit delta)
             {
                 TerrainPatchComponent *terrian_patch_component = mgr.TryGetComponent<TerrainPatchComponent>(entity);

@@ -460,7 +460,9 @@ Octree::Result Octree::RemoveInternal(ID<Entity> id)
     if (m_entity_manager) {
         m_entity_manager->PushCommand([id](EntityManager &mgr, GameCounter::TickUnit delta)
         {
-            mgr.GetComponent<VisibilityStateComponent>(id).octant_id = OctantID::invalid;
+            if (mgr.HasEntity(id)) {
+                mgr.GetComponent<VisibilityStateComponent>(id).octant_id = OctantID::invalid;
+            }
         });
     }
 

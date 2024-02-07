@@ -191,16 +191,19 @@ public:
 
     void Push(EntityManagerCommandProc &&command);
     void Execute(EntityManager &mgr, GameCounter::TickUnit delta);
-    void WaitForFree();
 
 private:
     EntityManagerCommandQueuePolicy m_policy;
 
-    Queue<EntityManagerCommandProc> m_commands;
-    AtomicVar<UInt>                 m_count { 0 };
+    struct EntityManagerCommandBuffer
+    {
+        Queue<EntityManagerCommandProc> commands;
+        std::mutex                      mutex;
+    };
 
-    std::mutex                      m_mutex;
-    std::condition_variable         m_has_commands;
+    FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
+    AtomicVar<UInt>                             m_buffer_index { 0 };
+    AtomicVar<UInt>                             m_count { 0 };
 };
 
 class EntityManager
@@ -339,7 +342,8 @@ public:
     template <class Component>
     Component &GetComponent(ID<Entity> entity)
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
+        // Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -362,7 +366,8 @@ public:
     template <class Component>
     Component *TryGetComponent(ID<Entity> entity)
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
+        // Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
 
@@ -402,7 +407,8 @@ public:
      */
     void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
+        // Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -467,7 +473,8 @@ public:
             }
         }
 
-        NotifySystemsOfEntityAdded(component_type_id, entity);
+        // Notify systems that entity is being added to them
+        NotifySystemsOfEntityAdded(entity, it->second.components);
 
         return component_id;
     }
@@ -480,13 +487,13 @@ public:
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
+        // Notify systems that entity is being removed from them
+        NotifySystemsOfEntityRemoved(entity, it->second.components);
+
         auto component_it = it->second.components.Find<Component>();
         AssertThrowMsg(component_it != it->second.components.End(), "Entity does not have component");
 
         const TypeID component_type_id = component_it->first;
-
-        NotifySystemsOfEntityRemoved(component_type_id, entity);
-
         const ComponentID component_id = component_it->second;
 
         GetContainer<Component>().RemoveComponent(component_id);
@@ -554,8 +561,6 @@ public:
     template <class SystemType, class ...Args>
     SystemType *AddSystem(Args &&... args)
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
-
         return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>::Construct(std::forward<Args>(args)...)));
     }
 
@@ -617,8 +622,8 @@ private:
         return ptr;
     }
 
-    void NotifySystemsOfEntityAdded(TypeID component_type_id, ID<Entity> id);
-    void NotifySystemsOfEntityRemoved(TypeID component_type_id, ID<Entity> id);
+    void NotifySystemsOfEntityAdded(ID<Entity> id, const TypeMap<ComponentID> &component_ids);
+    void NotifySystemsOfEntityRemoved(ID<Entity> id, const TypeMap<ComponentID> &component_ids);
 
     ThreadMask                                                              m_owner_thread_mask;
     Scene                                                                   *m_scene;
