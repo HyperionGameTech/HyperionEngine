@@ -389,14 +389,16 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         InitObject(material);
 
-        const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
+        const Handle<Scene> &scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        const ID<Entity> entity = scene->GetEntityManager()->AddEntity();
+
+        scene->GetEntityManager()->AddComponent(
             entity,
             TransformComponent { }
         );
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             MeshComponent {
                 mesh,
@@ -404,14 +406,14 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             }
         );
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             BoundingBoxComponent {
                 mesh->GetAABB()
             }
         );
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             VisibilityStateComponent { }
         );

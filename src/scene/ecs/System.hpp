@@ -69,6 +69,9 @@ public:
         return m_component_rw_flags[index];
     }
 
+    virtual void OnEntityAdded(EntityManager &entity_manager, TypeID component_type_id, ID<Entity> entity_id) {}
+    virtual void OnEntityRemoved(EntityManager &entity_manager, TypeID component_type_id, ID<Entity> entity_id) {}
+
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) = 0;
 
 protected:

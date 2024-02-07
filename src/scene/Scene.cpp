@@ -98,12 +98,12 @@ Scene::Scene(
 ) : BasicObject(info),
     HasDrawProxy(),
     m_camera(std::move(camera)),
-    m_root_node_proxy(new Node("root")),
+    m_root_node_proxy(new Node("root", ID<Entity>::invalid, Transform { }, this)),
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(false),
     m_is_audio_listener(false),
-    m_entity_manager(new EntityManager(this)),
+    m_entity_manager(new EntityManager(info.thread_mask, this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
@@ -268,7 +268,7 @@ void Scene::CollectEntities(
     for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
         auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] = it;
 
-        { // Temp hacks
+        { // Temp hacks, beware! 
             if (!mesh_component.mesh.IsValid()) {
                 continue;
             }

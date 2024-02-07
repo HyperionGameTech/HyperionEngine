@@ -28,10 +28,6 @@ void World::Init()
         PerformSceneUpdates();
     }
 
-    m_detached_scene = CreateObject<Scene>();
-    InitObject(m_detached_scene);
-    m_detached_scene->SetWorld(this);
-
     for (Handle<Scene> &scene : m_scenes) {
         InitObject(scene);
     }
@@ -181,6 +177,37 @@ void World::RemoveScene(ID<Scene> id)
     m_scenes_pending_removal.Insert(Handle<Scene>(id));
 
     m_has_scene_updates.store(true);
+}
+
+const Handle<Scene> &World::GetDetachedScene()
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    return GetDetachedScene(THREAD_GAME);
+}
+
+const Handle<Scene> &World::GetDetachedScene(ThreadMask thread_mask)
+{
+    Mutex::Guard guard(m_detached_scenes_mutex);
+
+    auto it = m_detached_scenes.Find(thread_mask);
+
+    if (it == m_detached_scenes.End()) {
+        auto scene = CreateObject<Scene>(
+            Handle<Camera> {},
+            Scene::InitInfo {
+                .thread_mask = thread_mask
+            }
+        );
+
+        InitObject(scene);
+
+        scene->SetWorld(this);
+
+        it = m_detached_scenes.Insert(thread_mask, std::move(scene)).first;
+    }
+
+    return it->second;
 }
 
 } // namespace hyperion::v2

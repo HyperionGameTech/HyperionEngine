@@ -61,12 +61,7 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
 
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();
-
-        ID<Skeleton> skeleton_id = ID<Skeleton>::invalid;
-
-        if (auto *skeleton_component = entity_manager.TryGetComponent<SkeletonComponent>(entity_id)) {
-            skeleton_id = skeleton_component->skeleton.GetID();
-        }
+        const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
 
         if (mesh_component.material) {
             mesh_component.material->Update();

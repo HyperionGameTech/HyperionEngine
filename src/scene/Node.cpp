@@ -29,7 +29,23 @@ Node::Node(
         Type::NODE,
         name,
         entity,
-        local_transform
+        local_transform,
+        g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get()
+    )
+{
+}
+
+Node::Node(
+    const String &name,
+    ID<Entity> entity,
+    const Transform &local_transform,
+    Scene *scene
+) : Node(
+        Type::NODE,
+        name,
+        entity,
+        local_transform,
+        scene
     )
 {
 }
@@ -38,17 +54,15 @@ Node::Node(
     Type type,
     const String &name,
     ID<Entity> entity,
-    const Transform &local_transform
+    const Transform &local_transform,
+    Scene *scene
 ) : m_type(type),
     m_name(name),
     m_parent_node(nullptr),
     m_local_transform(local_transform),
-    m_scene(nullptr)
+    m_scene(scene)
 {
     SetEntity(entity);
-
-    // Set the scene to the world's detached scene.
-    SetScene(g_engine->GetWorld()->GetDetachedScene().Get());
 }
 
 Node::Node(Node &&other) noexcept
@@ -154,21 +168,16 @@ void Node::SetScene(Scene *scene)
     }
 
     if (!scene) {
-        scene = g_engine->GetWorld()->GetDetachedScene().Get();
+        scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
     }
 
     AssertThrow(scene != nullptr);
 
     if (m_scene && m_entity.IsValid()) {
-        // m_scene->RemoveEntityInternal(m_entity);
         m_scene->GetEntityManager()->MoveEntity(m_entity, *scene->GetEntityManager().Get());
     }
 
     m_scene = scene;
-
-    if (m_scene && m_entity) {
-        // m_scene->AddEntityInternal(Handle<Entity>(m_entity));
-    }
 
     for (auto &child : m_child_nodes) {
         if (!child) {

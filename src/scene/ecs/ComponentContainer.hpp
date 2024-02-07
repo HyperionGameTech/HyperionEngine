@@ -4,6 +4,7 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Optional.hpp>
+#include <core/lib/UniquePtr.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 
@@ -72,6 +73,14 @@ public:
      *  \return True if the component container has a component with the given ID, false otherwise.
      */
     virtual Bool HasComponent(ComponentID id) const = 0;
+
+    /*! \brief Adds a component to the component container, using type erasure.
+     *
+     *  \param component A UniquePtr<void>, pointing to an object of type Component.
+     *
+     *  \return The ID of the added component.
+     */
+    virtual ComponentID AddComponent(UniquePtr<void> &&component) = 0;
 
     /*! \brief Removes the component with the given ID from the component container.
      *
@@ -167,6 +176,14 @@ public:
         m_components.Set(id, std::move(component));
 
         return id;
+    }
+
+    virtual ComponentID AddComponent(UniquePtr<void> &&component) override
+    {
+        AssertThrowMsg(component, "Component is null");
+        AssertThrowMsg(component.Is<Component>(), "Component is not of the correct type");
+
+        return AddComponent(std::move(*static_cast<Component *>(component.Get())));
     }
 
     virtual Bool RemoveComponent(ComponentID id) override

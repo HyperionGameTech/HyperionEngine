@@ -13,6 +13,7 @@
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/EntityContainer.hpp>
+#include <scene/ecs/EntityManagerCommand.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/System.hpp>
@@ -33,21 +34,27 @@ public:
     SystemExecutionGroup &operator=(SystemExecutionGroup &&) noexcept   = default;
     ~SystemExecutionGroup()                                             = default;
 
+    TypeMap<UniquePtr<SystemBase>> &GetSystems()
+        { return m_systems; }
+
+    const TypeMap<UniquePtr<SystemBase>> &GetSystems() const
+        { return m_systems; }
+
     /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
      *
-     *  \param[in] system The System to check.
+     *  \param[in] system_ptr The System to check.
      *
      *  \return True if the SystemExecutionGroup is valid for the given System, false otherwise.
      */
-    Bool IsValidForExecutionGroup(const SystemBase *system) const
+    Bool IsValidForExecutionGroup(const SystemBase *system_ptr) const
     {
-        AssertThrow(system != nullptr);
+        AssertThrow(system_ptr != nullptr);
 
-        const Array<TypeID> &component_type_ids = system->GetComponentTypeIDs();
+        const Array<TypeID> &component_type_ids = system_ptr->GetComponentTypeIDs();
 
         for (const auto &it : m_systems) {
             for (TypeID component_type_id : component_type_ids) {
-                const ComponentRWFlags rw_flags = system->GetComponentRWFlags(component_type_id);
+                const ComponentRWFlags rw_flags = system_ptr->GetComponentRWFlags(component_type_id);
 
                 // This System is read-only for this component, so it can be processed with other Systems
                 if (rw_flags == COMPONENT_RW_FLAGS_READ) {
@@ -72,7 +79,7 @@ public:
      *  \return True if the SystemExecutionGroup has a System of the given type, false otherwise.
      */
     template <class SystemType>
-    Bool HasSystem() const
+    bool HasSystem() const
     {
         const TypeID id = TypeID::ForType<SystemType>();
 
@@ -83,18 +90,18 @@ public:
      *
      *  \tparam System The type of the System to add.
      *
-     *  \param[in] system The System to add.
+     *  \param[in] system_ptr The System to add.
      */
     template <class SystemType>
-    SystemBase *AddSystem(UniquePtr<SystemType> &&system)
+    SystemBase *AddSystem(UniquePtr<SystemType> &&system_ptr)
     {
-        AssertThrow(system != nullptr);
-        AssertThrowMsg(IsValidForExecutionGroup(system.Get()), "System is not valid for this SystemExecutionGroup");
+        AssertThrow(system_ptr != nullptr);
+        AssertThrowMsg(IsValidForExecutionGroup(system_ptr.Get()), "System is not valid for this SystemExecutionGroup");
 
         auto it = m_systems.Find<SystemType>();
         AssertThrowMsg(it == m_systems.End(), "System already exists");
 
-        auto insert_result = m_systems.Set<SystemType>(std::move(system));
+        auto insert_result = m_systems.Set<SystemType>(std::move(system_ptr));
 
         return insert_result.first->second.Get();
     }
@@ -121,7 +128,7 @@ public:
     void Process(EntityManager &entity_manager, GameCounter::TickUnit delta);
 
 private:
-    TypeMap<UniquePtr<SystemBase>> m_systems;
+    TypeMap<UniquePtr<SystemBase>>  m_systems;
 };
 
 using EntityListenerID = UInt;
@@ -162,8 +169,43 @@ struct EntityListener
     }
 };
 
+enum EntityManagerCommandQueuePolicy
+{
+    ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD,
+    ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD
+};
+
+class EntityManagerCommandQueue
+{
+public:
+    EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy);
+    EntityManagerCommandQueue(const EntityManagerCommandQueue &)                = delete;
+    EntityManagerCommandQueue &operator=(const EntityManagerCommandQueue &)     = delete;
+    EntityManagerCommandQueue(EntityManagerCommandQueue &&) noexcept            = delete;
+    EntityManagerCommandQueue &operator=(EntityManagerCommandQueue &&) noexcept = delete;
+    ~EntityManagerCommandQueue()                                                = default;
+
+    HYP_FORCE_INLINE
+    bool HasUpdates() const
+        { return m_count.Get(MemoryOrder::ACQUIRE) != 0; }
+
+    void Push(EntityManagerCommandProc &&command);
+    void Execute(EntityManager &mgr, GameCounter::TickUnit delta);
+    void WaitForFree();
+
+private:
+    EntityManagerCommandQueuePolicy m_policy;
+
+    Queue<EntityManagerCommandProc> m_commands;
+    AtomicVar<UInt>                 m_count { 0 };
+
+    std::mutex                      m_mutex;
+    std::condition_variable         m_has_commands;
+};
+
 class EntityManager
 {
+#if 0
     static struct ComponentSetMutexHolder
     {
         struct MutexMap
@@ -223,10 +265,17 @@ class EntityManager
             return it->second;
         }
     } s_component_set_mutex_holder;
+#endif
 
 public:
-    EntityManager(Scene *scene)
-        : m_scene(scene)
+    EntityManager(ThreadMask owner_thread_mask, Scene *scene)
+        : m_owner_thread_mask(owner_thread_mask),
+          m_scene(scene),
+          m_command_queue(
+              (owner_thread_mask & THREAD_GAME)
+                  ? ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD
+                  : ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD // discard commands if not on the game thread
+          )
     {
         AssertThrow(scene != nullptr);
     }
@@ -239,6 +288,12 @@ public:
 
     Scene *GetScene() const
         { return m_scene; }
+
+    EntityManagerCommandQueue &GetCommandQueue()
+        { return m_command_queue; }
+
+    const EntityManagerCommandQueue &GetCommandQueue() const
+        { return m_command_queue; }
 
     ID<Entity> AddEntity();
     void RemoveEntity(ID<Entity> id);
@@ -255,7 +310,7 @@ public:
     HYP_FORCE_INLINE
     bool HasEntity(ID<Entity> id) const
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         return m_entities.Find(id) != m_entities.End();
     }
@@ -263,7 +318,7 @@ public:
     template <class Component>
     bool HasComponent(ID<Entity> entity) const
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -273,7 +328,7 @@ public:
 
     bool HasComponent(TypeID component_type_id, ID<Entity> entity)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -284,7 +339,7 @@ public:
     template <class Component>
     Component &GetComponent(ID<Entity> entity)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -293,8 +348,6 @@ public:
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = it->second.GetComponentID<Component>();
-
-        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -309,7 +362,7 @@ public:
     template <class Component>
     Component *TryGetComponent(ID<Entity> entity)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
 
@@ -323,8 +376,6 @@ public:
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = it->second.GetComponentID<Component>();
-
-        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         auto component_container_it = m_containers.Find(component_type_id);
         if (component_container_it == m_containers.End()) {
@@ -351,7 +402,7 @@ public:
      */
     void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -361,16 +412,6 @@ public:
         }
 
         const ComponentID component_id = it->second.GetComponentID(component_type_id);
-
-        Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
-
-        if (!component_set_mutex) {
-            // No mutex found for this component type, so it doesn't exist
-
-            return nullptr;
-        }
-
-        Mutex::Guard component_set_guard(*component_set_mutex);
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -388,28 +429,26 @@ public:
     const void *TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent(component_type_id, entity); }
 
-    // template <class ... Components>
-    // std::tuple<Components &...> GetComponents(ID<Entity> entity)
-    //     { return std::tuple<Components &...>(GetComponent<Components>(entity)...); }
+    template <class ... Components>
+    std::tuple<Components &...> GetComponents(ID<Entity> entity)
+        { return std::tuple<Components &...>(GetComponent<Components>(entity)...); }
 
-    // template <class ... Components>
-    // std::tuple<const Components &...> GetComponents(ID<Entity> entity) const
-    //     { return std::tuple<const Components &...>(GetComponent<Components>(entity)...); }
+    template <class ... Components>
+    std::tuple<const Components &...> GetComponents(ID<Entity> entity) const
+        { return std::tuple<const Components &...>(GetComponent<Components>(entity)...); }
 
     ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
 
     template <class Component>
     ComponentID AddComponent(ID<Entity> entity, Component &&component)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
 
         auto component_it = it->second.components.Find<Component>();
         AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component");
-
-        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = GetContainer<Component>().AddComponent(std::move(component));
@@ -428,13 +467,15 @@ public:
             }
         }
 
+        NotifySystemsOfEntityAdded(component_type_id, entity);
+
         return component_id;
     }
 
     template <class Component>
     void RemoveComponent(ID<Entity> entity)
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
+        Threads::AssertOnThread(m_owner_thread_mask);
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
@@ -442,9 +483,10 @@ public:
         auto component_it = it->second.components.Find<Component>();
         AssertThrowMsg(component_it != it->second.components.End(), "Entity does not have component");
 
-        Mutex::Guard component_set_guard(s_component_set_mutex_holder.GetMutex<Component>());
-
         const TypeID component_type_id = component_it->first;
+
+        NotifySystemsOfEntityRemoved(component_type_id, entity);
+
         const ComponentID component_id = component_it->second;
 
         GetContainer<Component>().RemoveComponent(component_id);
@@ -464,6 +506,7 @@ public:
     }
 
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
+     *  This method is thread-safe, and can be used within Systems running in task threads.
      *
      *  \tparam Components The components that the entities in this set have.
      *
@@ -511,10 +554,15 @@ public:
     template <class SystemType, class ...Args>
     SystemType *AddSystem(Args &&... args)
     {
+        Threads::AssertOnThread(m_owner_thread_mask);
+
         return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>::Construct(std::forward<Args>(args)...)));
     }
 
     void Update(GameCounter::TickUnit delta);
+
+    void PushCommand(EntityManagerCommandProc &&command)
+        { m_command_queue.Push(std::move(command)); }
 
 private:
     template <class Component>
@@ -541,32 +589,47 @@ private:
     }
 
     template <class SystemType>
-    SystemType *AddSystemToExecutionGroup(UniquePtr<SystemType> &&system)
+    SystemType *AddSystemToExecutionGroup(UniquePtr<SystemType> &&system_ptr)
     {
-        AssertThrow(system != nullptr);
+        AssertThrow(system_ptr != nullptr);
 
         if (m_system_execution_groups.Empty()) {
             m_system_execution_groups.PushBack({ });
         }
 
+        SystemType *ptr = nullptr;
+
         for (auto &system_execution_group : m_system_execution_groups) {
-            if (system_execution_group.IsValidForExecutionGroup(system.Get())) {
-                return static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system)));
+            if (system_execution_group.IsValidForExecutionGroup(system_ptr.Get())) {
+                ptr = static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
+
+                break;
             }
         }
 
-        return static_cast<SystemType *>(m_system_execution_groups.PushBack({ }).AddSystem<SystemType>(std::move(system)));
+        if (!ptr) {
+            ptr = static_cast<SystemType *>(m_system_execution_groups.PushBack({ }).AddSystem<SystemType>(std::move(system_ptr)));
+        }
+
+        // @TODO Notify the system of all entities that have the components it needs
+        // Maybe not necessary, since systems are added at the start
+
+        return ptr;
     }
 
+    void NotifySystemsOfEntityAdded(TypeID component_type_id, ID<Entity> id);
+    void NotifySystemsOfEntityRemoved(TypeID component_type_id, ID<Entity> id);
+
+    ThreadMask                                                              m_owner_thread_mask;
     Scene                                                                   *m_scene;
 
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;
-    mutable Mutex                                                           m_entities_mutex;
     FlatMap<EntitySetTypeID, UniquePtr<EntitySetBase>>                      m_entity_sets;
     mutable Mutex                                                           m_entity_sets_mutex;
     TypeMap<FlatSet<EntitySetTypeID>>                                       m_component_entity_sets;
     FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
+    EntityManagerCommandQueue                                               m_command_queue;
     Array<SystemExecutionGroup>                                             m_system_execution_groups;
 };
 

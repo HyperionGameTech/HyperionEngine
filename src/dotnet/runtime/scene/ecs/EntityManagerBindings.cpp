@@ -7,6 +7,8 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 
+#include <scene/animation/Skeleton.hpp>
+
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
 #include <dotnet/runtime/math/ManagedMathTypes.hpp>
@@ -80,6 +82,7 @@ extern "C" {
         return manager->AddComponent(entity, MeshComponent {
             std::move(mesh),
             std::move(material),
+            Handle<Skeleton> { },
             component->previous_model_matrix,
             component->mesh_component_flags
         });

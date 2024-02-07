@@ -56,6 +56,13 @@ public:
         const Transform &local_transform = Transform()
     );
 
+    Node(
+        const String &name,
+        ID<Entity> entity,
+        const Transform &local_transform,
+        Scene *scene
+    );
+
     Node(const Node &other) = delete;
     Node &operator=(const Node &other) = delete;
     Node(Node &&other) noexcept;
@@ -69,9 +76,14 @@ public:
     /*! @returns The type of the node. By default, it will just be NODE. */
     Type GetType() const { return m_type; }
     /*! @returns A pointer to the parent Node of this Node. May be null. */
+
     Node *GetParent() const { return m_parent_node; }
+
     /*! @returns A pointer to the Scene this Node and its children are attached to. May be null. */
     Scene *GetScene() const { return m_scene; }
+
+    /*! \brief Set the Scene this Node and its children are attached to. */
+    void SetScene(Scene *scene);
 
     ID<Entity> GetEntity() const { return m_entity; }
     void SetEntity(ID<Entity> entity);
@@ -331,10 +343,9 @@ protected:
         Type type,
         const String &name,
         ID<Entity> entity,
-        const Transform &local_transform = Transform()
+        const Transform &local_transform = Transform(),
+        Scene *scene = nullptr
     );
-
-    void SetScene(Scene *scene);
 
     void OnNestedNodeAdded(const NodeProxy &node);
     void OnNestedNodeRemoved(const NodeProxy &node);

@@ -78,7 +78,7 @@ private:
         }
     };
 
-    HashMap<ID<Entity>, UniquePtr<TerrainGenerationState>>  m_states;
+    HashMap<ID<Entity>, RC<TerrainGenerationState>> m_states;
 };
 
 } // namespace hyperion::v2

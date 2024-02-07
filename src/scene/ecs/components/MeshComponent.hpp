@@ -4,6 +4,7 @@
 #include <core/Handle.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <scene/animation/Skeleton.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/EntityDrawData.hpp>
 
@@ -22,6 +23,7 @@ struct MeshComponent
 {
     Handle<Mesh>        mesh;
     Handle<Material>    material;
+    Handle<Skeleton>    skeleton;
 
     Matrix4             previous_model_matrix;
 

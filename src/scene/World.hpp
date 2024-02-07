@@ -85,8 +85,13 @@ public:
     ~World();
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene. */
-    const Handle<Scene> &GetDetachedScene() const
-        { return m_detached_scene; }
+    const Handle<Scene> &GetDetachedScene();
+
+    /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
+     *         This version of the function allows the caller to specify the thread mask the Scene uses for entity management.
+        \param thread_mask The thread mask the Scene should be associated with.
+     */
+    const Handle<Scene> &GetDetachedScene(ThreadMask thread_mask);
 
     PhysicsWorld &GetPhysicsWorld() { return m_physics_world; }
     const PhysicsWorld &GetPhysicsWorld() const { return m_physics_world; }
@@ -116,17 +121,18 @@ public:
 private:
     void PerformSceneUpdates();
 
-    PhysicsWorld                m_physics_world;
-    RenderListContainer         m_render_list_container;
+    PhysicsWorld                        m_physics_world;
+    RenderListContainer                 m_render_list_container;
 
-    Handle<Scene>               m_detached_scene;
+    FlatMap<ThreadMask, Handle<Scene>>  m_detached_scenes;
+    Mutex                               m_detached_scenes_mutex;
 
-    FlatSet<Handle<Scene>>      m_scenes;
-    FlatSet<Handle<Scene>>      m_scenes_pending_addition;
-    FlatSet<Handle<Scene>>      m_scenes_pending_removal;
+    FlatSet<Handle<Scene>>              m_scenes;
+    FlatSet<Handle<Scene>>              m_scenes_pending_addition;
+    FlatSet<Handle<Scene>>              m_scenes_pending_removal;
 
-    std::atomic_bool            m_has_scene_updates { false };
-    std::mutex                  m_scene_update_mutex;
+    std::atomic_bool                    m_has_scene_updates { false };
+    std::mutex                          m_scene_update_mutex;
 };
 
 } // namespace hyperion::v2

@@ -10,41 +10,41 @@
 
 namespace hyperion::v2 {
 
-using ThreadMask = UInt;
+using ThreadMask = UInt32;
 
 enum ThreadName : ThreadMask
 {
-    THREAD_MAIN = 0x01,
-    THREAD_RENDER = THREAD_MAIN, // for now
-    THREAD_GAME = 0x04,
-    THREAD_INPUT = THREAD_MAIN, // for now
-    THREAD_TERRAIN = 0x08,
+    THREAD_MAIN     = 0x01,
+    THREAD_RENDER   = THREAD_MAIN, // for now
+    THREAD_GAME     = 0x04,
+    THREAD_INPUT    = THREAD_MAIN, // for now
+    THREAD_TERRAIN  = 0x08,
 
-    THREAD_TASK_0 = 0x10,
-    THREAD_TASK_1 = 0x20,
-    THREAD_TASK_2 = 0x40,
-    THREAD_TASK_3 = 0x80,
-    THREAD_TASK_4 = 0x100,
-    THREAD_TASK_5 = 0x200,
-    THREAD_TASK_6 = 0x400,
-    THREAD_TASK_7 = 0x800,
+    THREAD_TASK_0   = 0x10,
+    THREAD_TASK_1   = 0x20,
+    THREAD_TASK_2   = 0x40,
+    THREAD_TASK_3   = 0x80,
+    THREAD_TASK_4   = 0x100,
+    THREAD_TASK_5   = 0x200,
+    THREAD_TASK_6   = 0x400,
+    THREAD_TASK_7   = 0x800,
 
-    THREAD_TASK = 0xFF0u, // all task threads or'd together
+    THREAD_TASK     = 0xFF0u, // all task threads or'd together
 
-    THREAD_PHYSICS = THREAD_GAME, // for now
+    THREAD_PHYSICS  = THREAD_GAME, // for now
 
-    THREAD_STATIC  = 0xFFFFu,
-    THREAD_DYNAMIC = 0xFFFFu << 16u
+    THREAD_STATIC   = 0xFFFFu,
+    THREAD_DYNAMIC  = 0xFFFFu << 16u
 };
 
 // Used for having 1 value of something per thread,
 // e.g `UInt counter[THREAD_TYPE_MAX]` and selecting the value
 // based on the current thread.
-enum ThreadType : UInt
+enum ThreadType : UInt32
 {
-    THREAD_TYPE_INVALID = UInt(-1),
-    THREAD_TYPE_GAME = 0,
-    THREAD_TYPE_RENDER = 1,
+    THREAD_TYPE_INVALID = UInt32(-1),
+    THREAD_TYPE_GAME    = 0,
+    THREAD_TYPE_RENDER  = 1,
     THREAD_TYPE_MAX
 };
 

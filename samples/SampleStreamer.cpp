@@ -366,6 +366,7 @@ void SampleStreamer::InitGame()
         // });
 
         m_scene->GetEntityManager()->AddComponent(skybox_entity, SkyComponent { });
+        m_scene->GetEntityManager()->AddComponent(skybox_entity, MeshComponent { });
         m_scene->GetEntityManager()->AddComponent(skybox_entity, VisibilityStateComponent {
             VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
         });

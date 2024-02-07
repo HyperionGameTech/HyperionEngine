@@ -5,7 +5,7 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
-#include <scene/ecs/components/SkeletonComponent.hpp>
+#include <scene/ecs/components/AnimationComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
@@ -1302,14 +1302,16 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     .bucket = Bucket::BUCKET_OPAQUE
                 });
 
-                const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
+                const Handle<Scene> &detached_scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
 
-                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                const ID<Entity> entity = detached_scene->GetEntityManager()->AddEntity();
+
+                detached_scene->GetEntityManager()->AddComponent(
                     entity,
                     TransformComponent { }
                 );
 
-                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent(
                     entity,
                     MeshComponent {
                         mesh->GetResultObject(),
@@ -1317,14 +1319,14 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     }
                 );
 
-                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent(
                     entity,
                     BoundingBoxComponent {
                         mesh->GetResultObject()->GetAABB()
                     }
                 );
 
-                g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent(
                     entity,
                     VisibilityStateComponent { }
                 );

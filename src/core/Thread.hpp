@@ -39,6 +39,10 @@ struct ThreadID
     HYP_FORCE_INLINE
     UInt operator~() const
         { return ~value; }
+
+    HYP_FORCE_INLINE
+    operator UInt32() const
+        { return value; }
     
     Bool IsDynamic() const;
 };

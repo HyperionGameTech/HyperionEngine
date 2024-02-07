@@ -290,8 +290,13 @@ void Octree::ClearInternal(Array<Node> &out_nodes)
     for (auto &node : m_nodes) {
         // node.entity->OnRemovedFromOctree(this);
 
-        if (m_entity_manager && m_entity_manager->HasEntity(node.id)) {
-            m_entity_manager->GetComponent<VisibilityStateComponent>(node.id).octant_id = OctantID::invalid;
+        if (m_entity_manager) {
+            m_entity_manager->PushCommand([id = node.id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
+            {
+                if (mgr.HasEntity(id)) {
+                    mgr.GetComponent<VisibilityStateComponent>(id).octant_id = OctantID::invalid;
+                }
+            });
         }
 
         if (m_root != nullptr) {
@@ -311,7 +316,7 @@ void Octree::ClearInternal(Array<Node> &out_nodes)
         return;
     }
 
-    for (auto &octant : m_octants) {
+    for (Octant &octant : m_octants) {
         AssertThrow(octant.octree != nullptr);
 
         octant.octree->ClearInternal(out_nodes);
@@ -368,31 +373,36 @@ Octree::InsertResult Octree::InsertInternal(ID<Entity> id, const BoundingBox &aa
 
     // entity->OnAddedToOctree(this);
 
-    if (m_entity_manager && m_entity_manager->HasEntity(id)) {
-        // TODO: Update once everything is moved to ECS
-        if (!m_entity_manager->HasComponent<VisibilityStateComponent>(id)) {
-            m_entity_manager->AddComponent<VisibilityStateComponent>(id, {
-                .octant_id = m_octant_id
-            });
+    if (m_entity_manager) {
+        m_entity_manager->PushCommand([id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
+        {
+            if (mgr.HasEntity(id)) {
+                if (!mgr.HasComponent<VisibilityStateComponent>(id)) {
+                    mgr.AddComponent<VisibilityStateComponent>(id, {
+                        .octant_id = octant_id
+                    });
 
-            DebugLog(
-                LogType::Warn,
-                "Entity #%lu octant_id was not set, so it was set to %u:%u\n",
-                id.Value(),
-                m_octant_id.GetDepth(),
-                m_octant_id.GetIndex()
-            );
-        } else {
-            m_entity_manager->GetComponent<VisibilityStateComponent>(id).octant_id = m_octant_id;
+                    DebugLog(
+                        LogType::Warn,
+                        "Entity #%lu octant_id was not set, so it was set to %u:%u\n",
+                        id.Value(),
+                        octant_id.GetDepth(),
+                        octant_id.GetIndex()
+                    );
+                } else {
+                    mgr.GetComponent<VisibilityStateComponent>(id).octant_id = octant_id;
 
-            DebugLog(
-                LogType::Debug,
-                "Entity #%lu octant_id was set to %u:%u\n",
-                id.Value(),
-                m_octant_id.GetDepth(),
-                m_octant_id.GetIndex()
-            );
-        }
+                    DebugLog(
+                        LogType::Debug,
+                        "Entity #%lu octant_id was set to %u:%u\n",
+                        id.Value(),
+                        octant_id.GetDepth(),
+                        octant_id.GetIndex()
+                    );
+                }
+            }
+        });
+        
     }
 
     RebuildNodesHash();
@@ -428,7 +438,7 @@ Octree::Result Octree::RemoveInternal(ID<Entity> id)
 
     if (it == m_nodes.End()) {
         if (m_is_divided) {
-            for (auto &octant : m_octants) {
+            for (Octant &octant : m_octants) {
                 AssertThrow(octant.octree != nullptr);
 
                 if (octant.octree->RemoveInternal(id)) {
@@ -447,8 +457,11 @@ Octree::Result Octree::RemoveInternal(ID<Entity> id)
     // entity->OnRemovedFromOctree(this);
 
     // @TODO Update once everything is moved to ECS
-    if (m_entity_manager && m_entity_manager->HasEntity(id)) {
-        m_entity_manager->GetComponent<VisibilityStateComponent>(id).octant_id = OctantID::invalid;
+    if (m_entity_manager) {
+        m_entity_manager->PushCommand([id](EntityManager &mgr, GameCounter::TickUnit delta)
+        {
+            mgr.GetComponent<VisibilityStateComponent>(id).octant_id = OctantID::invalid;
+        });
     }
 
     m_nodes.Erase(it);
@@ -624,8 +637,13 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, const 
 
         // entity->OnMovedToOctant(this);
 
-        if (m_entity_manager && m_entity_manager->HasEntity(id)) {
-            m_entity_manager->GetComponent<VisibilityStateComponent>(id).octant_id = m_octant_id;
+        if (m_entity_manager) {
+            m_entity_manager->PushCommand([id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
+            {
+                if (mgr.HasEntity(id)) {
+                    mgr.GetComponent<VisibilityStateComponent>(id).octant_id = octant_id;
+                }
+            });
 
 #ifdef HYP_OCTREE_DEBUG
             DebugLog(
@@ -767,16 +785,18 @@ void Octree::ForceVisibilityStates()
     m_visibility_state.ForceAllVisible();
     
     for (auto &node : m_nodes) {
-        // AssertThrow(node.entity != nullptr);
-        // node.entity->m_visibility_state.ForceAllVisible();
-
-        if (m_entity_manager && m_entity_manager->HasEntity(node.id)) {
-            m_entity_manager->GetComponent<VisibilityStateComponent>(node.id).octant_id = m_octant_id;
+        if (m_entity_manager) {
+            m_entity_manager->PushCommand([id = node.id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
+            {
+                if (mgr.HasEntity(id)) {
+                    mgr.GetComponent<VisibilityStateComponent>(id).octant_id = octant_id;
+                }
+            });
         }
     }
 
     if (m_is_divided) {
-        for (auto &octant : m_octants) {
+        for (Octant &octant : m_octants) {
             AssertThrow(octant.octree != nullptr);
 
             octant.octree->ForceVisibilityStates();

@@ -1,7 +1,7 @@
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
-#include <scene/ecs/components/SkeletonComponent.hpp>
+#include <scene/ecs/components/AnimationComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
@@ -218,14 +218,16 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             continue;
         }
 
-        const ID<Entity> entity = g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddEntity();
+        const Handle<Scene> &scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        const ID<Entity> entity = scene->GetEntityManager()->AddEntity();
+
+        scene->GetEntityManager()->AddComponent(
             entity,
             TransformComponent { }
         );
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             VisibilityStateComponent { }
         );
@@ -251,15 +253,16 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         material->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties));
         InitObject(material);
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             MeshComponent {
                 mesh,
-                material
+                material,
+                skeleton
             }
         );
 
-        g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent(
             entity,
             BoundingBoxComponent {
                 mesh->GetAABB()
@@ -269,10 +272,9 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         if (skeleton.IsValid()) {
             InitObject(skeleton);
 
-            g_engine->GetWorld()->GetDetachedScene()->GetEntityManager()->AddComponent(
+            scene->GetEntityManager()->AddComponent(
                 entity,
-                SkeletonComponent {
-                    skeleton,
+                AnimationComponent {
                     {
                         .animation_index = 0,
                         .current_time = 0.0f,

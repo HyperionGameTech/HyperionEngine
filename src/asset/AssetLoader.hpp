@@ -197,7 +197,13 @@ struct AssetLoaderWrapper<Node>
     static inline CastedType ExtractAssetValue(AssetValue &value)
     {
         if (value.Is<ResultType>()) {
-            return value.Get<ResultType>();
+            auto result = value.Get<ResultType>();
+
+            if (result) {
+                result.Get()->SetScene(nullptr); // sets it to detached scene for the current thread we're on.
+            }
+    
+            return result;
         }
 
         return CastedType();

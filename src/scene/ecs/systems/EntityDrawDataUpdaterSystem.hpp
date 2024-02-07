@@ -5,7 +5,6 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/SkeletonComponent.hpp>
 #include <rendering/EntityDrawData.hpp>
 
 namespace hyperion::v2 {
@@ -13,8 +12,7 @@ namespace hyperion::v2 {
 class EntityDrawDataUpdaterSystem : public System<
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<SkeletonComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>
 >
 {
 public:

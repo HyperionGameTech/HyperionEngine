@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_ECS_SKELETON_COMPONENT_HPP
-#define HYPERION_V2_ECS_SKELETON_COMPONENT_HPP
+#ifndef HYPERION_V2_ECS_ANIMATION_COMPONENT_HPP
+#define HYPERION_V2_ECS_ANIMATION_COMPONENT_HPP
 
 #include <core/Handle.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -28,9 +28,8 @@ struct AnimationPlaybackState
     Float                   current_time = 0.0f;
 };
 
-struct SkeletonComponent
+struct AnimationComponent
 {
-    Handle<Skeleton>        skeleton;
     AnimationPlaybackState  playback_state;
 };
 

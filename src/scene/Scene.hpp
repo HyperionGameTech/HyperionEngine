@@ -45,7 +45,8 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
         SCENE_FLAGS_HAS_TLAS = 0x1
     };
 
-    ComponentFlags flags = SCENE_FLAGS_NONE;
+    ThreadMask      thread_mask = THREAD_GAME;
+    ComponentFlags  flags = SCENE_FLAGS_NONE;
 };
 
 class Scene
