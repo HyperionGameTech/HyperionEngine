@@ -33,10 +33,8 @@ class ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptureRenderC
     GPUBufferRef    m_buffer;
 
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SLOT6;
-
-    ScreenCaptureRenderComponent(const Extent2D window_size)
-        : RenderComponent(),
+    ScreenCaptureRenderComponent(Name name, const Extent2D window_size)
+        : RenderComponent(name),
           m_window_size(window_size)
     {
     }

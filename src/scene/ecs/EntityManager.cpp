@@ -5,6 +5,12 @@
 
 namespace hyperion::v2 {
 
+#define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+#define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
+
+// if the number of systems in a group is less than this value, they will be executed sequentially
+static const UInt systems_execution_parallel_threshold = 3;
+
 // EntityManagerCommandQueue
 
 EntityManagerCommandQueue::EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy)
@@ -292,20 +298,93 @@ void EntityManager::Update(GameCounter::TickUnit delta)
 
     // Process the execution groups in sequential order
     for (auto &system_execution_group : m_system_execution_groups) {
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+        const auto start = std::chrono::high_resolution_clock::now();
+
+        puts("----------");
+#endif
+
         system_execution_group.Process(*this, delta);
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+        const auto stop = std::chrono::high_resolution_clock::now();
+
+        const double ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count();
+
+        printf("Total time: (%f ms)\n", ms);
+        puts("----------");
+#endif
     }
 }
 
 void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
-    TaskSystem::GetInstance().ParallelForEach(
-        THREAD_POOL_GENERIC,
-        m_systems,
-        [&entity_manager, delta](auto &it, UInt, UInt)
-        {
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+    Array<Pair<ThreadMask, double>> times;
+    times.Resize(m_systems.Size());
+#endif
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
+    if (m_systems.Size() >= systems_execution_parallel_threshold) {
+        TaskSystem::GetInstance().ParallelForEach(
+            THREAD_POOL_GENERIC,
+            m_systems,
+            [&, delta](auto &it, UInt index, UInt)
+            {
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+                const auto start = std::chrono::high_resolution_clock::now();
+#endif
+
+                it.second->Process(entity_manager, delta);
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+                auto stop = std::chrono::high_resolution_clock::now();
+
+                // set to ms
+                times[index] = {
+                    Threads::CurrentThreadID(),
+                    std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count()
+                };
+#endif
+            }
+        );
+    } else {
+#endif
+        for (SizeType i = 0; i < m_systems.Size(); i++) {
+            const auto &it = *(m_systems.Begin() + i);
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+            const auto start = std::chrono::high_resolution_clock::now();
+#endif
+
             it.second->Process(entity_manager, delta);
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+            const auto stop = std::chrono::high_resolution_clock::now();
+
+            // set to ms
+            times[i] = {
+                Threads::CurrentThreadID(),
+                (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count())
+            };
+#endif
         }
-    );
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
+    }
+#endif
+
+#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+    for (SizeType i = 0; i < m_systems.Size(); i++) {
+        printf(
+            "%s (%f ms, thread: %d)\t",
+            (*(m_systems.Begin() + i)).first.Name().LookupString(),
+            times[i].second,
+            times[i].first
+        );
+    }
+
+    puts("");
+#endif
 }
 
 } // namespace hyperion::v2

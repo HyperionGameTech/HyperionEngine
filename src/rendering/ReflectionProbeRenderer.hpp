@@ -31,13 +31,13 @@ class ReflectionProbeRenderer
       public RenderComponent<ReflectionProbeRenderer>
 {
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_CUBEMAP;
-
     ReflectionProbeRenderer(
+        Name name,
         const Vector3 &origin
     );
 
     ReflectionProbeRenderer(
+        Name name,
         const BoundingBox &aabb
     );
 

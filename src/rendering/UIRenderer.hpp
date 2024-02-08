@@ -20,15 +20,12 @@ using renderer::ImageView;
 ;
 
 class UIRenderer
-    : public BasicObject<STUB_CLASS(UIRenderer)>,
-      public RenderComponent<UIRenderer>
+    : public RenderComponent<UIRenderer>
 {
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_UI;
-
-    UIRenderer(const Handle<Scene> &ui_scene);
-    UIRenderer(const UIRenderer &other) = delete;
-    UIRenderer &operator=(const UIRenderer &other) = delete;
+    UIRenderer(Name name, Handle<Scene> ui_scene);
+    UIRenderer(const UIRenderer &other)             = delete;
+    UIRenderer &operator=(const UIRenderer &other)  = delete;
     virtual ~UIRenderer();
 
     void Init();

@@ -11,9 +11,10 @@
 namespace hyperion::v2 {
 
 PointLightShadowRenderer::PointLightShadowRenderer(
+    Name name,
     Handle<Light> light,
     const Extent2D &extent
-) : RenderComponent(),
+) : RenderComponent(name),
     m_light(std::move(light)),
     m_extent(extent)
 {

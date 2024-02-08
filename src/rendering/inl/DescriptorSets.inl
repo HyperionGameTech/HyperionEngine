@@ -73,6 +73,6 @@ DESCRIPTOR_SET(3, Material);
 
 #else
 
-#error "What do you mean? I don't understand. What do you want me to do? I don't know what you want me to do."
+#error "HYP_DESCRIPTOR_SETS_DECLARE or HYP_DESCRIPTOR_SETS_DEFINE is not defined"
 
 #endif

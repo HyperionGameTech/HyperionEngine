@@ -11,6 +11,9 @@
 #include <type_traits>
 #include <cstddef>
 
+// temp
+#include <functional>
+
 namespace hyperion {
 namespace detail {
 

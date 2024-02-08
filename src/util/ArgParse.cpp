@@ -91,7 +91,7 @@ ArgParse::Result ArgParse::Parse(Int argc, char **argv) const
 {
     Array<String> args;
 
-    for (Int i = 0; i < argc; i++) {
+    for (Int i = 1; i < argc; i++) {
         args.PushBack(argv[i]);
     }
 

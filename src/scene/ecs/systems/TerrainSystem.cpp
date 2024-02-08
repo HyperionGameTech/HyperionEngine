@@ -510,7 +510,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                         patch_info.coord.x,
                         patch_info.coord.y
                     );
-                }, THREAD_POOL_BACKGROUND);
+                }, THREAD_POOL_GENERIC);
 
                 state->patch_generation_tasks.Insert(patch_info.coord, task_ref);
 

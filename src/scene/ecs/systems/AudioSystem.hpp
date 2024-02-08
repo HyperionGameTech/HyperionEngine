@@ -15,6 +15,8 @@ class AudioSystem : public System<
 public:
     virtual ~AudioSystem() override = default;
 
+    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity) override;
+
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
 };
 

@@ -25,9 +25,7 @@ class Light;
 class PointLightShadowRenderer : public RenderComponent<PointLightShadowRenderer>
 {
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_POINT_SHADOW;
-
-    PointLightShadowRenderer(Handle<Light> light, const Extent2D &extent);
+    PointLightShadowRenderer(Name name, Handle<Light> light, const Extent2D &extent);
     PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
     PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
     virtual ~PointLightShadowRenderer() override;

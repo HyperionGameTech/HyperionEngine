@@ -1,13 +1,16 @@
-#ifndef HYPERION_V2_BONE_H
-#define HYPERION_V2_BONE_H
+#ifndef HYPERION_V2_BONE_HPP
+#define HYPERION_V2_BONE_HPP
 
 #include <scene/Node.hpp>
+#include <scene/animation/Keyframe.hpp>
+
 #include <core/lib/String.hpp>
-#include "Keyframe.hpp"
 
 #include <math/Transform.hpp>
 
 namespace hyperion::v2 {
+
+class Skeleton;
 
 class Bone : public Node
 {

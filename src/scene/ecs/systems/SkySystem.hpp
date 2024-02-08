@@ -9,11 +9,14 @@ namespace hyperion::v2 {
 
 class SkySystem : public System<
     ComponentDescriptor<SkyComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>
 >
 {
 public:
     virtual ~SkySystem() override = default;
+
+    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity) override;
+    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity) override;
 
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
 };

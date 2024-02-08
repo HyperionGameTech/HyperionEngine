@@ -109,9 +109,7 @@ class EnvGrid : public RenderComponent<EnvGrid>
 public:
     friend struct RenderCommand_UpdateEnvProbeAABBsInGrid;
 
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_ENV_GRID;
-
-    EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &density);
+    EnvGrid(Name name, EnvGridType type, const BoundingBox &aabb, const Extent3D &density);
     EnvGrid(const EnvGrid &other) = delete;
     EnvGrid &operator=(const EnvGrid &other) = delete;
     virtual ~EnvGrid();

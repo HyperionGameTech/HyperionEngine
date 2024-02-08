@@ -1,4 +1,5 @@
-#include "Bone.hpp"
+#include <scene/animation/Bone.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 namespace hyperion::v2 {
 

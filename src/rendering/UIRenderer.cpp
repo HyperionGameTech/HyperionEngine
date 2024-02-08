@@ -66,21 +66,14 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : renderer::RenderCommand
     }
 };
 
-UIRenderer::UIRenderer(const Handle<Scene> &scene)
-    : BasicObject(),
-      RenderComponent(),
-      m_scene(scene)
+UIRenderer::UIRenderer(Name name, Handle<Scene> scene)
+    : RenderComponent(name),
+      m_scene(std::move(scene))
 {
 }
 
 UIRenderer::~UIRenderer()
 {
-    if (!IsInitCalled()) {
-        return;
-    }
-
-    SetReady(false);
-
     PUSH_RENDER_COMMAND(DestroyUIDescriptors, GetComponentIndex());
 
     HYP_SYNC_RENDER();
@@ -88,12 +81,6 @@ UIRenderer::~UIRenderer()
 
 void UIRenderer::Init()
 {
-    if (IsInitCalled()) {
-        return;
-    }
-
-    BasicObject::Init();
-
     CreateFramebuffer();
     CreateDescriptors();
 
@@ -104,8 +91,6 @@ void UIRenderer::Init()
     InitObject(m_scene);
 
     m_render_list.SetCamera(m_scene->GetCamera());
-
-    SetReady(true);
 }
 
 void UIRenderer::CreateFramebuffer()

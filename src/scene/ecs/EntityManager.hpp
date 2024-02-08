@@ -10,13 +10,15 @@
 #include <core/lib/Mutex.hpp>
 #include <core/Handle.hpp>
 #include <core/ID.hpp>
+
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/EntityContainer.hpp>
-#include <scene/ecs/EntityManagerCommand.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/System.hpp>
+
+#include <GameCounter.hpp>
 
 namespace hyperion::v2 {
 
@@ -174,6 +176,10 @@ enum EntityManagerCommandQueuePolicy
     ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD,
     ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD
 };
+
+class EntityManager;
+
+using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter::TickUnit /* delta */>;
 
 class EntityManagerCommandQueue
 {

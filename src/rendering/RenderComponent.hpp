@@ -49,7 +49,7 @@ public:
     using Index = UInt;
 
     /*! @param render_frame_slicing Number of frames to wait between render calls */
-    RenderComponentBase(RenderComponentName name, UInt render_frame_slicing = 0)
+    RenderComponentBase(Name name, UInt render_frame_slicing = 0)
         : m_name(name),
           m_render_frame_slicing(MathUtil::NextMultiple(render_frame_slicing, max_frames_in_flight)),
           m_render_frame_slicing_counter(0),
@@ -62,7 +62,7 @@ public:
     RenderComponentBase &operator=(const RenderComponentBase &other)    = delete;
     virtual ~RenderComponentBase()                                      = default;
 
-    RenderComponentName GetName() const
+    Name GetName() const
         { return m_name; }
 
     RenderEnvironment *GetParent() const
@@ -90,7 +90,7 @@ public:
     virtual void ComponentRemoved() = 0;
 
 protected:
-    RenderComponentName m_name;
+    Name                m_name;
     const UInt          m_render_frame_slicing; // amount of frames to wait between render calls
     UInt                m_render_frame_slicing_counter; // amount of frames to wait between render calls
     Index               m_index;
@@ -101,9 +101,8 @@ template <class Derived>
 class RenderComponent : public RenderComponentBase
 {
 public:
-    /* Derived class must have static component_name member of type RenderComponentName, to forward to RenderComponentBase. */
-    RenderComponent(UInt render_frame_slicing = 0)
-        : RenderComponentBase(Derived::component_name, render_frame_slicing),
+    RenderComponent(Name name, UInt render_frame_slicing = 0)
+        : RenderComponentBase(name, render_frame_slicing),
           m_component_is_render_init(false),
           m_component_is_game_init(false)
     {
@@ -168,7 +167,7 @@ public:
 protected:
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
 
-    Bool m_component_is_render_init,
+    bool m_component_is_render_init,
         m_component_is_game_init;
 };
 

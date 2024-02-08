@@ -7,6 +7,17 @@
 
 namespace hyperion::v2 {
 
+void AudioSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+{
+    AudioComponent &audio_component = entity_manager.GetComponent<AudioComponent>(entity);
+
+    if (audio_component.audio_source.IsValid()) {
+        InitObject(audio_component.audio_source);
+
+        audio_component.flags |= AUDIO_COMPONENT_FLAG_INIT;
+    }
+}
+
 void AudioSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     if (!AudioManager::GetInstance()->IsInitialized()) {
@@ -28,12 +39,6 @@ void AudioSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit d
             audio_component.playback_state.current_time = 0.0f;
 
             continue;
-        }
-
-        if (!(audio_component.flags & AUDIO_COMPONENT_FLAG_INIT)) {
-            InitObject(audio_component.audio_source);
-
-            audio_component.flags |= AUDIO_COMPONENT_FLAG_INIT;
         }
 
         if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PLAYING) {

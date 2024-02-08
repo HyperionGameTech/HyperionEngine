@@ -11,6 +11,7 @@
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>
 #include <math/Matrix4.hpp>
+#include <math/BoundingBox.hpp>
 
 #include <GameCounter.hpp>
 #include <HashCode.hpp>

@@ -2,6 +2,12 @@
 
 namespace hyperion::v2 {
 
+const FlatMap<TaskThreadPoolName, UInt> TaskSystem::s_thread_pool_sizes = {
+    { TaskThreadPoolName::THREAD_POOL_GENERIC,          4u },
+    { TaskThreadPoolName::THREAD_POOL_RENDER,           2u },
+    { TaskThreadPoolName::THREAD_POOL_RENDER_COLLECT,   2u }
+};
+
 TaskSystem &TaskSystem::GetInstance()
 {
     static TaskSystem instance;
@@ -66,17 +72,16 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
     batch->task_refs.Resize(batch->tasks.Size());
 
     const ThreadID &current_thread_id = Threads::CurrentThreadID();
-    const bool in_task_thread = Threads::IsThreadInMask(current_thread_id, THREAD_TASK);
 
-    if (in_task_thread) {
-        for (auto &task : batch->tasks) {
-            task.Execute();
-        }
+    // if (in_task_thread) {
+    //     for (auto &task : batch->tasks) {
+    //         task.Execute();
+    //     }
 
-        // all have been moved
-        batch->tasks.Clear();
-        return batch;
-    }
+    //     // all have been moved
+    //     batch->tasks.Clear();
+    //     return batch;
+    // }
 
     TaskThreadPool &pool = GetPool(batch->pool);
 
@@ -100,14 +105,6 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
                 DebugLog(LogType::Warn, "On thread %s: %u spins while searching for available task threads\n", current_thread_id.name.LookupString(), num_spins);
 
                 if (num_spins >= max_spins) {
-                    DebugLog(
-                        LogType::Warn,
-                        "On task thread %s: All other task threads busy while enqueing a batch from within another task thread! "
-                        "The task will instead be executed inline on the current task thread."
-                        "\n\tReduce usage of batching within batches?\n",
-                        current_thread_id.name.LookupString()
-                    );
-
                     was_busy = true;
 
                     break;
@@ -120,13 +117,21 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
             ++num_spins;
         } while (task_thread->GetID() == current_thread_id
             || !task_thread->IsRunning()
-            || (in_task_thread && !task_thread->IsFree()));
+            || (Threads::IsThreadInMask(current_thread_id, THREAD_TASK) && !task_thread->IsFree()));
 
         // force execution now. not ideal,
         // but if we are currently on a task thread, and all task threads are busy,
         // we don't want to risk that another task thread is waiting on our current task thread,
         // which would cause a deadlock.
         if (was_busy) {
+            DebugLog(
+                LogType::Warn,
+                "On task thread %s: All other task threads busy while enqueing a batch from within another task thread! "
+                "The task will instead be executed inline on the current task thread."
+                "\n\tReduce usage of batching within batches?\n",
+                current_thread_id.name.LookupString()
+            );
+
             task.Execute();
 
             continue;

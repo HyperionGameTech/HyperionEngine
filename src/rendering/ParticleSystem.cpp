@@ -24,10 +24,10 @@ using renderer::CommandBufferType;
 
 struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 {
-    GPUBufferRef particle_buffer;
-    GPUBufferRef indirect_buffer;
-    GPUBufferRef noise_buffer;
-    ParticleSpawnerParams params;
+    GPUBufferRef            particle_buffer;
+    GPUBufferRef            indirect_buffer;
+    GPUBufferRef            noise_buffer;
+    ParticleSpawnerParams   params;
 
     RENDER_COMMAND(CreateParticleSpawnerBuffers)(
         GPUBufferRef particle_buffer,
@@ -140,13 +140,13 @@ struct RENDER_COMMAND(DestroyParticleSystem) : renderer::RenderCommand
 struct RENDER_COMMAND(CreateParticleSystemBuffers) : renderer::RenderCommand
 {
     GPUBufferRef    staging_buffer;
-    Mesh            *quad_mesh;
+    Handle<Mesh>    quad_mesh;
 
     RENDER_COMMAND(CreateParticleSystemBuffers)(
         GPUBufferRef staging_buffer,
-        Mesh *quad_mesh
+        Handle<Mesh> quad_mesh
     ) : staging_buffer(std::move(staging_buffer)),
-        quad_mesh(quad_mesh)
+        quad_mesh(std::move(quad_mesh))
     {
     }
 
@@ -173,11 +173,11 @@ struct RENDER_COMMAND(CreateParticleSystemBuffers) : renderer::RenderCommand
 
 struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderCommand
 {
-    FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers;
+    FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> command_buffers;
 
     RENDER_COMMAND(CreateParticleSystemCommandBuffers)(
-        FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers
-    ) : command_buffers(command_buffers)
+        FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> command_buffers
+    ) : command_buffers(std::move(command_buffers))
     {
     }
 
@@ -185,8 +185,6 @@ struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderComm
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < UInt(command_buffers[frame_index].Size()); i++) {
-                command_buffers[frame_index][i].Reset(new CommandBuffer(CommandBufferType::COMMAND_BUFFER_SECONDARY));
-    
                 HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(
                     g_engine->GetGPUInstance()->GetDevice(),
                     g_engine->GetGPUInstance()->GetGraphicsCommandPool(i)
@@ -389,7 +387,7 @@ ParticleSystem::~ParticleSystem()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (auto &command_buffer : m_command_buffers[frame_index]) {
-            g_safe_deleter->SafeRelease(std::move(command_buffer));
+            SafeRelease(std::move(command_buffer));
         }
     }
 
@@ -434,15 +432,19 @@ void ParticleSystem::CreateBuffers()
 
     PUSH_RENDER_COMMAND(CreateParticleSystemBuffers, 
         m_staging_buffer,
-        m_quad_mesh.Get()
+        m_quad_mesh
     );
 }
 
 void ParticleSystem::CreateCommandBuffers()
 {
-    PUSH_RENDER_COMMAND(CreateParticleSystemCommandBuffers, 
-        m_command_buffers
-    );
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (UInt i = 0; i < num_async_rendering_command_buffers; i++) {
+            m_command_buffers[frame_index][i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
+        }
+    }
+
+    PUSH_RENDER_COMMAND(CreateParticleSystemCommandBuffers, m_command_buffers);
 }
 
 void ParticleSystem::UpdateParticles(Frame *frame)

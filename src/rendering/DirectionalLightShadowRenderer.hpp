@@ -125,9 +125,7 @@ private:
 class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>
 {
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
-
-    DirectionalLightShadowRenderer(Extent2D resolution);
+    DirectionalLightShadowRenderer(Name name, Extent2D resolution);
     DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
     DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
     virtual ~DirectionalLightShadowRenderer();

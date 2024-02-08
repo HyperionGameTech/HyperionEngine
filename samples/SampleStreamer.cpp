@@ -20,6 +20,7 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/TerrainComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
+#include <scene/ecs/components/RigidBodyComponent.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -35,13 +36,9 @@
 
 #include <Game.hpp>
 
-#include <rendering/rt/BlurRadiance.hpp>
-
 #include <ui/UIText.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
-
-#include <scene/terrain/controllers/TerrainPagingController.hpp>
 
 #include <rendering/render_components/ScreenCapture.hpp>
 
@@ -61,8 +58,6 @@
 #include <rendering/GaussianSplatting.hpp>
 
 #include <util/UTF8.hpp>
-
-#include <mutex>
 
 #include <rtc/RTCClientList.hpp>
 #include <rtc/RTCClient.hpp>
@@ -202,6 +197,68 @@ void SampleStreamer::InitGame()
         0.01f, 30000.0f
     ));
 
+    { // compare Proc<> to std::function
+        struct TestObject
+        {
+            int i = 0;
+            float f = 0.0f;
+            String str = "hello world";
+        };
+
+        std::chrono::high_resolution_clock::time_point start, end;
+
+        start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 1000000; i++) {
+            TestObject test_object {
+                .i = i,
+                .f = float(i),
+                .str = String::ToString(i)
+            };
+
+            constexpr auto x = sizeof(test_object);
+
+            Proc<void, int> proc;
+            proc = [t = test_object](int i) mutable
+            {
+                t.i += i;
+                t.f += float(i);
+                t.str = String::ToString(i);
+            };
+
+            proc(i);
+        }
+
+        end = std::chrono::high_resolution_clock::now();
+
+        DebugLog(LogType::Debug, "Proc<>: %f\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0f);
+
+
+        start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 1000000; i++) {
+            TestObject test_object {
+                .i = i,
+                .f = float(i),
+                .str = String::ToString(i)
+            };
+
+            std::function<void(int)> func;
+            func = [t = test_object](int i) mutable
+            {
+                t.i += i;
+                t.f += float(i);
+                t.str = String::ToString(i);
+            };
+
+            func(i);
+        }
+
+        end = std::chrono::high_resolution_clock::now();
+
+        DebugLog(LogType::Debug, "std::function: %f\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0f);
+    }
+
     /*m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
         Vector3(0.0f, 7.0f, 0.0f), Vector3(0.0f, 0.0f, 5.0f)
     ));*/
@@ -212,6 +269,16 @@ void SampleStreamer::InitGame()
 
         auto cube = MeshBuilder::Cube();
         InitObject(cube);
+
+        // add physics
+        m_scene->GetEntityManager()->AddComponent(entity_id, RigidBodyComponent {
+            CreateObject<physics::RigidBody>(
+                RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -0.5f }, Vec3f { 0.5f } })),
+                physics::PhysicsMaterial {
+                    .mass = 1.0f
+                }
+            )
+        });
         
         m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
             cube,
@@ -247,7 +314,7 @@ void SampleStreamer::InitGame()
 
     // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
-    {
+    if (false) {
         auto terrain_node = m_scene->GetRoot().AddChild();
         auto terrain_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -439,47 +506,6 @@ void SampleStreamer::InitGame()
             });
         }
     }
-    
-    // Test gaussian splatting
-    if (false) {
-        auto batch = g_asset_manager->CreateBatch();
-        batch->Add("cameras json", "models/gaussian_splatting/cameras.json");
-        // batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
-
-        batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
-        {
-            const String &key = data.GetAssetKey();
-            
-            DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
-        });
-
-        batch->LoadAsync();
-
-        m_asset_batches.Insert(HYP_NAME(GaussianSplatting), std::move(batch));
-    }
-
-    // Test voxelizing model
-    // if (true) {
-    //     auto batch = g_asset_manager->CreateBatch();
-    //     batch->Add<Node>("test_voxelizer_model", "models/suzanne.obj");
-
-    //     batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
-    //     {
-    //         const String &key = data.GetAssetKey();
-            
-    //         DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
-    //     });
-
-    //     batch->LoadAsync();
-
-    //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
-    // }
-
-    auto test_button = GetUI().CreateButton(
-        Vector2(0.0f, 0.0f),
-        Vector2(0.2f, 0.5f),
-        "Test Button"
-    );
 
     m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
 }

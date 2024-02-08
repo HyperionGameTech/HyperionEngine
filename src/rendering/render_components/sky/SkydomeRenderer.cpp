@@ -40,8 +40,8 @@ struct RENDER_COMMAND(SetEnvironmentMap) : renderer::RenderCommand
 
 #pragma endregion
 
-SkydomeRenderer::SkydomeRenderer(Extent2D dimensions)
-    : RenderComponent(60),
+SkydomeRenderer::SkydomeRenderer(Name name, Extent2D dimensions)
+    : RenderComponent(name, 60),
       m_dimensions(dimensions)
 {
 }

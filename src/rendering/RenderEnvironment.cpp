@@ -252,7 +252,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
     for (const auto &it : m_render_components) {
         for (const auto &component_tag_pair : it.second) {
-            m_next_enabled_render_components_mask |= 1u << UInt32(component_tag_pair.second->GetName());
+            // m_next_enabled_render_components_mask |= 1u << UInt32(component_tag_pair.second->GetName());
 
             component_tag_pair.second->ComponentRender(frame);
         }
@@ -297,18 +297,14 @@ void RenderEnvironment::RenderComponents(Frame *frame)
             const auto components_it = m_render_components.Find(it.first);
 
             if (components_it != m_render_components.End()) {
-                RenderComponentName component_type = RENDER_COMPONENT_INVALID;
-
                 auto &items_map = components_it->second;
-                
+
                 const auto item_it = items_map.Find(name);
 
                 if (item_it != items_map.End()) {
                     const RC<RenderComponentBase> &item = item_it->second;
 
                     if (item != nullptr) {
-                        component_type = item->GetName();
-
                         item->ComponentRemoved();
                     }
 
@@ -316,10 +312,6 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 }
 
                 if (items_map.Empty()) {
-                    if (component_type != RENDER_COMPONENT_INVALID) {
-                        m_next_enabled_render_components_mask &= ~(1u << UInt32(component_type));
-                    }
-
                     m_render_components.Erase(components_it);
                 }
             }

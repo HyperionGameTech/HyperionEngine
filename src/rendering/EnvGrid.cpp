@@ -1,6 +1,5 @@
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <scene/controllers/PagingController.hpp>
 #include <scene/Scene.hpp>
 #include <Engine.hpp>
 
@@ -290,8 +289,8 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
 
 #pragma endregion
 
-EnvGrid::EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &density)
-    : RenderComponent(),
+EnvGrid::EnvGrid(Name name, EnvGridType type, const BoundingBox &aabb, const Extent3D &density)
+    : RenderComponent(name),
       m_type(type),
       m_aabb(aabb),
       m_voxel_grid_aabb(aabb),

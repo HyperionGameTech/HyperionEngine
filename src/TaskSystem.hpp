@@ -25,11 +25,9 @@ struct TaskRef
 
 enum TaskThreadPoolName : UInt
 {
-    THREAD_POOL_GENERIC        = 0,
-    THREAD_POOL_RENDER_COLLECT = 1,
-    THREAD_POOL_RENDER         = 2,
-    THREAD_POOL_BACKGROUND     = 3,
-
+    THREAD_POOL_GENERIC,
+    THREAD_POOL_RENDER_COLLECT,
+    THREAD_POOL_RENDER,
     THREAD_POOL_MAX
 };
 
@@ -84,31 +82,42 @@ struct TaskBatch
 
 class TaskSystem
 {
-    static constexpr UInt num_threads_per_pool = 2;
-    
     struct TaskThreadPool
     {
-        AtomicVar<UInt>                                         cycle { 0u };
-        FixedArray<UniquePtr<TaskThread>, num_threads_per_pool> threads;
+        AtomicVar<UInt>                 cycle { 0u };
+        Array<UniquePtr<TaskThread>>    threads;
     };
+
+    static const FlatMap<TaskThreadPoolName, UInt> s_thread_pool_sizes;
 
 public:
     static TaskSystem &GetInstance();
 
     TaskSystem()
     {
-        ThreadMask  mask = THREAD_TASK_0;
-        UInt        priority_value = 0;
+        ThreadMask mask = THREAD_TASK_0;
 
-        for (auto &pool : m_pools) {
+        for (UInt i = 0; i < THREAD_POOL_MAX; i++) {
+            const TaskThreadPoolName pool_name { i };
+
+            auto thread_pool_sizes_it = s_thread_pool_sizes.Find(pool_name);
+            AssertThrowMsg(
+                thread_pool_sizes_it != s_thread_pool_sizes.End(),
+                "TaskThreadPoolName for %u not found in s_thread_pool_sizes",
+                i
+            );
+
+            const UInt sz = thread_pool_sizes_it->second;
+
+            TaskThreadPool &pool = m_pools[i];
+            pool.threads.Resize(sz);
+
             for (auto &it : pool.threads) {
                 AssertThrow(THREAD_TASK & mask);
 
                 it.Reset(new TaskThread(Threads::thread_ids.At(ThreadName(mask))));
                 mask <<= 1;
             }
-
-            ++priority_value;
         }
     }
 

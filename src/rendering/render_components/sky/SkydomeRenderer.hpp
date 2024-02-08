@@ -31,9 +31,7 @@ using renderer::ImageView;
 class SkydomeRenderer : public RenderComponent<SkydomeRenderer>
 {
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SLOT7;
-
-    SkydomeRenderer(Extent2D dimensions = { 1024, 1024 });
+    SkydomeRenderer(Name name, Extent2D dimensions = { 1024, 1024 });
     virtual ~SkydomeRenderer() = default;
 
     const Handle<Texture> &GetCubemap() const

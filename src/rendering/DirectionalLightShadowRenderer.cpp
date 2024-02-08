@@ -425,8 +425,8 @@ void ShadowPass::Render(Frame *frame)
     }
 }
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Extent2D resolution)
-    : RenderComponent(),
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Extent2D resolution)
+    : RenderComponent(name),
       m_resolution(resolution)
 {
 }

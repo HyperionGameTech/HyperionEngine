@@ -41,17 +41,12 @@ struct Task
     TaskID      id;
     Function    fn;
 
-#ifdef HYP_DEBUG_MODE
-    String _debug_function_name;
-#endif
-
     constexpr static TaskID empty_id = TaskID { 0 };
 
     template <class Lambda>
     Task(Lambda &&lambda)
         : id { },
-          fn(std::forward<Lambda>(lambda)),
-          _debug_function_name { StackDump(10).ToString() }
+          fn(std::forward<Lambda>(lambda))
     {
     }
 
@@ -59,8 +54,7 @@ struct Task
     Task &operator=(const Task &other)  = delete;
     Task(Task &&other) noexcept
         : id(other.id),
-          fn(std::move(other.fn)),
-          _debug_function_name(std::move(other._debug_function_name))
+          fn(std::move(other.fn))
     {
         other.id = {};
     }
@@ -69,7 +63,6 @@ struct Task
     {
         id = other.id;
         fn = std::move(other.fn);
-        _debug_function_name = std::move(other._debug_function_name);
 
         other.id = {};
 

@@ -9,8 +9,6 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <scene/controllers/paging/BasicPagingController.hpp>
-#include <scene/terrain/controllers/TerrainPagingController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
 

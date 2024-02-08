@@ -13,13 +13,13 @@ namespace hyperion::v2::physics {
 
 struct PhysicsMaterial
 {
-    Float mass;
+    float mass;
 
-    Float GetMass() const
+    float GetMass() const
         { return mass; }
 
-    void SetMass(Float mass)
-        { this->mass = mass; }
+    void SetMass(float value)
+        { mass = value; }
 };
 
 } // namespace hyperion::v2::physics

@@ -9,17 +9,19 @@
 namespace hyperion::v2 {
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
+    Name name,
     const Vector3 &origin
 ) : BasicObject(),
-    RenderComponent(5),
+    RenderComponent(name, 5),
     m_aabb(BoundingBox(origin - 150.0f, origin + 150.0f))
 {
 }
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
+    Name name,
     const BoundingBox &aabb
 ) : BasicObject(),
-    RenderComponent(5),
+    RenderComponent(name, 5),
     m_aabb(aabb)
 {
 }

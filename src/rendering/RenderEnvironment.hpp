@@ -76,12 +76,14 @@ public:
         { return m_gaussian_splatting; }
 
     template <class T>
-    RC<T> AddRenderComponent(Name name, RC<T> component)
+    RC<T> AddRenderComponent(RC<T> component)
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
 
         AssertThrow(component != nullptr);
+
+        const Name name = component->GetName();
 
         component->SetParent(this);
         component->SetComponentIndex(0);
@@ -119,7 +121,7 @@ public:
     template <class T, class ...Args>
     RC<T> AddRenderComponent(Name name, Args &&... args)
     {
-        return AddRenderComponent(name, RC<T>::Construct(std::forward<Args>(args)...));
+        return AddRenderComponent(RC<T>::Construct(name, std::forward<Args>(args)...));
     }
 
     /*! CALL FROM RENDER THREAD ONLY */
