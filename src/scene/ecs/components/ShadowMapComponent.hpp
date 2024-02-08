@@ -24,8 +24,8 @@ enum ShadowMapFilter
 
 struct ShadowMapComponent
 {
-    ShadowMapFilter         filter = SHADOW_MAP_FILTER_PCF;
-    Float                   radius = 15.0f;
+    ShadowMapFilter         filter = SHADOW_MAP_FILTER_VSM;
+    float                   radius = 60.0f;
     Extent2D                resolution = { 1024, 1024 };
     RC<RenderComponentBase> render_component;
 

@@ -117,12 +117,12 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
 
 struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 {
-    UInt shadow_map_index;
-    Matrix4 view_matrix;
-    Matrix4 projection_matrix;
-    BoundingBox aabb;
-    Extent2D dimensions;
-    ShadowFlags flags;
+    UInt            shadow_map_index;
+    Matrix4         view_matrix;
+    Matrix4         projection_matrix;
+    BoundingBox     aabb;
+    Extent2D        dimensions;
+    ShadowFlags     flags;
 
     RENDER_COMMAND(UpdateShadowMapRenderData)(
         UInt shadow_map_index,

@@ -73,7 +73,7 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
             shadow_camera->SetTranslation(center + light_direction);
             shadow_camera->SetTarget(center);
 
-            BoundingBox aabb = BoundingBox(center - shadow_map_component.radius, center + shadow_map_component.radius);
+            BoundingBox aabb { center - shadow_map_component.radius, center + shadow_map_component.radius };
 
             FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
@@ -87,11 +87,15 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
             aabb.max.z = shadow_map_component.radius;
             aabb.min.z = -shadow_map_component.radius;
 
+            const Matrix4 new_projection = Matrix4::Orthographic(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
+
             light_component.light->SetShadowMapIndex(shadow_renderer->GetComponentIndex());
+
+            shadow_renderer->GetPass()->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
 
             shadow_renderer->SetCameraData({
                 shadow_camera->GetViewMatrix(),
-                shadow_camera->GetProjectionMatrix(),
+                new_projection,
                 aabb
             });
 
