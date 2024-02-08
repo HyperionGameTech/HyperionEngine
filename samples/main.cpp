@@ -53,13 +53,13 @@ int main(int argc, char **argv)
     arg_parse.Add("mode", "m", ArgParse::ARG_FLAGS_NONE, Array<String> { "precompile_shaders", "streamer" }, String("streamer"));
 
     if (auto parse_result = arg_parse.Parse(argc, argv)) {
-        if (Bool *headless_ptr = parse_result["headless"].TryGet<Bool>()) {
+        if (const bool *headless_ptr = parse_result["headless"].TryGet<Bool>()) {
             if (*headless_ptr) {
                 window_flags |= WINDOW_FLAGS_HEADLESS;
             }
         }
 
-        if (String *mode_str = parse_result["mode"].TryGet<String>()) {
+        if (const String *mode_str = parse_result["mode"].TryGet<String>()) {
             if (*mode_str == "precompile_shaders") {
                 window_flags |= WINDOW_FLAGS_NO_GFX;
 

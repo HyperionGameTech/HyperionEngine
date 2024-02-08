@@ -3,16 +3,14 @@
 
 namespace hyperion {
 
-ArgParse::ArgumentValue ArgParse::Result::operator[](const String &key) const
+const ArgParse::ArgumentValue &ArgParse::Result::operator[](const String &key) const
 {
     auto it = values.FindIf([&key](const auto &item)
     {
         return item.first == key;
     });
 
-    if (it == values.End()) {
-        return { };
-    }
+    AssertThrowMsg(it != values.End(), "Key not found: '%s'", key.Data());
 
     return it->second;
 }

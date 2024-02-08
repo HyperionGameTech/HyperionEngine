@@ -53,7 +53,7 @@ public:
         explicit operator bool() const
             { return ok; }
 
-        ArgumentValue operator[](const String &key) const;
+        const ArgumentValue &operator[](const String &key) const;
     };
 
     // Add an argument - may be a string, int, float, bool.

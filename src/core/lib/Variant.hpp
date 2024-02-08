@@ -587,10 +587,10 @@ struct Variant
     HYP_FORCE_INLINE bool HasValue() const
         { return m_holder.IsValid(); }
 
-    HYP_FORCE_INLINE void *GetPointer()
+    HYP_FORCE_INLINE void *GetPointer() &
         { return m_holder.GetPointer(); }
 
-    HYP_FORCE_INLINE const void *GetPointer() const
+    HYP_FORCE_INLINE const void *GetPointer() const &
         { return m_holder.GetPointer(); }
 
     template <class T, class ReturnType = NormalizedType<T>>
@@ -600,22 +600,22 @@ struct Variant
 
     template <class T>
     HYP_FORCE_INLINE
-    T &Get()
+    T &Get() &
         { return m_holder.template Get<T>(); }
 
     template <class T>
     HYP_FORCE_INLINE
-    const T &Get() const
+    const T &Get() const &
         { return m_holder.template Get<T>(); }
 
     template <class T>
     HYP_FORCE_INLINE
-    T *TryGet()
+    T *TryGet() &
         { return m_holder.template TryGet<T>(); }
 
     template <class T>
     HYP_FORCE_INLINE
-    const T *TryGet() const
+    const T *TryGet() const &
         { return m_holder.template TryGet<T>(); }
 
     template <class T>
