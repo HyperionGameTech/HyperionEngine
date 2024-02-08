@@ -1,9 +1,6 @@
 #include "NodeProxy.hpp"
 #include "Node.hpp"
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
 namespace hyperion::v2 {
 
 UInt NodeProxyChildren::Size() const

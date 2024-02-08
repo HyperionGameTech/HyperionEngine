@@ -1,8 +1,5 @@
 #include "Vertex.hpp"
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
 namespace hyperion {
 bool Vertex::operator==(const Vertex &other) const
 {

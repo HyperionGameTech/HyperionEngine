@@ -4,10 +4,6 @@
 #include <Threads.hpp>
 #include <Engine.hpp>
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-#include <script/compiler/ast/AstUnsignedInteger.hpp>
-
 namespace hyperion::v2 {
 
 void AssetBatch::LoadAsync(UInt num_batches)

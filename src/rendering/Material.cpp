@@ -4,9 +4,6 @@
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
 #include <util/ByteUtil.hpp>
 #include <Types.hpp>
 

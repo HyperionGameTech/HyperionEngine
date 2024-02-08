@@ -17,16 +17,12 @@
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
 #include <scene/ecs/systems/PhysicsSystem.hpp>
 #include <scene/ecs/systems/TerrainSystem.hpp>
-#include <scene/ecs/systems/ScriptingSystem.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <math/Halton.hpp>
-
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
 
 #include <Engine.hpp>
 
@@ -120,7 +116,6 @@ Scene::Scene(
     m_entity_manager->AddSystem<BLASUpdaterSystem>();
     m_entity_manager->AddSystem<PhysicsSystem>();
     m_entity_manager->AddSystem<TerrainSystem>();
-    m_entity_manager->AddSystem<ScriptingSystem>();
 
     m_root_node_proxy.Get()->SetScene(this);
 }
@@ -411,81 +406,5 @@ Bool Scene::CreateTLAS()
 
     return true;
 }
-
-
-static struct SceneScriptBindings : ScriptBindingsBase
-{
-    SceneScriptBindings()
-        : ScriptBindingsBase(TypeID::ForType<Scene>())
-    {
-    }
-
-    virtual void Generate(scriptapi2::Context &context) override
-    {
-        // api_instance.Module(Config::global_module_name)
-        //     .Function(
-        //         "TestSceneFunction",
-        //         BuiltinTypes::VOID_TYPE,
-        //         GenericInstanceTypeInfo {
-        //             {{ "T", BuiltinTypes::CLASS_TYPE }}
-        //         },
-        //         { },
-        //         CxxFn<
-        //             void, []() -> void
-        //             {
-        //                 DebugLog(LogType::Debug, "TestSceneFunction called\n");
-        //             }
-        //         >
-        //     );
-
-#if 0
-        api_instance.Module(Config::global_module_name)
-            .Class<Handle<Scene>>(
-                "Scene",
-                {
-                    API::NativeMemberDefine(
-                        "$construct",
-                        BuiltinTypes::ANY,
-                        {
-                            { "self", BuiltinTypes::ANY }
-                        },
-                        CxxFn< Handle<Scene>, void *, ScriptCreateObject<Scene> >
-                    ),
-                    API::NativeMemberDefine(
-                        "GetID",
-                        BuiltinTypes::UNSIGNED_INT,
-                        {
-                            { "self", BuiltinTypes::ANY }
-                        },
-                        CxxFn< UInt32, const Handle<Scene> &, ScriptGetHandleIDValue<Scene> >
-                    ),
-                    API::NativeMemberDefine(
-                        "GetComponent",
-                        BuiltinTypes::ANY,
-                        // GenericInstanceTypeInfo {
-                        //     {{ "T", BuiltinTypes::CLASS_TYPE }}
-                        // },
-                        {
-                            { "self", BuiltinTypes::ANY },
-                            { "type_id", BuiltinTypes::UNSIGNED_INT },
-                            { "entity", BuiltinTypes::UNSIGNED_INT }
-                        },
-                        CxxFn<
-                            ComponentInterfaceBase *, const Handle<Scene> &, UInt32, UInt32,
-                            [](const Handle<Scene> &self, UInt32 type_id, UInt32 entity_id) -> ComponentInterfaceBase *
-                            {
-                                DebugLog(LogType::Debug, "Getting component with ID %u from entity #%u\n", type_id, entity_id);
-
-                                // @TODO - get component with type ID from entity.
-
-                                return nullptr;
-                            }
-                        >
-                    )
-                }
-            );
-#endif
-    }
-} scene_script_bindings = { };
 
 } // namespace hyperion::v2

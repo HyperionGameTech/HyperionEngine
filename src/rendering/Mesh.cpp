@@ -5,9 +5,6 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
 #include <vector>
 #include <unordered_map>
 #include <cstring>

@@ -11,7 +11,6 @@
 #include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
 #include <asset/texture_loaders/TextureLoader.hpp>
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
-#include <asset/script_loaders/ScriptLoader.hpp>
 #include <asset/data_loaders/JSONLoader.hpp>
 
 namespace hyperion::v2 {
@@ -40,7 +39,6 @@ void AssetManager::RegisterDefaultLoaders()
     );
     Register<MTLMaterialLoader, MaterialGroup>("mtl");
     Register<WAVAudioLoader, AudioSource>("wav");
-    Register<ScriptLoader, Script>("hypscript");
     Register<FBOMModelLoader, Node>("fbom");
     Register<FBXModelLoader, Node>("fbx");
     // Register<PLYModelLoader, PLYModel>("ply");

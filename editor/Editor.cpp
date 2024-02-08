@@ -52,7 +52,7 @@ private:
 };
 
 Editor::Editor(RC<Application> application)
-    : Game(application), m_socket_server("hyperion_editor_serv1.sock") {}
+    : Game(application), m_socket_server("hyperion_editor_serv3.sock") {}
 
 Editor::~Editor() { m_socket_server.Stop(); }
 

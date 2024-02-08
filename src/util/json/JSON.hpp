@@ -2,13 +2,12 @@
 #define HYPERION_JSON_HPP
 
 #include <asset/ByteReader.hpp>
-#include <script/compiler/Lexer.hpp> // Reuse scripting language lexer
+#include <util/json/parser/Lexer.hpp> // Reuse scripting language lexer
 #include <core/lib/String.hpp>
 #include <core/lib/Variant.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/HashMap.hpp>
-
-#include "util/StringUtil.hpp"
+#include <util/StringUtil.hpp>
 
 namespace hyperion {
 namespace json {

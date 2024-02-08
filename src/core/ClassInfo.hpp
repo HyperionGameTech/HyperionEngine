@@ -3,9 +3,7 @@
 
 #include <core/lib/DynArray.hpp>
 #include <core/lib/TypeMap.hpp>
-
-#include <script/ScriptApi.hpp>
-#include <script/vm/Value.hpp>
+#include <core/lib/RefCountedPtr.hpp>
 
 #include <type_traits>
 #include <mutex>
@@ -15,21 +13,7 @@ namespace hyperion {
 class ClassInfoBase
 {
 public:
-    ClassInfoBase()
-        : m_class_ptr(nullptr)
-    {
-    }
-
     virtual ~ClassInfoBase() = default;
-
-    vm::HeapValue *GetScriptHeapValue() const
-        { return m_class_ptr; }
-
-    void SetScriptHeapValue(vm::HeapValue *ptr)
-        { m_class_ptr = ptr; }
-
-protected:
-    vm::HeapValue *m_class_ptr;
 };
 
 struct RegisteredClass

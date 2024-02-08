@@ -1,20 +1,7 @@
 #include <util/json/JSON.hpp>
-#include <script/compiler/Keywords.hpp>
 
 namespace hyperion {
 namespace json {
-
-using compiler::CompilationUnit;
-using compiler::Lexer;
-using compiler::Token;
-using compiler::TokenClass;
-using compiler::CompilerError;
-using compiler::ErrorLevel;
-using compiler::ErrorMessage;
-using compiler::Keyword;
-using compiler::Keywords;
-using compiler::TokenStream;
-using compiler::TokenStreamInfo;
 
 JSONValue &JSONSubscriptWrapper<JSONValue>::Get()
 {
@@ -436,21 +423,15 @@ private:
             return JSONValue(ParseNumber());
         }
 
-        if (MatchOperator("-", true)) {
-            const auto num = ParseNumber();
-
-            return JSONValue(num * -1);
-        }
-
-        if (MatchKeyword(Keywords::Keyword_true, true)) {
+        if (MatchIdentifier("true", true)) {
             return JSONValue(true);
         }
 
-        if (MatchKeyword(Keywords::Keyword_false, true)) {
+        if (MatchIdentifier("false", true)) {
             return JSONValue(false);
         }
 
-        if (MatchKeyword(Keywords::Keyword_null, true)) {
+        if (MatchIdentifier("null", true)) {
             return JSONValue(JSONNull());
         }
 
@@ -565,70 +546,6 @@ private:
         return Token::EMPTY;
     }
 
-    Token MatchKeyword(Keywords keyword, bool read)
-    {
-        Token peek = m_token_stream->Peek();
-        
-        if (peek && peek.GetTokenClass() == TokenClass::TK_KEYWORD) {
-            auto str = Keyword::ToString(keyword);
-
-            if (str && peek.GetValue() == str.Get()) {
-                if (read && m_token_stream->HasNext()) {
-                    m_token_stream->Next();
-                }
-                
-                return peek;
-            }
-        }
-        
-        return Token::EMPTY;
-    }
-
-    Token MatchKeywordAhead(Keywords keyword, int n)
-    {
-        Token peek = m_token_stream->Peek(n);
-        
-        if (peek && peek.GetTokenClass() == TokenClass::TK_KEYWORD) {
-            auto str = Keyword::ToString(keyword);
-
-            if (str && peek.GetValue() == str.Get()) {
-                return peek;
-            }
-        }
-        
-        return Token::EMPTY;
-    }
-
-    Token MatchOperator(const String &op, bool read)
-    {
-        Token peek = m_token_stream->Peek();
-        
-        if (peek && peek.GetTokenClass() == TokenClass::TK_OPERATOR) {
-            if (peek.GetValue() == op) {
-                if (read && m_token_stream->HasNext()) {
-                    m_token_stream->Next();
-                }
-                
-                return peek;
-            }
-        }
-        
-        return Token::EMPTY;
-    }
-
-    Token MatchOperatorAhead(const String &op, int n)
-    {
-        Token peek = m_token_stream->Peek(n);
-        
-        if (peek && peek.GetTokenClass() == TokenClass::TK_OPERATOR) {
-            if (peek.GetValue() == op) {
-                return peek;
-            }
-        }
-        
-        return Token::EMPTY;
-    }
-
     Token Expect(TokenClass token_class, bool read)
     {
         Token token = Match(token_class, read);
@@ -659,114 +576,36 @@ private:
         return token;
     }
 
-    Token ExpectKeyword(Keywords keyword, bool read)
+    Token MatchIdentifier(const String &value, bool read)
     {
-        Token token = MatchKeyword(keyword, read);
-        
-        if (!token) {
-            const SourceLocation location = CurrentLocation();
-
-            if (read && m_token_stream->HasNext()) {
-                m_token_stream->Next();
-            }
-
-            ErrorMessage error_msg;
-            String error_str;
-
-            switch (keyword) {
-            case Keywords::Keyword_module:
-                error_msg = ErrorMessage::Msg_expected_module;
-                break;
-            default: {
-                const auto keyword_str = Keyword::ToString(keyword);
-
-                error_msg = ErrorMessage::Msg_expected_token;
-                error_str = keyword_str ? keyword_str.Get() : "<unknown keyword>";
-            }
-            }
-
-            m_compilation_unit->GetErrorList().AddError(CompilerError(
-                ErrorLevel::LEVEL_ERROR,
-                error_msg,
-                location,
-                error_str
-            ));
-        }
-
-        return token;
-    }
-
-    Token ExpectOperator(const String &op, bool read)
-    {
-        Token token = MatchOperator(op, read);
+        const Token token = Match(TokenClass::TK_IDENT, read);
 
         if (!token) {
-            const SourceLocation location = CurrentLocation();
-
-            if (read && m_token_stream->HasNext()) {
-                m_token_stream->Next();
-            }
-
-            m_compilation_unit->GetErrorList().AddError(CompilerError(
-                ErrorLevel::LEVEL_ERROR,
-                ErrorMessage::Msg_expected_token,
-                location,
-                op
-            ));
-        }
-
-        return token;
-    }
-
-    Token MatchIdentifier(bool allow_keyword, bool read)
-    {
-        Token ident = Match(TokenClass::TK_IDENT, read);
-
-        if (!ident) {
-            Token kw = Match(TokenClass::TK_KEYWORD, read);
-            
-            if (kw) {
-                if (allow_keyword) {
-                    return kw;
-                }
-
-                // keyword may not be used as an identifier here.
-                m_compilation_unit->GetErrorList().AddError(CompilerError(
-                    ErrorLevel::LEVEL_ERROR,
-                    ErrorMessage::Msg_keyword_cannot_be_used_as_identifier, 
-                    kw.GetLocation(),
-                    kw.GetValue()
-                ));
-            }
-
             return Token::EMPTY;
         }
 
-        return ident;
+        if (token.GetValue() != value) {
+            return Token::EMPTY;
+        }
+
+        return token;
     }
 
-    Token ExpectIdentifier(bool allow_keyword, bool read)
+    Token ExpectIdentifier(const String &value, bool read)
     {
-        Token kw = Match(TokenClass::TK_KEYWORD, read);
-
-        if (!kw) {
-            // keyword not found, so must be identifier
-            return Expect(TokenClass::TK_IDENT, read);
-        }
-
-        // handle ident as keyword
-        if (allow_keyword) {
-            return kw;
-        }
+        Token token = MatchIdentifier(value, read);
         
-        m_compilation_unit->GetErrorList().AddError(CompilerError(
-            ErrorLevel::LEVEL_ERROR,
-            ErrorMessage::Msg_keyword_cannot_be_used_as_identifier, 
-            kw.GetLocation(),
-            kw.GetValue()
-        ));
+        if (!token) {
+            const SourceLocation location = CurrentLocation();
 
-        return Token::EMPTY;
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                ErrorLevel::LEVEL_ERROR,
+                ErrorMessage::Msg_expected_identifier,
+                location
+            ));
+        }
+
+        return token;
     }
 
     TokenStream *m_token_stream;

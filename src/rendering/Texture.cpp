@@ -2,9 +2,6 @@
 #include <Engine.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <script/ScriptApi.hpp>
-#include <script/ScriptBindingDef.generated.hpp>
-
 namespace hyperion::v2 {
 
 using renderer::Result;

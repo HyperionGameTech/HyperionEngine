@@ -13,7 +13,6 @@
 #include <asset/serialization/fbom/marshals/SceneMarshal.hpp>
 #include <asset/serialization/fbom/marshals/CameraMarshal.hpp>
 #include <asset/serialization/fbom/marshals/ShaderBundleMarshal.hpp>
-#include <asset/serialization/fbom/marshals/ScriptMarshal.hpp>
 #include <asset/serialization/fbom/marshals/ControllerMarshal.hpp>
 #include <asset/serialization/fbom/marshals/AudioSourceMarshal.hpp>
 #include <asset/serialization/fbom/marshals/PhysicsShapeMarshal.hpp>
@@ -34,7 +33,6 @@ FBOM::FBOM()
     RegisterLoader<Camera>();
     RegisterLoader<CompiledShader>();
     RegisterLoader<CompiledShaderBatch>();
-    RegisterLoader<Script>();
     RegisterLoader<Controller>();
     RegisterLoader<AudioSource>();
     RegisterLoader<physics::PhysicsShape>();
