@@ -727,7 +727,7 @@ void Engine::Initialize(RC<Application> application)
 
     m_final_pass.Create();
 
-    m_render_list_container.AddFramebuffersToPipelines();
+    m_render_list_container.AddFramebuffersToRenderGroups();
 
     Compile();
 }

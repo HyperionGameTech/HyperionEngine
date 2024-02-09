@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_CORE_THREAD_H
 #define HYPERION_V2_CORE_THREAD_H
 
-#include <core/lib/FixedString.hpp>
+#include <core/lib/StringView.hpp>
 #include <core/lib/AtomicVar.hpp>
 #include <core/Name.hpp>
 #include <core/Task.hpp>

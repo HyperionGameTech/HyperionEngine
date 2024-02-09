@@ -70,6 +70,16 @@ void TLAS::AddBLAS(Handle<BLAS> blas)
     m_has_blas_updates.store(true);
 }
 
+void TLAS::RemoveBLAS(ID<BLAS> blas_id)
+{
+    if (IsInitCalled()) {
+        std::lock_guard guard(m_blas_updates_mutex);
+
+        m_blas_pending_removal.PushBack(blas_id);
+        m_has_blas_updates.store(true);
+    }
+}
+
 void TLAS::Init()
 {
     if (IsInitCalled()) {
@@ -83,6 +93,17 @@ void TLAS::Init()
         std::lock_guard guard(m_blas_updates_mutex);
 
         m_blas.Concat(std::move(m_blas_pending_addition));
+
+        for (ID<BLAS> blas_id : m_blas_pending_removal) {
+            auto it = m_blas.FindIf([blas_id](const Handle<BLAS> &blas) -> bool
+            {
+                return blas.GetID() == blas_id;
+            });
+
+            if (it != m_blas.End()) {
+                m_blas.Erase(it);
+            }
+        }
 
         m_has_blas_updates.store(false);
     }

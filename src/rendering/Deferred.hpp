@@ -82,12 +82,17 @@ public:
     EnvGridPass &operator=(const EnvGridPass &other) = delete;
     virtual ~EnvGridPass() override;
 
+    TemporalBlending *GetTemporalBlending() const
+        { return m_temporal_blending.Get(); }
+
     void CreateShader();
     virtual void Create() override;
     virtual void Record(uint frame_index) override;
+    virtual void Render(Frame *frame) override;
 
 private:
-    const EnvGridPassMode m_mode;
+    const EnvGridPassMode       m_mode;
+    UniquePtr<TemporalBlending> m_temporal_blending;
 };
 
 class ReflectionProbePass : public FullScreenPass

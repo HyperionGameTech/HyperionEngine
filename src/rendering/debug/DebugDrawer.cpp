@@ -90,7 +90,7 @@ void DebugDrawer::Create()
     if (m_renderer_instance) {
         Engine::Get()->GetDeferredSystem()
             .Get(m_renderer_instance->GetRenderableAttributes().GetMaterialAttributes().bucket)
-            .AddFramebuffersToPipeline(m_renderer_instance);
+            .AddFramebuffersToRenderGroup(m_renderer_instance);
 
         Engine::Get()->InitObject(m_renderer_instance);
     }

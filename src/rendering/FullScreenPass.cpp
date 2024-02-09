@@ -1,4 +1,4 @@
-#include "./FullScreenPass.hpp"
+#include <rendering/FullScreenPass.hpp>
 #include <Engine.hpp>
 #include <Types.hpp>
 

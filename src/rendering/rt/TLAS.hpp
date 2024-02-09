@@ -26,6 +26,7 @@ public:
     const TopLevelAccelerationStructure &GetInternalTLAS() const { return m_tlas; }
 
     void AddBLAS(Handle<BLAS> blas);
+    void RemoveBLAS(ID<BLAS> blas_id);
 
     void Init();
 
@@ -45,9 +46,10 @@ private:
 
     Array<Handle<BLAS>> m_blas;
     Array<Handle<BLAS>> m_blas_pending_addition;
+    Array<ID<BLAS>>     m_blas_pending_removal;
 
-    std::atomic_bool m_has_blas_updates { false };
-    std::mutex m_blas_updates_mutex;
+    std::atomic_bool    m_has_blas_updates { false };
+    std::mutex          m_blas_updates_mutex;
 };
 
 } // namespace hyperion::v2

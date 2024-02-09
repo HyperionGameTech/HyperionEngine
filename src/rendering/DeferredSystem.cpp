@@ -112,10 +112,10 @@ DeferredSystem::DeferredSystem()
     }
 }
 
-void DeferredSystem::AddFramebuffersToPipelines()
+void DeferredSystem::AddFramebuffersToRenderGroups()
 {
     for (auto &bucket : m_buckets) {
-        bucket.AddFramebuffersToPipelines();
+        bucket.AddFramebuffersToRenderGroups();
     }
 }
 
@@ -157,7 +157,7 @@ void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &rend
 
         render_group->AddFramebuffer(std::move(framebuffer));
     } else {
-        AddFramebuffersToPipeline(render_group);
+        AddFramebuffersToRenderGroup(render_group);
     }
 
     //InitObject(render_group);
@@ -200,16 +200,16 @@ void DeferredSystem::RenderGroupHolder::AddPendingRenderGroups()
     renderer_instances_changed.Set(false, MemoryOrder::RELEASE);
 }
 
-void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipelines()
+void DeferredSystem::RenderGroupHolder::AddFramebuffersToRenderGroups()
 {
-    for (auto &pipeline : renderer_instances) {
-        AddFramebuffersToPipeline(pipeline);
+    for (auto &render_group : renderer_instances) {
+        AddFramebuffersToRenderGroup(render_group);
     }
 }
 
-void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline)
+void DeferredSystem::RenderGroupHolder::AddFramebuffersToRenderGroup(Handle<RenderGroup> &render_group)
 {
-    pipeline->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
+    render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
 }
 
 void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
@@ -222,7 +222,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
     const Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
 
-    m_framebuffer = CreateObject<Framebuffer>(
+    framebuffer = CreateObject<Framebuffer>(
         extent,
         RenderPassStage::SHADER,
         mode
@@ -234,7 +234,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         // ui only has this attachment.
         AddOwnedAttachment(
             color_format,
-            m_framebuffer,
+            framebuffer,
             attachments,
             extent
         );
@@ -243,7 +243,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         // color attachment is unique for all buckets
         AddOwnedAttachment(
             color_format,
-            m_framebuffer,
+            framebuffer,
             attachments,
             extent
         );
@@ -256,7 +256,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
                 AddOwnedAttachment(
                     format,
-                    m_framebuffer,
+                    framebuffer,
                     attachments,
                     extent
                 );
@@ -266,7 +266,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
                     i,
-                    m_framebuffer,
+                    framebuffer,
                     attachments
                 );
             }
@@ -277,7 +277,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
     }
 
-    InitObject(m_framebuffer);
+    InitObject(framebuffer);
 }
 
 void DeferredSystem::RenderGroupHolder::Destroy()
@@ -290,7 +290,7 @@ void DeferredSystem::RenderGroupHolder::Destroy()
     renderer_instances_pending_addition.Clear();
     renderer_instances_mutex.unlock();
 
-    m_framebuffer.Reset();
+    framebuffer.Reset();
 
     for (const auto &attachment : attachments) {
         HYPERION_PASS_ERRORS(

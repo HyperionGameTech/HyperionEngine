@@ -67,19 +67,7 @@ constexpr auto TypeName()
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    // // Remove the namespace from the name
-    // // @FIXME: Will not work with templates currently
-    // constexpr auto last_index = substr.template FindLast<IntegerSequenceFromString<StaticString("::")>>();
-
-    // if constexpr (last_index == -1) {
-    //     return substr;
-    // } else {
-    //     return substr.template Substr<last_index + 2, substr.Size() - 1>();
-    // }
-
     return detail::StripNamespace<substr>();
-
-    // return substr;
 }
 
 } // namespace hyperion

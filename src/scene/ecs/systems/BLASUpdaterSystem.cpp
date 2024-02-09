@@ -4,6 +4,45 @@
 
 namespace hyperion::v2 {
 
+void BLASUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+{
+    BLASComponent &blas_component = entity_manager.GetComponent<BLASComponent>(entity);
+    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
+
+    if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid()) {
+        return;
+    }
+
+    blas_component.transform_hash_code = transform_component.transform.GetHashCode();
+
+    blas_component.blas = CreateObject<BLAS>(
+        entity,
+        mesh_component.mesh,
+        mesh_component.material,
+        transform_component.transform
+    );
+
+    if (InitObject(blas_component.blas)) {
+        if (const Handle<TLAS> &tlas = entity_manager.GetScene()->GetTLAS(); tlas.IsValid()) {
+            tlas->AddBLAS(blas_component.blas);
+        }
+    }
+}
+
+void BLASUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+{
+    BLASComponent &blas_component = entity_manager.GetComponent<BLASComponent>(entity);
+
+    if (blas_component.blas.IsValid()) {
+        if (const Handle<TLAS> &tlas = entity_manager.GetScene()->GetTLAS(); tlas.IsValid()) {
+            tlas->RemoveBLAS(blas_component.blas.GetID());
+        }
+
+        blas_component.blas.Reset();
+    }
+}
+
 void BLASUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
@@ -14,26 +53,6 @@ void BLASUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::Tick
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
         
         if (!blas_component.blas.IsValid()) {
-            if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid()) {
-                continue;
-            }
-
-            blas_component.transform_hash_code = transform_hash_code;
-
-            blas_component.blas = CreateObject<BLAS>(
-                entity_id,
-                mesh_component.mesh,
-                mesh_component.material,
-                transform_component.transform
-            );
-
-            if (InitObject(blas_component.blas)) {
-                if (const Handle<TLAS> &tlas = entity_manager.GetScene()->GetTLAS(); tlas.IsValid()) {
-                    // @TODO: Way to remove BLAS from TLAS.
-                    tlas->AddBLAS(blas_component.blas);
-                }
-            }
-
             continue;
         }
 

@@ -11,8 +11,6 @@ namespace hyperion {
 class NameRegistry
 {
 public:
-    static constexpr SizeType num_name_groups = 256;
-
     NameRegistry()                                          = default;
     NameRegistry(const NameRegistry &other)                 = delete;
     NameRegistry &operator=(const NameRegistry &other)      = delete;
@@ -31,7 +29,7 @@ private:
 
 struct NameRegistration
 {
-    NameID id;
+    NameID  id;
     
     template <class S>
     static constexpr NameID GenerateID()

@@ -246,7 +246,13 @@ EnvGridPass::EnvGridPass(EnvGridPassMode mode)
 {
 }
 
-EnvGridPass::~EnvGridPass() = default;
+EnvGridPass::~EnvGridPass()
+{
+    if (m_temporal_blending) {
+        m_temporal_blending->Destroy();
+        m_temporal_blending.Reset();
+    }
+}
 
 void EnvGridPass::CreateShader()
 {
@@ -283,13 +289,25 @@ void EnvGridPass::Create()
             .vertex_attributes = renderer::static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .bucket = Bucket::BUCKET_INTERNAL,
-            .fill_mode = FillMode::FILL,
+            .bucket     = Bucket::BUCKET_INTERNAL,
+            .fill_mode  = FillMode::FILL,
             .blend_mode = BlendMode::ADDITIVE
         }
     );
 
     FullScreenPass::CreatePipeline(renderable_attributes);
+
+    if (m_mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE) {
+        m_temporal_blending.Reset(new TemporalBlending(
+            m_framebuffer->GetExtent(),
+            InternalFormat::RGBA16F,
+            TemporalBlendTechnique::TECHNIQUE_3,
+            TemporalBlendFeedback::LOW,
+            m_framebuffer
+        ));
+        
+        m_temporal_blending->Create();
+    }
 }
 
 void EnvGridPass::Record(uint frame_index)
@@ -299,7 +317,8 @@ void EnvGridPass::Record(uint frame_index)
     auto record_result = command_buffer->Record(
         g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
-        [this, frame_index](CommandBuffer *cmd) {
+        [this, frame_index](CommandBuffer *cmd)
+        {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
@@ -335,6 +354,15 @@ void EnvGridPass::Record(uint frame_index)
         });
 
     HYPERION_ASSERT_RESULT(record_result);
+}
+
+void EnvGridPass::Render(Frame *frame)
+{
+    FullScreenPass::Render(frame);
+
+    if (m_temporal_blending) {
+        m_temporal_blending->Render(frame);
+    }
 }
 
 // ===== Env Grid Pass End =====
@@ -587,7 +615,7 @@ void DeferredRenderer::CreateDescriptorSets()
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RADIANCE)
-            ->SetElementSRV(0, m_env_grid_radiance_pass.GetAttachmentUsage(0)->GetImageView());
+            ->SetElementSRV(0, m_env_grid_radiance_pass.GetTemporalBlending()->GetImageOutput(frame_index).image_view);
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_REFLECTION_PROBE)

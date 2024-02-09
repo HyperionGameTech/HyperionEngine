@@ -52,39 +52,43 @@ public:
     {
         friend class DeferredSystem;
 
-        Bucket bucket { BUCKET_OPAQUE };
-        Handle<Framebuffer> m_framebuffer;
-        Array<std::unique_ptr<Attachment>> attachments;
-        Array<Handle<RenderGroup>> renderer_instances;
-        Array<Handle<RenderGroup>> renderer_instances_pending_addition;
-        AtomicVar<bool> renderer_instances_changed;
-        std::mutex renderer_instances_mutex;
+        Bucket                                  bucket { BUCKET_OPAQUE };
+        Handle<Framebuffer>                     framebuffer;
+        Array<std::unique_ptr<Attachment>>      attachments;
+        Array<Handle<RenderGroup>>              renderer_instances;
+        Array<Handle<RenderGroup>>              renderer_instances_pending_addition;
+        AtomicVar<bool>                         renderer_instances_changed;
+        std::mutex                              renderer_instances_mutex;
 
     public:
         RenderGroupHolder();
+        RenderGroupHolder(const RenderGroupHolder &other)                   = delete;
+        RenderGroupHolder &operator=(const RenderGroupHolder &other)        = delete;
+        RenderGroupHolder(RenderGroupHolder &&other) noexcept               = delete;
+        RenderGroupHolder &operator=(RenderGroupHolder &&other) noexcept    = delete;
         ~RenderGroupHolder();
 
         Bucket GetBucket() const { return bucket; }
         void SetBucket(Bucket bucket) { this->bucket = bucket; }
         
-        Handle<Framebuffer> &GetFramebuffer() { return m_framebuffer; }
-        const Handle<Framebuffer> &GetFramebuffer() const { return m_framebuffer; }
+        Handle<Framebuffer> &GetFramebuffer() { return framebuffer; }
+        const Handle<Framebuffer> &GetFramebuffer() const { return framebuffer; }
 
         Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
         const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }
 
         AttachmentUsage *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
-            AssertThrow(m_framebuffer.IsValid());
+            AssertThrow(framebuffer.IsValid());
             AssertThrow(uint(resource_name) < uint(GBUFFER_RESOURCE_MAX));
 
-            return m_framebuffer->GetAttachmentUsages()[uint(resource_name)];
+            return framebuffer->GetAttachmentUsages()[uint(resource_name)];
         }
 
         void AddRenderGroup(Handle<RenderGroup> &render_group);
         void AddPendingRenderGroups();
-        void AddFramebuffersToPipelines();
-        void AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline);
+        void AddFramebuffersToRenderGroups();
+        void AddFramebuffersToRenderGroup(Handle<RenderGroup> &pipeline);
         void CreateFramebuffer();
         void Destroy();
     };
@@ -110,7 +114,7 @@ public:
     void Destroy();
 
     void AddPendingRenderGroups();
-    void AddFramebuffersToPipelines();
+    void AddFramebuffersToRenderGroups();
 
 private:
 

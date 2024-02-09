@@ -41,20 +41,28 @@ struct RENDER_COMMAND(UpdateEntityDrawDatas) : renderer::RenderCommand
 
 #pragma endregion
 
+void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+{
+    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+
+    InitObject(mesh_component.mesh);
+    InitObject(mesh_component.material);
+
+    mesh_component.flags |= MESH_COMPONENT_FLAG_INIT | MESH_COMPONENT_FLAG_DIRTY;
+}
+
+void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+{
+    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+
+    mesh_component.flags &= ~MESH_COMPONENT_FLAG_INIT;
+}
+
 void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     Array<EntityDrawData> entity_draw_datas;
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
-        if (!(mesh_component.flags & MESH_COMPONENT_FLAG_INIT)) {
-            InitObject(mesh_component.mesh);
-            InitObject(mesh_component.material);
-
-            mesh_component.flags |= MESH_COMPONENT_FLAG_INIT | MESH_COMPONENT_FLAG_DIRTY;
-
-            continue;
-        }
-        
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }

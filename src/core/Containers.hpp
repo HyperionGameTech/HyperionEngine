@@ -11,7 +11,7 @@
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/HeapArray.hpp>
 #include <core/lib/ByteBuffer.hpp>
-#include <core/lib/FixedString.hpp>
+#include <core/lib/StringView.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/Queue.hpp>
 #include <core/lib/Stack.hpp>

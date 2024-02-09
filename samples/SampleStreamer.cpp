@@ -8,7 +8,6 @@
 #include <rendering/backend/RendererImage.hpp>
 
 #include <Engine.hpp>
-#include <rendering/Atomics.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
@@ -282,13 +281,19 @@ void SampleStreamer::InitGame()
         
         m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
             cube,
-            g_material_system->GetOrCreate({
-                .shader_definition = ShaderDefinition {
-                    HYP_NAME(Forward),
-                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+            g_material_system->GetOrCreate(
+                {
+                    .shader_definition = ShaderDefinition {
+                        HYP_NAME(Forward),
+                        ShaderProperties(renderer::static_mesh_vertex_attributes)
+                    },
+                    .bucket = Bucket::BUCKET_OPAQUE
                 },
-                .bucket = Bucket::BUCKET_OPAQUE
-            })
+                {
+                    { Material::MATERIAL_KEY_METALNESS, 1.0f },
+                    { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
+                }
+            )
         });
         m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
             cube->GetAABB()
@@ -445,7 +450,7 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add("test_model", "models/pica_pica/pica_pica.obj");//"models/sponza/sponza.obj");//living_room/living_room.obj");
+        batch->Add("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
@@ -484,7 +489,7 @@ void SampleStreamer::InitGame()
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            node.Scale(3.01f);
+            node.Scale(0.01f);
             node.SetName("test_model");
             
             GetScene()->GetRoot().AddChild(node);
