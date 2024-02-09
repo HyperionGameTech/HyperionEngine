@@ -15,12 +15,6 @@ using renderer::ShaderVec2;
 using renderer::Result;
 using renderer::GPUBufferType;
 
-//#define USE_SSR_FRAGMENT_SHADER
-
-#ifndef USE_SSR_FRAGMENT_SHADER
-#define USE_SSR_COMPUTE_SHADER
-#endif
-
 static constexpr bool use_temporal_blending = true;
 
 struct alignas(16) SSRParams
@@ -38,29 +32,6 @@ struct alignas(16) SSRParams
 };
 
 #pragma region Render commands
-
-struct RENDER_COMMAND(CreateSSRImageOutputs) : renderer::RenderCommand
-{
-    Extent2D extent;
-    SSRRenderer::ImageOutput *radius_outputs;
-
-    RENDER_COMMAND(CreateSSRImageOutputs)(
-        Extent2D extent,
-        SSRRenderer::ImageOutput *radius_outputs
-    ) : extent(extent),
-        radius_outputs(radius_outputs)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            radius_outputs[frame_index].Create(g_engine->GetGPUDevice());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
 
 struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 {
@@ -228,42 +199,7 @@ void SSRRenderer::Create()
     m_image_outputs[3]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[3]);
 
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_radius_output[frame_index] = ImageOutput {
-            MakeRenderObject<Image>(StorageImage(
-                Extent3D(m_extent),
-                InternalFormat::R8,
-                ImageType::TEXTURE_TYPE_2D,
-                nullptr
-            )),
-            MakeRenderObject<ImageView>()
-        };
-    }
-    
-    PUSH_RENDER_COMMAND(
-        CreateSSRImageOutputs,
-        m_extent,
-        m_radius_output.Data()
-    );
-
     CreateUniformBuffers();
-
-#ifdef USE_SSR_FRAGMENT_SHADER
-    CreateDescriptorSets();
-    CreateComputePipelines();
-    
-    for (uint i = 0; i < 2; i++) {
-        m_temporal_history_textures[i] = CreateObject<Texture>(Texture2D(
-            m_extent,
-            ssr_format,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        ));
-
-        InitObject(m_temporal_history_textures[i]);
-    }
-#endif
 
     if (use_temporal_blending) {
         m_temporal_blending.Reset(new TemporalBlending(
@@ -272,23 +208,16 @@ void SSRRenderer::Create()
             TemporalBlendTechnique::TECHNIQUE_2,
             TemporalBlendFeedback::HIGH,
             FixedArray<ImageViewRef, 2> {
-#ifdef USE_SSR_FRAGMENT_SHADER
-                m_temporal_history_textures[0]->GetImageView(), //m_image_outputs[0][blur_result ? 3 : 1].image_view,
-                m_temporal_history_textures[1]->GetImageView()               //m_image_outputs[1][blur_result ? 3 : 1].image_view
-#elif defined(USE_SSR_COMPUTE_SHADER)
                 m_image_outputs[1]->GetImageView(),
                 m_image_outputs[1]->GetImageView()
-#endif
             }
         ));
 
         m_temporal_blending->Create();
     }
 
-#ifdef USE_SSR_COMPUTE_SHADER
     CreateDescriptorSets();
     CreateComputePipelines();
-#endif
 }
 
 void SSRRenderer::Destroy()
@@ -313,11 +242,6 @@ void SSRRenderer::Destroy()
     }
     
     SafeRelease(std::move(m_uniform_buffers));
-    
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        SafeRelease(std::move(m_radius_output[frame_index].image));
-        SafeRelease(std::move(m_radius_output[frame_index].image_view));
-    }
 
     SafeRelease(std::move(m_descriptor_sets));
 
@@ -352,18 +276,6 @@ void SSRRenderer::CreateDescriptorSets()
             ->AddDescriptor<renderer::StorageImageDescriptor>(1)
             ->SetElementUAV(0, m_image_outputs[1]->GetImageView());
 
-        descriptor_set // 2nd stage -- write radii
-            ->AddDescriptor<renderer::StorageImageDescriptor>(2)
-            ->SetElementUAV(0, m_radius_output[frame_index].image_view);
-
-        descriptor_set // 3rd stage -- blur horizontal
-            ->AddDescriptor<renderer::StorageImageDescriptor>(3)
-            ->SetElementUAV(0, m_image_outputs[2]->GetImageView());
-
-        descriptor_set // 3rd stage -- blur vertical
-            ->AddDescriptor<renderer::StorageImageDescriptor>(4)
-            ->SetElementUAV(0, m_image_outputs[3]->GetImageView());
-
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::ImageDescriptor>(5)
             ->SetElementSRV(0, m_image_outputs[0]->GetImageView());
@@ -371,18 +283,6 @@ void SSRRenderer::CreateDescriptorSets()
         descriptor_set // 2nd stage -- sample
             ->AddDescriptor<renderer::ImageDescriptor>(6)
             ->SetElementSRV(0, m_image_outputs[1]->GetImageView());
-
-        descriptor_set // 2nd stage -- write radii
-            ->AddDescriptor<renderer::ImageDescriptor>(7)
-            ->SetElementSRV(0, m_radius_output[frame_index].image_view);
-
-        descriptor_set // 3rd stage -- blur horizontal
-            ->AddDescriptor<renderer::ImageDescriptor>(8)
-            ->SetElementSRV(0, m_image_outputs[2]->GetImageView());
-
-        descriptor_set // 3rd stage -- blur vertical
-            ->AddDescriptor<renderer::ImageDescriptor>(9)
-            ->SetElementSRV(0, m_image_outputs[3]->GetImageView());
 
         descriptor_set // gbuffer mip chain texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
@@ -464,18 +364,6 @@ void SSRRenderer::CreateComputePipelines()
         break;
     }
 
-#ifdef USE_SSR_FRAGMENT_SHADER
-    auto on_screen_reflections_shader = g_shader_manager->GetOrCreate(HYP_NAME(OnScreenReflections));
-    InitObject(on_screen_reflections_shader);
-
-    m_reflection_pass.Reset(new FullScreenPass(
-        on_screen_reflections_shader,
-        ssr_format,
-        m_extent
-    ));
-
-    m_reflection_pass->Create();
-#else
     m_write_uvs = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
         Array<DescriptorSetRef> { m_descriptor_sets[0] }
@@ -489,7 +377,6 @@ void SSRRenderer::CreateComputePipelines()
     );
 
     InitObject(m_sample);
-#endif
 }
 
 void SSRRenderer::Render(Frame *frame)
@@ -506,52 +393,7 @@ void SSRRenderer::Render(Frame *frame)
     /* ========== BEGIN SSR ========== */
     DebugMarker begin_ssr_marker(command_buffer, "Begin SSR");
 
-#ifdef USE_SSR_FRAGMENT_SHADER
-    // Begin new SSR (one pass)
-    {
-        // if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Empty()) {
-        //     return;
-        // }
-
-        // g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
-
-        struct alignas(128) {
-            ShaderVec4<uint32> dimensions;
-            float32 ray_step,
-                num_iterations,
-                max_ray_distance,
-                distance_bias,
-                offset,
-                eye_fade_start,
-                eye_fade_end,
-                screen_edge_fade_start,
-                screen_edge_fade_end;
-        } push_constants;
-
-        push_constants.dimensions = { m_extent.width, m_extent.height, 0, 0 };
-        push_constants.ray_step = 0.15f;
-        push_constants.num_iterations = 128.0f;
-        push_constants.max_ray_distance = 100.0f;
-        push_constants.distance_bias = 0.1f;
-        push_constants.offset = 0.01f;
-        push_constants.eye_fade_start = 0.75f;
-        push_constants.eye_fade_end = 0.98f;
-        push_constants.screen_edge_fade_start = 0.985f;
-        push_constants.screen_edge_fade_end = 0.995f;
-
-        m_reflection_pass->SetPushConstants(&push_constants, sizeof(push_constants));
-        m_reflection_pass->Record(frame_index);
-        m_reflection_pass->Render(frame);
-
-        
-        // g_engine->GetRenderState().UnsetActiveEnvProbe();
-    }
-
-    // End new SSR
-#elif defined(USE_SSR_COMPUTE_SHADER)
-    // We will be dispatching half the number of pixels, due to checkerboarding.
-    // We need to find the best fitting dimensions for this.
-
+    // We will be dispatching half the number of pixels, due to checkerboarding
     const SizeType total_pixels_in_image = m_extent.Size();
     const SizeType total_pixels_in_image_div_2 = total_pixels_in_image / 2;
 
@@ -588,9 +430,6 @@ void SSRRenderer::Render(Frame *frame)
     // put sample image in writeable state
     m_image_outputs[1]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
-    // put radius image in writeable state
-    m_radius_output[frame_index].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_sample->GetPipeline()->Bind(command_buffer);
 
@@ -612,27 +451,8 @@ void SSRRenderer::Render(Frame *frame)
     // transition sample image back into read state
     m_image_outputs[1]->GetImage()->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    // transition radius image back into read state
-    m_radius_output[frame_index].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-#endif
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
-#ifdef USE_SSR_FRAGMENT_SHADER
-        // blit to temporal history buffer
-        const ImageRef &src_image = m_reflection_pass->GetAttachmentUsage(0)->GetAttachment()->GetImage();
-
-        src_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-
-        const Handle<Texture> &history_buffer = m_temporal_history_textures[frame_index & 1];
-
-        history_buffer->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-        history_buffer->GetImage()->Blit(command_buffer, src_image.Get());
-        history_buffer->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-        src_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-#endif
-
         m_temporal_blending->Render(frame);
     }
 

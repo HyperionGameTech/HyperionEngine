@@ -67,33 +67,15 @@ private:
     void CreateDescriptorSets();
     void CreateComputePipelines();
 
-    struct ImageOutput
-    {
-        ImageRef image;
-        ImageViewRef image_view;
-
-        void Create(Device *device)
-        {
-            AssertThrow(image.IsValid());
-            AssertThrow(image_view.IsValid());
-
-            HYPERION_ASSERT_RESULT(image->Create(device));
-            HYPERION_ASSERT_RESULT(image_view->Create(device, image));
-        }
-    };
-
     Extent2D m_extent;
 
     FixedArray<Handle<Texture>, 4> m_image_outputs;
     
-    FixedArray<ImageOutput, max_frames_in_flight> m_radius_output;
     FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     
     Handle<ComputePipeline> m_write_uvs;
     Handle<ComputePipeline> m_sample;
-    Handle<ComputePipeline> m_blur_hor;
-    Handle<ComputePipeline> m_blur_vert;
 
     UniquePtr<FullScreenPass> m_reflection_pass;
     UniquePtr<TemporalBlending> m_temporal_blending;

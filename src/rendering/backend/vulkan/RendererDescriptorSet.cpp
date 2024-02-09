@@ -32,15 +32,9 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
 
             {DescriptorKey::SSR_UV_IMAGE,          12},
             {DescriptorKey::SSR_SAMPLE_IMAGE,      13},
-            {DescriptorKey::SSR_RADIUS_IMAGE,      14},
-            {DescriptorKey::SSR_BLUR_HOR_IMAGE,    15},
-            {DescriptorKey::SSR_BLUR_VERT_IMAGE,   16},
 
             {DescriptorKey::SSR_UV_TEXTURE,        17},
             {DescriptorKey::SSR_SAMPLE_TEXTURE,    18},
-            {DescriptorKey::SSR_RADIUS_TEXTURE,    19},
-            {DescriptorKey::SSR_BLUR_HOR_TEXTURE,  20},
-            {DescriptorKey::SSR_BLUR_VERT_TEXTURE, 21},
             {DescriptorKey::SSR_FINAL_TEXTURE,     22},
 
             {DescriptorKey::ENV_PROBE_TEXTURES,    25},
