@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     arg_parse.Add("mode", "m", ArgParse::ARG_FLAGS_NONE, Array<String> { "precompile_shaders", "streamer" }, String("streamer"));
 
     if (auto parse_result = arg_parse.Parse(argc, argv)) {
-        if (const bool *headless_ptr = parse_result["headless"].TryGet<Bool>()) {
+        if (const bool *headless_ptr = parse_result["headless"].TryGet<bool>()) {
             if (*headless_ptr) {
                 window_flags |= WINDOW_FLAGS_HEADLESS;
             }
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
     SystemEvent event;
 
-    UInt num_frames = 0;
+    uint num_frames = 0;
     float delta_time_accum = 0.0f;
     GameCounter counter;
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
             DebugLog(
                 LogType::Debug,
                 "Render FPS: %f\n",
-                1.0f / (delta_time_accum / Float(num_frames))
+                1.0f / (delta_time_accum / float(num_frames))
             );
 
             delta_time_accum = 0.0f;

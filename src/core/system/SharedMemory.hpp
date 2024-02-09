@@ -34,7 +34,7 @@ public:
     Mode GetMode() const
         { return m_mode; }
 
-    Int GetHandle() const
+    int GetHandle() const
         { return m_handle; }
 
     Address GetAddress() const
@@ -57,7 +57,7 @@ private:
     String      m_id;
     SizeType    m_size;
     Mode        m_mode;
-    Int         m_handle;
+    int         m_handle;
     Address     m_address;
 };
 

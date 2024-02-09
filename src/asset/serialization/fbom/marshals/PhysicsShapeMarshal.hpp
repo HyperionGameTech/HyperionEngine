@@ -22,16 +22,16 @@ public:
     {
         /// @TODO: Serialize the actual object -- will be dependent on the physics engine used
 
-        out.SetProperty("type", FBOMData::FromUInt32(UInt32(in_object.GetType())));
+        out.SetProperty("type", FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
 
         return { FBOMResult::FBOM_OK };
     }
 
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        UInt32 type;
+        uint32 type;
 
-        if (auto err = in.GetProperty("type").ReadUInt32(&type)) {
+        if (auto err = in.GetProperty("type").ReadUnsignedInt(&type)) {
             return err;
         }
 

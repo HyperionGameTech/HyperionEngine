@@ -151,9 +151,9 @@ public:
 
     bool Exists() const;
     bool IsDirectory() const;
-    Int MkDir() const;
+    int MkDir() const;
 
-    UInt64 LastModifiedTimestamp() const;
+    uint64 LastModifiedTimestamp() const;
 
     String Basename() const
     {

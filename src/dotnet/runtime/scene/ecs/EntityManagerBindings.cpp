@@ -35,19 +35,19 @@ extern "C" {
         return manager->HasEntity(entity);
     }
 
-    bool EntityManager_HasComponent(EntityManager *manager, UInt32 component_type_id, ManagedEntity entity)
+    bool EntityManager_HasComponent(EntityManager *manager, uint32 component_type_id, ManagedEntity entity)
     {
         return manager->HasComponent(TypeID { component_type_id }, entity);
     }
 
-    void *EntityManager_GetComponent(EntityManager *manager, UInt32 component_type_id, ManagedEntity entity)
+    void *EntityManager_GetComponent(EntityManager *manager, uint32 component_type_id, ManagedEntity entity)
     {
         return manager->TryGetComponent(TypeID { component_type_id }, entity);
     }
 
     // Components
     // TransformComponent
-    UInt32 TransformComponent_GetNativeTypeID()
+    uint32 TransformComponent_GetNativeTypeID()
     {
         return TypeID::ForType<TransformComponent>().Value();
     }
@@ -63,13 +63,13 @@ extern "C" {
         ManagedHandle   mesh_handle;
         ManagedHandle   material_handle;
         ManagedMatrix4  previous_model_matrix;
-        UInt32          mesh_component_flags;
+        uint32          mesh_component_flags;
     };
 
     static_assert(std::is_trivial_v<ManagedMeshComponent> && std::is_standard_layout_v<ManagedMeshComponent>, "ManagedMeshComponent should be a POD type");
     static_assert(sizeof(ManagedMeshComponent) == 76, "ManagedMeshComponent should equal 84 bytes to match C# struct size");
 
-    UInt32 MeshComponent_GetNativeTypeID()
+    uint32 MeshComponent_GetNativeTypeID()
     {
         return TypeID::ForType<MeshComponent>().Value();
     }
@@ -89,7 +89,7 @@ extern "C" {
     }
 
     // BoundingBoxComponent
-    UInt32 BoundingBoxComponent_GetNativeTypeID()
+    uint32 BoundingBoxComponent_GetNativeTypeID()
     {
         return TypeID::ForType<BoundingBoxComponent>().Value();
     }
@@ -100,7 +100,7 @@ extern "C" {
     }
 
     // VisibilityStateComponent
-    UInt32 VisibilityStateComponent_GetNativeTypeID()
+    uint32 VisibilityStateComponent_GetNativeTypeID()
     {
         return TypeID::ForType<VisibilityStateComponent>().Value();
     }
@@ -111,7 +111,7 @@ extern "C" {
     }
 
     // LightComponent
-    UInt32 LightComponent_GetNativeTypeID()
+    uint32 LightComponent_GetNativeTypeID()
     {
         return TypeID::ForType<LightComponent>().Value();
     }

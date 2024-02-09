@@ -15,10 +15,10 @@ struct AnimationTrack
     String          bone_name;
     Array<Keyframe> keyframes;
 
-    Float GetLength() const
+    float GetLength() const
         { return keyframes.Empty() ? 0.0f : keyframes.Back().GetTime(); }
 
-    Keyframe GetKeyframe(Float time) const;
+    Keyframe GetKeyframe(float time) const;
 };
 
 class Animation
@@ -38,7 +38,7 @@ public:
     void SetName(const String &name)
         { m_name = name; }
 
-    Float GetLength() const
+    float GetLength() const
         { return m_tracks.Empty() ? 0.0f : m_tracks.Back().GetLength(); }
 
     void AddTrack(const AnimationTrack &track)
@@ -59,8 +59,8 @@ public:
     SizeType NumTracks() const
         { return m_tracks.Size(); }
 
-    void Apply(Float time);
-    void ApplyBlended(Float time, Float blend);
+    void Apply(float time);
+    void ApplyBlended(float time, float blend);
 
 private:
     String                  m_name;

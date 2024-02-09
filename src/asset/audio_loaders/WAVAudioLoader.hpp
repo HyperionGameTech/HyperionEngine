@@ -15,30 +15,30 @@ public:
     {
         struct RiffHeader
         {
-            UInt8 chunk_id[4];
-            UInt32 chunk_size;
-            UInt8 format[4];
+            uint8 chunk_id[4];
+            uint32 chunk_size;
+            uint8 format[4];
         } riff_header;
 
         struct WaveFormat
         {
-            UInt8 sub_chunk_id[4];
-            UInt32 sub_chunk_size;
-            UInt16 audio_format;
-            UInt16 num_channels;
-            UInt32 sample_rate;
-            UInt32 byte_rate;
-            UInt16 block_align;
-            UInt16 bits_per_sample;
+            uint8 sub_chunk_id[4];
+            uint32 sub_chunk_size;
+            uint16 audio_format;
+            uint16 num_channels;
+            uint32 sample_rate;
+            uint32 byte_rate;
+            uint16 block_align;
+            uint16 bits_per_sample;
         } wave_format;
 
         struct WaveData
         {
-            UInt8 sub_chunk_id[4];
-            UInt32 sub_chunk_2_size;
+            uint8 sub_chunk_id[4];
+            uint32 sub_chunk_2_size;
         } wave_data;
 
-        std::vector<UInt8> wave_bytes;
+        std::vector<uint8> wave_bytes;
         SizeType size;
         SizeType frequency;
 

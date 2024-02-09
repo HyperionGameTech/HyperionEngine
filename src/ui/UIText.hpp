@@ -45,8 +45,8 @@ public:
         int x_position = 0;
         int y_position = 0;
 
-        const UInt num_chars_per_row = NumCharsPerRow();
-        const UInt num_chars_per_col = NumCharsPerCol();
+        const uint num_chars_per_row = NumCharsPerRow();
+        const uint num_chars_per_col = NumCharsPerCol();
 
         for (int ch = 16; ch < 255; ch++) {
             m_char_texture_coords[ch] = Vector2(
@@ -108,7 +108,7 @@ public:
     const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
-    UInt NumCharsPerRow() const
+    uint NumCharsPerRow() const
     {
         if (!m_texture || m_char_size.width == 0) {
             return 0;
@@ -117,7 +117,7 @@ public:
         return m_texture->GetExtent().width / m_char_size.width;
     }
 
-    UInt NumCharsPerCol() const
+    uint NumCharsPerCol() const
     {
         if (!m_texture || m_char_size.height == 0) {
             return 0;
@@ -139,7 +139,7 @@ public:
 
         const Extent3D extent = m_texture->GetExtent();
 
-        return Vector2(m_char_size) / Vector2(Float(extent.width), Float(extent.height));
+        return Vector2(m_char_size) / Vector2(float(extent.width), float(extent.height));
     }
 
 private:

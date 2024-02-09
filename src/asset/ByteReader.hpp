@@ -13,7 +13,7 @@ namespace hyperion {
 class ByteReader
 {
 public:
-    using Bytes = std::vector<UByte>;
+    using Bytes = std::vector<ubyte>;
 
     virtual ~ByteReader() = default;
 

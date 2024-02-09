@@ -45,11 +45,11 @@ public:
     RTCTrackType GetTrackType() const
         { return m_track_type; }
 
-    virtual Bool IsOpen() const = 0;
+    virtual bool IsOpen() const = 0;
 
     virtual void PrepareTrack(RTCClient *client) = 0;
 
-    virtual void SendData(const ByteBuffer &data, UInt64 sample_timestamp) = 0;
+    virtual void SendData(const ByteBuffer &data, uint64 sample_timestamp) = 0;
 
 protected:
     RTCTrackType    m_track_type;
@@ -69,11 +69,11 @@ public:
     NullRTCTrack &operator=(NullRTCTrack &&other) noexcept      = default;
     virtual ~NullRTCTrack() override                            = default;
 
-    virtual Bool IsOpen() const override;
+    virtual bool IsOpen() const override;
 
     virtual void PrepareTrack(RTCClient *client) override;
 
-    virtual void SendData(const ByteBuffer &data, UInt64 sample_timestamp) override;
+    virtual void SendData(const ByteBuffer &data, uint64 sample_timestamp) override;
 };
 
 #ifdef HYP_LIBDATACHANNEL
@@ -92,11 +92,11 @@ public:
     LibDataChannelRTCTrack &operator=(LibDataChannelRTCTrack &&other) noexcept  = default;
     virtual ~LibDataChannelRTCTrack() override                                  = default;
 
-    virtual Bool IsOpen() const override;
+    virtual bool IsOpen() const override;
 
     virtual void PrepareTrack(RTCClient *client) override;
 
-    virtual void SendData(const ByteBuffer &data, UInt64 sample_timestamp) override;
+    virtual void SendData(const ByteBuffer &data, uint64 sample_timestamp) override;
 
 private:
     std::shared_ptr<rtc::Track>                     m_track;

@@ -30,9 +30,9 @@ class Framebuffer;
 using renderer::Attachment;
 using renderer::Image;
 
-enum EnvProbeType : UInt
+enum EnvProbeType : uint
 {
-    ENV_PROBE_TYPE_INVALID = UInt(-1),
+    ENV_PROBE_TYPE_INVALID = uint(-1),
 
     ENV_PROBE_TYPE_REFLECTION = 0,
     ENV_PROBE_TYPE_SHADOW,
@@ -87,20 +87,20 @@ struct EnvProbeIndex
 
     ~EnvProbeIndex() = default;
 
-    UInt GetProbeIndex() const
+    uint GetProbeIndex() const
     {
         return (position.x * grid_size.height * grid_size.depth)
             + (position.y * grid_size.depth)
             + position.z;
     }
 
-    bool operator<(UInt value) const
+    bool operator<(uint value) const
         { return GetProbeIndex() < value; }
 
-    bool operator==(UInt value) const
+    bool operator==(uint value) const
         { return GetProbeIndex() == value; }
 
-    bool operator!=(UInt value) const
+    bool operator!=(uint value) const
         { return GetProbeIndex() != value; }
 
     bool operator<(const EnvProbeIndex &other) const
@@ -132,8 +132,8 @@ public:
     static void UpdateEnvProbeShaderData(
         ID<EnvProbe> id,
         const EnvProbeDrawProxy &proxy,
-        UInt32 texture_slot = ~0u,
-        UInt32 grid_slot = ~0u,
+        uint32 texture_slot = ~0u,
+        uint32 grid_slot = ~0u,
         Extent3D grid_size = Extent3D { 0, 0, 0 }
     );
     
@@ -222,13 +222,13 @@ public:
 
     HYP_FORCE_INLINE bool NeedsRender() const
     {
-        const Int32 counter = m_needs_render_counter.Get(MemoryOrder::RELAXED);
+        const int32 counter = m_needs_render_counter.Get(MemoryOrder::RELAXED);
 
         return counter > 0;
     }
 
-    Bool IsVisible(ID<Camera> camera_id) const;
-    void SetIsVisible(ID<Camera> camera_id, Bool is_visible);
+    bool IsVisible(ID<Camera> camera_id) const;
+    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
     void Init();
     void EnqueueBind() const;
@@ -237,11 +237,11 @@ public:
 
     void Render(Frame *frame);
 
-    void UpdateRenderData(Bool set_texture = false);
+    void UpdateRenderData(bool set_texture = false);
     void BindToIndex(const EnvProbeIndex &probe_index);
 
-    UInt32 m_temp_render_frame_id = 0;
-    UInt32 m_grid_slot = ~0u; // temp
+    uint32 m_temp_render_frame_id = 0;
+    uint32 m_grid_slot = ~0u; // temp
     
 private:
     void CreateShader();
@@ -252,8 +252,8 @@ private:
     Extent2D                                            m_dimensions;
     EnvProbeType                                        m_env_probe_type;
 
-    Float                                               m_camera_near;
-    Float                                               m_camera_far;
+    float                                               m_camera_near;
+    float                                               m_camera_far;
 
     Handle<Texture>                                     m_texture;
     Handle<Framebuffer>                                 m_framebuffer;
@@ -277,9 +277,9 @@ private:
 
     Bitset                                              m_visibility_bits;
 
-    Bool                                                m_needs_update;
-    AtomicVar<Bool>                                     m_is_rendered;
-    AtomicVar<Int32>                                    m_needs_render_counter;
+    bool                                                m_needs_update;
+    AtomicVar<bool>                                     m_is_rendered;
+    AtomicVar<int32>                                    m_needs_render_counter;
     HashCode                                            m_octant_hash_code;
 
 };

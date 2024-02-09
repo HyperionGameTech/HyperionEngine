@@ -75,7 +75,7 @@ struct RENDER_COMMAND(CreateAttachmentMap) : renderer::RenderCommand
     virtual Result operator()()
     {
         for (auto &it : attachment_map->attachments) {
-            const UInt binding = it.first;
+            const uint binding = it.first;
             AttachmentDef &def = it.second;
 
             AssertThrow(def.attachment.IsValid());
@@ -110,7 +110,7 @@ Framebuffer::Framebuffer(
     Extent2D extent,
     RenderPassStage stage,
     RenderPassMode render_pass_mode,
-    UInt num_multiview_layers
+    uint num_multiview_layers
 ) : Framebuffer(Extent3D(extent), stage, render_pass_mode, num_multiview_layers)
 {
 }
@@ -119,13 +119,13 @@ Framebuffer::Framebuffer(
     Extent3D extent,
     RenderPassStage stage,
     RenderPassMode render_pass_mode,
-    UInt num_multiview_layers
+    uint num_multiview_layers
 ) : BasicObject(),
     m_extent(extent)
 {
     m_render_pass = MakeRenderObject<renderer::RenderPass>(stage, render_pass_mode, num_multiview_layers);
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index] = MakeRenderObject<renderer::FramebufferObject>(m_extent);
     }
 }
@@ -147,7 +147,7 @@ void Framebuffer::Init()
     PUSH_RENDER_COMMAND(CreateAttachmentMap, &m_attachment_map);
     PUSH_RENDER_COMMAND(CreateRenderPass, m_render_pass, &m_attachment_map);
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         AssertThrow(m_framebuffers[frame_index].IsValid());
 
         PUSH_RENDER_COMMAND(CreateFramebuffer, m_framebuffers[frame_index], m_render_pass, &m_attachment_map);
@@ -160,7 +160,7 @@ void Framebuffer::Init()
 
 void Framebuffer::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index]->AddAttachmentUsage(attachment_usage);
     }
 
@@ -169,21 +169,21 @@ void Framebuffer::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 
 void Framebuffer::RemoveAttachmentUsage(const Attachment *attachment)
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index]->RemoveAttachmentUsage(attachment);
     }
 
     m_render_pass->RemoveAttachmentUsage(attachment);
 }
 
-void Framebuffer::BeginCapture(UInt frame_index, CommandBuffer *command_buffer)
+void Framebuffer::BeginCapture(uint frame_index, CommandBuffer *command_buffer)
 {
     AssertThrow(frame_index < max_frames_in_flight);
 
     m_render_pass->Begin(command_buffer, m_framebuffers[frame_index]);
 }
 
-void Framebuffer::EndCapture(UInt frame_index, CommandBuffer *command_buffer)
+void Framebuffer::EndCapture(uint frame_index, CommandBuffer *command_buffer)
 {
     AssertThrow(frame_index < max_frames_in_flight);
 

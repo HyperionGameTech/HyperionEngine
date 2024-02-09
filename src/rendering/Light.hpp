@@ -30,8 +30,8 @@ public:
         LightType type,
         const Vec3f &position,
         const Color &color,
-        Float intensity,
-        Float radius
+        float intensity,
+        float radius
     );
 
     Light(const Light &other) = delete;
@@ -64,44 +64,44 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    Float GetIntensity() const
+    float GetIntensity() const
         { return m_intensity; }
 
-    void SetIntensity(Float intensity)
+    void SetIntensity(float intensity)
     {
         m_intensity = intensity;
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    Float GetRadius() const
+    float GetRadius() const
         { return m_radius; }
 
-    void SetRadius(Float radius)
+    void SetRadius(float radius)
     {
         m_radius = radius;
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    Float GetFalloff() const
+    float GetFalloff() const
         { return m_falloff; }
 
-    void SetFalloff(Float falloff)
+    void SetFalloff(float falloff)
     {
         m_falloff = falloff;
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    UInt GetShadowMapIndex() const
+    uint GetShadowMapIndex() const
         { return m_shadow_map_index; }
 
-    void SetShadowMapIndex(UInt shadow_map_index)
+    void SetShadowMapIndex(uint shadow_map_index)
     {
         m_shadow_map_index = shadow_map_index;
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    Bool IsVisible(ID<Camera> camera_id) const;
-    void SetIsVisible(ID<Camera> camera_id, Bool is_visible);
+    bool IsVisible(ID<Camera> camera_id) const;
+    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
     BoundingBox GetWorldAABB() const;
 
@@ -114,11 +114,11 @@ protected:
     LightType   m_type;
     Vec3f       m_position;
     Color       m_color;
-    Float       m_intensity;
+    float       m_intensity;
     /* Point, spot lights */
-    Float       m_radius;
-    Float       m_falloff;
-    UInt        m_shadow_map_index;
+    float       m_radius;
+    float       m_falloff;
+    uint        m_shadow_map_index;
 
 private:
     void EnqueueRenderUpdates();
@@ -137,8 +137,8 @@ public:
     DirectionalLight(
         const Vec3f &direction,
         const Color &color,
-        Float intensity = default_intensity,
-        Float radius = default_radius
+        float intensity = default_intensity,
+        float radius = default_radius
     ) : Light(
         LightType::DIRECTIONAL,
         direction,
@@ -165,8 +165,8 @@ public:
     PointLight(
         const Vec3f &position,
         const Color &color,
-        Float intensity = default_intensity,
-        Float radius = default_radius
+        float intensity = default_intensity,
+        float radius = default_radius
     ) : Light(
         LightType::POINT,
         position,

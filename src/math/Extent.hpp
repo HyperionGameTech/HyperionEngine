@@ -14,10 +14,10 @@ struct Extent2D
     {
         struct // NOLINT(clang-diagnostic-nested-anon-types)
         { 
-            UInt32 width, height;
+            uint32 width, height;
         };
 
-        UInt32 v[2];
+        uint32 v[2];
     };
 
     constexpr Extent2D()
@@ -26,7 +26,7 @@ struct Extent2D
     {
     }
 
-    constexpr Extent2D(UInt32 width, UInt32 height)
+    constexpr Extent2D(uint32 width, uint32 height)
         : width(width),
           height(height)
     {
@@ -39,8 +39,8 @@ struct Extent2D
     }
 
     constexpr Extent2D(const Vec2i &vec)
-        : width(UInt32(vec.x)),
-          height(UInt32(vec.y))
+        : width(uint32(vec.x)),
+          height(uint32(vec.y))
     {
     }
 
@@ -70,10 +70,10 @@ struct Extent2D
         return *this;
     }
     
-    constexpr Extent2D operator*(UInt32 scalar) const
+    constexpr Extent2D operator*(uint32 scalar) const
         { return Extent2D(width * scalar, height * scalar); }
 
-    Extent2D &operator*=(UInt32 scalar)
+    Extent2D &operator*=(uint32 scalar)
     {
         width *= scalar;
         height *= scalar;
@@ -97,14 +97,14 @@ struct Extent2D
         return *this;
     }
     
-    Extent2D operator/(UInt32 scalar) const
+    Extent2D operator/(uint32 scalar) const
     {
         AssertThrow(scalar != 0);
 
         return Extent2D(width / scalar, height / scalar);
     }
 
-    Extent2D &operator/=(UInt32 scalar)
+    Extent2D &operator/=(uint32 scalar)
     {
         AssertThrow(scalar != 0);
 
@@ -114,10 +114,10 @@ struct Extent2D
         return *this;
     }
     
-    constexpr UInt32 &operator[](UInt32 index)
+    constexpr uint32 &operator[](uint32 index)
         { return v[index]; }
 
-    constexpr UInt32 operator[](UInt32 index) const
+    constexpr uint32 operator[](uint32 index) const
         { return v[index]; }
 
     SizeType Size() const
@@ -142,8 +142,8 @@ struct Extent2D
     explicit operator Vector2() const
     {
         return {
-            Float(width),
-            Float(height)
+            float(width),
+            float(height)
         };
     }
 };
@@ -156,10 +156,10 @@ struct Extent3D
     {
         struct // NOLINT(clang-diagnostic-nested-anon-types)
         {
-            UInt32 width, height, depth, _pad;
+            uint32 width, height, depth, _pad;
         };
 
-        UInt32 v[4];
+        uint32 v[4];
     };
 
     constexpr Extent3D() // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -170,7 +170,7 @@ struct Extent3D
     {
     }
 
-    explicit constexpr Extent3D(UInt32 extent)  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit constexpr Extent3D(uint32 extent)  // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent),
           height(extent),
           depth(extent),
@@ -178,7 +178,7 @@ struct Extent3D
     {
     }
 
-    constexpr Extent3D(UInt32 width, UInt32 height, UInt32 depth) // NOLINT(cppcoreguidelines-pro-type-member-init)
+    constexpr Extent3D(uint32 width, uint32 height, uint32 depth) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(width),
           height(height),
           depth(depth),
@@ -187,9 +187,9 @@ struct Extent3D
     }
 
     explicit Extent3D(const Vector3 &extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
-        : width(UInt32(extent.x)),
-          height(UInt32(extent.y)),
-          depth(UInt32(extent.z))
+        : width(uint32(extent.x)),
+          height(uint32(extent.y)),
+          depth(uint32(extent.z))
     {
     }
 
@@ -201,13 +201,13 @@ struct Extent3D
     }
 
     constexpr Extent3D(const Vec3i &vec)
-        : width(UInt32(vec.x)),
-          height(UInt32(vec.y)),
-          depth(UInt32(vec.z))
+        : width(uint32(vec.x)),
+          height(uint32(vec.y)),
+          depth(uint32(vec.z))
     {
     }
 
-    explicit Extent3D(const Extent2D &extent_2d, UInt32 depth = 1) // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit Extent3D(const Extent2D &extent_2d, uint32 depth = 1) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent_2d.width),
           height(extent_2d.height),
           depth(depth)
@@ -248,7 +248,7 @@ struct Extent3D
         return *this;
     }
     
-    constexpr Extent3D operator*(UInt32 scalar) const
+    constexpr Extent3D operator*(uint32 scalar) const
     {
         return {
             width * scalar,
@@ -257,7 +257,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator*=(UInt32 scalar)
+    Extent3D &operator*=(uint32 scalar)
     {
         width *= scalar;
         height *= scalar;
@@ -287,7 +287,7 @@ struct Extent3D
         return *this;
     }
     
-    Extent3D operator/(UInt32 scalar) const
+    Extent3D operator/(uint32 scalar) const
     {
         AssertThrow(scalar != 0);
 
@@ -298,7 +298,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator/=(UInt32 scalar)
+    Extent3D &operator/=(uint32 scalar)
     {
         AssertThrow(scalar != 0);
 
@@ -309,8 +309,8 @@ struct Extent3D
         return *this;
     }
     
-    constexpr UInt32 &operator[](UInt32 index) { return v[index]; }
-    constexpr UInt32 operator[](UInt32 index) const { return v[index]; }
+    constexpr uint32 &operator[](uint32 index) { return v[index]; }
+    constexpr uint32 operator[](uint32 index) const { return v[index]; }
 
     constexpr explicit operator Extent2D() const
     {
@@ -341,9 +341,9 @@ struct Extent3D
     explicit operator Vector3() const
     {
         return {
-            Float(width),
-            Float(height),
-            Float(depth)
+            float(width),
+            float(height),
+            float(depth)
         };
     }
 

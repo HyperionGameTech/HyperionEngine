@@ -62,22 +62,22 @@ public:
     RenderPassStage GetStage() const
         { return m_stage; }
 
-    bool Has(UInt binding) const;
+    bool Has(uint binding) const;
 
-    AttachmentUsage *Get(UInt binding) const;
+    AttachmentUsage *Get(uint binding) const;
 
     /*! \brief Add a new owned attachment, constructed using the width/height provided to this class,
      * along with the given format argument.
      * @param binding The input attachment binding the attachment will take on
      * @param format The image format of the newly constructed Image
      */
-    Result Add(Device *device, UInt binding, InternalFormat format);
+    Result Add(Device *device, uint binding, InternalFormat format);
     /*! \brief Add a new owned attachment using the given image argument.
      * @param binding The input attachment binding the attachment will take on
      * @param image The unique pointer to a non-initialized (but constructed)
      * Image which will be used to render to for this attachment.
      */
-    Result Add(Device *device, UInt binding, ImageRef &&image);
+    Result Add(Device *device, uint binding, ImageRef &&image);
 
     /*! \brief Add a reference to an existing attachment, not owned.
      * An AttachmentUsage is created and its reference count incremented.
@@ -85,10 +85,10 @@ public:
      * @param attachment Pointer to an Attachment that exists elsewhere and will be used
      * as an input for this set of attachments. The operation will be an OP_LOAD.
      */
-    Result Add(Device *device, UInt binding, AttachmentRef attachment);
+    Result Add(Device *device, uint binding, AttachmentRef attachment);
 
     /*! \brief Remove an attachment reference by the binding argument */
-    Result Remove(Device *device, UInt binding);
+    Result Remove(Device *device, uint binding);
 
     Result Create(Device *device);
     Result Destroy(Device *device);
@@ -97,7 +97,7 @@ private:
     Extent3D                            m_extent;
     RenderPassStage                     m_stage;
     Array<AttachmentRef>                m_attachments;
-    FlatMap<UInt, AttachmentUsage *>    m_attachment_usages;
+    FlatMap<uint, AttachmentUsage *>    m_attachment_usages;
 };
 
 } // namespace renderer

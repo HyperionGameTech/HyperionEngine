@@ -18,15 +18,15 @@ extern "C" {
     struct ManagedMaterialParameter
     {
         float   value[4];
-        UInt32  type;
+        uint32  type;
 
         ManagedMaterialParameter() = default;
 
         ManagedMaterialParameter(const Material::Parameter &param)
-            : type(UInt32(param.type))
+            : type(uint32(param.type))
         {
             // hacky way to copy the data
-            param.Copy(reinterpret_cast<UInt8 *>(value));
+            param.Copy(reinterpret_cast<uint8 *>(value));
         }
 
         operator Material::Parameter() const
@@ -45,7 +45,7 @@ extern "C" {
     static_assert(sizeof(ManagedMaterialParameter) == 20, "ManagedMaterialParameter must be 20 bytes to be used in C#");
     static_assert(sizeof(ManagedMaterialParameter) == sizeof(Material::Parameter), "ManagedMaterialParameter must be the same size as Material::Parameter to maintain consistency");
 
-    UInt32 Material_GetTypeID()
+    uint32 Material_GetTypeID()
     {
         return TypeID::ForType<Material>().Value();
     }
@@ -66,7 +66,7 @@ extern "C" {
         InitObject(material);
     }
 
-    ManagedMaterialParameter Material_GetParameter(ManagedHandle material_handle, UInt64 key)
+    ManagedMaterialParameter Material_GetParameter(ManagedHandle material_handle, uint64 key)
     {
         Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 
@@ -77,7 +77,7 @@ extern "C" {
         return ManagedMaterialParameter(material->GetParameter(Material::MaterialKey(key)));
     }
 
-    void Material_SetParameter(ManagedHandle material_handle, UInt64 key, ManagedMaterialParameter param)
+    void Material_SetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter param)
     {
         Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 

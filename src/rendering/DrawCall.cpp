@@ -14,8 +14,8 @@ static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<
         return false;
     }
 
-    const UInt32 id_index = batch.num_entities++;
-    batch.indices[id_index] = UInt32(entity_id.ToIndex());
+    const uint32 id_index = batch.num_entities++;
+    batch.indices[id_index] = uint32(entity_id.ToIndex());
     g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
 
     return true;

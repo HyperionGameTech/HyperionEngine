@@ -68,7 +68,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(
         return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
     }
 
-    layout_info.setLayoutCount = static_cast<UInt32>(used_layouts.size());
+    layout_info.setLayoutCount = static_cast<uint32>(used_layouts.size());
     layout_info.pSetLayouts = used_layouts.data();
     
     /* Push constants */
@@ -76,11 +76,11 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(
         {
             .stageFlags = push_constant_stage_flags,
             .offset     = 0,
-            .size       = static_cast<UInt32>(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size       = static_cast<uint32>(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
-    layout_info.pushConstantRangeCount = static_cast<UInt32>(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = static_cast<uint32>(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_PASS_ERRORS(
@@ -106,9 +106,9 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 
-    pipeline_info.stageCount            = UInt32(stages.Size());
+    pipeline_info.stageCount            = uint32(stages.Size());
     pipeline_info.pStages               = stages.Data();
-    pipeline_info.groupCount            = UInt32(shader_group_create_infos.Size());
+    pipeline_info.groupCount            = uint32(shader_group_create_infos.Size());
     pipeline_info.pGroups               = shader_group_create_infos.Data();
     pipeline_info.layout                = layout;
     pipeline_info.basePipelineHandle    = VK_NULL_HANDLE;
@@ -183,7 +183,7 @@ void RaytracingPipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Pla
         layout,
         push_constant_stage_flags,
         0,
-        static_cast<UInt32>(sizeof(push_constants)),
+        static_cast<uint32>(sizeof(push_constants)),
         &push_constants
     );
 }
@@ -211,9 +211,9 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
     const auto &features = device->GetFeatures();
     const auto &properties = features.GetRaytracingPipelineProperties();
 
-    const UInt32 handle_size = properties.shaderGroupHandleSize;
-    const UInt32 handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
-    const UInt32 table_size = static_cast<UInt32>(shader_groups.Size()) * handle_size_aligned;
+    const uint32 handle_size = properties.shaderGroupHandleSize;
+    const uint32 handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
+    const uint32 table_size = static_cast<uint32>(shader_groups.Size()) * handle_size_aligned;
 
     ByteBuffer shader_handle_storage(table_size);
 
@@ -221,14 +221,14 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
         device->GetDevice(),
         pipeline,
         0,
-        static_cast<UInt32>(shader_groups.Size()),
-        static_cast<UInt32>(shader_handle_storage.Size()),
+        static_cast<uint32>(shader_groups.Size()),
+        static_cast<uint32>(shader_handle_storage.Size()),
         shader_handle_storage.Data()
     ));
 
     auto result = Result::OK;
 
-    UInt32 offset = 0;
+    uint32 offset = 0;
 
     ShaderBindingTableMap buffers;
 
@@ -239,7 +239,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
 
 #define SHADER_PRESENT_IN_GROUP(type) (create_info.type != VK_SHADER_UNUSED_KHR ? 1 : 0)
 
-        const UInt32 shader_count = SHADER_PRESENT_IN_GROUP(generalShader)
+        const uint32 shader_count = SHADER_PRESENT_IN_GROUP(generalShader)
             + SHADER_PRESENT_IN_GROUP(closestHitShader)
             + SHADER_PRESENT_IN_GROUP(anyHitShader)
             + SHADER_PRESENT_IN_GROUP(intersectionShader);
@@ -297,7 +297,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
 
 Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
     Device<Platform::VULKAN> *device,
-    UInt32 num_shaders,
+    uint32 num_shaders,
     ShaderBindingTableEntry &out
 )
 {
@@ -323,7 +323,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
 
     if (result) {
         /* Get strided device address region */
-        const UInt32 handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+        const uint32 handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
         out.strided_device_address_region = VkStridedDeviceAddressRegionKHR {
             .deviceAddress  = out.buffer->GetBufferDeviceAddress(device),

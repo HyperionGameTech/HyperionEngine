@@ -13,56 +13,56 @@
 
 namespace hyperion::v2 {
 
-template <UInt NumComponents>
+template <uint NumComponents>
 struct Pixel
 {
-    static constexpr UInt byte_size = NumComponents > 1 ? NumComponents : 1;
+    static constexpr uint byte_size = NumComponents > 1 ? NumComponents : 1;
 
-    UByte bytes[byte_size];
+    ubyte bytes[byte_size];
 
     Pixel() = default;
 
-    void SetR(Float r)
+    void SetR(float r)
     {
-        bytes[0] = static_cast<UByte>(r * 255.0f);
+        bytes[0] = static_cast<ubyte>(r * 255.0f);
     }
 
-    void SetRG(Float r, Float g)
+    void SetRG(float r, float g)
     {
-        bytes[0] = static_cast<UByte>(r * 255.0f);
+        bytes[0] = static_cast<ubyte>(r * 255.0f);
 
         if constexpr (byte_size >= 2) {
-            bytes[1] = static_cast<UByte>(g * 255.0f);
+            bytes[1] = static_cast<ubyte>(g * 255.0f);
         }
     }
 
-    void SetRGB(Float r, Float g, Float b)
+    void SetRGB(float r, float g, float b)
     {
-        bytes[0] = static_cast<UByte>(r * 255.0f);
+        bytes[0] = static_cast<ubyte>(r * 255.0f);
 
         if constexpr (byte_size >= 2) {
-            bytes[1] = static_cast<UByte>(g * 255.0f);
+            bytes[1] = static_cast<ubyte>(g * 255.0f);
         }
 
         if constexpr (byte_size >= 3) {
-            bytes[2] = static_cast<UByte>(b * 255.0f);
+            bytes[2] = static_cast<ubyte>(b * 255.0f);
         }
     }
 
-    void SetRGBA(Float r, Float g, Float b, Float a)
+    void SetRGBA(float r, float g, float b, float a)
     {
-        bytes[0] = static_cast<UByte>(r * 255.0f);
+        bytes[0] = static_cast<ubyte>(r * 255.0f);
 
         if constexpr (byte_size >= 2) {
-            bytes[1] = static_cast<UByte>(g * 255.0f);
+            bytes[1] = static_cast<ubyte>(g * 255.0f);
         }
 
         if constexpr (byte_size >= 3) {
-            bytes[2] = static_cast<UByte>(b * 255.0f);
+            bytes[2] = static_cast<ubyte>(b * 255.0f);
         }
 
         if constexpr (byte_size >= 4) {
-            bytes[3] = static_cast<UByte>(a * 255.0f);
+            bytes[3] = static_cast<ubyte>(a * 255.0f);
         }
     }
 
@@ -75,16 +75,16 @@ struct Pixel
     Vector3 GetRGB() const
     {
         return Vector3(
-            static_cast<Float>(bytes[2]) / 255.0f,
-            static_cast<Float>(bytes[1]) / 255.0f,
-            static_cast<Float>(bytes[0]) / 255.0f
+            static_cast<float>(bytes[2]) / 255.0f,
+            static_cast<float>(bytes[1]) / 255.0f,
+            static_cast<float>(bytes[0]) / 255.0f
         );
     }
 
     void SetRGB(const Vector3 &rgb)
     {
-        for (UInt i = 0; i < MathUtil::Min(byte_size, 3); i++) {
-            bytes[byte_size - i - 1] = static_cast<UByte>(rgb[i] * 255.0f);
+        for (uint i = 0; i < MathUtil::Min(byte_size, 3); i++) {
+            bytes[byte_size - i - 1] = static_cast<ubyte>(rgb[i] * 255.0f);
         }
     }
 
@@ -92,30 +92,30 @@ struct Pixel
     {
         if constexpr (byte_size < 4) {
             return Vector4(
-                static_cast<Float>(bytes[2]) / 255.0f,
-                static_cast<Float>(bytes[1]) / 255.0f,
-                static_cast<Float>(bytes[0]) / 255.0f,
+                static_cast<float>(bytes[2]) / 255.0f,
+                static_cast<float>(bytes[1]) / 255.0f,
+                static_cast<float>(bytes[0]) / 255.0f,
                 1.0f
             );
         } else {
             return Vector4(
-                static_cast<Float>(bytes[3]) / 255.0f,
-                static_cast<Float>(bytes[2]) / 255.0f,
-                static_cast<Float>(bytes[1]) / 255.0f,
-                static_cast<Float>(bytes[0]) / 255.0f
+                static_cast<float>(bytes[3]) / 255.0f,
+                static_cast<float>(bytes[2]) / 255.0f,
+                static_cast<float>(bytes[1]) / 255.0f,
+                static_cast<float>(bytes[0]) / 255.0f
             );
         }
     }
 
     void SetRGBA(const Vector4 &rgba)
     {
-        for (UInt i = 0; i < MathUtil::Min(byte_size, 4); i++) {
-            bytes[byte_size - i - 1] = static_cast<UByte>(rgba[i] * 255.0f);
+        for (uint i = 0; i < MathUtil::Min(byte_size, 4); i++) {
+            bytes[byte_size - i - 1] = static_cast<ubyte>(rgba[i] * 255.0f);
         }
     }
 };
 
-template <UInt NumComponents>
+template <uint NumComponents>
 class Bitmap
 {
     using PixelType = Pixel<NumComponents>;
@@ -127,7 +127,7 @@ public:
     {
     }
 
-    Bitmap(UInt width, UInt height)
+    Bitmap(uint width, uint height)
         : m_width(width),
           m_height(height)
     {
@@ -168,10 +168,10 @@ public:
 
     ~Bitmap() = default;
 
-    UInt GetWidth() const
+    uint GetWidth() const
         { return m_width; }
 
-    UInt GetHeight() const
+    uint GetHeight() const
         { return m_height; }
 
     SizeType GetByteSize() const
@@ -181,21 +181,21 @@ public:
             * static_cast<SizeType>(NumComponents);
     }
 
-    PixelType &GetPixelAtIndex(UInt index)
+    PixelType &GetPixelAtIndex(uint index)
         { return m_pixels[index]; }
 
-    const PixelType &GetPixelAtIndex(UInt index) const
+    const PixelType &GetPixelAtIndex(uint index) const
         { return m_pixels[index]; }
 
-    PixelType &GetPixel(UInt x, UInt y)
+    PixelType &GetPixel(uint x, uint y)
     {
-        const UInt index = ((x + m_width) % m_width)
+        const uint index = ((x + m_width) % m_width)
             + (((m_height - y) + m_height) % m_height) * m_width;
 
         return m_pixels[index];
     }
 
-    const PixelType &GetPixel(UInt x, UInt y) const
+    const PixelType &GetPixel(uint x, uint y) const
         { return const_cast<const Bitmap *>(this)->GetPixel(x, y); }
 
     ByteBuffer ToByteBuffer() const
@@ -204,7 +204,7 @@ public:
         byte_buffer.SetSize(m_pixels.Size() * PixelType::byte_size);
 
         for (SizeType i = 0, j = 0; i < byte_buffer.Size() && j < m_pixels.Size(); i += PixelType::byte_size, j++) {
-            for (UInt k = 0; k < PixelType::byte_size; k++) {
+            for (uint k = 0; k < PixelType::byte_size; k++) {
                 byte_buffer.Data()[i + k] = m_pixels[j].bytes[k];
             }
         }
@@ -212,31 +212,31 @@ public:
         return byte_buffer;
     }
 
-    void GetUnpackedBytes(Array<UByte> &out)
+    void GetUnpackedBytes(Array<ubyte> &out)
     {
         out.Resize(m_pixels.Size() * PixelType::byte_size);
 
         for (SizeType i = 0, j = 0; i < out.Size() && j < m_pixels.Size(); i += PixelType::byte_size, j++) {
-            for (UInt k = 0; k < PixelType::byte_size; k++) {
+            for (uint k = 0; k < PixelType::byte_size; k++) {
                 out[i + k] = m_pixels[j].bytes[k];
             }
         }
     }
 
-    void GetUnpackedFloats(Array<Float> &out)
+    void GetUnpackedFloats(Array<float> &out)
     {
         out.Resize(m_pixels.Size() * PixelType::byte_size);
 
         for (SizeType i = 0, j = 0; i < out.Size() && j < m_pixels.Size(); i += PixelType::byte_size, j++) {
-            for (UInt k = 0; k < PixelType::byte_size; k++) {
-                out[i + k] = static_cast<Float>(m_pixels[j].bytes[k]) / 255.0f;
+            for (uint k = 0; k < PixelType::byte_size; k++) {
+                out[i + k] = static_cast<float>(m_pixels[j].bytes[k]) / 255.0f;
             }
         }
     }
 
     void Write(const String &filepath)
     {
-        Array<UByte> unpacked_bytes;
+        Array<ubyte> unpacked_bytes;
         GetUnpackedBytes(unpacked_bytes);
 
         WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
@@ -244,8 +244,8 @@ public:
 
     void FlipVertical()
     {
-        for (UInt x = 0; x < m_width; x++) {
-            for (UInt y = 0; y < m_height / 2; y++) {
+        for (uint x = 0; x < m_width; x++) {
+            for (uint y = 0; y < m_height / 2; y++) {
                 auto temp = GetPixel(x, m_height - y - 1u);
                 GetPixel(x, m_height - y - 1u) = GetPixel(x, y);
                 GetPixel(x, y) = temp;
@@ -255,8 +255,8 @@ public:
 
     void FlipHorizontal()
     {
-        for (UInt x = 0; x < m_width / 2; x++) {
-            for (UInt y = 0; y < m_height; y++) {
+        for (uint x = 0; x < m_width / 2; x++) {
+            for (uint y = 0; y < m_height; y++) {
                 auto temp = GetPixel(m_width - x - 1u, y);
                 GetPixel(m_width - x - 1u, y) = GetPixel(x, y);
                 GetPixel(x, y) = temp;
@@ -265,8 +265,8 @@ public:
     }
 
 private:
-    UInt                m_width;
-    UInt                m_height;
+    uint                m_width;
+    uint                m_height;
     Array<PixelType>    m_pixels;
 
 };

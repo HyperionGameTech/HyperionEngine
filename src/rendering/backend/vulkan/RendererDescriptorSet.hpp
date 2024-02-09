@@ -79,12 +79,12 @@ public:
 
     struct SubDescriptor
     {
-        UInt element_index = ~0u; /* ~0 == just use index of item added */
+        uint element_index = ~0u; /* ~0 == just use index of item added */
 
         union {
             struct /* BufferData */ {
                 const GPUBuffer *buffer;
-                UInt range; /* if 0 then it is set to buffer->size */
+                uint range; /* if 0 then it is set to buffer->size */
 
                 VkDescriptorBufferInfo buffer_info;
             };
@@ -117,15 +117,15 @@ public:
         }
     };
 
-    Descriptor(UInt binding, DescriptorType descriptor_type);
+    Descriptor(uint binding, DescriptorType descriptor_type);
     Descriptor(const Descriptor &other) = delete;
     Descriptor &operator=(const Descriptor &other) = delete;
     ~Descriptor();
 
-    UInt GetBinding() const
+    uint GetBinding() const
         { return m_binding; }
 
-    void SetBinding(UInt binding)
+    void SetBinding(uint binding)
         { m_binding = binding; }
                                           
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
@@ -136,10 +136,10 @@ public:
     const auto &GetSubDescriptors() const
         { return m_sub_descriptors; }
 
-    SubDescriptor &GetSubDescriptor(UInt index)
+    SubDescriptor &GetSubDescriptor(uint index)
         { return m_sub_descriptors.At(index); }
 
-    const SubDescriptor &GetSubDescriptor(UInt index) const
+    const SubDescriptor &GetSubDescriptor(uint index) const
         { return m_sub_descriptors.At(index); }
 
     /*! \brief Add a sub-descriptor to this descriptor.
@@ -148,10 +148,10 @@ public:
      * @param sub_descriptor An object containing buffer or image info about the sub descriptor to be added.
      * @returns index of descriptor
      */
-    UInt SetSubDescriptor(SubDescriptor &&sub_descriptor);
+    uint SetSubDescriptor(SubDescriptor &&sub_descriptor);
 
     template <class Buffer>
-    Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
+    Descriptor *SetElementBuffer(uint index, const GPUBuffer *buffer)
     {
         AssertThrowMsg(
             IsDescriptorTypeDynamicBuffer(m_descriptor_type),
@@ -161,7 +161,7 @@ public:
         SubDescriptor element;
         element.element_index = index;
         element.buffer = buffer;
-        element.range = UInt32(sizeof(Buffer));
+        element.range = uint32(sizeof(Buffer));
 
         SetSubDescriptor(std::move(element));
 
@@ -179,14 +179,14 @@ public:
         SubDescriptor element;
         element.element_index = 0;
         element.buffer = buffer;
-        element.range = UInt32(sizeof(Buffer));
+        element.range = uint32(sizeof(Buffer));
 
         SetSubDescriptor(std::move(element));
 
         return this;
     }
 
-    Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
+    Descriptor *SetElementBuffer(uint index, const GPUBuffer *buffer)
     {
         AssertThrowMsg(
             IsDescriptorTypeBuffer(m_descriptor_type) && !IsDescriptorTypeDynamicBuffer(m_descriptor_type),
@@ -220,7 +220,7 @@ public:
         return this;
     }
 
-    Descriptor *SetElementSRV(UInt index, const ImageView *image_view)
+    Descriptor *SetElementSRV(uint index, const ImageView *image_view)
     {
         AssertThrowMsg(
             m_descriptor_type == DescriptorType::IMAGE,
@@ -236,7 +236,7 @@ public:
         return this;
     }
 
-    Descriptor *SetElementUAV(UInt index, const ImageView *image_view)
+    Descriptor *SetElementUAV(uint index, const ImageView *image_view)
     {
         AssertThrowMsg(
             m_descriptor_type == DescriptorType::IMAGE_STORAGE,
@@ -252,7 +252,7 @@ public:
         return this;
     }
 
-    Descriptor *SetElementSampler(UInt index, const Sampler *sampler)
+    Descriptor *SetElementSampler(uint index, const Sampler *sampler)
     {
         AssertThrowMsg(
             m_descriptor_type == DescriptorType::SAMPLER,
@@ -268,7 +268,7 @@ public:
         return this;
     }
 
-    Descriptor *SetElementImageSamplerCombined(UInt index, const ImageView *image_view, const Sampler *sampler)
+    Descriptor *SetElementImageSamplerCombined(uint index, const ImageView *image_view, const Sampler *sampler)
     {
         AssertThrowMsg(
             m_descriptor_type == DescriptorType::IMAGE_SAMPLER,
@@ -285,7 +285,7 @@ public:
         return this;
     }
     
-    Descriptor *SetElementAccelerationStructure(UInt index, const AccelerationStructure *acceleration_structure)
+    Descriptor *SetElementAccelerationStructure(uint index, const AccelerationStructure *acceleration_structure)
     {
         AssertThrowMsg(
             m_descriptor_type == DescriptorType::ACCELERATION_STRUCTURE,
@@ -302,9 +302,9 @@ public:
     }
 
     /*! \brief Remove the sub-descriptor at the given index. */
-    void RemoveSubDescriptor(UInt index);
+    void RemoveSubDescriptor(uint index);
     /*! \brief Mark a sub-descriptor as dirty */
-    void MarkDirty(UInt sub_descriptor_index);
+    void MarkDirty(uint sub_descriptor_index);
 
     void Create(
         Device *device,
@@ -323,12 +323,12 @@ protected:
         VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure
     ) const;
 
-    Range<UInt> m_dirty_sub_descriptors;
+    Range<uint> m_dirty_sub_descriptors;
 
-    FlatMap<UInt, SubDescriptor> m_sub_descriptors;
-    Array<UInt> m_sub_descriptor_update_indices;
+    FlatMap<uint, SubDescriptor> m_sub_descriptors;
+    Array<uint> m_sub_descriptor_update_indices;
 
-    UInt m_binding;
+    uint m_binding;
     DescriptorType m_descriptor_type;
 
 private:
@@ -339,7 +339,7 @@ class DescriptorSet
 {
     friend class Descriptor;
 public:
-    using Index = UInt;
+    using Index = uint;
 
     enum IndexNames : Index
     {
@@ -385,20 +385,20 @@ public:
         DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1
     };
 
-    static constexpr UInt max_descriptor_sets                  = 5000;
-    static constexpr UInt max_bindless_resources               = 4096;
-    static constexpr UInt max_sub_descriptor_updates_per_frame = 16;
-    static constexpr UInt max_bound_descriptor_sets            = 4; /* 0 = no cap */
-    static constexpr UInt max_material_texture_samplers        = 16;
+    static constexpr uint max_descriptor_sets                  = 5000;
+    static constexpr uint max_bindless_resources               = 4096;
+    static constexpr uint max_sub_descriptor_updates_per_frame = 16;
+    static constexpr uint max_bound_descriptor_sets            = 4; /* 0 = no cap */
+    static constexpr uint max_material_texture_samplers        = 16;
 
-    static const std::map<Index, std::map<DescriptorKey, UInt>> mappings;
-    static const FlatMap<Index, UInt> desired_indices;
-    static Index GetBaseIndex(UInt index); // map index to the real index used (this is per-frame stuff)
-    static Index GetPerFrameIndex(Index index, UInt frame_index);
-    static Index GetPerFrameIndex(Index index, UInt instance_index, UInt frame_index);
+    static const std::map<Index, std::map<DescriptorKey, uint>> mappings;
+    static const FlatMap<Index, uint> desired_indices;
+    static Index GetBaseIndex(uint index); // map index to the real index used (this is per-frame stuff)
+    static Index GetPerFrameIndex(Index index, uint frame_index);
+    static Index GetPerFrameIndex(Index index, uint instance_index, uint frame_index);
     /*! Get the per-frame index of a descriptor set's /real/ index. Returns -1 if applicable to any. */
-    static int GetFrameIndex(UInt real_index);
-    static UInt GetDesiredIndex(Index index);
+    static int GetFrameIndex(uint real_index);
+    static uint GetDesiredIndex(Index index);
 
     /*! \brief Create a 'standalone' descriptor set.
         This is a newer way of creating them that will let us create descriptor sets that own their own
@@ -409,7 +409,7 @@ public:
 
     /*! \brief Create a descriptor set the older way. The descriptor set will be held in the DescriptorPool and managed
         indirectly by going through methods on DescriptorPool etc. */
-    DescriptorSet(Index index, UInt real_index, Bool bindless);
+    DescriptorSet(Index index, uint real_index, bool bindless);
     DescriptorSet(const DescriptorSet &other) = delete;
     DescriptorSet &operator=(const DescriptorSet &other) = delete;
     DescriptorSet(DescriptorSet &&other) noexcept;
@@ -418,19 +418,19 @@ public:
 
     DescriptorSetState GetState() const { return m_state; }
     Index GetIndex() const { return m_index; }
-    UInt GetRealIndex() const { return m_real_index; }
-    Bool IsBindless() const { return m_bindless; }
-    Bool IsCreated() const { return m_is_created; }
+    uint GetRealIndex() const { return m_real_index; }
+    bool IsBindless() const { return m_bindless; }
+    bool IsCreated() const { return m_is_created; }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    Bool IsTemplate() const { return GetRealIndex() == UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    bool IsTemplate() const { return GetRealIndex() == uint(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)
         { return AddDescriptor<DescriptorType>(DescriptorKeyToIndex(key)); }
 
     template <class DescriptorType>
-    Descriptor *AddDescriptor(UInt binding)
+    Descriptor *AddDescriptor(uint binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
@@ -447,15 +447,15 @@ public:
         return m_descriptors.Back().get();
     }
 
-    Bool RemoveDescriptor(Descriptor *descriptor);
-    Bool RemoveDescriptor(DescriptorKey key);
-    Bool RemoveDescriptor(UInt binding);
+    bool RemoveDescriptor(Descriptor *descriptor);
+    bool RemoveDescriptor(DescriptorKey key);
+    bool RemoveDescriptor(uint binding);
 
-    Bool HasDescriptorByName(Name name) const
+    bool HasDescriptorByName(Name name) const
         { return m_declaration.FindDescriptorDeclaration(name) != nullptr; }
 
     template <SizeType Count>
-    Bool HasDescriptorByName(FixedArray<Name, Count> names) const
+    bool HasDescriptorByName(FixedArray<Name, Count> names) const
     {
         for (const auto item : names) {
             if (!m_declaration.FindDescriptorDeclaration(item)) {
@@ -467,7 +467,7 @@ public:
     }
 
     Descriptor *GetDescriptor(DescriptorKey key) const;
-    Descriptor *GetDescriptor(UInt binding) const;
+    Descriptor *GetDescriptor(uint binding) const;
     /*! \brief Get a Descriptor by name -- must have a DescriptorSetDeclaration */
     Descriptor *GetDescriptorByName(Name name) const;
 
@@ -478,7 +478,7 @@ public:
     }
 
     template <class DescriptorType>
-    Descriptor *GetOrAddDescriptor(UInt binding)
+    Descriptor *GetOrAddDescriptor(uint binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
@@ -504,7 +504,7 @@ private:
     /* Add descriptors from m_declaration */
     void AddDescriptors();
 
-    UInt DescriptorKeyToIndex(DescriptorKey key) const;
+    uint DescriptorKeyToIndex(DescriptorKey key) const;
 
     DescriptorSetDeclaration            m_declaration;
 
@@ -514,17 +514,17 @@ private:
     Array<VkWriteDescriptorSet>         m_descriptor_writes; /* any number of per descriptor - reset after each update */
     DescriptorSetState                  m_state;
     Index                               m_index;
-    UInt                                m_real_index;
-    Bool                                m_bindless;
-    Bool                                m_is_created;
-    Bool                                m_is_standalone; // a descriptor set is 'standalone' if it is not created as part of the DescriptorPool.
+    uint                                m_real_index;
+    bool                                m_bindless;
+    bool                                m_is_created;
+    bool                                m_is_standalone; // a descriptor set is 'standalone' if it is not created as part of the DescriptorPool.
                                                          // it it manages its own layout resource, as well.
 };
 
 struct DescriptorSetBinding {
     struct Declaration {
         DescriptorSet::Index set;
-        UInt count = 1;
+        uint count = 1;
     } declaration;
 
     /* where we bind to in the shader program */
@@ -533,7 +533,7 @@ struct DescriptorSetBinding {
     } locations;
 
     struct DynamicOffsets {
-        std::vector<UInt> offsets;
+        std::vector<uint> offsets;
     } offsets;
 
     DescriptorSetBinding()
@@ -579,12 +579,12 @@ class DescriptorPool
     friend class DescriptorSet;
 
     Result AllocateDescriptorSet(Device *device, VkDescriptorSetLayout *layout, DescriptorSet *out);
-    Result CreateDescriptorSetLayout(Device *device, UInt index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
-    Result DestroyDescriptorSetLayout(Device *device, UInt index);
-    VkDescriptorSetLayout GetDescriptorSetLayout(UInt index);
+    Result CreateDescriptorSetLayout(Device *device, uint index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
+    Result DestroyDescriptorSetLayout(Device *device, uint index);
+    VkDescriptorSetLayout GetDescriptorSetLayout(uint index);
 
 public:
-    static const std::unordered_map<VkDescriptorType, UInt> items_per_set;
+    static const std::unordered_map<VkDescriptorType, uint> items_per_set;
 
     DescriptorPool();
     DescriptorPool(const DescriptorPool &other) = delete;
@@ -602,7 +602,7 @@ public:
     auto &GetDescriptorSetLayouts() { return m_descriptor_set_layouts; }
     const auto &GetDescriptorSetLayouts() const { return m_descriptor_set_layouts; }
 
-    void SetDescriptorSetLayout(UInt index, VkDescriptorSetLayout layout);
+    void SetDescriptorSetLayout(uint index, VkDescriptorSetLayout layout);
 
     void AddDescriptorSet(
         Device *device,
@@ -613,7 +613,7 @@ public:
         { return m_descriptor_sets[index]; }
 
     void RemoveDescriptorSet(Device *device, DescriptorSet *descriptor_set);
-    void RemoveDescriptorSet(Device *device, UInt index);
+    void RemoveDescriptorSet(Device *device, uint index);
 
     Result Create(Device *device);
     Result Destroy(Device *device);
@@ -622,9 +622,9 @@ public:
     Result Bind(Device *device, CommandBuffer *cmd, RaytracingPipeline *pipeline, const DescriptorSetBinding &) const;
 
     Result CreateDescriptorSets(Device *device);
-    Result DestroyPendingDescriptorSets(Device *device, UInt frame_index);
-    Result AddPendingDescriptorSets(Device *device, UInt frame_index);
-    Result UpdateDescriptorSets(Device *device, UInt frame_index);
+    Result DestroyPendingDescriptorSets(Device *device, uint frame_index);
+    Result AddPendingDescriptorSets(Device *device, uint frame_index);
+    Result UpdateDescriptorSets(Device *device, uint frame_index);
 
 private:
     Result DestroyDescriptorSet(Device *device, const DescriptorSetRef &descriptor_set);
@@ -638,7 +638,7 @@ private:
     ) const;
 
     Array<DescriptorSetRef>                                         m_descriptor_sets;
-    FlatMap<UInt, VkDescriptorSetLayout>                            m_descriptor_set_layouts;
+    FlatMap<uint, VkDescriptorSetLayout>                            m_descriptor_set_layouts;
     VkDescriptorPool                                                m_descriptor_pool;
 
     FixedArray<Array<DescriptorSetRef>, max_frames_in_flight>       m_descriptor_sets_pending_addition;

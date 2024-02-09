@@ -34,7 +34,7 @@ public:
         return m_model.submeshes.Back();
     }
 
-    void AddBoneAssignment(UInt vertex_index, BoneAssignment &&bone_assignment)
+    void AddBoneAssignment(uint vertex_index, BoneAssignment &&bone_assignment)
     {
         m_model.bone_assignments[vertex_index].PushBack(std::move(bone_assignment));
     }
@@ -46,9 +46,9 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<Float>(attributes.At("x"));
-            const auto y = StringUtil::Parse<Float>(attributes.At("y"));
-            const auto z = StringUtil::Parse<Float>(attributes.At("z"));
+            const auto x = StringUtil::Parse<float>(attributes.At("x"));
+            const auto y = StringUtil::Parse<float>(attributes.At("y"));
+            const auto z = StringUtil::Parse<float>(attributes.At("z"));
 
             m_model.positions.PushBack(Vector3(x, y, z));
         } else if (name == "normal") {
@@ -56,9 +56,9 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<Float>(attributes.At("x"));
-            const auto y = StringUtil::Parse<Float>(attributes.At("y"));
-            const auto z = StringUtil::Parse<Float>(attributes.At("z"));
+            const auto x = StringUtil::Parse<float>(attributes.At("x"));
+            const auto y = StringUtil::Parse<float>(attributes.At("y"));
+            const auto z = StringUtil::Parse<float>(attributes.At("z"));
 
             m_model.normals.PushBack(Vector3(x, y, z));
         } else if (name == "texcoord") {
@@ -66,8 +66,8 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<Float>(attributes.At("u"));
-            const auto y = StringUtil::Parse<Float>(attributes.At("v"));
+            const auto x = StringUtil::Parse<float>(attributes.At("u"));
+            const auto y = StringUtil::Parse<float>(attributes.At("v"));
 
             m_model.texcoords.PushBack(Vector2(x, y));
         } else if (name == "face") {
@@ -81,9 +81,9 @@ public:
         } else if (name == "skeletonlink") {
             m_model.skeleton_name = attributes.At("name");
         } else if (name == "vertexboneassignment") {
-            const auto vertex_index = StringUtil::Parse<UInt32>(attributes.At("vertexindex"));
-            const auto bone_index   = StringUtil::Parse<UInt32>(attributes.At("boneindex"));
-            const auto bone_weight  = StringUtil::Parse<Float>(attributes.At("weight"));
+            const auto vertex_index = StringUtil::Parse<uint32>(attributes.At("vertexindex"));
+            const auto bone_index   = StringUtil::Parse<uint32>(attributes.At("boneindex"));
+            const auto bone_weight  = StringUtil::Parse<float>(attributes.At("weight"));
 
             AddBoneAssignment(vertex_index, {bone_index, bone_weight});
         } else if (name == "submesh") {

@@ -66,14 +66,14 @@ public:
     void BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type = DatumType::UNSIGNED_INT);
 
     void DrawIndexed(
-        UInt32 num_indices,
-        UInt32 num_instances  = 1,
-        UInt32 instance_index = 0
+        uint32 num_indices,
+        uint32 num_instances  = 1,
+        uint32 instance_index = 0
     ) const;
 
     void DrawIndexedIndirect(
         const GPUBuffer<Platform::VULKAN> *buffer,
-        UInt32 buffer_offset
+        uint32 buffer_offset
     ) const;
 
     void BindDescriptorSet(
@@ -101,7 +101,7 @@ public:
         const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -111,7 +111,7 @@ public:
         const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, Size> &offsets
+        const FixedArray<uint32, Size> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -130,7 +130,7 @@ public:
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -139,7 +139,7 @@ public:
         const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -149,7 +149,7 @@ public:
         const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -168,7 +168,7 @@ public:
         const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSets(
@@ -194,7 +194,7 @@ public:
         const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -204,7 +204,7 @@ public:
         const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -235,7 +235,7 @@ public:
         const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -245,7 +245,7 @@ public:
         const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -264,7 +264,7 @@ public:
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -274,7 +274,7 @@ public:
         const ComputePipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSets(
@@ -300,7 +300,7 @@ public:
         const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -310,7 +310,7 @@ public:
         const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -341,7 +341,7 @@ public:
         const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -351,7 +351,7 @@ public:
         const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSet(
@@ -370,7 +370,7 @@ public:
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -380,7 +380,7 @@ public:
         const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
-        const FixedArray<UInt32, NumOffsets> &offsets
+        const FixedArray<uint32, NumOffsets> &offsets
     ) const
     {
         BindDescriptorSets(
@@ -416,7 +416,7 @@ private:
         VkPipelineBindPoint bind_point,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -426,7 +426,7 @@ private:
         VkPipelineBindPoint bind_point,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -437,7 +437,7 @@ private:
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 
@@ -448,7 +448,7 @@ private:
         const DescriptorSetRef *descriptor_sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
-        const UInt32 *offsets,
+        const uint32 *offsets,
         SizeType num_offsets
     ) const;
 

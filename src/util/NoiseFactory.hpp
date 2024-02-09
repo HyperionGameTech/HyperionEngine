@@ -22,7 +22,7 @@ namespace hyperion {
 
 using namespace v2;
 
-using Seed = UInt32;
+using Seed = uint32;
 
 enum NoiseGenerationType
 {
@@ -50,7 +50,7 @@ public:
     double GetNoise(const Vector3 &xyz) const
         { return GetNoise(xyz.x, xyz.y, xyz.z); }
 
-    Bitmap<1> CreateBitmap(UInt width, UInt height, Float scale = 1.0f);
+    Bitmap<1> CreateBitmap(uint width, uint height, float scale = 1.0f);
 
 protected:
     Seed m_seed;
@@ -124,8 +124,8 @@ public:
     {
         Mode                        mode;
         UniquePtr<NoiseGenerator>   generator;
-        Float                       multiplier; // amount to multiply a result by
-        Float                       bias; // amount to add to a result (pre-mult)
+        float                       multiplier; // amount to multiply a result by
+        float                       bias; // amount to add to a result (pre-mult)
         Vec3f                       scaling; // coord scaling
     };
 
@@ -153,10 +153,10 @@ public:
 
     template <class NoiseGeneratorType>
     NoiseCombinator &Use(
-        Int priority,
+        int priority,
         Mode mode = Mode::ADDITIVE,
-        Float multiplier = 1.0f,
-        Float bias = 0.0f,
+        float multiplier = 1.0f,
+        float bias = 0.0f,
         const Vector3 &scaling = Vector3::One()
     )
     {
@@ -177,9 +177,9 @@ public:
         return *this;
     }
 
-    Float GetNoise(const Vector2 &xy) const
+    float GetNoise(const Vector2 &xy) const
     {
-        Float result = 0.0f;
+        float result = 0.0f;
 
         bool first = true;
 
@@ -195,9 +195,9 @@ public:
         return result;
     }
 
-    Float GetNoise(const Vector3 &xyz) const
+    float GetNoise(const Vector3 &xyz) const
     {
-        Float result = 0.0f;
+        float result = 0.0f;
 
         bool first = true;
 
@@ -214,7 +214,7 @@ public:
     }
 
 protected:
-    static void ApplyNoiseValue(Mode mode, Float noise_value, Float &final_result, bool &first)
+    static void ApplyNoiseValue(Mode mode, float noise_value, float &final_result, bool &first)
     {
         switch (mode) {
         case Mode::ADDITIVE:
@@ -235,7 +235,7 @@ protected:
     }
 
     Seed m_seed;
-    SortedArray<KeyValuePair<Int, NoiseGeneratorInstance>> m_generators;
+    SortedArray<KeyValuePair<int, NoiseGeneratorInstance>> m_generators;
 };
 
 

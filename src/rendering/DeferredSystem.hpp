@@ -24,7 +24,7 @@ using renderer::AttachmentUsage;
 
 using GBufferFormat = Variant<TextureFormatDefault, InternalFormat, Array<InternalFormat>>;
 
-enum GBufferResourceName : UInt
+enum GBufferResourceName : uint
 {
     GBUFFER_RESOURCE_ALBEDO = 0,
     GBUFFER_RESOURCE_NORMALS = 1,
@@ -76,9 +76,9 @@ public:
         AttachmentUsage *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
             AssertThrow(m_framebuffer.IsValid());
-            AssertThrow(UInt(resource_name) < UInt(GBUFFER_RESOURCE_MAX));
+            AssertThrow(uint(resource_name) < uint(GBUFFER_RESOURCE_MAX));
 
-            return m_framebuffer->GetAttachmentUsages()[UInt(resource_name)];
+            return m_framebuffer->GetAttachmentUsages()[uint(resource_name)];
         }
 
         void AddRenderGroup(Handle<RenderGroup> &render_group);
@@ -95,10 +95,10 @@ public:
     ~DeferredSystem() = default;
 
     RenderGroupHolder &Get(Bucket bucket)
-        { return m_buckets[static_cast<UInt>(bucket)]; }
+        { return m_buckets[static_cast<uint>(bucket)]; }
 
     const RenderGroupHolder &Get(Bucket bucket) const
-        { return m_buckets[static_cast<UInt>(bucket)]; }
+        { return m_buckets[static_cast<uint>(bucket)]; }
 
     RenderGroupHolder &operator[](Bucket bucket)
         { return Get(bucket); }

@@ -28,7 +28,7 @@ struct CommandLineArguments
 
     CommandLineArguments() = default;
 
-    CommandLineArguments(Int argc, char **argv)
+    CommandLineArguments(int argc, char **argv)
     {
         if (argc < 1) {
             return;
@@ -38,7 +38,7 @@ struct CommandLineArguments
         
         arguments.Reserve(argc - 1);
 
-        for (Int i = 1; i < argc; i++) {
+        for (int i = 1; i < argc; i++) {
             arguments.PushBack(argv[i]);
         }
     }
@@ -56,7 +56,7 @@ struct CommandLineArguments
         { return arguments.Size(); }
 };
 
-using WindowFlags = UInt32;
+using WindowFlags = uint32;
 
 enum WindowFlagBits : WindowFlags
 {
@@ -69,8 +69,8 @@ enum WindowFlagBits : WindowFlags
 struct WindowOptions
 {
     ANSIString  title;
-    UInt        width;
-    UInt        height;
+    uint        width;
+    uint        height;
     WindowFlags flags = WINDOW_FLAGS_NONE;
 };
 
@@ -101,7 +101,7 @@ enum SystemWindowEventType
     EVENT_WINDOW_MINIMIZED      = SDL_WINDOWEVENT_MINIMIZED,
 };
 
-using KeyCode = UInt16;
+using KeyCode = uint16;
 
 enum SystemKey : KeyCode
 {
@@ -185,7 +185,7 @@ enum MouseButton
     MOUSE_BUTTON_RIGHT,
 };
 
-using MouseButtonMask = UInt32;
+using MouseButtonMask = uint32;
 
 class SystemEvent
 {
@@ -247,9 +247,9 @@ public:
     }
 
 
-    UInt8 GetMouseButton() const { return sdl_event.button.button; }
+    uint8 GetMouseButton() const { return sdl_event.button.button; }
     void GetMouseWheel(int *x, int *y) const { *x = sdl_event.wheel.x; *y = sdl_event.wheel.y; }
-    UInt32 GetWindowId() const { return sdl_event.window.windowID; }
+    uint32 GetWindowId() const { return sdl_event.window.windowID; }
 
     void GetWindowResizeDimensions(int *_width, int *_height)
     {
@@ -275,19 +275,19 @@ private:
 struct MouseState
 {
     MouseButtonMask mask;
-    Int x;
-    Int y;
+    int x;
+    int y;
 };
 
 class ApplicationWindow
 {
 public:
-    ApplicationWindow(ANSIString title, UInt width, UInt height);
+    ApplicationWindow(ANSIString title, uint width, uint height);
     ApplicationWindow(const ApplicationWindow &other) = delete;
     ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
     virtual ~ApplicationWindow() = default;
 
-    virtual void SetMousePosition(Int x, Int y) = 0;
+    virtual void SetMousePosition(int x, int y) = 0;
     virtual MouseState GetMouseState() = 0;
 
     virtual Extent2D GetExtent() const = 0;
@@ -301,17 +301,17 @@ public:
 
 protected:
     ANSIString  m_title;
-    UInt        m_width;
-    UInt        m_height;
+    uint        m_width;
+    uint        m_height;
 };
 
 class SDLApplicationWindow : public ApplicationWindow
 {
 public:
-    SDLApplicationWindow(ANSIString title, UInt width, UInt height);
+    SDLApplicationWindow(ANSIString title, uint width, uint height);
     virtual ~SDLApplicationWindow() override;
 
-    virtual void SetMousePosition(Int x, Int y) override;
+    virtual void SetMousePosition(int x, int y) override;
     virtual MouseState GetMouseState() override;
 
     virtual Extent2D GetExtent() const override;
@@ -354,7 +354,7 @@ public:
         { m_current_window = std::move(window); }
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
-    virtual Int PollEvent(SystemEvent &event) = 0;
+    virtual int PollEvent(SystemEvent &event) = 0;
 
 #ifdef HYP_VULKAN
     virtual bool GetVkExtensions(Array<const char *> &out_extensions) const = 0;
@@ -374,7 +374,7 @@ public:
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
 
-    virtual Int PollEvent(SystemEvent &event) override;
+    virtual int PollEvent(SystemEvent &event) override;
 
 #ifdef HYP_VULKAN
     virtual bool GetVkExtensions(Array<const char *> &out_extensions) const override;

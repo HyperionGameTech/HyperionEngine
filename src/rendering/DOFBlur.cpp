@@ -61,12 +61,12 @@ void DOFBlur::Destroy()
 void DOFBlur::Render(Frame *frame)
 {
     struct alignas(128) {
-        ShaderVec2<UInt32> dimension;
+        ShaderVec2<uint32> dimension;
     } push_constants;
 
     push_constants.dimension = m_extent;
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     FixedArray<FullScreenPass *, 2> directional_passes {

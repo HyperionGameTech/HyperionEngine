@@ -31,13 +31,13 @@ class Node
 public:
     using NodeList = Array<NodeProxy>;
 
-    enum class Type : UInt32
+    enum class Type : uint32
     {
         NODE,
         BONE
     };
 
-    enum Flags : UInt32
+    enum Flags : uint32
     {
         NODE_FLAGS_NONE = 0
     };

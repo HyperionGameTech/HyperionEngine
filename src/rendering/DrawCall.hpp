@@ -30,9 +30,9 @@ extern SafeDeleter *g_safe_deleter;
 struct DrawCommandData;
 class IndirectDrawState;
 
-enum ResourceUsageType : UInt
+enum ResourceUsageType : uint
 {
-    RESOURCE_USAGE_TYPE_INVALID = UInt(-1),
+    RESOURCE_USAGE_TYPE_INVALID = uint(-1),
     RESOURCE_USAGE_TYPE_MESH = 0,
     RESOURCE_USAGE_TYPE_MATERIAL,
     RESOURCE_USAGE_TYPE_SKELETON,
@@ -138,13 +138,13 @@ public:
     }
 
     template <class T>
-    void SetIsUsed(ID<T> id, Bool is_used)
+    void SetIsUsed(ID<T> id, bool is_used)
     {
         SetIsUsed<T>(id, Handle<T>(), is_used);
     }
 
     template <class T>
-    Bool IsUsed(ID<T> id) const
+    bool IsUsed(ID<T> id) const
     {
         if (!id) {
             return false;
@@ -180,7 +180,7 @@ struct DrawCallID
 {
     static_assert(sizeof(ID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
 
-    UInt64 value;
+    uint64 value;
 
     DrawCallID()
         : value(0)
@@ -193,29 +193,29 @@ struct DrawCallID
     }
 
     DrawCallID(ID<Mesh> mesh_id, ID<Material> material_id)
-        : value(mesh_id.Value() | (UInt64(material_id.Value()) << 32))
+        : value(mesh_id.Value() | (uint64(material_id.Value()) << 32))
     {
     }
 
-    Bool operator==(const DrawCallID &other) const
+    bool operator==(const DrawCallID &other) const
         { return value == other.value; }
 
-    Bool operator!=(const DrawCallID &other) const
+    bool operator!=(const DrawCallID &other) const
         { return value != other.value; }
 
-    Bool HasMaterial() const
-        { return Bool((UInt64(~0u) << 32) & value); }
+    bool HasMaterial() const
+        { return bool((uint64(~0u) << 32) & value); }
 
-    operator UInt64() const
+    operator uint64() const
         { return value; }
 
-    UInt64 Value() const
+    uint64 Value() const
         { return value; }
 };
 
 struct DrawCall
 {
-    static constexpr Bool unique_per_material = !use_indexed_array_for_object_data;
+    static constexpr bool unique_per_material = !use_indexed_array_for_object_data;
 
     DrawCallID                          id;
     BufferTicket<EntityInstanceBatch>   batch_index;
@@ -225,7 +225,7 @@ struct DrawCall
     ID<Material>                        material_id;
     ID<Skeleton>                        skeleton_id;
 
-    UInt                                entity_id_count;
+    uint                                entity_id_count;
     ID<Entity>                          entity_ids[max_entities_per_instance_batch];
 };
 
@@ -234,7 +234,7 @@ struct DrawCallCollection
     Array<DrawCall>                     draw_calls;
 
     // Map from draw call ID to index in draw_calls
-    HashMap<UInt64, Array<SizeType>>    index_map;
+    HashMap<uint64, Array<SizeType>>    index_map;
 
     DrawCallCollection() = default;
     DrawCallCollection(const DrawCallCollection &other) = delete;

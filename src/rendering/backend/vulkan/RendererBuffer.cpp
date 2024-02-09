@@ -17,12 +17,12 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-UInt GPUMemory<Platform::VULKAN>::FindMemoryType(Device<Platform::VULKAN> *device, UInt vk_type_filter, VkMemoryPropertyFlags properties)
+uint GPUMemory<Platform::VULKAN>::FindMemoryType(Device<Platform::VULKAN> *device, uint vk_type_filter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
     vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
 
-    for (UInt i = 0; i < mem_properties.memoryTypeCount; i++) {
+    for (uint i = 0; i < mem_properties.memoryTypeCount; i++) {
         if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
             DebugLog(LogType::Info, "Found Memory type [%d]!\n", i);
             return i;
@@ -178,7 +178,7 @@ GPUMemory<Platform::VULKAN>::GPUMemory()
       allocation(VK_NULL_HANDLE),
       m_is_created(false)
 {
-    static UInt allocations = 0;
+    static uint allocations = 0;
 
     m_id = allocations++;
 }
@@ -215,7 +215,7 @@ void GPUMemory<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device) const
     map = nullptr;
 }
 
-void GPUMemory<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, UByte value)
+void GPUMemory<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value)
 {    
     if (map == nullptr) {
         Map(device, &map);
@@ -376,13 +376,13 @@ GPUBuffer<Platform::VULKAN>::~GPUBuffer()
 VkBufferCreateInfo GPUBuffer<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
 {
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const UInt32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
+    const uint32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
     vk_buffer_info.size                     = size;
     vk_buffer_info.usage                    = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     vk_buffer_info.pQueueFamilyIndices      = buffer_family_indices;
-    vk_buffer_info.queueFamilyIndexCount    = UInt32(std::size(buffer_family_indices));
+    vk_buffer_info.queueFamilyIndexCount    = uint32(std::size(buffer_family_indices));
 
     return vk_buffer_info;
 }
@@ -392,7 +392,7 @@ VmaAllocationCreateInfo GPUBuffer<Platform::VULKAN>::GetAllocationCreateInfo(Dev
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.flags = vma_allocation_create_flags;
     alloc_info.usage = vma_usage;
-    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(UInt64(ID_MASK_BUFFER) | UInt64(m_id)));
+    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(uint64(ID_MASK_BUFFER) | uint64(m_id)));
 
     return alloc_info;
 }
@@ -405,7 +405,7 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device<Platform::VULKAN> *d
     return CheckCanAllocate(device, create_info, alloc_info, this->size);
 }
 
-UInt64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
+uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
 {
     AssertThrowMsg(
         device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
@@ -434,7 +434,7 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
 
     auto result = Result::OK;
 
-    UInt memory_type_index = UINT32_MAX;
+    uint memory_type_index = UINT32_MAX;
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
@@ -717,8 +717,8 @@ void GPUBuffer<Platform::VULKAN>::DebugLogBuffer(Instance<Platform::VULKAN> *ins
 {
     Device<Platform::VULKAN> *device = instance->GetDevice();
 
-    if (size % sizeof(UInt32) == 0) {
-        const auto data = DebugReadBytes<UInt32>(instance, device);
+    if (size % sizeof(uint32) == 0) {
+        const auto data = DebugReadBytes<uint32>(instance, device);
 
         for (SizeType i = 0; i < data.size();) {
             const auto dist = MathUtil::Min(data.size() - i, SizeType(4));
@@ -997,7 +997,7 @@ Result GPUImageMemory<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device
 
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(UInt64(ID_MASK_IMAGE) | UInt64(m_id)));
+    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(uint64(ID_MASK_IMAGE) | uint64(m_id)));
 
     HYPERION_VK_CHECK_MSG(
         vmaCreateImage(

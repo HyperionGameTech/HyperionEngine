@@ -46,7 +46,7 @@ FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, P
 
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
-    return m_lists[UInt(thread_type)];
+    return m_lists[uint(thread_type)];
 }
 
 const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList() const
@@ -55,21 +55,21 @@ const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityLi
 
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
-    return m_lists[UInt(thread_type)];
+    return m_lists[uint(thread_type)];
 }
 
 FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList(ThreadType thread_type)
 {
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
-    return m_lists[UInt(thread_type)];
+    return m_lists[uint(thread_type)];
 }
 
 const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList(ThreadType thread_type) const
 {
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
-    return m_lists[UInt(thread_type)];
+    return m_lists[uint(thread_type)];
 }
 
 void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data)
@@ -114,7 +114,7 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
 
     // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
     // This will give us a list of IDs that were removed.
-    for (UInt i = 0; i < std::size(prev_bitsets); i++) {
+    for (uint i = 0; i < std::size(prev_bitsets); i++) {
         // If any of the bitsets are different sizes, resize them to match the largest one,
         // this makes ~ and & operations work as expected
         if (prev_bitsets[i].NumBits() > new_bitsets[i].NumBits()) {
@@ -239,7 +239,7 @@ void RenderList::UpdateRenderGroups()
 
     added_render_groups.Resize(iterators.Size());
 
-    const auto UpdateRenderGroupForAttributeSet = [this, &added_render_groups](IteratorType it, UInt index, UInt)
+    const auto UpdateRenderGroupForAttributeSet = [this, &added_render_groups](IteratorType it, uint index, uint)
     {
         const RenderableAttributeSet &attributes = it->first;
         EntityDrawCollection::EntityList &entity_list = it->second;
@@ -285,7 +285,7 @@ void RenderList::UpdateRenderGroups()
     if constexpr (do_parallel_collection) {
         TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER_COLLECT, iterators, UpdateRenderGroupForAttributeSet);
     } else {
-        for (UInt index = 0; index < iterators.Size(); index++) {
+        for (uint index = 0; index < iterators.Size(); index++) {
             UpdateRenderGroupForAttributeSet(iterators[index], index, 0 /* unused */);
         }
     }
@@ -395,7 +395,7 @@ void RenderList::CollectDrawCalls(
         for (auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
 
-            const Bucket bucket = bucket_bits.Test(UInt(attributes.GetMaterialAttributes().bucket)) ? attributes.GetMaterialAttributes().bucket : BUCKET_INVALID;
+            const Bucket bucket = bucket_bits.Test(uint(attributes.GetMaterialAttributes().bucket)) ? attributes.GetMaterialAttributes().bucket : BUCKET_INVALID;
 
             if (bucket == BUCKET_INVALID) {
                 continue;
@@ -406,7 +406,7 @@ void RenderList::CollectDrawCalls(
     }
 
     if constexpr (do_parallel_collection) {
-        TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt)
+        TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, uint, uint)
         {
             EntityDrawCollection::EntityList &entity_list = it->second;
             Handle<RenderGroup> &render_group = entity_list.render_group;
@@ -495,7 +495,7 @@ void RenderList::ExecuteDrawCalls(
     AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     if (framebuffer) {
         framebuffer->BeginCapture(frame_index, command_buffer);
@@ -510,7 +510,7 @@ void RenderList::ExecuteDrawCalls(
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            if (!bucket_bits.Test(UInt(bucket))) {
+            if (!bucket_bits.Test(uint(bucket))) {
                 continue;
             }
 

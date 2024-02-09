@@ -36,7 +36,7 @@ public:
 
     BoundingBox GetBoundingBox() const;
 
-    Bool ContainsPoint(const Vector3 &pt) const;
+    bool ContainsPoint(const Vector3 &pt) const;
 
 private:
     FixedArray<Vertex, 3> m_points;

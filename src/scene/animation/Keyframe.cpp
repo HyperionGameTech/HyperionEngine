@@ -7,15 +7,15 @@ Keyframe::Keyframe()
 {
 }
 
-Keyframe::Keyframe(Float time, const Transform &transform)
+Keyframe::Keyframe(float time, const Transform &transform)
     : m_time(time),
       m_transform(transform)
 {
 }
 
-Keyframe Keyframe::Blend(const Keyframe &to, Float blend) const
+Keyframe Keyframe::Blend(const Keyframe &to, float blend) const
 {
-    const Float time = MathUtil::Lerp(m_time, to.GetTime(), blend);
+    const float time = MathUtil::Lerp(m_time, to.GetTime(), blend);
 
     Transform transform(m_transform);
     transform.GetTranslation().Lerp(to.GetTransform().GetTranslation(), blend);

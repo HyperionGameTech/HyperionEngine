@@ -22,28 +22,28 @@ struct Scalar2D { };
 template<>
 struct Scalar2D<true>
 {
-    std::atomic<Int> x { 0 };
-    std::atomic<Int> y { 0 };
+    std::atomic<int> x { 0 };
+    std::atomic<int> y { 0 };
 
-    Int GetX() const
+    int GetX() const
         { return x.load(std::memory_order_relaxed); }
 
-    Int GetY() const
+    int GetY() const
         { return y.load(std::memory_order_relaxed); }
 
     explicit operator Vector2() const
-        { return Vector2(Float(GetX()), Float(GetY())); }
+        { return Vector2(float(GetX()), float(GetY())); }
 };
 
 template<>
 struct Scalar2D<false>
 {
-    Int x { 0 };
-    Int y { 0 };
+    int x { 0 };
+    int y { 0 };
 
     Scalar2D() = default;
 
-    Scalar2D(Int x, Int y)
+    Scalar2D(int x, int y)
     {
         Scalar2D::x = x;
         Scalar2D::y = y;
@@ -54,14 +54,14 @@ struct Scalar2D<false>
     Scalar2D(Scalar2D &&other) noexcept = default;
     Scalar2D &operator=(Scalar2D &other) noexcept = default;
 
-    Int GetX() const
+    int GetX() const
         { return x; }
 
-    Int GetY() const
+    int GetY() const
         { return y; }
 
     explicit operator Vector2() const
-        { return Vector2(Float(GetX()), Float(GetY())); }
+        { return Vector2(float(GetX()), float(GetY())); }
 };
 
 struct InputState
@@ -98,7 +98,7 @@ public:
     const Scalar2D<true> &GetWindowSize() const
         { return m_window_size; }
 
-    void SetMousePosition(Int x, Int y);
+    void SetMousePosition(int x, int y);
 
     void KeyDown(int key)
         { SetKey(key, true); }

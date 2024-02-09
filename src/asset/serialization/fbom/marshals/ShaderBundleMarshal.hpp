@@ -29,19 +29,19 @@ public:
         out.SetProperty("entry_point_name", FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
 
         const VertexAttributeSet required_vertex_attributes = in_object.GetDefinition().GetProperties().GetRequiredVertexAttributes();
-        out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
+        out.SetProperty("required_vertex_attributes", FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
 
         const VertexAttributeSet optional_vertex_attributes = in_object.GetDefinition().GetProperties().GetOptionalVertexAttributes();
-        out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
+        out.SetProperty("optional_vertex_attributes", FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
 
-        out.SetProperty("num_descriptor_usages", FBOMData::FromUInt32(UInt32(in_object.GetDefinition().GetDescriptorUsages().Size())));
+        out.SetProperty("num_descriptor_usages", FBOMData::FromUnsignedInt(uint32(in_object.GetDefinition().GetDescriptorUsages().Size())));
 
         for (SizeType index = 0; index < in_object.GetDefinition().GetDescriptorUsages().Size(); index++) {
             const DescriptorUsage &item = in_object.GetDefinition().GetDescriptorUsages()[index];
 
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".slot",
-                FBOMData::FromUInt32(item.slot)
+                FBOMData::FromUnsignedInt(item.slot)
             );
 
             out.SetProperty(
@@ -58,15 +58,15 @@ public:
 
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".flags",
-                FBOMData::FromUInt32(item.flags)
+                FBOMData::FromUnsignedInt(item.flags)
             );
 
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".num_params",
-                FBOMData::FromUInt32(UInt32(item.params.Size()))
+                FBOMData::FromUnsignedInt(uint32(item.params.Size()))
             );
 
-            UInt param_index = 0;
+            uint param_index = 0;
 
             for (const auto &it : item.params) {
                 out.SetProperty(
@@ -84,7 +84,7 @@ public:
         }
 
         auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
-        out.SetProperty("properties.size", FBOMData::FromUInt32(UInt32(properties_array.Size())));
+        out.SetProperty("properties.size", FBOMData::FromUnsignedInt(uint32(properties_array.Size())));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
             const ShaderProperty &item = properties_array[index];
@@ -101,7 +101,7 @@ public:
 
             out.SetProperty(
                 String("properties.") + String::ToString(index) + ".flags",
-                FBOMData::FromUInt32(item.flags)
+                FBOMData::FromUnsignedInt(item.flags)
             );
 
             out.SetProperty(
@@ -112,7 +112,7 @@ public:
             if (item.IsValueGroup()) {
                 out.SetProperty(
                     String("properties.") + String::ToString(index) + ".num_possible_values",
-                    FBOMData::FromUInt32(UInt32(item.possible_values.Size()))
+                    FBOMData::FromUnsignedInt(uint32(item.possible_values.Size()))
                 );
 
                 for (SizeType i = 0; i < item.possible_values.Size(); i++) {
@@ -157,26 +157,26 @@ public:
         }
 
         VertexAttributeSet required_vertex_attributes;
-        in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask);
+        in.GetProperty("required_vertex_attributes").ReadUnsignedLong(&required_vertex_attributes.flag_mask);
 
         VertexAttributeSet optional_vertex_attributes;
-        in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask);
+        in.GetProperty("optional_vertex_attributes").ReadUnsignedLong(&optional_vertex_attributes.flag_mask);
 
         compiled_shader->GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
         compiled_shader->GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
 
-        UInt num_descriptor_usages = 0;
+        uint num_descriptor_usages = 0;
 
         if (in.HasProperty("num_descriptor_usages")) {
-            in.GetProperty("num_descriptor_usages").ReadUInt32(&num_descriptor_usages);
+            in.GetProperty("num_descriptor_usages").ReadUnsignedInt(&num_descriptor_usages);
 
             if (num_descriptor_usages != 0) {
-                for (UInt i = 0; i < num_descriptor_usages; i++) {
+                for (uint i = 0; i < num_descriptor_usages; i++) {
                     const auto descriptor_usage_index_string = String("descriptor_usages.") + String::ToString(i);
 
                     DescriptorUsage usage;
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUInt32(&usage.slot)) {
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
                         return err;
                     }
 
@@ -188,12 +188,12 @@ public:
                         return err;
                     }
 
-                    in.GetProperty(descriptor_usage_index_string + ".flags").ReadUInt32(&usage.flags);
+                    in.GetProperty(descriptor_usage_index_string + ".flags").ReadUnsignedInt(&usage.flags);
 
-                    UInt num_params = 0;
-                    in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUInt32(&num_params);
+                    uint num_params = 0;
+                    in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUnsignedInt(&num_params);
 
-                    for (UInt j = 0; j < num_params; j++) {
+                    for (uint j = 0; j < num_params; j++) {
                         const String param_string = descriptor_usage_index_string + ".params[" + String::ToString(j) + "]";
 
                         String key;
@@ -215,13 +215,13 @@ public:
             }
         }
 
-        UInt num_properties;
+        uint num_properties;
 
-        if (auto err = in.GetProperty("properties.size").ReadUInt32(&num_properties)) {
+        if (auto err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
             return err;
         }
 
-        for (UInt i = 0; i < num_properties; i++) {
+        for (uint i = 0; i < num_properties; i++) {
             const auto param_string = String("properties.") + String::ToString(i);
 
             ShaderProperty property;
@@ -233,17 +233,17 @@ public:
             bool is_value_group = false;
 
             in.GetProperty(param_string + ".is_permutation").ReadBool(&property.is_permutation);
-            in.GetProperty(param_string + ".flags").ReadUInt32(&property.flags);
+            in.GetProperty(param_string + ".flags").ReadUnsignedInt(&property.flags);
             in.GetProperty(param_string + ".is_value_group").ReadBool(&is_value_group);
 
             if (is_value_group) {
-                UInt32 num_possible_values = 0;
+                uint32 num_possible_values = 0;
 
-                if (auto err = in.GetProperty(param_string + ".num_possible_values").ReadUInt32(&num_possible_values)) {
+                if (auto err = in.GetProperty(param_string + ".num_possible_values").ReadUnsignedInt(&num_possible_values)) {
                     continue;
                 }
 
-                for (UInt32 i = 0; i < num_possible_values; i++) {
+                for (uint32 i = 0; i < num_possible_values; i++) {
                     String possible_value;
 
                     if (auto err = in.GetProperty(param_string + ".possible_values[" + String::ToString(i) + "]").ReadString(possible_value)) {

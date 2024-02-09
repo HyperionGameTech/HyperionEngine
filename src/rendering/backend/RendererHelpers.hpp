@@ -8,7 +8,7 @@ namespace hyperion {
 namespace renderer {
 namespace helpers {
 
-UInt MipmapSize(UInt src_size, Int lod);
+uint MipmapSize(uint src_size, int lod);
 
 } // namespace helpers
 } // namespace renderer

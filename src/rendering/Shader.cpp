@@ -109,7 +109,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
     sh_grid_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
 
     {
-        const UInt dimension_cube = 32;//UInt(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
+        const uint dimension_cube = 32;//uint(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
         const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
 
         for (auto &item : textures) {
@@ -118,7 +118,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_3D,
                 FilterMode::TEXTURE_FILTER_LINEAR,
-                UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(Float) * 4))
+                UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(float) * 4))
             ));
 
             item.image_view = MakeRenderObject<ImageView>();

@@ -6,7 +6,7 @@
 
 namespace hyperion::v2 {
 
-using VisibilityStateFlags = UInt32;
+using VisibilityStateFlags = uint32;
 
 enum VisibilityStateFlagBits : VisibilityStateFlags
 {

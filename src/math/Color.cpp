@@ -9,17 +9,17 @@ Color::Color()
 {
 }
 
-Color::Color(UInt32 hex)
+Color::Color(uint32 hex)
     : value(hex)
 {
 }
 
-Color::Color(Float r, Float g, Float b, Float a)
+Color::Color(float r, float g, float b, float a)
     : value(ByteUtil::PackColorU32(Vector4(r, g, b, a)))
 {
 }
 
-Color::Color(Float rgba)
+Color::Color(float rgba)
     : value(ByteUtil::PackColorU32(Vector4(rgba, rgba, rgba, rgba)))
 {
 }
@@ -131,7 +131,7 @@ bool Color::operator!=(const Color &other) const
     return value != other.value;
 }
 
-Color &Color::Lerp(const Color &to, Float amt)
+Color &Color::Lerp(const Color &to, float amt)
 {
     SetRed(MathUtil::Lerp(GetRed(), to.GetRed(), amt));
     SetGreen(MathUtil::Lerp(GetGreen(), to.GetGreen(), amt));

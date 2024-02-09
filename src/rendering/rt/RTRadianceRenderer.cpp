@@ -16,7 +16,7 @@ using renderer::SamplerDescriptor;
 using renderer::ResourceState;
 using renderer::Result;
 
-enum RTRadianceUpdates : UInt32
+enum RTRadianceUpdates : uint32
 {
     RT_RADIANCE_UPDATES_NONE = 0x0,
     RT_RADIANCE_UPDATES_TLAS = 0x1,
@@ -25,9 +25,9 @@ enum RTRadianceUpdates : UInt32
 
 struct alignas(16) RTRadianceUniforms
 {
-    UInt32 num_bound_lights;
-    UInt32 _pad0, _pad1, _pad2;
-    UInt32 light_indices[16];
+    uint32 num_bound_lights;
+    uint32 _pad0, _pad1, _pad2;
+    uint32 light_indices[16];
 };
 
 #pragma region Render commands
@@ -47,7 +47,7 @@ struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
@@ -97,7 +97,7 @@ struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : renderer::RenderCommand
         auto result = Result::OK;
 
         // remove result image from global descriptor set
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
@@ -122,7 +122,7 @@ struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(g_engine->GetGPUDevice()));
         }
 
@@ -214,7 +214,7 @@ void RTRadianceRenderer::Destroy()
     }
     
     // remove result image from global descriptor set
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         SafeRelease(std::move(m_image_outputs[frame_index].image));
         SafeRelease(std::move(m_image_outputs[frame_index].image_view));
     }
@@ -230,9 +230,9 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
-    const UInt32 num_bound_lights = MathUtil::Min(UInt32(g_engine->GetRenderState().lights.Size()), 16);
+    const uint32 num_bound_lights = MathUtil::Min(uint32(g_engine->GetRenderState().lights.Size()), 16);
 
-    for (UInt32 index = 0; index < num_bound_lights; index++) {
+    for (uint32 index = 0; index < num_bound_lights; index++) {
         uniforms.light_indices[index] = (g_engine->GetRenderState().lights.Data() + index)->first.ToIndex();
     }
 
@@ -251,8 +251,8 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 void RTRadianceRenderer::SubmitPushConstants(CommandBuffer *command_buffer)
 {
     /*struct alignas(128) {
-        UInt32 light_indices[16];
-        UInt32 num_bound_lights;
+        uint32 light_indices[16];
+        uint32 num_bound_lights;
     } push_constants;
 
     m_raytracing_pipeline->SubmitPushConstants(command_buffer);
@@ -333,7 +333,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
         return;
     }
     
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
             m_descriptor_sets[frame_index]->GetDescriptor(0)
@@ -352,7 +352,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 
 void RTRadianceRenderer::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)

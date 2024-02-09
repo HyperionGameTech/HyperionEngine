@@ -45,8 +45,8 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
             .cull_mode         = attributes.GetMaterialAttributes().cull_faces,
             .fill_mode         = attributes.GetMaterialAttributes().fill_mode,
             .blend_mode        = attributes.GetMaterialAttributes().blend_mode,
-            .depth_test        = Bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
-            .depth_write       = Bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
+            .depth_test        = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
+            .depth_write       = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
             .shader            = shader_program,
             .render_pass       = render_pass,
             .stencil_state     = attributes.GetStencilState()
@@ -56,8 +56,8 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
             construction_info.fbos.PushBack(std::move(framebuffer));
         }
 
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            for (UInt j = 0; j < UInt(command_buffers[i].Size()); j++) {
+        for (uint i = 0; i < max_frames_in_flight; i++) {
+            for (uint j = 0; j < uint(command_buffers[i].Size()); j++) {
                 HYPERION_BUBBLE_ERRORS(command_buffers[i][j]->Create(
                     g_engine->GetGPUInstance()->GetDevice(),
                     g_engine->GetGPUInstance()->GetGraphicsCommandPool(j)
@@ -136,7 +136,7 @@ void RenderGroup::Init()
     AssertThrow(m_shader.IsValid());
     InitObject(m_shader);
 
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         for (auto &command_buffer : m_command_buffers[i]) {
             command_buffer.Reset(new CommandBuffer(CommandBufferType::COMMAND_BUFFER_SECONDARY));
         }
@@ -156,7 +156,7 @@ void RenderGroup::Init()
                 render_pass = fbo->GetRenderPass();
             }
 
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 framebuffers.PushBack(fbo->GetFramebuffer(frame_index));
             }
         }
@@ -196,8 +196,8 @@ void RenderGroup::Init()
 
             m_shader.Reset();
 
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                for (UInt i = 0; i < UInt(m_command_buffers[frame_index].Size()); i++) {
+            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                for (uint i = 0; i < uint(m_command_buffers[frame_index].Size()); i++) {
                     g_safe_deleter->SafeRelease(std::move(m_command_buffers[frame_index][i]));
                 }
             }
@@ -279,16 +279,16 @@ void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_dat
 
 static void GetDividedDrawCalls(
     const Array<DrawCall> &draw_calls,
-    UInt num_batches,
+    uint num_batches,
     Array<Array<DrawCall>> &out_divided_draw_calls
 )
 {
     out_divided_draw_calls.Resize(num_batches);
 
-    const UInt num_draw_calls = UInt(draw_calls.Size());
-    const UInt num_draw_calls_divided = (num_draw_calls + num_batches - 1) / num_batches;
+    const uint num_draw_calls = uint(draw_calls.Size());
+    const uint num_draw_calls_divided = (num_draw_calls + num_batches - 1) / num_batches;
 
-    UInt draw_call_index = 0;
+    uint draw_call_index = 0;
 
     for (SizeType container_index = 0; container_index < num_async_rendering_command_buffers; container_index++) {
         auto &container = out_divided_draw_calls[container_index];
@@ -306,7 +306,7 @@ static void BindGlobalDescriptorSets(
     CommandBuffer *command_buffer
 )
 {
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     command_buffer->BindDescriptorSets(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -349,12 +349,12 @@ static void BindPerObjectDescriptorSets(
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
-    UInt batch_index,
-    UInt skeleton_index,
-    UInt material_index
+    uint batch_index,
+    uint skeleton_index,
+    uint material_index
 )
 {
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
     
 #if HYP_FEATURES_BINDLESS_TEXTURES
     if constexpr (use_indexed_array_for_object_data) {
@@ -365,7 +365,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
-                UInt32(batch_index * sizeof(EntityInstanceBatch))
+                uint32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
     } else {
@@ -377,7 +377,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Material, material_index),
                 HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
-                UInt32(batch_index * sizeof(EntityInstanceBatch))
+                uint32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
     }
@@ -390,7 +390,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
-                UInt32(batch_index * sizeof(EntityInstanceBatch))
+                uint32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
     } else {
@@ -402,7 +402,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Material, material_index),
                 HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
-                UInt32(batch_index * sizeof(EntityInstanceBatch))
+                uint32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
     }
@@ -414,7 +414,7 @@ static HYP_FORCE_INLINE void
 RenderAll(
     Frame *frame,
     FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers,
-    UInt &command_buffer_index,
+    uint &command_buffer_index,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Array<DrawCall>> &divided_draw_calls,
@@ -428,10 +428,10 @@ RenderAll(
     const auto &scene_binding = g_engine->GetRenderState().GetScene();
     const ID<Scene> scene_id = scene_binding.id;
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
-    const UInt num_batches = use_parallel_rendering
-        ? MathUtil::Min(UInt(TaskSystem::GetInstance().GetPool(THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
+    const uint num_batches = use_parallel_rendering
+        ? MathUtil::Min(uint(TaskSystem::GetInstance().GetPool(THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     
     GetDividedDrawCalls(
@@ -442,7 +442,7 @@ RenderAll(
 
     // rather than using a single integer, we have to set states in a fixed array
     // because otherwise we'd need to use an atomic integer
-    FixedArray<UInt, num_async_rendering_command_buffers> command_buffers_recorded_states { };
+    FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
     // always run renderer items as HIGH priority,
     // so we do not lock up because we're waiting for a large process to
@@ -451,7 +451,7 @@ RenderAll(
         THREAD_POOL_RENDER,
         num_batches,
         divided_draw_calls,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index](const Array<DrawCall> &draw_calls, UInt index, UInt)
+        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index](const Array<DrawCall> &draw_calls, uint index, uint)
         {
             if (draw_calls.Empty()) {
                 return;
@@ -516,12 +516,12 @@ RenderAll(
     const auto num_recorded_command_buffers = command_buffers_recorded_states.Sum();
 
     // submit all command buffers
-    for (UInt i = 0; i < num_recorded_command_buffers; i++) {
-        command_buffers[frame_index][/*(command_buffer_index + i) % static_cast<UInt>(command_buffers.Size())*/ i]
+    for (uint i = 0; i < num_recorded_command_buffers; i++) {
+        command_buffers[frame_index][/*(command_buffer_index + i) % static_cast<uint>(command_buffers.Size())*/ i]
             ->SubmitSecondary(frame->GetCommandBuffer());
     }
 
-    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % UInt(command_buffers.Size());
+    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % uint(command_buffers.Size());
 }
 
 void RenderGroup::PerformRendering(Frame *frame)
@@ -581,7 +581,7 @@ void RenderGroup::SetEntityDrawDatas(Array<EntityDrawData> entity_draw_datas)
 
 // Proxied methods
 
-CommandBuffer *RendererProxy::GetCommandBuffer(UInt frame_index)
+CommandBuffer *RendererProxy::GetCommandBuffer(uint frame_index)
 {
     return m_render_group->m_command_buffers[frame_index].Front().Get();
 }

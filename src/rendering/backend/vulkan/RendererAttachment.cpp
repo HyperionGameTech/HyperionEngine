@@ -166,8 +166,8 @@ Result AttachmentUsage::Create(
     VkFormat format,
     VkImageAspectFlags aspect_flags,
     VkImageViewType view_type,
-    UInt num_mipmaps,
-    UInt num_faces
+    uint num_mipmaps,
+    uint num_faces
 )
 {
     AssertThrow(!m_is_created);
@@ -297,8 +297,8 @@ Result Attachment::AddAttachmentUsage(
     VkFormat format,
     VkImageAspectFlags aspect_flags,
     VkImageViewType view_type,
-    UInt num_mipmaps,
-    UInt num_faces,
+    uint num_mipmaps,
+    uint num_faces,
     LoadOperation load_operation,
     StoreOperation store_operation,
     AttachmentUsage **out

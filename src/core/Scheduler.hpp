@@ -53,8 +53,8 @@ protected:
     void WakeUpOwnerThread();
     bool WaitForTasks(std::unique_lock<std::mutex> &lock);
 
-    UInt                    m_id_counter = 0;
-    AtomicVar<UInt>         m_num_enqueued { 0 };
+    uint                    m_id_counter = 0;
+    AtomicVar<uint>         m_num_enqueued { 0 };
     AtomicVar<bool>         m_stop_requested { false };
 
     std::mutex              m_mutex;
@@ -72,11 +72,11 @@ public:
     struct ScheduledTask
     {
         Task            task;
-        AtomicVar<UInt> *atomic_counter = nullptr;
+        AtomicVar<uint> *atomic_counter = nullptr;
 
         ScheduledTask() = default;
 
-        ScheduledTask(Task &&task, AtomicVar<UInt> *atomic_counter)
+        ScheduledTask(Task &&task, AtomicVar<uint> *atomic_counter)
             : task(std::move(task)),
               atomic_counter(atomic_counter)
         {
@@ -144,7 +144,7 @@ public:
     ~Scheduler() = default;
 
     HYP_FORCE_INLINE
-    UInt NumEnqueued() const
+    uint NumEnqueued() const
     {
         return m_num_enqueued.Get(MemoryOrder::RELAXED);
     }
@@ -174,9 +174,9 @@ public:
     /*! \brief Enqueue a function to be executed on the owner thread. This is to be
      * called from a non-owner thread.
      * @param fn The task to execute
-     * @param atomic_counter A pointer to an atomic UInt variable that is incremented upon completion.
+     * @param atomic_counter A pointer to an atomic uint variable that is incremented upon completion.
      */
-    TaskID Enqueue(Task &&fn, AtomicVar<UInt> *atomic_counter)
+    TaskID Enqueue(Task &&fn, AtomicVar<uint> *atomic_counter)
     {
         // debugging
         std::unique_lock lock(m_mutex);
@@ -299,7 +299,7 @@ public:
     }
     
 private:
-    TaskID EnqueueInternal(Task &&fn, AtomicVar<UInt> *atomic_counter = nullptr)
+    TaskID EnqueueInternal(Task &&fn, AtomicVar<uint> *atomic_counter = nullptr)
     {
         fn.id = ++m_id_counter;
 

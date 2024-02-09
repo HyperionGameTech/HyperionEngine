@@ -43,7 +43,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        static constexpr UInt seed = 0xff;
+        static constexpr uint seed = 0xff;
 
         SimplexNoiseGenerator noise_generator(seed);
         auto noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
@@ -60,7 +60,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 
         HYPERION_BUBBLE_ERRORS(noise_buffer->Create(
             g_engine->GetGPUDevice(),
-            noise_map.GetByteSize() * sizeof(Float)
+            noise_map.GetByteSize() * sizeof(float)
         ));
 
         // copy zeroes into particle buffer
@@ -73,13 +73,13 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
         );
 
         // copy bytes into noise buffer
-        Array<Float> unpacked_floats;
+        Array<float> unpacked_floats;
         noise_map.GetUnpackedFloats(unpacked_floats);
         AssertThrow(noise_map.GetByteSize() == unpacked_floats.Size());
 
         noise_buffer->Copy(
             g_engine->GetGPUDevice(),
-            unpacked_floats.Size() * sizeof(Float),
+            unpacked_floats.Size() * sizeof(float),
             unpacked_floats.Data()
         );
 
@@ -102,7 +102,7 @@ struct RENDER_COMMAND(CreateParticleDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
                 g_engine->GetGPUDevice(),
                 &g_engine->GetGPUInstance()->GetDescriptorPool()
@@ -183,8 +183,8 @@ struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderComm
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (UInt i = 0; i < UInt(command_buffers[frame_index].Size()); i++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (uint i = 0; i < uint(command_buffers[frame_index].Size()); i++) {
                 HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(
                     g_engine->GetGPUInstance()->GetDevice(),
                     g_engine->GetGPUInstance()->GetGraphicsCommandPool(i)
@@ -274,7 +274,7 @@ void ParticleSpawner::CreateShader()
 
 void ParticleSpawner::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         // particle data
@@ -385,7 +385,7 @@ ParticleSystem::ParticleSystem()
 
 ParticleSystem::~ParticleSystem()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (auto &command_buffer : m_command_buffers[frame_index]) {
             SafeRelease(std::move(command_buffer));
         }
@@ -438,8 +438,8 @@ void ParticleSystem::CreateBuffers()
 
 void ParticleSystem::CreateCommandBuffers()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (UInt i = 0; i < num_async_rendering_command_buffers; i++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint i = 0; i < num_async_rendering_command_buffers; i++) {
             m_command_buffers[frame_index][i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
         }
     }
@@ -496,12 +496,12 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
         spawner->GetComputePipeline()->GetPipeline()->SetPushConstants(Pipeline::PushConstantData {
             .particle_spawner_data = {
-                .origin             = ShaderVec4<Float32>(Vector4(spawner->GetParams().origin, spawner->GetParams().start_size)),
+                .origin             = ShaderVec4<float32>(Vector4(spawner->GetParams().origin, spawner->GetParams().start_size)),
                 .spawn_radius       = spawner->GetParams().radius,
                 .randomness         = spawner->GetParams().randomness,
                 .avg_lifespan       = spawner->GetParams().lifespan,
-                .max_particles      = UInt32(max_particles),
-                .max_particles_sqrt = MathUtil::Sqrt(Float(max_particles)),
+                .max_particles      = uint32(max_particles),
+                .max_particles_sqrt = MathUtil::Sqrt(float(max_particles)),
                 .delta_time         = 0.016f, // TODO! Delta time for particles. we currentl don't have delta time for render thread.
                 .global_counter     = m_counter
             }
@@ -523,7 +523,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         spawner->GetComputePipeline()->GetPipeline()->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
-                UInt32((max_particles + 255) / 256), 1, 1
+                uint32((max_particles + 255) / 256), 1, 1
             }
         );
 
@@ -546,9 +546,9 @@ void ParticleSystem::Render(Frame *frame)
 {
     AssertReady();
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
-    FixedArray<UInt, num_async_rendering_command_buffers> command_buffers_recorded_states { };
+    FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
     // always run renderer items as HIGH priority,
     // so we do not lock up because we're waiting for a large process to
@@ -556,7 +556,7 @@ void ParticleSystem::Render(Frame *frame)
     TaskSystem::GetInstance().ParallelForEach(
         THREAD_POOL_RENDER,
         m_particle_spawners.GetItems(),
-        [this, &command_buffers_recorded_states, frame_index](const Handle<ParticleSpawner> &particle_spawner, UInt index, UInt batch_index) {
+        [this, &command_buffers_recorded_states, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint index, uint batch_index) {
             const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -589,10 +589,10 @@ void ParticleSystem::Render(Frame *frame)
         }
     );
 
-    const UInt num_recorded_command_buffers = command_buffers_recorded_states.Sum();
+    const uint num_recorded_command_buffers = command_buffers_recorded_states.Sum();
 
     // submit all command buffers
-    for (UInt i = 0; i < num_recorded_command_buffers; i++) {
+    for (uint i = 0; i < num_recorded_command_buffers; i++) {
         m_command_buffers[frame_index][i]
             ->SubmitSecondary(frame->GetCommandBuffer());
     }

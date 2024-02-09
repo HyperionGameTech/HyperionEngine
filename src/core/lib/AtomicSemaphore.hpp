@@ -37,7 +37,7 @@ public:
     }
 
 private:
-    std::atomic<UInt8> m_value { 1u };
+    std::atomic<uint8> m_value { 1u };
 };
 
 } // namespace hyperion::v2

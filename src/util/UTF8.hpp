@@ -80,9 +80,9 @@ static auto &fputs = std::fputs;
 #define HYP_UTF8_TOMULTIBYTE(str) (str)
 #endif
 
-using u32char = hyperion::UInt32;
-using u16char = hyperion::UInt16;
-using u8char = hyperion::UInt8;
+using u32char = hyperion::uint32;
+using u16char = hyperion::uint16;
+using u8char = hyperion::uint8;
 
 #define HYP_UTF8_CHECK_BOUNDS(idx, max) \
     do { if ((idx) == (max)) { return -1; } } while (0)
@@ -363,7 +363,7 @@ inline u32char char8to32(const char *str, hyperion::SizeType max = sizeof(u32cha
     union { u32char ret; char ret_bytes[sizeof(u32char)]; };
     ret = 0;
 
-    hyperion::UInt i = 0;
+    hyperion::uint i = 0;
 
     const unsigned char ch = (unsigned char)str[0];
 
@@ -398,12 +398,12 @@ inline u32char char8to32(const char *str, hyperion::SizeType max = sizeof(u32cha
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::UInt8 *num_bytes_read_ptr)
+inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::uint8 *num_bytes_read_ptr)
 {
     union { u32char ret; char ret_bytes[sizeof(u32char)]; };
     ret = 0;
 
-    hyperion::UInt8 num_bytes_read = 0;
+    hyperion::uint8 num_bytes_read = 0;
 
     if (!num_bytes_read_ptr) {
         num_bytes_read_ptr = &num_bytes_read;
@@ -590,10 +590,10 @@ inline u8char *utf8_append(uint32_t cp, u8char *result)
 inline u8char *utf16to8(u16char *start, u16char *end, u8char *result)
 {
     while (start != end) {
-        UInt32 cp = HYP_UTF_MASK16(*start++);
+        uint32 cp = HYP_UTF_MASK16(*start++);
         // Take care of surrogate pairs first
         if (HYP_UTF_IS_LEAD_SURROGATE(cp)) {
-            const UInt32 trail_surrogate = HYP_UTF_MASK16(*start++);
+            const uint32 trail_surrogate = HYP_UTF_MASK16(*start++);
             AssertThrow(HYP_UTF_IS_TRAIL_SURROGATE(trail_surrogate));
             cp = (cp << 10) + trail_surrogate + HYP_UTF_SURROGATE_OFFSET;
         } else {

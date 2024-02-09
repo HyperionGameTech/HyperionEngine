@@ -7,7 +7,7 @@
 
 namespace hyperion::v2 {
 
-using LightComponentFlags = UInt32;
+using LightComponentFlags = uint32;
 
 enum LightComponentFlagBits : LightComponentFlags
 {

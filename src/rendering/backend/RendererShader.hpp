@@ -25,7 +25,7 @@ struct ShaderObject
     }
 };
 
-enum ShaderModuleType : UInt
+enum ShaderModuleType : uint
 {
     UNSET = 0,
     VERTEX,

@@ -37,7 +37,7 @@ class RenderPass<Platform::VULKAN>
 
 public:
     RenderPass(RenderPassStage stage, RenderPassMode mode);
-    RenderPass(RenderPassStage stage, RenderPassMode mode, UInt num_multiview_layers);
+    RenderPass(RenderPassStage stage, RenderPassMode mode, uint num_multiview_layers);
     RenderPass(const RenderPass &other) = delete;
     RenderPass &operator=(const RenderPass &other) = delete;
     ~RenderPass();
@@ -48,7 +48,7 @@ public:
     bool IsMultiview() const
         { return m_num_multiview_layers != 0; }
 
-    UInt NumMultiviewLayers() const
+    uint NumMultiviewLayers() const
         { return m_num_multiview_layers; }
 
     void AddAttachmentUsage(AttachmentUsage *attachment_usage)
@@ -98,7 +98,7 @@ private:
 
     RenderPassStage                     m_stage;
     RenderPassMode                      m_mode;
-    UInt                                m_num_multiview_layers;
+    uint                                m_num_multiview_layers;
 
     Array<AttachmentUsage *>            m_render_pass_attachment_usages;
 

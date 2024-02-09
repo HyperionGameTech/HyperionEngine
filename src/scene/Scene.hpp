@@ -32,8 +32,8 @@ class EntityManager;
 struct FogParams
 {
     Color color = Color(0xF2F8F7FF);
-    Float start_distance = 250.0f;
-    Float end_distance = 1000.0f;
+    float start_distance = 250.0f;
+    float end_distance = 1000.0f;
 };
 
 template<>
@@ -99,7 +99,7 @@ public:
      *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
      *  The Scene must have had Init() called on it before calling this.
      */
-    Bool CreateTLAS();
+    bool CreateTLAS();
 
     NodeProxy &GetRoot()
         { return m_root_node_proxy; }
@@ -142,13 +142,13 @@ public:
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
-    Bool IsWorldScene() const
+    bool IsWorldScene() const
         { return !m_parent_scene.IsValid() && !m_is_non_world_scene; }
 
-    Bool IsAudioListener() const
+    bool IsAudioListener() const
         { return m_is_audio_listener; }
 
-    void SetIsAudioListener(Bool is_audio_listener)
+    void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
     
     void Init();
@@ -165,7 +165,7 @@ public:
         RenderList &render_list, 
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
-        Bool skip_frustum_culling = false
+        bool skip_frustum_culling = false
     ) const;
 
 private:
@@ -189,9 +189,9 @@ private:
     Matrix4                         m_last_view_projection_matrix;
 
     Handle<Scene>                   m_parent_scene;
-    Bool                            m_is_non_world_scene;
+    bool                            m_is_non_world_scene;
 
-    Bool                            m_is_audio_listener;
+    bool                            m_is_audio_listener;
                                  
     mutable ShaderDataState         m_shader_data_state;
 };

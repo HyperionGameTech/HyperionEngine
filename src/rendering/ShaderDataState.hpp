@@ -31,14 +31,14 @@ struct ShaderDataState
 
     ShaderDataState &operator|=(State value)
     {
-        state |= UInt32(value);
+        state |= uint32(value);
 
         return *this;
     }
 
     ShaderDataState &operator&=(State value)
     {
-        state &= UInt32(value);
+        state &= uint32(value);
 
         return *this;
     }
@@ -47,7 +47,7 @@ struct ShaderDataState
     bool IsDirty() const { return state & DIRTY; }
 
 private:
-    UInt32 state;
+    uint32 state;
 };
 
 } // namespace hyperion::v2

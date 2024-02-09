@@ -25,8 +25,8 @@ namespace renderer {
 
 struct MeshBindingDescription
 {
-    UInt32              binding;
-    UInt32              stride;
+    uint32              binding;
+    uint32              stride;
     VkVertexInputRate   input_rate;
 
     MeshBindingDescription()
@@ -34,7 +34,7 @@ struct MeshBindingDescription
     {
     }
 
-    MeshBindingDescription(UInt32 binding, UInt32 stride, VkVertexInputRate input_rate)
+    MeshBindingDescription(uint32 binding, uint32 stride, VkVertexInputRate input_rate)
         : binding(binding), stride(stride), input_rate(input_rate)
     {
     }
@@ -52,10 +52,10 @@ struct MeshBindingDescription
 
 struct QueueFamilyIndices
 {
-    Optional<UInt32> graphics_family;
-    Optional<UInt32> transfer_family;
-    Optional<UInt32> present_family;
-    Optional<UInt32> compute_family;
+    Optional<uint32> graphics_family;
+    Optional<uint32> transfer_family;
+    Optional<uint32> present_family;
+    Optional<uint32> compute_family;
 
     bool IsComplete() const {
         return graphics_family.HasValue()

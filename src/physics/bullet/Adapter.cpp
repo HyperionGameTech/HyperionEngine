@@ -53,12 +53,12 @@ static UniquePtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape *physic
             static_cast<PlanePhysicsShape *>(physics_shape)->GetPlane().w
         );
     case PhysicsShapeType::CONVEX_HULL:
-        static_assert(sizeof(btScalar) == sizeof(Float), "sizeof(btScalar) must be sizeof(Float) for reinterpret_cast to be safe");
+        static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
 
         return UniquePtr<btConvexHullShape>::Construct(
             reinterpret_cast<const btScalar *>(static_cast<ConvexHullPhysicsShape *>(physics_shape)->GetVertexData()),
             static_cast<ConvexHullPhysicsShape *>(physics_shape)->NumVertices(),
-            sizeof(Float) * 3
+            sizeof(float) * 3
         );
     default:
         AssertThrowMsg(false, "Unknown PhysicsShapeType!");

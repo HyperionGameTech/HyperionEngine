@@ -97,10 +97,10 @@ public:
     TemporalBlending &operator=(const TemporalBlending &other) = delete;
     ~TemporalBlending();
 
-    ImageOutput &GetImageOutput(UInt frame_index)
+    ImageOutput &GetImageOutput(uint frame_index)
         { return m_image_outputs[frame_index]; }
 
-    const ImageOutput &GetImageOutput(UInt frame_index) const
+    const ImageOutput &GetImageOutput(uint frame_index) const
         { return m_image_outputs[frame_index]; }
 
     void Create();

@@ -81,9 +81,9 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     constexpr auto possible_flags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT;
 
     /* TODO: move over to QueueFamilyIndices */
-    Array<UInt32> found_indices;
+    Array<uint32> found_indices;
 
-    const auto predicate = [&](UInt32 index, VkQueueFlagBits expected_bits, bool expect_dedicated) -> bool
+    const auto predicate = [&](uint32 index, VkQueueFlagBits expected_bits, bool expect_dedicated) -> bool
     {
         const auto masked_bits = families[index].queueFlags & possible_flags;
         
@@ -168,7 +168,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     }
 
     /* Fallback -- find queue families (non-dedicated) */
-    for (UInt32 i = 0; i < families.Size() && !indices.IsComplete(); i++) {
+    for (uint32 i = 0; i < families.Size() && !indices.IsComplete(); i++) {
         AssertContinueMsg(
             families[i].queueCount != 0,
             "Queue family %d supports no queues, skipping\n",
@@ -205,7 +205,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
 Array<VkExtensionProperties> Device<Platform::VULKAN>::GetSupportedExtensions()
 {
-    UInt32 extension_count = 0;
+    uint32 extension_count = 0;
     vkEnumerateDeviceExtensionProperties(m_physical, nullptr, &extension_count, nullptr);
 
     Array<VkExtensionProperties> supported_extensions;
@@ -322,14 +322,14 @@ Result Device<Platform::VULKAN>::Wait() const
     HYPERION_RETURN_OK;
 }
 
-Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &required_queue_families)
+Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32> &required_queue_families)
 {
     DebugLog(LogType::Debug, "Memory properties:\n");
     const auto &memory_properties = m_features->GetPhysicalDeviceMemoryProperties();
 
-    for (UInt32 i = 0; i < memory_properties.memoryTypeCount; i++) {
+    for (uint32 i = 0; i < memory_properties.memoryTypeCount; i++) {
         const auto &memory_type = memory_properties.memoryTypes[i];
-        const UInt32 heap_index =  memory_type.heapIndex;
+        const uint32 heap_index =  memory_type.heapIndex;
 
         DebugLog(LogType::Debug, "Memory type %lu:\t(index: %lu, flags: %lu)\n", i, heap_index, memory_type.propertyFlags);
 
@@ -342,7 +342,7 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     const float priorities[] = { 1.0f };
     // for each queue family(for separate threads) we add them to
     // our device initialization data
-    for (UInt32 family : required_queue_families) {
+    for (uint32 family : required_queue_families) {
         VkDeviceQueueCreateInfo queue_info { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
         queue_info.pQueuePriorities = priorities;
         queue_info.queueCount = 1;
@@ -397,9 +397,9 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
 
     VkDeviceCreateInfo create_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
     create_info.pQueueCreateInfos       = queue_create_infos.Data();
-    create_info.queueCreateInfoCount    = UInt32(queue_create_infos.Size());
+    create_info.queueCreateInfoCount    = uint32(queue_create_infos.Size());
     // Setup Device extensions
-    create_info.enabledExtensionCount   = UInt32(extension_names.Size());
+    create_info.enabledExtensionCount   = uint32(extension_names.Size());
     create_info.ppEnabledExtensionNames = extension_names.Data();
     // Setup Device Features
     //create_info.pEnabledFeatures        = &features->GetPhysicalDeviceFeatures();
@@ -419,7 +419,7 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     HYPERION_RETURN_OK;
 }
 
-VkQueue Device<Platform::VULKAN>::GetQueue(UInt32 queue_family_index, UInt32 queue_index)
+VkQueue Device<Platform::VULKAN>::GetQueue(uint32 queue_family_index, uint32 queue_index)
 {
     AssertThrow(m_device != VK_NULL_HANDLE);
 

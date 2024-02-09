@@ -29,7 +29,7 @@ struct ShadowMapComponent
     Extent2D                resolution = { 1024, 1024 };
     RC<RenderComponentBase> render_component;
 
-    UInt                    update_counter = 0;
+    uint                    update_counter = 0;
 };
 
 } // namespace hyperion::v2

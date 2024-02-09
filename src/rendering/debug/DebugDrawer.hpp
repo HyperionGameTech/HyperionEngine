@@ -67,7 +67,7 @@ class DebugDrawCommandList
     DebugDrawCommandList &operator=(const DebugDrawCommandList &other) = delete;
 
 public:
-    void Sphere(const Vector3 &position, Float radius = 0.15f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Sphere(const Vector3 &position, float radius = 0.15f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Box(const Vector3 &position, const Vector3 &size = Vector3::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Plane(const Vector3 &position, const Vector2 &size = Vector2::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
 
@@ -90,7 +90,7 @@ public:
 
     void CommitCommands(DebugDrawCommandList &&command_list);
     
-    void Sphere(const Vector3 &position, Float radius = 1.0f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Sphere(const Vector3 &position, float radius = 1.0f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Box(const Vector3 &position, const Vector3 &size = Vector3::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Plane(const FixedArray<Vector3, 4> &points, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
 
@@ -100,13 +100,13 @@ private:
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_renderer_instance;
 
-    FixedArray<Handle<Mesh>, UInt(DebugDrawShape::MAX)> m_shapes;
+    FixedArray<Handle<Mesh>, uint(DebugDrawShape::MAX)> m_shapes;
     Array<DebugDrawCommand> m_draw_commands;
     Array<DebugDrawCommand> m_draw_commands_pending_addition;
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
-    std::atomic<Int64> m_num_draw_commands_pending_addition { 0 };
+    std::atomic<int64> m_num_draw_commands_pending_addition { 0 };
     std::mutex m_draw_commands_mutex;
 };
 

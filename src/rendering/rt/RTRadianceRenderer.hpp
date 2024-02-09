@@ -39,7 +39,7 @@ class Engine;
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
-using RTRadianceRendererOptions = UInt32;
+using RTRadianceRendererOptions = uint32;
 
 enum RTRadianceRendererOptionBits : RTRadianceRendererOptions
 {
@@ -110,7 +110,7 @@ private:
     Extent2D m_extent;
     Handle<TLAS> m_tlas;
     
-    FixedArray<UInt32, max_frames_in_flight> m_updates;
+    FixedArray<uint32, max_frames_in_flight> m_updates;
 
     Handle<Shader> m_shader;
 

@@ -64,7 +64,7 @@ public:
 
 private:
     FlatSet<CompilerError>  m_errors;
-    UInt                    m_error_suppression_depth;
+    uint                    m_error_suppression_depth;
 };
 
 } // namespace hyperion::json

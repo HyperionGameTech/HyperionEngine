@@ -34,14 +34,14 @@ struct SkeletonBoneData
     SkeletonBoneData &operator=(SkeletonBoneData &&other) noexcept = default;
     ~SkeletonBoneData() = default;
 
-    void SetMatrix(UInt index, const Matrix4 &matrix)
+    void SetMatrix(uint index, const Matrix4 &matrix)
     {
         AssertThrow(matrices && index < matrices->Size());
 
         (*matrices)[index] = matrix;
     }
 
-    const Matrix4 &GetMatrix(UInt index)
+    const Matrix4 &GetMatrix(uint index)
     {
         AssertThrow(matrices && index < matrices->Size());
 
@@ -81,7 +81,7 @@ public:
     /*! \brief Look up the index in the skeleton of a bone with the given name/tag. If no root bone was set,
      * or the bone could not be found, -1 is returned. Otherwise, the index is returned.
      */
-    UInt FindBoneIndex(const String &name) const;
+    uint FindBoneIndex(const String &name) const;
 
     /*! \brief Get the root Bone of this skeleton, which all nested Bones fall under.
      * If no root bone was set on this Skeleton, nullptr is returned
@@ -122,7 +122,7 @@ public:
     const Animation &GetAnimation(SizeType index) const
         { return m_animations[index]; }
 
-    const Animation *FindAnimation(const String &name, UInt *out_index) const;
+    const Animation *FindAnimation(const String &name, uint *out_index) const;
     
     void Init();
     void Update(GameCounter::TickUnit delta);

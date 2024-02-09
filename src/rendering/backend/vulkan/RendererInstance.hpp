@@ -46,7 +46,7 @@ class Instance<Platform::VULKAN>
     Result SetupDebug();
     Result SetupDebugMessenger();
 
-    Result CreateCommandPool(DeviceQueue &queue, UInt index);
+    Result CreateCommandPool(DeviceQueue &queue, uint index);
 
 public:
     Instance(RC<Application> application);
@@ -65,8 +65,8 @@ public:
     DeviceQueue &GetComputeQueue() { return this->queue_compute; }
     const DeviceQueue &GetComputeQueue() const { return this->queue_compute; }
                                                           
-    VkCommandPool GetGraphicsCommandPool(UInt index = 0) const { return this->queue_graphics.command_pools[index]; }
-    VkCommandPool GetComputeCommandPool(UInt index = 0) const { return this->queue_compute.command_pools[index]; }
+    VkCommandPool GetGraphicsCommandPool(uint index = 0) const { return this->queue_graphics.command_pools[index]; }
+    VkCommandPool GetComputeCommandPool(uint index = 0) const { return this->queue_compute.command_pools[index]; }
     
     VkInstance GetInstance() const
         { return this->instance; }

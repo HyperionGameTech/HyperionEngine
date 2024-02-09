@@ -17,7 +17,7 @@ struct RENDER_COMMAND(CreateImmediateModeDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
                 Engine::Get()->GetGPUDevice(),
                 &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
@@ -39,15 +39,15 @@ DebugDrawer::~DebugDrawer()
 
 void DebugDrawer::Create()
 {
-    m_shapes[UInt(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(8);
-    m_shapes[UInt(DebugDrawShape::BOX)] = MeshBuilder::Cube();
-    m_shapes[UInt(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
+    m_shapes[uint(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(8);
+    m_shapes[uint(DebugDrawShape::BOX)] = MeshBuilder::Cube();
+    m_shapes[uint(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
 
     for (auto &shape : m_shapes) {
         AssertThrow(InitObject(shape));
     }
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_descriptor_sets[frame_index] = MakeRenderObject<renderer::DescriptorSet>();
 
         m_descriptor_sets[frame_index]
@@ -124,7 +124,7 @@ void DebugDrawer::Render(Frame *frame)
         return;
     }
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const auto &draw_command = m_draw_commands[index];
@@ -167,10 +167,10 @@ void DebugDrawer::Render(Frame *frame)
             proxy.GetGraphicsPipeline(),
             m_descriptor_sets[frame_index],
             0,
-            FixedArray<UInt32, 1> { UInt32(index * sizeof(ImmediateDrawShaderData)) }
+            FixedArray<uint32, 1> { uint32(index * sizeof(ImmediateDrawShaderData)) }
         );
 
-        proxy.DrawMesh(frame, m_shapes[UInt(draw_command.shape)].Get());
+        proxy.DrawMesh(frame, m_shapes[uint(draw_command.shape)].Get());
     }
 
     proxy.Submit(frame);
@@ -183,8 +183,8 @@ void DebugDrawer::UpdateDrawCommands()
     std::lock_guard guard(m_draw_commands_mutex);
 
     SizeType size = m_draw_commands_pending_addition.Size();
-    Int64 previous_value = m_num_draw_commands_pending_addition.fetch_sub(Int64(size), std::memory_order_relaxed);
-    AssertThrow(previous_value - Int64(size) >= 0);
+    int64 previous_value = m_num_draw_commands_pending_addition.fetch_sub(int64(size), std::memory_order_relaxed);
+    AssertThrow(previous_value - int64(size) >= 0);
 
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
 }
@@ -193,11 +193,11 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &&command_list)
 {
     std::lock_guard guard(m_draw_commands_mutex);
     
-    m_num_draw_commands_pending_addition.fetch_add(Int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
+    m_num_draw_commands_pending_addition.fetch_add(int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
 
-void DebugDrawer::Sphere(const Vector3 &position, Float radius, Color color)
+void DebugDrawer::Sphere(const Vector3 &position, float radius, Color color)
 {
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
@@ -238,7 +238,7 @@ void DebugDrawer::Plane(const FixedArray<Vector3, 4> &points, Color color)
 
 // command list methods
 
-void DebugDrawCommandList::Sphere(const Vector3 &position, Float radius, Color color)
+void DebugDrawCommandList::Sphere(const Vector3 &position, float radius, Color color)
 {
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,

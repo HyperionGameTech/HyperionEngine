@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-using TypeIDValue = UInt32;
+using TypeIDValue = uint32;
 
 struct TypeIDNameMap
 {
@@ -24,7 +24,7 @@ struct TypeIDNameMap
     mutable Mutex               mutex;
 
     HYP_FORCE_INLINE
-    void Set(UInt index, Name name)
+    void Set(uint index, Name name)
     {
         AssertThrowMsg(index < max_size, "TypeID out of range");
 
@@ -35,7 +35,7 @@ struct TypeIDNameMap
     }
 
     HYP_FORCE_INLINE
-    Name Get(UInt index) const
+    Name Get(uint index) const
     {
         AssertThrowMsg(index < max_size, "TypeID out of range");
 
@@ -61,7 +61,7 @@ struct TypeIDNameMap
 
 struct TypeIDNameMapDefinition
 {
-    TypeIDNameMapDefinition(TypeIDNameMap &name_map, UInt index, Name name)
+    TypeIDNameMapDefinition(TypeIDNameMap &name_map, uint index, Name name)
     {
         name_map.Set(index, name);
     }
@@ -71,7 +71,7 @@ struct TypeIDGeneratorBase
 {
     static TypeIDNameMap name_map;
 
-    static inline std::atomic<UInt> counter { 0u };
+    static inline std::atomic<uint> counter { 0u };
 };
 
 template <class T>
@@ -133,35 +133,35 @@ public:
     }
 
     HYP_FORCE_INLINE
-    explicit operator Bool() const
+    explicit operator bool() const
         { return value != ForType<void>().value; }
 
     HYP_FORCE_INLINE
-    Bool operator!() const
+    bool operator!() const
         { return value == ForType<void>().value; }
 
     HYP_FORCE_INLINE
-    Bool operator==(const TypeID &other) const
+    bool operator==(const TypeID &other) const
         { return value == other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const TypeID &other) const
+    bool operator!=(const TypeID &other) const
         { return value != other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator<(const TypeID &other) const
+    bool operator<(const TypeID &other) const
         { return value < other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator<=(const TypeID &other) const
+    bool operator<=(const TypeID &other) const
         { return value <= other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator>(const TypeID &other) const
+    bool operator>(const TypeID &other) const
         { return value > other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator>=(const TypeID &other) const
+    bool operator>=(const TypeID &other) const
         { return value >= other.value; }
 
     HYP_FORCE_INLINE

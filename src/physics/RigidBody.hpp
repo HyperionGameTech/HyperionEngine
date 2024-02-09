@@ -21,7 +21,7 @@ class Engine;
 
 namespace hyperion::v2::physics {
 
-enum class PhysicsShapeType : UInt32
+enum class PhysicsShapeType : uint32
 {
     NONE,
     BOX,
@@ -133,14 +133,14 @@ public:
 
     ~ConvexHullPhysicsShape() = default;
 
-    const Float *GetVertexData() const
+    const float *GetVertexData() const
         { return m_vertices.Data(); }
 
     SizeType NumVertices() const
         { return m_vertices.Size() / 3; }
 
 protected:
-    Array<Float> m_vertices;
+    Array<float> m_vertices;
 };
 
 class RigidBody : public BasicObject<STUB_CLASS(RigidBody)>

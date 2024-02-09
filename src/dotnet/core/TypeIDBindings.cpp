@@ -7,7 +7,7 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    UInt32 TypeID_ForDynamicType(const char *type_name)
+    uint32 TypeID_ForDynamicType(const char *type_name)
     {
         const TypeID type_id = TypeID::ForName(CreateNameFromDynamicString(type_name));
 

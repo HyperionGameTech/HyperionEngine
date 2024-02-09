@@ -37,16 +37,16 @@ public:
         return m_messages.Pop();
     }
 
-    UInt Size() const
+    uint Size() const
         { return m_size.Get(MemoryOrder::SEQUENTIAL); }
 
-    Bool Empty() const
+    bool Empty() const
         { return Size() == 0; }
 
 private:
     Mutex                   m_mutex;
     Queue<json::JSONValue>  m_messages;
-    AtomicVar<UInt>         m_size;
+    AtomicVar<uint>         m_size;
 };
 
 } // namespace hyperion::net

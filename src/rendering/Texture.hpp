@@ -71,7 +71,7 @@ public:
 
     ImageType GetType() const { return m_image->GetType(); }
 
-    UInt NumFaces() const { return m_image->NumFaces(); }
+    uint NumFaces() const { return m_image->NumFaces(); }
 
     bool IsTextureCube() const { return m_image->IsTextureCube(); }
     bool IsPanorama() const { return m_image->IsPanorama(); }
@@ -144,7 +144,7 @@ public:
         InternalFormat format,
         FilterMode filter_mode,
         WrapMode wrap_mode,
-        UInt num_layers
+        uint num_layers
     ) : Texture(
             Extent3D(extent),
             format,
@@ -157,17 +157,17 @@ public:
         m_image->SetNumLayers(num_layers);
     }
 
-    UInt NumLayers() const
+    uint NumLayers() const
     {
         return m_image->NumLayers();
     }
 
-    void SetNumLayers(UInt num_layers)
+    void SetNumLayers(uint num_layers)
     {
         m_image->SetNumLayers(num_layers);
     }
 
-    void SetLayer(UInt layer, const ByteBuffer &data)
+    void SetLayer(uint layer, const ByteBuffer &data)
     {
         AssertThrowMsg(layer < NumLayers(), "layer index out of bounds");
         AssertThrowMsg(data.Size() == m_image->GetExtent().Size() * NumComponents(m_image->GetTextureFormat()), "data size does not match texture size");

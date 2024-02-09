@@ -23,7 +23,7 @@ public:
 
 protected:
     RC<CameraTrack> m_camera_track;
-    Double m_track_time;
+    double m_track_time;
 
 private:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) override;

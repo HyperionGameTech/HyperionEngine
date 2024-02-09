@@ -174,13 +174,13 @@ void Game::OnInputEvent(const SystemEvent &event)
         if (m_input_manager->GetWindow()->HasMouseFocus()) {
             const auto &mouse_position = m_input_manager->GetMousePosition();
 
-            const Int mouse_x = mouse_position.x.load(),
+            const int mouse_x = mouse_position.x.load(),
                 mouse_y = mouse_position.y.load();
 
             const auto extent = m_input_manager->GetWindow()->GetExtent();
 
-            const Float mx = (Float(mouse_x) - Float(extent.width) * 0.5f) / (Float(extent.width));
-            const Float my = (Float(mouse_y) - Float(extent.height) * 0.5f) / (Float(extent.height));
+            const float mx = (float(mouse_x) - float(extent.width) * 0.5f) / (float(extent.width));
+            const float my = (float(mouse_y) - float(extent.height) * 0.5f) / (float(extent.height));
             
             if (m_scene) {
                 if (auto *controller = m_scene->GetCamera()->GetCameraController()) {

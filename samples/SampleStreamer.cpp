@@ -106,19 +106,19 @@ void SampleStreamer::InitGame()
 
             if (type_id == TypeID::ForType<String>()) {
                 DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<String>().Data());
-            } else if (type_id == TypeID::ForType<Int>()) {
-                DebugLog(LogType::Debug, "Argument %s = %d\n", arg.first.Data(), arg.second.Get<Int>());
-            } else if (type_id == TypeID::ForType<Float>()) {
-                DebugLog(LogType::Debug, "Argument %s = %f\n", arg.first.Data(), arg.second.Get<Float>());
-            } else if (type_id == TypeID::ForType<Bool>()) {
-                DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<Bool>() ? "true" : "false");
+            } else if (type_id == TypeID::ForType<int>()) {
+                DebugLog(LogType::Debug, "Argument %s = %d\n", arg.first.Data(), arg.second.Get<int>());
+            } else if (type_id == TypeID::ForType<float>()) {
+                DebugLog(LogType::Debug, "Argument %s = %f\n", arg.first.Data(), arg.second.Get<float>());
+            } else if (type_id == TypeID::ForType<bool>()) {
+                DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<bool>() ? "true" : "false");
             } else {
                 DebugLog(LogType::Debug, "Argument %s = <unknown>\n", arg.first.Data());
             }
         }
 
         const String signalling_server_ip = arg_parse_result["SignallingServerIP"].Get<String>();
-        const UInt16 signalling_server_port = UInt16(arg_parse_result["SignallingServerPort"].Get<Int>());
+        const uint16 signalling_server_port = uint16(arg_parse_result["SignallingServerPort"].Get<int>());
 
         // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
         
@@ -533,12 +533,12 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         {
             String  id;
             String  img_name;
-            UInt32  width;
-            UInt32  height;
+            uint32  width;
+            uint32  height;
             Vector3 position;
             Matrix3 rotation;
-            Float   fx;
-            Float   fy;
+            float   fx;
+            float   fy;
         };
 
         Array<GaussianSplattingCameraDefinition> camera_definitions;
@@ -552,28 +552,28 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
                 definition.img_name = item["img_name"].ToString();
                 definition.width    = MathUtil::Floor(item["width"].ToNumber());
                 definition.height   = MathUtil::Floor(item["height"].ToNumber());
-                definition.fx       = Float(item["fx"].ToNumber());
-                definition.fy       = Float(item["fy"].ToNumber());
+                definition.fx       = float(item["fx"].ToNumber());
+                definition.fy       = float(item["fy"].ToNumber());
 
                 if (item["position"].IsArray()) {
                     definition.position = Vector3(
-                        Float(item["position"][0].ToNumber()),
-                        Float(item["position"][1].ToNumber()),
-                        Float(item["position"][2].ToNumber())
+                        float(item["position"][0].ToNumber()),
+                        float(item["position"][1].ToNumber()),
+                        float(item["position"][2].ToNumber())
                     );
                 }
 
                 if (item["rotation"].IsArray()) {
-                    Float v[9] = {
-                        Float(item["rotation"][0][0].ToNumber()),
-                        Float(item["rotation"][0][1].ToNumber()),
-                        Float(item["rotation"][0][2].ToNumber()),
-                        Float(item["rotation"][1][0].ToNumber()),
-                        Float(item["rotation"][1][1].ToNumber()),
-                        Float(item["rotation"][1][2].ToNumber()),
-                        Float(item["rotation"][2][0].ToNumber()),
-                        Float(item["rotation"][2][1].ToNumber()),
-                        Float(item["rotation"][2][2].ToNumber())
+                    float v[9] = {
+                        float(item["rotation"][0][0].ToNumber()),
+                        float(item["rotation"][0][1].ToNumber()),
+                        float(item["rotation"][0][2].ToNumber()),
+                        float(item["rotation"][1][0].ToNumber()),
+                        float(item["rotation"][1][1].ToNumber()),
+                        float(item["rotation"][1][2].ToNumber()),
+                        float(item["rotation"][2][0].ToNumber()),
+                        float(item["rotation"][2][1].ToNumber()),
+                        float(item["rotation"][2][2].ToNumber())
                     };
 
                     definition.rotation = Matrix3(v);
@@ -602,13 +602,13 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
                 up_direction += camera_up_direction;
             }
 
-            up_direction /= Float(all_up_directions.Size());
+            up_direction /= float(all_up_directions.Size());
             up_direction.Normalize();
 
             const Vector3 axis = up_direction.Cross(Vector3::UnitY()).Normalize();
 
-            const Float cos_theta = up_direction.Dot(Vector3::UnitY());
-            const Float theta = MathUtil::Arccos(cos_theta);
+            const float cos_theta = up_direction.Dot(Vector3::UnitY());
+            const float theta = MathUtil::Arccos(cos_theta);
 
             camera_offset_rotation = Quaternion(axis, theta).Invert();
         }
@@ -625,20 +625,20 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         gaussian_splatting_model->points.Resize(num_points);
         gaussian_splatting_model->transform.SetRotation(Quaternion(Vector3(1, 0, 0), M_PI));
 
-        const Bool has_rotations = ply_model->custom_data.Contains("rot_0")
+        const bool has_rotations = ply_model->custom_data.Contains("rot_0")
             && ply_model->custom_data.Contains("rot_1")
             && ply_model->custom_data.Contains("rot_2")
             && ply_model->custom_data.Contains("rot_3");
 
-        const Bool has_scales = ply_model->custom_data.Contains("scale_0")
+        const bool has_scales = ply_model->custom_data.Contains("scale_0")
             && ply_model->custom_data.Contains("scale_1")
             && ply_model->custom_data.Contains("scale_2");
 
-        const Bool has_sh = ply_model->custom_data.Contains("f_dc_0")
+        const bool has_sh = ply_model->custom_data.Contains("f_dc_0")
             && ply_model->custom_data.Contains("f_dc_1")
             && ply_model->custom_data.Contains("f_dc_2");
 
-        const Bool has_opacity = ply_model->custom_data.Contains("opacity");
+        const bool has_opacity = ply_model->custom_data.Contains("opacity");
 
         for (SizeType index = 0; index < num_points; index++) {
             auto &out_point = gaussian_splatting_model->points[index];
@@ -648,10 +648,10 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
             if (has_rotations) {
                 Quaternion rotation;
 
-                ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.w);
-                ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.x);
-                ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.y);
-                ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.z);
+                ply_model->custom_data["rot_0"].Read(index * sizeof(float), &rotation.w);
+                ply_model->custom_data["rot_1"].Read(index * sizeof(float), &rotation.x);
+                ply_model->custom_data["rot_2"].Read(index * sizeof(float), &rotation.y);
+                ply_model->custom_data["rot_3"].Read(index * sizeof(float), &rotation.z);
                 
                 rotation.Normalize();
 
@@ -661,27 +661,27 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
             if (has_scales) {
                 Vector3 scale = Vector3::one;
 
-                ply_model->custom_data["scale_0"].Read(index * sizeof(Float), &scale.x);
-                ply_model->custom_data["scale_1"].Read(index * sizeof(Float), &scale.y);
-                ply_model->custom_data["scale_2"].Read(index * sizeof(Float), &scale.z);
+                ply_model->custom_data["scale_0"].Read(index * sizeof(float), &scale.x);
+                ply_model->custom_data["scale_1"].Read(index * sizeof(float), &scale.y);
+                ply_model->custom_data["scale_2"].Read(index * sizeof(float), &scale.z);
 
                 out_point.scale = Vector4(scale, 1.0f);
             }
 
             if (has_sh) {
-                Float f_dc_0 = 0.0f;
-                Float f_dc_1 = 0.0f;
-                Float f_dc_2 = 0.0f;
-                Float opacity = 1.0f;
+                float f_dc_0 = 0.0f;
+                float f_dc_1 = 0.0f;
+                float f_dc_2 = 0.0f;
+                float opacity = 1.0f;
 
-                static constexpr Float SH_C0 = 0.28209479177387814f;
+                static constexpr float SH_C0 = 0.28209479177387814f;
 
-                ply_model->custom_data["f_dc_0"].Read(index * sizeof(Float), &f_dc_0);
-                ply_model->custom_data["f_dc_1"].Read(index * sizeof(Float), &f_dc_1);
-                ply_model->custom_data["f_dc_2"].Read(index * sizeof(Float), &f_dc_2);
+                ply_model->custom_data["f_dc_0"].Read(index * sizeof(float), &f_dc_0);
+                ply_model->custom_data["f_dc_1"].Read(index * sizeof(float), &f_dc_1);
+                ply_model->custom_data["f_dc_2"].Read(index * sizeof(float), &f_dc_2);
 
                 if (has_opacity) {
-                    ply_model->custom_data["opacity"].Read(index * sizeof(Float), &opacity);
+                    ply_model->custom_data["opacity"].Read(index * sizeof(float), &opacity);
                 }
 
                 out_point.color = Vector4(
@@ -693,7 +693,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
             }
         }
         
-        UInt camera_definition_index = 0;
+        uint camera_definition_index = 0;
         
         RC<CameraTrack> camera_track = RC<CameraTrack>::Construct();
         camera_track->SetDuration(60.0);
@@ -702,7 +702,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
         for (const auto &camera_definition : camera_definitions) {
             camera_track->AddPivot({
-                Double(camera_definition_index) / Double(camera_definitions.Size()),
+                double(camera_definition_index) / double(camera_definitions.Size()),
                 gaussian_splatting_model->transform * Transform(camera_definition.position, Vector3(1.0f), Quaternion(Matrix4(camera_definition.rotation).Orthonormalized()))
             });
 

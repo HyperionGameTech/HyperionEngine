@@ -25,7 +25,7 @@ struct Handle
 
     static const Handle empty;
 
-    UInt index;
+    uint index;
 
     Handle()
         : index(0)
@@ -130,7 +130,7 @@ struct Handle
         { return index != 0; }
 
     IDType GetID() const
-        { return { UInt(index) }; }
+        { return { uint(index) }; }
 
     T *Get() const
     {
@@ -175,7 +175,7 @@ struct WeakHandle
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 
-    UInt index;
+    uint index;
 
     WeakHandle()
         : index(0)
@@ -290,7 +290,7 @@ struct WeakHandle
         { return index != 0; }
 
     IDType GetID() const
-        { return { UInt(index) }; }
+        { return { uint(index) }; }
 
     void Reset()
     {

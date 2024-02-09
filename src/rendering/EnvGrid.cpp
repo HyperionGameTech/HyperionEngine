@@ -17,12 +17,12 @@ static const Extent2D framebuffer_dimensions = Extent2D { 256, 256 };
 static const Extent3D voxel_grid_dimensions = Extent3D { 256, 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-static const UInt light_field_probe_lowres_packed_octahedron_size = 16;
-static const UInt light_field_probe_radiance_packed_octahedron_size = 256;
-static const UInt light_field_probe_irradiance_packed_octahedron_size = 128;
-static const UInt light_field_probe_packed_border_size = 2;
+static const uint light_field_probe_lowres_packed_octahedron_size = 16;
+static const uint light_field_probe_radiance_packed_octahedron_size = 256;
+static const uint light_field_probe_irradiance_packed_octahedron_size = 128;
+static const uint light_field_probe_packed_border_size = 2;
 
-static constexpr Bool light_field_use_texture_array = true;
+static constexpr bool light_field_use_texture_array = true;
 
 static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
 {
@@ -35,7 +35,7 @@ static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
         AssertThrowMsg(false, "Invalid probe type");
     }
 
-    return Extent2D { UInt(-1), UInt(-1) };
+    return Extent2D { uint(-1), uint(-1) };
 }
 
 static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const BoundingBox &grid_aabb, const Extent3D &grid_density)
@@ -45,15 +45,15 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
     Vec3f probe_diff_units = probe_position / size_of_probe + Vec3f(grid_density) * 0.5f;
     probe_diff_units = MathUtil::Trunc(probe_diff_units);
 
-    const Int probe_index_at_point = (Int(probe_diff_units.x) * Int(grid_density.height) * Int(grid_density.depth))
-        + (Int(probe_diff_units.y) * Int(grid_density.depth))
-        + Int(probe_diff_units.z);
+    const int probe_index_at_point = (int(probe_diff_units.x) * int(grid_density.height) * int(grid_density.depth))
+        + (int(probe_diff_units.y) * int(grid_density.depth))
+        + int(probe_diff_units.z);
 
     EnvProbeIndex calculated_probe_index = invalid_probe_index;
     
-    if (probe_index_at_point >= 0 && UInt(probe_index_at_point) < max_bound_ambient_probes) {
+    if (probe_index_at_point >= 0 && uint(probe_index_at_point) < max_bound_ambient_probes) {
         calculated_probe_index = EnvProbeIndex(
-            Extent3D { UInt(probe_diff_units.x), UInt(probe_diff_units.y), UInt(probe_diff_units.z) },
+            Extent3D { uint(probe_diff_units.x), uint(probe_diff_units.y), uint(probe_diff_units.z) },
             grid_density
         );
     }
@@ -66,11 +66,11 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
 struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
 {
     EnvGrid     *grid;
-    Array<UInt> updates;
+    Array<uint> updates;
 
     RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(
         EnvGrid *grid,
-        Array<UInt> &&updates
+        Array<uint> &&updates
     ) : grid(grid),
         updates(std::move(updates))
     {
@@ -80,7 +80,7 @@ struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        for (UInt update_index = 0; update_index < UInt(updates.Size()); update_index++) {
+        for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
             grid->m_env_probe_collection.SetProbeIndexOnRenderThread(update_index, updates[update_index]);
         }
 
@@ -171,13 +171,13 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 {
     renderer::DescriptorType    type;
     renderer::DescriptorKey     key;
-    UInt32                      element_index;
+    uint32                      element_index;
     ImageViewRef                value;
 
     RENDER_COMMAND(SetElementInGlobalDescriptorSet)(
         renderer::DescriptorType type,
         renderer::DescriptorKey key,
-        UInt32 element_index,
+        uint32 element_index,
         ImageViewRef value
     ) : type(type),
         key(key),
@@ -188,7 +188,7 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
@@ -254,7 +254,7 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             
@@ -318,15 +318,15 @@ void EnvGrid::SetCameraData(const Vec3f &position)
     const Vec3f size_of_probe = SizeOfProbe();
 
     const Vec3i position_snapped {
-        MathUtil::Floor<Float, Vec3i::Type>(position.x / size_of_probe.x),
-        MathUtil::Floor<Float, Vec3i::Type>(position.y / size_of_probe.y),
-        MathUtil::Floor<Float, Vec3i::Type>(position.z / size_of_probe.z)
+        MathUtil::Floor<float, Vec3i::Type>(position.x / size_of_probe.x),
+        MathUtil::Floor<float, Vec3i::Type>(position.y / size_of_probe.y),
+        MathUtil::Floor<float, Vec3i::Type>(position.z / size_of_probe.z)
     };
 
     const Vec3i current_grid_position {
-        MathUtil::Floor<Float, Vec3i::Type>(current_aabb_center_minus_offset.x / size_of_probe.x),
-        MathUtil::Floor<Float, Vec3i::Type>(current_aabb_center_minus_offset.y / size_of_probe.y),
-        MathUtil::Floor<Float, Vec3i::Type>(current_aabb_center_minus_offset.z / size_of_probe.z)
+        MathUtil::Floor<float, Vec3i::Type>(current_aabb_center_minus_offset.x / size_of_probe.x),
+        MathUtil::Floor<float, Vec3i::Type>(current_aabb_center_minus_offset.y / size_of_probe.y),
+        MathUtil::Floor<float, Vec3i::Type>(current_aabb_center_minus_offset.z / size_of_probe.z)
     };
 
     if (current_grid_position == position_snapped) {
@@ -342,12 +342,12 @@ void EnvGrid::SetCameraData(const Vec3f &position)
         m_camera->SetTranslation(m_aabb.GetCenter());
     }
 
-    Array<UInt> updates;
+    Array<uint> updates;
     updates.Resize(m_env_probe_collection.num_probes);
 
-    for (UInt x = 0; x < m_density.width; x++) {
-        for (UInt y = 0; y < m_density.height; y++) {
-            for (UInt z = 0; z < m_density.depth; z++) {
+    for (uint x = 0; x < m_density.width; x++) {
+        for (uint y = 0; y < m_density.height; y++) {
+            for (uint z = 0; z < m_density.depth; z++) {
                 const Vec3i coord { Vec3i::Type(x), Vec3i::Type(y), Vec3i::Type(z) };
                 const Vec3i scrolled_coord = coord + position_snapped;
 
@@ -357,19 +357,19 @@ void EnvGrid::SetCameraData(const Vec3f &position)
                     MathUtil::Mod(scrolled_coord.z, Vec3i::Type(m_density.depth))
                 };
                 
-                const Int32 scrolled_clamped_index = scrolled_coord_clamped.x * m_density.width * m_density.height
+                const int32 scrolled_clamped_index = scrolled_coord_clamped.x * m_density.width * m_density.height
                     + scrolled_coord_clamped.y * m_density.width
                     + scrolled_coord_clamped.z;
 
-                const Int32 index = x * m_density.width * m_density.height
+                const int32 index = x * m_density.width * m_density.height
                     + y * m_density.width
                     + z;
 
                 AssertThrow(scrolled_clamped_index >= 0);
 
                 const BoundingBox new_probe_aabb {
-                    m_aabb.min + (Vec3f(Float(x), Float(y), Float(z)) * size_of_probe),
-                    m_aabb.min + (Vec3f(Float(x + 1), Float(y + 1), Float(z + 1)) * size_of_probe)
+                    m_aabb.min + (Vec3f(float(x), float(y), float(z)) * size_of_probe),
+                    m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * size_of_probe)
                 };
 
                 const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(scrolled_clamped_index);
@@ -391,7 +391,7 @@ void EnvGrid::SetCameraData(const Vec3f &position)
     }
 
     if (updates.Any()) {
-        for (UInt update_index = 0; update_index < UInt(updates.Size()); update_index++) {
+        for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
             AssertThrow(update_index < m_env_probe_collection.num_probes);
             AssertThrow(updates[update_index] < m_env_probe_collection.num_probes);
 
@@ -431,14 +431,14 @@ void EnvGrid::Init()
                         + z;
 
                     const EnvProbeIndex binding_index = GetProbeBindingIndex(
-                        m_aabb.min + (Vec3f(Float(x), Float(y), Float(z)) * SizeOfProbe()),
+                        m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
                         m_aabb,
                         m_density
                     );
 
                     const BoundingBox env_probe_aabb(
-                        m_aabb.min + (Vec3f(Float(x), Float(y), Float(z)) * SizeOfProbe()),
-                        m_aabb.min + (Vec3f(Float(x + 1), Float(y + 1), Float(z + 1)) * SizeOfProbe())
+                        m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
+                        m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe())
                     );
 
                     Handle<EnvProbe> probe = CreateObject<EnvProbe>(
@@ -486,7 +486,7 @@ void EnvGrid::Init()
     {
         m_camera = CreateObject<Camera>(
             90.0f,
-            -Int(probe_dimensions.width), Int(probe_dimensions.height),
+            -int(probe_dimensions.width), int(probe_dimensions.height),
             0.001f, (m_aabb.GetExtent() / Vec3f(m_density)).Max()
         );
 
@@ -569,7 +569,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     m_render_list.UpdateRenderGroups();
 
-    for (UInt index = 0; index < m_env_probe_collection.num_probes; index++) {
+    for (uint index = 0; index < m_env_probe_collection.num_probes; index++) {
         // Don't worry about using the indirect index
         Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
         AssertThrow(probe.IsValid());
@@ -580,10 +580,10 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
 void EnvGrid::OnRender(Frame *frame)
 {
-    static constexpr UInt max_queued_probes_for_render = 1;
+    static constexpr uint max_queued_probes_for_render = 1;
 
     Threads::AssertOnThread(THREAD_RENDER);
-    const UInt num_ambient_probes = m_env_probe_collection.num_probes;
+    const uint num_ambient_probes = m_env_probe_collection.num_probes;
 
     m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
 
@@ -599,9 +599,9 @@ void EnvGrid::OnRender(Frame *frame)
         // // Offset the voxel grid.
         // const Vec3f offset = (grid_aabb.GetCenter() - Vector4(m_shader_data.center).GetXYZ()) / SizeOfProbe();
         // const Vec3i offset_i {
-        //     MathUtil::Floor<Float, Vec3i::Type>(offset.x),
-        //     MathUtil::Floor<Float, Vec3i::Type>(offset.y),
-        //     MathUtil::Floor<Float, Vec3i::Type>(offset.z)
+        //     MathUtil::Floor<float, Vec3i::Type>(offset.x),
+        //     MathUtil::Floor<float, Vec3i::Type>(offset.y),
+        //     MathUtil::Floor<float, Vec3i::Type>(offset.z)
         // };
 
         // OffsetVoxelGrid(frame, offset_i);
@@ -637,7 +637,7 @@ void EnvGrid::OnRender(Frame *frame)
 
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES)) {
         // Debug draw
-        for (UInt index = 0; index < m_env_probe_collection.num_probes; index++) {
+        for (uint index = 0; index < m_env_probe_collection.num_probes; index++) {
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
 
             if (!probe.IsValid()) {
@@ -671,11 +671,11 @@ void EnvGrid::OnRender(Frame *frame)
 
         const Vec3f &camera_position = g_engine->GetRenderState().GetCamera().camera.position;
 
-        Array<Pair<UInt, Float>> indices_distances;
+        Array<Pair<uint, float>> indices_distances;
         indices_distances.Reserve(16);
 
-        for (UInt i = 0; i < m_env_probe_collection.num_probes; i++) {
-            const UInt index = (m_current_probe_index + i) % m_env_probe_collection.num_probes;
+        for (uint i = 0; i < m_env_probe_collection.num_probes; i++) {
+            const uint index = (m_current_probe_index + i) % m_env_probe_collection.num_probes;
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
 
             if (probe.IsValid() && probe->NeedsRender()) {
@@ -692,8 +692,8 @@ void EnvGrid::OnRender(Frame *frame)
 
         if (indices_distances.Any()) {
             for (const auto &it : indices_distances) {
-                const UInt found_index = it.first;
-                const UInt indirect_index = m_env_probe_collection.GetEnvProbeIndexOnRenderThread(found_index);
+                const uint found_index = it.first;
+                const uint indirect_index = m_env_probe_collection.GetEnvProbeIndexOnRenderThread(found_index);
 
                 const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(indirect_index);
                 AssertThrow(probe.IsValid());
@@ -777,10 +777,10 @@ void EnvGrid::CreateVoxelGridData()
     );
 
     { // Voxel Grid mipmapping descriptor sets
-        const UInt num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const uint num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
 
-        for (UInt mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
+        for (uint mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
             m_voxel_grid_mips[mip_level] = MakeRenderObject<renderer::ImageView>();
 
             // create descriptor sets for mip generation.
@@ -824,7 +824,7 @@ void EnvGrid::CreateVoxelGridData()
     const renderer::DescriptorSetDeclaration *descriptor_set_decl = descriptor_table.FindDescriptorSetDeclaration(HYP_NAME(VoxelizeProbeDescriptorSet));
     AssertThrow(descriptor_set_decl != nullptr);
     
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // create descriptor sets for depth pyramid generation.
         DescriptorSetRef descriptor_set = MakeRenderObject<renderer::DescriptorSet>(*descriptor_set_decl);
 
@@ -914,7 +914,7 @@ void EnvGrid::CreateVoxelGridData()
             Array<DescriptorSetRef> { m_generate_voxel_grid_mipmaps_descriptor_sets[0] } // only need to pass first to use for layout.
         );
 
-        for (UInt mip_level = 0; mip_level < m_voxel_grid_texture->GetImage()->NumMipmaps(); mip_level++) {
+        for (uint mip_level = 0; mip_level < m_voxel_grid_texture->GetImage()->NumMipmaps(); mip_level++) {
             DeferCreate(
                 m_voxel_grid_mips[mip_level],
                 g_engine->GetGPUDevice(), 
@@ -945,7 +945,7 @@ void EnvGrid::CreateSHData()
         m_sh_tiles_buffer
     );
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_compute_sh_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
@@ -1137,7 +1137,7 @@ void EnvGrid::CreateLightFieldData()
     InitObject(m_light_field_filtered_distance_texture);
 
     // Descriptor sets
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_light_field_probe_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
@@ -1309,7 +1309,7 @@ void EnvGrid::CreateFramebuffer()
 
 void EnvGrid::RenderEnvProbe(
     Frame *frame,
-    UInt32 probe_index
+    uint32 probe_index
 )
 {
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
@@ -1318,7 +1318,7 @@ void EnvGrid::RenderEnvProbe(
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     {
-        struct alignas(128) { UInt32 env_probe_index; } push_constants;
+        struct alignas(128) { uint32 env_probe_index; } push_constants;
         push_constants.env_probe_index = probe->GetID().ToIndex();
 
         g_engine->GetRenderState().SetActiveEnvProbe(probe->GetID());
@@ -1365,7 +1365,7 @@ void EnvGrid::ComputeSH(
     Frame *frame,
     const Image *image,
     const ImageView *image_view,
-    UInt32 probe_index
+    uint32 probe_index
 )
 {
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
@@ -1380,8 +1380,8 @@ void EnvGrid::ComputeSH(
 
     struct alignas(128)
     {
-        ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec4<UInt32> cubemap_dimensions;
+        ShaderVec4<uint32> probe_grid_position;
+        ShaderVec4<uint32> cubemap_dimensions;
     } push_constants;
 
     AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
@@ -1455,9 +1455,9 @@ void EnvGrid::OffsetVoxelGrid(
 
     struct alignas(128)
     {
-        ShaderVec4<UInt32>  probe_grid_position;
-        ShaderVec4<UInt32>  cubemap_dimensions;
-        ShaderVec4<Int32>   offset;
+        ShaderVec4<uint32>  probe_grid_position;
+        ShaderVec4<uint32>  cubemap_dimensions;
+        ShaderVec4<int32>   offset;
     } push_constants;
 
     Memory::MemSet(&push_constants, 0, sizeof(push_constants));
@@ -1491,7 +1491,7 @@ void EnvGrid::OffsetVoxelGrid(
 
 void EnvGrid::VoxelizeProbe(
     Frame *frame,
-    UInt32 probe_index
+    uint32 probe_index
 )
 {
     AssertThrow(m_voxel_grid_texture.IsValid());
@@ -1509,9 +1509,9 @@ void EnvGrid::VoxelizeProbe(
 
     struct alignas(128)
     {
-        ShaderVec4<UInt32>  probe_grid_position;
-        ShaderVec4<UInt32>  cubemap_dimensions;
-        ShaderVec4<Float32> world_position;
+        ShaderVec4<uint32>  probe_grid_position;
+        ShaderVec4<uint32>  cubemap_dimensions;
+        ShaderVec4<float32> world_position;
     } push_constants;
 
     push_constants.probe_grid_position = {
@@ -1577,11 +1577,11 @@ void EnvGrid::VoxelizeProbe(
 
         m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
-        const UInt num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const uint num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
         const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
         Extent3D mip_extent = voxel_image_extent;
 
-        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+        for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
             const Extent3D prev_mip_extent = mip_extent;
 
             mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
@@ -1608,8 +1608,8 @@ void EnvGrid::VoxelizeProbe(
                 frame->GetCommandBuffer(),
                 Pipeline::PushConstantData {
                     .voxel_mip_data = {
-                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(mip_extent), 0),
-                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(prev_mip_extent), 0),
+                        .mip_dimensions = renderer::ShaderVec4<uint32>(Vec3u(mip_extent), 0),
+                        .prev_mip_dimensions = renderer::ShaderVec4<uint32>(Vec3u(prev_mip_extent), 0),
                         .mip_level = mip_level
                     }
                 }
@@ -1642,7 +1642,7 @@ void EnvGrid::VoxelizeProbe(
 
 void EnvGrid::ComputeLightFieldData(
     Frame *frame,
-    UInt32 probe_index
+    uint32 probe_index
 )
 {
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
@@ -1679,11 +1679,11 @@ void EnvGrid::ComputeLightFieldData(
     const ID<EnvProbe> id = probe->GetID();
 
     struct alignas(128) {
-        ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec4<UInt32> cubemap_dimensions;
-        ShaderVec4<UInt32> probe_offset_coord;
-        ShaderVec4<UInt32> probe_offset_coord_lowres;
-        ShaderVec4<UInt32> grid_dimensions;
+        ShaderVec4<uint32> probe_grid_position;
+        ShaderVec4<uint32> cubemap_dimensions;
+        ShaderVec4<uint32> probe_offset_coord;
+        ShaderVec4<uint32> probe_offset_coord_lowres;
+        ShaderVec4<uint32> grid_dimensions;
     } push_constants;
 
     AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);

@@ -47,7 +47,7 @@ public:
     DefinitionsFile(const FilePath &path);
     ~DefinitionsFile() = default;
 
-    Bool IsValid() const
+    bool IsValid() const
         { return m_is_valid; }
 
     const FilePath &GetFilePath() const
@@ -56,7 +56,7 @@ public:
     const HashMap<String, Section> &GetSections() const
         { return m_sections; }
 
-    Bool HasSection(const String &key) const
+    bool HasSection(const String &key) const
         { return m_sections.Contains(key); }
 
     Section &GetSection(const String &key)
@@ -65,7 +65,7 @@ public:
 private:
     void Parse();
 
-    Bool                        m_is_valid;
+    bool                        m_is_valid;
     FilePath                    m_path;
 
     HashMap<String, Section>    m_sections;

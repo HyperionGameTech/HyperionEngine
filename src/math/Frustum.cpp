@@ -17,12 +17,12 @@ Frustum::Frustum(const Matrix4 &view_proj)
     SetFromViewProjectionMatrix(view_proj);
 }
 
-Bool Frustum::ContainsAABB(const BoundingBox &aabb) const
+bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 {
     const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
     for (const Vec4f &plane : m_planes) {
-        Bool pass = false;
+        bool pass = false;
 
         for (const Vec3f &corner : corners) {
             if (plane.Dot(Vec4f(corner, 1.0f)) > 0.0f) {
@@ -41,7 +41,7 @@ Bool Frustum::ContainsAABB(const BoundingBox &aabb) const
     return true;
 }
 
-Bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
+bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
 {
     for (const Vec4f &plane : m_planes) {
         if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius) {
@@ -105,7 +105,7 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
         Vec3f {  1, -1, 1 }
     };
 
-    for (UInt i = 0; i < 8; i++) {
+    for (uint i = 0; i < 8; i++) {
         Vec4f corner = clip_to_world * Vec4f(corners_ndc[i], 1.0f);
         corner /= corner.w;
 
@@ -115,7 +115,7 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
     return *this;
 }
 
-Vec3f Frustum::GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const
+Vec3f Frustum::GetIntersectionPoint(uint plane_index_0, uint plane_index_1, uint plane_index_2) const
 {
     const Vec4f planes[3] = { GetPlane(plane_index_0), GetPlane(plane_index_1), GetPlane(plane_index_2) };
 

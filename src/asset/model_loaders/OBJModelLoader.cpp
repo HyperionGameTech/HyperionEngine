@@ -31,7 +31,7 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
 {
     Vector result { 0.0f };
 
-    Int value_index = 0;
+    int value_index = 0;
 
     for (SizeType i = offset; i < tokens.Size(); i++) {
         const String &token = tokens[i];
@@ -40,7 +40,7 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
             continue;
         }
 
-        result.values[value_index++] = static_cast<Float>(std::atof(token.Data()));
+        result.values[value_index++] = static_cast<float>(std::atof(token.Data()));
 
         if (value_index == std::size(result.values)) {
             break;
@@ -53,7 +53,7 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
 static void AddMesh(OBJModel &model, const String &tag, const String &material)
 {
     String unique_tag(tag);
-    Int counter = 0;
+    int counter = 0;
 
     while (model.meshes.Any([&unique_tag](const OBJMesh &obj_mesh) { return obj_mesh.tag == unique_tag; })) {
         unique_tag = tag + String::ToString(++counter);
@@ -85,13 +85,13 @@ static auto ParseOBJIndex(const String &token)
         if (!part.Empty()) {
             switch (token_index) {
             case 0:
-                obj_index.vertex = StringUtil::Parse<Int64>(part.Data()) - 1;
+                obj_index.vertex = StringUtil::Parse<int64>(part.Data()) - 1;
                 break;
             case 1:
-                obj_index.texcoord = StringUtil::Parse<Int64>(part.Data()) - 1;
+                obj_index.texcoord = StringUtil::Parse<int64>(part.Data()) - 1;
                 break;
             case 2:
-                obj_index.normal = StringUtil::Parse<Int64>(part.Data()) - 1;
+                obj_index.normal = StringUtil::Parse<int64>(part.Data()) - 1;
                 break;
             default:
                 // ??
@@ -106,14 +106,14 @@ static auto ParseOBJIndex(const String &token)
 }
 
 template <class Vector>
-Vector GetIndexedVertexProperty(Int64 vertex_index, const Array<Vector> &vectors)
+Vector GetIndexedVertexProperty(int64 vertex_index, const Array<Vector> &vectors)
 {
-    const Int64 vertex_absolute = vertex_index >= 0
+    const int64 vertex_absolute = vertex_index >= 0
         ? vertex_index
-        : static_cast<Int64>(vectors.Size()) + (vertex_index);
+        : static_cast<int64>(vectors.Size()) + (vertex_index);
 
     AssertReturnMsg(
-        vertex_absolute >= 0 && vertex_absolute < static_cast<Int64>(vectors.Size()),
+        vertex_absolute >= 0 && vertex_absolute < static_cast<int64>(vectors.Size()),
         Vector(),
         "Vertex index of %lld (absolute: %lld) is out of bounds (%llu)\n",
         vertex_index,
@@ -184,7 +184,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
             }
 
             /* Performs simple triangulation on quad faces */
-            for (Int64 i = 0; i < static_cast<Int64>(tokens.Size()) - 3; i++) {
+            for (int64 i = 0; i < static_cast<int64>(tokens.Size()) - 3; i++) {
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[1]));
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[2 + i]));
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[3 + i]));

@@ -43,24 +43,24 @@ struct DrawCall;
 
 struct DrawCommandData
 {
-    UInt draw_command_index;
+    uint draw_command_index;
 };
 
 class IndirectDrawState
 {
 public:
-    static constexpr UInt batch_size = 256u;
-    static constexpr UInt initial_count = batch_size;
+    static constexpr uint batch_size = 256u;
+    static constexpr uint initial_count = batch_size;
     // should sizes be scaled up to the next power of 2?
     static constexpr bool use_next_pow2_size = true;
 
     IndirectDrawState();
     ~IndirectDrawState();
 
-    const GPUBufferRef &GetInstanceBuffer(UInt frame_index) const
+    const GPUBufferRef &GetInstanceBuffer(uint frame_index) const
         { return m_instance_buffers[frame_index]; }
 
-    const GPUBufferRef &GetIndirectBuffer(UInt frame_index) const
+    const GPUBufferRef &GetIndirectBuffer(uint frame_index) const
         { return m_indirect_buffers[frame_index]; }
 
     const Array<ObjectInstance> &GetInstances() const
@@ -89,7 +89,7 @@ private:
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_instance_buffers;
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_staging_buffers;
     FixedArray<bool, max_frames_in_flight>          m_is_dirty;
-    UInt32                                          m_num_draw_commands;
+    uint32                                          m_num_draw_commands;
 };
 
 struct alignas(16) IndirectParams
@@ -123,7 +123,7 @@ private:
     Handle<ComputePipeline> m_object_visibility;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     CullData m_cached_cull_data;
-    UInt8 m_cached_cull_data_updated_bits;
+    uint8 m_cached_cull_data_updated_bits;
 };
 
 } // namespace hyperion::v2

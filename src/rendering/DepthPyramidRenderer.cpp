@@ -40,8 +40,8 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     // create depth pyramid image
     m_depth_pyramid = MakeRenderObject<renderer::Image>(renderer::StorageImage(
         Extent3D {
-            UInt32(MathUtil::NextPowerOf2(depth_image->GetExtent().width)),
-            UInt32(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
+            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().width)),
+            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
             1
         },
         InternalFormat::R32F,
@@ -55,10 +55,10 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     m_depth_pyramid_view = MakeRenderObject<renderer::ImageView>();
     m_depth_pyramid_view->Create(g_engine->GetGPUDevice(), m_depth_pyramid);
 
-    const UInt num_mip_levels = m_depth_pyramid->NumMipmaps();
+    const uint num_mip_levels = m_depth_pyramid->NumMipmaps();
     m_depth_pyramid_mips.Reserve(num_mip_levels);
 
-    for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+    for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
         ImageViewRef mip_image_view = MakeRenderObject<renderer::ImageView>();
 
         HYPERION_ASSERT_RESULT(mip_image_view->Create(
@@ -77,8 +77,8 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     const renderer::DescriptorSetDeclaration *depth_pyramid_descriptor_set_decl = descriptor_table.FindDescriptorSetDeclaration(HYP_NAME(DepthPyramidDescriptorSet));
     AssertThrow(depth_pyramid_descriptor_set_decl != nullptr);
     
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
+        for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
             // create descriptor sets for depth pyramid generation.
             DescriptorSetRef depth_pyramid_descriptor_set = MakeRenderObject<renderer::DescriptorSet>(*depth_pyramid_descriptor_set_decl);
 
@@ -123,7 +123,7 @@ void DepthPyramidRenderer::Destroy()
     SafeRelease(std::move(m_depth_pyramid_view));
     SafeRelease(std::move(m_depth_pyramid_mips));
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         SafeRelease(std::move(m_depth_pyramid_descriptor_sets[frame_index]));
     }
 
@@ -140,7 +140,7 @@ void DepthPyramidRenderer::Destroy()
 void DepthPyramidRenderer::Render(Frame *frame)
 {
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     DebugMarker marker(command_buffer, "Depth pyramid generation");
 
@@ -149,10 +149,10 @@ void DepthPyramidRenderer::Render(Frame *frame)
     const Extent3D &image_extent = m_depth_attachment_usage->GetAttachment()->GetImage()->GetExtent();
     const Extent3D &depth_pyramid_extent = m_depth_pyramid->GetExtent();
 
-    UInt32 mip_width = image_extent.width,
+    uint32 mip_width = image_extent.width,
         mip_height = image_extent.height;
 
-    for (UInt mip_level = 0; mip_level < num_depth_pyramid_mip_levels; mip_level++) {
+    for (uint mip_level = 0; mip_level < num_depth_pyramid_mip_levels; mip_level++) {
         // level 0 == write just-rendered depth image into mip 0
 
         // put the mip into writeable state
@@ -162,7 +162,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
             renderer::ResourceState::UNORDERED_ACCESS
         );
         
-        const UInt32 prev_mip_width = mip_width,
+        const uint32 prev_mip_width = mip_width,
             prev_mip_height = mip_height;
 
         mip_width = MathUtil::Max(1u, depth_pyramid_extent.width >> (mip_level));
@@ -181,8 +181,8 @@ void DepthPyramidRenderer::Render(Frame *frame)
             command_buffer,
             Pipeline::PushConstantData {
                 .depth_pyramid_data = {
-                    .mip_dimensions = renderer::ShaderVec2<UInt32>(mip_width, mip_height),
-                    .prev_mip_dimensions = renderer::ShaderVec2<UInt32>(prev_mip_width, prev_mip_height),
+                    .mip_dimensions = renderer::ShaderVec2<uint32>(mip_width, mip_height),
+                    .prev_mip_dimensions = renderer::ShaderVec2<uint32>(prev_mip_width, prev_mip_height),
                     .mip_level = mip_level
                 }
             }

@@ -16,7 +16,7 @@
 namespace hyperion {
 namespace detail {
 
-template <class CountType = UInt>
+template <class CountType = uint>
 struct RefCountData
 {
     void        *value;
@@ -89,7 +89,7 @@ class WeakRefCountedPtrBase;
 template <class T, class CountType>
 class WeakRefCountedPtr;
 
-template <class CountType = UInt>
+template <class CountType = uint>
 class RefCountedPtrBase
 {
     friend class WeakRefCountedPtrBase<CountType>;
@@ -300,7 +300,7 @@ protected:
 
 /*! \brief A simple ref counted pointer class.
     Not atomic by default, but using AtomicRefCountedPtr allows it to be. */
-template <class T, class CountType = UInt>
+template <class T, class CountType = uint>
 class RefCountedPtr : public RefCountedPtrBase<CountType>
 {
     friend class WeakRefCountedPtr<std::remove_const_t<T>, CountType>;
@@ -609,7 +609,7 @@ public:
 
 // weak ref counters
 
-template <class CountType = UInt>
+template <class CountType = uint>
 class WeakRefCountedPtrBase
 {
 protected:
@@ -766,7 +766,7 @@ protected:
     RefCountDataType *m_ref;
 };
 
-template <class T, class CountType = UInt>
+template <class T, class CountType = uint>
 class WeakRefCountedPtr : public WeakRefCountedPtrBase<CountType>
 {
 protected:
@@ -842,7 +842,7 @@ public:
     }
 };
 
-template <class T, class CountType = UInt>
+template <class T, class CountType = uint>
 class RefCountedRef
 {
     struct Data
@@ -993,22 +993,22 @@ public:
 } // namespace detail
 
 template <class T>
-using AtomicRefCountedPtr = detail::RefCountedPtr<T, std::atomic<UInt>>;
+using AtomicRefCountedPtr = detail::RefCountedPtr<T, std::atomic<uint>>;
 
 template <class T>
-using RefCountedPtr = detail::RefCountedPtr<T, UInt>;
+using RefCountedPtr = detail::RefCountedPtr<T, uint>;
 
 
-template <class T, class CountType = std::atomic<UInt>>
+template <class T, class CountType = std::atomic<uint>>
 using Weak = detail::WeakRefCountedPtr<T, CountType>; 
 
-template <class T, class CountType = std::atomic<UInt>>
+template <class T, class CountType = std::atomic<uint>>
 using RC = detail::RefCountedPtr<T, CountType>;
 
-template <class T, class CountType = std::atomic<UInt>>
+template <class T, class CountType = std::atomic<uint>>
 using Ref = detail::RefCountedRef<T, CountType>;
 
-// template <class T, class CountType = std::atomic<UInt>>
+// template <class T, class CountType = std::atomic<uint>>
 // class EnableRefCountedPtrFromThis
 // {
 // public:

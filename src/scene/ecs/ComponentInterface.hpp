@@ -17,7 +17,7 @@ namespace hyperion::v2 {
 
 class ComponentInterfaceBase;
 
-using ComponentPropertyFlags = UInt32;
+using ComponentPropertyFlags = uint32;
 
 enum ComponentPropertyFlagBits : ComponentPropertyFlags
 {
@@ -30,7 +30,7 @@ enum ComponentPropertyFlagBits : ComponentPropertyFlags
 class ComponentProperty
 {
 public:
-    using Value = Variant<bool, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Vec3f, Vec3i, Vec3u, Vec4f, Vec4i, Vec4u, Quaternion, Matrix4>;
+    using Value = Variant<bool, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double, String, Vec3f, Vec3i, Vec3u, Vec4f, Vec4i, Vec4u, Quaternion, Matrix4>;
 
     using Getter = std::add_pointer_t<Value (const void *component)>;
     using Setter = std::add_pointer_t<void (void *component, Value &&value)>;
@@ -71,15 +71,15 @@ public:
         { return m_name; }
 
     HYP_FORCE_INLINE
-    Bool IsReadable() const
+    bool IsReadable() const
         { return m_flags & COMPONENT_PROPERTY_FLAG_READ; }
 
     HYP_FORCE_INLINE
-    Bool IsWritable() const
+    bool IsWritable() const
         { return m_flags & COMPONENT_PROPERTY_FLAG_WRITE; }
 
     HYP_FORCE_INLINE
-    Bool IsReadOnly() const
+    bool IsReadOnly() const
         { return !IsWritable(); }
 
     HYP_FORCE_INLINE

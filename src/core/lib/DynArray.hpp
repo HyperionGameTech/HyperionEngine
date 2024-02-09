@@ -37,7 +37,7 @@ public:
     using ValueType = T;
     using Storage = ValueStorage<ValueType>;
 
-    static constexpr Bool is_contiguous = true;
+    static constexpr bool is_contiguous = true;
     
     static constexpr bool is_pod_type = IsPODType<T>;
     
@@ -257,7 +257,7 @@ public:
     /*! Shift the array to the left by {count} times */
     void Shift(SizeType count);
 
-    DynArray<T, NumInlineBytes> Slice(Int first, Int last) const;
+    DynArray<T, NumInlineBytes> Slice(int first, int last) const;
 
     void Concat(const DynArray &other);
     void Concat(DynArray &&other);
@@ -327,7 +327,7 @@ protected:
         if constexpr (use_inline_storage) {
             Storage *buffers[] = { &m_inline_storage[0], m_buffer };
 
-            return reinterpret_cast<T *>(buffers[static_cast<UInt>(m_is_dynamic)]);
+            return reinterpret_cast<T *>(buffers[static_cast<uint>(m_is_dynamic)]);
         } else {
             return reinterpret_cast<T *>(m_buffer);
         }
@@ -338,7 +338,7 @@ protected:
         if constexpr (use_inline_storage) {
             const Storage *buffers[] = { &m_inline_storage[0], m_buffer };
 
-            return reinterpret_cast<const T *>(buffers[static_cast<UInt>(m_is_dynamic)]);
+            return reinterpret_cast<const T *>(buffers[static_cast<uint>(m_is_dynamic)]);
         } else {
             return reinterpret_cast<const T *>(m_buffer);
         }
@@ -349,7 +349,7 @@ protected:
         if constexpr (use_inline_storage) {
             Storage *buffers[] = { &m_inline_storage[0], m_buffer };
 
-            return buffers[static_cast<UInt>(m_is_dynamic)];
+            return buffers[static_cast<uint>(m_is_dynamic)];
         } else {
             return m_buffer;
         }
@@ -360,7 +360,7 @@ protected:
         if constexpr (use_inline_storage) {
             const Storage *buffers[] = { &m_inline_storage[0], m_buffer };
 
-            return buffers[static_cast<UInt>(m_is_dynamic)];
+            return buffers[static_cast<uint>(m_is_dynamic)];
         } else {
             return m_buffer;
         }
@@ -675,7 +675,7 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
 
         // set internal buffer to the new one
         m_capacity = capacity;
-        m_size -= static_cast<Int64>(m_start_offset) - static_cast<Int64>(copy_offset);
+        m_size -= static_cast<int64>(m_start_offset) - static_cast<int64>(copy_offset);
         m_buffer = new_buffer;
         m_is_dynamic = true;
         m_start_offset = copy_offset;
@@ -736,7 +736,7 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
             }
         }
 
-        m_size -= static_cast<Int64>(m_start_offset) - static_cast<Int64>(copy_offset);
+        m_size -= static_cast<int64>(m_start_offset) - static_cast<int64>(copy_offset);
         m_start_offset = copy_offset;
 
         // not currently dynamic; no need to reduce capacity of inline buffer
@@ -984,7 +984,7 @@ void DynArray<T, NumInlineBytes>::Shift(SizeType count)
 
 
 template <class T, SizeType NumInlineBytes>
-DynArray<T, NumInlineBytes> DynArray<T, NumInlineBytes>::Slice(Int first, Int last) const
+DynArray<T, NumInlineBytes> DynArray<T, NumInlineBytes>::Slice(int first, int last) const
 {
     if (first < 0) {
         first = Size() + first;

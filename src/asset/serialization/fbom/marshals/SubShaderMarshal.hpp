@@ -20,7 +20,7 @@ public:
 
     virtual FBOMResult Serialize(const SubShader &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMUnsignedInt(), static_cast<UInt32>(in_object.type));
+        out.SetProperty("type", FBOMUnsignedInt(), static_cast<uint32>(in_object.type));
 
         out.SetProperty(
             "bytes",
@@ -35,7 +35,7 @@ public:
     {
         auto sub_shader = UniquePtr<SubShader>::Construct();
 
-        if (auto err = in.GetProperty("type").ReadUInt32(&sub_shader->type)) {
+        if (auto err = in.GetProperty("type").ReadUnsignedInt(&sub_shader->type)) {
             return err;
         }
 

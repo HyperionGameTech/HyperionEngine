@@ -18,7 +18,7 @@ void Entity::Init()
     SetReady(true);
 }
 
-Bool Entity::IsReady() const
+bool Entity::IsReady() const
 {
     return Base::IsReady();
 }

@@ -8,7 +8,7 @@
 
 namespace hyperion::renderer {
 
-using ImageFlags = UInt32;
+using ImageFlags = uint32;
 
 enum ImageFlagBits : ImageFlags
 {
@@ -16,14 +16,14 @@ enum ImageFlagBits : ImageFlags
     IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
 };
 
-enum class ImageType : UInt32
+enum class ImageType : uint32
 {
     TEXTURE_TYPE_2D = 0,
     TEXTURE_TYPE_3D = 1,
     TEXTURE_TYPE_CUBEMAP = 2
 };
 
-enum class BaseFormat : UInt32
+enum class BaseFormat : uint32
 {
     TEXTURE_FORMAT_NONE,
     TEXTURE_FORMAT_R,
@@ -37,7 +37,7 @@ enum class BaseFormat : UInt32
     TEXTURE_FORMAT_DEPTH
 };
 
-enum class InternalFormat : UInt32
+enum class InternalFormat : uint32
 {
     NONE,
 
@@ -95,7 +95,7 @@ enum class InternalFormat : UInt32
     DEPTH_32F
 };
 
-enum class FilterMode : UInt32
+enum class FilterMode : uint32
 {
     TEXTURE_FILTER_NEAREST,
     TEXTURE_FILTER_LINEAR,
@@ -104,14 +104,14 @@ enum class FilterMode : UInt32
     TEXTURE_FILTER_MINMAX_MIPMAP
 };
 
-enum class WrapMode : UInt32
+enum class WrapMode : uint32
 {
     TEXTURE_WRAP_CLAMP_TO_EDGE,
     TEXTURE_WRAP_CLAMP_TO_BORDER,
     TEXTURE_WRAP_REPEAT
 };
 
-enum class TextureMode : UInt32
+enum class TextureMode : uint32
 {
     SAMPLED,
     STORAGE
@@ -167,7 +167,7 @@ static inline BaseFormat GetBaseFormat(InternalFormat fmt)
     }
 }
 
-static inline UInt NumComponents(BaseFormat format)
+static inline uint NumComponents(BaseFormat format)
 {
     switch (format) {
     case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
@@ -182,12 +182,12 @@ static inline UInt NumComponents(BaseFormat format)
     }
 }
 
-static inline UInt NumComponents(InternalFormat format)
+static inline uint NumComponents(InternalFormat format)
 {
     return NumComponents(GetBaseFormat(format));
 }
 
-static inline UInt NumBytes(InternalFormat format)
+static inline uint NumBytes(InternalFormat format)
 {
     switch (format) {
     case InternalFormat::R8:
@@ -236,13 +236,13 @@ static inline UInt NumBytes(InternalFormat format)
 
 /*! \brief returns a texture format that has a shifted bytes-per-pixel count
  * e.g calling with RGB16 and num components = 4 --> RGBA16 */
-static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, UInt8 new_num_components)
+static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
 {
     if (new_num_components == 0) {
         return InternalFormat::NONE;
     }
 
-    new_num_components = MathUtil::Clamp(new_num_components, static_cast<UInt8>(1), static_cast<UInt8>(4));
+    new_num_components = MathUtil::Clamp(new_num_components, static_cast<uint8>(1), static_cast<uint8>(4));
 
     int current_num_components = int(NumComponents(fmt));
 

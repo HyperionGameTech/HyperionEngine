@@ -19,7 +19,7 @@ namespace detail {
 template <class T>
 struct alignas(alignof(T) * 2) Vec2
 {
-    static constexpr UInt size = 2;
+    static constexpr uint size = 2;
 
     using Type = T;
 
@@ -90,16 +90,16 @@ struct alignas(alignof(T) * 2) Vec2
     Vec2 &operator^=(const Vec2 &other)
         { x ^= other.x; y ^= other.y; return *this; }
 
-    constexpr Bool operator==(const Vec2 &other) const
+    constexpr bool operator==(const Vec2 &other) const
         { return x == other.x && y == other.y; }
 
-    constexpr Bool operator!=(const Vec2 &other) const
+    constexpr bool operator!=(const Vec2 &other) const
         { return x != other.x || y != other.y; }
 
     constexpr Vec2 operator-() const
         { return operator*(T(-1)); }
 
-    constexpr Bool operator<(const Vec2 &other) const
+    constexpr bool operator<(const Vec2 &other) const
     {
         if (x != other.x) return x < other.x;
         if (y != other.y) return y < other.y;
@@ -136,18 +136,18 @@ struct alignas(alignof(T) * 2) Vec2
 };
 
 template <>
-struct alignas(alignof(Float) * 2) Vec2<Float>
+struct alignas(alignof(float) * 2) Vec2<float>
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vec2<Float> &vec);
+    friend std::ostream &operator<<(std::ostream &out, const Vec2<float> &vec);
 public:
-    static constexpr UInt size = 2;
+    static constexpr uint size = 2;
 
     static const Vec2 zero;
     static const Vec2 one;
 
     union {
-        struct { Float x, y; };
-        Float values[2];
+        struct { float x, y; };
+        float values[2];
     };
 
     constexpr Vec2()
@@ -155,12 +155,12 @@ public:
     {
     }
 
-    constexpr Vec2(Float x, Float y)
+    constexpr Vec2(float x, float y)
         : x(x), y(y)
     {
     }
 
-    constexpr Vec2(Float xy)
+    constexpr Vec2(float xy)
         : x(xy), y(xy)
     {
     }
@@ -170,20 +170,20 @@ public:
     {
     }
 
-    Float GetX() const      { return x; }
-    Float &GetX()           { return x; }
-    Vec2 &SetX(Float x)     { this->x = x; return *this; }
-    Float GetY() const      { return y; }
-    Float &GetY()           { return y; }
-    Vec2 &SetY(Float y)     { this->y = y; return *this; }
+    float GetX() const      { return x; }
+    float &GetX()           { return x; }
+    Vec2 &SetX(float x)     { this->x = x; return *this; }
+    float GetY() const      { return y; }
+    float &GetY()           { return y; }
+    Vec2 &SetY(float y)     { this->y = y; return *this; }
     
-    constexpr Float operator[](SizeType index) const
+    constexpr float operator[](SizeType index) const
         { return values[index]; }
 
-    constexpr Float &operator[](SizeType index)
+    constexpr float &operator[](SizeType index)
         { return values[index]; }
 
-    explicit operator Bool() const
+    explicit operator bool() const
         { return Sum() != 0.0f; }
 
     template <class U>
@@ -217,16 +217,16 @@ public:
     Vec2 &operator/=(const Vec2 &other)
         { x /= other.x; y /= other.y; return *this; }
 
-    constexpr Bool operator==(const Vec2 &other) const
+    constexpr bool operator==(const Vec2 &other) const
         { return x == other.x && y == other.y; }
 
-    constexpr Bool operator!=(const Vec2 &other) const
+    constexpr bool operator!=(const Vec2 &other) const
         { return x != other.x || y != other.y; }
 
     constexpr Vec2 operator-() const
         { return operator*(-1.0f); }
 
-    constexpr Bool operator<(const Vec2 &other) const
+    constexpr bool operator<(const Vec2 &other) const
     {
         if (x != other.x) return x < other.x;
         if (y != other.y) return y < other.y;
@@ -234,23 +234,23 @@ public:
         return false;
     }
 
-    constexpr Float LengthSquared() const { return x * x + y * y; }
-    Float Length() const { return std::sqrt(LengthSquared()); }
+    constexpr float LengthSquared() const { return x * x + y * y; }
+    float Length() const { return std::sqrt(LengthSquared()); }
 
-    constexpr Float Avg() const { return (x + y) / 2.0f; }
-    constexpr Float Sum() const { return x + y; }
-    Float Max() const;
-    Float Min() const;
+    constexpr float Avg() const { return (x + y) / 2.0f; }
+    constexpr float Sum() const { return x + y; }
+    float Max() const;
+    float Min() const;
 
-    Float Distance(const Vec2 &other) const;
-    Float DistanceSquared(const Vec2 &other) const;
+    float Distance(const Vec2 &other) const;
+    float DistanceSquared(const Vec2 &other) const;
 
     Vec2 &Normalize();
-    Vec2 &Lerp(const Vec2 &to, const Float amt);
+    Vec2 &Lerp(const Vec2 &to, const float amt);
 
     static Vec2 Abs(const Vec2 &);
     static Vec2 Round(const Vec2 &);
-    static Vec2 Clamp(const Vec2 &, Float min, Float max);
+    static Vec2 Clamp(const Vec2 &, float min, float max);
     static Vec2 Min(const Vec2 &a, const Vec2 &b);
     static Vec2 Max(const Vec2 &a, const Vec2 &b);
 
@@ -281,25 +281,25 @@ using Vec2 = detail::Vec2<T>;
 template <class T>
 using Vec2 = math::Vec2<T>;
 
-using Vec2f = Vec2<Float>;
-using Vec2i = Vec2<Int>;
-using Vec2u = Vec2<UInt>;
+using Vec2f = Vec2<float>;
+using Vec2i = Vec2<int>;
+using Vec2u = Vec2<uint>;
 
 static_assert(sizeof(Vec2f) == 8);
 static_assert(sizeof(Vec2i) == 8);
 static_assert(sizeof(Vec2u) == 8);
 
 template <class T>
-inline constexpr Bool is_vec2 = false;
+inline constexpr bool is_vec2 = false;
 
 template <>
-inline constexpr Bool is_vec2<Vec2f> = true;
+inline constexpr bool is_vec2<Vec2f> = true;
 
 template <>
-inline constexpr Bool is_vec2<Vec2i> = true;
+inline constexpr bool is_vec2<Vec2i> = true;
 
 template <>
-inline constexpr Bool is_vec2<Vec2u> = true;
+inline constexpr bool is_vec2<Vec2u> = true;
 
 // transitional typedef
 using Vector2 = Vec2f;

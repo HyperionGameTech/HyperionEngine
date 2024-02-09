@@ -242,7 +242,7 @@ void Scene::CollectEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
     Optional<RenderableAttributeSet> override_attributes,
-    Bool skip_frustum_culling
+    bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(THREAD_GAME | THREAD_TASK);
@@ -257,9 +257,9 @@ void Scene::CollectEntities(
     const ID<Camera> camera_id = camera->GetID();
 
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
-    const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
+    const uint32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
-    const UInt8 visibility_cursor = m_octree.LoadVisibilityCursor();
+    const uint8 visibility_cursor = m_octree.LoadVisibilityCursor();
     const VisibilityState &parent_visibility_state = m_octree.GetVisibilityState();
 
     for (auto it : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>()) {
@@ -323,7 +323,7 @@ void Scene::EnqueueRenderUpdates()
     {
         ID<Scene> id;
         BoundingBox aabb;
-        Float global_timer;
+        float global_timer;
         FogParams fog_params;
         RenderEnvironment *render_environment;
         SceneDrawProxy &draw_proxy;
@@ -331,7 +331,7 @@ void Scene::EnqueueRenderUpdates()
         RENDER_COMMAND(UpdateSceneRenderData)(
             ID<Scene> id,
             const BoundingBox &aabb,
-            Float global_timer,
+            float global_timer,
             const FogParams &fog_params,
             RenderEnvironment *render_environment,
             SceneDrawProxy &draw_proxy
@@ -346,14 +346,14 @@ void Scene::EnqueueRenderUpdates()
 
         virtual Result operator()()
         {
-            const UInt frame_counter = render_environment->GetFrameCounter();
+            const uint frame_counter = render_environment->GetFrameCounter();
 
             draw_proxy.frame_counter = frame_counter;
 
             SceneShaderData shader_data { };
             shader_data.aabb_max         = Vector4(aabb.max, 1.0f);
             shader_data.aabb_min         = Vector4(aabb.min, 1.0f);
-            shader_data.fog_params       = Vector4(Float(fog_params.color.Packed()), fog_params.start_distance, fog_params.end_distance, 0.0f);
+            shader_data.fog_params       = Vector4(float(fog_params.color.Packed()), fog_params.start_distance, fog_params.end_distance, 0.0f);
             shader_data.global_timer     = global_timer;
             shader_data.frame_counter    = frame_counter;
             shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();
@@ -377,7 +377,7 @@ void Scene::EnqueueRenderUpdates()
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-Bool Scene::CreateTLAS()
+bool Scene::CreateTLAS()
 {
     AssertThrowMsg(IsWorldScene(), "Can only create TLAS for world scenes");
     AssertIsInitCalled();

@@ -167,7 +167,7 @@ JSONObject JSONSubscriptWrapper<JSONValue>::ToObject() const
     return value->ToObject();
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UInt index)
+JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint index)
 {
     if (!value) {
         return *this;
@@ -186,7 +186,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UInt
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UInt index) const
+JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint index) const
 {
     return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointer<decltype(this)>>(this)->operator[](index).value };
 }
@@ -340,7 +340,7 @@ JSONObject JSONSubscriptWrapper<const JSONValue>::ToObject() const
     return value->ToObject();
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](UInt index) const
+JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](uint index) const
 {
     if (!value) {
         return *this;

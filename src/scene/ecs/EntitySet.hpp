@@ -24,9 +24,9 @@ template <class ... Components>
 struct EntitySetIterator
 {
     EntitySet<Components...>    &set;
-    UInt                        index;
+    uint                        index;
 
-    EntitySetIterator(EntitySet<Components...> &set, UInt index)
+    EntitySetIterator(EntitySet<Components...> &set, uint index)
         : set(set),
           index(index)
     {
@@ -41,13 +41,13 @@ struct EntitySetIterator
     EntitySetIterator &operator++()
         { ++index; return *this; }
 
-    EntitySetIterator operator++(Int)
+    EntitySetIterator operator++(int)
         { EntitySetIterator it = *this; ++index; return it; }
 
-    Bool operator==(const EntitySetIterator &other) const
+    bool operator==(const EntitySetIterator &other) const
         { return std::addressof(set) == std::addressof(other.set) && index == other.index; }
 
-    Bool operator!=(const EntitySetIterator &other) const
+    bool operator!=(const EntitySetIterator &other) const
         { return !(*this == other); }
 
     std::tuple<ID<Entity>, Components &...> operator*()
@@ -192,7 +192,7 @@ public:
      *
      *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
      */
-    virtual Bool ValidForEntity(ID<Entity> entity) const override
+    virtual bool ValidForEntity(ID<Entity> entity) const override
     {
         return m_entities.GetEntityData(entity).template HasComponents<Components...>();
     }

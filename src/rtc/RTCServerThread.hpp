@@ -23,7 +23,7 @@ public:
 private:
     virtual void operator()(RTCServer *) override;
 
-    AtomicVar<Bool> m_is_running;
+    AtomicVar<bool> m_is_running;
 };
 
 } // namespace hyperion::v2

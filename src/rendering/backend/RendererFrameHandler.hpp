@@ -32,9 +32,9 @@ template <PlatformType PLATFORM>
 class FrameHandler
 {
 public:
-    using NextImageFunction = std::add_pointer_t<Result(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, UInt *image_index)>;
+    using NextImageFunction = std::add_pointer_t<Result(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, uint *image_index)>;
 
-    FrameHandler(UInt num_frames, NextImageFunction next_image);
+    FrameHandler(uint num_frames, NextImageFunction next_image);
     FrameHandler(const FrameHandler &other) = delete;
     FrameHandler &operator=(const FrameHandler &other) = delete;
     ~FrameHandler();
@@ -42,10 +42,10 @@ public:
     const FrameRef<PLATFORM> &GetCurrentFrame() const
         { return m_frames[m_current_frame_index]; }
 
-    UInt GetAcquiredImageIndex() const
+    uint GetAcquiredImageIndex() const
         { return m_acquired_image_index; }
 
-    UInt GetCurrentFrameIndex() const
+    uint GetCurrentFrameIndex() const
         { return m_current_frame_index; }
 
     /* Used to acquire a new image from the provided next_image function.
@@ -62,8 +62,8 @@ public:
 private:
     FixedArray<FrameRef<PLATFORM>, max_frames_in_flight>    m_frames;
     NextImageFunction                                       m_next_image;
-    UInt                                                    m_acquired_image_index;
-    UInt                                                    m_current_frame_index;
+    uint                                                    m_acquired_image_index;
+    uint                                                    m_current_frame_index;
 };
 
 } // namespace platform

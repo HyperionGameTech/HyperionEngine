@@ -88,12 +88,12 @@ struct RENDER_COMMAND(CreateMipImageView) : renderer::RenderCommand
 {
     ImageRef src_image;
     ImageViewRef mip_image_view;
-    UInt mip_level;
+    uint mip_level;
 
     RENDER_COMMAND(CreateMipImageView)(
         ImageRef src_image,
         ImageViewRef mip_image_view,
-        UInt mip_level
+        uint mip_level
     ) : src_image(std::move(src_image)),
         mip_image_view(std::move(mip_image_view)),
         mip_level(mip_level)
@@ -171,25 +171,25 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
         commands.Push([this](const CommandBufferRef &command_buffer) {
             const Extent3D extent = m_image->GetExtent();
 
-            UInt32 mip_width = extent.width,
+            uint32 mip_width = extent.width,
                 mip_height = extent.height;
 
             ImageRef &dst_image = m_image;
 
-            for (UInt mip_level = 0; mip_level < UInt(m_mip_image_views.Size()); mip_level++) {
+            for (uint mip_level = 0; mip_level < uint(m_mip_image_views.Size()); mip_level++) {
                 auto &pass = m_passes[mip_level];
                 AssertThrow(pass != nullptr);
 
-                const UInt32 prev_mip_width = mip_width,
+                const uint32 prev_mip_width = mip_width,
                     prev_mip_height = mip_height;
 
                 mip_width = MathUtil::Max(1u, extent.width >> (mip_level));
                 mip_height = MathUtil::Max(1u, extent.height >> (mip_level));
 
                 struct alignas(128) {
-                    ShaderVec4<UInt32> dimensions;
-                    ShaderVec4<UInt32> prev_dimensions;
-                    UInt32 mip_level;
+                    ShaderVec4<uint32> dimensions;
+                    ShaderVec4<uint32> prev_dimensions;
+                    uint32 mip_level;
                 } push_constants;
 
                 push_constants.dimensions = { mip_width, mip_height, 0, 0 };
@@ -287,7 +287,7 @@ public:
 
     void Create()
     {
-        const UInt num_mip_levels = m_image->NumMipmaps();
+        const uint num_mip_levels = m_image->NumMipmaps();
 
         m_mip_image_views.Resize(num_mip_levels);
         m_descriptor_sets.Resize(num_mip_levels);
@@ -295,9 +295,9 @@ public:
 
         const Extent3D extent = m_image->GetExtent();
 
-        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-            const UInt32 mip_width = MathUtil::Max(1u, extent.width >> (mip_level));
-            const UInt32 mip_height = MathUtil::Max(1u, extent.height >> (mip_level));
+        for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+            const uint32 mip_width = MathUtil::Max(1u, extent.width >> (mip_level));
+            const uint32 mip_height = MathUtil::Max(1u, extent.height >> (mip_level));
 
             ImageViewRef mip_image_view = MakeRenderObject<ImageView>();
 

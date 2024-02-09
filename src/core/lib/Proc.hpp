@@ -20,7 +20,7 @@ namespace detail {
 template <SizeType Sz>
 struct ProcFunctorMemory
 {
-    alignas(std::max_align_t) UByte bytes[Sz];
+    alignas(std::max_align_t) ubyte bytes[Sz];
 
     HYP_FORCE_INLINE
     void *GetPointer()
@@ -140,7 +140,7 @@ struct ProcBase { };
 template <class ReturnType, class ...Args>
 struct Proc : detail::ProcBase
 {
-    static constexpr UInt inline_storage_size_bytes = 256;
+    static constexpr uint inline_storage_size_bytes = 256;
 
     using MemoryDataType = detail::ProcFunctorMemory<inline_storage_size_bytes>;
     using FunctorDataType = detail::ProcFunctorInternal<MemoryDataType, ReturnType, Args...>;

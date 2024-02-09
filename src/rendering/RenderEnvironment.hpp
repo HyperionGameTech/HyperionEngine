@@ -31,7 +31,7 @@ class Scene;
 
 using renderer::RTUpdateStateFlags;
 
-using RenderEnvironmentUpdates = UInt8;
+using RenderEnvironmentUpdates = uint8;
 
 enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 {
@@ -151,7 +151,7 @@ public:
 
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    Bool HasRenderComponent() const
+    bool HasRenderComponent() const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -169,7 +169,7 @@ public:
 
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    Bool HasRenderComponent(Name name) const
+    bool HasRenderComponent(Name name) const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -205,13 +205,13 @@ public:
     }
 
     // only touch from render thread!
-    UInt32 GetEnabledRenderComponentsMask() const
+    uint32 GetEnabledRenderComponentsMask() const
         { return m_current_enabled_render_components_mask; }
 
-    Float GetGlobalTimer() const
+    float GetGlobalTimer() const
         { return m_global_timer; }
 
-    UInt32 GetFrameCounter() const
+    uint32 GetFrameCounter() const
         { return m_frame_counter; }
 
     void Init();
@@ -234,8 +234,8 @@ private:
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_addition;
     FlatSet<RenderComponentPendingRemovalEntry>     m_render_components_pending_removal;
     std::mutex                                      m_render_component_mutex;
-    UInt32                                          m_current_enabled_render_components_mask;
-    UInt32                                          m_next_enabled_render_components_mask;
+    uint32                                          m_current_enabled_render_components_mask;
+    uint32                                          m_next_enabled_render_components_mask;
 
     Handle<ParticleSystem>                          m_particle_system;
 
@@ -243,12 +243,12 @@ private:
 
     UniquePtr<RTRadianceRenderer>                   m_rt_radiance;
     ProbeGrid                                       m_probe_system;
-    Bool                                            m_has_rt_radiance;
-    Bool                                            m_has_ddgi_probes;
+    bool                                            m_has_rt_radiance;
+    bool                                            m_has_ddgi_probes;
     Handle<TLAS>                                    m_tlas;
 
-    Float                                           m_global_timer;
-    UInt32                                          m_frame_counter;
+    float                                           m_global_timer;
+    uint32                                          m_frame_counter;
 };
 
 } // namespace hyperion::v2

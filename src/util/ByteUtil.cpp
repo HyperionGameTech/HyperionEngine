@@ -3,16 +3,16 @@
 
 namespace hyperion {
 
-UInt ByteUtil::HighestSetBitIndex(UInt64 bits)
+uint ByteUtil::HighestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_WINDOWS
-    UInt index;
+    uint index;
     _BitScanReverse64(&index, bits);
     return index;
 #elif defined(HYP_CLANG_OR_GCC)
     return 63 - __builtin_clzll(bits);
 #else
-    // UInt index = 0;
+    // uint index = 0;
 
     // if (bits & 0xFFFFFFFF00000000) { bits >>= 32; index += 32; }
     // if (bits & 0x00000000FFFF0000) { bits >>= 16; index += 16; }

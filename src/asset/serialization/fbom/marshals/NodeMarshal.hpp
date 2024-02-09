@@ -22,17 +22,17 @@ public:
 
     virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMData::FromUInt32(UInt32(in_object.GetType())));
+        out.SetProperty("type", FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
         
         out.SetProperty("name", FBOMData::FromString(in_object.GetName()));
     
-        out.SetProperty("local_transform.translation", FBOMData::FromVector3(in_object.GetLocalTransform().GetTranslation()));
+        out.SetProperty("local_transform.translation", FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()));
         out.SetProperty("local_transform.rotation", FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()));
-        out.SetProperty("local_transform.scale", FBOMData::FromVector3(in_object.GetLocalTransform().GetScale()));
+        out.SetProperty("local_transform.scale", FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()));
     
-        out.SetProperty("world_transform.translation", FBOMData::FromVector3(in_object.GetWorldTransform().GetTranslation()));
+        out.SetProperty("world_transform.translation", FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()));
         out.SetProperty("world_transform.rotation", FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
-        out.SetProperty("world_transform.scale", FBOMData::FromVector3(in_object.GetWorldTransform().GetScale()));
+        out.SetProperty("world_transform.scale", FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
 
         out.SetProperty("local_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetLocalAABB());
         out.SetProperty("world_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetWorldAABB());
@@ -73,7 +73,7 @@ public:
     {
         Node::Type node_type = Node::Type::NODE;
 
-        if (auto err = in.GetProperty("type").ReadUInt32(&node_type)) {
+        if (auto err = in.GetProperty("type").ReadUnsignedInt(&node_type)) {
             return err;
         }
 
@@ -97,7 +97,7 @@ public:
         { // local transform
             Transform transform = Transform::identity;
 
-            if (auto err = in.GetProperty("local_transform.translation").ReadVector3(&transform.GetTranslation())) {
+            if (auto err = in.GetProperty("local_transform.translation").ReadVec3f(&transform.GetTranslation())) {
                 return err;
             }
         
@@ -105,7 +105,7 @@ public:
                 return err;
             }
 
-            if (auto err = in.GetProperty("local_transform.scale").ReadVector3(&transform.GetScale())) {
+            if (auto err = in.GetProperty("local_transform.scale").ReadVec3f(&transform.GetScale())) {
                 return err;
             }
 

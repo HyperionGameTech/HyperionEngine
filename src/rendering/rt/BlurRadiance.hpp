@@ -66,10 +66,10 @@ public:
     BlurRadiance &operator=(const BlurRadiance &other) = delete;
     ~BlurRadiance();
 
-    ImageOutput &GetImageOutput(UInt frame_index)
+    ImageOutput &GetImageOutput(uint frame_index)
         { return m_image_outputs[frame_index].Back(); }
 
-    const ImageOutput &GetImageOutput(UInt frame_index) const
+    const ImageOutput &GetImageOutput(uint frame_index) const
         { return m_image_outputs[frame_index].Back(); }
 
     void Create();

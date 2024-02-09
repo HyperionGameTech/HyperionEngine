@@ -63,7 +63,7 @@ private:
 
     Result CreateShaderBindingTableEntry(
         Device<Platform::VULKAN> *device,
-        UInt32 num_shaders,
+        uint32 num_shaders,
         ShaderBindingTableEntry &out
     );
 

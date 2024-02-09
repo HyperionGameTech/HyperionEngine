@@ -8,7 +8,7 @@
 
 namespace hyperion::v2 {
 
-using AudioComponentFlags = UInt32;
+using AudioComponentFlags = uint32;
 
 enum AudioComponentFlagBits : AudioComponentFlags
 {
@@ -33,8 +33,8 @@ struct AudioPlaybackState
 {
     AudioPlaybackStatus status = AUDIO_PLAYBACK_STATUS_STOPPED;
     AudioLoopMode       loop_mode = AUDIO_LOOP_MODE_ONCE;
-    Float               speed = 1.0f;
-    Float               current_time = 0.0f;
+    float               speed = 1.0f;
+    float               current_time = 0.0f;
 };
 
 struct AudioComponent

@@ -14,7 +14,7 @@ namespace hyperion::renderer {
 
 struct alignas(16) PackedVertex
 {
-    Float32 position_x,
+    float32 position_x,
             position_y,
             position_z,
             normal_x,
@@ -24,11 +24,11 @@ struct alignas(16) PackedVertex
             texcoord0_y;
 };
 
-static_assert(sizeof(PackedVertex) == sizeof(Float32) * 8);
+static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 
-using PackedIndex = UInt32;
+using PackedIndex = uint32;
 
-enum class DatumType : UInt32
+enum class DatumType : uint32
 {
     UNSIGNED_BYTE,
     SIGNED_BYTE,
@@ -39,20 +39,20 @@ enum class DatumType : UInt32
     FLOAT
 };
 
-enum class FaceCullMode : UInt32
+enum class FaceCullMode : uint32
 {
     NONE,
     BACK,
     FRONT
 };
 
-enum class FillMode : UInt32
+enum class FillMode : uint32
 {
     FILL,
     LINE
 };
 
-enum class Topology : UInt32
+enum class Topology : uint32
 {
     TRIANGLES,
     TRIANGLE_FAN,
@@ -63,14 +63,14 @@ enum class Topology : UInt32
     POINTS
 };
 
-enum class StencilMode : UInt32
+enum class StencilMode : uint32
 {
     NONE,
     FILL,
     OUTLINE
 };
 
-enum class BlendMode : UInt32
+enum class BlendMode : uint32
 {
     NONE,
     NORMAL,
@@ -79,7 +79,7 @@ enum class BlendMode : UInt32
 
 struct StencilState
 {
-    UInt id = 0;
+    uint id = 0;
     StencilMode mode = StencilMode::NONE;
 
     HYP_DEF_STRUCT_COMPARE_EQL(StencilState);
@@ -101,7 +101,7 @@ struct StencilState
 
 struct VertexAttribute
 {
-    enum Type : UInt64
+    enum Type : uint64
     {
         MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0x0,
         MESH_INPUT_ATTRIBUTE_POSITION     = 0x1,
@@ -117,8 +117,8 @@ struct VertexAttribute
     static const EnumOptions<Type, VertexAttribute, 16> mapping;
 
     const char *name;
-    UInt32 location;
-    UInt32 binding;
+    uint32 location;
+    uint32 binding;
     SizeType size; // total size -- num elements * sizeof(float)
 
     bool operator<(const VertexAttribute &other) const
@@ -138,16 +138,16 @@ struct VertexAttribute
 
 struct VertexAttributeSet
 {
-    UInt64 flag_mask;
+    uint64 flag_mask;
 
     constexpr VertexAttributeSet()
         : flag_mask(0) {}
 
-    constexpr VertexAttributeSet(UInt64 flag_mask)
+    constexpr VertexAttributeSet(uint64 flag_mask)
         : flag_mask(flag_mask) {}
 
     constexpr VertexAttributeSet(VertexAttribute::Type flags)
-        : flag_mask(UInt64(flags)) {}
+        : flag_mask(uint64(flags)) {}
 
     constexpr VertexAttributeSet(const VertexAttributeSet &other)
         : flag_mask(other.flag_mask) {}
@@ -161,7 +161,7 @@ struct VertexAttributeSet
 
     ~VertexAttributeSet() = default;
 
-    explicit operator Bool() const { return flag_mask != 0; }
+    explicit operator bool() const { return flag_mask != 0; }
 
     bool operator==(const VertexAttributeSet &other) const
         { return flag_mask == other.flag_mask; }
@@ -169,10 +169,10 @@ struct VertexAttributeSet
     bool operator!=(const VertexAttributeSet &other) const
         { return flag_mask != other.flag_mask; }
 
-    bool operator==(UInt64 flags) const
+    bool operator==(uint64 flags) const
         { return flag_mask == flags; }
 
-    bool operator!=(UInt64 flags) const
+    bool operator!=(uint64 flags) const
         { return flag_mask != flags; }
 
     VertexAttributeSet operator~() const
@@ -184,10 +184,10 @@ struct VertexAttributeSet
     VertexAttributeSet &operator&=(const VertexAttributeSet &other)
         { flag_mask &= other.flag_mask; return *this; }
 
-    VertexAttributeSet operator&(UInt64 flags) const
+    VertexAttributeSet operator&(uint64 flags) const
         { return { flag_mask & flags }; }
 
-    VertexAttributeSet &operator&=(UInt64 flags)
+    VertexAttributeSet &operator&=(uint64 flags)
         { flag_mask &= flags; return *this; }
     
     VertexAttributeSet operator|(const VertexAttributeSet &other) const
@@ -196,17 +196,17 @@ struct VertexAttributeSet
     VertexAttributeSet &operator|=(const VertexAttributeSet &other)
         { flag_mask |= other.flag_mask; return *this; }
 
-    VertexAttributeSet operator|(UInt64 flags) const
+    VertexAttributeSet operator|(uint64 flags) const
         { return { flag_mask | flags }; }
 
-    VertexAttributeSet &operator|=(UInt64 flags)
+    VertexAttributeSet &operator|=(uint64 flags)
         { flag_mask |= flags; return *this; }
 
     bool operator<(const VertexAttributeSet &other) const { return flag_mask < other.flag_mask; }
 
-    bool Has(VertexAttribute::Type type) const { return bool(operator&(UInt64(type))); }
+    bool Has(VertexAttribute::Type type) const { return bool(operator&(uint64(type))); }
 
-    void Set(UInt64 flags, bool enable = true)
+    void Set(uint64 flags, bool enable = true)
     {
         if (enable) {
             flag_mask |= flags;
@@ -217,7 +217,7 @@ struct VertexAttributeSet
 
     void Set(VertexAttribute::Type type, bool enable = true)
     {
-        Set(UInt64(type), enable);
+        Set(uint64(type), enable);
     }
 
     void Merge(const VertexAttributeSet &other)
@@ -231,7 +231,7 @@ struct VertexAttributeSet
         attributes.Reserve(VertexAttribute::mapping.Size());
 
         for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
 
             if (flag_mask & iter_flag_mask) {
                 attributes.PushBack(VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)]);
@@ -246,7 +246,7 @@ struct VertexAttributeSet
         SizeType size = 0;
 
         for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
 
             if (flag_mask & iter_flag_mask) {
                 size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
@@ -299,16 +299,16 @@ namespace renderer {
 
 struct alignas(16) MeshDescription
 {
-    UInt64 vertex_buffer_address;
-    UInt64 index_buffer_address;
+    uint64 vertex_buffer_address;
+    uint64 index_buffer_address;
     
-    UInt32 entity_index;
-    UInt32 material_index;
-    UInt32 num_indices;
-    UInt32 num_vertices;
+    uint32 entity_index;
+    uint32 material_index;
+    uint32 num_indices;
+    uint32 num_vertices;
 };
 
-using ImageSubResourceFlagBits = UInt;
+using ImageSubResourceFlagBits = uint;
 
 enum ImageSubResourceFlags : ImageSubResourceFlagBits
 {
@@ -322,10 +322,10 @@ enum ImageSubResourceFlags : ImageSubResourceFlagBits
 struct ImageSubResource
 {
     ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_COLOR;
-    UInt32 base_array_layer = 0;
-    UInt32 base_mip_level = 0;
-    UInt32 num_layers = 1;
-    UInt32 num_levels = 1;
+    uint32 base_array_layer = 0;
+    uint32 base_mip_level = 0;
+    uint32 num_layers = 1;
+    uint32 num_levels = 1;
 
     bool operator==(const ImageSubResource &other) const
     {
@@ -360,14 +360,14 @@ struct alignas(8) ShaderVec2
     {
     }
 
-    constexpr T &operator[](UInt index) { return values[index]; }
-    constexpr const T &operator[](UInt index) const { return values[index]; }
+    constexpr T &operator[](uint index) { return values[index]; }
+    constexpr const T &operator[](uint index) const { return values[index]; }
 
     operator Vec2<T>() const { return Vec2<T>(x, y); }
 };
 
-static_assert(sizeof(ShaderVec2<Float>) == 8);
-static_assert(sizeof(ShaderVec2<UInt32>) == 8);
+static_assert(sizeof(ShaderVec2<float>) == 8);
+static_assert(sizeof(ShaderVec2<uint32>) == 8);
 
 // shader vec3 is same size as vec4
 template <class T>
@@ -396,14 +396,14 @@ struct alignas(16) ShaderVec3
     {
     }
 
-    constexpr T &operator[](UInt index) { return values[index]; }
-    constexpr const T &operator[](UInt index) const { return values[index]; }
+    constexpr T &operator[](uint index) { return values[index]; }
+    constexpr const T &operator[](uint index) const { return values[index]; }
 
     operator Vector3() const { return Vector3(x, y, z); }
 };
 
-static_assert(sizeof(ShaderVec3<Float>)  == 16);
-static_assert(sizeof(ShaderVec3<UInt32>) == 16);
+static_assert(sizeof(ShaderVec3<float>)  == 16);
+static_assert(sizeof(ShaderVec3<uint32>) == 16);
 
 template <class T>
 struct alignas(16) ShaderVec4
@@ -432,27 +432,27 @@ struct alignas(16) ShaderVec4
     {
     }
 
-    constexpr T &operator[](UInt index) { return values[index]; }
-    constexpr const T &operator[](UInt index) const { return values[index]; }
+    constexpr T &operator[](uint index) { return values[index]; }
+    constexpr const T &operator[](uint index) const { return values[index]; }
 
-    operator Vector4() const { return Vector4(Float(x), Float(y), Float(z), Float(w)); }
+    operator Vector4() const { return Vector4(float(x), float(y), float(z), float(w)); }
 };
 
-static_assert(sizeof(ShaderVec4<Float>) == 16);
-static_assert(sizeof(ShaderVec4<UInt32>) == 16);
+static_assert(sizeof(ShaderVec4<float>) == 16);
+static_assert(sizeof(ShaderVec4<uint32>) == 16);
 
 struct alignas(16) ShaderMat4
 {
     union {
         struct {
-            Float m00, m01, m02, m03,
+            float m00, m01, m02, m03,
                 m10, m11, m12, m13,
                 m20, m21, m22, m23,
                 m30, m31, m32, m33;
         };
 
-        Float values[16];
-        ShaderVec4<Float> rows[4];
+        float values[16];
+        ShaderVec4<float> rows[4];
     };
 
     ShaderMat4() = default;
@@ -465,8 +465,8 @@ struct alignas(16) ShaderMat4
     {
     }
 
-    constexpr ShaderVec4<Float> &operator[](UInt index) { return rows[index]; }
-    constexpr const ShaderVec4<Float> &operator[](UInt index) const { return rows[index]; }
+    constexpr ShaderVec4<float> &operator[](uint index) { return rows[index]; }
+    constexpr const ShaderVec4<float> &operator[](uint index) const { return rows[index]; }
 
     operator Matrix4() const { return Matrix4(&values[0]); }
 };
@@ -475,7 +475,7 @@ static_assert(sizeof(ShaderMat4) == 64);
 
 struct alignas(8) Rect
 {
-    UInt32 x0, y0,
+    uint32 x0, y0,
         x1, y1;
 };
 
@@ -485,7 +485,7 @@ static_assert(sizeof(Rect) == 16);
 template <SizeType N, class T>
 struct PaddedStructValue
 {
-    alignas(T) UByte bytes[sizeof(T) + N];
+    alignas(T) ubyte bytes[sizeof(T) + N];
 };
 
 template <class T, SizeType Size>
@@ -593,7 +593,7 @@ class PerFrameData
     };
 
 public:
-    PerFrameData(UInt32 num_frames) : m_num_frames(num_frames)
+    PerFrameData(uint32 num_frames) : m_num_frames(num_frames)
         { m_data.resize(num_frames); }
 
     PerFrameData(const PerFrameData &other) = delete;
@@ -602,26 +602,26 @@ public:
     PerFrameData &operator=(PerFrameData &&) = default;
     ~PerFrameData() = default;
 
-    HYP_FORCE_INLINE UInt NumFrames() const
+    HYP_FORCE_INLINE uint NumFrames() const
         { return m_num_frames; }
 
-    HYP_FORCE_INLINE FrameDataWrapper &operator[](UInt32 index)
+    HYP_FORCE_INLINE FrameDataWrapper &operator[](uint32 index)
         { return m_data[index]; }
 
-    HYP_FORCE_INLINE const FrameDataWrapper &operator[](UInt32 index) const
+    HYP_FORCE_INLINE const FrameDataWrapper &operator[](uint32 index) const
         { return m_data[index]; }
 
-    HYP_FORCE_INLINE FrameDataWrapper &At(UInt32 index)
+    HYP_FORCE_INLINE FrameDataWrapper &At(uint32 index)
         { return m_data[index]; }
 
-    HYP_FORCE_INLINE const FrameDataWrapper &At(UInt32 index) const
+    HYP_FORCE_INLINE const FrameDataWrapper &At(uint32 index) const
         { return m_data[index]; }
 
     HYP_FORCE_INLINE void Reset()
         { m_data = std::vector<FrameDataWrapper>(m_num_frames); }
 
 protected:
-    UInt m_num_frames;
+    uint m_num_frames;
     std::vector<FrameDataWrapper> m_data;
 };
 

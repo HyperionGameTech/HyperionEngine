@@ -24,9 +24,9 @@ ThreadID ThreadID::CreateDynamicThreadID(Name name)
 {
     struct ThreadIDGenerator
     {
-        AtomicVar<UInt32> counter { 0 };
+        AtomicVar<uint32> counter { 0 };
 
-        UInt32 Next()
+        uint32 Next()
         {
             return counter.Increment(1, MemoryOrder::SEQUENTIAL) + 1;
         }
@@ -37,7 +37,7 @@ ThreadID ThreadID::CreateDynamicThreadID(Name name)
     return { generator.Next() << 16u, name };
 }
 
-Bool ThreadID::IsDynamic() const
+bool ThreadID::IsDynamic() const
 {
     return THREAD_DYNAMIC & value;
 }

@@ -85,11 +85,11 @@ void ArgParse::Add(
     });
 }
 
-ArgParse::Result ArgParse::Parse(Int argc, char **argv) const
+ArgParse::Result ArgParse::Parse(int argc, char **argv) const
 {
     Array<String> args;
 
-    for (Int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         args.PushBack(argv[i]);
     }
 
@@ -111,7 +111,7 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
         case ArgumentType::ARGUMENT_TYPE_STRING:
             return ArgumentValue { str };
         case ArgumentType::ARGUMENT_TYPE_INT: {
-            Int i = 0;
+            int i = 0;
 
             if (!StringUtil::Parse(str, &i)) {
                 return { };
@@ -120,7 +120,7 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
             return ArgumentValue { i };
         }
         case ArgumentType::ARGUMENT_TYPE_FLOAT: {
-            Float f = 0.0f;
+            float f = 0.0f;
 
             if (!StringUtil::Parse(str, &f)) {
                 return { };

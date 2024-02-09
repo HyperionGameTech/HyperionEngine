@@ -28,7 +28,7 @@ public:
     void Add(const String &id, RC<RTCClient> client);
     void Remove(String id);
     Optional<RC<RTCClient>> Get(const String &id) const;
-    Bool Has(const String &id) const;
+    bool Has(const String &id) const;
 
     HYP_DEF_STL_BEGIN_END(
         m_clients.Begin(),

@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-enum class CommandName : UInt
+enum class CommandName : uint
 {
 
 };
@@ -15,14 +15,14 @@ enum class CommandName : UInt
 struct CommandEntry
 {
     CommandName     command_name;
-    UByte           flags;
+    ubyte           flags;
     String          json_string;
 };
 
 class CommandQueue
 {
 public:
-    static constexpr UInt8 magic = 0xAE;
+    static constexpr uint8 magic = 0xAE;
     static constexpr SizeType max_size = 1024 * 1024;
 
     bool IsLocked() const
@@ -42,9 +42,9 @@ public:
      *
      *  \return The number of commands read from the data.
      */
-    static UInt32 ReadCommandQueue(const UByte *data, SizeType size, CommandQueue &out)
+    static uint32 ReadCommandQueue(const ubyte *data, SizeType size, CommandQueue &out)
     {
-        UInt index = 0u;
+        uint index = 0u;
 
         if (size < 6) { // one byte for magic, one byte for flags, 4 for size are minimum.
             return 0;
@@ -57,11 +57,11 @@ public:
         out.m_flags = data[index++];
 
         // next 4 bytes = size of list in COMMANDS
-        UInt32 size_uint = 0;
-        size_uint |= (UInt32(data[index++]) << 24);
-        size_uint |= (UInt32(data[index++]) << 16);
-        size_uint |= (UInt32(data[index++]) << 8);
-        size_uint |= (UInt32(data[index++]));
+        uint32 size_uint = 0;
+        size_uint |= (uint32(data[index++]) << 24);
+        size_uint |= (uint32(data[index++]) << 16);
+        size_uint |= (uint32(data[index++]) << 8);
+        size_uint |= (uint32(data[index++]));
         
         if (size_uint == 0) {
             return 0;
@@ -71,7 +71,7 @@ public:
             return 0;
         }
 
-        const UInt32 original_size = size_uint;
+        const uint32 original_size = size_uint;
 
         DebugLog(LogType::Debug, "size_uint = %u\n", size_uint);
 
@@ -79,16 +79,16 @@ public:
             CommandEntry command;
 
             // read each item
-            // a command consists of UInt32 = command enum
-            // UInt32 = length of json string
+            // a command consists of uint32 = command enum
+            // uint32 = length of json string
             // json string
 
             // read enum member
-            UInt32 command_name_uint = 0;
-            command_name_uint |= (UInt32(data[index++]) << 24);
-            command_name_uint |= (UInt32(data[index++]) << 16);
-            command_name_uint |= (UInt32(data[index++]) << 8);
-            command_name_uint |= (UInt32(data[index++]));
+            uint32 command_name_uint = 0;
+            command_name_uint |= (uint32(data[index++]) << 24);
+            command_name_uint |= (uint32(data[index++]) << 16);
+            command_name_uint |= (uint32(data[index++]) << 8);
+            command_name_uint |= (uint32(data[index++]));
 
             command.command_name = static_cast<CommandName>(command_name_uint);
 
@@ -101,16 +101,16 @@ public:
             command.flags = data[index++];
 
             // read uint32 of string length.
-            UInt32 string_length_uint = 0;
-            string_length_uint |= (UInt32(data[index++]) << 24);
-            string_length_uint |= (UInt32(data[index++]) << 16);
-            string_length_uint |= (UInt32(data[index++]) << 8);
-            string_length_uint |= (UInt32(data[index++]));
+            uint32 string_length_uint = 0;
+            string_length_uint |= (uint32(data[index++]) << 24);
+            string_length_uint |= (uint32(data[index++]) << 16);
+            string_length_uint |= (uint32(data[index++]) << 8);
+            string_length_uint |= (uint32(data[index++]));
 
             if (string_length_uint != 0) {
                 char *str = new char[string_length_uint + 1];
 
-                for (UInt i = 0; i < string_length_uint; i++) {
+                for (uint i = 0; i < string_length_uint; i++) {
                     if (index >= size) {
                         // invalid data
                         delete[] str;
@@ -135,35 +135,35 @@ public:
         return original_size;
     }
 
-    Array<UByte> Serialize() const
+    Array<ubyte> Serialize() const
     {
-        Array<UByte> out;
+        Array<ubyte> out;
         out.PushBack(magic);
         out.PushBack(m_flags);
     
-        out.PushBack((static_cast<UInt32>(m_entries.Size()) & 0xff000000) >> 24);
-        out.PushBack((static_cast<UInt32>(m_entries.Size()) & 0x00ff0000) >> 16);
-        out.PushBack((static_cast<UInt32>(m_entries.Size()) & 0x0000ff00) >> 8);
-        out.PushBack((static_cast<UInt32>(m_entries.Size()) & 0x000000ff));
+        out.PushBack((static_cast<uint32>(m_entries.Size()) & 0xff000000) >> 24);
+        out.PushBack((static_cast<uint32>(m_entries.Size()) & 0x00ff0000) >> 16);
+        out.PushBack((static_cast<uint32>(m_entries.Size()) & 0x0000ff00) >> 8);
+        out.PushBack((static_cast<uint32>(m_entries.Size()) & 0x000000ff));
 
         for (auto &command : m_entries) {
             // command name (enum / uint32)
-            out.PushBack((static_cast<UInt32>(command.command_name) & 0xff000000) >> 24);
-            out.PushBack((static_cast<UInt32>(command.command_name) & 0x00ff0000) >> 16);
-            out.PushBack((static_cast<UInt32>(command.command_name) & 0x0000ff00) >> 8);
-            out.PushBack((static_cast<UInt32>(command.command_name) & 0x000000ff));
+            out.PushBack((static_cast<uint32>(command.command_name) & 0xff000000) >> 24);
+            out.PushBack((static_cast<uint32>(command.command_name) & 0x00ff0000) >> 16);
+            out.PushBack((static_cast<uint32>(command.command_name) & 0x0000ff00) >> 8);
+            out.PushBack((static_cast<uint32>(command.command_name) & 0x000000ff));
 
             // command flags (byte)
             out.PushBack(command.flags);
 
             // string size (uint32) note we encode size not length, as we are counting in bytes
-            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0xff000000) >> 24);
-            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x00ff0000) >> 16);
-            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x0000ff00) >> 8);
-            out.PushBack((static_cast<UInt32>(command.json_string.Size()) & 0x000000ff));
+            out.PushBack((static_cast<uint32>(command.json_string.Size()) & 0xff000000) >> 24);
+            out.PushBack((static_cast<uint32>(command.json_string.Size()) & 0x00ff0000) >> 16);
+            out.PushBack((static_cast<uint32>(command.json_string.Size()) & 0x0000ff00) >> 8);
+            out.PushBack((static_cast<uint32>(command.json_string.Size()) & 0x000000ff));
 
             for (SizeType i = 0; i < command.json_string.Size(); i++) {
-                out.PushBack(static_cast<UByte>(command.json_string[i]));
+                out.PushBack(static_cast<ubyte>(command.json_string[i]));
             }
         }
 
@@ -178,7 +178,7 @@ public:
     }
 
 private:
-    UByte m_flags;
+    ubyte m_flags;
     Array<CommandEntry> m_entries;
 };
 

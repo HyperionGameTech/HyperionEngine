@@ -57,10 +57,10 @@ struct RenderCommandList
         static constexpr SizeType render_command_cache_size = MathUtil::Max(render_command_cache_size_bytes / sizeof(T), 1);
 
         FixedArray<ValueStorage<T>, render_command_cache_size> storage;
-        UInt index = 0;
+        uint index = 0;
 
         HYP_FORCE_INLINE bool IsFull() const
-            { return index >= UInt(render_command_cache_size); }
+            { return index >= uint(render_command_cache_size); }
 
         static_assert(render_command_cache_size >= 8, "Render command storage size is too large; runtime performance would be impacted due to needing to allocate more blocks to compensate.");
     };

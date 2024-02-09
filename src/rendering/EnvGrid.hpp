@@ -14,7 +14,7 @@ namespace hyperion::v2 {
 
 class Entity;
 
-using EnvGridFlags = UInt32;
+using EnvGridFlags = uint32;
 
 enum EnvGridFlagBits : EnvGridFlags
 {
@@ -28,16 +28,16 @@ struct RenderCommand_UpdateEnvProbeAABBsInGrid;
 struct EnvProbeCollection
 {
     SizeType num_probes = 0;
-    FixedArray<UInt, max_bound_ambient_probes * 2> indirect_indices = { 0 };
+    FixedArray<uint, max_bound_ambient_probes * 2> indirect_indices = { 0 };
     FixedArray<Handle<EnvProbe>, max_bound_ambient_probes> probes = { };
 
     // Must be called on init, before render thread starts using probes too
     // returns the index
-    UInt AddProbe(Handle<EnvProbe> probe)
+    uint AddProbe(Handle<EnvProbe> probe)
     {
         AssertThrow(num_probes < max_bound_ambient_probes);
 
-        const UInt index = num_probes++;
+        const uint index = num_probes++;
 
         probes[index] = std::move(probe);
         indirect_indices[index] = index;
@@ -46,7 +46,7 @@ struct EnvProbeCollection
         return index;
     }
 
-    void AddProbe(UInt index, Handle<EnvProbe> probe)
+    void AddProbe(uint index, Handle<EnvProbe> probe)
     {
         AssertThrow(index < max_bound_ambient_probes);
 
@@ -57,7 +57,7 @@ struct EnvProbeCollection
         indirect_indices[max_bound_ambient_probes + index] = index;
     }
 
-    void SetProbeIndexOnGameThread(UInt index, UInt new_index)
+    void SetProbeIndexOnGameThread(uint index, uint new_index)
     {
         AssertThrow(index < max_bound_ambient_probes);
         AssertThrow(new_index < max_bound_ambient_probes);
@@ -65,22 +65,22 @@ struct EnvProbeCollection
         indirect_indices[index] = new_index;
     }
 
-    UInt GetEnvProbeIndexOnGameThread(UInt index) const
+    uint GetEnvProbeIndexOnGameThread(uint index) const
         { return indirect_indices[index]; }
 
-    Handle<EnvProbe> &GetEnvProbeDirect(UInt index)
+    Handle<EnvProbe> &GetEnvProbeDirect(uint index)
         { return probes[index]; }
 
-    const Handle<EnvProbe> &GetEnvProbeDirect(UInt index) const
+    const Handle<EnvProbe> &GetEnvProbeDirect(uint index) const
         { return probes[index]; }
 
-    Handle<EnvProbe> &GetEnvProbeOnGameThread(UInt index)
+    Handle<EnvProbe> &GetEnvProbeOnGameThread(uint index)
         { return probes[indirect_indices[index]]; }
 
-    const Handle<EnvProbe> &GetEnvProbeOnGameThread(UInt index) const
+    const Handle<EnvProbe> &GetEnvProbeOnGameThread(uint index) const
         { return probes[indirect_indices[index]]; }
 
-    void SetProbeIndexOnRenderThread(UInt index, UInt new_index)
+    void SetProbeIndexOnRenderThread(uint index, uint new_index)
     {
         AssertThrow(index < max_bound_ambient_probes);
         AssertThrow(new_index < max_bound_ambient_probes);
@@ -88,13 +88,13 @@ struct EnvProbeCollection
         indirect_indices[max_bound_ambient_probes + index] = new_index;
     }
 
-    UInt GetEnvProbeIndexOnRenderThread(UInt index) const
+    uint GetEnvProbeIndexOnRenderThread(uint index) const
         { return indirect_indices[max_bound_ambient_probes + index]; }
     
-    Handle<EnvProbe> &GetEnvProbeOnRenderThread(UInt index)
+    Handle<EnvProbe> &GetEnvProbeOnRenderThread(uint index)
         { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
     
-    const Handle<EnvProbe> &GetEnvProbeOnRenderThread(UInt index) const
+    const Handle<EnvProbe> &GetEnvProbeOnRenderThread(uint index) const
         { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
 };
 
@@ -154,19 +154,19 @@ private:
     void CreateLightFieldData();
     void ComputeLightFieldData(
         Frame *frame,
-        UInt32 probe_index
+        uint32 probe_index
     );
 
     void RenderEnvProbe(
         Frame *frame,
-        UInt32 probe_index
+        uint32 probe_index
     );
 
     void ComputeSH(
         Frame *frame,
         const Image *image,
         const ImageView *image_view,
-        UInt32 probe_index
+        uint32 probe_index
     );
 
     void OffsetVoxelGrid(
@@ -176,7 +176,7 @@ private:
 
     void VoxelizeProbe(
         Frame *frame,
-        UInt32 probe_index
+        uint32 probe_index
     );
 
     EnvGridType m_type;
@@ -198,7 +198,7 @@ private:
     EnvProbeCollection m_env_probe_collection;
 
     EnvGridShaderData m_shader_data;
-    UInt m_current_probe_index;
+    uint m_current_probe_index;
 
     AtomicVar<EnvGridFlags> m_flags;
 
@@ -229,7 +229,7 @@ private:
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_voxelize_probe_descriptor_sets;
     Array<DescriptorSetRef> m_generate_voxel_grid_mipmaps_descriptor_sets;
 
-    Queue<UInt> m_next_render_indices;
+    Queue<uint> m_next_render_indices;
 };
 
 } // namespace hyperion::v2

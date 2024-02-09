@@ -17,7 +17,7 @@ public:
         struct BoneData
         {
             String      name;
-            UInt        id;
+            uint        id;
 
             String      parent_name;
             Vector3     binding_translation;
@@ -26,7 +26,7 @@ public:
 
         struct KeyframeData
         {
-            Float       time;
+            float       time;
             Vector3     translation;
             Quaternion  rotation;
         };

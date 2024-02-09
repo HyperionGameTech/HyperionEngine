@@ -76,7 +76,7 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             mesh_component.previous_model_matrix,
             bounding_box_component.world_aabb,
             mesh_component.material.IsValid() // @TODO: More efficent way of doing this
-                ? UInt32(mesh_component.material->GetBucket())
+                ? uint32(mesh_component.material->GetBucket())
                 : BUCKET_OPAQUE
         });
 

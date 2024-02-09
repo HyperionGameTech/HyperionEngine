@@ -58,7 +58,7 @@ public:
     FullScreenPass(
         const Handle<Shader> &shader,
         DescriptorKey descriptor_key,
-        UInt sub_descriptor_index,
+        uint sub_descriptor_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
         Extent2D extent = Extent2D { 0, 0 }
     );
@@ -67,13 +67,13 @@ public:
     FullScreenPass &operator=(const FullScreenPass &) = delete;
     virtual ~FullScreenPass();
 
-    AttachmentUsage *GetAttachmentUsage(UInt attachment_index)
+    AttachmentUsage *GetAttachmentUsage(uint attachment_index)
         { return GetFramebuffer()->GetAttachmentUsages()[attachment_index]; }
 
     const Array<AttachmentRef> &GetAttachments() const
         { return m_attachments; }
     
-    CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
+    CommandBuffer *GetCommandBuffer(uint index) const { return m_command_buffers[index].Get(); }
 
     Handle<Framebuffer> &GetFramebuffer() { return m_framebuffer; }
     const Handle<Framebuffer> &GetFramebuffer() const { return m_framebuffer; }
@@ -89,7 +89,7 @@ public:
     Handle<RenderGroup> &GetRenderGroup() { return m_render_group; }
     const Handle<RenderGroup> &GetRenderGroup() const { return m_render_group; }
 
-    UInt GetSubDescriptorIndex() const { return m_sub_descriptor_index; }
+    uint GetSubDescriptorIndex() const { return m_sub_descriptor_index; }
 
     PushConstantData &GetPushConstants()
         { return m_push_constant_data; }
@@ -121,7 +121,7 @@ public:
     virtual void Destroy();
 
     virtual void Render(Frame *frame);
-    virtual void Record(UInt frame_index);
+    virtual void Record(uint frame_index);
 
     void Begin(Frame *frame);
     void End(Frame *frame);
@@ -143,7 +143,7 @@ protected:
     // TODO: move to PostFXPass?                        
     InternalFormat                                      m_image_format;                                    
     DescriptorKey                                       m_descriptor_key;
-    UInt                                                m_sub_descriptor_index;
+    uint                                                m_sub_descriptor_index;
 
     Optional<Array<DescriptorSetRef>>                   m_used_descriptor_sets;
 };

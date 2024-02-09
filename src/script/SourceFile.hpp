@@ -32,7 +32,7 @@ public:
         { m_buffer.SetSize(size); }
     
     void ReadIntoBuffer(const ByteBuffer &input_buffer);
-    void ReadIntoBuffer(const UByte *data, SizeType size);
+    void ReadIntoBuffer(const ubyte *data, SizeType size);
 
 private:
     String      m_filepath;

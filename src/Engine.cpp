@@ -249,7 +249,7 @@ void Engine::Initialize(RC<Application> application)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
             .buffer = m_render_data->skeletons.GetBuffer(),
-            .range = static_cast<UInt>(sizeof(SkeletonShaderData))
+            .range = static_cast<uint>(sizeof(SkeletonShaderData))
         });
 
 
@@ -297,7 +297,7 @@ void Engine::Initialize(RC<Application> application)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
             .buffer = m_render_data->skeletons.GetBuffer(),
-            .range = static_cast<UInt>(sizeof(SkeletonShaderData))
+            .range = static_cast<uint>(sizeof(SkeletonShaderData))
         });
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
@@ -321,7 +321,7 @@ void Engine::Initialize(RC<Application> application)
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
         ->AddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::TEXTURES);
 
-    for (UInt i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
+    for (uint i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
         material_textures_descriptor->SetSubDescriptor({
             .element_index = i,
             .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
@@ -329,7 +329,7 @@ void Engine::Initialize(RC<Application> application)
     }
 #endif
 
-    for (UInt frame_index = 0; frame_index < UInt(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
+    for (uint frame_index = 0; frame_index < uint(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
         const auto descriptor_set_index = DescriptorSet::global_buffer_mapping[frame_index];
 
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
@@ -338,7 +338,7 @@ void Engine::Initialize(RC<Application> application)
         auto *env_probe_textures_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
 
-        for (UInt env_probe_index = 0; env_probe_index < max_bound_reflection_probes; env_probe_index++) {
+        for (uint env_probe_index = 0; env_probe_index < max_bound_reflection_probes; env_probe_index++) {
             env_probe_textures_descriptor->SetElementSRV(env_probe_index, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
 
@@ -349,7 +349,7 @@ void Engine::Initialize(RC<Application> application)
         auto *point_shadow_maps_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
 
-        for (UInt shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
+        for (uint shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
             point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
 
@@ -450,11 +450,11 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(uint32)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
-            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<uint32>)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER)
@@ -486,27 +486,27 @@ void Engine::Initialize(RC<Application> application)
     }
 
     // add placeholder scene data
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SHADOW_MAPS);
         
-        for (UInt i = 0; i < max_shadow_maps; i++) {
+        for (uint i = 0; i < max_shadow_maps; i++) {
             shadow_map_descriptor->SetElementSRV(i, GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         auto *environment_maps_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENVIRONMENT_MAPS);
 
-        for (UInt i = 0; i < max_bound_environment_maps; i++) {
+        for (uint i = 0; i < max_bound_environment_maps; i++) {
             environment_maps_descriptor->SetElementSRV(i, GetPlaceholderData()->GetImageViewCube1x1R8());
         }
     }
 
     // add placeholder object data
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::object_buffer_mapping[frame_index]);
 
@@ -564,7 +564,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32))
+            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(uint32))
         });
 
     // fragment list
@@ -572,11 +572,11 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>))
+            .buffer = GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<uint32>))
         });
 #endif
     
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         DescriptorSetRef descriptor_set_globals = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
@@ -590,15 +590,15 @@ void Engine::Initialize(RC<Application> application)
         // sparse voxel octree buffer
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<uint32>)));
 
         { // add placeholder gbuffer textures
             auto *gbuffer_textures = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_TEXTURES);
 
-            UInt element_index = 0u;
+            uint element_index = 0u;
 
             // not including depth texture here
-            for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+            for (uint attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
                 gbuffer_textures->SetElementSRV(element_index, GetPlaceholderData()->GetImageView2D1x1R8());
 
                 ++element_index;
@@ -681,7 +681,7 @@ void Engine::Initialize(RC<Application> application)
             for (const auto descriptor_key : { DescriptorKey::POST_FX_PRE_STACK, DescriptorKey::POST_FX_POST_STACK }) {
                 auto *descriptor = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
 
-                for (UInt effect_index = 0; effect_index < 4; effect_index++) {
+                for (uint effect_index = 0; effect_index < 4; effect_index++) {
                     descriptor->SetSubDescriptor({
                         .element_index = effect_index,
                         .image_view = GetPlaceholderData()->GetImageView2D1x1R8()
@@ -734,7 +734,7 @@ void Engine::Initialize(RC<Application> application)
 
 void Engine::Compile()
 {
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         /* Finalize env probes */
         m_render_data->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
 
@@ -1058,7 +1058,7 @@ void Engine::ResetRenderState(RenderStateMask mask)
     render_state.Reset(mask);
 }
 
-void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
+void Engine::UpdateBuffersAndDescriptors(uint frame_index)
 {
     m_render_data->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     m_render_data->cameras.UpdateBuffer(m_instance->GetDevice(), frame_index);

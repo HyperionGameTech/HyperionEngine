@@ -25,8 +25,8 @@ static constexpr bool use_temporal_blending = true;
 
 struct alignas(16) SSRParams
 {
-    ShaderVec4<UInt32> dimensions;
-    Float32 ray_step,
+    ShaderVec4<uint32> dimensions;
+    float32 ray_step,
         num_iterations,
         max_ray_distance,
         distance_bias,
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             radius_outputs[frame_index].Create(g_engine->GetGPUDevice());
         }
 
@@ -91,7 +91,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
             .screen_edge_fade_end = 0.995f
         };
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             AssertThrow(uniform_buffers[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create(
@@ -125,7 +125,7 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
@@ -155,7 +155,7 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // unset final result from the global descriptor set
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
@@ -228,7 +228,7 @@ void SSRRenderer::Create()
     m_image_outputs[3]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[3]);
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_radius_output[frame_index] = ImageOutput {
             MakeRenderObject<Image>(StorageImage(
                 Extent3D(m_extent),
@@ -252,7 +252,7 @@ void SSRRenderer::Create()
     CreateDescriptorSets();
     CreateComputePipelines();
     
-    for (UInt i = 0; i < 2; i++) {
+    for (uint i = 0; i < 2; i++) {
         m_temporal_history_textures[i] = CreateObject<Texture>(Texture2D(
             m_extent,
             ssr_format,
@@ -314,7 +314,7 @@ void SSRRenderer::Destroy()
     
     SafeRelease(std::move(m_uniform_buffers));
     
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         SafeRelease(std::move(m_radius_output[frame_index].image));
         SafeRelease(std::move(m_radius_output[frame_index].image_view));
     }
@@ -328,7 +328,7 @@ void SSRRenderer::Destroy()
 
 void SSRRenderer::CreateUniformBuffers()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_uniform_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
     }
 
@@ -341,7 +341,7 @@ void SSRRenderer::CreateUniformBuffers()
 
 void SSRRenderer::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set // 1st stage -- trace, write UVs
@@ -495,13 +495,13 @@ void SSRRenderer::CreateComputePipelines()
 void SSRRenderer::Render(Frame *frame)
 {
     const auto &scene_binding = g_engine->render_state.GetScene();
-    const UInt scene_index = scene_binding.id.ToIndex();
+    const uint scene_index = scene_binding.id.ToIndex();
 
     const auto &camera_binding = g_engine->render_state.GetCamera();
-    const UInt camera_index = camera_binding.id.ToIndex();
+    const uint camera_index = camera_binding.id.ToIndex();
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     /* ========== BEGIN SSR ========== */
     DebugMarker begin_ssr_marker(command_buffer, "Begin SSR");
@@ -516,8 +516,8 @@ void SSRRenderer::Render(Frame *frame)
         // g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
 
         struct alignas(128) {
-            ShaderVec4<UInt32> dimensions;
-            Float32 ray_step,
+            ShaderVec4<uint32> dimensions;
+            float32 ray_step,
                 num_iterations,
                 max_ray_distance,
                 distance_bias,
@@ -555,7 +555,7 @@ void SSRRenderer::Render(Frame *frame)
     const SizeType total_pixels_in_image = m_extent.Size();
     const SizeType total_pixels_in_image_div_2 = total_pixels_in_image / 2;
 
-    const UInt32 num_dispatch_calls = (UInt32(total_pixels_in_image_div_2) + 255) / 256;
+    const uint32 num_dispatch_calls = (uint32(total_pixels_in_image_div_2) + 255) / 256;
 
     // PASS 1 -- write UVs
 

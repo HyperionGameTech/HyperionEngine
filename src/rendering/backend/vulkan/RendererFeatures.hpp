@@ -186,7 +186,7 @@ public:
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, _surface, &details.capabilities);
 
-        UInt32 num_queue_families = 0;
+        uint32 num_queue_families = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &num_queue_families, nullptr);
 
         Array<VkQueueFamilyProperties> queue_family_properties;
@@ -194,7 +194,7 @@ public:
 
         vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &num_queue_families, queue_family_properties.Data());
 
-        UInt32 num_surface_formats = 0;
+        uint32 num_surface_formats = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &num_surface_formats, nullptr);
 
         Array<VkSurfaceFormatKHR> surface_formats;
@@ -206,7 +206,7 @@ public:
             DebugLog(LogType::Warn, "No surface formats available!\n");
         }
 
-        UInt32 num_present_modes = 0;
+        uint32 num_present_modes = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &num_present_modes, nullptr);
 
         Array<VkPresentModeKHR> present_modes;
@@ -409,18 +409,18 @@ public:
     }
 
     template <class StructType>
-    constexpr UInt32 PaddedSize() const
+    constexpr uint32 PaddedSize() const
     {
-        return PaddedSize<StructType>(UInt32(m_properties.limits.minUniformBufferOffsetAlignment));
+        return PaddedSize<StructType>(uint32(m_properties.limits.minUniformBufferOffsetAlignment));
     }
 
     template <class StructType>
-    constexpr UInt32 PaddedSize(UInt32 alignment) const
+    constexpr uint32 PaddedSize(uint32 alignment) const
     {
-        return PaddedSize(UInt32(sizeof(StructType)), alignment);
+        return PaddedSize(uint32(sizeof(StructType)), alignment);
     }
     
-    constexpr UInt32 PaddedSize(UInt32 size, UInt32 alignment) const
+    constexpr uint32 PaddedSize(uint32 size, uint32 alignment) const
     {
         return alignment
             ? (size + alignment - 1) & ~(alignment - 1)

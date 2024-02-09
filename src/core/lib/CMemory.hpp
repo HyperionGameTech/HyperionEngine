@@ -18,12 +18,12 @@ namespace hyperion
 class Memory
 {
 public:
-    static Int MemCmp(const void *lhs, const void *rhs, SizeType size)
+    static int MemCmp(const void *lhs, const void *rhs, SizeType size)
     {
         return std::memcmp(lhs, rhs, size);
     }
 
-    static Int StrCmp(const char *lhs, const char *rhs, SizeType length = 0)
+    static int StrCmp(const char *lhs, const char *rhs, SizeType length = 0)
     {
         if (length) {
             return std::strncmp(lhs, rhs, length);
@@ -32,7 +32,7 @@ public:
         return std::strcmp(lhs, rhs);
     }
 
-    static constexpr Bool AreStaticStringsEqual(const char *lhs, const char *rhs)
+    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs)
     {
         return *lhs == *rhs
             && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
@@ -58,9 +58,9 @@ public:
         return std::strlen(str);
     }
 
-    /*! \brief Alias for memset. Takes in a UByte (unsigned char) as value,
+    /*! \brief Alias for memset. Takes in a ubyte (unsigned char) as value,
         To signify that only the lowest byte is copied over. */
-    static inline void *MemSet(void *dest, UByte ch, SizeType size)
+    static inline void *MemSet(void *dest, ubyte ch, SizeType size)
     {
         return std::memset(dest, ch, size);
     }

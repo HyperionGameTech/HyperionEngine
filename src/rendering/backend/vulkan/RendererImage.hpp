@@ -93,8 +93,8 @@ public:
         const Image *src,
         Rect src_rect,
         Rect dst_rect,
-        UInt src_mip,
-        UInt dst_mip
+        uint src_mip,
+        uint dst_mip
     );
 
     Result GenerateMipmaps(
@@ -114,13 +114,13 @@ public:
 
     ByteBuffer ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const;
 
-    Bool IsRWTexture() const
+    bool IsRWTexture() const
         { return m_is_rw_texture; }
 
     void SetIsRWTexture(bool is_rw_texture)
         { m_is_rw_texture = is_rw_texture; }
 
-    Bool IsAttachmentTexture() const
+    bool IsAttachmentTexture() const
         { return m_is_attachment_texture; }
 
     void SetIsAttachmentTexture(bool is_attachment_texture)
@@ -129,7 +129,7 @@ public:
     const StreamedData *GetStreamedData() const
         { return m_streamed_data.Get(); }
 
-    Bool HasAssignedImageData() const
+    bool HasAssignedImageData() const
         { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
 
     void CopyImageData(const ByteBuffer &byte_buffer)
@@ -137,7 +137,7 @@ public:
         m_streamed_data.Reset(new MemoryStreamedData(byte_buffer));
     }
 
-    // void CopyImageData(const UByte *data, SizeType count, SizeType offset = 0)
+    // void CopyImageData(const ubyte *data, SizeType count, SizeType offset = 0)
     // {
     //     const SizeType min_size = offset + count;
 
@@ -162,8 +162,8 @@ public:
     //     }
     // }
 
-    Bool IsDepthStencil() const;
-    Bool IsSRGB() const;
+    bool IsDepthStencil() const;
+    bool IsSRGB() const;
     void SetIsSRGB(bool srgb);
 
     bool IsBlended() const
@@ -172,17 +172,17 @@ public:
     void SetIsBlended(bool is_blended)
         { m_is_blended = is_blended; }
 
-    Bool HasMipmaps() const
+    bool HasMipmaps() const
     {
         return m_filter_mode == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
             || m_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             || m_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
     }
 
-    UInt NumMipmaps() const
+    uint NumMipmaps() const
     {
         return HasMipmaps()
-            ? UInt(MathUtil::FastLog2(MathUtil::Max(m_extent.width, m_extent.height, m_extent.depth))) + 1
+            ? uint(MathUtil::FastLog2(MathUtil::Max(m_extent.width, m_extent.height, m_extent.depth))) + 1
             : 1;
     }
 
@@ -195,33 +195,33 @@ public:
             * SizeType(NumBytes(m_format))
             * SizeType(NumFaces()); }
 
-    Bool IsTextureCube() const
+    bool IsTextureCube() const
         { return m_type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
-    Bool IsPanorama() const
+    bool IsPanorama() const
         { return m_type == ImageType::TEXTURE_TYPE_2D
             && m_extent.width == m_extent.height * 2
             && m_extent.depth == 1; }
 
-    Bool IsTextureArray() const
+    bool IsTextureArray() const
         { return !IsTextureCube() && m_num_layers > 1; }
 
-    Bool IsTexture3D() const
+    bool IsTexture3D() const
         { return m_type == ImageType::TEXTURE_TYPE_3D; }
 
-    Bool IsTexture2D() const
+    bool IsTexture2D() const
         { return m_type == ImageType::TEXTURE_TYPE_2D; }
 
-    UInt NumLayers() const
+    uint NumLayers() const
         { return m_num_layers; }
 
-    void SetNumLayers(UInt num_layers)
+    void SetNumLayers(uint num_layers)
     {
         m_num_layers = num_layers;
         m_size = GetByteSize();
     }
 
-    UInt NumFaces() const
+    uint NumFaces() const
         { return IsTextureCube()
             ? 6
             : IsTextureArray()
@@ -276,10 +276,10 @@ private:
     FilterMode                          m_filter_mode;
     UniquePtr<StreamedData>             m_streamed_data;
 
-    Bool                                m_is_blended;
-    UInt                                m_num_layers;
-    Bool                                m_is_rw_texture;
-    Bool                                m_is_attachment_texture;
+    bool                                m_is_blended;
+    uint                                m_num_layers;
+    bool                                m_is_rw_texture;
+    bool                                m_is_attachment_texture;
 
     InternalInfo                        m_internal_info;
 

@@ -22,7 +22,7 @@ Quaternion::Quaternion(const Matrix4 &m)
             m1 = m[1].GetXYZ(),
             m2 = m[2].GetXYZ();
 
-    Float length_sqr = m0[0] * m0[0] + m1[0] * m1[0] + m2[0] * m2[0];
+    float length_sqr = m0[0] * m0[0] + m1[0] * m1[0] + m2[0] * m2[0];
 
     if (length_sqr != 1.0f && length_sqr != 0.0f) {
         length_sqr = 1.0f / MathUtil::Sqrt(length_sqr);
@@ -49,31 +49,31 @@ Quaternion::Quaternion(const Matrix4 &m)
         m2[2] *= length_sqr;
     }
 
-    const Float tr = m0[0] + m1[1] + m2[2];
+    const float tr = m0[0] + m1[1] + m2[2];
 
     if (tr > 0.0f) { 
-        Float S = sqrt(tr + 1.0f) * 2.0f; // S=4*qw
+        float S = sqrt(tr + 1.0f) * 2.0f; // S=4*qw
 
         x = (m2[1] - m1[2]) / S;
         y = (m0[2] - m2[0]) / S; 
         z = (m1[0] - m0[1]) / S; 
         w = 0.25f * S;
     } else if ((m0[0] > m1[1]) && (m0[0] > m2[2])) { 
-        Float S = sqrt(1.0f + m0[0] - m1[1] - m2[2]) * 2.0f; // S=4*qx
+        float S = sqrt(1.0f + m0[0] - m1[1] - m2[2]) * 2.0f; // S=4*qx
 
         x = 0.25f * S;
         y = (m0[1] + m1[0]) / S; 
         z = (m0[2] + m2[0]) / S; 
         w = (m2[1] - m1[2]) / S;
     } else if (m1[1] > m2[2]) { 
-        Float S = sqrt(1.0f + m1[1] - m0[0] - m2[2]) * 2.0f; // S=4*qy
+        float S = sqrt(1.0f + m1[1] - m0[0] - m2[2]) * 2.0f; // S=4*qy
 
         x = (m0[1] + m1[0]) / S; 
         y = 0.25f * S;
         z = (m1[2] + m2[1]) / S; 
         w = (m0[2] - m2[0]) / S;
     } else { 
-        Float S = sqrt(1.0f + m2[2] - m0[0] - m1[1]) * 2.0f; // S=4*qz
+        float S = sqrt(1.0f + m2[2] - m0[0] - m1[1]) * 2.0f; // S=4*qz
 
         x = (m0[2] + m2[0]) / S;
         y = (m1[2] + m2[1]) / S;
@@ -84,16 +84,16 @@ Quaternion::Quaternion(const Matrix4 &m)
 
 Quaternion::Quaternion(const Vector3 &euler)
 {
-    const Float x_over2 = MathUtil::DegToRad(euler.x) * 0.5f;
-    const Float y_over2 = MathUtil::DegToRad(euler.y) * 0.5f;
-    const Float z_over2 = MathUtil::DegToRad(euler.z) * 0.5f;
+    const float x_over2 = MathUtil::DegToRad(euler.x) * 0.5f;
+    const float y_over2 = MathUtil::DegToRad(euler.y) * 0.5f;
+    const float z_over2 = MathUtil::DegToRad(euler.z) * 0.5f;
 
-    const Float sin_x_over2 = MathUtil::Sin(x_over2);
-    const Float cos_x_over2 = MathUtil::Cos(x_over2);
-    const Float sin_y_over2 = MathUtil::Sin(y_over2);
-    const Float cos_y_over2 = MathUtil::Cos(y_over2);
-    const Float sin_z_over2 = MathUtil::Sin(z_over2);
-    const Float cos_z_over2 = MathUtil::Cos(z_over2);
+    const float sin_x_over2 = MathUtil::Sin(x_over2);
+    const float cos_x_over2 = MathUtil::Cos(x_over2);
+    const float sin_y_over2 = MathUtil::Sin(y_over2);
+    const float cos_y_over2 = MathUtil::Cos(y_over2);
+    const float sin_z_over2 = MathUtil::Sin(z_over2);
+    const float cos_z_over2 = MathUtil::Cos(z_over2);
     
     x = cos_y_over2 * sin_x_over2 * cos_z_over2 + sin_y_over2 * cos_x_over2 * sin_z_over2;
     y = sin_y_over2 * cos_x_over2 * cos_z_over2 - cos_y_over2 * sin_x_over2 * sin_z_over2;

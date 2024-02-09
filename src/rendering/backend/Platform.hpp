@@ -7,7 +7,7 @@
 namespace hyperion {
 namespace renderer {
 
-using PlatformType = Int;
+using PlatformType = int;
 
 // Use class rather than enum or enum class
 // to be able to implicitly convert values to PlatformType,

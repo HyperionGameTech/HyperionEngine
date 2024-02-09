@@ -16,11 +16,11 @@ namespace hyperion::v2 {
 class RTCClient;
 class RTCServerThread;
 
-enum class RTCServerCallbackMessages : UInt32
+enum class RTCServerCallbackMessages : uint32
 {
     UNKNOWN         = 0,
 
-    ERROR           = UInt32(-1),
+    ERROR           = uint32(-1),
 
     CONNECTED       = 1,
     DISCONNECTED,
@@ -44,7 +44,7 @@ using RTCServerCallbacks = Callbacks<RTCServerCallbackMessages, RTCServerCallbac
 struct RTCServerAddress
 {
     String host;
-    UInt16 port;
+    uint16 port;
     String path;
 };
 

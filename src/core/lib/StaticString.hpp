@@ -51,7 +51,7 @@ struct StaticString
         }
     }
 
-    template <typename IntegerSequence, Int Index = 0>
+    template <typename IntegerSequence, int Index = 0>
     constexpr SizeType FindFirst() const
     {
         constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
@@ -59,7 +59,7 @@ struct StaticString
         if constexpr (Index > Sz - other_size) {
             return -1;
         } else {
-            Bool found = true;
+            bool found = true;
 
             for (SizeType j = 0; j < other_size && j < Sz; ++j) {
                 if (data[Index + j] != IntegerSequence{}.Data()[j]) {
@@ -76,7 +76,7 @@ struct StaticString
         }
     }
 
-    template <typename IntegerSequence, Int Index = Int(Sz) - Int(IntegerSequence::Size())>
+    template <typename IntegerSequence, int Index = int(Sz) - int(IntegerSequence::Size())>
     constexpr SizeType FindLast() const
     {
         constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
@@ -84,7 +84,7 @@ struct StaticString
         if constexpr (Index < 0) {
             return -1;
         } else {
-            Bool found = true;
+            bool found = true;
 
             for (SizeType j = 0; j < other_size && j < Sz; ++j) {
                 if (data[Index + j] != IntegerSequence{}.Data()[j]) {

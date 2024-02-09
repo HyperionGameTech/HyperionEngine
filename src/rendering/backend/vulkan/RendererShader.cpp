@@ -28,7 +28,7 @@ Result ShaderProgram<Platform::VULKAN>::AttachShader(Device<Platform::VULKAN> *d
 
     VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
     create_info.codeSize = spirv.Size();
-    create_info.pCode = reinterpret_cast<const UInt32 *>(spirv.Data());
+    create_info.pCode = reinterpret_cast<const uint32 *>(spirv.Data());
 
     VkShaderModule shader_module;
 

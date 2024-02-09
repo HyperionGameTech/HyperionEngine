@@ -18,7 +18,7 @@ Frame<Platform::VULKAN>::Frame()
 }
 
 template <>
-Frame<Platform::VULKAN>::Frame(UInt frame_index)
+Frame<Platform::VULKAN>::Frame(uint frame_index)
     : m_frame_index(frame_index),
       m_command_buffer(CommandBufferRef<Platform::VULKAN>::unset),
       m_present_semaphores(

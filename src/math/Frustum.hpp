@@ -24,23 +24,23 @@ public:
     const FixedArray<Vec4f, 6> &GetPlanes() const
         { return m_planes; }
 
-    Vec4f &GetPlane(UInt index)
+    Vec4f &GetPlane(uint index)
         { return m_planes[index]; }
 
-    const Vec4f &GetPlane(UInt index) const
+    const Vec4f &GetPlane(uint index) const
         { return m_planes[index]; }
 
-    const Vec3f &GetCorner(UInt index)
+    const Vec3f &GetCorner(uint index)
         { return m_corners[index]; }
 
     const FixedArray<Vec3f, 8> &GetCorners() const
         { return m_corners; }
 
-    Bool ContainsAABB(const BoundingBox &aabb) const;
-    Bool ContainsBoundingSphere(const BoundingSphere &sphere) const;
+    bool ContainsAABB(const BoundingBox &aabb) const;
+    bool ContainsBoundingSphere(const BoundingSphere &sphere) const;
 
     Frustum &SetFromViewProjectionMatrix(const Matrix4 &view_proj);
-    Vec3f GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const;
+    Vec3f GetIntersectionPoint(uint plane_index_0, uint plane_index_1, uint plane_index_2) const;
 
 private:
     FixedArray<Vec4f, 6>    m_planes;

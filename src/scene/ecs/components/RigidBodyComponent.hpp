@@ -9,7 +9,7 @@
 
 namespace hyperion::v2 {
 
-using RigidBodyComponentFlags = UInt32;
+using RigidBodyComponentFlags = uint32;
 
 enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
 {

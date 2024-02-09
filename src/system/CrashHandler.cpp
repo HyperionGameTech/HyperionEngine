@@ -30,7 +30,7 @@ void CrashHandler::Initialize()
         GFSDK_Aftermath_Version_API,
         GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
         GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks,
-        [](const void *dump, const UInt32 size, void *) {
+        [](const void *dump, const uint32 size, void *) {
             GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
             AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
 
@@ -84,7 +84,7 @@ void CrashHandler::Initialize()
             }
 
             {
-                UInt32 count = 0;
+                uint32 count = 0;
                 GFSDK_Aftermath_Result result = GFSDK_Aftermath_GpuCrashDump_GetGpuInfoCount(decoder, &count);
 
                 if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
@@ -107,7 +107,7 @@ void CrashHandler::Initialize()
             }
 
             {
-                UInt32 count = 0;
+                uint32 count = 0;
                 GFSDK_Aftermath_Result result = GFSDK_Aftermath_GpuCrashDump_GetActiveShadersInfoCount(decoder, &count);
 
                 if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
@@ -141,14 +141,14 @@ void CrashHandler::Initialize()
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
         },
-        [](const void *info, const UInt32 size, void *) {
+        [](const void *info, const uint32 size, void *) {
             GFSDK_Aftermath_ShaderDebugInfoIdentifier identifier = {};
             AssertThrow(GFSDK_Aftermath_GetShaderDebugInfoIdentifier(GFSDK_Aftermath_Version_API, info, size, &identifier) == GFSDK_Aftermath_Result_Success);
 
             std::stringstream ss;
-            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(UInt64)) << identifier.id[0];
+            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(uint64)) << identifier.id[0];
             ss << "-";
-            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(UInt64)) << identifier.id[1];
+            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(uint64)) << identifier.id[1];
             std::string str = ss.str();
 
             std::transform(str.begin(), str.end(), str.begin(), [](char ch) {
@@ -166,7 +166,7 @@ void CrashHandler::Initialize()
         },
         [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription, void *) {
         },
-        [](const void *, void *, void **, UInt32 *) {
+        [](const void *, void *, void **, uint32 *) {
         },
         nullptr
     );

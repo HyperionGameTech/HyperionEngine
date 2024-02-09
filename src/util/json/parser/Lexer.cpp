@@ -415,7 +415,7 @@ Token Lexer::ReadHexNumberLiteral()
         break;
     }
 
-    Int64 num = std::strtoll(value.Data(), 0, 16);
+    int64 num = std::strtoll(value.Data(), 0, 16);
     std::stringstream ss;
     ss << num;
 

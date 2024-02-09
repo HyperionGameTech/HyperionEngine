@@ -22,7 +22,7 @@ void CameraTrackController::UpdateLogic(double dt)
 
     m_track_time += dt;
 
-    const Double current_track_time = std::fmod(m_track_time, m_camera_track->GetDuration());
+    const double current_track_time = std::fmod(m_track_time, m_camera_track->GetDuration());
 
     const CameraTrackPivot pivot = m_camera_track->GetPivotAt(current_track_time);
 

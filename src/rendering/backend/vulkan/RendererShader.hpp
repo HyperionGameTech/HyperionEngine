@@ -108,7 +108,7 @@ public:
         HashCode hc;
 
         for (const auto &shader_module : m_shader_modules) {
-            hc.Add(static_cast<Int>(shader_module.type));
+            hc.Add(static_cast<int>(shader_module.type));
             hc.Add(shader_module.spirv.GetHashCode());
         }
 

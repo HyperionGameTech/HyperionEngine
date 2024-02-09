@@ -22,7 +22,7 @@ class Framebuffer;
 
 struct MaterialAttributes
 {
-    using MaterialFlags = UInt32;
+    using MaterialFlags = uint32;
 
     enum MaterialFlagBits : MaterialFlags
     {
@@ -39,7 +39,7 @@ struct MaterialAttributes
     MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
     
     HYP_FORCE_INLINE
-    Bool operator==(const MaterialAttributes &other) const
+    bool operator==(const MaterialAttributes &other) const
     {
         return shader_definition == other.shader_definition
             && bucket == other.bucket
@@ -50,7 +50,7 @@ struct MaterialAttributes
     }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const MaterialAttributes &other) const
+    bool operator!=(const MaterialAttributes &other) const
         { return !(*this == other); }
 
     HashCode GetHashCode() const
@@ -73,7 +73,7 @@ struct MeshAttributes
     Topology topology { Topology::TRIANGLES };
 
     HYP_FORCE_INLINE
-    Bool operator==(const MeshAttributes &other) const
+    bool operator==(const MeshAttributes &other) const
     {
         return vertex_attributes == other.vertex_attributes
             && topology == other.topology;
@@ -96,7 +96,7 @@ class RenderableAttributeSet
     MeshAttributes      m_mesh_attributes;
     MaterialAttributes  m_material_attributes;
     StencilState        m_stencil_state { };
-    UInt32              m_override_flags;
+    uint32              m_override_flags;
 
     mutable HashCode m_cached_hash_code;
     mutable bool m_needs_hash_code_recalculation = true;
@@ -105,7 +105,7 @@ public:
     RenderableAttributeSet(
         const MeshAttributes &mesh_attributes = { },
         const MaterialAttributes &material_attributes = { },
-        UInt32 override_flags = 0
+        uint32 override_flags = 0
     ) : m_mesh_attributes(mesh_attributes),
         m_material_attributes(material_attributes),
         m_override_flags(override_flags)
@@ -119,15 +119,15 @@ public:
     ~RenderableAttributeSet()                                                   = default;
     
     HYP_FORCE_INLINE
-    Bool operator==(const RenderableAttributeSet &other) const
+    bool operator==(const RenderableAttributeSet &other) const
         { return GetHashCode() == other.GetHashCode(); }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const RenderableAttributeSet &other) const
+    bool operator!=(const RenderableAttributeSet &other) const
         { return GetHashCode() != other.GetHashCode(); }
     
     HYP_FORCE_INLINE
-    Bool operator<(const RenderableAttributeSet &other) const
+    bool operator<(const RenderableAttributeSet &other) const
         { return GetHashCode().Value() < other.GetHashCode().Value(); }
 
     HYP_FORCE_INLINE
@@ -171,11 +171,11 @@ public:
         { m_stencil_state = stencil_state; }
     
     HYP_FORCE_INLINE
-    UInt32 GetOverrideFlags() const
+    uint32 GetOverrideFlags() const
         { return m_override_flags; }
     
     HYP_FORCE_INLINE
-    void SetOverrideFlags(UInt32 override_flags)
+    void SetOverrideFlags(uint32 override_flags)
         { m_override_flags = override_flags; }
 
     HYP_FORCE_INLINE

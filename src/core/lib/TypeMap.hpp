@@ -21,7 +21,7 @@ protected:
     using Map = FlatMap<TypeID, Value>;
 
 public:
-    static constexpr Bool is_contiguous = Map::is_contiguous;
+    static constexpr bool is_contiguous = Map::is_contiguous;
 
     using KeyValuePairType  = typename Map::KeyValuePairType;
 
@@ -120,11 +120,11 @@ public:
     Iterator Erase(ConstIterator it)
         { return m_map.Erase(it); }
 
-    Bool Erase(TypeID type_id)
+    bool Erase(TypeID type_id)
         { return m_map.Erase(type_id); }
 
     template <class T>
-    Bool Erase()
+    bool Erase()
         { return m_map.Erase(TypeID::ForType<T>()); }
 
     template <class T>
@@ -178,12 +178,12 @@ public:
         { return m_map.AtIndex(index).second; }
 
     [[nodiscard]]
-    Bool Contains(TypeID type_id) const
+    bool Contains(TypeID type_id) const
         { return m_map.Contains(type_id); }
 
     template <class T>
     [[nodiscard]]
-    Bool Contains() const
+    bool Contains() const
     {
         const auto id = TypeID::ForType<T>();
 
@@ -191,7 +191,7 @@ public:
     }
     
     template <class T>
-    Bool Remove()
+    bool Remove()
     {
         const auto it = Find<T>();
 
@@ -204,7 +204,7 @@ public:
         return true;
     }
 
-    Bool Remove(TypeID type_id)
+    bool Remove(TypeID type_id)
     {
         const auto it = m_map.Find(type_id);
 
@@ -221,11 +221,11 @@ public:
         { m_map.Clear(); }
 
     [[nodiscard]]
-    Bool Any() const
+    bool Any() const
         { return m_map.Any(); }
 
     [[nodiscard]]
-    Bool Empty() const
+    bool Empty() const
         { return m_map.Empty(); }
 
     HYP_DEF_STL_BEGIN_END(m_map.Begin(), m_map.End())

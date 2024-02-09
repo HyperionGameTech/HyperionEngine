@@ -44,10 +44,10 @@ struct ParticleSpawnerParams
     Handle<Texture> texture;
     SizeType max_particles = 256u;
     Vector3 origin = Vector3::zero;
-    Float start_size = 0.035f;
-    Float radius = 1.0f;
-    Float randomness = 0.5f;
-    Float lifespan = 1.0f;
+    float start_size = 0.035f;
+    float radius = 1.0f;
+    float randomness = 0.5f;
+    float lifespan = 1.0f;
     bool has_physics = false;
 };
 
@@ -153,7 +153,7 @@ private:
 
     ThreadSafeContainer<ParticleSpawner> m_particle_spawners;
 
-    UInt32 m_counter;
+    uint32 m_counter;
 };
 
 } // namespace hyperion::v2

@@ -215,7 +215,7 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     if (m_has_ddgi_probes) {
         const DirectionalLightShadowRenderer *shadow_map_renderer = GetRenderComponent<DirectionalLightShadowRenderer>();
 
-        UInt shadow_map_index = 0;
+        uint shadow_map_index = 0;
         Handle<Texture> shadow_map;
 
         if (shadow_map_renderer && shadow_map_renderer->GetPass()) {
@@ -252,7 +252,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
     for (const auto &it : m_render_components) {
         for (const auto &component_tag_pair : it.second) {
-            // m_next_enabled_render_components_mask |= 1u << UInt32(component_tag_pair.second->GetName());
+            // m_next_enabled_render_components_mask |= 1u << uint32(component_tag_pair.second->GetName());
 
             component_tag_pair.second->ComponentRender(frame);
         }

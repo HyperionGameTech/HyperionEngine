@@ -16,7 +16,7 @@ public:
     {
         struct OBJIndex
         {
-            Int64 vertex,
+            int64 vertex,
                   normal,
                   texcoord;
 

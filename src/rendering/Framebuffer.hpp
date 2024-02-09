@@ -29,13 +29,13 @@ struct AttachmentDef
 
 struct AttachmentMap
 {
-    using Iterator      = typename FlatMap<UInt, AttachmentDef>::Iterator;
-    using ConstIterator = typename FlatMap<UInt, AttachmentDef>::ConstIterator;
+    using Iterator      = typename FlatMap<uint, AttachmentDef>::Iterator;
+    using ConstIterator = typename FlatMap<uint, AttachmentDef>::ConstIterator;
 
-    FlatMap<UInt, AttachmentDef> attachments;
+    FlatMap<uint, AttachmentDef> attachments;
 
     void AddAttachment(
-        UInt binding,
+        uint binding,
         ImageRef &&image,
         RenderPassStage stage,
         LoadOperation load_op,
@@ -61,10 +61,10 @@ struct AttachmentMap
     SizeType Size() const
         { return attachments.Size(); }
 
-    AttachmentDef &At(UInt binding)
+    AttachmentDef &At(uint binding)
         { return attachments.At(binding); }
 
-    const AttachmentDef &At(UInt binding) const
+    const AttachmentDef &At(uint binding) const
         { return attachments.At(binding); }
 
     HYP_DEF_STL_BEGIN_END(
@@ -81,14 +81,14 @@ public:
         Extent2D extent,
         RenderPassStage stage = RenderPassStage::SHADER,
         RenderPassMode render_pass_mode = RenderPassMode::RENDER_PASS_INLINE,
-        UInt num_multiview_layers = 0
+        uint num_multiview_layers = 0
     );
 
     Framebuffer(
         Extent3D extent,
         RenderPassStage stage = RenderPassStage::SHADER,
         RenderPassMode render_pass_mode = RenderPassMode::RENDER_PASS_INLINE,
-        UInt num_multiview_layers = 0
+        uint num_multiview_layers = 0
     );
 
     Framebuffer(const Framebuffer &other) = delete;
@@ -96,7 +96,7 @@ public:
     ~Framebuffer();
 
     void AddAttachment(
-        UInt binding,
+        uint binding,
         ImageRef &&image,
         RenderPassStage stage,
         LoadOperation load_op,
@@ -124,7 +124,7 @@ public:
     const auto &GetAttachmentUsages() const
         { return m_render_pass->GetAttachmentUsages(); }
 
-    const FramebufferObjectRef &GetFramebuffer(UInt frame_index) const
+    const FramebufferObjectRef &GetFramebuffer(uint frame_index) const
         { return m_framebuffers[frame_index]; }
 
     const RenderPassRef &GetRenderPass() const { return m_render_pass; }
@@ -134,8 +134,8 @@ public:
 
     void Init();
 
-    void BeginCapture(UInt frame_index, CommandBuffer *command_buffer);
-    void EndCapture(UInt frame_index, CommandBuffer *command_buffer);
+    void BeginCapture(uint frame_index, CommandBuffer *command_buffer);
+    void EndCapture(uint frame_index, CommandBuffer *command_buffer);
 
 private:
     AttachmentMap                                           m_attachment_map;

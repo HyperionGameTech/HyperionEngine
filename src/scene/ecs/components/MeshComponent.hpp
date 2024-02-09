@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-using MeshComponentFlags = UInt32;
+using MeshComponentFlags = uint32;
 
 enum MeshComponentFlagBits : MeshComponentFlags
 {

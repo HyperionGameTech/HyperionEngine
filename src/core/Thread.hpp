@@ -20,31 +20,31 @@ struct ThreadID
     static ThreadID Current();
     static ThreadID CreateDynamicThreadID(Name name);
 
-    UInt32  value;
+    uint32  value;
     Name    name;
 
     HYP_FORCE_INLINE
-    Bool operator==(const ThreadID &other) const
+    bool operator==(const ThreadID &other) const
         { return value == other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const ThreadID &other) const
+    bool operator!=(const ThreadID &other) const
         { return value != other.value; }
 
     HYP_FORCE_INLINE
-    Bool operator<(const ThreadID &other) const
+    bool operator<(const ThreadID &other) const
         { return value < other.value; }
 
     // Not valid for DYNAMIC thread IDs.
     HYP_FORCE_INLINE
-    UInt operator~() const
+    uint operator~() const
         { return ~value; }
 
     HYP_FORCE_INLINE
-    operator UInt32() const
+    operator uint32() const
         { return value; }
     
-    Bool IsDynamic() const;
+    bool IsDynamic() const;
 };
 
 static_assert(std::is_trivially_destructible_v<ThreadID>,
@@ -78,10 +78,10 @@ public:
 
     /*! \brief Enqueue a task to be executed on this thread
      * @param task The task to be executed
-     * @param atomic_counter An optionally provided pointer to atomic UInt which will be incremented
+     * @param atomic_counter An optionally provided pointer to atomic uint which will be incremented
      *      upon completion
      */
-    TaskID ScheduleTask(Task &&task, AtomicVar<UInt> *atomic_counter = nullptr)
+    TaskID ScheduleTask(Task &&task, AtomicVar<uint> *atomic_counter = nullptr)
     {
         return m_scheduler.Enqueue(std::forward<Task>(task), atomic_counter);
     }

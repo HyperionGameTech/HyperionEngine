@@ -370,7 +370,7 @@ public:
     /*! \brief Constructs a new RefCountedPtr from this object.
         The value held within this UniquePtr will be unset,
         the RefCountedPtr taking over management of the pointer. */
-    template <class CountType = UInt>
+    template <class CountType = uint>
     [[nodiscard]] RefCountedPtr<T, CountType> MakeRefCounted()
     {
         RefCountedPtr<T, CountType> rc;
@@ -550,7 +550,7 @@ public:
     /*! \brief Constructs a new RefCountedPtr from this object.
         The value held within this UniquePtr will be unset,
         the RefCountedPtr taking over management of the pointer. */
-    template <class CountType = UInt>
+    template <class CountType = uint>
     [[nodiscard]] RefCountedPtr<void, CountType> MakeRefCounted()
     {
         RefCountedPtr<void, CountType> rc;

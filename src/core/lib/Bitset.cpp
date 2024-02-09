@@ -12,7 +12,7 @@ namespace hyperion {
 namespace containers {
 namespace detail {
 
-DynBitset::DynBitset(UInt64 value)
+DynBitset::DynBitset(uint64 value)
     : m_blocks { BlockType(value & 0xFFFFFFFF), BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) }
 {
     RemoveLeadingZeros();
@@ -101,7 +101,7 @@ DynBitset DynBitset::operator^(const DynBitset &other) const
 DynBitset &DynBitset::operator^=(const DynBitset &other)
     { return *this = (*this ^ other); }
 
-void DynBitset::Set(SizeType index, Bool value)
+void DynBitset::Set(SizeType index, bool value)
 {
     const SizeType bit_index = GetBlockIndex(index);
 
@@ -131,7 +131,7 @@ SizeType DynBitset::Count() const
     return count;
 }
 
-UInt32 DynBitset::ToUInt32() const
+uint32 DynBitset::ToUInt32() const
 {
     if (m_blocks.Empty()) {
         return 0;
@@ -140,7 +140,7 @@ UInt32 DynBitset::ToUInt32() const
     }
 }
 
-Bool DynBitset::ToUInt32(UInt32 *out) const
+bool DynBitset::ToUInt32(uint32 *out) const
 {
     if (m_blocks.Empty()) {
         *out = 0;
@@ -153,29 +153,29 @@ Bool DynBitset::ToUInt32(UInt32 *out) const
     }
 }
 
-UInt64 DynBitset::ToUInt64() const
+uint64 DynBitset::ToUInt64() const
 {
     if (m_blocks.Empty()) {
         return 0;
     } else if (m_blocks.Size() == 1) {
-        return UInt64(m_blocks[0]);
+        return uint64(m_blocks[0]);
     } else {
-        return UInt64(m_blocks[0]) | (UInt64(m_blocks[1]) << 32);
+        return uint64(m_blocks[0]) | (uint64(m_blocks[1]) << 32);
     }
 }
 
-Bool DynBitset::ToUInt64(UInt64 *out) const
+bool DynBitset::ToUInt64(uint64 *out) const
 {
     if (m_blocks.Empty()) {
         *out = 0;
 
         return true;
     } else if (m_blocks.Size() == 1) {
-        *out = UInt64(m_blocks[0]);
+        *out = uint64(m_blocks[0]);
 
         return true;
     } else {
-        *out = UInt64(m_blocks[0]) | (UInt64(m_blocks[1]) << 32);
+        *out = uint64(m_blocks[0]) | (uint64(m_blocks[1]) << 32);
 
         return m_blocks.Size() == 2;
     }

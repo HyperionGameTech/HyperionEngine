@@ -4,7 +4,7 @@
 
 namespace hyperion::v2 {
 
-void ManagedHandle::IncRef(UInt32 type_id)
+void ManagedHandle::IncRef(uint32 type_id)
 {
     ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
 
@@ -13,7 +13,7 @@ void ManagedHandle::IncRef(UInt32 type_id)
     }
 }
 
-void ManagedHandle::DecRef(UInt32 type_id)
+void ManagedHandle::DecRef(uint32 type_id)
 {
     ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
 
@@ -30,12 +30,12 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    void ManagedHandle_IncRef(UInt32 type_id, ManagedHandle handle)
+    void ManagedHandle_IncRef(uint32 type_id, ManagedHandle handle)
     {
         handle.IncRef(type_id);
     }
 
-    void ManagedHandle_DecRef(UInt32 type_id, ManagedHandle handle)
+    void ManagedHandle_DecRef(uint32 type_id, ManagedHandle handle)
     {
         handle.DecRef(type_id);
     }

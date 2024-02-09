@@ -28,7 +28,7 @@ static Result HandleNextFrame(
     Device<Platform::VULKAN> *device,
     Swapchain<Platform::VULKAN> *swapchain,
     Frame<Platform::VULKAN> *frame,
-    UInt32 *index
+    uint32 *index
 )
 {
     HYPERION_VK_CHECK(vkAcquireNextImageKHR(
@@ -49,7 +49,7 @@ static Array<const char *> CheckValidationLayerSupport(const Array<const char *>
     Array<const char *> supported_layers;
     supported_layers.Reserve(requested_layers.Size());
 
-    UInt32 layers_count;
+    uint32 layers_count;
     vkEnumerateInstanceLayerProperties(&layers_count, nullptr);
 
     Array<VkLayerProperties> available_layers;
@@ -173,7 +173,7 @@ Instance<Platform::VULKAN>::Instance(RC<Application> application)
     m_swapchain = new Swapchain<Platform::VULKAN>();
 }
 
-Result Instance<Platform::VULKAN>::CreateCommandPool(DeviceQueue &queue, UInt index)
+Result Instance<Platform::VULKAN>::CreateCommandPool(DeviceQueue &queue, uint index)
 {
     VkCommandPoolCreateInfo pool_info { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
     pool_info.queueFamilyIndex = queue.family;
@@ -232,7 +232,7 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
 
     VkInstanceCreateInfo create_info { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     create_info.pApplicationInfo = &app_info;
-    create_info.enabledLayerCount   = UInt32(validation_layers.Size());
+    create_info.enabledLayerCount   = uint32(validation_layers.Size());
     create_info.ppEnabledLayerNames = validation_layers.Data();
     create_info.flags = 0;
 
@@ -264,7 +264,7 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
         DebugLog(LogType::Debug, "\t%s\n", extension_name);
     }
 
-    create_info.enabledExtensionCount = UInt32(extension_names.Size());
+    create_info.enabledExtensionCount = uint32(extension_names.Size());
     create_info.ppEnabledExtensionNames = extension_names.Data();
 
     DebugLog(LogType::Info, "Loading [%d] Instance extensions...\n", extension_names.Size());
@@ -297,7 +297,7 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
 
     /* init descriptor sets */
 
-    for (UInt i = DescriptorSet::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::DESCRIPTOR_SET_INDEX_MAX; i++) {
+    for (uint i = DescriptorSet::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::DESCRIPTOR_SET_INDEX_MAX; i++) {
         const auto index = DescriptorSet::Index(i);
         const auto slot  = DescriptorSet::GetBaseIndex(index);
 
@@ -479,7 +479,7 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
     const QueueFamilyIndices &family_indices = m_device->GetQueueFamilyIndices();
 
     /* Put into a set so we don't have any duplicate indices */
-    const std::set<UInt32> required_queue_family_indices {
+    const std::set<uint32> required_queue_family_indices {
         family_indices.graphics_family.Get(),
         family_indices.transfer_family.Get(),
         family_indices.present_family.Get(),
@@ -510,11 +510,11 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
         .queue  = m_device->GetQueue(family_indices.compute_family.Get())
     };
 
-    for (UInt i = 0; i < UInt(queue_graphics.command_pools.Size()); i++) {
+    for (uint i = 0; i < uint(queue_graphics.command_pools.Size()); i++) {
         HYPERION_BUBBLE_ERRORS(CreateCommandPool(queue_graphics, i));
     }
 
-    for (UInt i = 0; i < UInt(queue_compute.command_pools.Size()); i++) {
+    for (uint i = 0; i < uint(queue_compute.command_pools.Size()); i++) {
         HYPERION_BUBBLE_ERRORS(CreateCommandPool(queue_compute, i));
     }
 

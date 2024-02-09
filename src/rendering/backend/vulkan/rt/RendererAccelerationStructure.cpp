@@ -32,8 +32,8 @@ VkAccelerationStructureTypeKHR AccelerationStructure::ToVkAccelerationStructureT
 AccelerationGeometry::AccelerationGeometry(
     Array<PackedVertex> &&packed_vertices,
     Array<PackedIndex> &&packed_indices,
-    UInt entity_index,
-    UInt material_index
+    uint entity_index,
+    uint material_index
 ) : m_packed_vertices(std::move(packed_vertices)),
     m_packed_indices(std::move(packed_indices)),
     m_entity_index(entity_index),
@@ -164,7 +164,7 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
             .vertexFormat 	= VK_FORMAT_R32G32B32_SFLOAT,
             .vertexData 	= vertices_address,
             .vertexStride 	= sizeof(PackedVertex),
-            .maxVertex 		= UInt32(m_packed_vertices.Size()),
+            .maxVertex 		= uint32(m_packed_vertices.Size()),
             .indexType 		= VK_INDEX_TYPE_UINT32,
             .indexData 		= indices_address,
             .transformData 	= { { } }
@@ -232,7 +232,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
     Instance *instance,
     AccelerationStructureType type,
     std::vector<VkAccelerationStructureGeometryKHR> &&geometries,
-    std::vector<UInt32> &&primitive_counts,
+    std::vector<uint32> &&primitive_counts,
     bool update,
     RTUpdateStateFlags &out_update_state_flags
 )
@@ -265,7 +265,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
     geometry_info.type = ToVkAccelerationStructureType(type);
     geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
     geometry_info.mode = update ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    geometry_info.geometryCount = UInt32(geometries.size());
+    geometry_info.geometryCount = uint32(geometries.size());
     geometry_info.pGeometries = geometries.data();
 
     AssertThrow(primitive_counts.size() == geometries.size());
@@ -409,7 +409,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
     commands.Push([&](const CommandBufferRef_VULKAN &command_buffer) {
         device->GetFeatures().dyn_functions.vkCmdBuildAccelerationStructuresKHR(
             command_buffer->GetCommandBuffer(),
-            UInt32(range_info_ptrs.size()),
+            uint32(range_info_ptrs.size()),
             &geometry_info,
             range_info_ptrs.data()
         );
@@ -518,9 +518,9 @@ std::vector<VkAccelerationStructureGeometryKHR> TopLevelAccelerationStructure::G
     };
 }
 
-std::vector<UInt32> TopLevelAccelerationStructure::GetPrimitiveCounts() const
+std::vector<uint32> TopLevelAccelerationStructure::GetPrimitiveCounts() const
 {
-    return { UInt32(m_blas.size()) };
+    return { uint32(m_blas.size()) };
 }
     
 Result TopLevelAccelerationStructure::Create(
@@ -656,7 +656,7 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
         const BottomLevelAccelerationStructure *blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
-        const auto instance_index = UInt32(i); /* Index of mesh in mesh descriptions buffer. */
+        const auto instance_index = uint32(i); /* Index of mesh in mesh descriptions buffer. */
 
         instances[i] = VkAccelerationStructureInstanceKHR {
             .transform = ToVkTransform(blas->GetTransform()),
@@ -704,7 +704,7 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
     HYPERION_RETURN_OK;
 }
 
-Result TopLevelAccelerationStructure::UpdateInstancesBuffer(Instance *instance, UInt first, UInt last)
+Result TopLevelAccelerationStructure::UpdateInstancesBuffer(Instance *instance, uint first, uint last)
 {
     if (last == first) {
         HYPERION_RETURN_OK; 
@@ -718,11 +718,11 @@ Result TopLevelAccelerationStructure::UpdateInstancesBuffer(Instance *instance, 
 
     std::vector<VkAccelerationStructureInstanceKHR> instances(last - first);
 
-    for (UInt i = first; i < last; i++) {
+    for (uint i = first; i < last; i++) {
         const BottomLevelAccelerationStructure *blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
-        const UInt32 instance_index = i; /* Index of mesh in mesh descriptions buffer. */
+        const uint32 instance_index = i; /* Index of mesh in mesh descriptions buffer. */
 
         instances[i - first] = VkAccelerationStructureInstanceKHR {
             .transform = ToVkTransform(blas->GetTransform()),
@@ -782,10 +782,10 @@ Result TopLevelAccelerationStructure::CreateMeshDescriptionsBuffer(Instance *ins
 
 Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *instance)
 {
-    return UpdateMeshDescriptionsBuffer(instance, 0u, UInt(m_blas.size()));
+    return UpdateMeshDescriptionsBuffer(instance, 0u, uint(m_blas.size()));
 }
 
-Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *instance, UInt first, UInt last)
+Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *instance, uint first, uint last)
 {
     AssertThrow(m_mesh_descriptions_buffer != nullptr);
     AssertThrow(m_mesh_descriptions_buffer->size >= sizeof(MeshDescription) * m_blas.size());
@@ -802,7 +802,7 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
     Array<MeshDescription> mesh_descriptions;
     mesh_descriptions.Resize(last - first);
 
-    for (UInt i = first; i < last; i++) {
+    for (uint i = first; i < last; i++) {
         const BottomLevelAccelerationStructure *blas = m_blas[i];
 
         MeshDescription &mesh_description = mesh_descriptions[i - first];
@@ -821,8 +821,8 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
             mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
             mesh_description.entity_index = blas->GetGeometries()[0]->GetEntityIndex();
             mesh_description.material_index = blas->GetGeometries()[0]->GetMaterialIndex();
-            mesh_description.num_indices = UInt32(blas->GetGeometries()[0]->GetPackedIndices().Size());
-            mesh_description.num_vertices = UInt32(blas->GetGeometries()[0]->GetPackedVertices().Size());
+            mesh_description.num_indices = uint32(blas->GetGeometries()[0]->GetPackedIndices().Size());
+            mesh_description.num_vertices = uint32(blas->GetGeometries()[0]->GetPackedVertices().Size());
         }
     }
 
@@ -854,9 +854,9 @@ Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance, RTUpda
         return Rebuild(instance, out_update_state_flags);
     }
 
-    Range<UInt> dirty_range { };
+    Range<uint> dirty_range { };
 
-    for (UInt i = 0; i < UInt(m_blas.size()); i++) {
+    for (uint i = 0; i < uint(m_blas.size()); i++) {
         auto *blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
@@ -968,7 +968,7 @@ Result BottomLevelAccelerationStructure::Create(Device *device, Instance *instan
     auto result = Result::OK;
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.size());
-    std::vector<UInt32> primitive_counts(m_geometries.size());
+    std::vector<uint32> primitive_counts(m_geometries.size());
 
     if (m_geometries.empty()) {
         return { Result::RENDERER_ERR, "Cannot create BLAS with zero geometries" };
@@ -985,7 +985,7 @@ Result BottomLevelAccelerationStructure::Create(Device *device, Instance *instan
 
         if (result) {
             geometries[i] = geometry->m_geometry;
-            primitive_counts[i] = UInt32(geometry->GetPackedIndices().Size() / 3);
+            primitive_counts[i] = uint32(geometry->GetPackedIndices().Size() / 3);
 
             if (primitive_counts[i] == 0) {
                 return { Result::RENDERER_ERR, "Cannot create BLAS -- geometry has zero indices" };
@@ -1041,7 +1041,7 @@ Result BottomLevelAccelerationStructure::Rebuild(Instance *instance, RTUpdateSta
     Device *device = instance->GetDevice();
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.size());
-    std::vector<UInt32> primitive_counts(m_geometries.size());
+    std::vector<uint32> primitive_counts(m_geometries.size());
 
     for (SizeType i = 0; i < m_geometries.size(); i++) {
         const auto &geometry = m_geometries[i];
@@ -1057,7 +1057,7 @@ Result BottomLevelAccelerationStructure::Rebuild(Instance *instance, RTUpdateSta
 #endif
 
         geometries[i] = geometry->m_geometry;
-        primitive_counts[i] = UInt32(geometry->GetPackedIndices().Size() / 3);
+        primitive_counts[i] = uint32(geometry->GetPackedIndices().Size() / 3);
     }
 
     HYPERION_PASS_ERRORS(

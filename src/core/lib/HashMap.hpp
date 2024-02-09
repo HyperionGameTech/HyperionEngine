@@ -63,19 +63,19 @@ struct HashBucket
             { return Iterator { bucket, index + 1 }; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const ConstIterator &other) const
+        bool operator==(const ConstIterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const ConstIterator &other) const
+        bool operator!=(const ConstIterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const Iterator &other) const
+        bool operator==(const Iterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const Iterator &other) const
+        bool operator!=(const Iterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
         HYP_FORCE_INLINE
@@ -105,19 +105,19 @@ struct HashBucket
             { return ConstIterator { bucket, index + 1 }; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const ConstIterator &other) const
+        bool operator==(const ConstIterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const ConstIterator &other) const
+        bool operator!=(const ConstIterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const Iterator &other) const
+        bool operator==(const Iterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const Iterator &other) const
+        bool operator!=(const Iterator &other) const
             { return bucket != other.bucket || index != other.index; }
     };
     
@@ -172,10 +172,10 @@ struct HashBucket
 template <class KeyType, class ValueType>
 class HashMap : public ContainerBase<HashMap<KeyType, ValueType>, KeyType>
 {
-    static constexpr Bool       is_contiguous = false;
+    static constexpr bool       is_contiguous = false;
 
     static constexpr SizeType   initial_bucket_size = 16;
-    static constexpr Double     desired_load_factor = 0.75;
+    static constexpr double     desired_load_factor = 0.75;
 
     template <class IteratorType>
     static inline void AdvanceIteratorBucket(IteratorType &iter)
@@ -243,19 +243,19 @@ public:
         }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const Iterator &other) const
+        bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const Iterator &other) const
+        bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const ConstIterator &other) const
+        bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const ConstIterator &other) const
+        bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
         operator ConstIterator() const
@@ -302,23 +302,23 @@ public:
         }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const Iterator &other) const
+        bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const Iterator &other) const
+        bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator==(const ConstIterator &other) const
+        bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
         [[nodiscard]] HYP_FORCE_INLINE
-        Bool operator!=(const ConstIterator &other) const
+        bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
     };
 
-    using InsertResult = Pair<Iterator, Bool>;
+    using InsertResult = Pair<Iterator, bool>;
 
     HashMap();
 
@@ -364,13 +364,13 @@ public:
     }
 #endif
 
-    [[nodiscard]] Bool Any() const
+    [[nodiscard]] bool Any() const
         { return m_size != 0; }
 
-    [[nodiscard]] Bool Empty() const
+    [[nodiscard]] bool Empty() const
         { return m_size == 0; }
 
-    [[nodiscard]] Bool operator==(const HashMap &other) const
+    [[nodiscard]] bool operator==(const HashMap &other) const
     {
         if (Size() != other.Size()) {
             return false;
@@ -393,7 +393,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] Bool operator!=(const HashMap &other) const
+    [[nodiscard]] bool operator!=(const HashMap &other) const
         { return !(*this == other); }
 
     [[nodiscard]] SizeType Size() const
@@ -408,19 +408,19 @@ public:
     [[nodiscard]] SizeType Bucket(const KeyType &key) const
         { return HashCode::GetHashCode(key).Value() % m_buckets.Size(); }
     
-    [[nodiscard]] Double LoadFactor() const
-        { return Double(Size()) / Double(BucketCount()); }
+    [[nodiscard]] double LoadFactor() const
+        { return double(Size()) / double(BucketCount()); }
 
-    [[nodiscard]] static constexpr Double MaxLoadFactor()
+    [[nodiscard]] static constexpr double MaxLoadFactor()
         { return desired_load_factor; }
 
     Iterator Find(const KeyType &key);
     ConstIterator Find(const KeyType &key) const;
 
-    Bool Contains(const KeyType &key) const;
+    bool Contains(const KeyType &key) const;
     
     Iterator Erase(Iterator iter);
-    Bool Erase(const KeyType &key);
+    bool Erase(const KeyType &key);
 
     void Set(const KeyType &key, const ValueType &value);
     void Set(const KeyType &key, ValueType &&value);
@@ -547,7 +547,7 @@ void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
         return;
     }
 
-    const SizeType new_bucket_count = SizeType(Double(BucketCount()) / MaxLoadFactor());
+    const SizeType new_bucket_count = SizeType(double(BucketCount()) / MaxLoadFactor());
 
     Array<detail::HashBucket<KeyType, ValueType>, initial_bucket_size * sizeof(detail::HashBucket<KeyType, ValueType>)> new_buckets;
     new_buckets.Resize(new_bucket_count);
@@ -594,7 +594,7 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) const -> ConstIterato
 }
 
 template <class KeyType, class ValueType>
-Bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
+bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
 {
     return Find(key) != End();
 }
@@ -630,7 +630,7 @@ auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
 }
 
 template <class KeyType, class ValueType>
-Bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
+bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
 {
     const Iterator it = Find(key);
 

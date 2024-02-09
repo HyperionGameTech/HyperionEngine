@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 class FXAAEffect : public PostProcessingEffect {
 public:
     static constexpr Stage stage = Stage::POST_SHADING;
-    static constexpr UInt index = 0;
+    static constexpr uint index = 0;
 
     FXAAEffect();
     virtual ~FXAAEffect();

@@ -41,14 +41,14 @@ FixedArray<Vec3f, 8> BoundingBox::GetCorners() const
     };
 }
 
-Vec3f BoundingBox::GetCorner(UInt index) const
+Vec3f BoundingBox::GetCorner(uint index) const
 {
-    const UInt mask = 1u << index;
+    const uint mask = 1u << index;
 
     return {
-        MathUtil::Lerp(min.x, max.x, Int((mask & 1) != 0)),
-        MathUtil::Lerp(min.y, max.y, Int((mask & 2) != 0)),
-        MathUtil::Lerp(min.z, max.z, Int((mask & 4) != 0))
+        MathUtil::Lerp(min.x, max.x, int((mask & 1) != 0)),
+        MathUtil::Lerp(min.y, max.y, int((mask & 2) != 0)),
+        MathUtil::Lerp(min.z, max.z, int((mask & 4) != 0))
     };
 }
 
@@ -69,17 +69,17 @@ void BoundingBox::SetExtent(const Vec3f &dimensions)
 }
 
 // https://github.com/openscenegraph/OpenSceneGraph/blob/master/include/osg/BoundingBox
-Float BoundingBox::GetRadiusSquared() const
+float BoundingBox::GetRadiusSquared() const
 {
     return 0.25f * GetExtent().LengthSquared();
 }
 
-Float BoundingBox::GetRadius() const
+float BoundingBox::GetRadius() const
 {
     return MathUtil::Sqrt(GetRadiusSquared());
 }
 
-BoundingBox BoundingBox::operator*(Float scalar) const
+BoundingBox BoundingBox::operator*(float scalar) const
 {
     BoundingBox other(*this);
     other *= scalar;
@@ -87,7 +87,7 @@ BoundingBox BoundingBox::operator*(Float scalar) const
     return other;
 }
 
-BoundingBox &BoundingBox::operator*=(Float scalar)
+BoundingBox &BoundingBox::operator*=(float scalar)
 {
     if (Empty()) {
         return *this;
@@ -99,12 +99,12 @@ BoundingBox &BoundingBox::operator*=(Float scalar)
     return *this;
 }
 
-BoundingBox BoundingBox::operator/(Float scalar) const
+BoundingBox BoundingBox::operator/(float scalar) const
 {
     return BoundingBox(*this) /= scalar;
 }
 
-BoundingBox &BoundingBox::operator/=(Float scalar)
+BoundingBox &BoundingBox::operator/=(float scalar)
 {
     if (Empty()) {
         return *this;
@@ -180,8 +180,8 @@ BoundingBox BoundingBox::operator*(const Transform &transform) const
 
 BoundingBox &BoundingBox::Clear()
 {
-    min = Vec3f(MathUtil::MaxSafeValue<Float>());
-    max = Vec3f(MathUtil::MinSafeValue<Float>());
+    min = Vec3f(MathUtil::MaxSafeValue<float>());
+    max = Vec3f(MathUtil::MinSafeValue<float>());
 
     return *this;
 }
@@ -200,7 +200,7 @@ BoundingBox &BoundingBox::Extend(const BoundingBox &bb)
     return *this;
 }
 
-Bool BoundingBox::Intersects(const BoundingBox &other) const
+bool BoundingBox::Intersects(const BoundingBox &other) const
 {
     const FixedArray<Vec3f, 8> corners = other.GetCorners();
 
@@ -216,7 +216,7 @@ Bool BoundingBox::Intersects(const BoundingBox &other) const
     return false;
 }
 
-Bool BoundingBox::Contains(const BoundingBox &other) const
+bool BoundingBox::Contains(const BoundingBox &other) const
 {
     const FixedArray<Vec3f, 8> corners = other.GetCorners();
 
@@ -232,7 +232,7 @@ Bool BoundingBox::Contains(const BoundingBox &other) const
     return true;
 }
 
-Bool BoundingBox::ContainsPoint(const Vec3f &vec) const
+bool BoundingBox::ContainsPoint(const Vec3f &vec) const
 {
     if (vec.x < min.x) return false;
     if (vec.y < min.y) return false;
@@ -244,7 +244,7 @@ Bool BoundingBox::ContainsPoint(const Vec3f &vec) const
     return true;
 }
 
-Float BoundingBox::Area() const
+float BoundingBox::Area() const
 {
     Vec3f dimensions(max - min);
     return dimensions.x * dimensions.y * dimensions.z;

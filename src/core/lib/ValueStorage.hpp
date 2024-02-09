@@ -11,7 +11,7 @@ namespace hyperion {
 template <class T>
 struct alignas(T) ValueStorage
 {
-    alignas(T) UByte data_buffer[sizeof(T)];
+    alignas(T) ubyte data_buffer[sizeof(T)];
 
     template <class ...Args>
     T *Construct(Args &&... args)

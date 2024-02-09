@@ -19,7 +19,7 @@ std::ostream &operator<<(std::ostream &os, const DynBitset &bitset);
 class DynBitset
 {
 public:
-    using BlockType = UInt32;
+    using BlockType = uint32;
 
     static constexpr SizeType num_bits_per_block = sizeof(BlockType) * CHAR_BIT;
 
@@ -37,7 +37,7 @@ public:
 
     DynBitset() = default;
 
-    explicit DynBitset(UInt64 value);
+    explicit DynBitset(uint64 value);
 
     DynBitset(const DynBitset &other)                   = default;
     DynBitset &operator=(const DynBitset &other)        = default;
@@ -46,11 +46,11 @@ public:
     ~DynBitset()                                        = default;
 
     HYP_FORCE_INLINE
-    Bool operator==(const DynBitset &other) const
+    bool operator==(const DynBitset &other) const
         { return m_blocks.CompareBitwise(other.m_blocks); }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const DynBitset &other) const
+    bool operator!=(const DynBitset &other) const
         { return m_blocks.CompareBitwise(other.m_blocks); }
 
     /*! \brief Returns a DynBitset with all bits flipped. 
@@ -80,17 +80,17 @@ public:
     SizeType FirstSetBitIndex() const;
 
     HYP_FORCE_INLINE
-    Bool Get(SizeType index) const
+    bool Get(SizeType index) const
     {
         return GetBlockIndex(index) < m_blocks.Size()
             && (m_blocks[GetBlockIndex(index)] & GetBitMask(index));
     }
 
     HYP_FORCE_INLINE
-    Bool Test(SizeType index) const
+    bool Test(SizeType index) const
         { return Get(index); }
 
-    void Set(SizeType index, Bool value);
+    void Set(SizeType index, bool value);
 
     /*! \brief Returns the total number of bits in the bitset. */
     SizeType NumBits() const
@@ -103,23 +103,23 @@ public:
         If more bits are included in the bitset than can be converted to
         a Uint32, the result is truncated.
     */
-    UInt32 ToUInt32() const;
+    uint32 ToUInt32() const;
 
     /*! \brief Sets out to the Uint32 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint32, false is returned. Otherwise, true is returned. */
-    Bool ToUInt32(UInt32 *out) const;
+    bool ToUInt32(uint32 *out) const;
 
     /*! \brief Returns the Uint64 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint64, the result is truncated.
     */
-    UInt64 ToUInt64() const;
+    uint64 ToUInt64() const;
 
     /*! \brief Sets out to the Uint64 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint64, false is returned. Otherwise, true is returned. */
-    Bool ToUInt64(UInt64 *out) const;
+    bool ToUInt64(uint64 *out) const;
 
     HashCode GetHashCode() const
     {

@@ -53,8 +53,8 @@ public:
     float &At(int i, int j);
 #pragma endregion
 
-    constexpr Vector3 &operator[](UInt row) { return rows[row]; }
-    constexpr const Vector3 &operator[](UInt row) const { return rows[row]; }
+    constexpr Vector3 &operator[](uint row) { return rows[row]; }
+    constexpr const Vector3 &operator[](uint row) const { return rows[row]; }
 
     static Matrix3 Zeros();
     static Matrix3 Ones();

@@ -48,7 +48,7 @@ struct ClassName
 
 #define STUB_CLASS(name) ::hyperion::v2::StubbedClass<name, ClassName<StaticString(HYP_STR(name))>>
 
-using ComponentFlags = UInt;
+using ComponentFlags = uint;
 
 template <class T>
 struct ComponentInitInfo

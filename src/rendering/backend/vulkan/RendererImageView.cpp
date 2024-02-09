@@ -45,10 +45,10 @@ Result ImageView<Platform::VULKAN>::Create(
     VkFormat format,
     VkImageAspectFlags aspect_flags,
     VkImageViewType view_type,
-    UInt mipmap_layer,
-    UInt num_mipmaps,
-    UInt face_layer,
-    UInt num_faces
+    uint mipmap_layer,
+    uint num_mipmaps,
+    uint face_layer,
+    uint num_faces
 )
 {
     m_num_faces = num_faces;
@@ -83,10 +83,10 @@ Result ImageView<Platform::VULKAN>::Create(
 Result ImageView<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
     const Image<Platform::VULKAN> *image,
-    UInt mipmap_layer,
-    UInt num_mipmaps,
-    UInt face_layer,
-    UInt num_faces
+    uint mipmap_layer,
+    uint num_mipmaps,
+    uint face_layer,
+    uint num_faces
 )
 {
     AssertThrow(image != nullptr);

@@ -4,15 +4,15 @@
 
 namespace hyperion::v2 {
 
-Keyframe AnimationTrack::GetKeyframe(Float time) const
+Keyframe AnimationTrack::GetKeyframe(float time) const
 {
-    Int first = 0, second = -1;
+    int first = 0, second = -1;
 
     if (keyframes.Empty()) {
         return { time, Transform() };
     }
 
-    for (Int i = 0; i < Int(keyframes.Size() - 1); i++) {
+    for (int i = 0; i < int(keyframes.Size() - 1); i++) {
         if (MathUtil::InRange(time, { keyframes[i].GetTime(), keyframes[i + 1].GetTime() })) {
             first = i;
             second = i + 1;
@@ -28,7 +28,7 @@ Keyframe AnimationTrack::GetKeyframe(Float time) const
     if (second > first) {
         const Keyframe &next = keyframes[second];
 
-        const Float delta = (time - current.GetTime()) / (next.GetTime() - current.GetTime());
+        const float delta = (time - current.GetTime()) / (next.GetTime() - current.GetTime());
 
         transform.GetTranslation().Lerp(next.GetTransform().GetTranslation(), delta);
         transform.GetRotation().Slerp(next.GetTransform().GetRotation(), delta);
@@ -45,7 +45,7 @@ Animation::Animation(const String &name)
 {
 }
 
-void Animation::Apply(Float time)
+void Animation::Apply(float time)
 {
     for (AnimationTrack &track : m_tracks) {
         if (track.bone == nullptr) {
@@ -57,7 +57,7 @@ void Animation::Apply(Float time)
     }
 }
 
-void Animation::ApplyBlended(Float time, Float blend)
+void Animation::ApplyBlended(float time, float blend)
 {
     for (AnimationTrack &track : m_tracks) {
         if (track.bone == nullptr) {

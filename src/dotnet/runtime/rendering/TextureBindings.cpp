@@ -14,7 +14,7 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    UInt32 Texture_GetTypeID()
+    uint32 Texture_GetTypeID()
     {
         return TypeID::ForType<Texture>().Value();
     }
@@ -35,7 +35,7 @@ extern "C" {
         InitObject(texture);
     }
 
-    UInt32 Texture_GetInternalFormat(ManagedHandle texture_handle)
+    uint32 Texture_GetInternalFormat(ManagedHandle texture_handle)
     {
         Handle<Texture> texture = CreateHandleFromManagedHandle<Texture>(texture_handle);
 
@@ -43,10 +43,10 @@ extern "C" {
             return 0;
         }
 
-        return UInt32(texture->GetFormat());
+        return uint32(texture->GetFormat());
     }
 
-    UInt32 Texture_GetFilterMode(ManagedHandle texture_handle)
+    uint32 Texture_GetFilterMode(ManagedHandle texture_handle)
     {
         Handle<Texture> texture = CreateHandleFromManagedHandle<Texture>(texture_handle);
 
@@ -54,10 +54,10 @@ extern "C" {
             return 0;
         }
 
-        return UInt32(texture->GetFilterMode());
+        return uint32(texture->GetFilterMode());
     }
 
-    UInt32 Texture_GetImageType(ManagedHandle texture_handle)
+    uint32 Texture_GetImageType(ManagedHandle texture_handle)
     {
         Handle<Texture> texture = CreateHandleFromManagedHandle<Texture>(texture_handle);
 
@@ -65,10 +65,10 @@ extern "C" {
             return 0;
         }
 
-        return UInt32(texture->GetType());
+        return uint32(texture->GetType());
     }
 
-    ManagedHandle Material_GetTexture(ManagedHandle material_handle, UInt64 texture_key)
+    ManagedHandle Material_GetTexture(ManagedHandle material_handle, uint64 texture_key)
     {
         Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 
@@ -79,7 +79,7 @@ extern "C" {
         return CreateManagedHandleFromHandle<Texture>(material->GetTexture(Material::TextureKey(texture_key)));
     }
 
-    void Material_SetTexture(ManagedHandle material_handle, UInt64 texture_key, ManagedHandle texture_handle)
+    void Material_SetTexture(ManagedHandle material_handle, uint64 texture_key, ManagedHandle texture_handle)
     {
         Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 

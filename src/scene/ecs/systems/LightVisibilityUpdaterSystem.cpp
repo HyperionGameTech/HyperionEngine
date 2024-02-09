@@ -33,7 +33,7 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             light_component.transform_hash_code = transform_hash_code;
         }
 
-        const Bool is_light_in_frustum = light_component.light->GetType() == LightType::DIRECTIONAL
+        const bool is_light_in_frustum = light_component.light->GetType() == LightType::DIRECTIONAL
             || (camera.IsValid() && camera->GetFrustum().ContainsBoundingSphere(BoundingSphere(light_component.light->GetPosition(), light_component.light->GetRadius())));
 
         light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);

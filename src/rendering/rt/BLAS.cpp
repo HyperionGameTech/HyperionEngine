@@ -60,7 +60,7 @@ void BLAS::SetMesh(Handle<Mesh> mesh)
     m_mesh = std::move(mesh);
 
     if (!m_blas.GetGeometries().empty()) {
-        auto size = static_cast<UInt>(m_blas.GetGeometries().size());
+        auto size = static_cast<uint>(m_blas.GetGeometries().size());
 
         while (size) {
             m_blas.RemoveGeometry(--size);
@@ -129,7 +129,7 @@ void BLAS::Init()
 
     BasicObject::Init();
 
-    UInt material_index = 0;
+    uint material_index = 0;
 
     if (InitObject(m_material)) {
         material_index = m_material->GetID().ToIndex();

@@ -33,24 +33,24 @@ class Camera;
 */
 struct OctantID
 {
-    static constexpr UInt64 invalid_bits = 1ull << 63;
+    static constexpr uint64 invalid_bits = 1ull << 63;
     static constexpr SizeType max_depth = 64 / 3;
 
     static const OctantID invalid;  // special value for invalid octant
 
-    UInt64  index_bits { 0 };
-    UInt8   depth { 0 };
+    uint64  index_bits { 0 };
+    uint8   depth { 0 };
 
     OctantID() = default;
 
-    explicit OctantID(UInt64 index_bits, UInt8 depth)
+    explicit OctantID(uint64 index_bits, uint8 depth)
         : index_bits(index_bits), depth(depth) {}
 
-    explicit OctantID(UInt8 child_index, OctantID parent_id)
+    explicit OctantID(uint8 child_index, OctantID parent_id)
         : index_bits(!parent_id.IsInvalid()
-            ? parent_id.index_bits | (UInt64(child_index) << (UInt64(parent_id.GetDepth() + UInt8(1)) * 3ull))
+            ? parent_id.index_bits | (uint64(child_index) << (uint64(parent_id.GetDepth() + uint8(1)) * 3ull))
             : child_index),
-          depth(parent_id.GetDepth() + UInt8(1)) {}
+          depth(parent_id.GetDepth() + uint8(1)) {}
 
     OctantID(const OctantID &other) = default;
     OctantID &operator=(const OctantID &other) = default;
@@ -59,27 +59,27 @@ struct OctantID
     ~OctantID() = default;
 
     HYP_FORCE_INLINE
-    Bool IsInvalid() const // This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
+    bool IsInvalid() const // This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
         { return index_bits & invalid_bits; }
 
     HYP_FORCE_INLINE
-    Bool operator==(const OctantID &other) const
+    bool operator==(const OctantID &other) const
         { return index_bits == other.index_bits && depth == other.depth; }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const OctantID &other) const
+    bool operator!=(const OctantID &other) const
         { return !(*this == other); }
 
     HYP_FORCE_INLINE
-    UInt8 GetIndex(UInt8 depth) const
-        { return (index_bits >> (UInt64(depth) * 3ull)) & 0x7; }
+    uint8 GetIndex(uint8 depth) const
+        { return (index_bits >> (uint64(depth) * 3ull)) & 0x7; }
 
     HYP_FORCE_INLINE
-    UInt8 GetIndex() const
+    uint8 GetIndex() const
         { return GetIndex(depth); }
 
     HYP_FORCE_INLINE
-    UInt8 GetDepth() const
+    uint8 GetDepth() const
         { return depth; }
 
     HYP_FORCE_INLINE
@@ -103,13 +103,13 @@ class Octree
         DEPTH_SEARCH_ONLY_THIS = 0
     };
 
-    static constexpr Float growth_factor = 1.5f;
+    static constexpr float growth_factor = 1.5f;
     // the length value at which to stop recusively dividing
     // for a small enough object
-    static constexpr Float min_aabb_size = 1.0f; 
+    static constexpr float min_aabb_size = 1.0f; 
     static const BoundingBox default_bounds;
 
-    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, UInt8 index);
+    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index);
 
 public:
     struct Result
@@ -121,18 +121,18 @@ public:
         } result;
 
         const char  *message;
-        Int         error_code = 0;
+        int         error_code = 0;
 
         Result()
             : Result(OCTREE_OK) {}
         
-        Result(decltype(result) result, const char *message = "", Int error_code = 0)
+        Result(decltype(result) result, const char *message = "", int error_code = 0)
             : result(result), message(message), error_code(error_code) {}
         Result(const Result &other)
             : result(other.result), message(other.message), error_code(other.error_code) {}
 
         HYP_FORCE_INLINE
-        operator Bool() const { return result == OCTREE_OK; }
+        operator bool() const { return result == OCTREE_OK; }
     };
 
     using InsertResult = Pair<Result, OctantID>;
@@ -169,15 +169,15 @@ public:
         std::atomic_uint8_t             visibility_cursor { 0u };
     };
 
-    static Bool IsVisible(
+    static bool IsVisible(
         const Octree *parent,
         const Octree *child
     );
 
-    static Bool IsVisible(
+    static bool IsVisible(
         const Octree *parent,
         const Octree *child,
-        UInt8 cursor
+        uint8 cursor
     );
 
     Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb = default_bounds);
@@ -211,7 +211,7 @@ public:
     */
     Octree *GetChildOctant(OctantID octant_id);
 
-    Bool IsDivided() const
+    bool IsDivided() const
         { return m_is_divided; }
 
     /*! \brief Get a hashcode of all entities currently in this Octant (child octants affect this too) */
@@ -239,21 +239,21 @@ public:
     InsertResult Rebuild(const BoundingBox &new_aabb);
 
     void CollectEntities(Array<ID<Entity>> &out) const;
-    void CollectEntitiesInRange(const Vector3 &position, Float radius, Array<ID<Entity>> &out) const;
-    Bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
-    Bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
-    Bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
+    void CollectEntitiesInRange(const Vector3 &position, float radius, Array<ID<Entity>> &out) const;
+    bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
+    bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
+    bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
 
     void NextVisibilityState();
     void CalculateVisibility(Camera *camera);
-    UInt8 LoadVisibilityCursor() const;
-    UInt8 LoadPreviousVisibilityCursor() const;
+    uint8 LoadVisibilityCursor() const;
+    uint8 LoadPreviousVisibilityCursor() const;
 
-    Bool TestRay(const Ray &ray, RayTestResults &out_results) const;
+    bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
 private:
     void ResetNodesHash();
-    void RebuildNodesHash(UInt level = 0);
+    void RebuildNodesHash(uint level = 0);
 
     void ClearInternal(Array<Node> &out_nodes);
     void Clear(Array<Node> &out_nodes);
@@ -270,12 +270,12 @@ private:
         });
     }
 
-    Bool IsRoot() const { return m_parent == nullptr; }
-    Bool Empty() const { return m_nodes.Empty(); }
+    bool IsRoot() const { return m_parent == nullptr; }
+    bool Empty() const { return m_nodes.Empty(); }
     Root *GetRoot() const { return m_root; }
     
     void SetParent(Octree *parent);
-    Bool EmptyDeep(Int depth = DEPTH_SEARCH_INF, UInt8 octant_mask = 0xff) const;
+    bool EmptyDeep(int depth = DEPTH_SEARCH_INF, uint8 octant_mask = 0xff) const;
 
     void InitOctants();
     void Divide();
@@ -287,7 +287,7 @@ private:
     InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb);
     Result RemoveInternal(ID<Entity> id);
     InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
-    void UpdateVisibilityState(Camera *camera, UInt8 cursor);
+    void UpdateVisibilityState(Camera *camera, uint8 cursor);
 
     /* Called from entity - remove the pointer */
     // void OnEntityRemoved(Entity *entity);
@@ -299,7 +299,7 @@ private:
     Octree                  *m_parent;
     BoundingBox             m_aabb;
     FixedArray<Octant, 8>   m_octants;
-    Bool                    m_is_divided;
+    bool                    m_is_divided;
     Root                    *m_root;
     VisibilityState         m_visibility_state;
     OctantID                m_octant_id;

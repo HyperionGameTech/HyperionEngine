@@ -40,7 +40,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
     }
 };
 
-static Matrix4 BuildJitterMatrix(const Camera &camera, UInt frame_counter)
+static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
 {
     if (camera.GetWidth() == 0 || camera.GetHeight() == 0) {
         return Matrix4::identity;
@@ -48,8 +48,8 @@ static Matrix4 BuildJitterMatrix(const Camera &camera, UInt frame_counter)
 
     static const HaltonSequence halton;
 
-    const Vector2 pixel_size = Vector2::one / Vector2(Float(MathUtil::Abs(camera.GetWidth())), Float(MathUtil::Abs(camera.GetHeight())));
-    const UInt index = frame_counter % HaltonSequence::size;
+    const Vector2 pixel_size = Vector2::one / Vector2(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
+    const uint index = frame_counter % HaltonSequence::size;
 
     const Vector2 jitter = halton.sequence[index] * 2.0f - 1.0f;
 
@@ -164,7 +164,7 @@ void Camera::Init()
         .position = m_translation,
         .direction = m_direction,
         .up = m_up,
-        .dimensions = Extent2D { UInt(MathUtil::Abs(m_width)), UInt(MathUtil::Abs(m_height)) },
+        .dimensions = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
         .clip_near = m_near,
         .clip_far = m_far,
         .fov = m_fov,
@@ -333,7 +333,7 @@ Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
 
 Vector2 Camera::GetPixelSize() const
 {
-    return Vector2::one / Vector2 { Float(GetWidth()), Float(GetHeight()) };
+    return Vector2::one / Vector2 { float(GetWidth()), float(GetHeight()) };
 }
 
 void Camera::Update(GameCounter::TickUnit dt)
@@ -358,7 +358,7 @@ void Camera::Update(GameCounter::TickUnit dt)
             .position = m_translation,
             .direction = m_direction,
             .up = m_up,
-            .dimensions = Extent2D { UInt(MathUtil::Abs(m_width)), UInt(MathUtil::Abs(m_height)) },
+            .dimensions = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
             .clip_near = m_near,
             .clip_far = m_far,
             .fov = m_fov,

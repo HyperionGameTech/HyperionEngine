@@ -26,12 +26,12 @@ extern "C" {
         return task_batch->IsCompleted();
     }
 
-    UInt32 TaskBatch_NumCompleted(const TaskBatch *task_batch)
+    uint32 TaskBatch_NumCompleted(const TaskBatch *task_batch)
     {
         return task_batch->num_completed.Get(MemoryOrder::RELAXED);
     }
 
-    UInt32 TaskBatch_NumEnqueued(const TaskBatch *task_batch)
+    uint32 TaskBatch_NumEnqueued(const TaskBatch *task_batch)
     {
         return task_batch->num_enqueued;
     }

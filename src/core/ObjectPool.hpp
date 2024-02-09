@@ -31,10 +31,10 @@ class ObjectContainerBase
 public:
     virtual ~ObjectContainerBase() = default;
 
-    virtual void IncRefStrong(UInt index) = 0;
-    virtual void IncRefWeak(UInt index) = 0;
-    virtual void DecRefStrong(UInt index) = 0;
-    virtual void DecRefWeak(UInt index) = 0;
+    virtual void IncRefStrong(uint index) = 0;
+    virtual void IncRefWeak(uint index) = 0;
+    virtual void DecRefStrong(uint index) = 0;
+    virtual void DecRefWeak(uint index) = 0;
 };
 
 template <class T>
@@ -42,9 +42,9 @@ class ObjectContainer : public ObjectContainerBase
 {
     struct ObjectBytes
     {
-        alignas(T) UByte bytes[sizeof(T)];
-        std::atomic<UInt16> ref_count_strong;
-        std::atomic<UInt16> ref_count_weak;
+        alignas(T) ubyte bytes[sizeof(T)];
+        std::atomic<uint16> ref_count_strong;
+        std::atomic<uint16> ref_count_weak;
 
         ObjectBytes()
             : ref_count_strong(0),
@@ -79,31 +79,31 @@ class ObjectContainer : public ObjectContainerBase
             ref_count_strong.fetch_add(1, std::memory_order_relaxed);
         }
 
-        UInt DecRefStrong()
+        uint DecRefStrong()
         {
             AssertThrow(HasValue());
 
-            UInt16 count;
+            uint16 count;
 
             if ((count = ref_count_strong.fetch_sub(1)) == 1) {
                 reinterpret_cast<T *>(bytes)->~T();
             }
 
-            return UInt(count) - 1;
+            return uint(count) - 1;
         }
 
-        UInt DecRefWeak()
+        uint DecRefWeak()
         {
-            UInt16 count = ref_count_weak.fetch_sub(1);
+            uint16 count = ref_count_weak.fetch_sub(1);
 
-            return UInt(count) - 1;
+            return uint(count) - 1;
         }
 
-        HYP_FORCE_INLINE UInt GetRefCountStrong() const
-            { return UInt(ref_count_strong.load()); }
+        HYP_FORCE_INLINE uint GetRefCountStrong() const
+            { return uint(ref_count_strong.load()); }
 
-        HYP_FORCE_INLINE UInt GetRefCountWeak() const
-            { return UInt(ref_count_weak.load()); }
+        HYP_FORCE_INLINE uint GetRefCountWeak() const
+            { return uint(ref_count_weak.load()); }
 
         HYP_FORCE_INLINE T &Get()
         {
@@ -138,9 +138,9 @@ public:
     ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
     virtual ~ObjectContainer() override                             = default;
 
-    HYP_FORCE_INLINE UInt NextIndex()
+    HYP_FORCE_INLINE uint NextIndex()
     {
-        const UInt index = IDCreator<>::template ForType<T>().NextID() - 1;
+        const uint index = IDCreator<>::template ForType<T>().NextID() - 1;
 
         AssertThrowMsg(
             index < HandleDefinition<T>::max_size,
@@ -152,24 +152,24 @@ public:
         return index;
     }
 
-    virtual void IncRefStrong(UInt index) override
+    virtual void IncRefStrong(uint index) override
     {
         m_data[index].IncRefStrong();
     }
 
-    virtual void IncRefWeak(UInt index) override
+    virtual void IncRefWeak(uint index) override
     {
         m_data[index].IncRefWeak();
     }
 
-    virtual void DecRefStrong(UInt index) override
+    virtual void DecRefStrong(uint index) override
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
             IDCreator<>::template ForType<T>().FreeID(index + 1);
         }
     }
 
-    virtual void DecRefWeak(UInt index) override
+    virtual void DecRefWeak(uint index) override
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
             IDCreator<>::template ForType<T>().FreeID(index + 1);
@@ -177,21 +177,21 @@ public:
     }
 
     HYP_FORCE_INLINE
-    T *GetPointer(UInt index)
+    T *GetPointer(uint index)
         { return m_data[index].GetPointer(); }
 
     HYP_FORCE_INLINE
-    const T *GetPointer(UInt index) const
+    const T *GetPointer(uint index) const
         { return m_data[index].GetPointer(); }
 
     HYP_FORCE_INLINE
-    T &Get(UInt index)
+    T &Get(uint index)
     {
         return m_data[index].Get();
     }
     
     template <class ...Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(UInt index, Args &&... args)
+    HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
     {
         T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
         ptr->SetID(ID<T> { index + 1 });

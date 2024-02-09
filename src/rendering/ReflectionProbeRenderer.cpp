@@ -80,7 +80,7 @@ void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     // const Handle<Camera> &camera = GetParent()->GetScene()->GetCamera();
 
-    // const Bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(m_env_probe->GetAABB());
+    // const bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(m_env_probe->GetAABB());
 
     // m_env_probe->SetIsVisible(camera.GetID(), is_env_probe_in_frustum);
 }

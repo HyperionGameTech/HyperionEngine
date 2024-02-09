@@ -109,7 +109,7 @@ std::string FileSystem::RelativePath(const std::string &path, const std::string 
     return std::filesystem::proximate(path, base).string();
 }
 
-Int FilePath::MkDir() const
+int FilePath::MkDir() const
 {
 #if HYP_WINDOWS
     return ::_mkdir(Data());
@@ -136,7 +136,7 @@ bool FilePath::IsDirectory() const
     return false;
 }
 
-UInt64 FilePath::LastModifiedTimestamp() const
+uint64 FilePath::LastModifiedTimestamp() const
 {
     struct stat st;
     

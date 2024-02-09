@@ -11,7 +11,7 @@ BoundingSphere::BoundingSphere()
 {
 }
 
-BoundingSphere::BoundingSphere(const Vector3 &center, Float radius)
+BoundingSphere::BoundingSphere(const Vector3 &center, float radius)
     : center(center),
       radius(radius)
 {

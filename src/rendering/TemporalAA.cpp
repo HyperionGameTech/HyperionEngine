@@ -31,7 +31,7 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
             ? result_texture->GetImageView()
             : g_engine->GetPlaceholderData()->GetImageView2D1x1R8();
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // Add the final result to the global descriptor set
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
@@ -148,7 +148,7 @@ void TemporalAA::CreateComputePipelines()
         &m_history_texture
     };
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // create descriptor sets for depth pyramid generation.
         DescriptorSetRef descriptor_set = MakeRenderObject<renderer::DescriptorSet>(*descriptor_set_decl);
 
@@ -229,9 +229,9 @@ void TemporalAA::Render(Frame *frame)
         ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     struct alignas(128) {
-        ShaderVec2<UInt32>  dimensions;
-        ShaderVec2<UInt32>  depth_texture_dimensions;
-        ShaderVec2<Float>   camera_near_far;
+        ShaderVec2<uint32>  dimensions;
+        ShaderVec2<uint32>  depth_texture_dimensions;
+        ShaderVec2<float>   camera_near_far;
     } push_constants;
 
     push_constants.dimensions = m_extent;

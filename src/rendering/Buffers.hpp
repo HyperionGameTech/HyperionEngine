@@ -28,7 +28,7 @@
 
 
 #define HYP_RENDER_OBJECT_OFFSET(cls, index) \
-    (UInt32((index) * sizeof(cls ## ShaderData)))
+    (uint32((index) * sizeof(cls ## ShaderData)))
 
 namespace hyperion::renderer {
 
@@ -54,9 +54,9 @@ using renderer::GPUBufferType;
 static constexpr SizeType max_entities_per_instance_batch = 60;
 static constexpr SizeType max_probes_in_sh_grid_buffer = max_bound_ambient_probes;
 
-enum EnvGridType : UInt
+enum EnvGridType : uint
 {
-    ENV_GRID_TYPE_INVALID = UInt(-1),
+    ENV_GRID_TYPE_INVALID = uint(-1),
     ENV_GRID_TYPE_SH = 0,
     ENV_GRID_TYPE_LIGHT_FIELD,
     ENV_GRID_TYPE_MAX
@@ -64,30 +64,30 @@ enum EnvGridType : UInt
 
 struct alignas(256) EntityInstanceBatch
 {
-    UInt32 num_entities;
-    UInt32 _pad0;
-    UInt32 _pad1;
-    UInt32 _pad2;
-    UInt32 indices[max_entities_per_instance_batch];
+    uint32 num_entities;
+    uint32 _pad0;
+    uint32 _pad1;
+    uint32 _pad2;
+    uint32 indices[max_entities_per_instance_batch];
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 256);
 
 struct alignas(16) ParticleShaderData
 {
-    ShaderVec4<Float32> position;   //   4 x 4 = 16
-    ShaderVec4<Float32> velocity;   // + 4 x 4 = 32
-    ShaderVec4<Float32> color;      // + 4 x 4 = 48
-    ShaderVec4<Float32> attributes; // + 4 x 4 = 64
+    ShaderVec4<float32> position;   //   4 x 4 = 16
+    ShaderVec4<float32> velocity;   // + 4 x 4 = 32
+    ShaderVec4<float32> color;      // + 4 x 4 = 48
+    ShaderVec4<float32> attributes; // + 4 x 4 = 64
 };
 
 static_assert(sizeof(ParticleShaderData) == 64);
 
 struct alignas(16) GaussianSplattingInstanceShaderData {
-    ShaderVec4<Float32> position;   //   4 x 4 = 16
-    ShaderVec4<Float32> rotation;   // + 4 x 4 = 32
-    ShaderVec4<Float32> scale;      // + 4 x 4 = 48
-    ShaderVec4<Float32> color;      // + 4 x 4 = 64
+    ShaderVec4<float32> position;   //   4 x 4 = 16
+    ShaderVec4<float32> rotation;   // + 4 x 4 = 32
+    ShaderVec4<float32> scale;      // + 4 x 4 = 48
+    ShaderVec4<float32> color;      // + 4 x 4 = 64
 };
 
 static_assert(sizeof(GaussianSplattingInstanceShaderData) == 64);
@@ -115,7 +115,7 @@ struct alignas(256) SkeletonShaderData
 
 static_assert(sizeof(SkeletonShaderData) % 256 == 0);
 
-enum EntityGPUDataFlags : UInt32
+enum EntityGPUDataFlags : uint32
 {
     ENTITY_GPU_FLAG_NONE = 0x0,
     ENTITY_GPU_FLAG_HAS_SKELETON = 0x1
@@ -126,62 +126,62 @@ struct alignas(256) ObjectShaderData
     ShaderMat4 model_matrix;
     ShaderMat4 previous_model_matrix;
 
-    ShaderVec4<Float> _pad0;
-    ShaderVec4<Float> _pad1;
-    ShaderVec4<Float> world_aabb_max;
-    ShaderVec4<Float> world_aabb_min;
+    ShaderVec4<float> _pad0;
+    ShaderVec4<float> _pad1;
+    ShaderVec4<float> world_aabb_max;
+    ShaderVec4<float> world_aabb_min;
 
-    UInt32 entity_index;
-    UInt32 _unused;
-    UInt32 material_index;
-    UInt32 skeleton_index;
+    uint32 entity_index;
+    uint32 _unused;
+    uint32 material_index;
+    uint32 skeleton_index;
 
-    UInt32 bucket;
-    UInt32 flags;
-    UInt32 _pad3;
-    UInt32 _pad4;
+    uint32 bucket;
+    uint32 flags;
+    uint32 _pad3;
+    uint32 _pad4;
 
-    ShaderVec4<Float> _pad5;
-    ShaderVec4<Float> _pad6;
+    ShaderVec4<float> _pad5;
+    ShaderVec4<float> _pad6;
 };
 
 static_assert(sizeof(ObjectShaderData) == 256);
 
 struct MaterialShaderData
 {
-    static constexpr UInt max_bound_textures = 16u;
+    static constexpr uint max_bound_textures = 16u;
     
-    ShaderVec4<Float> albedo;
+    ShaderVec4<float> albedo;
     
     // 4 vec4s of 0.0..1.0 values stuffed into uint32s
-    ShaderVec4<UInt32> packed_params;
+    ShaderVec4<uint32> packed_params;
     
-    ShaderVec2<Float> uv_scale;
-    Float32 parallax_height;
-    Float32 _pad0;
+    ShaderVec2<float> uv_scale;
+    float32 parallax_height;
+    float32 _pad0;
     
-    UInt32 texture_index[16];
+    uint32 texture_index[16];
     
-    UInt32 texture_usage;
-    UInt32 _pad1;
-    UInt32 _pad2;
-    UInt32 _pad3;
+    uint32 texture_usage;
+    uint32 _pad1;
+    uint32 _pad2;
+    uint32 _pad3;
 };
 
 static_assert(sizeof(MaterialShaderData) == 128);
 
 struct SceneShaderData
 {
-    ShaderVec4<Float> aabb_max;
-    ShaderVec4<Float> aabb_min;
-    ShaderVec4<Float> fog_params;
+    ShaderVec4<float> aabb_max;
+    ShaderVec4<float> aabb_min;
+    ShaderVec4<float> fog_params;
 
-    Float global_timer;
-    UInt32 frame_counter;
-    UInt32 enabled_render_components_mask;
-    UInt32 enabled_environment_maps_mask;
+    float global_timer;
+    uint32 frame_counter;
+    uint32 enabled_render_components_mask;
+    uint32 enabled_environment_maps_mask;
 
-    HYP_PAD_STRUCT_HERE(UInt8, 64 + 128);
+    HYP_PAD_STRUCT_HERE(uint8, 64 + 128);
 };
 
 static_assert(sizeof(SceneShaderData) == 256);
@@ -192,33 +192,33 @@ struct alignas(256) CameraShaderData
     ShaderMat4 projection;
     ShaderMat4 previous_view;
 
-    ShaderVec4<UInt32> dimensions;
-    ShaderVec4<Float> camera_position;
-    ShaderVec4<Float> camera_direction;
-    ShaderVec4<Float> jitter;
+    ShaderVec4<uint32> dimensions;
+    ShaderVec4<float> camera_position;
+    ShaderVec4<float> camera_direction;
+    ShaderVec4<float> jitter;
     
-    Float camera_near;
-    Float camera_far;
-    Float camera_fov;
-    Float _pad0;
+    float camera_near;
+    float camera_far;
+    float camera_fov;
+    float _pad0;
 };
 
 static_assert(sizeof(CameraShaderData) == 512);
 
 struct alignas(256) EnvGridShaderData
 {
-    UInt32 probe_indices[max_bound_ambient_probes];
+    uint32 probe_indices[max_bound_ambient_probes];
 
-    ShaderVec4<Float> center;
-    ShaderVec4<Float> extent;
-    ShaderVec4<Float> aabb_max;
-    ShaderVec4<Float> aabb_min;
+    ShaderVec4<float> center;
+    ShaderVec4<float> extent;
+    ShaderVec4<float> aabb_max;
+    ShaderVec4<float> aabb_min;
 
-    ShaderVec4<UInt32> density;
-    ShaderVec4<UInt32> enabled_indices_mask;
+    ShaderVec4<uint32> density;
+    ShaderVec4<uint32> enabled_indices_mask;
 
-    ShaderVec4<Float> voxel_grid_aabb_max;
-    ShaderVec4<Float> voxel_grid_aabb_min;
+    ShaderVec4<float> voxel_grid_aabb_max;
+    ShaderVec4<float> voxel_grid_aabb_min;
 };
 
 static_assert(sizeof(EnvGridShaderData) == 4352);
@@ -227,10 +227,10 @@ struct alignas(256) ShadowShaderData
 {
     ShaderMat4 projection;
     ShaderMat4 view;
-    ShaderVec4<Float> aabb_max;
-    ShaderVec4<Float> aabb_min;
-    ShaderVec2<UInt32> dimensions;
-    UInt32 flags;
+    ShaderVec4<float> aabb_max;
+    ShaderVec4<float> aabb_min;
+    ShaderVec2<uint32> dimensions;
+    uint32 flags;
 };
 
 static_assert(sizeof(ShadowShaderData) == 256);
@@ -239,21 +239,21 @@ struct alignas(256) EnvProbeShaderData
 {
     ShaderMat4 face_view_matrices[6];
 
-    ShaderVec4<Float> aabb_max;
-    ShaderVec4<Float> aabb_min;
-    ShaderVec4<Float> world_position;
+    ShaderVec4<float> aabb_max;
+    ShaderVec4<float> aabb_min;
+    ShaderVec4<float> world_position;
 
-    UInt32 texture_index;
-    UInt32 flags;
-    Float camera_near;
-    Float camera_far;
+    uint32 texture_index;
+    uint32 flags;
+    float camera_near;
+    float camera_far;
 
-    ShaderVec2<UInt32> dimensions;
-    ShaderVec2<UInt32> _pad2;
+    ShaderVec2<uint32> dimensions;
+    ShaderVec2<uint32> _pad2;
 
-    ShaderVec4<Int32> position_in_grid;
-    ShaderVec4<Int32> position_offset;
-    ShaderVec4<UInt32> _pad5;
+    ShaderVec4<int32> position_in_grid;
+    ShaderVec4<int32> position_offset;
+    ShaderVec4<uint32> _pad5;
 };
 
 static_assert(sizeof(EnvProbeShaderData) == 512);
@@ -261,68 +261,68 @@ static_assert(sizeof(EnvProbeShaderData) == 512);
 struct alignas(256) ImmediateDrawShaderData
 {
     ShaderMat4 transform;
-    UInt32 color_packed;
+    uint32 color_packed;
 };
 
 struct alignas(16) ObjectInstance
 {
-    UInt32 entity_id;
-    UInt32 draw_command_index;
-    UInt32 instance_index;
-    UInt32 batch_index;
+    uint32 entity_id;
+    uint32 draw_command_index;
+    uint32 instance_index;
+    uint32 batch_index;
 };
 
 static_assert(sizeof(ObjectInstance) == 16);
 
 struct alignas(64) LightShaderData
 {
-    UInt32 light_id;
-    UInt32 light_type;
-    UInt32 color_packed;
-    Float radius;
+    uint32 light_id;
+    uint32 light_type;
+    uint32 color_packed;
+    float radius;
     // 16
 
-    Float falloff;
-    UInt32 shadow_map_index;
-    HYP_PAD_STRUCT_HERE(UInt32, 2);
+    float falloff;
+    uint32 shadow_map_index;
+    HYP_PAD_STRUCT_HERE(uint32, 2);
     // 32
 
-    ShaderVec4<Float> position_intensity;
+    ShaderVec4<float> position_intensity;
     // 48
 
-    HYP_PAD_STRUCT_HERE(UByte, 64 - 48);
+    HYP_PAD_STRUCT_HERE(ubyte, 64 - 48);
 };
 
 static_assert(sizeof(LightShaderData) == 64);
 
 struct alignas(256) SH9Buffer
 {
-    ShaderVec4<Float> values[16];
+    ShaderVec4<float> values[16];
 };
 
 static_assert(sizeof(SH9Buffer) == 256);
 
 struct alignas(256) SHGridBuffer
 {
-    ShaderVec4<Float> color_values[max_probes_in_sh_grid_buffer * 9];
-    // ShaderVec4<Float> depth_values[max_probes_in_sh_grid_buffer * 9 / 4]; // group into 4s
+    ShaderVec4<float> color_values[max_probes_in_sh_grid_buffer * 9];
+    // ShaderVec4<float> depth_values[max_probes_in_sh_grid_buffer * 9 / 4]; // group into 4s
 };
 
 // static_assert(sizeof(SHGridBuffer) == 9216);
 
 struct alignas(16) SHTile
 {
-    ShaderVec4<Float> coeffs_weights[9];
+    ShaderVec4<float> coeffs_weights[9];
 };
 
 static_assert(sizeof(SHTile) == 144);
 
 struct alignas(16) VoxelUniforms
 {
-    ShaderVec4<Float> extent;
-    ShaderVec4<Float> aabb_max;
-    ShaderVec4<Float> aabb_min;
-    ShaderVec4<UInt32> dimensions; // num mipmaps stored in w component
+    ShaderVec4<float> extent;
+    ShaderVec4<float> aabb_max;
+    ShaderVec4<float> aabb_min;
+    ShaderVec4<uint32> dimensions; // num mipmaps stored in w component
 };
 
 static_assert(sizeof(VoxelUniforms) == 64);
@@ -362,7 +362,7 @@ static const SizeType max_entity_instance_batches = (8ull * 1024ull * 1024ull) /
 static const SizeType max_entity_instance_batches_bytes = max_entity_instance_batches * sizeof(EntityInstanceBatch);
 
 template <class T>
-using BufferTicket = UInt;
+using BufferTicket = uint;
 
 template <class StructType, GPUBufferType BufferType, SizeType Size>
 class ShaderData
@@ -472,7 +472,7 @@ public:
 private:
     struct StagingObjectsPool
     {
-        static constexpr UInt32 num_staging_buffers = 1;
+        static constexpr uint32 num_staging_buffers = 1;
 
         StagingObjectsPool() = default;
         StagingObjectsPool(const StagingObjectsPool &other) = delete;

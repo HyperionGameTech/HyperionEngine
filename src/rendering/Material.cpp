@@ -85,7 +85,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.value - 1, frame_index);
 
             const auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
@@ -103,12 +103,12 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
 {
     ID<Material> id;
     // map slot index -> image view
-    FlatMap<UInt, ImageViewRef> textures;
+    FlatMap<uint, ImageViewRef> textures;
     renderer::DescriptorSet **descriptor_sets;
 
     RENDER_COMMAND(CreateMaterialDescriptors)(
         ID<Material> id,
-        FlatMap<UInt, ImageViewRef>  &&textures,
+        FlatMap<uint, ImageViewRef>  &&textures,
         renderer::DescriptorSet **descriptor_sets
     ) : id(id),
         textures(std::move(textures)),
@@ -120,7 +120,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
     {
         auto result = Result::OK;
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
             const auto index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.ToIndex(), frame_index);
 
@@ -129,14 +129,14 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
                 "Adding descriptor set for Material #%u (frame index: %u, descriptor set index: %u)\n",
                 id.Value(),
                 frame_index,
-                UInt(index)
+                uint(index)
             );
 
             auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
             DescriptorSetRef descriptor_set = MakeRenderObject<renderer::DescriptorSet>(
                 parent_index,
-                UInt(index),
+                uint(index),
                 false
             );
             
@@ -148,12 +148,12 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
             // set placeholder for all items, then manually set the actual bound items
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
-            for (UInt texture_index = 0; texture_index < Material::max_textures_to_set; texture_index++) {
+            for (uint texture_index = 0; texture_index < Material::max_textures_to_set; texture_index++) {
                 image_descriptor->SetElementSRV(texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
 
             for (const auto &it : textures) {
-                const UInt texture_index = it.first;
+                const uint texture_index = it.first;
                 const ImageViewRef &image_view = it.second;
 
                 if (texture_index >= Material::max_textures_to_set) {
@@ -178,7 +178,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
                 );
 
                 if (result != Result::OK) {
-                    UInt previous_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
+                    uint previous_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
 
                     while (previous_index != frame_index) {
                         if (descriptor_sets[previous_index]) {
@@ -218,7 +218,7 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : renderer::RenderCommand
     {
         auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             if (!descriptor_sets[frame_index]) {
                 continue;
             }
@@ -366,11 +366,11 @@ void Material::Update()
 
 void Material::EnqueueDescriptorSetCreate()
 {
-    FlatMap<UInt, ImageViewRef> texture_bindings;
+    FlatMap<uint, ImageViewRef> texture_bindings;
 
-    const UInt num_bound_textures = max_textures_to_set;
+    const uint num_bound_textures = max_textures_to_set;
     
-    for (UInt i = 0; i < num_bound_textures; i++) {
+    for (uint i = 0; i < num_bound_textures; i++) {
         if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             if (texture->GetImageView()) {
                 texture_bindings[i] = texture->GetImageView();
@@ -400,9 +400,9 @@ void Material::EnqueueRenderUpdates()
     
     FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> bound_texture_ids { };
 
-    const UInt num_bound_textures = max_textures_to_set;
+    const uint num_bound_textures = max_textures_to_set;
     
-    for (UInt i = 0; i < num_bound_textures; i++) {
+    for (uint i = 0; i < num_bound_textures; i++) {
         if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             bound_texture_ids[i] = texture->GetID();
         }
@@ -410,15 +410,15 @@ void Material::EnqueueRenderUpdates()
 
     MaterialShaderData shader_data {
         .albedo = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
-        .packed_params = ShaderVec4<UInt32>(
+        .packed_params = ShaderVec4<uint32>(
             ByteUtil::PackColorU32(Vector4(
-                GetParameter<Float>(MATERIAL_KEY_ROUGHNESS),
-                GetParameter<Float>(MATERIAL_KEY_METALNESS),
-                GetParameter<Float>(MATERIAL_KEY_TRANSMISSION),
-                GetParameter<Float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
+                GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
+                GetParameter<float>(MATERIAL_KEY_METALNESS),
+                GetParameter<float>(MATERIAL_KEY_TRANSMISSION),
+                GetParameter<float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
             )),
             ByteUtil::PackColorU32(Vector4(
-                GetParameter<Float>(MATERIAL_KEY_ALPHA_THRESHOLD)
+                GetParameter<float>(MATERIAL_KEY_ALPHA_THRESHOLD)
             )),
             ByteUtil::PackColorU32(Vector4()),
             ByteUtil::PackColorU32(Vector4())
@@ -514,7 +514,7 @@ void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)
     SetTexture(key, Handle<Texture>(texture));
 }
 
-void Material::SetTextureAtIndex(UInt index, const Handle<Texture> &texture)
+void Material::SetTextureAtIndex(uint index, const Handle<Texture> &texture)
 {
     const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
 
@@ -526,7 +526,7 @@ const Handle<Texture> &Material::GetTexture(TextureKey key) const
     return m_textures.Get(key);
 }
 
-const Handle<Texture> &Material::GetTextureAtIndex(UInt index) const
+const Handle<Texture> &Material::GetTextureAtIndex(uint index) const
 {
     const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
 

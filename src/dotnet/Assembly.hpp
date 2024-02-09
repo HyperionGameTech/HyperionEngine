@@ -30,7 +30,7 @@ public:
     ClassHolder &operator=(ClassHolder &&) noexcept     = delete;
     ~ClassHolder()                                            = default;
 
-    Class *GetOrCreateClassObject(Int32 type_hash, const char *type_name);
+    Class *GetOrCreateClassObject(int32 type_hash, const char *type_name);
     Class *FindClassByName(const char *type_name);
 
     InvokeMethodFunction GetInvokeMethodFunction() const
@@ -40,7 +40,7 @@ public:
         { m_invoke_method_fptr = invoke_method_fptr; }
 
 private:
-    HashMap<Int32, UniquePtr<Class>>  m_class_objects;
+    HashMap<int32, UniquePtr<Class>>  m_class_objects;
 
     // Function pointer to invoke a managed method
     InvokeMethodFunction                    m_invoke_method_fptr;

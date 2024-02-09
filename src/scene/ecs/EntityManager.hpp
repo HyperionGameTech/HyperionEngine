@@ -48,7 +48,7 @@ public:
      *
      *  \return True if the SystemExecutionGroup is valid for the given System, false otherwise.
      */
-    Bool IsValidForExecutionGroup(const SystemBase *system_ptr) const
+    bool IsValidForExecutionGroup(const SystemBase *system_ptr) const
     {
         AssertThrow(system_ptr != nullptr);
 
@@ -115,7 +115,7 @@ public:
      *  \return True if the System was removed, false otherwise.
      */
     template <class SystemType>
-    Bool RemoveSystem()
+    bool RemoveSystem()
     {
         const TypeID id = TypeID::ForType<SystemType>();
 
@@ -133,7 +133,7 @@ private:
     TypeMap<UniquePtr<SystemBase>>  m_systems;
 };
 
-using EntityListenerID = UInt;
+using EntityListenerID = uint;
 
 struct EntityListener
 {
@@ -208,8 +208,8 @@ private:
     };
 
     FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
-    AtomicVar<UInt>                             m_buffer_index { 0 };
-    AtomicVar<UInt>                             m_count { 0 };
+    AtomicVar<uint>                             m_buffer_index { 0 };
+    AtomicVar<uint>                             m_count { 0 };
 };
 
 class EntityManager

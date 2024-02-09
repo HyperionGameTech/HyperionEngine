@@ -147,12 +147,12 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
     AssertThrowMsg(static_data_ordered.Size() == m_write_stream.m_static_data_offset,
         "Values do not match, incorrect bookkeeping");
 
-    out->Write<UInt8>(FBOM_STATIC_DATA_START);
+    out->Write<uint8>(FBOM_STATIC_DATA_START);
 
     // write SIZE of static data as uint32_t
-    out->Write<UInt32>(UInt32(static_data_ordered.Size()));
+    out->Write<uint32>(uint32(static_data_ordered.Size()));
     // 8 bytes of padding
-    out->Write<UInt64>(0);
+    out->Write<uint64>(0);
 
     // static data
     //   uint32_t as index/offset
@@ -162,8 +162,8 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
     for (auto &it : static_data_ordered) {
         AssertThrow(it.offset < static_data_ordered.Size());
 
-        out->Write<UInt32>(UInt32(it.offset));
-        out->Write<UInt8>(it.type);
+        out->Write<uint32>(uint32(it.offset));
+        out->Write<uint8>(it.type);
 
         switch (it.type) {
         case FBOMStaticData::FBOM_STATIC_DATA_OBJECT:
@@ -186,7 +186,7 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
         }
     }
 
-    out->Write<UInt8>(FBOM_STATIC_DATA_END);
+    out->Write<uint8>(FBOM_STATIC_DATA_END);
 
     return FBOMResult::FBOM_OK;
 }
@@ -199,10 +199,10 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
     out->Write(FBOM::header_identifier, sizeof(FBOM::header_identifier));
 
     // endianness
-    out->Write<UInt8>(IsBigEndian());
+    out->Write<uint8>(IsBigEndian());
 
     // binary version
-    out->Write<UInt32>(FBOM::version);
+    out->Write<uint32>(FBOM::version);
 
     const SizeType position_change = SizeType(out->Position()) - position_before;
     AssertThrow(position_change <= FBOM::header_size);
@@ -230,16 +230,16 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
         // return FBOMResult::FBOM_OK;
     }
 
-    out->Write<UInt8>(FBOM_OBJECT_START);
+    out->Write<uint8>(FBOM_OBJECT_START);
 
     const auto unique_id = object.GetUniqueID();
-    out->Write<UInt64>(unique_id);
+    out->Write<uint64>(unique_id);
 
     FBOMStaticData static_data;
     String external_key;
 
     const FBOMDataLocation data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
-    out->Write<UInt8>(UInt8(data_location));
+    out->Write<uint8>(uint8(data_location));
 
     switch (data_location) {
     // case FBOM_DATA_LOCATION_STATIC: // fallthrough
@@ -255,7 +255,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
 
         // add all properties
         for (auto &it : object.properties) {
-            out->Write<UInt8>(FBOM_DEFINE_PROPERTY);
+            out->Write<uint8>(FBOM_DEFINE_PROPERTY);
 
             // // write property name
             out->WriteString(it.first);
@@ -265,7 +265,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
             }
         }
 
-        FlatSet<UInt64> written_ids;
+        FlatSet<uint64> written_ids;
 
         // now write out all child nodes
         for (auto &node : *object.nodes) {
@@ -274,7 +274,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
             }
         }
 
-        out->Write<UInt8>(FBOM_OBJECT_END);
+        out->Write<uint8>(FBOM_OBJECT_END);
 
         m_write_stream.MarkStaticDataWritten(unique_id);
 
@@ -288,11 +288,11 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
 
         // write object index as u32
         // TODO!
-        out->Write<UInt32>(0);
+        out->Write<uint32>(0);
 
         // write flags -- i.e, lazy loaded, etc.
         // not yet implemented, just write 0 for now
-        out->Write<UInt32>(0);
+        out->Write<uint32>(0);
 
         break;
     }
@@ -311,7 +311,7 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
 
     const auto unique_id = type.GetUniqueID();
     const auto data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
-    out->Write<UInt8>(static_cast<UInt8>(data_location));
+    out->Write<uint8>(static_cast<uint8>(data_location));
 
     if (data_location == FBOM_DATA_LOCATION_STATIC) {
         return WriteStaticDataUsage(out, static_data);
@@ -327,14 +327,14 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
         }
 
         // TODO: assert length < max of uint8_t
-        out->Write<UInt8>(static_cast<UInt8>(type_chain.size()));
+        out->Write<uint8>(static_cast<uint8>(type_chain.size()));
 
         while (!type_chain.empty()) {
             // write string of object type (loader to use)
             out->WriteString(type_chain.top()->name);
 
             // write size of the type
-            out->Write<UInt64>(type_chain.top()->size);
+            out->Write<uint64>(type_chain.top()->size);
 
             type_chain.pop();
         }
@@ -354,7 +354,7 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data)
 
     const auto unique_id = data.GetUniqueID();
     const FBOMDataLocation data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
-    out->Write<UInt8>(UInt8(data_location));
+    out->Write<uint8>(uint8(data_location));
 
     if (data_location == FBOM_DATA_LOCATION_STATIC) {
         return WriteStaticDataUsage(out, static_data);
@@ -373,7 +373,7 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data)
         data.ReadBytes(sz, bytes);
 
         // size of data as uint32_t
-        out->Write<UInt32>(UInt32(sz));
+        out->Write<uint32>(uint32(sz));
         out->Write(bytes, sz);
 
         delete[] bytes;
@@ -390,7 +390,7 @@ FBOMResult FBOMWriter::WriteStaticDataUsage(ByteWriter *out, const FBOMStaticDat
 {
     const auto offset = static_data.offset;
 
-    out->Write<UInt32>(UInt32(offset));
+    out->Write<uint32>(uint32(offset));
 
     return FBOMResult::FBOM_OK;
 }

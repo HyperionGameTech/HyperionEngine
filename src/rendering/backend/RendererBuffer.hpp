@@ -11,7 +11,7 @@
 namespace hyperion {
 namespace renderer {
 
-enum class ResourceState : UInt
+enum class ResourceState : uint
 {
     UNDEFINED,
     PRE_INITIALIZED,
@@ -53,7 +53,7 @@ enum class GPUBufferType
     MAX
 };
 
-enum BufferIDMask : UInt64
+enum BufferIDMask : uint64
 {
     ID_MASK_BUFFER = (0x1ull << 32ull),
     ID_MASK_IMAGE = (0x2ull << 32ull)
@@ -292,7 +292,7 @@ public:
     using UseFunction = std::function<renderer::Result(Context &context)>;
 
     static constexpr time_t hold_time = 1000;
-    static constexpr UInt gc_threshold = 5; /* run every 5 Use() calls */
+    static constexpr uint gc_threshold = 5; /* run every 5 Use() calls */
 
     /* \brief Use the staging buffer pool. GC will not run until after the given function
      * is called, and the staging buffers created will not be able to be reused.
@@ -310,7 +310,7 @@ private:
     StagingBuffer *FindStagingBuffer(SizeType size);
 
     std::vector<StagingBufferRecord> m_staging_buffers;
-    UInt use_calls = 0;
+    uint use_calls = 0;
 };
 
 } // namespace renderer

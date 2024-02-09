@@ -30,7 +30,7 @@ public:
     Range &operator=(Range &&other) = default;
     ~Range() = default;
 
-    explicit operator Bool() const
+    explicit operator bool() const
         { return Distance() > 0; }
 
     const T &GetStart() const
@@ -45,13 +45,13 @@ public:
     void SetEnd(const T &end)
         { m_end = end; }
 
-    Int64 Distance() const
-        { return Int64(m_end) - Int64(m_start); }
+    int64 Distance() const
+        { return int64(m_end) - int64(m_start); }
 
-    Int64 Step() const
+    int64 Step() const
         { return MathUtil::Sign(Distance()); }
 
-    Bool Includes(const T &value) const
+    bool Includes(const T &value) const
         { return value >= m_start && value < m_end; }
 
     Range operator|(const Range &other) const
@@ -86,10 +86,10 @@ public:
         return *this;
     }
 
-    Bool operator<(const Range &other) const { return Distance() < other.Distance(); }
-    Bool operator>(const Range &other) const { return Distance() > other.Distance(); }
+    bool operator<(const Range &other) const { return Distance() < other.Distance(); }
+    bool operator>(const Range &other) const { return Distance() > other.Distance(); }
 
-    Bool operator==(const Range &other) const
+    bool operator==(const Range &other) const
     {
         if (this == &other) {
             return true;
@@ -99,7 +99,7 @@ public:
             && m_end == other.m_end;
     }
 
-    Bool operator!=(const Range &other) const { return !operator==(other); }
+    bool operator!=(const Range &other) const { return !operator==(other); }
 
     void Reset()
     {
@@ -107,7 +107,7 @@ public:
         m_end = MathUtil::MinSafeValue<T>();
     }
 
-    Bool Valid() const
+    bool Valid() const
         { return m_start != MathUtil::MaxSafeValue<T>() || m_end != MathUtil::MinSafeValue<T>(); }
 
     HYP_DEF_STL_BEGIN_END(

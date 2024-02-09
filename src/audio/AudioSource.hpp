@@ -14,7 +14,7 @@ class Engine;
 class AudioSource : public BasicObject<STUB_CLASS(AudioSource)>
 {
 public:
-    enum class Format : UInt
+    enum class Format : uint
     {
         MONO8,
         MONO16,
@@ -22,7 +22,7 @@ public:
         STEREO16
     };
 
-    enum class State : UInt
+    enum class State : uint
     {
         UNDEFINED,
         STOPPED,
@@ -44,20 +44,20 @@ public:
     const ByteBuffer &GetByteBuffer() const
         { return m_data; }
 
-    UInt32 GetSampleLength() const
+    uint32 GetSampleLength() const
         { return m_sample_length; }
 
     /*! \brief Get duration in seconds. */
-    Double GetDuration() const
-        { return Double(m_sample_length) / Double(m_freq); }
+    double GetDuration() const
+        { return double(m_sample_length) / double(m_freq); }
 
     State GetState() const;
 
     void SetPosition(const Vec3f &vec);
     void SetVelocity(const Vec3f &vec);
-    void SetPitch(Float pitch);
-    void SetGain(Float gain);
-    void SetLoop(Bool loop);
+    void SetPitch(float pitch);
+    void SetGain(float gain);
+    void SetLoop(bool loop);
 
     void Play();
     void Pause();
@@ -70,9 +70,9 @@ private:
     ByteBuffer  m_data;
     SizeType    m_freq;
 
-    UInt32      m_buffer_id;
-    UInt32      m_source_id;
-    UInt32      m_sample_length;
+    uint32      m_buffer_id;
+    uint32      m_source_id;
+    uint32      m_sample_length;
 };
 
 } // namespace hyperion::v2

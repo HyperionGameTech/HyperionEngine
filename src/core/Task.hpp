@@ -13,9 +13,9 @@ namespace hyperion::v2 {
 
 struct TaskID
 {
-    UInt value { 0 };
+    uint value { 0 };
     
-    TaskID &operator=(UInt id)
+    TaskID &operator=(uint id)
     {
         value = id;
 
@@ -24,8 +24,8 @@ struct TaskID
     
     TaskID &operator=(const TaskID &other) = default;
 
-    bool operator==(UInt id) const { return value == id; }
-    bool operator!=(UInt id) const { return value != id; }
+    bool operator==(uint id) const { return value == id; }
+    bool operator!=(uint id) const { return value != id; }
     bool operator==(const TaskID &other) const { return value == other.value; }
     bool operator!=(const TaskID &other) const { return value != other.value; }
     bool operator<(const TaskID &other) const { return value < other.value; }

@@ -20,7 +20,7 @@ class Triangle;
 class RayTestResults;
 struct RayHit;
 
-using RayHitID = UInt;
+using RayHitID = uint;
 
 struct Ray
 {
@@ -39,20 +39,20 @@ struct Ray
     
     bool TestTriangleList(
         const Array<Vertex> &vertices,
-        const Array<UInt32> &indices,
+        const Array<uint32> &indices,
         const Transform &transform
     ) const;
 
     bool TestTriangleList(
         const Array<Vertex> &vertices,
-        const Array<UInt32> &indices,
+        const Array<uint32> &indices,
         const Transform &transform,
         RayTestResults &out_results
     ) const;
 
     bool TestTriangleList(
         const Array<Vertex> &vertices,
-        const Array<UInt32> &indices,
+        const Array<uint32> &indices,
         const Transform &transform,
         RayHitID hit_id,
         RayTestResults &out_results
@@ -60,7 +60,7 @@ struct Ray
 
     bool TestTriangleList(
         const Array<Vertex> &vertices,
-        const Array<UInt32> &indices,
+        const Array<uint32> &indices,
         const Transform &transform,
         RayHitID hit_id,
         const void *user_data,
@@ -84,7 +84,7 @@ struct RayHit
     
     Vector3     hitpoint;
     Vector3     normal;
-    Float       distance = 0.0f;
+    float       distance = 0.0f;
     RayHitID    id = ~0u;
     const void *user_data = nullptr;
 

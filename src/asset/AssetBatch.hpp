@@ -187,7 +187,7 @@ public:
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */
-    void LoadAsync(UInt num_batches = MathUtil::MaxSafeValue<UInt>());
+    void LoadAsync(uint num_batches = MathUtil::MaxSafeValue<uint>());
     [[nodiscard]] AssetMap AwaitResults();
     [[nodiscard]] AssetMap ForceLoad();
 

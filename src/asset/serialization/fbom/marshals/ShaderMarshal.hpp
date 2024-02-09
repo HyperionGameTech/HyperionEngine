@@ -24,14 +24,14 @@ public:
         out.SetProperty("name", FBOMName(), in_object.GetCompiledShader().GetDefinition().name);
 
         const VertexAttributeSet required_vertex_attributes = in_object.GetCompiledShader().GetDefinition().properties.GetRequiredVertexAttributes();
-        out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
+        out.SetProperty("required_vertex_attributes", FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
 
         const VertexAttributeSet optional_vertex_attributes = in_object.GetCompiledShader().GetDefinition().properties.GetOptionalVertexAttributes();
-        out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
+        out.SetProperty("optional_vertex_attributes", FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
 
         Array<ShaderProperty> properties_array = in_object.GetCompiledShader().GetDefinition().properties.GetPropertySet().ToArray();
 
-        out.SetProperty("properties.size", FBOMUnsignedInt(), UInt(properties_array.Size()));
+        out.SetProperty("properties.size", FBOMUnsignedInt(), uint(properties_array.Size()));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
             const ShaderProperty &item = properties_array[index];
@@ -56,22 +56,22 @@ public:
         }
 
         VertexAttributeSet required_vertex_attributes;
-        in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask);
+        in.GetProperty("required_vertex_attributes").ReadUnsignedLong(&required_vertex_attributes.flag_mask);
 
         VertexAttributeSet optional_vertex_attributes;
-        in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask);
+        in.GetProperty("optional_vertex_attributes").ReadUnsignedLong(&optional_vertex_attributes.flag_mask);
 
         ShaderProperties properties;
         properties.SetRequiredVertexAttributes(required_vertex_attributes);
         properties.SetOptionalVertexAttributes(optional_vertex_attributes);
 
-        UInt num_properties;
+        uint num_properties;
 
-        if (auto err = in.GetProperty("properties.size").ReadUInt32(&num_properties)) {
+        if (auto err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
             return err;
         }
 
-        for (UInt i = 0; i < num_properties; i++) {
+        for (uint i = 0; i < num_properties; i++) {
             const auto param_string = String("properties.") + String::ToString(i);
 
             String property_name;

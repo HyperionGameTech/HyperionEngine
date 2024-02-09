@@ -42,8 +42,8 @@ public:
         FillMode                                        fill_mode = FillMode::FILL;
         BlendMode                                       blend_mode = BlendMode::NONE;
 
-        Bool                                            depth_test = true;
-        Bool                                            depth_write = true;
+        bool                                            depth_test = true;
+        bool                                            depth_write = true;
 
         ShaderProgram<Platform::VULKAN>                 *shader = nullptr;
         RenderPassRef<Platform::VULKAN>                 render_pass;
@@ -60,7 +60,7 @@ public:
     ~GraphicsPipeline();
 
     void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
-    void SetScissor(int x, int y, UInt32 width, UInt32 height);
+    void SetScissor(int x, int y, uint32 width, uint32 height);
 
     Result Create(Device<Platform::VULKAN> *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool);
     Result Destroy(Device<Platform::VULKAN> *device);

@@ -24,13 +24,13 @@ struct RENDER_COMMAND(CreateUIDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
-                ->SetElementSRV(UInt(component_index), image_view);
+                ->SetElementSRV(uint(component_index), image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -52,7 +52,7 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : renderer::RenderCommand
         auto result = renderer::Result::OK;
 
         // remove descriptors from global descriptor set
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 

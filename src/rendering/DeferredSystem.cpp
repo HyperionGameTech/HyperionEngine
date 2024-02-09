@@ -55,7 +55,7 @@ static void AddOwnedAttachment(
 }
 
 static void AddSharedAttachment(
-    UInt attachment_index,
+    uint attachment_index,
     Handle<Framebuffer> &framebuffer,
     Array<std::unique_ptr<Attachment>> &attachments
 )
@@ -251,7 +251,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         // opaque creates the main non-color gbuffer attachments,
         // which will be shared with other renderable buckets
         if (bucket == BUCKET_OPAQUE) {
-            for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
+            for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
                 AddOwnedAttachment(
@@ -263,7 +263,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             }
         } else {
             // add the attachments shared with opaque bucket
-            for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
+            for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
                     i,
                     m_framebuffer,

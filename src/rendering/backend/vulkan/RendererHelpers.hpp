@@ -28,7 +28,7 @@ VkImageType ToVkType(ImageType);
 VkFilter ToVkFilter(FilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
-VkImageViewType ToVkImageViewType(ImageType type, Bool is_array);
+VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
 
 class SingleTimeCommands
 {

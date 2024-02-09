@@ -56,7 +56,7 @@ void SourceFile::ReadIntoBuffer(const ByteBuffer &input_buffer)
     }
 }
 
-void SourceFile::ReadIntoBuffer(const UByte *data, SizeType size)
+void SourceFile::ReadIntoBuffer(const ubyte *data, SizeType size)
 {
     AssertThrow(m_buffer.Size() >= size);
 

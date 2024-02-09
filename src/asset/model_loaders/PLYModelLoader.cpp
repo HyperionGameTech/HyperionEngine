@@ -78,7 +78,7 @@ static void ReadPropertyValue(ByteBuffer &buffer, PLYModelLoader::PLYModel &mode
     AssertThrowMsg(offset < buffer.Size(), "Offset out of bounds (%u > %u)", offset, buffer.Size());
     AssertThrowMsg(offset + count <= buffer.Size(), "Offset + Size out of bounds (%u + %llu > %u)", offset, count, buffer.Size());
     
-    buffer.Read(offset, count, static_cast<UByte *>(out_ptr));
+    buffer.Read(offset, count, static_cast<ubyte *>(out_ptr));
 }
 
 PLYModel PLYModelLoader::LoadModel(LoaderState &state)
@@ -118,14 +118,14 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
             AssertThrowMsg(split.Size() >= 3, "Invalid model header -- `element` declaration should have at least 3 elements");
 
             if (split[1] == "vertex") {
-                const UInt num_vertices = StringUtil::Parse<UInt>(split[2].Data());
+                const uint num_vertices = StringUtil::Parse<uint>(split[2].Data());
 
                 model.vertices.Resize(num_vertices);
             }
         }
     });
     
-    model.header_length = static_cast<UInt>(state.stream.Position());
+    model.header_length = static_cast<uint>(state.stream.Position());
 
     const SizeType num_vertices = model.vertices.Size();
 
@@ -167,9 +167,9 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
 
         Vector3 position(NAN, NAN, NAN);
 
-        ReadPropertyValue<Float>(buffer, model, row_offset, "x", &position.x);
-        ReadPropertyValue<Float>(buffer, model, row_offset, "y", &position.y);
-        ReadPropertyValue<Float>(buffer, model, row_offset, "z", &position.z);
+        ReadPropertyValue<float>(buffer, model, row_offset, "x", &position.x);
+        ReadPropertyValue<float>(buffer, model, row_offset, "y", &position.y);
+        ReadPropertyValue<float>(buffer, model, row_offset, "z", &position.z);
 
         Vertex vertex;
         vertex.SetPosition(Vector3(position.x, position.y, position.z));

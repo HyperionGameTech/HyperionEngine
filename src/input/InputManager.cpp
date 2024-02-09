@@ -53,7 +53,7 @@ void InputManager::CheckEvent(SystemEvent *event)
     }
 }
 
-void InputManager::SetMousePosition(Int x, Int y)
+void InputManager::SetMousePosition(int x, int y)
 {
     if (!m_window) {
         return;

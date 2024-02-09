@@ -23,7 +23,7 @@ struct alignas(alignof(T) * 4) Vec3
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
 
-    static constexpr UInt size = 3;
+    static constexpr uint size = 3;
     
     static const Vec3 one;
     static const Vec3 zero;
@@ -72,15 +72,15 @@ struct alignas(alignof(T) * 4) Vec3
         { this->z = z; return *this; }
 
     HYP_FORCE_INLINE
-    explicit operator Bool() const
+    explicit operator bool() const
         { return Sum() != Type(0); }
 
     HYP_FORCE_INLINE
-    constexpr Type &operator[](Int index)
+    constexpr Type &operator[](int index)
         { return values[index]; }
 
     HYP_FORCE_INLINE
-    constexpr Type operator[](Int index) const
+    constexpr Type operator[](int index) const
         { return values[index]; }
 
     HYP_FORCE_INLINE
@@ -148,11 +148,11 @@ struct alignas(alignof(T) * 4) Vec3
         { x ^= other.x; y ^= other.y; z ^= other.z; return *this; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator==(const Vec3 &other) const
+    constexpr bool operator==(const Vec3 &other) const
         { return x == other.x && y == other.y && z == other.z; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator!=(const Vec3 &other) const
+    constexpr bool operator!=(const Vec3 &other) const
         { return x != other.x || y != other.y || z != other.z; }
 
     HYP_FORCE_INLINE
@@ -164,7 +164,7 @@ struct alignas(alignof(T) * 4) Vec3
         { return { +x, +y, +z }; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator<(const Vec3 &other) const
+    constexpr bool operator<(const Vec3 &other) const
     {
         if (x != other.x) {
             return x < other.x;
@@ -221,16 +221,16 @@ struct alignas(alignof(T) * 4) Vec3
 };
 
 template <>
-struct alignas(alignof(Float) * 4) Vec3<Float>
+struct alignas(alignof(float) * 4) Vec3<float>
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
 
-    static constexpr UInt size = 3;
+    static constexpr uint size = 3;
     
     static const Vec3 one;
     static const Vec3 zero;
     
-    using Type = Float;
+    using Type = float;
 
     union {
         struct { Type x, y, z; };
@@ -274,15 +274,15 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
         { this->z = z; return *this; }
 
     HYP_FORCE_INLINE
-    explicit operator Bool() const
+    explicit operator bool() const
         { return Sum() != Type(0); }
 
     HYP_FORCE_INLINE
-    constexpr Type &operator[](Int index)
+    constexpr Type &operator[](int index)
         { return values[index]; }
 
     HYP_FORCE_INLINE
-    constexpr Type operator[](Int index) const
+    constexpr Type operator[](int index) const
         { return values[index]; }
 
     HYP_FORCE_INLINE
@@ -318,11 +318,11 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
         { x /= other.x; y /= other.y; z /= other.z; return *this; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator==(const Vec3 &other) const
+    constexpr bool operator==(const Vec3 &other) const
         { return x == other.x && y == other.y && z == other.z; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator!=(const Vec3 &other) const
+    constexpr bool operator!=(const Vec3 &other) const
         { return x != other.x || y != other.y || z != other.z; }
 
     HYP_FORCE_INLINE
@@ -334,7 +334,7 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
         { return { +x, +y, +z }; }
 
     HYP_FORCE_INLINE
-    constexpr Bool operator<(const Vec3 &other) const
+    constexpr bool operator<(const Vec3 &other) const
     {
         if (x != other.x) {
             return x < other.x;
@@ -396,11 +396,11 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
         return hc;
     }
 
-    static Vec3<Float> Abs(const Vec3<Float> &);
-    static Vec3<Float> Round(const Vec3<Float> &);
-    static Vec3<Float> Clamp(const Vec3<Float> &, Float min, Float max);
-    static Vec3<Float> Min(const Vec3<Float> &a, const Vec3<Float> &b);
-    static Vec3<Float> Max(const Vec3<Float> &a, const Vec3<Float> &b);
+    static Vec3<float> Abs(const Vec3<float> &);
+    static Vec3<float> Round(const Vec3<float> &);
+    static Vec3<float> Clamp(const Vec3<float> &, float min, float max);
+    static Vec3<float> Min(const Vec3<float> &a, const Vec3<float> &b);
+    static Vec3<float> Max(const Vec3<float> &a, const Vec3<float> &b);
 
     static Vec3 Zero()
         { return { Type(0), Type(0), Type(0) }; }
@@ -428,21 +428,21 @@ using Vec3 = detail::Vec3<T>;
 template <class T>
 using Vec3 = math::Vec3<T>;
 
-using Vec3i = Vec3<Int>;
-using Vec3u = Vec3<UInt>;
-using Vec3f = Vec3<Float>;
+using Vec3i = Vec3<int>;
+using Vec3u = Vec3<uint>;
+using Vec3f = Vec3<float>;
 
 template <class T>
-inline constexpr Bool is_vec3 = false;
+inline constexpr bool is_vec3 = false;
 
 template <>
-inline constexpr Bool is_vec3<Vec3i> = true;
+inline constexpr bool is_vec3<Vec3i> = true;
 
 template <>
-inline constexpr Bool is_vec3<Vec3u> = true;
+inline constexpr bool is_vec3<Vec3u> = true;
 
 template <>
-inline constexpr Bool is_vec3<Vec3f> = true;
+inline constexpr bool is_vec3<Vec3f> = true;
 
 static_assert(sizeof(Vec3i) == 16);
 static_assert(sizeof(Vec3u) == 16);

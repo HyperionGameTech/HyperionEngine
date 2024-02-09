@@ -12,12 +12,12 @@ public:
     Keyframe();
     Keyframe(const Keyframe &other) = default;
     Keyframe &operator=(const Keyframe &other) = default;
-    Keyframe(Float time, const Transform &transform);
+    Keyframe(float time, const Transform &transform);
 
-    Float GetTime() const
+    float GetTime() const
         { return m_time; }
 
-    void SetTime(Float time)
+    void SetTime(float time)
         { m_time = time; }
    
     const Transform &GetTransform() const
@@ -26,10 +26,10 @@ public:
     void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
-    Keyframe Blend(const Keyframe &to, Float blend) const;
+    Keyframe Blend(const Keyframe &to, float blend) const;
 
 private:
-    Float m_time;
+    float m_time;
     Transform m_transform;
 };
 

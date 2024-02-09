@@ -80,10 +80,10 @@ public:
     Extent2D GetResolution() const
         { return m_resolution; }
 
-    UInt GetShadowMapIndex() const
+    uint GetShadowMapIndex() const
         { return m_shadow_map_index; }
 
-    void SetShadowMapIndex(UInt index)
+    void SetShadowMapIndex(uint index)
     {
         m_shadow_map_index = index;
 
@@ -113,7 +113,7 @@ private:
     Handle<Camera>                  m_camera;
     RenderList                      m_render_list;
     Vector3                         m_origin;
-    UInt                            m_shadow_map_index;
+    uint                            m_shadow_map_index;
     Extent2D                        m_resolution;
 
     Handle<Texture>                 m_shadow_map;

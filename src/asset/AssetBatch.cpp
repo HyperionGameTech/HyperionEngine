@@ -6,7 +6,7 @@
 
 namespace hyperion::v2 {
 
-void AssetBatch::LoadAsync(UInt num_batches)
+void AssetBatch::LoadAsync(uint num_batches)
 {
     AssertThrowMsg(enqueued_assets != nullptr, "AssetBatch is in invalid state");
 
@@ -17,23 +17,23 @@ void AssetBatch::LoadAsync(UInt num_batches)
     // partition each proc
     AssertThrow(procs.Size() == enqueued_assets->Size());
 
-    const UInt num_items = UInt(procs.Size());
+    const uint num_items = uint(procs.Size());
 
     num_batches = MathUtil::Max(num_batches, 1u);
     num_batches = MathUtil::Min(num_batches, num_items);
 
-    const UInt items_per_batch = num_items / num_batches;
+    const uint items_per_batch = num_items / num_batches;
 
-    for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
-        const UInt offset_index = batch_index * items_per_batch;
+    for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
+        const uint offset_index = batch_index * items_per_batch;
 
-        const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+        const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
         AssertThrow(max_index >= offset_index);
 
         Array<UniquePtr<ProcessAssetFunctorBase>> batch_procs;
         batch_procs.Reserve(max_index - offset_index);
 
-        for (UInt i = offset_index; i < max_index; ++i) {
+        for (uint i = offset_index; i < max_index; ++i) {
             AssertThrow(i < procs.Size());
             AssertThrow(procs[i] != nullptr);
             batch_procs.PushBack(std::move(procs[i]));

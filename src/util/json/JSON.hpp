@@ -18,8 +18,8 @@ struct JSONSubscriptWrapper;
 class JSONValue;
 
 using JSONString = String;
-using JSONNumber = Double;
-using JSONBool = Bool;
+using JSONNumber = double;
+using JSONBool = bool;
 using JSONArray = Array<JSONValue>;
 using JSONObject = HashMap<JSONString, JSONValue>;
 using JSONArrayRef = RC<JSONArray>;
@@ -104,7 +104,7 @@ struct JSONSubscriptWrapper<const JSONValue>
     const JSONObject &AsObject() const;
     JSONObject ToObject() const;
 
-    JSONSubscriptWrapper<const JSONValue> operator[](UInt index) const;
+    JSONSubscriptWrapper<const JSONValue> operator[](uint index) const;
     JSONSubscriptWrapper<const JSONValue> operator[](const JSONString &key) const;
 };
 
@@ -186,8 +186,8 @@ struct JSONSubscriptWrapper<JSONValue>
     const JSONObject &AsObject() const;
     JSONObject ToObject() const;
 
-    JSONSubscriptWrapper<JSONValue> operator[](UInt index);
-    JSONSubscriptWrapper<const JSONValue> operator[](UInt index) const;
+    JSONSubscriptWrapper<JSONValue> operator[](uint index);
+    JSONSubscriptWrapper<const JSONValue> operator[](uint index) const;
     JSONSubscriptWrapper<JSONValue> operator[](const JSONString &key);
     JSONSubscriptWrapper<const JSONValue> operator[](const JSONString &key) const;
 };
@@ -515,12 +515,12 @@ public:
         return JSONObject();
     }
 
-    JSONSubscriptWrapper<JSONValue> operator[](UInt index)
+    JSONSubscriptWrapper<JSONValue> operator[](uint index)
     {
         return JSONSubscriptWrapper<JSONValue>(this)[index];
     }
 
-    JSONSubscriptWrapper<const JSONValue> operator[](UInt index) const
+    JSONSubscriptWrapper<const JSONValue> operator[](uint index) const
     {
         return JSONSubscriptWrapper<const JSONValue>(this)[index];
     }

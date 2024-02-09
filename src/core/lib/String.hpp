@@ -72,7 +72,7 @@ public:
     DynString();
     DynString(const DynString &other);
     DynString(const T *str);
-    DynString(const T *str, Int max_len);
+    DynString(const T *str, int max_len);
     explicit DynString(const CharArray<T> &char_array);
     explicit DynString(const ByteBuffer &byte_buffer);
 
@@ -221,9 +221,9 @@ public:
             }
         } else {
             for (SizeType i = 0; i < size;) {
-                UInt8 num_bytes_read = 0;
+                uint8 num_bytes_read = 0;
 
-                union { UInt32 char_u32; UInt8 char_u8[sizeof(utf::u32char)]; };
+                union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
                 char_u32 = 0;
 
                 char_u32 = utf::char8to32(
@@ -311,14 +311,14 @@ public:
         return result;
     }
 
-    static DynString Base64Encode(const Array<UByte> &bytes)
+    static DynString Base64Encode(const Array<ubyte> &bytes)
     {
         static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
         DynString out;
 
-        UInt i = 0;
-        Int j = -6;
+        uint i = 0;
+        int j = -6;
 
         for (auto &&c : bytes) {
             i = (i << 8) + static_cast<ValueType>(c);
@@ -341,7 +341,7 @@ public:
         return out;
     }
 
-    static Array<UByte> Base64Decode(const DynString &in)
+    static Array<ubyte> Base64Decode(const DynString &in)
     {
         static const int lookup_table[] = {
             -1, -1, -1, -1, -1, -1, -1, -1,
@@ -378,10 +378,10 @@ public:
             -1, -1, -1, -1, -1, -1, -1, -1
         };
 
-        Array<UByte> out;
+        Array<ubyte> out;
 
-        UInt i = 0;
-        Int j = -8;
+        uint i = 0;
+        int j = -8;
 
         for (auto &&c : in) {
             if (lookup_table[c] == -1) {
@@ -392,7 +392,7 @@ public:
             j += 6;
 
             if (j >= 0) {
-                out.PushBack(static_cast<UByte>((i >> j) & 0xFF));
+                out.PushBack(static_cast<ubyte>((i >> j) & 0xFF));
                 j -= 8;
             }
         }
@@ -484,7 +484,7 @@ DynString<T, IsUtf8>::DynString(const T *str)
 }
 
 template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const T *str, Int max_len)
+DynString<T, IsUtf8>::DynString(const T *str, int max_len)
     : Base(),
       m_length(0)
 {
@@ -1005,9 +1005,9 @@ DynString<T, IsUtf8> DynString<T, IsUtf8>::Escape() const
         }
     } else {
         for (SizeType i = 0; i < size;) {
-            UInt8 num_bytes_read = 0;
+            uint8 num_bytes_read = 0;
 
-            union { UInt32 char_u32; UInt8 char_u8[sizeof(utf::u32char)]; };
+            union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
             char_u32 = 0;
 
             char_u32 = utf::char8to32(
@@ -1019,34 +1019,34 @@ DynString<T, IsUtf8> DynString<T, IsUtf8>::Escape() const
             i += num_bytes_read;
 
             switch (char_u32) {
-            case UInt32('\n'):
+            case uint32('\n'):
                 result.Append("\\n");
                 break;
-            case UInt32('\r'):
+            case uint32('\r'):
                 result.Append("\\r");
                 break;
-            case UInt32('\t'):
+            case uint32('\t'):
                 result.Append("\\t");
                 break;
-            case UInt32('\v'):
+            case uint32('\v'):
                 result.Append("\\v");
                 break;
-            case UInt32('\b'):
+            case uint32('\b'):
                 result.Append("\\b");
                 break;
-            case UInt32('\f'):
+            case uint32('\f'):
                 result.Append("\\f");
                 break;
-            case UInt32('\a'):
+            case uint32('\a'):
                 result.Append("\\a");
                 break;
-            case UInt32('\\'):
+            case uint32('\\'):
                 result.Append("\\\\");
                 break;
-            case UInt32('\"'):
+            case uint32('\"'):
                 result.Append("\\\"");
                 break;
-            case UInt32('\''):
+            case uint32('\''):
                 result.Append("\\\'");
                 break;
             default:
@@ -1234,7 +1234,7 @@ inline UTF16String operator+(const utf::u16char *str, const UTF16String &other)
 inline UTF32String operator+(const utf::u32char *str, const UTF32String &other)
     { return UTF32String(str) + other; }
 
-template <class CharType, Bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, char>, int>>
+template <class CharType, bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, char>, int>>
 std::ostream &operator<<(std::ostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
 {
     os << str.Data();
@@ -1242,7 +1242,7 @@ std::ostream &operator<<(std::ostream &os, const containers::detail::DynString<C
     return os;
 }
 
-template <class CharType, Bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, wchar_t>, int>>
+template <class CharType, bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, wchar_t>, int>>
 std::wostream &operator<<(std::wostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
 {
     os << str.Data();

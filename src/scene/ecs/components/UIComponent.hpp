@@ -23,7 +23,7 @@ struct UIComponentBounds
     Vector2 position;
     Vector2 size;
 
-    Bool ContainsPoint(const Vector2 &point) const
+    bool ContainsPoint(const Vector2 &point) const
     {
         return point.x >= position.x && point.x <= position.x + size.x &&
                point.y >= position.y && point.y <= position.y + size.y;
@@ -58,7 +58,7 @@ struct UIComponent
 template <UIComponentEvent>
 struct UIEventHandlerComponent
 {
-    Proc<Bool, const UIComponentEventData &> handler;
+    Proc<bool, const UIComponentEventData &> handler;
 };
 
 } // namespace hyperion::v2

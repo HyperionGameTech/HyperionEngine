@@ -18,7 +18,7 @@ extern "C" {
         world->AddScene(std::move(scene));
     }
 
-    hyperion::UInt32 World_GetID(World *world)
+    hyperion::uint32 World_GetID(World *world)
     {
         return world->GetID().Value();
     }

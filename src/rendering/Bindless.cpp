@@ -5,7 +5,7 @@
 namespace hyperion::v2 {
 
 /* The index of the descriptor we work on, /within/ the "bindless descriptor set" */
-static const UInt bindless_descriptor_index = 0;
+static const uint bindless_descriptor_index = 0;
 
 BindlessStorage::BindlessStorage()
     : m_descriptor_sets { }

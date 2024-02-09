@@ -6,36 +6,25 @@
 
 namespace hyperion {
 
-using UByte    = uint8_t;
-using SByte    = int8_t;
+using ubyte    = uint8_t;
 
-using UChar    = uint8_t;
-using SChar    = int8_t;
+using uint8    = uint8_t;
+using uint16   = uint16_t;
+using uint32   = uint32_t;
+using uint64   = uint64_t;
 
-using Bool     = bool;
+using uint     = unsigned int;
 
-using UInt8    = uint8_t;
-using UInt16   = uint16_t;
-using UInt32   = uint32_t;
-using UInt64   = uint64_t;
+using int8     = int8_t;
+using int16    = int16_t;
+using int32    = int32_t;
+using int64    = int64_t;
 
-using UInt     = unsigned int;
+using float32  = float;
+static_assert(sizeof(float32) == 4, "Expected float to be 32-bit!");
 
-using Int8     = int8_t;
-using Int16    = int16_t;
-using Int32    = int32_t;
-using Int64    = int64_t;
-
-using Int      = int;
-
-using Float32  = float;
-static_assert(sizeof(Float32) == 4, "Expected float to be 32-bit!");
-
-using Float64  = double;
-static_assert(sizeof(Float64) == 8, "Expected double to be 64-bit!");
-
-using Float    = float;
-using Double   = double;
+using float64  = double;
+static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
 using SizeType = decltype(sizeof(void *));
 

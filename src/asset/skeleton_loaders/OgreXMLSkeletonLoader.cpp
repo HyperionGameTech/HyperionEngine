@@ -70,16 +70,16 @@ public:
     {
         if (name == "bone") {
             String bone_name = attributes.At("name");
-            const UInt id = StringUtil::Parse<UInt>(attributes.At("id"));
+            const uint id = StringUtil::Parse<uint>(attributes.At("id"));
 
             m_skeleton.bones.PushBack({
                 .name = std::move(bone_name),
                 .id = id
             });
         } else if (name == "position") {
-            auto x = StringUtil::Parse<Float>(attributes.At("x"));
-            auto y = StringUtil::Parse<Float>(attributes.At("y"));
-            auto z = StringUtil::Parse<Float>(attributes.At("z"));
+            auto x = StringUtil::Parse<float>(attributes.At("x"));
+            auto y = StringUtil::Parse<float>(attributes.At("y"));
+            auto z = StringUtil::Parse<float>(attributes.At("z"));
 
             if (!m_skeleton.bones.Empty()) {
                 m_skeleton.bones.Back().binding_translation = Vector3(x, y, z);
@@ -87,7 +87,7 @@ public:
                 DebugLog(LogType::Warn, "Ogre XML skeleton parser: Attempt to add position when no bones exist yet\n");
             }
         } else if (name == "rotation") {
-            m_binding_angles.Push(StringUtil::Parse<Float>(attributes.At("angle")));
+            m_binding_angles.Push(StringUtil::Parse<float>(attributes.At("angle")));
         } else if (name == "boneparent") {
             String parent_name = attributes.At("parent");
             String child_name = attributes.At("bone");
@@ -119,17 +119,17 @@ public:
                 .time = StringUtil::Parse<float>(attributes.At("time"))
             });
         } else if (name == "translate") {
-            auto x = StringUtil::Parse<Float>(attributes.At("x"));
-            auto y = StringUtil::Parse<Float>(attributes.At("y"));
-            auto z = StringUtil::Parse<Float>(attributes.At("z"));
+            auto x = StringUtil::Parse<float>(attributes.At("x"));
+            auto y = StringUtil::Parse<float>(attributes.At("y"));
+            auto z = StringUtil::Parse<float>(attributes.At("z"));
 
             LastKeyframe().translation = Vector3(x, y, z);
         } else if (name == "rotate") {
-            m_keyframe_angles.Push(StringUtil::Parse<Float>(attributes.At("angle")));
+            m_keyframe_angles.Push(StringUtil::Parse<float>(attributes.At("angle")));
         } else if (name == "axis") {
-            auto x = StringUtil::Parse<Float>(attributes.At("x"));
-            auto y = StringUtil::Parse<Float>(attributes.At("y"));
-            auto z = StringUtil::Parse<Float>(attributes.At("z"));
+            auto x = StringUtil::Parse<float>(attributes.At("x"));
+            auto y = StringUtil::Parse<float>(attributes.At("y"));
+            auto z = StringUtil::Parse<float>(attributes.At("z"));
 
             const auto axis = Vector3(x, y, z).Normalized();
 
@@ -174,8 +174,8 @@ private:
     OgreXMLSkeleton &m_skeleton;
 
     Stack<String>   m_element_tags;
-    Stack<Float>    m_binding_angles;
-    Stack<Float>    m_keyframe_angles;
+    Stack<float>    m_binding_angles;
+    Stack<float>    m_keyframe_angles;
 };
 
 LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const

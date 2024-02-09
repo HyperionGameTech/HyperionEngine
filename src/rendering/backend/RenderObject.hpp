@@ -48,8 +48,8 @@ public:
     struct Instance
     {
         ValueStorage<T>     storage;
-        AtomicVar<UInt16>   ref_count_strong;
-        AtomicVar<UInt16>   ref_count_weak;
+        AtomicVar<uint16>   ref_count_strong;
+        AtomicVar<uint16>   ref_count_weak;
         bool                has_value;
 
         Instance()
@@ -71,10 +71,10 @@ public:
             }
         }
 
-        UInt16 GetRefCountStrong() const
+        uint16 GetRefCountStrong() const
             { return ref_count_strong.Get(MemoryOrder::SEQUENTIAL); }
 
-        UInt16 GetRefCountWeak() const
+        uint16 GetRefCountWeak() const
             { return ref_count_weak.Get(MemoryOrder::SEQUENTIAL); }
 
         template <class ...Args>
@@ -92,30 +92,30 @@ public:
         HYP_FORCE_INLINE void IncRefStrong()
             { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
 
-        UInt DecRefStrong()
+        uint DecRefStrong()
         {
             AssertThrow(GetRefCountStrong() != 0);
 
-            UInt16 count;
+            uint16 count;
 
             if ((count = ref_count_strong.Decrement(1, MemoryOrder::SEQUENTIAL)) == 1) {
                 storage.Destruct();
                 has_value = false;
             }
 
-            return UInt(count) - 1;
+            return uint(count) - 1;
         }
 
         HYP_FORCE_INLINE void IncRefWeak()
             { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
 
-        UInt DecRefWeak()
+        uint DecRefWeak()
         {
             AssertThrow(GetRefCountWeak() != 0);
 
-            const UInt16 count = ref_count_weak.Decrement(1, MemoryOrder::SEQUENTIAL);
+            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::SEQUENTIAL);
 
-            return UInt(count) - 1;
+            return uint(count) - 1;
         }
 
         HYP_FORCE_INLINE T &Get()
@@ -140,11 +140,11 @@ public:
 
     ~RenderObjectContainer() = default;
 
-    HYP_FORCE_INLINE UInt NextIndex()
+    HYP_FORCE_INLINE uint NextIndex()
     {
         using RenderObjectDefinitionType = RenderObjectDefinition<T, PLATFORM>;
 
-        const UInt index = IDCreatorType::template ForType<T>().NextID() - 1;
+        const uint index = IDCreatorType::template ForType<T>().NextID() - 1;
 
         AssertThrowMsg(
             index < RenderObjectDefinitionType::max_size,
@@ -156,11 +156,11 @@ public:
     }
 
     HYP_FORCE_INLINE
-    void IncRefStrong(UInt index)
+    void IncRefStrong(uint index)
         { m_data[index].IncRefStrong(); }
 
     HYP_FORCE_INLINE
-    void DecRefStrong(UInt index)
+    void DecRefStrong(uint index)
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
             IDCreatorType::template ForType<T>().FreeID(index + 1);
@@ -168,11 +168,11 @@ public:
     }
 
     HYP_FORCE_INLINE
-    void IncRefWeak(UInt index)
+    void IncRefWeak(uint index)
         { m_data[index].IncRefWeak(); }
 
     HYP_FORCE_INLINE
-    void DecRefWeak(UInt index)
+    void DecRefWeak(uint index)
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
             IDCreatorType::template ForType<T>().FreeID(index + 1);
@@ -180,18 +180,18 @@ public:
     }
 
     HYP_FORCE_INLINE
-    UInt16 GetRefCountStrong(UInt index)
+    uint16 GetRefCountStrong(uint index)
         { return m_data[index].GetRefCountStrong(); }
 
     HYP_FORCE_INLINE
-    UInt16 GetRefCountWeak(UInt index)
+    uint16 GetRefCountWeak(uint index)
         { return m_data[index].GetRefCountWeak(); }
 
-    HYP_FORCE_INLINE T &Get(UInt index)
+    HYP_FORCE_INLINE T &Get(uint index)
         { return m_data[index].Get(); }
     
     template <class ...Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(UInt index, Args &&... args)
+    HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
         { m_data[index].Construct(std::forward<Args>(args)...); }
 
 private:
@@ -224,7 +224,7 @@ public:
     {
         auto &container = GetRenderObjectContainer<T>();
 
-        const UInt index = container.NextIndex();
+        const uint index = container.NextIndex();
 
         container.ConstructAtIndex(
             index,
@@ -246,7 +246,7 @@ public:
 
     static const RenderObjectHandle_Strong unset;
 
-    static RenderObjectHandle_Strong FromIndex(UInt index)
+    static RenderObjectHandle_Strong FromIndex(uint index)
     {
         RenderObjectHandle_Strong handle;
         handle.index = index;
@@ -365,7 +365,7 @@ public:
     operator T *() const
         { return Get(); }
 
-    UInt index;
+    uint index;
 };
 
 template <class T, PlatformType PLATFORM>
@@ -382,7 +382,7 @@ class RenderObjectHandle_Weak
 public:
     static const RenderObjectHandle_Weak unset;
 
-    static RenderObjectHandle_Weak FromIndex(UInt index)
+    static RenderObjectHandle_Weak FromIndex(uint index)
     {
         RenderObjectHandle_Weak handle;
         handle.index = index;
@@ -487,7 +487,7 @@ public:
         index = 0;
     }
 
-    UInt index;
+    uint index;
 };
 
 template <class T, PlatformType PLATFORM>
@@ -647,7 +647,7 @@ static inline renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT
 struct DeletionQueueBase
 {
     TypeID              type_id;
-    AtomicVar<UInt32>   num_items { 0 };
+    AtomicVar<uint32>   num_items { 0 };
     std::mutex          mtx;
 
     virtual ~DeletionQueueBase() = default;
@@ -659,20 +659,20 @@ struct DeletionQueueBase
 template <renderer::PlatformType PLATFORM>
 struct RenderObjectDeleter
 {
-    static constexpr UInt       initial_cycles_remaining = max_frames_in_flight + 1;
+    static constexpr uint       initial_cycles_remaining = max_frames_in_flight + 1;
     static constexpr SizeType   max_queues = 63;
 
     static FixedArray<DeletionQueueBase *, max_queues + 1>  queues;
-    static AtomicVar<UInt16>                                queue_index;
+    static AtomicVar<uint16>                                queue_index;
 
     template <class T>
     struct DeletionQueue : DeletionQueueBase
     {
         using Base = DeletionQueueBase;
 
-        static constexpr UInt initial_cycles_remaining = max_frames_in_flight + 1;
+        static constexpr uint initial_cycles_remaining = max_frames_in_flight + 1;
 
-        Array<Pair<renderer::RenderObjectHandle_Strong<T, PLATFORM>, UInt8>>    items;
+        Array<Pair<renderer::RenderObjectHandle_Strong<T, PLATFORM>, uint8>>    items;
         Queue<renderer::RenderObjectHandle_Strong<T, PLATFORM>>                 to_delete;
 
         DeletionQueue()
@@ -702,7 +702,7 @@ struct RenderObjectDeleter
                 }
             }
 
-            Base::num_items.Set(UInt32(items.Size()), MemoryOrder::RELEASE);
+            Base::num_items.Set(uint32(items.Size()), MemoryOrder::RELEASE);
 
             Base::mtx.unlock();
 
@@ -746,7 +746,7 @@ struct RenderObjectDeleter
     struct DeletionQueueInstance
     {
         DeletionQueue<T>    queue;
-        UInt16              index;
+        uint16              index;
 
         DeletionQueueInstance()
         {
@@ -801,7 +801,7 @@ template <renderer::PlatformType PLATFORM>
 FixedArray<DeletionQueueBase *, RenderObjectDeleter<PLATFORM>::max_queues + 1> RenderObjectDeleter<PLATFORM>::queues = { };
 
 template <renderer::PlatformType PLATFORM>
-AtomicVar<UInt16> RenderObjectDeleter<PLATFORM>::queue_index = { 0 };
+AtomicVar<uint16> RenderObjectDeleter<PLATFORM>::queue_index = { 0 };
 
 template <class T, renderer::PlatformType PLATFORM>
 static inline void SafeRelease(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)

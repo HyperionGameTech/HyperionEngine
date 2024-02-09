@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-using ThreadMask = UInt32;
+using ThreadMask = uint32;
 
 enum ThreadName : ThreadMask
 {
@@ -38,11 +38,11 @@ enum ThreadName : ThreadMask
 };
 
 // Used for having 1 value of something per thread,
-// e.g `UInt counter[THREAD_TYPE_MAX]` and selecting the value
+// e.g `uint counter[THREAD_TYPE_MAX]` and selecting the value
 // based on the current thread.
-enum ThreadType : UInt32
+enum ThreadType : uint32
 {
-    THREAD_TYPE_INVALID = UInt32(-1),
+    THREAD_TYPE_INVALID = uint32(-1),
     THREAD_TYPE_GAME    = 0,
     THREAD_TYPE_RENDER  = 1,
     THREAD_TYPE_MAX
@@ -66,7 +66,7 @@ public:
 
     static SizeType NumCores();
 
-    static void Sleep(UInt32 milliseconds);
+    static void Sleep(uint32 milliseconds);
 };
 
 } // namespace hyperion::v2

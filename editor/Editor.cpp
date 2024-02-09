@@ -188,8 +188,8 @@ void Editor::Logic(GameCounter::TickUnit delta) {
         sem_wait(semaphore);
         CommandQueue command_queue;
 
-        UInt32 num_commands = CommandQueue::ReadCommandQueue(
-            static_cast<UByte *>(command_queue_shared->GetAddress()),
+        uint32 num_commands = CommandQueue::ReadCommandQueue(
+            static_cast<ubyte *>(command_queue_shared->GetAddress()),
             command_queue_shared->GetSize(),
             command_queue
         );

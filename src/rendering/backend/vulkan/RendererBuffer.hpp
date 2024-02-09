@@ -38,9 +38,9 @@ public:
     {
         SizeType    gpu_memory_used = 0;
         SizeType    last_gpu_memory_used = 0;
-        Int64       last_diff = 0;
+        int64       last_diff = 0;
         std::time_t last_timestamp = 0;
-        const Int64 time_diff = 10000;
+        const int64 time_diff = 10000;
 
         HYP_FORCE_INLINE void IncMemoryUsage(SizeType amount)
         {
@@ -75,12 +75,12 @@ public:
         }
     };
 
-    static UInt FindMemoryType(Device<Platform::VULKAN> *device, UInt vk_type_filter, VkMemoryPropertyFlags properties);
+    static uint FindMemoryType(Device<Platform::VULKAN> *device, uint vk_type_filter, VkMemoryPropertyFlags properties);
     static VkImageLayout GetImageLayout(ResourceState state);
     static VkAccessFlags GetAccessMask(ResourceState state);
     static VkPipelineStageFlags GetShaderStageMask(
         ResourceState state,
-        Bool src,
+        bool src,
         ShaderModuleType shader_type = ShaderModuleType::UNSET
     );
 
@@ -100,13 +100,13 @@ public:
     void SetResourceState(ResourceState new_state)
         { resource_state = new_state; }
 
-    void SetID(UInt id)
+    void SetID(uint id)
         { m_id = id; }
 
-    UInt GetID() const
+    uint GetID() const
         { return m_id; }
 
-    Bool IsCreated() const
+    bool IsCreated() const
         { return m_is_created; }
 
     void *GetMapping(Device<Platform::VULKAN> *device) const
@@ -118,7 +118,7 @@ public:
         return map;
     }
 
-    void Memset(Device<Platform::VULKAN> *device, SizeType count, UByte value);
+    void Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value);
 
     void Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr);
     void Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr);
@@ -136,10 +136,10 @@ protected:
     void Create();
     void Destroy();
 
-    UInt m_id;
-    Bool m_is_created;
+    uint m_id;
+    bool m_is_created;
 
-    UInt sharing_mode;
+    uint sharing_mode;
     mutable void *map;
     mutable ResourceState resource_state;
 };
@@ -215,7 +215,7 @@ public:
 #ifdef HYP_DEBUG_MODE
     void DebugLogBuffer(Instance<Platform::VULKAN> *instance) const;
 
-    template <class T = UByte>
+    template <class T = ubyte>
     std::vector<T> DebugReadBytes(
         Instance<Platform::VULKAN> *instance,
         Device<Platform::VULKAN> *device,

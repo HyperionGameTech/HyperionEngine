@@ -28,7 +28,7 @@ struct HasGetHashCode
 
 struct HashCode
 {
-    using ValueType = UInt64;
+    using ValueType = uint64;
 
     constexpr HashCode()
         : hash(0)

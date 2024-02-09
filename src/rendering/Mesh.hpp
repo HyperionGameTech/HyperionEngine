@@ -36,7 +36,7 @@ class Mesh
     : public BasicObject<STUB_CLASS(Mesh)>
 {
 public:
-    using Index = UInt32;
+    using Index = uint32;
 
     static Pair<Array<Vertex>, Array<Index>> CalculateIndices(const Array<Vertex> &vertices);
 
@@ -76,8 +76,8 @@ public:
 
     const Array<Index> &GetIndices() const { return m_indices; }
 
-    UInt NumIndices() const { return m_indices_count; }
-    UInt NumVertices() const { return UInt(m_vertices.Size()); }
+    uint NumIndices() const { return m_indices_count; }
+    uint NumVertices() const { return uint(m_vertices.Size()); }
 
     const VertexAttributeSet &GetVertexAttributes() const { return m_mesh_attributes.vertex_attributes; }
     void SetVertexAttributes(const VertexAttributeSet &attributes) { m_mesh_attributes.vertex_attributes = attributes; }
@@ -98,12 +98,12 @@ public:
 
     void Init();
 
-    void Render(CommandBuffer *cmd, UInt num_instances = 1) const;
+    void Render(CommandBuffer *cmd, uint num_instances = 1) const;
 
     void RenderIndirect(
         CommandBuffer *cmd,
         const GPUBuffer *indirect_buffer,
-        UInt32 buffer_offset = 0
+        uint32 buffer_offset = 0
     ) const;
 
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
@@ -111,12 +111,12 @@ public:
 private:
     void CalculateAABB();
 
-    Array<Float> BuildVertexBuffer();
+    Array<float> BuildVertexBuffer();
 
     GPUBufferRef        m_vbo;
     GPUBufferRef        m_ibo;
 
-    UInt                m_indices_count = 0;
+    uint                m_indices_count = 0;
 
     MeshAttributes      m_mesh_attributes;
 

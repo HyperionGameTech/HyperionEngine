@@ -15,8 +15,8 @@ class Camera;
 
 struct VisibilityStateSnapshot
 {
-    using Bitmask   = UInt64;
-    using Nonce     = UInt16;
+    using Bitmask   = uint64;
+    using Nonce     = uint16;
 
     Bitmask bits { 0u };
     Nonce   nonce { 0u };
@@ -33,7 +33,7 @@ struct VisibilityStateSnapshot
         { return bits & (1ull << Bitmask(id.ToIndex())); }
 
     HYP_FORCE_INLINE
-    void Set(ID<Camera> id, Bool visible)
+    void Set(ID<Camera> id, bool visible)
     {
         if (visible) {
             bits |= (1ull << Bitmask(id.ToIndex()));
@@ -43,7 +43,7 @@ struct VisibilityStateSnapshot
     }
 
     HYP_FORCE_INLINE
-    Bool ValidToParent(const VisibilityStateSnapshot &parent) const
+    bool ValidToParent(const VisibilityStateSnapshot &parent) const
         { return nonce == parent.nonce; }
 };
 
@@ -52,8 +52,8 @@ struct VisibilityState
     using Bitmask   = VisibilityStateSnapshot::Bitmask;
     using Nonce     = VisibilityStateSnapshot::Nonce;
 
-    static constexpr UInt max_visibility_states = sizeof(Bitmask) * CHAR_BIT;
-    static constexpr UInt cursor_size = 3u;
+    static constexpr uint max_visibility_states = sizeof(Bitmask) * CHAR_BIT;
+    static constexpr uint cursor_size = 3u;
 
     FixedArray<VisibilityStateSnapshot, cursor_size> snapshots { };
 
@@ -65,19 +65,19 @@ struct VisibilityState
     ~VisibilityState()                                              = default;
 
     HYP_FORCE_INLINE
-    Bool Get(ID<Camera> id, UInt8 cursor) const
+    bool Get(ID<Camera> id, uint8 cursor) const
         { return snapshots[cursor].Get(id); }
 
     HYP_FORCE_INLINE
-    void SetVisible(ID<Camera> id, UInt8 cursor)
+    void SetVisible(ID<Camera> id, uint8 cursor)
         { snapshots[cursor].Set(id, true); }
 
     HYP_FORCE_INLINE
-    void SetHidden(ID<Camera> id, UInt8 cursor)
+    void SetHidden(ID<Camera> id, uint8 cursor)
         { snapshots[cursor].Set(id, false); }
 
     HYP_FORCE_INLINE
-    Bool ValidToParent(const VisibilityState &parent, UInt8 cursor) const
+    bool ValidToParent(const VisibilityState &parent, uint8 cursor) const
         { return snapshots[cursor].ValidToParent(parent.snapshots[cursor]); }
 
     void ForceAllVisible()

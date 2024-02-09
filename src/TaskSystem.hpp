@@ -23,7 +23,7 @@ struct TaskRef
     TaskID      id;
 };
 
-enum TaskThreadPoolName : UInt
+enum TaskThreadPoolName : uint
 {
     THREAD_POOL_GENERIC,
     THREAD_POOL_RENDER_COLLECT,
@@ -33,8 +33,8 @@ enum TaskThreadPoolName : UInt
 
 struct TaskBatch
 {
-    AtomicVar<UInt>                     num_completed;
-    UInt                                num_enqueued = 0;
+    AtomicVar<uint>                     num_completed;
+    uint                                num_enqueued = 0;
 
     /*! \brief The priority / pool lane for which to place
      * all of the threads in this batch into
@@ -84,11 +84,11 @@ class TaskSystem
 {
     struct TaskThreadPool
     {
-        AtomicVar<UInt>                 cycle { 0u };
+        AtomicVar<uint>                 cycle { 0u };
         Array<UniquePtr<TaskThread>>    threads;
     };
 
-    static const FlatMap<TaskThreadPoolName, UInt> s_thread_pool_sizes;
+    static const FlatMap<TaskThreadPoolName, uint> s_thread_pool_sizes;
 
 public:
     static TaskSystem &GetInstance();
@@ -97,7 +97,7 @@ public:
     {
         ThreadMask mask = THREAD_TASK_0;
 
-        for (UInt i = 0; i < THREAD_POOL_MAX; i++) {
+        for (uint i = 0; i < THREAD_POOL_MAX; i++) {
             const TaskThreadPoolName pool_name { i };
 
             auto thread_pool_sizes_it = s_thread_pool_sizes.Find(pool_name);
@@ -107,7 +107,7 @@ public:
                 i
             );
 
-            const UInt sz = thread_pool_sizes_it->second;
+            const uint sz = thread_pool_sizes_it->second;
 
             TaskThreadPool &pool = m_pools[i];
             pool.threads.Resize(sz);
@@ -137,7 +137,7 @@ public:
     void Stop();
 
     TaskThreadPool &GetPool(TaskThreadPoolName pool_name)
-        { return m_pools[UInt(pool_name)]; }
+        { return m_pools[uint(pool_name)]; }
 
     template <class Task>
     TaskRef ScheduleTask(Task &&task, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC)
@@ -149,7 +149,7 @@ public:
 
         TaskThreadPool &pool = GetPool(pool_name);
 
-        const UInt cycle = pool.cycle.Get(MemoryOrder::RELAXED);
+        const uint cycle = pool.cycle.Get(MemoryOrder::RELAXED);
 
         TaskThread *task_thread = pool.threads[cycle].Get();
         const TaskID task_id = task_thread->ScheduleTask(std::forward<Task>(task));
@@ -173,17 +173,17 @@ public:
      * @returns A Array<bool> containing for each Task that has been enqueued, whether or not
      * it was successfully dequeued.
      */
-    Array<Bool> DequeueBatch(TaskBatch *batch);
+    Array<bool> DequeueBatch(TaskBatch *batch);
 
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into \ref{batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class Container, class Lambda>
-    void ParallelForEach(TaskThreadPoolName pool, UInt num_batches, Container &&items, Lambda &&lambda)
+    void ParallelForEach(TaskThreadPoolName pool, uint num_batches, Container &&items, Lambda &&lambda)
     {
         // static_assert(Container::is_contiguous, "Container must be contiguous to perform ParallelForEach");
 
-        const UInt num_items = UInt(items.Size());
+        const uint num_items = uint(items.Size());
 
         if (num_items == 0) {
             return;
@@ -194,17 +194,17 @@ public:
         TaskBatch batch;
         batch.pool = pool;
 
-        const UInt items_per_batch = (num_items + num_batches - 1) / num_batches;
+        const uint items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         auto *data_ptr = items.Data();
 
-        for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
+        for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
             batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, lambda](...)
             {
-                const UInt offset_index = batch_index * items_per_batch;
-                const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+                const uint offset_index = batch_index * items_per_batch;
+                const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
-                for (UInt i = offset_index; i < max_index; i++) {
+                for (uint i = offset_index; i < max_index; i++) {
                     lambda(*(data_ptr + i), i, batch_index);
                 }
             });
@@ -229,7 +229,7 @@ public:
 
         ParallelForEach(
             priority,
-            static_cast<UInt>(pool.threads.Size()),
+            static_cast<uint>(pool.threads.Size()),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );
@@ -246,7 +246,7 @@ public:
 
         ParallelForEach(
             priority,
-            static_cast<UInt>(pool.threads.Size()),
+            static_cast<uint>(pool.threads.Size()),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );

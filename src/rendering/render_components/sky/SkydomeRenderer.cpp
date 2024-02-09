@@ -9,10 +9,10 @@ namespace hyperion::v2 {
 
 struct RENDER_COMMAND(SetEnvironmentMap) : renderer::RenderCommand
 {
-    UInt            index;
+    uint            index;
     Handle<Texture> environment_map;
 
-    RENDER_COMMAND(SetEnvironmentMap)(UInt index, Handle<Texture> environment_map)
+    RENDER_COMMAND(SetEnvironmentMap)(uint index, Handle<Texture> environment_map)
         : index(index),
           environment_map(std::move(environment_map))
     {
@@ -20,7 +20,7 @@ struct RENDER_COMMAND(SetEnvironmentMap) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set_scene = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
@@ -50,7 +50,7 @@ void SkydomeRenderer::Init()
 {
     m_camera = CreateObject<Camera>(
         90.0f,
-        -Int(m_dimensions.width), Int(m_dimensions.height),
+        -int(m_dimensions.width), int(m_dimensions.height),
         0.1f, 10000.0f
     );
 

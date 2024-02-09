@@ -138,14 +138,14 @@ public:
     }
 
     template <class T>
-    [[nodiscard]] Bool Contains(const T &value) const
+    [[nodiscard]] bool Contains(const T &value) const
     {
         return static_cast<const Container *>(this)->Find(value)
             != static_cast<const Container *>(this)->End();
     }
 
     template <class Lambda>
-    [[nodiscard]] Bool Any(Lambda &&lambda) const
+    [[nodiscard]] bool Any(Lambda &&lambda) const
     {
         const auto _begin = static_cast<const Container *>(this)->Begin();
         const auto _end = static_cast<const Container *>(this)->End();
@@ -160,7 +160,7 @@ public:
     }
 
     template <class Lambda>
-    [[nodiscard]] Bool Every(Lambda &&lambda) const
+    [[nodiscard]] bool Every(Lambda &&lambda) const
     {
         const auto _begin = static_cast<const Container *>(this)->Begin();
         const auto _end = static_cast<const Container *>(this)->End();
@@ -234,7 +234,7 @@ public:
     }
 
     template <class OtherContainer>
-    [[nodiscard]] Bool CompareBitwise(const OtherContainer &other_container) const
+    [[nodiscard]] bool CompareBitwise(const OtherContainer &other_container) const
     {
         static_assert(Container::is_contiguous && OtherContainer::is_contiguous, "Containers must be contiguous to perform bitwise comparison");
 

@@ -3,9 +3,9 @@
 
 namespace hyperion::v2 {
 
-UInt NodeProxyChildren::Size() const
+uint NodeProxyChildren::Size() const
 {
-    return node ? UInt(node->GetChildren().Size()) : 0;
+    return node ? uint(node->GetChildren().Size()) : 0;
 }
 
 NodeProxyChildren::Iterator NodeProxyChildren::Begin()

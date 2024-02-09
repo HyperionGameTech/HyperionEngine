@@ -93,7 +93,7 @@ bool Configuration::LoadFromDefinitionsFile()
             if (IsRTOption(option_name) && !g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
                 value = false;
             } else {
-                union { Int i; Float f; } tmp_value;
+                union { int i; float f; } tmp_value;
 
                 if (option_value.GetValue().name == "true") {
                     value = true;
@@ -119,7 +119,7 @@ bool Configuration::SaveToDefinitionsFile()
 {
     String str_result = "[Default]\n";
 
-    for (UInt index = CONFIG_NONE + 1; index < CONFIG_MAX; index++) {
+    for (uint index = CONFIG_NONE + 1; index < CONFIG_MAX; index++) {
         const Option &option = m_variables[index];
 
         if (!option.GetIsSaved()) {
@@ -131,9 +131,9 @@ bool Configuration::SaveToDefinitionsFile()
         if (option.IsValid()) {
             if (option.Is<bool>()) {
                 value_string = option.GetBool() ? "true" : "false";
-            } else if (option.Is<Int>()) {
+            } else if (option.Is<int>()) {
                 value_string = String::ToString(option.GetInt());
-            } else if (option.Is<Float>()) {
+            } else if (option.Is<float>()) {
                 // TODO!
                 //value_string = String::ToString(option.GetFloat());
             }

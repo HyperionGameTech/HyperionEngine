@@ -10,7 +10,7 @@ GlobalClassInfoTable g_global_class_info_table = { };
 
 //     AssertThrowMsg(index < max_class_objects, "Too many class objects registered");
 
-//     UInt object_index = index++;
+//     uint object_index = index++;
 //     class_objects[object_index] = std::move(class_object);
 
 //     return { object_index };

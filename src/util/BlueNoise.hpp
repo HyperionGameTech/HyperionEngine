@@ -12,11 +12,11 @@ struct BlueNoise
 {
     static const SizeType total_buffer_size;
 
-    static const Int32 sobol_256spp_256d[256 * 256];
-    static const Int32 scrambling_tile[128 * 128 * 8];
-    static const Int32 ranking_tile[128 * 128 * 8];
+    static const int32 sobol_256spp_256d[256 * 256];
+    static const int32 scrambling_tile[128 * 128 * 8];
+    static const int32 ranking_tile[128 * 128 * 8];
 
-    static Float Sample(Int pixel_i, Int pixel_j, Int sample_index, Int sample_dimension);
+    static float Sample(int pixel_i, int pixel_j, int sample_index, int sample_dimension);
 };
 
 } // namespace hyperion

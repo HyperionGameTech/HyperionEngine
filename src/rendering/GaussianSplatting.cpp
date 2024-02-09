@@ -24,7 +24,7 @@ using renderer::Result;
 using renderer::GPUBufferType;
 using renderer::CommandBufferType;
 
-enum BitonicSortStage : UInt32
+enum BitonicSortStage : uint32
 {
     STAGE_LOCAL_BMS,
     STAGE_LOCAL_DISPERSE,
@@ -34,8 +34,8 @@ enum BitonicSortStage : UInt32
 
 struct alignas(8) GaussianSplatIndex
 {
-    UInt32  index;
-    Float32 distance;
+    uint32  index;
+    float32 distance;
 };
 
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::RenderCommand
@@ -78,7 +78,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
         );
 
         const SizeType indices_buffer_size = MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex);
-        const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(Float32), sizeof(ShaderVec4<Float32>));
+        const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(float32), sizeof(ShaderVec4<float32>));
 
         HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create(
            g_engine->GetGPUDevice(),
@@ -94,14 +94,14 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
             }
 
             indices_buffer_data[index] = GaussianSplatIndex {
-                UInt32(index),
+                uint32(index),
                 -1000.0f
             };
         }
 
         for (SizeType index = num_points; index < indices_buffer_size / sizeof(GaussianSplatIndex); index++) {
             indices_buffer_data[index] = GaussianSplatIndex {
-                UInt32(-1),
+                uint32(-1),
                 -1000.0f
             };
         }
@@ -152,7 +152,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceDescriptors) : renderer::Re
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
                 HYPERION_BUBBLE_ERRORS(descriptor_set->Create(
                     g_engine->GetGPUDevice(),
@@ -211,7 +211,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingCommandBuffers) : renderer::RenderC
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[frame_index]->Create(
                 g_engine->GetGPUInstance()->GetDevice(),
                 g_engine->GetGPUInstance()->GetGraphicsCommandPool(0)
@@ -277,13 +277,13 @@ void GaussianSplattingInstance::Record(Frame *frame)
 {
     AssertThrow(IsReady());
 
-    const UInt32 num_points = static_cast<UInt32>(m_model->points.Size());
+    const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
     AssertThrow(m_splat_buffer->size == sizeof(GaussianSplattingInstanceShaderData) * num_points);
 
     { // Update splat distances from camera before we sort
         struct alignas(128) {
-            UInt32 num_points;
+            uint32 num_points;
         } update_splats_distances_push_constants;
 
         update_splats_distances_push_constants.num_points = num_points;
@@ -311,7 +311,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         m_update_splat_distances->GetPipeline()->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
-                UInt32((num_points + 255) / 256), 1, 1
+                uint32((num_points + 255) / 256), 1, 1
             }
         );
 
@@ -327,7 +327,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
             m_cpu_distances[index] = (g_engine->GetRenderState().GetCamera().camera.view * m_model->points[index].position).z;
         }
 
-        std::sort(m_cpu_sorted_indices.Begin(), m_cpu_sorted_indices.End(), [&distances = m_cpu_distances](UInt32 a, UInt32 b) {
+        std::sort(m_cpu_sorted_indices.Begin(), m_cpu_sorted_indices.End(), [&distances = m_cpu_distances](uint32 a, uint32 b) {
             return distances[a] < distances[b];
         });
 
@@ -342,21 +342,21 @@ void GaussianSplattingInstance::Record(Frame *frame)
     }
 #else
     { // Sort splats
-        constexpr UInt32 block_size = 512;
-        constexpr UInt32 transpose_block_size = 16;
+        constexpr uint32 block_size = 512;
+        constexpr uint32 transpose_block_size = 16;
 
         struct alignas(128) {
-            UInt32 num_points;
-            UInt32 stage;
-            UInt32 h;
+            uint32 num_points;
+            uint32 stage;
+            uint32 h;
         } sort_splats_push_constants;
 
         Memory::MemSet(&sort_splats_push_constants, 0x0, sizeof(sort_splats_push_constants));
 
-        const UInt32 num_sortable_elements = UInt32(MathUtil::NextPowerOf2(num_points)); // Values are stored in components of uvec4
+        const uint32 num_sortable_elements = uint32(MathUtil::NextPowerOf2(num_points)); // Values are stored in components of uvec4
 
-        const UInt32 width = block_size;
-        const UInt32 height = num_sortable_elements / block_size;
+        const uint32 width = block_size;
+        const uint32 height = num_sortable_elements / block_size;
 
         sort_splats_push_constants.num_points = num_points;
 
@@ -366,8 +366,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
         );
 
 
-        static constexpr UInt32 max_workgroup_size = 512;
-        UInt32 workgroup_size_x = 1;
+        static constexpr uint32 max_workgroup_size = 512;
+        uint32 workgroup_size_x = 1;
 
         if (num_sortable_elements < max_workgroup_size * 2) {
             workgroup_size_x = num_sortable_elements / 2;
@@ -377,14 +377,14 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         AssertThrowMsg(workgroup_size_x == max_workgroup_size, "Not implemented for workgroup size < max_workgroup_size");
 
-        UInt32 h = workgroup_size_x * 2;
-        const UInt32 workgroup_count = num_sortable_elements / (workgroup_size_x * 2);
+        uint32 h = workgroup_size_x * 2;
+        const uint32 workgroup_count = num_sortable_elements / (workgroup_size_x * 2);
 
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
 
-        auto DoPass = [this, frame, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, UInt32 h) mutable {
-            pc.stage = UInt32(stage);
+        auto DoPass = [this, frame, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable {
+            pc.stage = uint32(stage);
             pc.h = h;
 
             m_sort_splats->GetPipeline()->Bind(frame->GetCommandBuffer());
@@ -425,7 +425,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         for (; h <= num_sortable_elements; h <<= 1) {
             DoPass(STAGE_BIG_FLIP, h);
 
-            for (UInt32 hh = h >> 1; hh > 1; hh >>= 1) {
+            for (uint32 hh = h >> 1; hh > 1; hh >>= 1) {
                 if (hh <= workgroup_size_x * 2) {
                     DoPass(STAGE_LOCAL_DISPERSE, hh);
 
@@ -439,7 +439,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 #endif
     { // Update splats
         struct alignas(128) {
-            UInt32 num_points;
+            uint32 num_points;
         } update_splats_push_constants;
 
         update_splats_push_constants.num_points = num_points;
@@ -467,7 +467,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         m_update_splats->GetPipeline()->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
-                UInt32((num_points + 255) / 256), 1, 1
+                uint32((num_points + 255) / 256), 1, 1
             }
         );
 
@@ -504,8 +504,8 @@ void GaussianSplattingInstance::CreateShader()
 
 void GaussianSplattingInstance::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (UInt sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++) {
             m_descriptor_sets[frame_index][sort_stage_index] = MakeRenderObject<DescriptorSet>();
 
             // splat data
@@ -685,7 +685,7 @@ void GaussianSplatting::CreateBuffers()
 
 void GaussianSplatting::CreateCommandBuffers()
 {
-    for (UInt frame_index = 0; frame_index < static_cast<UInt>(m_command_buffers.Size()); frame_index++) {
+    for (uint frame_index = 0; frame_index < static_cast<uint>(m_command_buffers.Size()); frame_index++) {
         m_command_buffers[frame_index] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
@@ -738,7 +738,7 @@ void GaussianSplatting::Render(Frame *frame)
         return;
     }
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     const GraphicsPipelineRef &pipeline = m_gaussian_splatting_instance->GetRenderGroup()->GetPipeline();
 

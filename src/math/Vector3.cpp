@@ -8,19 +8,19 @@
 namespace hyperion {
 
 template<>
-const Vec3<Int> math::detail::Vec3<Int>::zero = { 0, 0, 0 };
+const Vec3<int> math::detail::Vec3<int>::zero = { 0, 0, 0 };
 template<>
-const Vec3<Int> math::detail::Vec3<Int>::one = { 1, 1, 1 };
+const Vec3<int> math::detail::Vec3<int>::one = { 1, 1, 1 };
 
 template<>
-const Vec3<UInt> math::detail::Vec3<UInt>::zero = { 0, 0, 0 };
+const Vec3<uint> math::detail::Vec3<uint>::zero = { 0, 0, 0 };
 template<>
-const Vec3<UInt> math::detail::Vec3<UInt>::one = { 1, 1, 1 };
+const Vec3<uint> math::detail::Vec3<uint>::one = { 1, 1, 1 };
 
-const Vec3<Float> math::detail::Vec3<Float>::zero = { 0, 0, 0 };
-const Vec3<Float> math::detail::Vec3<Float>::one = { 1, 1, 1 };
+const Vec3<float> math::detail::Vec3<float>::zero = { 0, 0, 0 };
+const Vec3<float> math::detail::Vec3<float>::one = { 1, 1, 1 };
 
-Vec3<Float> math::detail::Vec3<Float>::operator*(const Matrix3 &mat) const
+Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const
 {
     return {
         x * mat.values[0] + y * mat.values[3] + z * mat.values[6],
@@ -29,12 +29,12 @@ Vec3<Float> math::detail::Vec3<Float>::operator*(const Matrix3 &mat) const
     };
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::operator*=(const Matrix3 &mat)
+Vec3<float> &math::detail::Vec3<float>::operator*=(const Matrix3 &mat)
 {
     return operator=(operator*(mat));
 }
 
-Vec3<Float> math::detail::Vec3<Float>::operator*(const Matrix4 &mat) const
+Vec3<float> math::detail::Vec3<float>::operator*(const Matrix4 &mat) const
 {
     Vector4 product {
         x * mat.values[0] + y * mat.values[4] + z * mat.values[8]  + mat.values[12],
@@ -52,14 +52,14 @@ Vec3<Float> math::detail::Vec3<Float>::operator*(const Matrix4 &mat) const
     };
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::operator*=(const Matrix4 &mat)
+Vec3<float> &math::detail::Vec3<float>::operator*=(const Matrix4 &mat)
 {
     return operator=(operator*(mat));
 }
 
-Vec3<Float> math::detail::Vec3<Float>::operator*(const Quaternion &quat) const
+Vec3<float> math::detail::Vec3<float>::operator*(const Quaternion &quat) const
 {
-    Vec3<Float> result;
+    Vec3<float> result;
     result.x = quat.w * quat.w * x + 2 * 
         quat.y * quat.w * z - 2 * 
         quat.z * quat.w * y + 
@@ -88,70 +88,70 @@ Vec3<Float> math::detail::Vec3<Float>::operator*(const Quaternion &quat) const
     return result;
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::operator*=(const Quaternion &quat)
+Vec3<float> &math::detail::Vec3<float>::operator*=(const Quaternion &quat)
 {
     return operator=(operator*(quat));
 }
 
 template<>
-Int math::detail::Vec3<Int>::Max() const
+int math::detail::Vec3<int>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, z));
 }
 
 template<>
-Int math::detail::Vec3<Int>::Min() const
+int math::detail::Vec3<int>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, z));
 }
 
 template<>
-UInt math::detail::Vec3<UInt>::Max() const
+uint math::detail::Vec3<uint>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, z));
 }
 
 template<>
-UInt math::detail::Vec3<UInt>::Min() const
+uint math::detail::Vec3<uint>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, z));
 }
 
-Float math::detail::Vec3<Float>::Max() const
+float math::detail::Vec3<float>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, z));
 }
 
-Float math::detail::Vec3<Float>::Min() const
+float math::detail::Vec3<float>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, z));
 }
 
-Float math::detail::Vec3<Float>::DistanceSquared(const Vec3f &other) const
+float math::detail::Vec3<float>::DistanceSquared(const Vec3f &other) const
 {
-    Float dx = x - other.x;
-    Float dy = y - other.y;
-    Float dz = z - other.z;
+    float dx = x - other.x;
+    float dy = y - other.y;
+    float dz = z - other.z;
     return dx * dx + dy * dy + dz * dz;
 }
 
 /* Euclidean distance */
-Float math::detail::Vec3<Float>::Distance(const Vec3f &other) const
+float math::detail::Vec3<float>::Distance(const Vec3f &other) const
 {
     return MathUtil::Sqrt(DistanceSquared(other));
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Normalized() const
+Vec3<float> math::detail::Vec3<float>::Normalized() const
 {
     return *this / MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::Normalize()
+Vec3<float> &math::detail::Vec3<float>::Normalize()
 {
     return *this /= MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Cross(const Vec3<Float> &other) const
+Vec3<float> math::detail::Vec3<float>::Cross(const Vec3<float> &other) const
 {
     return {
         y * other.z - z * other.y,
@@ -160,12 +160,12 @@ Vec3<Float> math::detail::Vec3<Float>::Cross(const Vec3<Float> &other) const
     };
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::Rotate(const Vec3<Float> &axis, float radians)
+Vec3<float> &math::detail::Vec3<float>::Rotate(const Vec3<float> &axis, float radians)
 {
     return (*this) = Matrix4::Rotation(axis, radians) * (*this);
 }
 
-Vec3<Float> &math::detail::Vec3<Float>::Lerp(const Vec3<Float> &to, const float amt)
+Vec3<float> &math::detail::Vec3<float>::Lerp(const Vec3<float> &to, const float amt)
 {
     x = MathUtil::Lerp(x, to.x, amt);
     y = MathUtil::Lerp(y, to.y, amt);
@@ -174,12 +174,12 @@ Vec3<Float> &math::detail::Vec3<Float>::Lerp(const Vec3<Float> &to, const float 
     return *this;
 }
 
-Float math::detail::Vec3<Float>::Dot(const Vec3<Float> &other) const
+float math::detail::Vec3<float>::Dot(const Vec3<float> &other) const
 {
     return x * other.x + y * other.y + z * other.z;
 }
 
-Float math::detail::Vec3<Float>::AngleBetween(const Vector3 &other) const
+float math::detail::Vec3<float>::AngleBetween(const Vector3 &other) const
 {
     const float dot_product = x * other.x + y * other.y + z * other.z;
     const float arc_cos = MathUtil::Arccos(dot_product);
@@ -187,7 +187,7 @@ Float math::detail::Vec3<Float>::AngleBetween(const Vector3 &other) const
     return arc_cos / (Length() * other.Length());
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Abs(const Vec3<Float> &vec)
+Vec3<float> math::detail::Vec3<float>::Abs(const Vec3<float> &vec)
 {
     return {
         MathUtil::Abs(vec.x),
@@ -196,7 +196,7 @@ Vec3<Float> math::detail::Vec3<Float>::Abs(const Vec3<Float> &vec)
     };
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Round(const Vec3<Float> &vec)
+Vec3<float> math::detail::Vec3<float>::Round(const Vec3<float> &vec)
 {
     return {
         MathUtil::Round(vec.x),
@@ -205,12 +205,12 @@ Vec3<Float> math::detail::Vec3<Float>::Round(const Vec3<Float> &vec)
     };
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Clamp(const Vec3<Float> &vec, Float min_value, Float max_value)
+Vec3<float> math::detail::Vec3<float>::Clamp(const Vec3<float> &vec, float min_value, float max_value)
 {
     return Max(min_value, Min(vec, max_value));
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Min(const Vec3<Float> &a, const Vec3<Float> &b)
+Vec3<float> math::detail::Vec3<float>::Min(const Vec3<float> &a, const Vec3<float> &b)
 {
     return {
         MathUtil::Min(a.x, b.x),
@@ -219,7 +219,7 @@ Vec3<Float> math::detail::Vec3<Float>::Min(const Vec3<Float> &a, const Vec3<Floa
     };
 }
 
-Vec3<Float> math::detail::Vec3<Float>::Max(const Vec3<Float> &a, const Vec3<Float> &b)
+Vec3<float> math::detail::Vec3<float>::Max(const Vec3<float> &a, const Vec3<float> &b)
 {
     return {
         MathUtil::Max(a.x, b.x),
@@ -230,18 +230,18 @@ Vec3<Float> math::detail::Vec3<Float>::Max(const Vec3<Float> &a, const Vec3<Floa
 
 namespace math::detail {
 
-std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<Int> &vec) // output
+std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<int> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
     return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<UInt> &vec) // output
+std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<uint> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
     return out;
 }
-std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<Float> &vec) // output
+std::ostream &operator<<(std::ostream &out, const math::detail::Vec3<float> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
     return out;

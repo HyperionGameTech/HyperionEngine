@@ -268,7 +268,7 @@ NodeProxy UIScene::CreateButton(const Vector2 &position, const Vector2 &size, co
     return node_proxy;
 }
 
-Bool UIScene::Remove(ID<UIObject> id)
+bool UIScene::Remove(ID<UIObject> id)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -350,11 +350,11 @@ bool UIScene::OnInputEvent(
         const auto extent = input_manager->GetWindow()->GetExtent();
 
         const Vector2 mouse_screen(
-            Float(mouse_x) / Float(extent.width),
-            Float(mouse_y) / Float(extent.height)
+            float(mouse_x) / float(extent.width),
+            float(mouse_y) / float(extent.height)
         );
 
-        Bool event_handled = false;
+        bool event_handled = false;
 
         { // mouse drag event
             UIComponentEventData drag_event;
@@ -402,8 +402,8 @@ bool UIScene::OnInputEvent(
         const auto extent = input_manager->GetWindow()->GetExtent();
 
         const Vector2 mouse_screen(
-            Float(mouse_x) / Float(extent.width),
-            Float(mouse_y) / Float(extent.height)
+            float(mouse_x) / float(extent.width),
+            float(mouse_y) / float(extent.height)
         );
 
         if (TestRay(mouse_screen, hit)) {
@@ -431,8 +431,8 @@ bool UIScene::OnInputEvent(
         const auto extent = input_manager->GetWindow()->GetExtent();
 
         const Vector2 mouse_screen(
-            Float(mouse_x) / Float(extent.width),
-            Float(mouse_y) / Float(extent.height)
+            float(mouse_x) / float(extent.width),
+            float(mouse_y) / float(extent.height)
         );
 
         bool result = false;

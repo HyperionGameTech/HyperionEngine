@@ -11,15 +11,15 @@
 
 namespace hyperion {
 
-using ByteArray = Array<UByte>;
+using ByteArray = Array<ubyte>;
 
-using ByteView = Span<UByte>;
-using ConstByteView = Span<const UByte>;
+using ByteView = Span<ubyte>;
+using ConstByteView = Span<const ubyte>;
 
 /*! \brief An immutable array of bytes, which for large buffers, shares the memory with any copied objects */
 class ByteBuffer
 {
-    using InternalArray = Array<UByte, 1024u>;
+    using InternalArray = Array<ubyte, 1024u>;
 
 public:
     ByteBuffer() = default;
@@ -153,16 +153,16 @@ public:
 
     /*! \brief Be aware that modifying the ByteBuffer's data could have unintentional consequences if
         it is sharing memory with other ByteBuffers. */
-    UByte *Data()
+    ubyte *Data()
         { return GetInternalArray().Data(); }
 
-    const UByte *Data() const
+    const ubyte *Data() const
         { return GetInternalArray().Data(); }
 
     /**
      * \brief Reads a value from the ByteBuffer at the given offset.
      */
-    bool Read(SizeType offset, SizeType count, UByte *out_values) const
+    bool Read(SizeType offset, SizeType count, ubyte *out_values) const
     {
         AssertThrow(out_values != nullptr);
 
@@ -172,7 +172,7 @@ public:
             return false;
         }
 
-        const UByte *data = Data();
+        const ubyte *data = Data();
 
         for (SizeType index = offset; index < offset + count; index++) {
             out_values[index - offset] = data[index];
@@ -198,9 +198,9 @@ public:
             return false;
         }
 
-        const UByte *data = Data();
+        const ubyte *data = Data();
 
-        alignas(T) UByte bytes[sizeof(T)];
+        alignas(T) ubyte bytes[sizeof(T)];
 
         for (SizeType index = offset; index < offset + count; index++) {
             bytes[index - offset] = data[index];
@@ -236,7 +236,7 @@ public:
     bool Empty() const
         { return Size() == 0; }
 
-    const UByte &operator[](SizeType index) const
+    const ubyte &operator[](SizeType index) const
         { return GetInternalArray()[index]; }
 
     bool operator==(const ByteBuffer &other) const

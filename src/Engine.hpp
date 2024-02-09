@@ -196,7 +196,7 @@ public:
 
     RenderState render_state;
 
-    AtomicVar<Bool> m_stop_requested;
+    AtomicVar<bool> m_stop_requested;
 
     UniquePtr<GameThread> game_thread;
 
@@ -205,7 +205,7 @@ public:
     {
         auto &container = GetObjectPool().GetContainer<T>();
 
-        const UInt index = container.NextIndex();
+        const uint index = container.NextIndex();
 
         container.ConstructAtIndex(
             index,
@@ -228,7 +228,7 @@ public:
     {
         auto &container = GetObjectPool().GetContainer<T>();
 
-        const UInt index = container.NextIndex();
+        const uint index = container.NextIndex();
 
         container.ConstructAtIndex(
             index,
@@ -243,7 +243,7 @@ public:
     {
         auto &container = GetObjectPool().GetContainer<T>();
 
-        const UInt index = container.NextIndex();
+        const uint index = container.NextIndex();
         container.ConstructAtIndex(index);
 
         return Handle<T>(ID<T>(index + 1));
@@ -270,7 +270,7 @@ public:
 private:
 
     void ResetRenderState(RenderStateMask mask);
-    void UpdateBuffersAndDescriptors(UInt frame_index);
+    void UpdateBuffersAndDescriptors(uint frame_index);
 
     void FindTextureFormatDefaults();
 

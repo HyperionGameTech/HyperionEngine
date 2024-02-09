@@ -70,7 +70,7 @@ Array<VkVertexInputAttributeDescription> GraphicsPipeline<Platform::VULKAN>::Bui
         VK_FORMAT_R32G32B32A32_SFLOAT
     };
 
-    FlatMap<UInt32, UInt32> binding_sizes { };
+    FlatMap<uint32, uint32> binding_sizes { };
 
     const Array<VertexAttribute> attributes = attribute_set.BuildAttributes();
     this->vertex_attributes.Resize(attributes.Size());
@@ -151,9 +151,9 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     BuildVertexAttributes(m_construction_info.vertex_attributes);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-    vertex_input_info.vertexBindingDescriptionCount = UInt32(vertex_binding_descriptions.Size());
+    vertex_input_info.vertexBindingDescriptionCount = uint32(vertex_binding_descriptions.Size());
     vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions.Data();
-    vertex_input_info.vertexAttributeDescriptionCount = UInt32(vertex_attributes.Size());
+    vertex_input_info.vertexAttributeDescriptionCount = uint32(vertex_attributes.Size());
     vertex_input_info.pVertexAttributeDescriptions = vertex_attributes.Data();
 
     VkPipelineInputAssemblyStateCreateInfo input_asm_info { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
@@ -255,12 +255,12 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
         color_blend_attachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blend_enabled,
-            .srcColorBlendFactor = src_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
-            .dstColorBlendFactor = dst_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
-            .colorBlendOp = color_blend_ops[UInt(m_construction_info.blend_mode)],
-            .srcAlphaBlendFactor = src_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
-            .dstAlphaBlendFactor = dst_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
-            .alphaBlendOp = alpha_blend_ops[UInt(m_construction_info.blend_mode)],
+            .srcColorBlendFactor = src_blend_factors_rgb[uint(m_construction_info.blend_mode)],
+            .dstColorBlendFactor = dst_blend_factors_rgb[uint(m_construction_info.blend_mode)],
+            .colorBlendOp = color_blend_ops[uint(m_construction_info.blend_mode)],
+            .srcAlphaBlendFactor = src_blend_factors_alpha[uint(m_construction_info.blend_mode)],
+            .dstAlphaBlendFactor = dst_blend_factors_alpha[uint(m_construction_info.blend_mode)],
+            .alphaBlendOp = alpha_blend_ops[uint(m_construction_info.blend_mode)],
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
                 | VK_COLOR_COMPONENT_G_BIT
                 | VK_COLOR_COMPONENT_B_BIT
@@ -270,7 +270,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
     VkPipelineColorBlendStateCreateInfo color_blending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
     color_blending.logicOpEnable = VK_FALSE;
-    color_blending.attachmentCount = UInt32(color_blend_attachments.Size());
+    color_blending.attachmentCount = uint32(color_blend_attachments.Size());
     color_blending.pAttachments = color_blend_attachments.Data();
     color_blending.blendConstants[0] = 0.0f;
     color_blending.blendConstants[1] = 0.0f;
@@ -281,7 +281,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
      * rebuilding the rendering pipeline. */
     VkPipelineDynamicStateCreateInfo dynamic_state { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 
-    dynamic_state.dynamicStateCount = UInt32(m_dynamic_states.Size());
+    dynamic_state.dynamicStateCount = uint32(m_dynamic_states.Size());
     dynamic_state.pDynamicStates = m_dynamic_states.Data();
     DebugLog(
         LogType::Debug,
@@ -312,7 +312,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
     }
 
-    layout_info.setLayoutCount = UInt32(used_layouts.size());
+    layout_info.setLayoutCount = uint32(used_layouts.size());
     layout_info.pSetLayouts = used_layouts.data();
 
     /* Push constants */
@@ -320,11 +320,11 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         {
             .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = UInt32(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size = uint32(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
-    layout_info.pushConstantRangeCount = UInt32(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = uint32(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     DebugLog(
@@ -382,7 +382,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     auto &stages = m_construction_info.shader->GetShaderStages();
     AssertThrowMsg(stages.Any(), "No shader stages found");
 
-    pipeline_info.stageCount          = UInt32(stages.Size());
+    pipeline_info.stageCount          = uint32(stages.Size());
     pipeline_info.pStages             = stages.Data();
     pipeline_info.pVertexInputState   = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_asm_info;

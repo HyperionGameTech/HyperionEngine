@@ -14,7 +14,7 @@ namespace renderer {
 namespace platform {
 
 template <>
-FrameHandler<Platform::VULKAN>::FrameHandler(UInt num_frames, NextImageFunction next_image)
+FrameHandler<Platform::VULKAN>::FrameHandler(uint num_frames, NextImageFunction next_image)
     : m_next_image(next_image),
       m_acquired_image_index(0),
       m_current_frame_index(0)
@@ -27,7 +27,7 @@ FrameHandler<Platform::VULKAN>::~FrameHandler() = default;
 template <>
 Result FrameHandler<Platform::VULKAN>::CreateFrames(Device<Platform::VULKAN> *device, DeviceQueue *queue)
 {
-    for (UInt i = 0; i < m_frames.Size(); i++) {
+    for (uint i = 0; i < m_frames.Size(); i++) {
         auto command_buffer = MakeRenderObject<renderer::CommandBuffer, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
 
         VkCommandPool pool = queue->command_pools[0];
@@ -94,7 +94,7 @@ Result FrameHandler<Platform::VULKAN>::PresentFrame(
 
     VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 
-    present_info.waitSemaphoreCount = UInt32(signal_semaphores.size());
+    present_info.waitSemaphoreCount = uint32(signal_semaphores.size());
     present_info.pWaitSemaphores = signal_semaphores.data();
 
     present_info.swapchainCount = 1;

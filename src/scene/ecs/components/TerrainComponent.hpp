@@ -35,7 +35,7 @@ struct TerrainPatchInfo
     FixedArray<TerrainPatchNeighbor, 8> neighbors { };
 };
 
-using TerrainComponentFlags = UInt32;
+using TerrainComponentFlags = uint32;
 
 enum TerrainComponentFlagBits : TerrainComponentFlags
 {
@@ -53,7 +53,7 @@ struct TerrainPatchComponent
 
 struct TerrainComponent
 {
-    UInt32                  seed = 0;
+    uint32                  seed = 0;
     Extent3D                patch_size = { 32, 32, 32 };
     Vec3f                   camera_position = Vec3f::zero;
     Vec3f                   scale = Vec3f::one;

@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static const UInt systems_execution_parallel_threshold = 3;
+static const uint systems_execution_parallel_threshold = 3;
 
 // EntityManagerCommandQueue
 
@@ -22,7 +22,7 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const UInt current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+        const uint current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
         EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
         std::unique_lock<std::mutex> guard(buffer.mutex);
@@ -42,7 +42,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const UInt current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+        const uint current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
 
         EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
@@ -53,7 +53,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
         std::unique_lock<std::mutex> guard(buffer.mutex);
 
         // Swap the buffer index to allow new commands to be added to buffer while executing
-        const UInt next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
+        const uint next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
 
         m_buffer_index.Set(next_buffer_index, MemoryOrder::RELEASE);
 
@@ -62,7 +62,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
         }
 
         // Update count to be the number of commands in the next buffer (0 unless one of the commands added more commands to the queue)
-        m_count.Set(UInt(m_command_buffers[next_buffer_index].commands.Size()), MemoryOrder::RELEASE);
+        m_count.Set(uint(m_command_buffers[next_buffer_index].commands.Size()), MemoryOrder::RELEASE);
 
         break;
     }
@@ -329,7 +329,7 @@ void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::T
         TaskSystem::GetInstance().ParallelForEach(
             THREAD_POOL_GENERIC,
             m_systems,
-            [&, delta](auto &it, UInt index, UInt)
+            [&, delta](auto &it, uint index, uint)
             {
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
                 const auto start = std::chrono::high_resolution_clock::now();

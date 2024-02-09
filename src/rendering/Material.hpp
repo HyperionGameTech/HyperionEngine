@@ -34,10 +34,10 @@ class Material
     : public BasicObject<STUB_CLASS(Material)>
 {
 public:
-    static constexpr UInt max_parameters = 32u;
-    static constexpr UInt max_textures = 32u;
+    static constexpr uint max_parameters = 32u;
+    static constexpr uint max_textures = 32u;
 
-    static constexpr UInt max_textures_to_set = MathUtil::Min(
+    static constexpr uint max_textures_to_set = MathUtil::Min(
         max_textures,
         MaterialShaderData::max_bound_textures,
         HYP_FEATURES_BINDLESS_TEXTURES
@@ -45,7 +45,7 @@ public:
             : DescriptorSet::max_material_texture_samplers
     );
 
-    using TextureKeyType = UInt64;
+    using TextureKeyType = uint64;
 
     enum TextureKey : TextureKeyType
     {
@@ -94,7 +94,7 @@ public:
             int int_values[4];
         } values;
 
-        enum Type : UInt32
+        enum Type : uint32
         {
             MATERIAL_PARAMETER_TYPE_NONE,
             MATERIAL_PARAMETER_TYPE_FLOAT,
@@ -110,41 +110,41 @@ public:
         Parameter() : type(MATERIAL_PARAMETER_TYPE_NONE) {}
 
         template <SizeType Size>
-        explicit Parameter(FixedArray<Float, Size> &&v)
+        explicit Parameter(FixedArray<float, Size> &&v)
             : Parameter(v.Data(), Size)
         {
         }
         
-        explicit Parameter(const Float *v, SizeType count)
+        explicit Parameter(const float *v, SizeType count)
             : type(Type(MATERIAL_PARAMETER_TYPE_FLOAT + (count - 1)))
         {
             AssertThrow(count >= 1 && count <= 4);
 
-            std::memcpy(values.float_values, v, count * sizeof(Float));
+            std::memcpy(values.float_values, v, count * sizeof(float));
         }
         
-        Parameter(Float value)
+        Parameter(float value)
             : type(MATERIAL_PARAMETER_TYPE_FLOAT)
         {
-            std::memcpy(values.float_values, &value, sizeof(Float));
+            std::memcpy(values.float_values, &value, sizeof(float));
         }
 
         Parameter(const Vector2 &xy)
             : type(MATERIAL_PARAMETER_TYPE_FLOAT2)
         {
-            std::memcpy(values.float_values, &xy.values, 2 * sizeof(Float));
+            std::memcpy(values.float_values, &xy.values, 2 * sizeof(float));
         }
 
         Parameter(const Vector3 &xyz)
             : type(MATERIAL_PARAMETER_TYPE_FLOAT3)
         {
-            std::memcpy(values.float_values, &xyz.values, 3 * sizeof(Float));
+            std::memcpy(values.float_values, &xyz.values, 3 * sizeof(float));
         }
 
         Parameter(const Vector4 &xyzw)
             : type(MATERIAL_PARAMETER_TYPE_FLOAT4)
         {
-            std::memcpy(values.float_values, &xyzw.values, 4 * sizeof(Float));
+            std::memcpy(values.float_values, &xyzw.values, 4 * sizeof(float));
         }
 
         Parameter(const Color &color)
@@ -153,17 +153,17 @@ public:
         }
 
         template <SizeType Size>
-        explicit Parameter(FixedArray<Int32, Size> &&v)
+        explicit Parameter(FixedArray<int32, Size> &&v)
             : Parameter(v.Data(), Size)
         {
         }
         
-        explicit Parameter(const Int32 *v, SizeType count)
+        explicit Parameter(const int32 *v, SizeType count)
             : type(Type(MATERIAL_PARAMETER_TYPE_INT + (count - 1)))
         {
             AssertThrow(count >= 1 && count <= 4);
 
-            std::memcpy(values.int_values, v, count * sizeof(Int32));
+            std::memcpy(values.int_values, v, count * sizeof(int32));
         }
 
         Parameter(const Parameter &other)
@@ -188,20 +188,20 @@ public:
         bool IsFloatType() const
             { return type >= MATERIAL_PARAMETER_TYPE_FLOAT && type <= MATERIAL_PARAMETER_TYPE_FLOAT4; }
 
-        UInt Size() const
+        uint Size() const
         {
             if (type == MATERIAL_PARAMETER_TYPE_NONE) {
                 return 0u;
             }
 
             if (type >= MATERIAL_PARAMETER_TYPE_INT) {
-                return UInt(type - MATERIAL_PARAMETER_TYPE_INT) + 1;
+                return uint(type - MATERIAL_PARAMETER_TYPE_INT) + 1;
             }
 
-            return UInt(type);
+            return uint(type);
         }
 
-        void Copy(UInt8 *dst) const
+        void Copy(uint8 *dst) const
         {
             std::memcpy(dst, &values, Size());
         }
@@ -239,7 +239,7 @@ public:
         MATERIAL_STATE_DIRTY
     };
     
-    enum MaterialKey : UInt64
+    enum MaterialKey : uint64
     {
         MATERIAL_KEY_NONE = 0,
 
@@ -362,7 +362,7 @@ public:
      * @param index The index to set the texture in
      * @param texture A Texture resource
      */
-    void SetTextureAtIndex(UInt index, const Handle<Texture> &texture);
+    void SetTextureAtIndex(uint index, const Handle<Texture> &texture);
 
     TextureSet &GetTextures()
         { return m_textures; }
@@ -382,7 +382,7 @@ public:
      * @param index The index of the texture to find
      * @returns Pointer to the found Texture, or nullptr.
      */
-    const Handle<Texture> &GetTextureAtIndex(UInt index) const;
+    const Handle<Texture> &GetTextureAtIndex(uint index) const;
 
     Bucket GetBucket() const
         { return m_render_attributes.bucket; }

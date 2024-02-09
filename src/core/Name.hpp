@@ -47,7 +47,7 @@ struct NameRegistration
     static NameID GenerateID(const ANSIString &str);
 
     template <class HashedName>
-    static NameRegistration FromHashedName(HashedName &&hashed_name, Bool lock = true)
+    static NameRegistration FromHashedName(HashedName &&hashed_name, bool lock = true)
     {
         static constexpr NameID name_id = HashedName::hash_code.Value();
 

@@ -18,7 +18,7 @@ class Engine;
 class AtomicCounter
 {
 public:
-    using CountType = UInt32;
+    using CountType = uint32;
 
     AtomicCounter();
     AtomicCounter(const AtomicCounter &other) = delete;

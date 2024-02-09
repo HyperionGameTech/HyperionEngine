@@ -41,7 +41,7 @@ class Engine;
 template <class Group>
 struct CallbackRef
 {
-    UInt id;
+    uint id;
     Group *group;
     typename Group::ArgsTuple bound_args;
 
@@ -52,7 +52,7 @@ struct CallbackRef
     {
     }
 
-    CallbackRef(UInt id, Group *group)
+    CallbackRef(uint id, Group *group)
         : id(id),
           group(group),
           bound_args{}
@@ -161,17 +161,17 @@ class Callbacks
     {
         using Function = std::function<void(Args...)>;
 
-        using Id = UInt;
+        using Id = uint;
         static constexpr Id empty_id = 0;
 
         Id id{empty_id};
         Function fn;
-        UInt num_calls{0};
+        uint num_calls{0};
 
         bool Valid() const        { return id != empty_id; }
         void Reset()              { id = empty_id; }
 
-        UInt NumCalls() const     { return num_calls; }
+        uint NumCalls() const     { return num_calls; }
         
         template <class ...OtherArgs>
         void Call(OtherArgs &&... args)
@@ -261,7 +261,7 @@ public:
         }
 
         /*! \brief Trigger a specific callback, removing it if it is a `once` callback. */
-        bool Trigger(UInt id, Args &&... args)
+        bool Trigger(uint id, Args &&... args)
         {
             std::lock_guard guard(m_mtx);
 
@@ -414,7 +414,7 @@ public:
 
 
 private:
-    UInt m_id_counter { 0 };
+    uint m_id_counter { 0 };
     std::unordered_map<Enum, CallbackGroup> m_holders;
 
     std::mutex rw_callbacks_mutex;

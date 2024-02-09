@@ -18,7 +18,7 @@ class Engine;
 
 struct IDBase
 {
-    using ValueType = UInt;
+    using ValueType = uint;
 
     HYP_FORCE_INLINE constexpr bool IsValid() const
         { return bool(value); }
@@ -45,7 +45,7 @@ struct IDBase
         to be used as a storage index. If the value is zero (invalid state),
         zero is returned. Ideally a validation check would be performed before you use this,
         unless you are totally sure that 0 is a valid index. */
-    HYP_FORCE_INLINE UInt ToIndex() const
+    HYP_FORCE_INLINE uint ToIndex() const
         { return value ? value - 1 : 0; }
 
     ValueType value { 0 };
@@ -160,7 +160,7 @@ struct ID : IDBase
     TypeID GetTypeID() const
         { return TypeID::ForType<NormalizedType<T>>(); }
 
-    static ID FromIndex(UInt index)
+    static ID FromIndex(uint index)
     {
         ID id;
         id.value = index + 1;

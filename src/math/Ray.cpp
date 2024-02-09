@@ -134,7 +134,7 @@ bool Ray::TestTriangle(const Triangle &triangle, RayHitID hit_id, const void *us
 
 bool Ray::TestTriangleList(
     const Array<Vertex> &vertices,
-    const Array<UInt32> &indices,
+    const Array<uint32> &indices,
     const Transform &transform
 ) const
 {
@@ -145,7 +145,7 @@ bool Ray::TestTriangleList(
 
 bool Ray::TestTriangleList(
     const Array<Vertex> &vertices,
-    const Array<UInt32> &indices,
+    const Array<uint32> &indices,
     const Transform &transform,
     RayTestResults &out_results
 ) const
@@ -155,7 +155,7 @@ bool Ray::TestTriangleList(
 
 bool Ray::TestTriangleList(
     const Array<Vertex> &vertices,
-    const Array<UInt32> &indices,
+    const Array<uint32> &indices,
     const Transform &transform,
     RayHitID hit_id,
     RayTestResults &out_results
@@ -166,7 +166,7 @@ bool Ray::TestTriangleList(
 
 bool Ray::TestTriangleList(
     const Array<Vertex> &vertices,
-    const Array<UInt32> &indices,
+    const Array<uint32> &indices,
     const Transform &transform,
     RayHitID hit_id,
     const void *user_data,

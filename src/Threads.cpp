@@ -3,21 +3,21 @@
 namespace hyperion::v2 {
 
 const FlatMap<ThreadName, ThreadID> Threads::thread_ids = {
-    { THREAD_MAIN,      ThreadID { UInt(THREAD_MAIN),       HYP_NAME_UNSAFE(MainThread) } },
-    { THREAD_GAME,      ThreadID { UInt(THREAD_GAME),       HYP_NAME_UNSAFE(GameThread) } },
-    { THREAD_TERRAIN,   ThreadID { UInt(THREAD_TERRAIN),    HYP_NAME_UNSAFE(TerrainGenerationThread) } },
-    { THREAD_TASK_0,    ThreadID { UInt(THREAD_TASK_0),     HYP_NAME_UNSAFE(TaskThread0) } },
-    { THREAD_TASK_1,    ThreadID { UInt(THREAD_TASK_1),     HYP_NAME_UNSAFE(TaskThread1) } },
-    { THREAD_TASK_2,    ThreadID { UInt(THREAD_TASK_2),     HYP_NAME_UNSAFE(TaskThread2) } },
-    { THREAD_TASK_3,    ThreadID { UInt(THREAD_TASK_3),     HYP_NAME_UNSAFE(TaskThread3) } },
-    { THREAD_TASK_4,    ThreadID { UInt(THREAD_TASK_4),     HYP_NAME_UNSAFE(TaskThread4) } },
-    { THREAD_TASK_5,    ThreadID { UInt(THREAD_TASK_5),     HYP_NAME_UNSAFE(TaskThread5) } },
-    { THREAD_TASK_6,    ThreadID { UInt(THREAD_TASK_6),     HYP_NAME_UNSAFE(TaskThread6) } },
-    { THREAD_TASK_7,    ThreadID { UInt(THREAD_TASK_7),     HYP_NAME_UNSAFE(TaskThread7) } },
+    { THREAD_MAIN,      ThreadID { uint(THREAD_MAIN),       HYP_NAME_UNSAFE(MainThread) } },
+    { THREAD_GAME,      ThreadID { uint(THREAD_GAME),       HYP_NAME_UNSAFE(GameThread) } },
+    { THREAD_TERRAIN,   ThreadID { uint(THREAD_TERRAIN),    HYP_NAME_UNSAFE(TerrainGenerationThread) } },
+    { THREAD_TASK_0,    ThreadID { uint(THREAD_TASK_0),     HYP_NAME_UNSAFE(TaskThread0) } },
+    { THREAD_TASK_1,    ThreadID { uint(THREAD_TASK_1),     HYP_NAME_UNSAFE(TaskThread1) } },
+    { THREAD_TASK_2,    ThreadID { uint(THREAD_TASK_2),     HYP_NAME_UNSAFE(TaskThread2) } },
+    { THREAD_TASK_3,    ThreadID { uint(THREAD_TASK_3),     HYP_NAME_UNSAFE(TaskThread3) } },
+    { THREAD_TASK_4,    ThreadID { uint(THREAD_TASK_4),     HYP_NAME_UNSAFE(TaskThread4) } },
+    { THREAD_TASK_5,    ThreadID { uint(THREAD_TASK_5),     HYP_NAME_UNSAFE(TaskThread5) } },
+    { THREAD_TASK_6,    ThreadID { uint(THREAD_TASK_6),     HYP_NAME_UNSAFE(TaskThread6) } },
+    { THREAD_TASK_7,    ThreadID { uint(THREAD_TASK_7),     HYP_NAME_UNSAFE(TaskThread7) } },
 };
 
 #ifdef HYP_ENABLE_THREAD_ID
-thread_local ThreadID current_thread_id = ThreadID { UInt(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
+thread_local ThreadID current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
 #else
 static const ThreadID current_thread_id = Threads::thread_ids.At(THREAD_MAIN);
 #endif
@@ -133,7 +133,7 @@ const ThreadID &Threads::CurrentThreadID()
 
 ThreadType Threads::GetThreadType()
 {
-    const UInt thread_id = Threads::CurrentThreadID().value;
+    const uint thread_id = Threads::CurrentThreadID().value;
 
     return thread_id == THREAD_GAME ? THREAD_TYPE_GAME
         : (thread_id == THREAD_RENDER ? THREAD_TYPE_RENDER : THREAD_TYPE_INVALID);
@@ -144,7 +144,7 @@ SizeType Threads::NumCores()
     return std::thread::hardware_concurrency();
 }
 
-void Threads::Sleep(UInt32 milliseconds)
+void Threads::Sleep(uint32 milliseconds)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }

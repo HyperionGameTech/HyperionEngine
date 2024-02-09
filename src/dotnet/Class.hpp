@@ -24,7 +24,7 @@ extern "C" {
 
     struct ManagedClass
     {
-        hyperion::Int32                 type_hash;
+        hyperion::int32                 type_hash;
         hyperion::dotnet::Class   *class_object;
     };
 }

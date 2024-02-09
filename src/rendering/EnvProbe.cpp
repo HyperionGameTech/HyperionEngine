@@ -141,7 +141,7 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
 
     const Vector3 origin = aabb.GetCenter();
 
-    for (UInt i = 0; i < 6; i++) {
+    for (uint i = 0; i < 6; i++) {
         view_matrices[i] = Matrix4::LookAt(
             origin,
             origin + Texture::cubemap_directions[i].first,
@@ -155,8 +155,8 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
 void EnvProbe::UpdateEnvProbeShaderData(
     ID<EnvProbe> id,
     const EnvProbeDrawProxy &proxy,
-    UInt32 texture_slot,
-    UInt32 grid_slot,
+    uint32 texture_slot,
+    uint32 grid_slot,
     Extent3D grid_size
 )
 {
@@ -179,13 +179,13 @@ void EnvProbe::UpdateEnvProbeShaderData(
         .camera_near = proxy.camera_near,
         .camera_far = proxy.camera_far,
         .position_in_grid = grid_slot != ~0u
-            ? ShaderVec4<Int32> {
-                  Int32(grid_slot % grid_size.width),
-                  Int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
-                  Int32(grid_slot / (grid_size.width * grid_size.height)),
-                  Int32(grid_slot)
+            ? ShaderVec4<int32> {
+                  int32(grid_slot % grid_size.width),
+                  int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
+                  int32(grid_slot / (grid_size.width * grid_size.height)),
+                  int32(grid_slot)
               }
-            : ShaderVec4<Int32> { 0, 0, 0, 0 },
+            : ShaderVec4<int32> { 0, 0, 0, 0 },
         .position_offset = { 0, 0, 0, 0 }
     };
 
@@ -227,14 +227,14 @@ EnvProbe::EnvProbe(
 {
 }
 
-Bool EnvProbe::IsVisible(ID<Camera> camera_id) const
+bool EnvProbe::IsVisible(ID<Camera> camera_id) const
 {
     return m_visibility_bits.Test(camera_id.ToIndex());
 }
 
-void EnvProbe::SetIsVisible(ID<Camera> camera_id, Bool is_visible)
+void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 {
-    const Bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
+    const bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
 
     m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
 
@@ -299,7 +299,7 @@ void EnvProbe::Init()
         {
             m_camera = CreateObject<Camera>(
                 90.0f,
-                -Int(m_dimensions.width), Int(m_dimensions.height),
+                -int(m_dimensions.width), int(m_dimensions.height),
                 m_camera_near, m_camera_far
             );
 
@@ -520,7 +520,7 @@ void EnvProbe::Render(Frame *frame)
     AssertThrow(m_texture.IsValid());
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     auto result = renderer::Result::OK;
 
@@ -544,7 +544,7 @@ void EnvProbe::Render(Frame *frame)
             }
 
             // don't care about position in grid if it is not controlled by one.
-            // set it such that the UInt value of probe_index
+            // set it such that the uint value of probe_index
             // would be the held value.
             probe_index = EnvProbeIndex(
                 Extent3D { 0, 0, it->second.Get() },
@@ -611,7 +611,7 @@ void EnvProbe::Render(Frame *frame)
     SetNeedsRender(false);
 }
 
-void EnvProbe::UpdateRenderData(Bool set_texture)
+void EnvProbe::UpdateRenderData(bool set_texture)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -622,7 +622,7 @@ void EnvProbe::UpdateRenderData(Bool set_texture)
         AssertThrow(m_grid_slot != ~0u);
     }
 
-    const UInt texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
+    const uint texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
 
     {
         const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
@@ -649,7 +649,7 @@ void EnvProbe::UpdateRenderData(Bool set_texture)
 
         const auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorKey descriptor_key;
 
             switch (GetEnvProbeType()) {
@@ -684,7 +684,7 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    Bool set_texture = true;
+    bool set_texture = true;
 
     if (IsControlledByEnvGrid()) {
         if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {

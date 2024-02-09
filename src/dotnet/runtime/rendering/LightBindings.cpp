@@ -15,15 +15,15 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    UInt32 Light_GetTypeID()
+    uint32 Light_GetTypeID()
     {
         return TypeID::ForType<Light>().Value();
     }
 
     ManagedHandle Light_Create(
-        UInt32 type,
+        uint32 type,
         ManagedVec3f position,
-        UInt32 color,
+        uint32 color,
         float intensity,
         float radius
     )
@@ -70,7 +70,7 @@ extern "C" {
         light->SetPosition(position);
     }
 
-    UInt32 Light_GetColor(ManagedHandle light_handle)
+    uint32 Light_GetColor(ManagedHandle light_handle)
     {
         Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
 
@@ -78,10 +78,10 @@ extern "C" {
             return 0;
         }
 
-        return UInt32(light->GetColor());
+        return uint32(light->GetColor());
     }
 
-    void Light_SetColor(ManagedHandle light_handle, UInt32 color)
+    void Light_SetColor(ManagedHandle light_handle, uint32 color)
     {
         Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
 

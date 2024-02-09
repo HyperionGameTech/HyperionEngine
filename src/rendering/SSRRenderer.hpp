@@ -33,7 +33,7 @@ class Engine;
 struct RenderCommand_CreateSSRImageOutputs;
 struct RenderCommand_DestroySSRInstance;
 
-using SSRRendererOptions = UInt32;
+using SSRRendererOptions = uint32;
 
 enum SSRRendererOptionBits : SSRRendererOptions
 {

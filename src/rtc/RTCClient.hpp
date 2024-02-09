@@ -36,11 +36,11 @@ enum RTCClientState
     RTC_CLIENT_STATE_DISCONNECTED
 };
 
-enum class RTCClientCallbackMessages : UInt32
+enum class RTCClientCallbackMessages : uint32
 {
     UNKNOWN         = 0,
 
-    ERROR           = UInt32(-1),
+    ERROR           = uint32(-1),
 
     CONNECTED       = 1,
     DISCONNECTED,

@@ -9,17 +9,17 @@
 
 namespace hyperion {
 
-constexpr UInt max_frames_in_flight = 2;
-constexpr UInt num_async_rendering_command_buffers = 4;
-constexpr UInt num_async_compute_command_buffers = 1;
+constexpr uint max_frames_in_flight = 2;
+constexpr uint num_async_rendering_command_buffers = 4;
+constexpr uint num_async_compute_command_buffers = 1;
 
-constexpr UInt max_bound_reflection_probes = 16;
-constexpr UInt max_bound_ambient_probes = 1024;
-constexpr UInt max_bound_light_field_probes = max_bound_ambient_probes;
-constexpr UInt max_bound_point_shadow_maps = 16;
-constexpr UInt max_bound_environment_maps = 1;
+constexpr uint max_bound_reflection_probes = 16;
+constexpr uint max_bound_ambient_probes = 1024;
+constexpr uint max_bound_light_field_probes = max_bound_ambient_probes;
+constexpr uint max_bound_point_shadow_maps = 16;
+constexpr uint max_bound_environment_maps = 1;
 
-constexpr UInt num_gbuffer_textures = 6;
+constexpr uint num_gbuffer_textures = 6;
 
 constexpr bool use_indexed_array_for_object_data = true;
 // perform occlusion culling using indirect draw
@@ -48,24 +48,24 @@ using RemoveConstPointer = std::add_pointer_t<std::remove_const_t<std::remove_po
 
 static inline bool IsBigEndian()
 {
-    constexpr union { UInt32 i; UInt8 ch[sizeof(UInt32)]; } u = { 0x01020304 };
+    constexpr union { uint32 i; uint8 ch[sizeof(uint32)]; } u = { 0x01020304 };
 
     return u.ch[0] == 1;
 }
 
 static inline bool IsLittleEndian() { return !IsBigEndian(); }
 
-constexpr UInt8 SwapEndianness(UInt8 value)
+constexpr uint8 SwapEndianness(uint8 value)
 {
     return value;
 }
 
-constexpr UInt16 SwapEndianness(UInt16 value)
+constexpr uint16 SwapEndianness(uint16 value)
 {
-    return UInt16(((value >> 8u) & 0xffu) | ((value & 0xffu) << 8u));
+    return uint16(((value >> 8u) & 0xffu) | ((value & 0xffu) << 8u));
 }
 
-constexpr UInt32 SwapEndianness(UInt32 value)
+constexpr uint32 SwapEndianness(uint32 value)
 {
     return ((value & 0xff000000u) >> 24u) |
         ((value & 0x00ff0000u) >>  8u) |
@@ -73,7 +73,7 @@ constexpr UInt32 SwapEndianness(UInt32 value)
         ((value & 0x000000ffu) << 24u);
 }
 
-constexpr UInt64 SwapEndianness(UInt64 value)
+constexpr uint64 SwapEndianness(uint64 value)
 {
     return ((value & 0xff00000000000000ull) >> 56ull) |
         ((value & 0x00ff000000000000ull) >> 40ull) |
@@ -85,14 +85,14 @@ constexpr UInt64 SwapEndianness(UInt64 value)
         ((value & 0x00000000000000ffull) << 56ull);
 }
 
-constexpr Int8 SwapEndianness(Int8 value)
+constexpr int8 SwapEndianness(int8 value)
 {
     return value;
 }
 
-constexpr Int16 SwapEndianness(Int16 value)
+constexpr int16 SwapEndianness(int16 value)
 {
-    union { UInt16 u; Int16 i; };
+    union { uint16 u; int16 i; };
     i = value;
 
     u = SwapEndianness(u);
@@ -100,9 +100,9 @@ constexpr Int16 SwapEndianness(Int16 value)
     return i;
 }
 
-constexpr Int32 SwapEndianness(Int32 value)
+constexpr int32 SwapEndianness(int32 value)
 {
-    union { UInt32 u; Int32 i; };
+    union { uint32 u; int32 i; };
     i = value;
 
     u = SwapEndianness(u);
@@ -110,9 +110,9 @@ constexpr Int32 SwapEndianness(Int32 value)
     return i;
 }
 
-constexpr Int64 SwapEndianness(Int64 value)
+constexpr int64 SwapEndianness(int64 value)
 {
-    union { UInt64 u; Int64 i; };
+    union { uint64 u; int64 i; };
     i = value;
 
     u = SwapEndianness(u);

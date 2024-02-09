@@ -50,33 +50,33 @@ public:
         Extent3D extent;
 
         {
-            if (auto err = in.GetProperty("extent.width").ReadUInt32(&extent.width)) {
+            if (auto err = in.GetProperty("extent.width").ReadUnsignedInt(&extent.width)) {
                 return err;
             }
 
-            if (auto err = in.GetProperty("extent.height").ReadUInt32(&extent.height)) {
+            if (auto err = in.GetProperty("extent.height").ReadUnsignedInt(&extent.height)) {
                 return err;
             }
 
-            if (auto err = in.GetProperty("extent.depth").ReadUInt32(&extent.depth)) {
+            if (auto err = in.GetProperty("extent.depth").ReadUnsignedInt(&extent.depth)) {
                 return err;
             }
         }
 
         InternalFormat format = InternalFormat::RGBA8;
-        in.GetProperty("format").ReadUInt32(&format);
+        in.GetProperty("format").ReadUnsignedInt(&format);
 
         ImageType type = ImageType::TEXTURE_TYPE_2D;
-        in.GetProperty("type").ReadUInt32(&type);
+        in.GetProperty("type").ReadUnsignedInt(&type);
 
         FilterMode filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
-        in.GetProperty("filter_mode").ReadUInt32(&filter_mode);
+        in.GetProperty("filter_mode").ReadUnsignedInt(&filter_mode);
 
         WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
-        in.GetProperty("wrap_mode").ReadUInt32(&wrap_mode);
+        in.GetProperty("wrap_mode").ReadUnsignedInt(&wrap_mode);
 
-        UInt64 num_bytes = 0;
-        if (auto err = in.GetProperty("num_bytes").ReadUInt64(&num_bytes)) {
+        uint64 num_bytes = 0;
+        if (auto err = in.GetProperty("num_bytes").ReadUnsignedLong(&num_bytes)) {
             return err;
         }
 

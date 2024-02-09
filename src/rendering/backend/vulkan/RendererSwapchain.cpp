@@ -74,7 +74,7 @@ void Swapchain<Platform::VULKAN>::RetrieveSupportDetails(Device<Platform::VULKAN
 
 void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> *device)
 {
-    UInt32 image_count = 0;
+    uint32 image_count = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
     vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &image_count, nullptr);
@@ -97,7 +97,7 @@ Result Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, con
         support_details.capabilities.currentExtent.height
     };
 
-    UInt32 image_count = support_details.capabilities.minImageCount + 1;
+    uint32 image_count = support_details.capabilities.minImageCount + 1;
 
     if (support_details.capabilities.maxImageCount > 0 && image_count > support_details.capabilities.maxImageCount) {
         image_count = support_details.capabilities.maxImageCount;
@@ -116,7 +116,7 @@ Result Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, con
 
     /* Graphics computations and presentation are done on separate hardware */
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const UInt32 concurrent_families[] = {
+    const uint32 concurrent_families[] = {
         qf_indices.graphics_family.Get(),
         qf_indices.present_family.Get()
     };
@@ -124,7 +124,7 @@ Result Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, con
     if (qf_indices.graphics_family.Get() != qf_indices.present_family.Get()) {
         DebugLog(LogType::Debug, "Swapchain sharing mode set to Concurrent\n");
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        create_info.queueFamilyIndexCount = UInt32(std::size(concurrent_families)); /* Two family indices(one for each process) */
+        create_info.queueFamilyIndexCount = uint32(std::size(concurrent_families)); /* Two family indices(one for each process) */
         create_info.pQueueFamilyIndices = concurrent_families;
     } else {
         /* Computations and presentation are done on same hardware(most scenarios) */

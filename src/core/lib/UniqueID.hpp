@@ -13,10 +13,10 @@ namespace detail {
 
 struct UniqueIDGenerator
 {
-    static inline UInt64 Generate()
+    static inline uint64 Generate()
     {
         static thread_local std::mt19937 random_engine;
-        std::uniform_int_distribution<UInt64> distribution;
+        std::uniform_int_distribution<uint64> distribution;
 
         return distribution(random_engine);
     }
@@ -27,7 +27,7 @@ struct UniqueIDGenerator
 
 struct UniqueID
 {
-    static inline UInt64 DefaultValue()
+    static inline uint64 DefaultValue()
     {
         return containers::detail::UniqueIDGenerator::Generate();
     }
@@ -79,7 +79,7 @@ public:
     bool operator<(const UniqueID &other) const
         { return value < other.value; }
 
-    operator UInt64() const
+    operator uint64() const
         { return value; }
 
     HashCode GetHashCode() const
@@ -94,7 +94,7 @@ public:
     }
 
 private:
-    UInt64 value;
+    uint64 value;
 };
 
 } // namespace hyperion

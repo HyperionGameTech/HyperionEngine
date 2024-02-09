@@ -27,7 +27,7 @@ namespace hyperion::v2 {
 
 class AssetCache;
 
-using AssetLoadFlags = UInt32;
+using AssetLoadFlags = uint32;
 
 enum AssetLoadFlagBits : AssetLoadFlags
 {
@@ -158,7 +158,7 @@ public:
         std::vector<String> paths_array { first_path, std::forward<Paths>(paths)... };
         auto batch = CreateBatch();
 
-        UInt path_index = 0;
+        uint path_index = 0;
 
         for (const auto &path : paths_array) {
             batch->Add(String::ToString(path_index++), path);

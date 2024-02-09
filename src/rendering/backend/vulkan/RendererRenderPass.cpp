@@ -14,7 +14,7 @@ RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode m
 {
 }
 
-RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode, UInt num_multiview_layers)
+RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode, uint num_multiview_layers)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
@@ -85,7 +85,7 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     subpass_description.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass_description.pDepthStencilAttachment = nullptr;
 
-    UInt next_binding = 0;
+    uint next_binding = 0;
 
     for (auto *attachment_usage : m_render_pass_attachment_usages) {
         if (!attachment_usage->HasBinding()) { // no binding has manually been set so we make one
@@ -114,20 +114,20 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         }
     }
 
-    subpass_description.colorAttachmentCount    = UInt32(color_attachment_usages.Size());
+    subpass_description.colorAttachmentCount    = uint32(color_attachment_usages.Size());
     subpass_description.pColorAttachments       = color_attachment_usages.Data();
 
     // Create the actual renderpass
     VkRenderPassCreateInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    render_pass_info.attachmentCount    = UInt32(attachment_descriptions.Size());
+    render_pass_info.attachmentCount    = uint32(attachment_descriptions.Size());
     render_pass_info.pAttachments       = attachment_descriptions.Data();
     render_pass_info.subpassCount       = 1;
     render_pass_info.pSubpasses         = &subpass_description;
-    render_pass_info.dependencyCount    = UInt32(m_dependencies.Size());
+    render_pass_info.dependencyCount    = uint32(m_dependencies.Size());
     render_pass_info.pDependencies      = m_dependencies.Data();
 
-    UInt32 multiview_view_mask = 0;
-    UInt32 multiview_correlation_mask = 0;
+    uint32 multiview_view_mask = 0;
+    uint32 multiview_correlation_mask = 0;
 
     VkRenderPassMultiviewCreateInfo multiview_info { VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
     multiview_info.subpassCount         = 1;
@@ -136,7 +136,7 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     multiview_info.correlationMaskCount = 1;
 
     if (IsMultiview()) {
-        for (UInt i = 0; i < m_num_multiview_layers; i++) {
+        for (uint i = 0; i < m_num_multiview_layers; i++) {
             multiview_view_mask |= 1 << i;
             multiview_correlation_mask |= 1 << i;
         }
@@ -174,7 +174,7 @@ void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, F
     render_pass_info.framebuffer        = framebuffer->GetHandle();
     render_pass_info.renderArea.offset  = { 0, 0 };
     render_pass_info.renderArea.extent  = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
-    render_pass_info.clearValueCount    = UInt32(m_clear_values.Size());
+    render_pass_info.clearValueCount    = uint32(m_clear_values.Size());
     render_pass_info.pClearValues       = m_clear_values.Data();
 
     VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE;

@@ -24,7 +24,7 @@ void FollowCameraController::OnAdded(Camera *camera)
 
 void FollowCameraController::UpdateLogic(double dt)
 {
-    m_real_offset.Lerp(m_offset, MathUtil::Clamp(Float(dt) * 25.0f, 0.0f, 1.0f));
+    m_real_offset.Lerp(m_offset, MathUtil::Clamp(float(dt) * 25.0f, 0.0f, 1.0f));
 
     const Vector3 origin = m_camera->GetTarget();
     const Vector3 normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();
@@ -59,7 +59,7 @@ void FollowCameraController::RespondToCommand(const CameraCommand &command, Game
     {
         constexpr float scroll_speed = 150.0f;
         
-        m_desired_distance -= Float(command.scroll_data.wheel_y) * scroll_speed * dt;
+        m_desired_distance -= float(command.scroll_data.wheel_y) * scroll_speed * dt;
 
         break;
     }

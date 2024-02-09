@@ -9,7 +9,7 @@
 #include <core/lib/TypeMap.hpp>
 
 extern "C" {
-    // enum AssetType : UInt32
+    // enum AssetType : uint32
     // {
     //     ASSET_TYPE_INVALID = 0,
     //     ASSET_TYPE_TEXTURE = 1,

@@ -27,8 +27,8 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (UInt i = 0; i < 2; i++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (uint i = 0; i < 2; i++) {
                 HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(g_engine->GetGPUDevice()));
             }
         }
@@ -50,7 +50,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : renderer::RenderCommand
     {
         auto result = Result::OK;
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // destroy our images
             for (auto &image_output : image_outputs[frame_index]) {
                 HYPERION_PASS_ERRORS(
@@ -75,7 +75,7 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
                 AssertThrow(descriptor_set != nullptr);
                 
@@ -114,7 +114,7 @@ void BlurRadiance::Destroy()
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         SafeRelease(std::move(m_descriptor_sets[i]));
     }
 
@@ -128,8 +128,8 @@ void BlurRadiance::CreateImageOutputs()
         InternalFormat::RGBA8
     };
     
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (UInt i = 0; i < m_image_outputs[frame_index].Size(); i++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint i = 0; i < m_image_outputs[frame_index].Size(); i++) {
             auto &image_output = m_image_outputs[frame_index][i];
 
             image_output.image = StorageImage(
@@ -147,8 +147,8 @@ void BlurRadiance::CreateImageOutputs()
 
 void BlurRadiance::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
             auto descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
 
             // input image (first pass just radiance image, second pass is prev image)
@@ -201,7 +201,7 @@ void BlurRadiance::CreateDescriptorSets()
                 ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
                 ->SetSubDescriptor({
                     .buffer = g_engine->GetRenderData()->scenes.GetBuffer(),
-                    .range = static_cast<UInt>(sizeof(SceneShaderData))
+                    .range = static_cast<uint>(sizeof(SceneShaderData))
                 });
 
             m_descriptor_sets[frame_index][i] = std::move(descriptor_set);
@@ -237,9 +237,9 @@ void BlurRadiance::Render(
     FixedArray passes { m_blur_hor.Get(), m_blur_vert.Get() };
     
     const auto &scene_binding = g_engine->render_state.GetScene();
-    const UInt scene_index = scene_binding.id.ToIndex();
+    const uint scene_index = scene_binding.id.ToIndex();
 
-    for (UInt i = 0; i < static_cast<UInt>(passes.Size()); i++) {
+    for (uint i = 0; i < static_cast<uint>(passes.Size()); i++) {
         m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
             ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 

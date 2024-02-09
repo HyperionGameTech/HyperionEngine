@@ -33,9 +33,9 @@ class Engine;
 
 struct alignas(16) PostProcessingUniforms
 {
-    ShaderVec2<UInt32> effect_counts; // pre, post
-    ShaderVec2<UInt32> last_enabled_indices; // pre, post
-    ShaderVec2<UInt32> masks; // pre, post
+    ShaderVec2<uint32> effect_counts; // pre, post
+    ShaderVec2<uint32> last_enabled_indices; // pre, post
+    ShaderVec2<uint32> masks; // pre, post
 };
 
 class PostFXPass : public FullScreenPass
@@ -51,7 +51,7 @@ public:
     PostFXPass(
         const Handle<Shader> &shader,
         DescriptorKey descriptor_key,
-        UInt sub_descriptor_index,
+        uint sub_descriptor_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(const PostFXPass &) = delete;
@@ -64,7 +64,7 @@ public:
 class PostProcessingEffect : public BasicObject<STUB_CLASS(PostProcessingEffect)>
 {
 public:
-    enum Stage : UInt
+    enum Stage : uint
     {
         PRE_SHADING,
         POST_SHADING
@@ -72,7 +72,7 @@ public:
 
     PostProcessingEffect(
         Stage stage,
-        UInt index,
+        uint index,
         InternalFormat image_format = InternalFormat::RGBA16F//RGBA8_SRGB
     );
     PostProcessingEffect(const PostProcessingEffect &other) = delete;
@@ -86,7 +86,7 @@ public:
     const Handle<Shader> &GetShader() const { return m_shader; }
 
     Stage GetStage() const { return m_stage; }
-    UInt GetIndex() const { return m_pass.GetSubDescriptorIndex(); }
+    uint GetIndex() const { return m_pass.GetSubDescriptorIndex(); }
 
     bool IsEnabled() const { return m_is_enabled; }
     void SetIsEnabled(bool is_enabled) { m_is_enabled = is_enabled; }
@@ -96,7 +96,7 @@ public:
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;
 
-    virtual void RenderEffect(Frame *frame, UInt slot);
+    virtual void RenderEffect(Frame *frame, uint slot);
 
 protected:
     virtual Handle<Shader> CreateShader() = 0;
@@ -112,7 +112,7 @@ private:
 class PostProcessing
 {
 public:
-    static constexpr UInt max_effects_per_stage = sizeof(UInt32) * CHAR_BIT;
+    static constexpr uint max_effects_per_stage = sizeof(uint32) * CHAR_BIT;
 
     enum DefaultEffectIndices
     {
@@ -174,12 +174,12 @@ private:
 
         std::lock_guard guard(m_effects_mutex);
 
-        const auto it = m_effects_pending_addition[UInt(stage)].Find<EffectClass>();
+        const auto it = m_effects_pending_addition[uint(stage)].Find<EffectClass>();
 
-        if (it != m_effects_pending_addition[UInt(stage)].End()) {
+        if (it != m_effects_pending_addition[uint(stage)].End()) {
             it->second = std::move(effect);
         } else {
-            m_effects_pending_addition[UInt(stage)].Set<EffectClass>(std::move(effect));
+            m_effects_pending_addition[uint(stage)].Set<EffectClass>(std::move(effect));
         }
         
         m_effects_updated.Set(true, MemoryOrder::RELAXED);
@@ -192,7 +192,7 @@ private:
 
         Threads::AssertOnThread(THREAD_RENDER);
 
-        auto &effects = m_effects[UInt(stage)];
+        auto &effects = m_effects[uint(stage)];
 
         auto it = effects.Find<EffectClass>();
 
@@ -207,7 +207,7 @@ private:
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects_pending_addition;
     FixedArray<FlatSet<TypeID>, 2> m_effects_pending_removal;
     std::mutex m_effects_mutex;
-    AtomicVar<Bool> m_effects_updated { false };
+    AtomicVar<bool> m_effects_updated { false };
 
     GPUBufferRef m_uniform_buffer;
 };

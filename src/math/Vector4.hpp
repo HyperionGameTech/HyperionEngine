@@ -25,7 +25,7 @@ struct alignas(alignof(T) * 4) Vec4
 
     using Type = T;
 
-    static constexpr UInt size = 4;
+    static constexpr uint size = 4;
 
     static const Vec4 zero;
     static const Vec4 one;
@@ -210,16 +210,16 @@ struct alignas(alignof(T) * 4) Vec4
         return *this;
     }
 
-    Bool operator==(const Vec4 &other) const
+    bool operator==(const Vec4 &other) const
         { return x == other.x && y == other.y && z == other.z && w == other.w; }
 
-    Bool operator!=(const Vec4 &other) const
+    bool operator!=(const Vec4 &other) const
         { return !operator==(other); }
 
     Vec4 operator-() const
         { return operator*(Type(-1)); }
 
-    Bool operator<(const Vec4 &other) const
+    bool operator<(const Vec4 &other) const
     {
         if (x != other.x) return x < other.x;
         if (y != other.y) return y < other.y;
@@ -276,13 +276,13 @@ struct alignas(alignof(T) * 4) Vec4
 };
 
 template <>
-struct alignas(alignof(Float) * 4) Vec4<Float>
+struct alignas(alignof(float) * 4) Vec4<float>
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec4 &vec);
 
-    using Type = Float;
+    using Type = float;
 
-    static constexpr UInt size = 4;
+    static constexpr uint size = 4;
 
     static const Vec4 zero;
     static const Vec4 one;
@@ -467,16 +467,16 @@ struct alignas(alignof(Float) * 4) Vec4<Float>
         return *this;
     }
 
-    Bool operator==(const Vec4 &other) const
+    bool operator==(const Vec4 &other) const
         { return x == other.x && y == other.y && z == other.z && w == other.w; }
 
-    Bool operator!=(const Vec4 &other) const
+    bool operator!=(const Vec4 &other) const
         { return !operator==(other); }
 
     Vec4 operator-() const
         { return operator*(Type(-1)); }
 
-    Bool operator<(const Vec4 &other) const
+    bool operator<(const Vec4 &other) const
     {
         if (x != other.x) return x < other.x;
         if (y != other.y) return y < other.y;
@@ -505,13 +505,13 @@ struct alignas(alignof(Float) * 4) Vec4<Float>
     
     Vec4 Normalized() const;
     Vec4 &Normalize();
-    Vec4 &Rotate(const Vec3<Float> &axis, Float radians);
-    Vec4 &Lerp(const Vec4 &to, Float amt);
-    Float Dot(const Vec4 &other) const;
+    Vec4 &Rotate(const Vec3<float> &axis, float radians);
+    Vec4 &Lerp(const Vec4 &to, float amt);
+    float Dot(const Vec4 &other) const;
 
     static Vec4 Abs(const Vec4 &);
     static Vec4 Round(const Vec4 &);
-    static Vec4 Clamp(const Vec4 &, Float min, Float max);
+    static Vec4 Clamp(const Vec4 &, float min, float max);
     static Vec4 Min(const Vec4 &a, const Vec4 &b);
     static Vec4 Max(const Vec4 &a, const Vec4 &b);
 
@@ -556,25 +556,25 @@ using Vec4 = detail::Vec4<T>;
 template <class T>
 using Vec4 = math::Vec4<T>;
 
-using Vec4f = Vec4<Float>;
-using Vec4i = Vec4<Int>;
-using Vec4u = Vec4<UInt>;
+using Vec4f = Vec4<float>;
+using Vec4i = Vec4<int>;
+using Vec4u = Vec4<uint>;
 
-static_assert(sizeof(Vec4f) == sizeof(Float) * 4, "sizeof(Vec4f) must be equal to sizeof(Float) * 4");
-static_assert(sizeof(Vec4i) == sizeof(Int) * 4, "sizeof(Vec4i) must be equal to sizeof(Int) * 4");
-static_assert(sizeof(Vec4u) == sizeof(UInt) * 4, "sizeof(Vec4u) must be equal to sizeof(UInt) * 4");
+static_assert(sizeof(Vec4f) == sizeof(float) * 4, "sizeof(Vec4f) must be equal to sizeof(float) * 4");
+static_assert(sizeof(Vec4i) == sizeof(int) * 4, "sizeof(Vec4i) must be equal to sizeof(int) * 4");
+static_assert(sizeof(Vec4u) == sizeof(uint) * 4, "sizeof(Vec4u) must be equal to sizeof(uint) * 4");
 
 template <class T>
-inline constexpr Bool is_vec4 = false;
+inline constexpr bool is_vec4 = false;
 
 template <>
-inline constexpr Bool is_vec4<Vec4f> = true;
+inline constexpr bool is_vec4<Vec4f> = true;
 
 template <>
-inline constexpr Bool is_vec4<Vec4i> = true;
+inline constexpr bool is_vec4<Vec4i> = true;
 
 template <>
-inline constexpr Bool is_vec4<Vec4u> = true;
+inline constexpr bool is_vec4<Vec4u> = true;
 
 // transitional typedef
 using Vector4 = Vec4f;

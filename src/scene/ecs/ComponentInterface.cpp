@@ -5,10 +5,10 @@ namespace hyperion::v2 {
 
 struct ComponentInterfaceHolder
 {
-    static constexpr UInt max_component_interfaces = 256;
+    static constexpr uint max_component_interfaces = 256;
 
     FixedArray<ComponentInterfaceBase *, max_component_interfaces> component_interfaces;
-    UInt num_component_interfaces = 0;
+    uint num_component_interfaces = 0;
 
     void AddComponentInterface(ComponentInterfaceBase *component_interface)
     {
@@ -51,7 +51,7 @@ const ComponentProperty *ComponentInterfaceBase::GetProperty(Name name) const
 
 ComponentInterfaceBase *GetComponentInterface(TypeID type_id)
 {
-    for (UInt i = 0; i < component_interface_holder.num_component_interfaces; ++i) {
+    for (uint i = 0; i < component_interface_holder.num_component_interfaces; ++i) {
         if (component_interface_holder.component_interfaces[i]->GetTypeID() == type_id) {
             return component_interface_holder.component_interfaces[i];
         }

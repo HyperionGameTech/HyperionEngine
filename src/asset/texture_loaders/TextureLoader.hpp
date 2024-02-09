@@ -19,9 +19,9 @@ public:
 
     struct TextureData
     {
-        Int width;
-        Int height;
-        Int num_components;
+        int width;
+        int height;
+        int num_components;
         InternalFormat format;
     };
 };

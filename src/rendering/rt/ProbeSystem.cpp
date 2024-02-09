@@ -17,7 +17,7 @@ using renderer::TlasDescriptor;
 using renderer::ResourceState;
 using renderer::Result;
 
-enum ProbeSystemUpdates : UInt32
+enum ProbeSystemUpdates : uint32
 {
     PROBE_SYSTEM_UPDATES_NONE = 0x0,
     PROBE_SYSTEM_UPDATES_TLAS = 0x1,
@@ -77,7 +77,7 @@ struct RENDER_COMMAND(CreateProbeGridDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
@@ -120,7 +120,7 @@ struct RENDER_COMMAND(DestroyProbeGridDescriptors) : renderer::RenderCommand
         Device *device = g_engine->GetGPUDevice();
         
         // remove result image from global descriptor set
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
@@ -233,13 +233,13 @@ void ProbeGrid::Init()
     const auto grid = m_grid_info.NumProbesPerDimension();
     m_probes.Resize(m_grid_info.NumProbes());
 
-    for (UInt32 x = 0; x < grid.width; x++) {
-        for (UInt32 y = 0; y < grid.height; y++) {
-            for (UInt32 z = 0; z < grid.depth; z++) {
-                const UInt32 index = x * grid.height * grid.depth + y * grid.depth + z;
+    for (uint32 x = 0; x < grid.width; x++) {
+        for (uint32 y = 0; y < grid.height; y++) {
+            for (uint32 z = 0; z < grid.depth; z++) {
+                const uint32 index = x * grid.height * grid.depth + y * grid.depth + z;
 
                 m_probes[index] = Probe {
-                    (Vector3(Float(x), Float(y), Float(z)) - (Vector3(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
+                    (Vector3(float(x), float(y), float(z)) - (Vector3(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
                 };
             }
         }
@@ -443,7 +443,7 @@ void ProbeGrid::CreateStorageBuffers()
 
 void ProbeGrid::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
@@ -497,7 +497,7 @@ void ProbeGrid::CreateDescriptorSets()
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<ImageDescriptor>(16);
         
-        for (UInt i = 0; i < max_shadow_maps; i++) {
+        for (uint i = 0; i < max_shadow_maps; i++) {
             shadow_map_descriptor->SetElementSRV(i, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
@@ -527,7 +527,7 @@ void ProbeGrid::ApplyTLASUpdates(RTUpdateStateFlags flags)
         return;
     }
     
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
             m_descriptor_sets[frame_index]->GetDescriptor(0)
@@ -562,7 +562,7 @@ void ProbeGrid::SubmitPushConstants(CommandBuffer *command_buffer)
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::SetShadowMap(UInt shadow_map_index, Handle<Texture> shadow_map)
+void ProbeGrid::SetShadowMap(uint shadow_map_index, Handle<Texture> shadow_map)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -579,9 +579,9 @@ void ProbeGrid::SetShadowMap(UInt shadow_map_index, Handle<Texture> shadow_map)
 
 void ProbeGrid::UpdateUniforms(Frame *frame)
 {
-    const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
-    UInt32 num_bound_lights = 0;
+    uint32 num_bound_lights = 0;
 
     for (const auto &it : g_engine->GetRenderState().lights) {
         if (num_bound_lights == std::size(m_uniforms.light_indices)) {

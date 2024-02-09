@@ -28,7 +28,7 @@ FBOMCommand FBOMReader::NextCommand(ByteReader *reader)
 {
     AssertThrow(!reader->Eof());
 
-    UInt8 ins = 0;
+    uint8 ins = 0;
     reader->Read(&ins);
     CheckEndianness(ins);
 
@@ -39,7 +39,7 @@ FBOMCommand FBOMReader::PeekCommand(ByteReader *reader)
 {
     AssertThrow(!reader->Eof());
 
-    UInt8 ins = 0;
+    uint8 ins = 0;
     reader->Peek(&ins);
     CheckEndianness(ins);
 
@@ -66,7 +66,7 @@ FBOMResult FBOMReader::Eat(ByteReader *reader, FBOMCommand command, bool read)
 String FBOMReader::ReadString(ByteReader *reader)
 {
     // read 4 bytes of string length
-    UInt32 len;
+    uint32 len;
     reader->Read(&len);
     CheckEndianness(len);
 
@@ -86,14 +86,14 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
 {
     FBOMType result = FBOMUnset();
 
-    UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
+    uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
     CheckEndianness(object_type_location);
 
     switch (object_type_location) {
     case FBOM_DATA_LOCATION_INPLACE:
     {
-        UInt8 extend_level;
+        uint8 extend_level;
         reader->Read(&extend_level);
         CheckEndianness(extend_level);
 
@@ -101,7 +101,7 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
             result.name = ReadString(reader);
 
             // read size of object
-            UInt64 type_size;
+            uint64 type_size;
             reader->Read(&type_size);
             CheckEndianness(type_size);
 
@@ -119,7 +119,7 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
     case FBOM_DATA_LOCATION_STATIC:
     {
         // read offset as u32
-        UInt32 offset;
+        uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
 
@@ -140,14 +140,14 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
 FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
 {
     // read data location
-    UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
+    uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
     CheckEndianness(object_type_location);
 
     if (object_type_location == FBOM_DATA_LOCATION_INPLACE) {
         FBOMType object_type = ReadObjectType(reader);
 
-        UInt32 sz;
+        uint32 sz;
         reader->Read(&sz);
         CheckEndianness(sz);
 
@@ -162,7 +162,7 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
         data = FBOMData(object_type, std::move(byte_buffer));
     } else if (object_type_location == FBOM_DATA_LOCATION_STATIC) {
         // read offset as u32
-        UInt32 offset;
+        uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
 
@@ -183,12 +183,12 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
     FBOMCommand command = FBOM_NONE;
 
     // read unique ID
-    UInt64 unique_id;
+    uint64 unique_id;
     reader->Read(&unique_id);
     CheckEndianness(unique_id);
 
     // read data location
-    UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
+    uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
     CheckEndianness(object_type_location);
 
@@ -196,7 +196,7 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
     case FBOM_DATA_LOCATION_STATIC:
     {
         // read offset as u32
-        UInt32 offset;
+        uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
 
@@ -281,12 +281,12 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
         // for now this should just be zero but
         // later we can use to store other things in a sort of
         // "library" file, and page chunks in and out of memory
-        UInt32 object_index;
+        uint32 object_index;
         reader->Read(&object_index);
         CheckEndianness(object_index);
 
         // read flags
-        UInt32 flags;
+        uint32 flags;
         reader->Read(&flags);
         CheckEndianness(flags);
 
@@ -329,12 +329,12 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
         return FBOMResult(FBOMResult::FBOM_ERR, "Unknown object location type!");
     }
 
-    // if (unique_id != UInt64(object.m_unique_id)) {
+    // if (unique_id != uint64(object.m_unique_id)) {
     //     DebugLog(
     //         LogType::Warn,
     //         "unique id header for object does not match unique id stored in external object (%llu != %llu)\n",
     //         unique_id,
-    //         UInt64(object.m_unique_id)
+    //         uint64(object.m_unique_id)
     //     );
     // }
 
@@ -372,14 +372,14 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
         m_in_static_data = true;
 
         // read u32 describing size of static data pool
-        UInt32 static_data_size;
+        uint32 static_data_size;
         reader->Read(&static_data_size);
         CheckEndianness(static_data_size);
 
         const auto initial_static_data_size = static_data_size;
 
         // skip 8 bytes of padding
-        UInt64 tmp;
+        uint64 tmp;
         reader->Read(&tmp);
         CheckEndianness(tmp);
 
@@ -389,8 +389,8 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
         //   u32 as index/offset
         //   u8 as type of static data
         //   then, the actual size of the data will vary depending on the held type
-        for (UInt i = 0; i < static_data_size; i++) {
-            UInt32 offset;
+        for (uint i = 0; i < static_data_size; i++) {
+            uint32 offset;
             reader->Read(&offset);
             CheckEndianness(offset);
 
@@ -398,7 +398,7 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
                 return FBOMResult(FBOMResult::FBOM_ERR, "Offset out of bounds of static data pool");
             }
 
-            UInt8 type;
+            uint8 type;
             reader->Read(&type);
             CheckEndianness(type);
 
@@ -456,7 +456,7 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
         break;
     }
     default:
-        AssertThrowMsg(false, "Cannot process command %d in top level", static_cast<Int>(command));
+        AssertThrowMsg(false, "Cannot process command %d in top level", static_cast<int>(command));
 
         break;
     }

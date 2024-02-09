@@ -26,7 +26,7 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
     {
         HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_draw_state.Create());
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             AssertThrow(indirect_renderer.m_descriptor_sets[frame_index].IsValid());
 
             // global object data
@@ -90,7 +90,7 @@ Result IndirectDrawState::Create()
 
     single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto frame = Frame::TemporaryFrame(command_buffer, frame_index);
 
             if (!ResizeIndirectDrawCommandsBuffer(&frame, initial_count)) {
@@ -168,9 +168,9 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 {
     out = { };
 
-    const UInt32 draw_command_index = m_num_draw_commands++;
+    const uint32 draw_command_index = m_num_draw_commands++;
 
-    for (UInt index = 0; index < draw_call.entity_id_count; index++) {
+    for (uint index = 0; index < draw_call.entity_id_count; index++) {
         ObjectInstance instance { };
         instance.entity_id = draw_call.entity_ids[index].Value();
         instance.draw_command_index = draw_command_index;
@@ -313,7 +313,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 {
     // assume render thread
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     if ((*out_was_resized = ResizeIfNeeded(frame))) {
         m_is_dirty[frame_index] = true;
@@ -377,7 +377,7 @@ IndirectRenderer::~IndirectRenderer() = default;
 
 void IndirectRenderer::Create()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
     }
 
@@ -409,13 +409,13 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     Threads::AssertOnThread(THREAD_RENDER);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->size != 0);
 
-    const UInt num_instances = UInt(m_indirect_draw_state.GetInstances().Size());
-    const UInt num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
+    const uint num_instances = uint(m_indirect_draw_state.GetInstances().Size());
+    const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
 
     if (num_instances == 0) {
         return;
@@ -445,7 +445,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     }
     
     const ID<Scene> scene_id = g_engine->GetRenderState().GetScene().id;
-    const UInt scene_index = scene_id.ToIndex();
+    const uint scene_index = scene_id.ToIndex();
 
     // bind our descriptor set to binding point 0
     command_buffer->BindDescriptorSet(
@@ -468,7 +468,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         .object_visibility_data = {
             .batch_offset = 0,
             .num_instances = num_instances,
-            .scene_id = UInt32(scene_id.value),
+            .scene_id = uint32(scene_id.value),
             .depth_pyramid_dimensions = Extent2D(m_cached_cull_data.depth_pyramid_dimensions)
         }
     });
@@ -483,7 +483,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 
 void IndirectRenderer::RebuildDescriptors(Frame *frame)
 {
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     auto &descriptor_set = m_descriptor_sets[frame_index];
     AssertThrow(descriptor_set.IsValid());

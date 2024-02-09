@@ -30,7 +30,7 @@ using renderer::ShaderVec4;
 
 class Engine;
 
-enum ProbeSystemFlags : UInt32
+enum ProbeSystemFlags : uint32
 {
     PROBE_SYSTEM_FLAGS_NONE = 0x0,
     PROBE_SYSTEM_FLAGS_FIRST_RUN = 0x1
@@ -40,15 +40,15 @@ struct alignas(256) ProbeSystemUniforms
 {
     Vector4 aabb_max;
     Vector4 aabb_min;
-    ShaderVec4<UInt32> probe_border;
-    ShaderVec4<UInt32> probe_counts;
-    ShaderVec4<UInt32> grid_dimensions;
-    ShaderVec4<UInt32> image_dimensions;
-    ShaderVec4<UInt32> params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
-    UInt32 shadow_map_index;
-    UInt32 _pad0, _pad1, _pad2;
-    UInt32 light_indices[16];
-    //HYP_PAD_STRUCT_HERE(UInt32, 4);
+    ShaderVec4<uint32> probe_border;
+    ShaderVec4<uint32> probe_counts;
+    ShaderVec4<uint32> grid_dimensions;
+    ShaderVec4<uint32> image_dimensions;
+    ShaderVec4<uint32> params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
+    uint32 shadow_map_index;
+    uint32 _pad0, _pad1, _pad2;
+    uint32 light_indices[16];
+    //HYP_PAD_STRUCT_HERE(uint32, 4);
 };
 
 //static_assert(sizeof(ProbeSystemUniforms) == 128);
@@ -65,13 +65,13 @@ static_assert(sizeof(ProbeRayData) == 64);
 
 struct ProbeGridInfo
 {
-    static constexpr UInt irradiance_octahedron_size = 8;
-    static constexpr UInt depth_octahedron_size = 16;
+    static constexpr uint irradiance_octahedron_size = 8;
+    static constexpr uint depth_octahedron_size = 16;
     static constexpr Extent3D probe_border = Extent3D(2, 0, 2);
 
     BoundingBox aabb;
-    Float probe_distance = 3.5f;
-    UInt num_rays_per_probe = 128;
+    float probe_distance = 3.5f;
+    uint num_rays_per_probe = 128;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
@@ -83,7 +83,7 @@ struct ProbeGridInfo
         return Extent3D(probes_per_dimension);
     }
 
-    UInt NumProbes() const
+    uint NumProbes() const
     {
         const Extent3D per_dimension = NumProbesPerDimension();
 
@@ -92,7 +92,7 @@ struct ProbeGridInfo
 
     Extent2D GetImageDimensions() const
     {
-        return { UInt32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
+        return { uint32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
     }
 };
 
@@ -149,7 +149,7 @@ public:
     void Init();
     void Destroy();
 
-    void SetShadowMap(UInt shadow_map_index, Handle<Texture> shadow_map);
+    void SetShadowMap(uint shadow_map_index, Handle<Texture> shadow_map);
 
     void RenderProbes(Frame *frame);
     void ComputeIrradiance(Frame *frame);
@@ -166,9 +166,9 @@ private:
     ProbeGridInfo m_grid_info;
     Array<Probe> m_probes;
     
-    FixedArray<UInt32, max_frames_in_flight> m_updates;
+    FixedArray<uint32, max_frames_in_flight> m_updates;
 
-    UInt m_shadow_map_index;
+    uint m_shadow_map_index;
     Handle<Texture> m_shadow_map;
 
     Handle<ComputePipeline> m_update_irradiance,
@@ -192,7 +192,7 @@ private:
     ProbeSystemUniforms m_uniforms;
 
     RotationMatrixGenerator m_random_generator;
-    UInt32 m_time;
+    uint32 m_time;
 };
 
 } // namespace hyperion::v2

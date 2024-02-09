@@ -25,7 +25,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
         return Result(Result::SAX_ERR, "File could not be read.");
     }
 
-    Bool is_reading = false,
+    bool is_reading = false,
         is_opening = false,
         is_closing = false,
         in_element = false,

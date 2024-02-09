@@ -34,7 +34,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
+        for (uint i = 0; i < max_frames_in_flight; i++) {
             DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
@@ -42,7 +42,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : renderer::RenderCommand
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SHADOW_MAPS);
 
             shadow_map_descriptor->SetElementSRV(
-                UInt(shadow_map_index),
+                uint(shadow_map_index),
                 shadow_map_image_view
             );
         }
@@ -82,7 +82,7 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : renderer::RenderComma
 
     virtual Result operator()()
     {
-        for (UInt i = 0; i < descriptor_sets.Size(); i++) {
+        for (uint i = 0; i < descriptor_sets.Size(); i++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[i]->Create(
                 g_engine->GetGPUDevice(),
                 &g_engine->GetGPUInstance()->GetDescriptorPool()
@@ -117,7 +117,7 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
 
 struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 {
-    UInt            shadow_map_index;
+    uint            shadow_map_index;
     Matrix4         view_matrix;
     Matrix4         projection_matrix;
     BoundingBox     aabb;
@@ -125,7 +125,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
     ShadowFlags     flags;
 
     RENDER_COMMAND(UpdateShadowMapRenderData)(
-        UInt shadow_map_index,
+        uint shadow_map_index,
         const Matrix4 &view_matrix,
         const Matrix4 &projection_matrix,
         const BoundingBox &aabb,
@@ -148,7 +148,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
         data.aabb_max = Vector4(aabb.max, 1.0f);
         data.aabb_min = Vector4(aabb.min, 1.0f);
         data.dimensions = dimensions;
-        data.flags = UInt32(flags);
+        data.flags = uint32(flags);
         
         g_engine->GetRenderData()->shadow_map_data.Set(
             shadow_map_index,
@@ -289,7 +289,7 @@ void ShadowPass::CreateComputePipelines()
 {
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         m_blur_descriptor_sets[i] = MakeRenderObject<renderer::DescriptorSet>();
 
         m_blur_descriptor_sets[i]->AddDescriptor<ImageDescriptor>(0)
@@ -384,7 +384,7 @@ void ShadowPass::Render(Frame *frame)
             command_buffer,
             Pipeline::PushConstantData {
                 .blur_shadow_map_data = {
-                    .image_dimensions = ShaderVec2<UInt32>(m_framebuffer->GetExtent())
+                    .image_dimensions = ShaderVec2<uint32>(m_framebuffer->GetExtent())
                 }
             }
         );

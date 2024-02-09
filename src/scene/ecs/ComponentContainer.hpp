@@ -12,8 +12,8 @@ namespace hyperion::v2 {
 
 class Entity;
 
-using ComponentID = UInt;
-using ComponentRWFlags = UInt;
+using ComponentID = uint;
+using ComponentRWFlags = uint;
 
 enum ComponentRWFlagBits : ComponentRWFlags
 {
@@ -72,7 +72,7 @@ public:
      *
      *  \return True if the component container has a component with the given ID, false otherwise.
      */
-    virtual Bool HasComponent(ComponentID id) const = 0;
+    virtual bool HasComponent(ComponentID id) const = 0;
 
     /*! \brief Adds a component to the component container, using type erasure.
      *
@@ -88,7 +88,7 @@ public:
      *
      *  \return True if the component was removed, false otherwise.
      */
-    virtual Bool RemoveComponent(ComponentID id) = 0;
+    virtual bool RemoveComponent(ComponentID id) = 0;
 
     /*! \brief Moves the component with the given ID from this component container to the given component container.
      *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
@@ -127,7 +127,7 @@ public:
     ComponentContainer &operator=(ComponentContainer &&) noexcept   = delete;
     virtual ~ComponentContainer() override                          = default;
 
-    virtual Bool HasComponent(ComponentID id) const override
+    virtual bool HasComponent(ComponentID id) const override
         { return m_components.Contains(id); }
 
     virtual void *TryGetComponent(ComponentID id) override
@@ -186,7 +186,7 @@ public:
         return AddComponent(std::move(*static_cast<Component *>(component.Get())));
     }
 
-    virtual Bool RemoveComponent(ComponentID id) override
+    virtual bool RemoveComponent(ComponentID id) override
     {
         auto it = m_components.Find(id);
 

@@ -37,8 +37,8 @@ public:
     auto &GetAttachmentUsages() { return m_attachment_usages; }
     const auto &GetAttachmentUsages() const { return m_attachment_usages; }
 
-    UInt GetWidth() const { return m_extent.width; }
-    UInt GetHeight() const { return m_extent.height; }
+    uint GetWidth() const { return m_extent.width; }
+    uint GetHeight() const { return m_extent.height; }
 
 private:
     Extent3D m_extent;

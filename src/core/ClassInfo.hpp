@@ -18,7 +18,7 @@ public:
 
 struct RegisteredClass
 {
-    UInt index = ~0u;
+    uint index = ~0u;
 
     HYP_FORCE_INLINE bool IsValid() const
         { return index != ~0u; }
@@ -31,11 +31,11 @@ struct RegisteredClass
 
 struct GlobalClassInfoTable
 {
-    static constexpr UInt max_class_objects = 1024;
+    static constexpr uint max_class_objects = 1024;
 
     HeapArray<RC<ClassInfoBase>, max_class_objects> class_objects;
     std::mutex mtx;
-    UInt index = 0;
+    uint index = 0;
 
     template <class ClassInfo>
     RegisteredClass Register()
@@ -44,7 +44,7 @@ struct GlobalClassInfoTable
 
         AssertThrowMsg(index < max_class_objects, "Too many class objects registered");
 
-        UInt object_index = index++;
+        uint object_index = index++;
         class_objects[object_index].Reset(new ClassInfo);
 
         return { object_index };

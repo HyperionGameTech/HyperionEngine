@@ -19,7 +19,7 @@ struct BoundingSphere
 {
 public:
     BoundingSphere();
-    BoundingSphere(const Vector3 &center, Float radius);
+    BoundingSphere(const Vector3 &center, float radius);
     BoundingSphere(const BoundingSphere &other);
     BoundingSphere(const BoundingBox &box);
 
@@ -29,10 +29,10 @@ public:
     void SetCenter(const Vector3 &center)
         { this->center = center; }
 
-    Float GetRadius() const
+    float GetRadius() const
         { return radius; }
 
-    void SetRadius(Float radius)
+    void SetRadius(float radius)
         { this->radius = radius; }
 
     bool operator==(const BoundingSphere &other) const
@@ -59,7 +59,7 @@ public:
     }
 
     Vector3 center;
-    Float radius;
+    float radius;
 };
 
 } // namespace hyperion

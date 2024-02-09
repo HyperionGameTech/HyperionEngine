@@ -8,14 +8,14 @@ namespace hyperion::v2 {
 using TextureData = TextureLoader::TextureData;
 
 static const stbi_io_callbacks callbacks {
-    .read = [](void *user, char *data, Int size) -> Int {
+    .read = [](void *user, char *data, int size) -> int {
         LoaderState *state = static_cast<LoaderState *>(user);
 
-        return Int(state->stream.Read(data, SizeType(size), [](void *ptr, const unsigned char *buffer, SizeType chunk_size) {
+        return int(state->stream.Read(data, SizeType(size), [](void *ptr, const unsigned char *buffer, SizeType chunk_size) {
             Memory::MemCpy(ptr, buffer, chunk_size);
         }));
     },
-    .skip = [](void *user, Int n) {
+    .skip = [](void *user, int n) {
         LoaderState *state = static_cast<LoaderState *>(user);
 
         if (n < 0) {
@@ -24,10 +24,10 @@ static const stbi_io_callbacks callbacks {
             state->stream.Skip(n);
         }
     },
-    .eof = [](void *user) -> Int {
+    .eof = [](void *user) -> int {
         const LoaderState *state = static_cast<LoaderState *>(user);
 
-        return Int(state->stream.Eof());
+        return int(state->stream.Eof());
     }
 };
 
@@ -73,8 +73,8 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     UniquePtr<Handle<Texture>> texture(new Handle<Texture>(CreateObject<Texture>(Texture2D(
         Extent2D {
-            UInt(data.width),
-            UInt(data.height)
+            uint(data.width),
+            uint(data.height)
         },
         data.format,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,

@@ -12,7 +12,7 @@ namespace hyperion::v2 {
 extern "C" {
     struct ManagedEntity
     {
-        UInt32 id;
+        uint32 id;
 
         ManagedEntity() = default;
 

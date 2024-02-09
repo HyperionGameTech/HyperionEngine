@@ -9,7 +9,7 @@ namespace renderer {
 
 struct DeviceQueue
 {
-    UInt                            family;
+    uint                            family;
     VkQueue                         queue;
     FixedArray<VkCommandPool, 8>    command_pools;
 };

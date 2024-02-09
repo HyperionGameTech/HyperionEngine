@@ -40,7 +40,7 @@ struct FBOMData
     FBOMData &operator=(FBOMData &&other) noexcept;
     ~FBOMData();
 
-    explicit operator Bool() const
+    explicit operator bool() const
         { return bytes.Any(); }
 
     const FBOMType &GetType() const { return type; }
@@ -54,16 +54,16 @@ struct FBOMData
     void SetBytes(SizeType n, const void *data);
 
 #define FBOM_TYPE_FUNCTIONS(type_name, c_type) \
-    bool Is##c_type() const { return type == FBOM##type_name(); } \
-    FBOMResult Read##c_type(c_type *out) const \
+    bool Is##type_name() const { return type == FBOM##type_name(); } \
+    FBOMResult Read##type_name(c_type *out) const \
     { \
-        FBOM_ASSERT(Is##c_type(), "Type mismatch (expected " #c_type ")"); \
+        FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
         ReadBytes(FBOM##type_name().size, out); \
         FBOM_RETURN_OK; \
     } \
     /*! \brief Read with static_cast to result type */ \
     template <class T> \
-    FBOMResult Read##c_type(T *out) const \
+    FBOMResult Read##type_name(T *out) const \
     { \
         static_assert(sizeof(T) == sizeof(c_type), "sizeof(T) must match sizeof " #c_type "!"); \
         if constexpr (std::is_enum_v<T>) { \
@@ -72,12 +72,12 @@ struct FBOMData
             static_assert(std::is_convertible_v<c_type, T>, "T must be convertible to " #c_type "!"); \
         } \
         c_type read_value; \
-        FBOM_ASSERT(Is##c_type(), "Type mismatch (expected " #c_type ")"); \
+        FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
         ReadBytes(FBOM##type_name().size, &read_value); \
         *out = static_cast<T>(read_value); \
         FBOM_RETURN_OK; \
     } \
-    static FBOMData From##c_type(const c_type &value) \
+    static FBOMData From##type_name(const c_type &value) \
     { \
         static_assert(std::is_standard_layout_v<c_type>, "Type " #c_type " must be standard layout"); \
         \
@@ -113,13 +113,13 @@ struct FBOMData
         return data; \
     }
 
-    FBOM_TYPE_FUNCTIONS(UnsignedInt, UInt32)
-    FBOM_TYPE_FUNCTIONS(UnsignedLong, UInt64)
-    FBOM_TYPE_FUNCTIONS(Int, Int32)
-    FBOM_TYPE_FUNCTIONS(Long, Int64)
-    FBOM_TYPE_FUNCTIONS(Float, Float)
-    FBOM_TYPE_FUNCTIONS(Bool, Bool)
-    FBOM_TYPE_FUNCTIONS(Byte, UByte)
+    FBOM_TYPE_FUNCTIONS(UnsignedInt, uint32)
+    FBOM_TYPE_FUNCTIONS(UnsignedLong, uint64)
+    FBOM_TYPE_FUNCTIONS(Int, int32)
+    FBOM_TYPE_FUNCTIONS(Long, int64)
+    FBOM_TYPE_FUNCTIONS(Float, float)
+    FBOM_TYPE_FUNCTIONS(Bool, bool)
+    FBOM_TYPE_FUNCTIONS(Byte, ubyte)
     FBOM_TYPE_FUNCTIONS(Name, Name)
     FBOM_TYPE_FUNCTIONS(Mat3, Matrix3)
     FBOM_TYPE_FUNCTIONS(Mat4, Matrix4)

@@ -77,7 +77,7 @@ void FinalPass::Create()
 
     m_composite_pass.Create();
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index])
             ->AddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::FINAL_OUTPUT)
             ->SetElementSRV(0, m_composite_pass.GetAttachmentUsage(0)->GetImageView());
@@ -89,7 +89,7 @@ void FinalPass::Create()
     auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Blit));
     AssertThrow(InitObject(shader));
 
-    UInt iteration = 0;
+    uint iteration = 0;
 
     m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
         MakeRenderObject<Image>(renderer::FramebufferImage2D(
@@ -186,7 +186,7 @@ void FinalPass::Destroy()
     { // Destroy composite pass, set images to placeholders
         m_composite_pass.Destroy();
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index])
                 ->AddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::FINAL_OUTPUT)
                 ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
@@ -205,7 +205,7 @@ void FinalPass::Render(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     const GraphicsPipelineRef &pipeline = m_render_group->GetPipeline();
-    const UInt acquired_image_index = g_engine->GetGPUInstance()->GetFrameHandler()->GetAcquiredImageIndex();
+    const uint acquired_image_index = g_engine->GetGPUInstance()->GetFrameHandler()->GetAcquiredImageIndex();
 
     { // Copy result to store previous frame's color buffer
         const ImageRef &source_image = m_composite_pass.GetAttachments()[0]->GetImage();

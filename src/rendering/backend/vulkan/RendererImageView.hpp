@@ -37,22 +37,22 @@ public:
         VkFormat format,
         VkImageAspectFlags aspect_flags,
         VkImageViewType view_type,
-        UInt mipmap_layer,
-        UInt num_mipmaps,
-        UInt face_layer,
-        UInt num_faces
+        uint mipmap_layer,
+        uint num_mipmaps,
+        uint face_layer,
+        uint num_faces
     );
 
-    UInt NumFaces() const { return m_num_faces; }
+    uint NumFaces() const { return m_num_faces; }
 
     /* Create imageview referencing an Image */
     Result Create(
         Device<Platform::VULKAN> *device,
         const Image<Platform::VULKAN> *image,
-        UInt mipmap_layer,
-        UInt num_mipmaps,
-        UInt face_layer,
-        UInt num_faces
+        uint mipmap_layer,
+        uint num_mipmaps,
+        uint face_layer,
+        uint num_faces
     );
 
     /* Create imageview referencing an Image */
@@ -66,7 +66,7 @@ public:
 private:
     VkImageView m_image_view;
 
-    UInt        m_num_faces;
+    uint        m_num_faces;
 };
 
 } // namespace platform

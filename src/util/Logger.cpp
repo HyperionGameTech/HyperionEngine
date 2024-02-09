@@ -16,7 +16,7 @@ public:
     LogChannelIDGenerator &operator=(LogChannelIDGenerator &&other) noexcept    = delete;
     ~LogChannelIDGenerator()                                                    = default;
 
-    UInt32 ForName(Name name)
+    uint32 ForName(Name name)
     {
         Mutex::Guard guard(mutex);
 
@@ -26,7 +26,7 @@ public:
             return it->second;
         }
 
-        const UInt32 id = id_counter++;
+        const uint32 id = id_counter++;
 
         name_map.Insert(name, id);
 
@@ -34,9 +34,9 @@ public:
     }
 
 private:
-    UInt32                  id_counter = 0u;
+    uint32                  id_counter = 0u;
     Mutex                   mutex;
-    HashMap<Name, UInt64>   name_map;
+    HashMap<Name, uint64>   name_map;
 };
 
 static LogChannelIDGenerator g_log_channel_id_generator { };

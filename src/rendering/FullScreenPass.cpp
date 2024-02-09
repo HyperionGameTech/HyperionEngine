@@ -30,7 +30,7 @@ struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
+        for (uint i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
                 g_engine->GetGPUDevice(),
                 g_engine->GetGPUInstance()->GetGraphicsCommandPool()
@@ -81,7 +81,7 @@ FullScreenPass::FullScreenPass(
 FullScreenPass::FullScreenPass(
     const Handle<Shader> &shader,
     DescriptorKey descriptor_key,
-    UInt sub_descriptor_index,
+    uint sub_descriptor_index,
     InternalFormat image_format,
     Extent2D extent
 ) : m_shader(shader),
@@ -124,7 +124,7 @@ void FullScreenPass::CreateQuad()
 
 void FullScreenPass::CreateCommandBuffers()
 {
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
+    for (uint i = 0; i < max_frames_in_flight; i++) {
         m_command_buffers[i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
@@ -233,7 +233,7 @@ void FullScreenPass::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void FullScreenPass::Record(UInt frame_index)
+void FullScreenPass::Record(uint frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -326,7 +326,7 @@ void FullScreenPass::Begin(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
@@ -339,7 +339,7 @@ void FullScreenPass::End(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
     command_buffer->End(g_engine->GetGPUDevice());

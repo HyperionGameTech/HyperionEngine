@@ -30,7 +30,7 @@ Optional<RC<RTCClient>> RTCClientList::Get(const String &id) const
     return it->second;
 }
 
-Bool RTCClientList::Has(const String &id) const
+bool RTCClientList::Has(const String &id) const
 {
     std::lock_guard guard(m_mutex);
 

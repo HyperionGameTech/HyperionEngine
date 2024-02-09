@@ -26,7 +26,7 @@ template <SizeType BufferSize>
 class BufferedReader
 {
 public:
-    using Byte = UByte;
+    using Byte = ubyte;
 
     BufferedReader()
         : file(nullptr),

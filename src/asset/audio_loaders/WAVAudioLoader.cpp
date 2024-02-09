@@ -26,7 +26,7 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
     }
 
     if (object.wave_format.sub_chunk_size > 16) {
-        state.stream.Skip(sizeof(UInt16));
+        state.stream.Skip(sizeof(uint16));
     }
 
     state.stream.Read(&object.wave_data);

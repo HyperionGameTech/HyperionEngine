@@ -152,7 +152,7 @@ public:
     }
 
     void SetToPerspectiveProjection(
-        Float fov, Float _near, Float _far
+        float fov, float _near, float _far
     )
     {
         m_fov  = fov;
@@ -167,9 +167,9 @@ public:
     }
 
     void SetToOrthographicProjection(
-        Float left, Float right,
-        Float bottom, Float top,
-        Float _near, Float _far
+        float left, float right,
+        float bottom, float top,
+        float _near, float _far
     )
     {
         m_left = left;     m_right = right;
@@ -280,14 +280,14 @@ protected:
     Matrix4                 m_view_mat, m_proj_mat;
     Frustum                 m_frustum;
 
-    Int                     m_width, m_height;
-    Float                   m_near, m_far;
+    int                     m_width, m_height;
+    float                   m_near, m_far;
 
     // only for perspective
-    Float                   m_fov;
+    float                   m_fov;
 
     // only for ortho
-    Float                   m_left, m_right, m_bottom, m_top;
+    float                   m_left, m_right, m_bottom, m_top;
 
 private:
     Matrix4                 m_view_proj_mat;

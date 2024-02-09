@@ -16,7 +16,7 @@ const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 // 0xff for depth because +1 (used for child octant id) will cause it to overflow to 0
 const OctantID OctantID::invalid = OctantID(OctantID::invalid_bits, 0xff);
 
-Bool Octree::IsVisible(
+bool Octree::IsVisible(
     const Octree *root,
     const Octree *child
 )
@@ -27,10 +27,10 @@ Bool Octree::IsVisible(
     );
 }
 
-Bool Octree::IsVisible(
+bool Octree::IsVisible(
     const Octree *root,
     const Octree *child,
-    UInt8 cursor
+    uint8 cursor
 )
 {
     return child->m_visibility_state.ValidToParent(
@@ -45,7 +45,7 @@ Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb)
     m_root = new Root;
 }
 
-Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, UInt8 index)
+Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index)
     : m_entity_manager(std::move(entity_manager)),
       m_aabb(aabb),
       m_parent(nullptr),
@@ -93,7 +93,7 @@ void Octree::SetParent(Octree *parent)
     }
 }
 
-Bool Octree::EmptyDeep(Int depth, UInt8 octant_mask) const
+bool Octree::EmptyDeep(int depth, uint8 octant_mask) const
 {
     if (!Empty()) {
         return false;
@@ -121,15 +121,15 @@ void Octree::InitOctants()
 {
     const Vector3 divided_aabb_dimensions = m_aabb.GetExtent() / 2.0f;
 
-    for (UInt x = 0; x < 2; x++) {
-        for (UInt y = 0; y < 2; y++) {
-            for (UInt z = 0; z < 2; z++) {
-                const UInt index = 4 * x + 2 * y + z;
+    for (uint x = 0; x < 2; x++) {
+        for (uint y = 0; y < 2; y++) {
+            for (uint z = 0; z < 2; z++) {
+                const uint index = 4 * x + 2 * y + z;
 
                 m_octants[index] = {
                     .aabb = BoundingBox(
-                        m_aabb.GetMin() + divided_aabb_dimensions * Vec3f(Float(x), Float(y), Float(z)),
-                        m_aabb.GetMin() + divided_aabb_dimensions * (Vec3f(Float(x), Float(y), Float(z)) + Vec3f(1.0f))
+                        m_aabb.GetMin() + divided_aabb_dimensions * Vec3f(float(x), float(y), float(z)),
+                        m_aabb.GetMin() + divided_aabb_dimensions * (Vec3f(float(x), float(y), float(z)) + Vec3f(1.0f))
                     )
                 };
             }
@@ -173,8 +173,8 @@ Octree *Octree::GetChildOctant(OctantID octant_id)
 
     Octree *current = this;
 
-    for (UInt depth = m_octant_id.depth + 1; depth <= octant_id.depth; depth++) {
-        const UInt8 index = octant_id.GetIndex(depth);
+    for (uint depth = m_octant_id.depth + 1; depth <= octant_id.depth; depth++) {
+        const uint8 index = octant_id.GetIndex(depth);
 
         if (!current || !current->IsDivided()) {
 #if HYP_OCTREE_DEBUG
@@ -203,11 +203,11 @@ void Octree::Divide()
 {
     AssertThrow(!IsDivided());
 
-    for (UInt i = 0; i < 8; ++i) {
+    for (uint i = 0; i < 8; ++i) {
         Octant &octant = m_octants[i];
         AssertThrow(octant.octree == nullptr);
 
-        octant.octree.Reset(new Octree(m_entity_manager, octant.aabb, this, UInt8(i)));
+        octant.octree.Reset(new Octree(m_entity_manager, octant.aabb, this, uint8(i)));
     }
 
     m_is_divided = true;
@@ -502,8 +502,8 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, const 
 {
     const BoundingBox &new_aabb = aabb;
 
-    const Bool is_root = IsRoot();
-    const Bool contains = m_aabb.Contains(new_aabb);
+    const bool is_root = IsRoot();
+    const bool contains = m_aabb.Contains(new_aabb);
 
     if (!contains) {
         // NO LONGER CONTAINS AABB
@@ -815,7 +815,7 @@ void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
 
     // tried having it just load from the current and next cursor. doesn't work. not sure why.
     // but it could be a slight performance boost.
-    for (UInt i = 0; i < UInt(m_visibility_state.snapshots.Size()); i++) {
+    for (uint i = 0; i < uint(m_visibility_state.snapshots.Size()); i++) {
         // m_visibility_state.snapshots[i] = visibility_state.snapshots[i];
 
         m_visibility_state.snapshots[i].bits |= visibility_state.snapshots[i].bits;
@@ -842,7 +842,7 @@ void Octree::CollectEntities(Array<ID<Entity>> &out) const
     }
 }
 
-void Octree::CollectEntitiesInRange(const Vector3 &position, Float radius, Array<ID<Entity>> &out) const
+void Octree::CollectEntitiesInRange(const Vector3 &position, float radius, Array<ID<Entity>> &out) const
 {
     const BoundingBox inclusion_aabb(position - radius, position + radius);
 
@@ -867,7 +867,7 @@ void Octree::CollectEntitiesInRange(const Vector3 &position, Float radius, Array
     }
 }
 
-Bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const
+bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const
 {
     if (!m_aabb.ContainsPoint(position)) {
         return false;
@@ -892,7 +892,7 @@ Bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> 
     return true;
 }
 
-Bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
+bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
 {
     if (!m_aabb.ContainsPoint(position)) {
         return false;
@@ -913,7 +913,7 @@ Bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
     return true;
 }
 
-Bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
+bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
 {
     if (!m_aabb.Contains(aabb)) {
         return false;
@@ -938,21 +938,21 @@ void Octree::NextVisibilityState()
 {
     AssertThrow(m_root != nullptr);
 
-    UInt8 cursor = m_root->visibility_cursor.fetch_add(1u, std::memory_order_relaxed);
+    uint8 cursor = m_root->visibility_cursor.fetch_add(1u, std::memory_order_relaxed);
     cursor = (cursor + 1) % VisibilityState::cursor_size;
 
     // m_visibility_state.snapshots[cursor].bits.store(0u, std::memory_order_relaxed);
     m_visibility_state.snapshots[cursor].nonce++;
 }
 
-UInt8 Octree::LoadVisibilityCursor() const
+uint8 Octree::LoadVisibilityCursor() const
 {
     AssertThrow(m_root != nullptr);
 
     return m_root->visibility_cursor.load(std::memory_order_relaxed) % VisibilityState::cursor_size;
 }
 
-UInt8 Octree::LoadPreviousVisibilityCursor() const
+uint8 Octree::LoadPreviousVisibilityCursor() const
 {
     AssertThrow(m_root != nullptr);
 
@@ -978,13 +978,13 @@ void Octree::CalculateVisibility(Camera *camera)
     const Frustum &frustum = camera->GetFrustum();
 
     if (frustum.ContainsAABB(m_aabb)) {
-        const UInt8 cursor = LoadVisibilityCursor();
+        const uint8 cursor = LoadVisibilityCursor();
 
         UpdateVisibilityState(camera, cursor);
     }
 }
 
-void Octree::UpdateVisibilityState(Camera *camera, UInt8 cursor)
+void Octree::UpdateVisibilityState(Camera *camera, uint8 cursor)
 {
     /* assume we are already visible from CalculateVisibility() check */
     const Frustum &frustum = camera->GetFrustum();
@@ -1026,7 +1026,7 @@ void Octree::ResetNodesHash()
     m_nodes_hash = { 0 };
 }
 
-void Octree::RebuildNodesHash(UInt level)
+void Octree::RebuildNodesHash(uint level)
 {
     ResetNodesHash();
 
@@ -1035,9 +1035,9 @@ void Octree::RebuildNodesHash(UInt level)
     }
 }
 
-Bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
+bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
 {
-    Bool has_hit = false;
+    bool has_hit = false;
 
     if (ray.TestAABB(m_aabb)) {
         for (const Octree::Node &node : m_nodes) {

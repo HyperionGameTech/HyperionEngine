@@ -61,7 +61,7 @@ struct TerrainHeightData
     TerrainHeightData &operator=(TerrainHeightData &&other) noexcept    = delete;
     ~TerrainHeightData()                                                = default;
 
-    UInt GetHeightIndex(UInt x, UInt z) const
+    uint GetHeightIndex(uint x, uint z) const
     {
         return ((x + patch_info.extent.width) % patch_info.extent.width)
                 + ((z + patch_info.extent.depth) % patch_info.extent.depth) * patch_info.extent.width;
@@ -70,11 +70,11 @@ struct TerrainHeightData
 
 class TerrainErosion
 {
-    static constexpr UInt num_iterations = 250u;
-    static constexpr Float erosion_scale = 0.05f;
-    static constexpr Float evaporation = 0.9f;
-    static constexpr Float erosion = 0.004f * erosion_scale;
-    static constexpr Float deposition = 0.0000002f * erosion_scale;
+    static constexpr uint num_iterations = 250u;
+    static constexpr float erosion_scale = 0.05f;
+    static constexpr float evaporation = 0.9f;
+    static constexpr float erosion = 0.004f * erosion_scale;
+    static constexpr float deposition = 0.0000002f * erosion_scale;
 
     static const FixedArray<Pair<int, int>, 8> offsets;
 
@@ -82,7 +82,7 @@ public:
     static void Erode(TerrainHeightData &height_data);
 };
 
-const FixedArray<Pair<Int, Int>, 8> TerrainErosion::offsets {
+const FixedArray<Pair<int, int>, 8> TerrainErosion::offsets {
     Pair { 1, 0 },
     Pair { 1, 1 },
     Pair { 1, -1 },
@@ -95,7 +95,7 @@ const FixedArray<Pair<Int, Int>, 8> TerrainErosion::offsets {
 
 void TerrainErosion::Erode(TerrainHeightData &height_data)
 {
-    for (UInt iteration = 0; iteration < num_iterations; iteration++) {
+    for (uint iteration = 0; iteration < num_iterations; iteration++) {
         for (int z = 1; z < height_data.patch_info.extent.depth - 2; z++) {
             for (int x = 1; x < height_data.patch_info.extent.width - 2; x++) {
                 auto &height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
@@ -179,12 +179,12 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator &noise_combinator
         m_height_data.patch_info.coord.y
     );
 
-    for (UInt z = 0; z < m_height_data.patch_info.extent.depth; z++) {
-        for (UInt x = 0; x < m_height_data.patch_info.extent.width; x++) {
-            const float x_offset = float(x + (m_height_data.patch_info.coord.x * (m_height_data.patch_info.extent.width - 1))) / Float(m_height_data.patch_info.extent.width);
-            const float z_offset = float(z + (m_height_data.patch_info.coord.y * (m_height_data.patch_info.extent.depth - 1))) / Float(m_height_data.patch_info.extent.depth);
+    for (uint z = 0; z < m_height_data.patch_info.extent.depth; z++) {
+        for (uint x = 0; x < m_height_data.patch_info.extent.width; x++) {
+            const float x_offset = float(x + (m_height_data.patch_info.coord.x * (m_height_data.patch_info.extent.width - 1))) / float(m_height_data.patch_info.extent.width);
+            const float z_offset = float(z + (m_height_data.patch_info.coord.y * (m_height_data.patch_info.extent.depth - 1))) / float(m_height_data.patch_info.extent.depth);
 
-            const UInt index = m_height_data.GetHeightIndex(x, z);
+            const uint index = m_height_data.GetHeightIndex(x, z);
 
             m_height_data.heights[index] = TerrainHeight {
                 .height         = noise_combinator.GetNoise(Vec2f(x_offset, z_offset)),
@@ -225,10 +225,10 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
     Array<Vertex> vertices;
     vertices.Resize(m_height_data.patch_info.extent.width * m_height_data.patch_info.extent.depth);
 
-    UInt i = 0;
+    uint i = 0;
 
-    for (UInt z = 0; z < m_height_data.patch_info.extent.depth; z++) {
-        for (UInt x = 0; x < m_height_data.patch_info.extent.width; x++) {
+    for (uint z = 0; z < m_height_data.patch_info.extent.depth; z++) {
+        for (uint x = 0; x < m_height_data.patch_info.extent.width; x++) {
             Vec3f position(x, m_height_data.heights[i].height, z);
             position *= m_height_data.patch_info.scale;
 
@@ -249,18 +249,18 @@ Array<Mesh::Index> TerrainMeshBuilder::BuildIndices() const
     Array<Mesh::Index> indices;
     indices.Resize(6 * (m_height_data.patch_info.extent.width - 1) * (m_height_data.patch_info.extent.depth - 1));
 
-    UInt pitch = m_height_data.patch_info.extent.width;
-    UInt row = 0;
+    uint pitch = m_height_data.patch_info.extent.width;
+    uint row = 0;
 
-    UInt i0 = row;
-    UInt i1 = row + 1;
-    UInt i2 = pitch + i1;
-    UInt i3 = pitch + row;
+    uint i0 = row;
+    uint i1 = row + 1;
+    uint i2 = pitch + i1;
+    uint i3 = pitch + row;
 
-    UInt i = 0;
+    uint i = 0;
 
-    for (UInt z = 0; z < m_height_data.patch_info.extent.depth - 1; z++) {
-        for (UInt x = 0; x < m_height_data.patch_info.extent.width - 1; x++) {
+    for (uint z = 0; z < m_height_data.patch_info.extent.depth - 1; z++) {
+        for (uint x = 0; x < m_height_data.patch_info.extent.width - 1; x++) {
             indices[i++] = i0;
             indices[i++] = i2;
             indices[i++] = i1;

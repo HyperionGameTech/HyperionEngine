@@ -86,7 +86,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer *server)
 
     peer_connection->onStateChange([this, id = m_id](rtc::PeerConnection::State state)
     {
-        DebugLog(LogType::Debug, "State changed for Client with ID %s: %d\n", id.Data(), Int(state));
+        DebugLog(LogType::Debug, "State changed for Client with ID %s: %d\n", id.Data(), int(state));
 
         switch (state) {
         case rtc::PeerConnection::State::Disconnected:
@@ -137,7 +137,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer *server)
 
     peer_connection->onGatheringStateChange([this, id = m_id, pc_weak = Weak<rtc::PeerConnection>(peer_connection)](rtc::PeerConnection::GatheringState state)
     {
-        DebugLog(LogType::Debug, "Gathering state changed for Client with ID %s: %d\n", id.Data(), Int(state));
+        DebugLog(LogType::Debug, "Gathering state changed for Client with ID %s: %d\n", id.Data(), int(state));
 
         if (state != rtc::PeerConnection::GatheringState::Complete) {
             return;

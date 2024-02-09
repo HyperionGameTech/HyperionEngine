@@ -12,20 +12,20 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    UInt32 Mesh_GetTypeID()
+    uint32 Mesh_GetTypeID()
     {
         return TypeID::ForType<Mesh>().Value();
     }
 
-    ManagedHandle Mesh_Create(Vertex *vertices, UInt32 num_vertices, UInt32 *indices, UInt32 num_indices)
+    ManagedHandle Mesh_Create(Vertex *vertices, uint32 num_vertices, uint32 *indices, uint32 num_indices)
     {
         Array<Vertex> vertices_array;
         vertices_array.Resize(num_vertices);
         Memory::MemCpy(vertices_array.Data(), vertices, num_vertices * sizeof(Vertex));
 
-        Array<UInt32> indices_array;
+        Array<uint32> indices_array;
         indices_array.Resize(num_indices);
-        Memory::MemCpy(indices_array.Data(), indices, num_indices * sizeof(UInt32));
+        Memory::MemCpy(indices_array.Data(), indices, num_indices * sizeof(uint32));
 
         return CreateManagedHandleFromHandle(CreateObject<Mesh>(std::move(vertices_array), std::move(indices_array)));
     }

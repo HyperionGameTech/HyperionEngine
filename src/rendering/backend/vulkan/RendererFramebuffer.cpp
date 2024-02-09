@@ -30,7 +30,7 @@ Result FramebufferObject<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
     Array<VkImageView> attachment_image_views;
     attachment_image_views.Reserve(m_attachment_usages.size());
 
-    UInt num_layers = 1;
+    uint num_layers = 1;
     
     for (auto *attachment_usage : m_attachment_usages) {
         AssertThrow(attachment_usage != nullptr);
@@ -44,7 +44,7 @@ Result FramebufferObject<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
 
     VkFramebufferCreateInfo framebuffer_create_info { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
     framebuffer_create_info.renderPass      = render_pass->GetHandle();
-    framebuffer_create_info.attachmentCount = UInt32(attachment_image_views.Size());
+    framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
     framebuffer_create_info.pAttachments    = attachment_image_views.Data();
     framebuffer_create_info.width           = m_extent.width;
     framebuffer_create_info.height          = m_extent.height;

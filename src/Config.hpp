@@ -53,11 +53,11 @@ enum OptionName
     CONFIG_MAX
 };
 
-class Option : public Variant<Bool, Float, Int>
+class Option : public Variant<bool, float, int>
 {
-    using Base = Variant<Bool, Float, Int>;
+    using Base = Variant<bool, float, int>;
 
-    Bool m_save = true;
+    bool m_save = true;
 
 public:
     Option()
@@ -65,19 +65,19 @@ public:
     {
     }
 
-    Option(Int int_value, Bool save = true)
+    Option(int int_value, bool save = true)
         : Base(int_value),
           m_save(save)
     {
     }
 
-    Option(Float float_value, Bool save = true)
+    Option(float float_value, bool save = true)
         : Base(float_value),
           m_save(save)
     {
     }
 
-    Option(Bool bool_value, Bool save = true)
+    Option(bool bool_value, bool save = true)
         : Base(bool_value),
           m_save(save)
     {
@@ -97,11 +97,11 @@ public:
 
     Option &operator|=(const Option &other)
     {
-        if (auto *ptr = TryGet<Int>()) {
+        if (auto *ptr = TryGet<int>()) {
             Base::Set(*ptr | other.GetInt());
-        } else if (auto *ptr = TryGet<Float>()) {
-            Base::Set(static_cast<Int>(*ptr) | other.GetInt());
-        } else if (auto *ptr = TryGet<Bool>()) {
+        } else if (auto *ptr = TryGet<float>()) {
+            Base::Set(static_cast<int>(*ptr) | other.GetInt());
+        } else if (auto *ptr = TryGet<bool>()) {
             Base::Set(*ptr | other.GetBool());
         }
 
@@ -113,11 +113,11 @@ public:
 
     Option &operator&=(const Option &other)
     {
-        if (auto *ptr = TryGet<Int>()) {
+        if (auto *ptr = TryGet<int>()) {
             Base::Set(*ptr & other.GetInt());
-        } else if (auto *ptr = TryGet<Float>()) {
-            Base::Set(static_cast<Int>(*ptr) & other.GetInt());
-        } else if (auto *ptr = TryGet<Bool>()) {
+        } else if (auto *ptr = TryGet<float>()) {
+            Base::Set(static_cast<int>(*ptr) & other.GetInt());
+        } else if (auto *ptr = TryGet<bool>()) {
             Base::Set(*ptr & other.GetBool());
         }
 
@@ -126,7 +126,7 @@ public:
 
     Option operator~() const
     {
-        if (auto *ptr = TryGet<Bool>()) {
+        if (auto *ptr = TryGet<bool>()) {
             return Option(!*ptr);
         }
 
@@ -138,70 +138,70 @@ public:
 
     ~Option() = default;
 
-    operator Bool() const
+    operator bool() const
         { return GetBool(); }
 
-    Bool operator==(const Option &other) const
+    bool operator==(const Option &other) const
         { return Base::operator==(other); }
 
-    Bool operator!=(const Option &other) const
+    bool operator!=(const Option &other) const
         { return Base::operator!=(other); }
 
-    Int GetInt() const
+    int GetInt() const
     {
-        if (auto *ptr = TryGet<Int>()) {
+        if (auto *ptr = TryGet<int>()) {
             return *ptr;
         }
 
-        if (auto *ptr = TryGet<Float>()) {
-            return static_cast<Int>(*ptr);
+        if (auto *ptr = TryGet<float>()) {
+            return static_cast<int>(*ptr);
         }
 
-        if (auto *ptr = TryGet<Bool>()) {
-            return static_cast<Int>(*ptr);
+        if (auto *ptr = TryGet<bool>()) {
+            return static_cast<int>(*ptr);
         }
 
         return 0;
     }
 
-    Float GetFloat() const
+    float GetFloat() const
     {
-        if (auto *ptr = TryGet<Int>()) {
-            return static_cast<Float>(*ptr);
+        if (auto *ptr = TryGet<int>()) {
+            return static_cast<float>(*ptr);
         }
 
-        if (auto *ptr = TryGet<Float>()) {
+        if (auto *ptr = TryGet<float>()) {
             return *ptr;
         }
 
-        if (auto *ptr = TryGet<Bool>()) {
-            return static_cast<Float>(*ptr);
+        if (auto *ptr = TryGet<bool>()) {
+            return static_cast<float>(*ptr);
         }
 
         return 0.0f;
     }
 
-    Bool GetBool() const
+    bool GetBool() const
     {
-        if (auto *ptr = TryGet<Int>()) {
-            return static_cast<Bool>(*ptr);
+        if (auto *ptr = TryGet<int>()) {
+            return static_cast<bool>(*ptr);
         }
 
-        if (auto *ptr = TryGet<Float>()) {
-            return static_cast<Bool>(*ptr);
+        if (auto *ptr = TryGet<float>()) {
+            return static_cast<bool>(*ptr);
         }
 
-        if (auto *ptr = TryGet<Bool>()) {
+        if (auto *ptr = TryGet<bool>()) {
             return *ptr;
         }
 
         return false;
     }
 
-    Bool GetIsSaved() const
+    bool GetIsSaved() const
         { return m_save; }
 
-    void SetIsSaved(Bool save)
+    void SetIsSaved(bool save)
         { m_save = save; }
 };
 
@@ -215,22 +215,22 @@ public:
 
     HYP_FORCE_INLINE Option &Get(OptionName option)
     {
-        return m_variables[UInt(option)];
+        return m_variables[uint(option)];
     }
 
     HYP_FORCE_INLINE const Option &Get(OptionName option) const
     {
-        return m_variables[UInt(option)];
+        return m_variables[uint(option)];
     }
 
     // HYP_FORCE_INLINE Option &Get(OptionName option, ThreadType thread_type)
     // {
-    //     return m_variables[UInt(option)][thread_type];
+    //     return m_variables[uint(option)][thread_type];
     // }
 
     // HYP_FORCE_INLINE const Option &Get(OptionName option, ThreadType thread_type) const
     // {
-    //     return m_variables[UInt(option)][thread_type];
+    //     return m_variables[uint(option)][thread_type];
     // }
 
     // HYP_FORCE_INLINE Option &Get(OptionName option)
@@ -241,7 +241,7 @@ public:
     //         thread_type = THREAD_TYPE_GAME;
     //     }
 
-    //     return m_variables[UInt(option)][thread_type];
+    //     return m_variables[uint(option)][thread_type];
     // }
 
     // HYP_FORCE_INLINE const Option &Get(OptionName option) const
@@ -249,14 +249,14 @@ public:
     //     return const_cast<Configuration *>(this)->Get(option);
     // }
 
-    Bool LoadFromDefinitionsFile();
-    Bool SaveToDefinitionsFile();
+    bool LoadFromDefinitionsFile();
+    bool SaveToDefinitionsFile();
 
     void SetToDefaultConfiguration();
 
     static OptionName StringToOptionName(const String &str);
     static String OptionNameToString(OptionName option);
-    static Bool IsRTOption(OptionName option);
+    static bool IsRTOption(OptionName option);
 
 private:
     FixedArray<Option, CONFIG_MAX> m_variables;

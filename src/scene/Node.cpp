@@ -329,8 +329,8 @@ NodeProxy Node::Select(const char *selector) const
     char ch;
 
     char buffer[256];
-    UInt32 buffer_index = 0;
-    UInt32 selector_index = 0;
+    uint32 buffer_index = 0;
+    uint32 selector_index = 0;
 
     const Node *search_node = this;
 

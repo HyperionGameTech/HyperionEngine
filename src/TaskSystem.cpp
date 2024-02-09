@@ -2,7 +2,7 @@
 
 namespace hyperion::v2 {
 
-const FlatMap<TaskThreadPoolName, UInt> TaskSystem::s_thread_pool_sizes = {
+const FlatMap<TaskThreadPoolName, uint> TaskSystem::s_thread_pool_sizes = {
     { TaskThreadPoolName::THREAD_POOL_GENERIC,          4u },
     { TaskThreadPoolName::THREAD_POOL_RENDER,           2u },
     { TaskThreadPoolName::THREAD_POOL_RENDER_COLLECT,   2u }
@@ -85,16 +85,16 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
     TaskThreadPool &pool = GetPool(batch->pool);
 
-    const UInt num_threads_in_pool = UInt(pool.threads.Size());
-    const UInt max_spins = num_threads_in_pool;
+    const uint num_threads_in_pool = uint(pool.threads.Size());
+    const uint max_spins = num_threads_in_pool;
 
     for (SizeType i = 0; i < batch->tasks.Size(); i++) {
         auto &task = batch->tasks[i];
 
-        UInt cycle = pool.cycle.Get(MemoryOrder::RELAXED);
+        uint cycle = pool.cycle.Get(MemoryOrder::RELAXED);
 
         TaskThread *task_thread = nullptr;
-        UInt num_spins = 0;
+        uint num_spins = 0;
         bool was_busy = false;
         
         // if we are currently on a task thread we need to move to the next task thread in the pool
@@ -155,7 +155,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
     return batch;
 }
 
-Array<Bool> TaskSystem::DequeueBatch(TaskBatch *batch)
+Array<bool> TaskSystem::DequeueBatch(TaskBatch *batch)
 {
     AssertThrowMsg(
         IsRunning(),
@@ -164,7 +164,7 @@ Array<Bool> TaskSystem::DequeueBatch(TaskBatch *batch)
 
     AssertThrow(batch != nullptr);
 
-    Array<Bool> results;
+    Array<bool> results;
     results.Resize(batch->task_refs.Size());
 
     for (SizeType i = 0; i < batch->task_refs.Size(); i++) {

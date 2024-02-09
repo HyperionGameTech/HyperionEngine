@@ -31,13 +31,13 @@ void FirstPersonCameraController::UpdateLogic(double dt)
     m_prev_mouse_x = m_mouse_x;
     m_prev_mouse_y = m_mouse_y;
 
-    m_camera->m_next_translation += m_move_deltas * movement_speed * Float(dt);
+    m_camera->m_next_translation += m_move_deltas * movement_speed * float(dt);
 
     if constexpr (movement_blending > 0.0f) {
         m_move_deltas.Lerp(
             Vector3::Zero(),
             MathUtil::Clamp(
-                (1.0f / movement_blending) * Float(dt),
+                (1.0f / movement_blending) * float(dt),
                 0.0f,
                 1.0f
             )
@@ -46,7 +46,7 @@ void FirstPersonCameraController::UpdateLogic(double dt)
         m_move_deltas.Lerp(
             Vector3::Zero(),
             MathUtil::Clamp(
-                1.0f * Float(dt),
+                1.0f * float(dt),
                 0.0f,
                 1.0f
             )

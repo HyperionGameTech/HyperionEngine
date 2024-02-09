@@ -11,8 +11,8 @@ namespace hyperion::v2 {
 struct GameCounter {
     using Clock = std::chrono::high_resolution_clock;
 
-    using TickUnit = Float32;
-    using TickUnitHighPrec = Float64;
+    using TickUnit = float32;
+    using TickUnitHighPrec = float64;
     using TimePoint = Clock::time_point;
 
     TimePoint last_time_point = Now();

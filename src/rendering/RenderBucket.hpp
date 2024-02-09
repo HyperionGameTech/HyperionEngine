@@ -6,9 +6,9 @@
 
 namespace hyperion::v2 {
 
-enum Bucket : UInt32
+enum Bucket : uint32
 {
-    BUCKET_INVALID = UInt32(-1),
+    BUCKET_INVALID = uint32(-1),
     BUCKET_SWAPCHAIN = 0, /* Main swapchain */
     BUCKET_INTERNAL,      /* Pre-pass / buffer items */
     BUCKET_SHADOW,

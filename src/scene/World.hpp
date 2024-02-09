@@ -34,7 +34,7 @@ public:
     RenderListContainer &operator=(RenderListContainer &&other) noexcept = delete;
     ~RenderListContainer() = default;
 
-    UInt NumRenderLists() const
+    uint NumRenderLists() const
         { return m_num_render_lists.load(); }
 
     void AddScene(const Scene *scene)
@@ -42,11 +42,11 @@ public:
         AssertThrow(scene != nullptr);
         AssertThrowMsg(scene->GetCamera().IsValid(), "Cannot acquire RenderList for Scene with no Camera attached.");
 
-        const UInt scene_index = scene->GetID().ToIndex();
+        const uint scene_index = scene->GetID().ToIndex();
 
         m_render_lists_by_id_index[scene_index].SetCamera(scene->GetCamera());
 
-        const UInt render_list_index = m_num_render_lists.fetch_add(1u);
+        const uint render_list_index = m_num_render_lists.fetch_add(1u);
         m_render_lists[render_list_index] = &m_render_lists_by_id_index[scene_index];
     }
 
@@ -54,7 +54,7 @@ public:
     {
         AssertThrow(scene != nullptr);
 
-        const UInt scene_index = scene->GetID().ToIndex();
+        const uint scene_index = scene->GetID().ToIndex();
         
         m_num_render_lists.fetch_sub(1u);
         m_render_lists_by_id_index[scene_index].SetCamera(Handle<Camera>::empty);
@@ -67,13 +67,13 @@ public:
     const RenderList &GetRenderListForScene(ID<Scene> scene_id) const
         { return m_render_lists_by_id_index[scene_id.ToIndex()]; }
 
-    RenderList *GetRenderListAtIndex(UInt index) const
+    RenderList *GetRenderListAtIndex(uint index) const
         { return m_render_lists[index]; }
 
 private:
     FixedArray<RenderList *, max_scenes>    m_render_lists;
     FixedArray<RenderList, max_scenes>      m_render_lists_by_id_index;
-    std::atomic<UInt>                       m_num_render_lists;
+    std::atomic<uint>                       m_num_render_lists;
 };
 
 class World : public BasicObject<STUB_CLASS(World)>

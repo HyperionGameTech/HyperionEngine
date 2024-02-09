@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-using ByteWriterFlags = UByte;
+using ByteWriterFlags = ubyte;
 
 enum ByteWriterFlagBits : ByteWriterFlags
 {
@@ -44,12 +44,12 @@ public:
 
     void WriteString(const String &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_WRITE_SIZE)
     {
-        const UInt32 len = static_cast<UInt32>(str.Size());
+        const uint32 len = static_cast<uint32>(str.Size());
 
         if (flags & BYTE_WRITER_FLAGS_WRITE_SIZE) {
-            const UInt32 len_nt = len + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0);
+            const uint32 len_nt = len + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0);
 
-            WriteBytes(reinterpret_cast<const char *>(&len_nt), sizeof(UInt32));
+            WriteBytes(reinterpret_cast<const char *>(&len_nt), sizeof(uint32));
         }
 
         WriteBytes(str.Data(), len);
@@ -88,11 +88,11 @@ public:
 
     virtual void Close() override { }
 
-    const Array<UByte> &GetData() const
+    const Array<ubyte> &GetData() const
         { return m_data; }
 
 private:
-    Array<UByte>    m_data;
+    Array<ubyte>    m_data;
     SizeType        m_pos;
 
     virtual void WriteBytes(const char *ptr, SizeType size) override

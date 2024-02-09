@@ -17,11 +17,11 @@ template <auto ... Args>
 struct IDCreator
 {
     TypeID              type_id;
-    std::atomic<UInt>   id_counter { 0u };
+    std::atomic<uint>   id_counter { 0u };
     std::mutex          free_id_mutex;
-    Queue<UInt>         free_indices;
+    Queue<uint>         free_indices;
 
-    UInt NextID()
+    uint NextID()
     {
         std::lock_guard guard(free_id_mutex);
 
@@ -32,7 +32,7 @@ struct IDCreator
         return free_indices.Pop();
     }
 
-    void FreeID(UInt index)
+    void FreeID(uint index)
     {
         std::lock_guard guard(free_id_mutex);
 

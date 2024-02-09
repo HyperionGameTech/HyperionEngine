@@ -10,7 +10,7 @@ namespace hyperion::v2 {
 
 struct CameraTrackPivot
 {
-    Double fraction;
+    double fraction;
     Transform transform;
 
     bool operator<(const CameraTrackPivot &other) const
@@ -20,28 +20,28 @@ struct CameraTrackPivot
 class CameraTrack
 {
 public:
-    CameraTrack(Double duration = 10.0);
+    CameraTrack(double duration = 10.0);
     CameraTrack(const CameraTrack &other) = default;
     CameraTrack &operator=(const CameraTrack &other) = default;
     CameraTrack(CameraTrack &&other) noexcept = default;
     CameraTrack &operator=(CameraTrack &&other) noexcept = default;
     ~CameraTrack() = default;
 
-    Double GetDuration() const
+    double GetDuration() const
         { return m_duration; }
 
-    void SetDuration(Double duration)
+    void SetDuration(double duration)
         { m_duration = duration; }
 
     /**
      * \brief Get a blended CameraTrackPivot at {timestamp}
      */
-    CameraTrackPivot GetPivotAt(Double timestamp) const;
+    CameraTrackPivot GetPivotAt(double timestamp) const;
 
     void AddPivot(const CameraTrackPivot &pivot);
 
 private:
-    Double                          m_duration;
+    double                          m_duration;
     SortedArray<CameraTrackPivot>   m_pivots;
 };
 

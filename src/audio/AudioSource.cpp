@@ -121,7 +121,7 @@ void AudioSource::SetGain(float gain)
     }
 }
 
-void AudioSource::SetLoop(Bool loop)
+void AudioSource::SetLoop(bool loop)
 {
     if (AudioManager::GetInstance()->IsInitialized()) {
         alSourcei(m_source_id, AL_LOOPING, loop);

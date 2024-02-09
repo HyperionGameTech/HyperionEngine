@@ -67,7 +67,7 @@ public:
 
     template <UIComponentEvent EventType>
     void AddEventListener(
-        Proc<Bool, const UIComponentEventData &> &&handler
+        Proc<bool, const UIComponentEventData &> &&handler
     )
     {
         Threads::AssertOnThread(THREAD_GAME);
@@ -106,22 +106,22 @@ public:
         const String &text
     );
 
-    Bool Remove(ID<UIObject> id);
+    bool Remove(ID<UIObject> id);
 
-    Bool OnInputEvent(
+    bool OnInputEvent(
         InputManager *input_manager,
         const SystemEvent &event
     );
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    Bool TestRay(const Vector2 &position, RayHit &out_first_hit);
+    bool TestRay(const Vector2 &position, RayHit &out_first_hit);
 
     void Init();
     void Update(GameCounter::TickUnit delta);
 
 private:
     Handle<Scene>               m_scene;
-    FlatMap<ID<Entity>, Float>  m_mouse_held_times;
+    FlatMap<ID<Entity>, float>  m_mouse_held_times;
     Array<Handle<UIObject>>     m_ui_objects;
 };
 

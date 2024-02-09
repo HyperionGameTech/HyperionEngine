@@ -52,7 +52,7 @@ class FBOMReader;
 class FBOMWriter;
 
 
-enum FBOMCommand : UInt8
+enum FBOMCommand : uint8
 {
     FBOM_NONE = 0,
     FBOM_OBJECT_START,
@@ -80,7 +80,7 @@ struct FBOMStaticData
     } type;
 
 
-    Int64               offset;
+    int64               offset;
 
     FBOMObject          object_data;
     FBOMType            type_data;
@@ -95,37 +95,37 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMObject &object_data, Int64 offset = -1)
+    explicit FBOMStaticData(const FBOMObject &object_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_OBJECT),
           object_data(object_data),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(const FBOMType &type_data, Int64 offset = -1)
+    explicit FBOMStaticData(const FBOMType &type_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
           type_data(type_data),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(const FBOMData &data_data, Int64 offset = -1)
+    explicit FBOMStaticData(const FBOMData &data_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
           data_data(data_data),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMObject &&object_data, Int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMObject &&object_data, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
           object_data(std::move(object_data)),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMType &&type_data, Int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMType &&type_data, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
           type_data(std::move(type_data)),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMData &&data_data, Int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMData &&data_data, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
           data_data(std::move(data_data)),
           offset(offset),
@@ -261,7 +261,7 @@ class FBOM {
 public:
     static constexpr SizeType header_size = 32;
     static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
-    static constexpr UInt32 version = 0x1;
+    static constexpr uint32 version = 0x1;
 
     FBOM();
     FBOM(const FBOM &other) = delete;
@@ -306,7 +306,7 @@ struct FBOMConfig
     bool continue_on_external_load_error = false;
 
     String base_path;
-    FlatMap<Pair<String, UInt32>, FBOMObject> external_data_cache;
+    FlatMap<Pair<String, uint32>, FBOMObject> external_data_cache;
 };
 
 class FBOMReader
@@ -350,7 +350,7 @@ public:
         }
 
         { // read header
-            UByte header_bytes[FBOM::header_size];
+            ubyte header_bytes[FBOM::header_size];
 
             if (reader.Max() < FBOM::header_size) {
                 return { FBOMResult::FBOM_ERR, "Invalid header" };
@@ -363,14 +363,14 @@ public:
             }
 
             // read endianness
-            const UByte endianness = header_bytes[sizeof(FBOM::header_identifier)];
+            const ubyte endianness = header_bytes[sizeof(FBOM::header_identifier)];
             
             // set if it needs to swap endianness.
             m_swap_endianness = bool(endianness) != IsBigEndian();
 
             // get version info
-            UInt32 binary_version;
-            Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(UInt8), sizeof(UInt32));
+            uint32 binary_version;
+            Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
 
             if (binary_version > FBOM::version || binary_version < 0x1) {
                 return { FBOMResult::FBOM_ERR, "Invalid binary version specified in header" };

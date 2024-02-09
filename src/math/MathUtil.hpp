@@ -22,7 +22,7 @@
 
 namespace hyperion {
 
-static inline Vector2 Vector(Float x, Float y)
+static inline Vector2 Vector(float x, float y)
 {
     return { x, y };
 }
@@ -32,7 +32,7 @@ static inline Vector2 Vector(const Vector2 &vec)
     return Vector2(vec);
 }
 
-static inline Vector3 Vector(Float x, Float y, Float z)
+static inline Vector3 Vector(float x, float y, float z)
 {
     return { x, y, z };
 }
@@ -42,12 +42,12 @@ static inline Vector3 Vector(const Vector3 &vec)
     return Vector3(vec);
 }
 
-static inline Vector3 Vector(const Vector2 &xy, Float z)
+static inline Vector3 Vector(const Vector2 &xy, float z)
 {
     return Vector3(xy.x, xy.y, z);
 }
 
-static inline Vector4 Vector(Float x, Float y, Float z, Float w)
+static inline Vector4 Vector(float x, float y, float z, float w)
 {
     return { x, y, z, w };
 }
@@ -62,12 +62,12 @@ static inline Vector4 Vector(const Vector2 &xy, const Vector2 &zw)
     return Vector4(xy.x, xy.y, zw.x, zw.y);
 }
 
-static inline Vector4 Vector(const Vector2 &xy, Float z, Float w)
+static inline Vector4 Vector(const Vector2 &xy, float z, float w)
 {
     return Vector4(xy.x, xy.y, z, w);
 }
 
-static inline Vector4 Vector(const Vector3 &xyz, Float w)
+static inline Vector4 Vector(const Vector3 &xyz, float w)
 {
     return Vector4(xyz.x, xyz.y, xyz.z, w);
 }
@@ -77,7 +77,7 @@ constexpr bool is_math_vector_v = is_vec2<T> || is_vec3<T> || is_vec4<T>;
 
 class MathUtil
 {
-    static UInt64 g_seed;
+    static uint64 g_seed;
 
 public:
     template <class T>
@@ -143,7 +143,7 @@ public:
     }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, Bool) IsNaN(T value)
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsNaN(T value)
         { return value != value; }
 
     template <class T>
@@ -165,15 +165,15 @@ public:
     }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, Bool) IsFinite(T value)
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsFinite(T value)
         { return value != Infinity<T>() && value != -Infinity<T>(); }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, Bool) ApproxEqual(const T &a, const T &b)
-        { return a.DistanceSquared(b) < std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, Double> ? epsilon_d : epsilon_f; }
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, bool) ApproxEqual(const T &a, const T &b)
+        { return a.DistanceSquared(b) < std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, double> ? epsilon_d : epsilon_f; }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, Bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, Double> ? epsilon_d : epsilon_f)
+    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, double> ? epsilon_d : epsilon_f)
         { return Abs(a - b) <= eps; }
 
     template <class T>
@@ -181,7 +181,7 @@ public:
     {
         T result;
 
-        for (UInt i = 0; i < static_cast<UInt>(std::size(result.values)); i++) {
+        for (uint i = 0; i < static_cast<uint>(std::size(result.values)); i++) {
             result.values[i] = RandRange(a.values[i], b.values[i]);
         }
 
@@ -352,20 +352,20 @@ public:
     template <class T>
     static HYP_ENABLE_IF(is_math_vector_v<T>, T) Round(const T &a) { return T::Round(a); }
 
-    static Float Sin(Float x) { return sinf(x); }
-    static Double Sin(Double x) { return sin(x); }
-    static Float Arcsin(Float x) { return asinf(x); }
-    static Double Arcsin(Double x) { return asin(x); }
+    static float Sin(float x) { return sinf(x); }
+    static double Sin(double x) { return sin(x); }
+    static float Arcsin(float x) { return asinf(x); }
+    static double Arcsin(double x) { return asin(x); }
 
-    static Float Cos(Float x) { return cosf(x); }
-    static Double Cos(Double x) { return cos(x); }
-    static Float Arccos(Float x) { return acosf(x); }
-    static Double Arccos(Double x) { return acos(x); }
+    static float Cos(float x) { return cosf(x); }
+    static double Cos(double x) { return cos(x); }
+    static float Arccos(float x) { return acosf(x); }
+    static double Arccos(double x) { return acos(x); }
 
-    static Float Tan(Float x) { return tanf(x); }
-    static Double Tan(Double x) { return tan(x); }
-    static Float Arctan(Float x) { return atanf(x); }
-    static Double Arctan(Double x) { return atan(x); }
+    static float Tan(float x) { return tanf(x); }
+    static double Tan(double x) { return tan(x); }
+    static float Arctan(float x) { return atanf(x); }
+    static double Arctan(double x) { return atan(x); }
 
     template <class T>
     static constexpr T Factorial(T value)
@@ -381,16 +381,16 @@ public:
         return f;
     }
 
-    static UInt64 BitCount(UInt64 value)
+    static uint64 BitCount(uint64 value)
     {
 #if HYP_WINDOWS
         return __popcnt64(value);
 #else
         // https://graphics.stanford.edu/~seander/bithacks.html
-        value = value - ((value >> 1) & (UInt64)~(UInt64)0/3); 
-        value = (value & (UInt64)~(UInt64)0/15*3) + ((value >> 2) & (UInt64)~(UInt64)0/15*3);
-        value = (value + (value >> 4)) & (UInt64)~(UInt64)0/255*15;
-        return (UInt64)(value * ((UInt64)~(UInt64)0/255)) >> (sizeof(UInt64) - 1) * CHAR_BIT;
+        value = value - ((value >> 1) & (uint64)~(uint64)0/3); 
+        value = (value & (uint64)~(uint64)0/15*3) + ((value >> 2) & (uint64)~(uint64)0/15*3);
+        value = (value + (value >> 4)) & (uint64)~(uint64)0/255*15;
+        return (uint64)(value * ((uint64)~(uint64)0/255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
 #endif
     }
 
@@ -423,11 +423,11 @@ public:
     }
 
     template <class T>
-    static constexpr Bool IsPowerOfTwo(T value)
+    static constexpr bool IsPowerOfTwo(T value)
         { return (value & (value - 1)) == 0; }
 
     /* Fast log2 for power-of-2 numbers */
-    static constexpr UInt64 FastLog2_Pow2(UInt64 value)
+    static constexpr uint64 FastLog2_Pow2(uint64 value)
     {
         if (std::is_constant_evaluated()) {
             return FastLog2(value);
@@ -447,7 +447,7 @@ public:
     }
 
     // https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
-    static inline constexpr UInt64 FastLog2(UInt64 value)
+    static inline constexpr uint64 FastLog2(uint64 value)
     {
         const int tab64[64] = {
             63,  0, 58,  1, 59, 47, 53,  2,
@@ -467,11 +467,11 @@ public:
         value |= value >> 16;
         value |= value >> 32;
 
-        return tab64[(((static_cast<UInt64>(value) - (value >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
+        return tab64[(((static_cast<uint64>(value) - (value >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
     }
 
     // https://www.techiedelight.com/round-next-highest-power-2/
-    static inline constexpr UInt64 NextPowerOf2(UInt64 value)
+    static inline constexpr uint64 NextPowerOf2(uint64 value)
     {
         // decrement `n` (to handle the case when `n` itself
         // is a power of 2)
@@ -481,10 +481,10 @@ public:
         return 1ull << (FastLog2(value) + 1);
     }
 
-    static inline constexpr UInt64 PreviousPowerOf2(UInt64 value)
+    static inline constexpr uint64 PreviousPowerOf2(uint64 value)
     {
         // dumb implementation
-        UInt64 result = 1;
+        uint64 result = 1;
 
         while (result * 2 < value) {
             result *= 2;

@@ -21,7 +21,7 @@ void AtomicCounter::Create()
     AssertThrow(m_buffer == nullptr);
 
     m_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::ATOMIC_COUNTER);
-    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUInstance()->GetDevice(), sizeof(UInt32)));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUInstance()->GetDevice(), sizeof(uint32)));
 }
 
 void AtomicCounter::Destroy()

@@ -106,7 +106,7 @@ VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format)
         : VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
-VkImageViewType ToVkImageViewType(ImageType type, Bool is_array)
+VkImageViewType ToVkImageViewType(ImageType type, bool is_array)
 {
     if (is_array) {
         switch (type) {

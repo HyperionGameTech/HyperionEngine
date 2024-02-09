@@ -23,7 +23,7 @@ namespace hyperion::v2 {
 class RenderEnvironment;
 class EnvGrid;
 
-using RenderStateMask = UInt32;
+using RenderStateMask = uint32;
 
 enum RenderStateMaskBits : RenderStateMask
 {
@@ -94,10 +94,10 @@ struct RenderState
     Stack<RenderBinding<Scene>>                                             scene_bindings;
     Stack<RenderBinding<Camera>>                                            camera_bindings;
     FlatMap<ID<Light>, LightDrawProxy>                                      lights;
-    FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX>   bound_env_probes; // map to texture slot
+    FixedArray<FlatMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>   bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                     env_probe_bindings;
-    UInt32                                                                  frame_counter = ~0u;
+    uint32                                                                  frame_counter = ~0u;
 
     void AdvanceFrameCounter()
         { ++frame_counter; }
@@ -197,7 +197,7 @@ struct RenderState
     {
         AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
-        constexpr UInt max_counts[ENV_PROBE_TYPE_MAX] = {
+        constexpr uint max_counts[ENV_PROBE_TYPE_MAX] = {
             max_bound_reflection_probes,
             max_bound_point_shadow_maps,
             max_bound_ambient_probes,
@@ -213,7 +213,7 @@ struct RenderState
                 LogType::Info,
                 "Probe #%u (type: %u) already bound, skipping.\n",
                 probe_id.Value(),
-                UInt(type)
+                uint(type)
             );
 
             return;
@@ -235,8 +235,8 @@ struct RenderState
         bound_env_probes[type].Insert(
             probe_id,
             has_texture_slot
-                ? Optional<UInt>(m_env_probe_texture_slot_counters[type]++)
-                : Optional<UInt>()
+                ? Optional<uint>(m_env_probe_texture_slot_counters[type]++)
+                : Optional<uint>()
         );
     }
 
@@ -279,7 +279,7 @@ struct RenderState
     }
 
 private:
-    FixedArray<UInt, ENV_PROBE_TYPE_MAX> m_env_probe_texture_slot_counters { };
+    FixedArray<uint, ENV_PROBE_TYPE_MAX> m_env_probe_texture_slot_counters { };
 };
 
 } // namespace hyperion::v2

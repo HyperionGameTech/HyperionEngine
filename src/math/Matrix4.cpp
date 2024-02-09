@@ -29,9 +29,9 @@ Matrix4 Matrix4::Rotation(const Matrix4 &t)
     Matrix4 mat;
     Matrix4 transform = t;
 
-    const Float scale_x = 1.0f / Vector3(transform.GetColumn(0)).Length();
-    const Float scale_y = 1.0f / Vector3(transform.GetColumn(1)).Length();
-    const Float scale_z = 1.0f / Vector3(transform.GetColumn(2)).Length();
+    const float scale_x = 1.0f / Vector3(transform.GetColumn(0)).Length();
+    const float scale_y = 1.0f / Vector3(transform.GetColumn(1)).Length();
+    const float scale_z = 1.0f / Vector3(transform.GetColumn(2)).Length();
 
     mat[0] = {
         transform[0][0] * scale_x,
@@ -63,7 +63,7 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
 {
     Matrix4 mat;
 
-    const Float xx = rotation.x * rotation.x,
+    const float xx = rotation.x * rotation.x,
         xy = rotation.x * rotation.y,
         xz = rotation.x * rotation.z,
         xw = rotation.x * rotation.w,
@@ -97,7 +97,7 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Vector3 &axis, Float radians)
+Matrix4 Matrix4::Rotation(const Vector3 &axis, float radians)
 {
     return Rotation(Quaternion(axis, radians));
 }
@@ -113,13 +113,13 @@ Matrix4 Matrix4::Scaling(const Vector3 &scale)
     return mat;
 }
 
-Matrix4 Matrix4::Perspective(Float fov, Int w, Int h, Float n, Float f)
+Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
 {
     Matrix4 mat = zeros;
 
-    Float ar = (Float)w / (Float)h;
-    Float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
-    Float range = n - f;
+    float ar = (float)w / (float)h;
+    float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
+    float range = n - f;
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
     
@@ -134,16 +134,16 @@ Matrix4 Matrix4::Perspective(Float fov, Int w, Int h, Float n, Float f)
     return mat;
 }
 
-Matrix4 Matrix4::Orthographic(Float l, Float r, Float b, Float t, Float n, Float f)
+Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float f)
 {
     Matrix4 mat = zeros;
     
-    Float x_orth = 2.0f / (r - l);
-    Float y_orth = 2.0f / (t - b);
-    Float z_orth = 1.0f / (n - f);
-    Float tx = -((r + l) / (r - l));
-    Float ty = -((t + b) / (t - b));
-    Float tz = ((n) / (n - f));
+    float x_orth = 2.0f / (r - l);
+    float y_orth = 2.0f / (t - b);
+    float z_orth = 1.0f / (n - f);
+    float tx = -((r + l) / (r - l));
+    float ty = -((t + b) / (t - b));
+    float tz = ((n) / (n - f));
     
     mat[0] = { x_orth, 0.0f, 0.0f, tx };
     mat[1] = { 0.0f, y_orth, 0.0f, ty };
@@ -153,14 +153,14 @@ Matrix4 Matrix4::Orthographic(Float l, Float r, Float b, Float t, Float n, Float
     return mat;
 }
 
-Matrix4 Matrix4::Jitter(UInt index, UInt width, UInt height, Vector4 &out_jitter)
+Matrix4 Matrix4::Jitter(uint index, uint width, uint height, Vector4 &out_jitter)
 {
     static const HaltonSequence halton;
 
     Matrix4 offset_matrix;
 
-    const UInt frame_counter = index;
-    const UInt halton_index = frame_counter % HaltonSequence::size;
+    const uint frame_counter = index;
+    const uint halton_index = frame_counter % HaltonSequence::size;
 
     Vector2 jitter = halton.sequence[halton_index];
     Vector2 previous_jitter;
@@ -169,7 +169,7 @@ Matrix4 Matrix4::Jitter(UInt index, UInt width, UInt height, Vector4 &out_jitter
         previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
     }
 
-    const Vector2 pixel_size = Vector2::one / Vector2(Float(width), Float(height));
+    const Vector2 pixel_size = Vector2::one / Vector2(float(width), float(height));
 
     jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
     previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
@@ -232,7 +232,7 @@ Matrix4::Matrix4(const Vector4 *rows)
 {
 }
 
-Matrix4::Matrix4(const Float *v)
+Matrix4::Matrix4(const float *v)
 {
     rows[0] = { v[0],  v[1],  v[2],  v[3] };
     rows[1] = { v[4],  v[5],  v[6],  v[7] };
@@ -245,7 +245,7 @@ Matrix4::Matrix4(const Matrix4 &other)
     hyperion::Memory::MemCpy(values, other.values, sizeof(values));
 }
 
-Float Matrix4::Determinant() const
+float Matrix4::Determinant() const
 {
     return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1]
          * rows[2][2] * rows[0][3] + rows[1][0] * rows[3][1] * rows[2][2] * rows[0][3] + rows[2][0] * rows[1][1] * rows[3][2] * rows[0][3] - rows[1][0]
@@ -265,14 +265,14 @@ Matrix4 &Matrix4::Transpose()
 
 Matrix4 Matrix4::Transposed() const
 {
-    const Float v[4][4] = {
+    const float v[4][4] = {
         { rows[0][0], rows[1][0], rows[2][0], rows[3][0] },
         { rows[0][1], rows[1][1], rows[2][1], rows[3][1] },
         { rows[0][2], rows[1][2], rows[2][2], rows[3][2] },
         { rows[0][3], rows[1][3], rows[2][3], rows[3][3] }
     };
 
-    return Matrix4(reinterpret_cast<const Float *>(v));
+    return Matrix4(reinterpret_cast<const float *>(v));
 }
 
 Matrix4 &Matrix4::Invert()
@@ -282,10 +282,10 @@ Matrix4 &Matrix4::Invert()
 
 Matrix4 Matrix4::Inverted() const
 {
-    const Float det = Determinant();
-    Float inv_det = 1.0f / det;
+    const float det = Determinant();
+    float inv_det = 1.0f / det;
 
-    Float tmp[4][4];
+    float tmp[4][4];
 
     tmp[0][0] = (rows[1][2] * rows[2][3] * rows[3][1] - rows[1][3] * rows[2][2] * rows[3][1] + rows[1][3] * rows[2][1] * rows[3][2] - rows[1][1]
               * rows[2][3] * rows[3][2] - rows[1][2] * rows[2][1] * rows[3][3] + rows[1][1] * rows[2][2] * rows[3][3])
@@ -351,7 +351,7 @@ Matrix4 Matrix4::Inverted() const
               * rows[1][2] * rows[2][1] - rows[0][1] * rows[1][0] * rows[2][2] + rows[0][0] * rows[1][1] * rows[2][2])
               * inv_det;
 
-    return Matrix4(reinterpret_cast<const Float *>(tmp));
+    return Matrix4(reinterpret_cast<const float *>(tmp));
 }
 
 Matrix4 &Matrix4::Orthonormalize()
@@ -363,12 +363,12 @@ Matrix4 Matrix4::Orthonormalized() const
 {
     Matrix4 mat = *this;
     
-    Float length = MathUtil::Sqrt(mat[0][0]*mat[0][0] + mat[0][1]*mat[0][1] + mat[0][2]*mat[0][2]);
+    float length = MathUtil::Sqrt(mat[0][0]*mat[0][0] + mat[0][1]*mat[0][1] + mat[0][2]*mat[0][2]);
     mat[0][0] /= length;
     mat[0][1] /= length;
     mat[0][2] /= length;
     
-    Float dot_product = mat[0][0] * mat[1][0] + mat[0][1] * mat[1][1] + mat[0][2] * mat[1][2];
+    float dot_product = mat[0][0] * mat[1][0] + mat[0][1] * mat[1][1] + mat[0][2] * mat[1][2];
 
     mat[1][0] -= dot_product * mat[0][0];
     mat[1][1] -= dot_product * mat[0][1];
@@ -397,17 +397,17 @@ Matrix4 Matrix4::Orthonormalized() const
     return mat;
 }
 
-Float Matrix4::GetYaw() const
+float Matrix4::GetYaw() const
 {
     return Quaternion(*this).Yaw();
 }
 
-Float Matrix4::GetPitch() const
+float Matrix4::GetPitch() const
 {
     return Quaternion(*this).Pitch();
 }
 
-Float Matrix4::GetRoll() const
+float Matrix4::GetRoll() const
 {
     return Quaternion(*this).Roll();
 }
@@ -429,7 +429,7 @@ Matrix4 Matrix4::operator+(const Matrix4 &other) const
 
 Matrix4 &Matrix4::operator+=(const Matrix4 &other)
 {
-    for (Int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++) {
         values[i] += other.values[i];
     }
 
@@ -438,7 +438,7 @@ Matrix4 &Matrix4::operator+=(const Matrix4 &other)
 
 Matrix4 Matrix4::operator*(const Matrix4 &other) const
 {
-    const Float fv[] = {
+    const float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[4] + values[2] * other.values[8] + values[3] * other.values[12],
         values[0] * other.values[1] + values[1] * other.values[5] + values[2] * other.values[9] + values[3] * other.values[13],
         values[0] * other.values[2] + values[1] * other.values[6] + values[2] * other.values[10] + values[3] * other.values[14],
@@ -468,7 +468,7 @@ Matrix4 &Matrix4::operator*=(const Matrix4 &other)
     return (*this) = operator*(other);
 }
 
-Matrix4 Matrix4::operator*(Float scalar) const
+Matrix4 Matrix4::operator*(float scalar) const
 {
     Matrix4 result(*this);
     result *= scalar;
@@ -476,9 +476,9 @@ Matrix4 Matrix4::operator*(Float scalar) const
     return result;
 }
 
-Matrix4 &Matrix4::operator*=(Float scalar)
+Matrix4 &Matrix4::operator*=(float scalar)
 {
-    for (Float &value : values) {
+    for (float &value : values) {
         value *= scalar;
     }
 
@@ -523,7 +523,7 @@ Quaternion Matrix4::ExtractRotation() const
     return Quaternion(*this);
 }
 
-Vector4 Matrix4::GetColumn(UInt index) const
+Vector4 Matrix4::GetColumn(uint index) const
 {
     return {
         rows[0][index],
@@ -535,14 +535,14 @@ Vector4 Matrix4::GetColumn(UInt index) const
 
 Matrix4 Matrix4::Zeros()
 {
-    static constexpr Float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
+    static constexpr float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
     return Matrix4(zero_array);
 }
 
 Matrix4 Matrix4::Ones()
 {
-    static constexpr Float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
+    static constexpr float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
     return Matrix4(ones_array);
 }
@@ -555,8 +555,8 @@ Matrix4 Matrix4::Identity()
 std::ostream &operator<<(std::ostream &os, const Matrix4 &mat)
 {
     os << "[";
-    for (Int i = 0; i < 4; i++) {
-        for (Int j = 0; j < 4; j++) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
             os << mat.values[i * 4 + j];
 
             if (i != 3 && j == 3) {

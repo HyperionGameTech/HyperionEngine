@@ -11,8 +11,8 @@ namespace hyperion::dotnet {
 extern "C" {
 
 struct ManagedGuid {
-    UInt64 low;
-    UInt64 high;
+    uint64 low;
+    uint64 high;
 };
 
 static_assert(sizeof(ManagedGuid) == 16, "ManagedGuid size mismatch with C#");

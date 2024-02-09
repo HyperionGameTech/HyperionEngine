@@ -27,7 +27,7 @@ public:
         out.SetProperty(
             "num_vertices",
             FBOMUnsignedInt(),
-            static_cast<UInt32>(in_object.GetVertices().Size())
+            static_cast<uint32>(in_object.GetVertices().Size())
         );
 
         out.SetProperty(
@@ -39,7 +39,7 @@ public:
         out.SetProperty(
             "num_indices",
             FBOMUnsignedInt(),
-            static_cast<UInt32>(in_object.GetVertices().Size())
+            static_cast<uint32>(in_object.GetVertices().Size())
         );
     
         out.SetProperty(
@@ -55,7 +55,7 @@ public:
     {
         Topology topology = Topology::TRIANGLES;
 
-        if (auto err = in.GetProperty("topology").ReadUInt32(&topology)) {
+        if (auto err = in.GetProperty("topology").ReadUnsignedInt(&topology)) {
             return err;
         }
 

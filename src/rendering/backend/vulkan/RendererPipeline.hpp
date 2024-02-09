@@ -35,48 +35,48 @@ public:
         {
             struct  // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 grid_size,
+                uint32 grid_size,
                     count_mode;
             } voxelizer_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 num_fragments,
+                uint32 num_fragments,
                     voxel_grid_size,
                     mipmap_level;
             } octree_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 x, y;
+                uint32 x, y;
             } counter;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
                 float matrix[16];
-                UInt32 time;
+                uint32 time;
             } probe_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 extent[4];
+                uint32 extent[4];
                 float aabb_max[4];
                 float aabb_min[4];
             } vct_data;
             
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 current_effect_index_stage; // 31bits for index, 1 bit for stage
+                uint32 current_effect_index_stage; // 31bits for index, 1 bit for stage
             } post_fx_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 index;
+                uint32 index;
             } render_component_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 width, height;
+                uint32 width, height;
                 float ray_step,
                     num_iterations,
                     max_ray_distance,
@@ -90,51 +90,51 @@ public:
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 flags;
+                uint32 flags;
             } deferred_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                ShaderVec2<UInt32> mip_dimensions;
-                ShaderVec2<UInt32> prev_mip_dimensions;
-                UInt32 mip_level;
+                ShaderVec2<uint32> mip_dimensions;
+                ShaderVec2<uint32> prev_mip_dimensions;
+                uint32 mip_level;
             } depth_pyramid_data;
             
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                UInt32 batch_offset;
-                UInt32 num_instances;
-                UInt32 scene_id;
-                ShaderVec2<UInt32> depth_pyramid_dimensions;
+                uint32 batch_offset;
+                uint32 num_instances;
+                uint32 scene_id;
+                ShaderVec2<uint32> depth_pyramid_dimensions;
             } object_visibility_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                ShaderVec4<UInt32> mip_dimensions;
-                ShaderVec4<UInt32> prev_mip_dimensions;
-                UInt32 mip_level;
+                ShaderVec4<uint32> mip_dimensions;
+                ShaderVec4<uint32> prev_mip_dimensions;
+                uint32 mip_level;
             } voxel_mip_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                ShaderVec2<UInt32> image_dimensions;
+                ShaderVec2<uint32> image_dimensions;
             } blur_shadow_map_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                ShaderVec2<UInt32> image_dimensions;
+                ShaderVec2<uint32> image_dimensions;
             } deferred_combine_data;
 
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
-                ShaderVec4<Float32> origin;
-                Float32 spawn_radius;
-                Float32 randomness;
-                Float32 avg_lifespan;
-                UInt32 max_particles;
-                Float32 max_particles_sqrt;
-                Float32 delta_time;
-                UInt32 global_counter;
+                ShaderVec4<float32> origin;
+                float32 spawn_radius;
+                float32 randomness;
+                float32 avg_lifespan;
+                uint32 max_particles;
+                float32 max_particles_sqrt;
+                float32 delta_time;
+                uint32 global_counter;
             } particle_spawner_data;
         };
     } push_constants;

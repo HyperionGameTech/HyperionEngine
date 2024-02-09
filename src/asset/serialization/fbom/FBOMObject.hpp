@@ -39,7 +39,7 @@ struct FBOMExternalObjectInfo
         { return key.GetHashCode(); }
 };
 
-using FBOMObjectFlags = UInt;
+using FBOMObjectFlags = uint;
 
 enum FBOMObjectFlagBits : FBOMObjectFlags
 {
@@ -130,9 +130,9 @@ public:
         if (flags & FBOM_OBJECT_FLAGS_EXTERNAL) {
             if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
                 const String class_name_lower(StringUtil::ToLower(marshal.GetObjectType().name.Data()).c_str());
-                external_object_key = String::ToString(UInt64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
+                external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
             } else {
-                external_object_key = String::ToString(UInt64(out_object.GetUniqueID())) + ".hypdata";
+                external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hypdata";
             }
         }
 

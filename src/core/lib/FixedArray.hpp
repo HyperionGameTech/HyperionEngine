@@ -30,7 +30,7 @@ template <class T, SizeType Sz>
 class FixedArray
 {
 public:
-    static constexpr Bool is_contiguous = true;
+    static constexpr bool is_contiguous = true;
 
     T m_values[MathUtil::Max(Sz, 1)];
 
@@ -84,7 +84,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    Bool Contains(const T &value) const
+    bool Contains(const T &value) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Contains(value);
@@ -117,18 +117,18 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr Bool Empty() const
+    constexpr bool Empty() const
         { return Sz == 0; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr Bool Any() const
+    constexpr bool Any() const
         { return Sz != 0; }
         
     template <class Lambda>
     [[nodiscard]]
     HYP_FORCE_INLINE
-    Bool Any(Lambda &&lambda) const
+    bool Any(Lambda &&lambda) const
     {
         if constexpr (Sz == 0) {
             return false;
@@ -141,7 +141,7 @@ public:
     template <class Lambda>
     [[nodiscard]]
     HYP_FORCE_INLINE
-    Bool Every(Lambda &&lambda) const
+    bool Every(Lambda &&lambda) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Every(std::forward<Lambda>(lambda));
@@ -198,7 +198,7 @@ public:
     template <class OtherContainer>
     [[nodiscard]]
     HYP_FORCE_INLINE
-    Bool CompareBitwise(const OtherContainer &other) const
+    bool CompareBitwise(const OtherContainer &other) const
     {
         if constexpr (Sz != OtherContainer::size) {
             return false;
@@ -303,12 +303,12 @@ namespace containers {
 namespace detail {
 
 template <class T, SizeType Sz>
-class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, UInt>
+class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint>
 {
 public:
     T *ptr;
 
-    static constexpr Bool is_contiguous = true;
+    static constexpr bool is_contiguous = true;
 
     using Iterator      = T *;
     using ConstIterator = const T *;

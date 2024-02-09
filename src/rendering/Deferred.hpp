@@ -31,7 +31,7 @@ using renderer::Device;
 using renderer::DescriptorSet;
 using renderer::AttachmentUsage;
 
-using DeferredFlagBits = UInt;
+using DeferredFlagBits = uint;
 
 class IndirectDrawState;
 class RenderEnvironment;
@@ -61,7 +61,7 @@ public:
     void CreateShader();
     virtual void CreateDescriptors() override;
     virtual void Create() override;
-    virtual void Record(UInt frame_index) override;
+    virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;
 
 private:
@@ -84,7 +84,7 @@ public:
 
     void CreateShader();
     virtual void Create() override;
-    virtual void Record(UInt frame_index) override;
+    virtual void Record(uint frame_index) override;
 
 private:
     const EnvGridPassMode m_mode;
@@ -100,7 +100,7 @@ public:
 
     void CreateShader();
     virtual void Create() override;
-    virtual void Record(UInt frame_index) override;
+    virtual void Record(uint frame_index) override;
 };
 
 class DeferredRenderer

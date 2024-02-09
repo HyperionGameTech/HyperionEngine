@@ -41,7 +41,7 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
             continue;
         }
 
-        result.values[value_index++] = Float(std::atof(token.Data()));
+        result.values[value_index++] = float(std::atof(token.Data()));
 
         if (value_index == std::size(result.values)) {
             break;
@@ -140,7 +140,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             }
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_ALBEDO] = ParameterDef {
-                FixedArray<Float, 4> { color[0], color[1], color[2], color[3] }
+                FixedArray<float, 4> { color[0], color[1], color[2], color[3] }
             };
 
             return;
@@ -153,10 +153,10 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const auto spec = StringUtil::Parse<Int>(tokens[1].Data());
+            const auto spec = StringUtil::Parse<int>(tokens[1].Data());
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_ROUGHNESS] = ParameterDef {
-                .values = { 1.0f - MathUtil::Clamp(Float(spec) / 1000.0f, 0.0f, 1.0f) }
+                .values = { 1.0f - MathUtil::Clamp(float(spec) / 1000.0f, 0.0f, 1.0f) }
             };
 
             return;
@@ -169,17 +169,17 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const auto illum_model = StringUtil::Parse<Int>(tokens[1].Data());
+            const auto illum_model = StringUtil::Parse<int>(tokens[1].Data());
 
             if (IsTransparencyModel(static_cast<IlluminationModel>(illum_model))) {
                 LastMaterial(library).parameters[Material::MATERIAL_KEY_TRANSMISSION] = ParameterDef {
-                    .values = FixedArray<Float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
+                    .values = FixedArray<float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
                 };
                 // TODO: Bucket, alpha blend
             }
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
-                .values = { Float(illum_model) / 9.0f } /* rough approx */
+                .values = { float(illum_model) / 9.0f } /* rough approx */
             };
 
             return;
@@ -234,7 +234,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     
     {
         if (!texture_names_to_path.Empty()) {
-            UInt num_enqueued = 0;
+            uint num_enqueued = 0;
             String paths_string;
 
             auto textures_batch = state.asset_manager->CreateBatch();

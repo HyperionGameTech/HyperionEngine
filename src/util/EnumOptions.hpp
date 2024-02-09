@@ -17,11 +17,11 @@ namespace containers {
 namespace detail {
 
 // convert from attachment (2^x) into ordinal (0-5) for use as an array index
-constexpr UInt64 EnumToOrdinal(UInt64 option)
+constexpr uint64 EnumToOrdinal(uint64 option)
     { return MathUtil::FastLog2_Pow2(option); }
 
 // convert from ordinal (0-5) into power-of-two for use as bit flags
-constexpr UInt64 OrdinalToEnum(UInt64 ordinal)
+constexpr uint64 OrdinalToEnum(uint64 ordinal)
     { return 1ull << ordinal; }
 
 template <class ContainerType, typename EnumType, typename ValueType, SizeType Sz>
@@ -84,14 +84,14 @@ struct EnumMapIterator
     }
 
     HYP_FORCE_INLINE
-    Bool operator==(const EnumMapIterator &other) const
+    bool operator==(const EnumMapIterator &other) const
     {
         return index == other.index
             && std::addressof(ref) == std::addressof(other.ref);
     }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const EnumMapIterator &other) const
+    bool operator!=(const EnumMapIterator &other) const
         { return !(*this == other); }
 
     std::pair<EnumType, ValueType &> operator*()
@@ -127,18 +127,18 @@ public:
     using Base              = FixedArray<ValueType, Sz>;
 
     using EnumOption_t      = EnumType;
-    using Ordinal_t         = UInt64;
+    using Ordinal_t         = uint64;
     using KeyValuePairType  = KeyValuePair<EnumType, ValueType>;
 
     using Iterator          = containers::detail::EnumMapIterator<Base, EnumType, ValueType, Sz>;
     using ConstIterator     = containers::detail::EnumMapIterator<const Base, EnumType, const ValueType, Sz>;
 
     // convert from attachment (2^x) into ordinal (0-5) for use as an array index
-    static constexpr UInt64 EnumToOrdinal(UInt64 option)
+    static constexpr uint64 EnumToOrdinal(uint64 option)
         { return containers::detail::EnumToOrdinal(option); }
 
     // convert from ordinal (0-5) into power-of-two for use as bit flags
-    static constexpr UInt64 OrdinalToEnum(UInt64 ordinal)
+    static constexpr uint64 OrdinalToEnum(uint64 ordinal)
         { return containers::detail::OrdinalToEnum(ordinal); }
 
     static_assert(Sz != 0, "EnumOptions cannot have size of zero");

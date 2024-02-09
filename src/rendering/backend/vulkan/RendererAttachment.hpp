@@ -90,8 +90,8 @@ public:
     LoadOperation GetLoadOperation() const { return m_load_operation; }
     StoreOperation GetStoreOperation() const { return m_store_operation; }
 
-    UInt GetBinding() const { return m_binding; }
-    void SetBinding(UInt binding) { m_binding = binding; }
+    uint GetBinding() const { return m_binding; }
+    void SetBinding(uint binding) { m_binding = binding; }
     bool HasBinding() const { return m_binding != UINT_MAX; }
 
     InternalFormat GetFormat() const;
@@ -116,8 +116,8 @@ public:
         VkFormat format,
         VkImageAspectFlags aspect_flags,
         VkImageViewType view_type,
-        UInt num_mipmaps,
-        UInt num_faces
+        uint num_mipmaps,
+        uint num_faces
     );
 
     Result Destroy(Device *device);
@@ -147,7 +147,7 @@ private:
     
     LoadOperation m_load_operation;
     StoreOperation m_store_operation;
-    UInt m_binding = MathUtil::MaxSafeValue<UInt>();
+    uint m_binding = MathUtil::MaxSafeValue<uint>();
 
     VkImageLayout m_initial_layout, m_final_layout;
 
@@ -193,8 +193,8 @@ public:
         VkFormat format,
         VkImageAspectFlags aspect_flags,
         VkImageViewType view_type,
-        UInt num_mipmaps,
-        UInt num_faces,
+        uint num_mipmaps,
+        uint num_faces,
         LoadOperation load_operation,
         StoreOperation store_operation,
         AttachmentUsage **out = nullptr
@@ -226,7 +226,7 @@ private:
         }
     }
 
-    Bool                                m_is_created;
+    bool                                m_is_created;
     ImageRef_VULKAN                     m_image;
     RenderPassStage                     m_stage;
 

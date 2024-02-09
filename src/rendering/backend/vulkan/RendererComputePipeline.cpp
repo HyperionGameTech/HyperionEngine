@@ -40,7 +40,7 @@ void ComputePipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *co
         layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
-        static_cast<UInt32>(sizeof(push_constants)),
+        static_cast<uint32>(sizeof(push_constants)),
         &push_constants
     );
 }
@@ -52,7 +52,7 @@ void ComputePipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platfo
         layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
-        static_cast<UInt32>(sizeof(push_constants)),
+        static_cast<uint32>(sizeof(push_constants)),
         &push_constants
     );
 }
@@ -144,10 +144,10 @@ Result ComputePipeline<Platform::VULKAN>::Create(
         return { Result::RENDERER_ERR, "Device max bound descriptor sets exceeded" };
     }
 
-    layout_info.setLayoutCount = static_cast<UInt32>(used_layouts.size());
+    layout_info.setLayoutCount = static_cast<uint32>(used_layouts.size());
     layout_info.pSetLayouts = used_layouts.data();
     
-    layout_info.pushConstantRangeCount = static_cast<UInt32>(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = static_cast<uint32>(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(

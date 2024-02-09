@@ -61,7 +61,7 @@ private:
     BoundingBox         m_aabb;
     Handle<EnvProbe>    m_env_probe;
 
-    Bool                m_last_visibility_state = false;
+    bool                m_last_visibility_state = false;
 };
 
 

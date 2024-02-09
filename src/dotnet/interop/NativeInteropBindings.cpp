@@ -26,7 +26,7 @@ extern "C" {
         // Class *logger_class_object = s_class_object_holder.FindClassByName("Logger");
 
         // if (logger_class_object) {
-        //     void *return_value = logger_class_object->InvokeMethod<void *, Int32, char *>("TestMethod", 9, "hello hello world!!!");
+        //     void *return_value = logger_class_object->InvokeMethod<void *, int32, char *>("TestMethod", 9, "hello hello world!!!");
         // }
     }
 
@@ -37,7 +37,7 @@ extern "C" {
         class_holder->SetInvokeMethodFunction(invoke_method_fptr);
     }
 
-    ManagedClass ManagedClass_Create(ClassHolder *class_holder, Int32 type_hash, const char *type_name)
+    ManagedClass ManagedClass_Create(ClassHolder *class_holder, int32 type_hash, const char *type_name)
     {
         AssertThrow(class_holder != nullptr);
 

@@ -22,7 +22,7 @@ struct EntityDrawData
     Matrix4         model_matrix;
     Matrix4         previous_model_matrix;
     BoundingBox     aabb;
-    UInt32          bucket;
+    uint32          bucket;
 };
 
 } // namespace hyperion::v2

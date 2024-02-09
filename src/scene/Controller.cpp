@@ -4,7 +4,7 @@
 
 namespace hyperion::v2 {
 
-Controller::Controller(Bool receives_update)
+Controller::Controller(bool receives_update)
     : m_owner(nullptr),
       m_receives_update(receives_update)
 {

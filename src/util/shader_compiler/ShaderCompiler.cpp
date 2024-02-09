@@ -23,7 +23,7 @@
 
 namespace hyperion::v2 {
 
-static const Bool should_compile_missing_variants = true;
+static const bool should_compile_missing_variants = true;
 
 enum class ShaderLanguage
 {
@@ -238,9 +238,9 @@ static ByteBuffer CompileToSPIRV(
         break;
     }
 
-    UInt vulkan_api_version = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
-    UInt spirv_api_version = GLSLANG_TARGET_SPV_1_2;
-    UInt spirv_version = 450;
+    uint vulkan_api_version = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint spirv_api_version = GLSLANG_TARGET_SPV_1_2;
+    uint spirv_version = 450;
 
     // Maybe remove... Some platforms giving crash
     // when loading vk1.2 shaders. But we need it for raytracing.
@@ -258,7 +258,7 @@ static ByteBuffer CompileToSPIRV(
         .target_language = GLSLANG_TARGET_SPV,
         .target_language_version = static_cast<glslang_target_language_version_t>(spirv_api_version),
         .code = source.Data(),
-        .default_version = Int(spirv_version),
+        .default_version = int(spirv_version),
         .default_profile = GLSLANG_CORE_PROFILE,
         .force_default_version_and_profile = false,
         .forward_compatible = false,
@@ -309,8 +309,8 @@ static ByteBuffer CompileToSPIRV(
 
     glslang_program_SPIRV_generate(program, stage);
 
-    ByteBuffer shader_module(glslang_program_SPIRV_get_size(program) * sizeof(UInt32));
-    glslang_program_SPIRV_get(program, reinterpret_cast<UInt32 *>(shader_module.Data()));
+    ByteBuffer shader_module(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
+    glslang_program_SPIRV_get(program, reinterpret_cast<uint32 *>(shader_module.Data()));
 
     const char *spirv_messages = glslang_program_SPIRV_get_messages(program);
 
@@ -448,7 +448,7 @@ static void ForEachPermutation(
 
     TaskSystem::GetInstance().ParallelForEach(
         all_combinations,
-        [&callback](const Array<ShaderProperty> &properties, UInt index, UInt batch_index) {
+        [&callback](const Array<ShaderProperty> &properties, uint index, uint batch_index) {
             const ShaderProperties combination_properties(properties);
 
             DebugLog(
@@ -528,7 +528,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
 #if defined(HYP_VULKAN) && HYP_VULKAN
     properties.Set(ShaderProperty("HYP_VULKAN", false));
 
-    constexpr UInt vulkan_version = HYP_VULKAN_API_VERSION;
+    constexpr uint vulkan_version = HYP_VULKAN_API_VERSION;
     
     switch (vulkan_version) {
     case VK_API_VERSION_1_1:
@@ -592,7 +592,7 @@ void ShaderCompiler::ParseDefinitionSection(
     }
 }
 
-Bool ShaderCompiler::HandleCompiledShaderBatch(
+bool ShaderCompiler::HandleCompiledShaderBatch(
     Bundle &bundle,
     const ShaderProperties &additional_versions,
     const FilePath &output_file_path,
@@ -604,9 +604,9 @@ Bool ShaderCompiler::HandleCompiledShaderBatch(
     // if not, we need to recompile those versions.
 
     // TODO: Each individual item should have a timestamp internally set
-    const UInt64 object_file_last_modified = output_file_path.LastModifiedTimestamp();
+    const uint64 object_file_last_modified = output_file_path.LastModifiedTimestamp();
 
-    UInt64 max_source_file_last_modified = 0;
+    uint64 max_source_file_last_modified = 0;
 
     for (auto &source_file : bundle.sources) {
         max_source_file_last_modified = MathUtil::Max(max_source_file_last_modified, FilePath(source_file.second.path).LastModifiedTimestamp());
@@ -627,7 +627,7 @@ Bool ShaderCompiler::HandleCompiledShaderBatch(
     Array<ShaderProperties> missing_variants;
     Array<ShaderProperties> found_variants;
     std::mutex              mtx;
-    Bool                    requested_found = false;
+    bool                    requested_found = false;
 
     {
         // grab each defined property, and iterate over each combination
@@ -723,7 +723,7 @@ Bool ShaderCompiler::HandleCompiledShaderBatch(
     return true;
 }
 
-Bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
+bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     Name name,
     const ShaderProperties &properties,
     CompiledShaderBatch &out
@@ -810,7 +810,7 @@ Bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     return HandleCompiledShaderBatch(bundle, properties, output_file_path, out);
 }
 
-Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
+bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
 {
     if (m_definitions && m_definitions->IsValid()) {
         return true;
@@ -869,9 +869,9 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
         bundles.PushBack(std::move(bundle));
     }
 
-    const Bool supports_rt_shaders = g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
+    const bool supports_rt_shaders = g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
 
-    FlatMap<Bundle *, Bool> results;
+    FlatMap<Bundle *, bool> results;
 
     // // Compile all shaders ahead of time
     for (auto &bundle : bundles) {
@@ -897,7 +897,7 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
         });
     }
 
-    return results.Every([](const KeyValuePair<Bundle *, Bool> &it) {
+    return results.Every([](const KeyValuePair<Bundle *, bool> &it) {
         if (!it.second) {
             String permutation_string;
 
@@ -918,7 +918,7 @@ struct LoadedSourceFile
     ShaderModuleType          type;
     ShaderLanguage              language;
     ShaderCompiler::SourceFile  file;
-    UInt64                      last_modified_timestamp;
+    uint64                      last_modified_timestamp;
     String                      source;
 
     FilePath GetOutputFilepath(const FilePath &base_path, const ShaderProperties &properties) const
@@ -940,7 +940,7 @@ struct LoadedSourceFile
     }
 };
 
-Bool ShaderCompiler::CanCompileShaders() const
+bool ShaderCompiler::CanCompileShaders() const
 {
     if (!g_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
         return false;
@@ -971,7 +971,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
 
         String args_string;
 
-        Int parentheses_depth = 0;
+        int parentheses_depth = 0;
         SizeType index;
 
         // Note: using 'Size' and 'Data' to index -- not using utf-8 chars here.
@@ -1011,7 +1011,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
         if (line.StartsWith("HYP_ATTRIBUTE")) {
             Array<String> parts = line.Split(' ');
 
-            Bool optional = false;
+            bool optional = false;
 
             if (parts.Size() != 3) {
                 result.errors.PushBack(ProcessError { "Invalid attribute: Requires format HYP_ATTRIBUTE(location) type name" });
@@ -1210,7 +1210,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
 
             // DebugLog(LogType::Debug, "Create Descriptor usage: %s %s %u %d\n", set_name.Data(), descriptor_name.Data(), slot, is_dynamic);
 
-            // Bool is_custom_descriptor_set = false;
+            // bool is_custom_descriptor_set = false;
 
             // auto descriptor_set_declaration = renderer::g_static_descriptor_table->FindDescriptorSetDeclaration(usage.set_name);
 
@@ -1245,7 +1245,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
     return result;
 }
 
-Bool ShaderCompiler::CompileBundle(
+bool ShaderCompiler::CompileBundle(
     Bundle &bundle,
     const ShaderProperties &additional_versions,
     CompiledShaderBatch &out
@@ -1307,7 +1307,7 @@ Bool ShaderCompiler::CompileBundle(
                 DebugLog(
                     LogType::Error,
                     "%u shader processing errors:\n",
-                    UInt(result.errors.Size())
+                    uint(result.errors.Size())
                 );
 
                 process_errors[index] = result.errors;
@@ -1434,7 +1434,7 @@ Bool ShaderCompiler::CompileBundle(
     std::mutex compiled_shaders_mutex;
     std::mutex error_messages_mutex;
 
-    AtomicVar<UInt> num_compiled_permutations { 0u };
+    AtomicVar<uint> num_compiled_permutations { 0u };
 
     String descriptor_table_defines;
 
@@ -1446,8 +1446,8 @@ Bool ShaderCompiler::CompileBundle(
         for (const Array<renderer::DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration.slots) {
             for (const renderer::DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
                 DebugLog(LogType::Debug, "Declaration : %s\n", descriptor_declaration.name.LookupString());
-                const UInt flat_index = descriptor_set_declaration.CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
-                AssertThrow(flat_index != UInt(-1));
+                const uint flat_index = descriptor_set_declaration.CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
+                AssertThrow(flat_index != uint(-1));
 
                 descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
             }
@@ -1467,7 +1467,7 @@ Bool ShaderCompiler::CompileBundle(
             bundle.entry_point_name
         );
 
-        Bool any_files_compiled = false;
+        bool any_files_compiled = false;
 
         for (const LoadedSourceFile &item : loaded_source_files) {
             // check if a file exists w/ same hash
@@ -1605,7 +1605,7 @@ Bool ShaderCompiler::CompileBundle(
             compiled_shader.modules[item.type] = byte_buffer;
         }
 
-        num_compiled_permutations.Increment(UInt(any_files_compiled), MemoryOrder::RELAXED);
+        num_compiled_permutations.Increment(uint(any_files_compiled), MemoryOrder::RELAXED);
 
         compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
@@ -1661,7 +1661,7 @@ CompiledShader ShaderCompiler::GetCompiledShader(Name name, const ShaderProperti
     return compiled_shader;
 }
 
-Bool ShaderCompiler::GetCompiledShader(
+bool ShaderCompiler::GetCompiledShader(
     Name name,
     const ShaderProperties &properties,
     CompiledShader &out

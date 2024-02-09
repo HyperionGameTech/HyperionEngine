@@ -145,7 +145,7 @@ void FBOMObject::AddChild(FBOMObject &&object, const String &external_object_key
 
     if (object.GetType().IsOrExtends("Node")) {
 
-        FlatSet<UInt64> sub_node_ids;
+        FlatSet<uint64> sub_node_ids;
         for (auto &node : *nodes) {
             // debug sanity check
             auto insert_result = sub_node_ids.Insert(node.GetUniqueID());

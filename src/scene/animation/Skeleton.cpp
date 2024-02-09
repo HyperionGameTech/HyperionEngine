@@ -127,13 +127,13 @@ Bone *Skeleton::FindBone(const String &name)
     return nullptr;
 }
 
-UInt Skeleton::FindBoneIndex(const String &name) const
+uint Skeleton::FindBoneIndex(const String &name) const
 {
     if (!m_root_bone) {
-        return UInt(-1);
+        return uint(-1);
     }
 
-    UInt index = 0;
+    uint index = 0;
 
     if (m_root_bone.GetName() == name) {
         return index;
@@ -157,7 +157,7 @@ UInt Skeleton::FindBoneIndex(const String &name) const
         }
     }
 
-    return UInt(-1);
+    return uint(-1);
 }
 
 Bone *Skeleton::GetRootBone()
@@ -218,7 +218,7 @@ void Skeleton::AddAnimation(Animation &&animation)
     m_animations.PushBack(std::move(animation));
 }
 
-const Animation *Skeleton::FindAnimation(const String &name, UInt *out_index) const
+const Animation *Skeleton::FindAnimation(const String &name, uint *out_index) const
 {
     const auto it = m_animations.FindIf([&name](const auto &item) {
         return item.GetName() == name;

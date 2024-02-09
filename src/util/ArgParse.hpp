@@ -15,7 +15,7 @@ class ArgParse
 public:
     struct NullArgument { };
 
-    using ArgumentValue = Variant<String, Int, Float, Bool>;
+    using ArgumentValue = Variant<String, int, float, bool>;
 
     enum ArgumentType
     {
@@ -26,7 +26,7 @@ public:
         ARGUMENT_TYPE_ENUM
     };
 
-    using ArgFlags = UInt32;
+    using ArgFlags = uint32;
 
     enum ArgFlagBits : ArgFlags
     {
@@ -47,7 +47,7 @@ public:
     struct Result
     {
         Array<Pair<String, ArgumentValue>>  values;
-        Bool                                ok;
+        bool                                ok;
         Optional<String>                    message;
 
         explicit operator bool() const
@@ -74,7 +74,7 @@ public:
         ArgumentValue = { }
     );
 
-    Result Parse(Int argc, char **argv) const;
+    Result Parse(int argc, char **argv) const;
     Result Parse(const Array<String> &args) const;
 
 private:

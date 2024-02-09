@@ -68,7 +68,7 @@ bool SocketServer::Start()
             errno
         );
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String("Failed to open socket")), SocketProcArgument(Int32(errno)) });
+        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String("Failed to open socket")), SocketProcArgument(int32(errno)) });
 
         return false;
     }
@@ -82,12 +82,12 @@ bool SocketServer::Start()
     strcpy(m_impl->local.sun_path, socket_path);
     unlink(m_impl->local.sun_path);
 
-    const Int len = strlen(m_impl->local.sun_path) + sizeof(m_impl->local.sun_family);
+    const int len = strlen(m_impl->local.sun_path) + sizeof(m_impl->local.sun_family);
 
-    Int32 reuse_socket = 1;
+    int32 reuse_socket = 1;
 
     if (setsockopt(m_impl->socket_id, SOL_SOCKET, SO_REUSEADDR, &reuse_socket, sizeof(reuse_socket)) != 0) {
-        const Int32 error_code = errno;
+        const int32 error_code = errno;
 
         TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
@@ -95,7 +95,7 @@ bool SocketServer::Start()
     }
 
     if (setsockopt(m_impl->socket_id, SOL_SOCKET, SO_REUSEPORT, &reuse_socket, sizeof(reuse_socket)) != 0) {
-        const Int32 error_code = errno;
+        const int32 error_code = errno;
 
         TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
@@ -103,7 +103,7 @@ bool SocketServer::Start()
     }
 
     if (bind(m_impl->socket_id, (struct sockaddr *)&m_impl->local, len) != 0) {
-        const Int32 error_code = errno;
+        const int32 error_code = errno;
 
         TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
@@ -112,9 +112,9 @@ bool SocketServer::Start()
     }
 
     if (listen(m_impl->socket_id, max_connections) != 0) {
-        const Int32 error_code = errno;
+        const int32 error_code = errno;
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(Int32(errno)) });
+        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(int32(errno)) });
 
         return false;
     }
@@ -374,7 +374,7 @@ SocketResultType SocketClient::Send(const ByteBuffer &data)
     }
 
 #if defined(HYP_UNIX)
-    const Int32 sent = send(m_internal_id.value, data.Data(), data.Size(), 0);
+    const int32 sent = send(m_internal_id.value, data.Data(), data.Size(), 0);
 
     if (sent == -1) {
         return SOCKET_RESULT_TYPE_ERROR;
@@ -393,7 +393,7 @@ SocketResultType SocketClient::Receive(ByteBuffer &out_data)
     }
 
 #if defined(HYP_UNIX)
-    UInt32 data_size;
+    uint32 data_size;
     SizeType received = recv(m_internal_id.value, &data_size, sizeof(data_size), MSG_WAITALL);
 
     if (received < 0) {

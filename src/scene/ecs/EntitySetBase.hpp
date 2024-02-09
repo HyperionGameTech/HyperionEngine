@@ -14,14 +14,14 @@ namespace hyperion::v2 {
 
 class Entity;
 
-using EntitySetTypeID = UInt;
+using EntitySetTypeID = uint;
 
 class EntitySetBase;
 class ComponentContainerBase;
 
 struct EntitySetIDGeneratorBase
 {
-    static inline std::atomic<UInt> counter { 0u };
+    static inline std::atomic<uint> counter { 0u };
 };
 
 template <class ... Components>
@@ -57,7 +57,7 @@ public:
      *
      *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
      */
-    virtual Bool ValidForEntity(ID<Entity> entity) const = 0;
+    virtual bool ValidForEntity(ID<Entity> entity) const = 0;
 
     /*! \brief Removes the given Entity from this EntitySet.
      *

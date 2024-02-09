@@ -42,7 +42,7 @@ public:
         { this->max = max; }
 
     FixedArray<Vec3f, 8> GetCorners() const;
-    Vec3f GetCorner(UInt index) const;
+    Vec3f GetCorner(uint index) const;
     
     HYP_FORCE_INLINE
     Vec3f GetCenter() const
@@ -56,13 +56,13 @@ public:
 
     void SetExtent(const Vec3f &dimensions);
 
-    Float GetRadiusSquared() const;
-    Float GetRadius() const;
+    float GetRadiusSquared() const;
+    float GetRadius() const;
 
-    BoundingBox operator*(Float scalar) const;
-    BoundingBox &operator*=(Float scalar);
-    BoundingBox operator/(Float scalar) const;
-    BoundingBox &operator/=(Float scalar);
+    BoundingBox operator*(float scalar) const;
+    BoundingBox &operator*=(float scalar);
+    BoundingBox operator/(float scalar) const;
+    BoundingBox &operator/=(float scalar);
     BoundingBox operator+(const Vec3f &offset) const;
     BoundingBox &operator+=(const Vec3f &offset);
     BoundingBox operator-(const Vec3f &offset) const;
@@ -75,28 +75,28 @@ public:
     BoundingBox &operator*=(const Transform &transform);
 
     HYP_FORCE_INLINE
-    Bool operator==(const BoundingBox &other) const
+    bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
 
     HYP_FORCE_INLINE
-    Bool operator!=(const BoundingBox &other) const
+    bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
     BoundingBox &Clear();
     
     HYP_FORCE_INLINE
-    Bool Empty() const
+    bool Empty() const
         { return Memory::MemCmp(this, &empty, sizeof(BoundingBox)) == 0; }
 
     BoundingBox &Extend(const Vec3f &vec);
     BoundingBox &Extend(const BoundingBox &bb);
     
     // do the AABB's intersect at all?
-    Bool Intersects(const BoundingBox &other) const;
+    bool Intersects(const BoundingBox &other) const;
     // does this AABB completely contain other?
-    Bool Contains(const BoundingBox &other) const;
-    Bool ContainsPoint(const Vec3f &vec) const;
-    Float Area() const;
+    bool Contains(const BoundingBox &other) const;
+    bool ContainsPoint(const Vec3f &vec) const;
+    float Area() const;
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const

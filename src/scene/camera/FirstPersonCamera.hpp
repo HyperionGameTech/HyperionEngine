@@ -25,7 +25,7 @@ private:
     Vector3 m_move_deltas,
             m_dir_cross_y;
 
-    Float m_mouse_x,
+    float m_mouse_x,
           m_mouse_y,
           m_prev_mouse_x,
           m_prev_mouse_y;

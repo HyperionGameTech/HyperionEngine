@@ -126,9 +126,9 @@ Result CommandBuffer<Platform::VULKAN>::SubmitPrimary(
     VkSubmitInfo submit_info { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
     if (semaphore_chain != nullptr) {
-        submit_info.waitSemaphoreCount = static_cast<UInt32>(semaphore_chain->m_wait_semaphores_view.size());
+        submit_info.waitSemaphoreCount = static_cast<uint32>(semaphore_chain->m_wait_semaphores_view.size());
         submit_info.pWaitSemaphores = semaphore_chain->m_wait_semaphores_view.data();
-        submit_info.signalSemaphoreCount = static_cast<UInt32>(semaphore_chain->m_signal_semaphores_view.size());
+        submit_info.signalSemaphoreCount = static_cast<uint32>(semaphore_chain->m_signal_semaphores_view.size());
         submit_info.pSignalSemaphores = semaphore_chain->m_signal_semaphores_view.data();
         submit_info.pWaitDstStageMask = semaphore_chain->m_wait_semaphores_stage_view.data();
     } else {
@@ -164,7 +164,7 @@ Result CommandBuffer<Platform::VULKAN>::SubmitSecondary(CommandBuffer *primary)
 void CommandBuffer<Platform::VULKAN>::BindVertexBuffer(const GPUBuffer<Platform::VULKAN> *buffer)
 {
     AssertThrow(buffer != nullptr);
-    AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", UInt(buffer->GetBufferType()));
+    AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint(buffer->GetBufferType()));
     
     const VkBuffer vertex_buffers[] = { buffer->buffer };
     static const VkDeviceSize offsets[] = { 0 };
@@ -175,7 +175,7 @@ void CommandBuffer<Platform::VULKAN>::BindVertexBuffer(const GPUBuffer<Platform:
 void CommandBuffer<Platform::VULKAN>::BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type)
 {
     AssertThrow(buffer != nullptr);
-    AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", UInt(buffer->GetBufferType()));
+    AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint(buffer->GetBufferType()));
     
     vkCmdBindIndexBuffer(
         m_command_buffer,
@@ -186,9 +186,9 @@ void CommandBuffer<Platform::VULKAN>::BindIndexBuffer(const GPUBuffer<Platform::
 }
 
 void CommandBuffer<Platform::VULKAN>::DrawIndexed(
-    UInt32 num_indices,
-    UInt32 num_instances,
-    UInt32 instance_index
+    uint32 num_indices,
+    uint32 num_instances,
+    uint32 instance_index
 ) const
 {
     vkCmdDrawIndexed(
@@ -203,7 +203,7 @@ void CommandBuffer<Platform::VULKAN>::DrawIndexed(
 
 void CommandBuffer<Platform::VULKAN>::DrawIndexedIndirect(
     const GPUBuffer<Platform::VULKAN> *buffer,
-    UInt32 buffer_offset
+    uint32 buffer_offset
 ) const
 {
     vkCmdDrawIndexedIndirect(
@@ -211,7 +211,7 @@ void CommandBuffer<Platform::VULKAN>::DrawIndexedIndirect(
         buffer->buffer,
         buffer_offset,
         1,
-        static_cast<UInt32>(sizeof(IndirectDrawCommand))
+        static_cast<uint32>(sizeof(IndirectDrawCommand))
     );
 }
 
@@ -273,7 +273,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const GraphicsPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -294,7 +294,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -315,7 +315,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const GraphicsPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -353,7 +353,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const ComputePipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -408,7 +408,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const ComputePipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -429,7 +429,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -468,7 +468,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const RaytracingPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -523,7 +523,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const RaytracingPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -544,7 +544,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -566,11 +566,11 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     VkPipelineBindPoint bind_point,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
-    const auto set_index = static_cast<UInt>(set);
+    const auto set_index = static_cast<uint>(set);
     const auto binding_index = DescriptorSet::GetDesiredIndex(binding);
 
     const auto &descriptor_sets = pool.GetDescriptorSets();
@@ -578,7 +578,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     AssertThrowMsg(
         set_index < descriptor_sets.Size(),
         "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
-        UInt(set),
+        uint(set),
         set_index,
         descriptor_sets.Size()
     );
@@ -588,7 +588,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     AssertThrowMsg(
         bind_set != nullptr,
         "Attempt to bind invalid descriptor set %u (at index %u) -- set is null\n",
-        UInt(set),
+        uint(set),
         set_index
     );
 
@@ -609,7 +609,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     VkPipelineBindPoint bind_point,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
@@ -623,7 +623,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
         binding_index,
         1,
         &handle,
-        static_cast<UInt32>(num_offsets),
+        static_cast<uint32>(num_offsets),
         offsets
     );
 }
@@ -635,21 +635,21 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
-    constexpr UInt max_bound_descriptor_sets = 8;
+    constexpr uint max_bound_descriptor_sets = 8;
     VkDescriptorSet descriptor_sets_buffer[max_bound_descriptor_sets];
 
     AssertThrow(num_descriptor_sets <= max_bound_descriptor_sets);
 
     const auto &descriptor_sets = pool.GetDescriptorSets();
 
-    UInt32 binding_index = 0;
+    uint32 binding_index = 0;
 
-    for (UInt i = 0; i < num_descriptor_sets; i++) {
-        const auto set_index = static_cast<UInt>(sets[i]);
+    for (uint i = 0; i < num_descriptor_sets; i++) {
+        const auto set_index = static_cast<uint>(sets[i]);
         const auto current_binding_index = DescriptorSet::GetDesiredIndex(bindings[i]);
 
         if (i == 0) {
@@ -667,7 +667,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         AssertThrowMsg(
             set_index < descriptor_sets.Size(),
             "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
-            UInt(sets[i]),
+            uint(sets[i]),
             set_index,
             descriptor_sets.Size()
         );
@@ -677,7 +677,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         AssertThrowMsg(
             bind_set != nullptr,
             "Attempt to bind invalid descriptor set %u (at index %u) -- set is null\n",
-            UInt(sets[i]),
+            uint(sets[i]),
             set_index
         );
 
@@ -689,9 +689,9 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         bind_point,
         pipeline->layout,
         binding_index,
-        static_cast<UInt32>(num_descriptor_sets),
+        static_cast<uint32>(num_descriptor_sets),
         descriptor_sets_buffer,
-        static_cast<UInt32>(num_offsets),
+        static_cast<uint32>(num_offsets),
         offsets
     );
 }
@@ -703,18 +703,18 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorSetRef *descriptor_sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
-    const UInt32 *offsets,
+    const uint32 *offsets,
     SizeType num_offsets
 ) const
 {
-    constexpr UInt max_bound_descriptor_sets = 8;
+    constexpr uint max_bound_descriptor_sets = 8;
     VkDescriptorSet descriptor_sets_buffer[max_bound_descriptor_sets];
 
     AssertThrow(num_descriptor_sets <= max_bound_descriptor_sets);
 
-    UInt32 binding_index = 0;
+    uint32 binding_index = 0;
 
-    for (UInt i = 0; i < num_descriptor_sets; i++) {
+    for (uint i = 0; i < num_descriptor_sets; i++) {
         const auto current_binding_index = DescriptorSet::GetDesiredIndex(bindings[i]);
 
         if (i == 0) {
@@ -736,9 +736,9 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         bind_point,
         pipeline->layout,
         binding_index,
-        static_cast<UInt32>(num_descriptor_sets),
+        static_cast<uint32>(num_descriptor_sets),
         descriptor_sets_buffer,
-        static_cast<UInt32>(num_offsets),
+        static_cast<uint32>(num_offsets),
         offsets
     );
 }

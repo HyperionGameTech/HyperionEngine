@@ -7,55 +7,55 @@
 namespace hyperion {
 
 template <>
-const Vec4<Int> math::detail::Vec4<Int>::zero = Vec4<Int>(0);
+const Vec4<int> math::detail::Vec4<int>::zero = Vec4<int>(0);
 template <>
-const Vec4<Int> math::detail::Vec4<Int>::one = Vec4<Int>(1);
+const Vec4<int> math::detail::Vec4<int>::one = Vec4<int>(1);
 
 template <>
-const Vec4<UInt> math::detail::Vec4<UInt>::zero = Vec4<UInt>(0);
+const Vec4<uint> math::detail::Vec4<uint>::zero = Vec4<uint>(0);
 template <>
-const Vec4<UInt> math::detail::Vec4<UInt>::one = Vec4<UInt>(1);
+const Vec4<uint> math::detail::Vec4<uint>::one = Vec4<uint>(1);
 
-const Vec4<Float> math::detail::Vec4<Float>::zero = Vec4<Float>(0.0f);
-const Vec4<Float> math::detail::Vec4<Float>::one = Vec4<Float>(1.0f);
+const Vec4<float> math::detail::Vec4<float>::zero = Vec4<float>(0.0f);
+const Vec4<float> math::detail::Vec4<float>::one = Vec4<float>(1.0f);
 
 
 
 template<>
-Int math::detail::Vec4<Int>::Max() const
+int math::detail::Vec4<int>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
 }
 
 template<>
-Int math::detail::Vec4<Int>::Min() const
+int math::detail::Vec4<int>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
 }
 
 template<>
-UInt math::detail::Vec4<UInt>::Max() const
+uint math::detail::Vec4<uint>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
 }
 
 template<>
-UInt math::detail::Vec4<UInt>::Min() const
+uint math::detail::Vec4<uint>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
 }
 
-Float math::detail::Vec4<Float>::Max() const
+float math::detail::Vec4<float>::Max() const
 {
     return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
 }
 
-Float math::detail::Vec4<Float>::Min() const
+float math::detail::Vec4<float>::Min() const
 {
     return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
 }
 
-Float math::detail::Vec4<Float>::DistanceSquared(const Vec4 &other) const
+float math::detail::Vec4<float>::DistanceSquared(const Vec4 &other) const
 {
     float dx = x - other.x;
     float dy = y - other.y;
@@ -65,27 +65,27 @@ Float math::detail::Vec4<Float>::DistanceSquared(const Vec4 &other) const
 }
 
 /* Euclidean distance */
-Float math::detail::Vec4<Float>::Distance(const Vec4 &other) const
+float math::detail::Vec4<float>::Distance(const Vec4 &other) const
 {
     return MathUtil::Sqrt(DistanceSquared(other));
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Normalized() const
+Vec4<float> math::detail::Vec4<float>::Normalized() const
 {
     return *this / MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec4<Float> &math::detail::Vec4<Float>::Normalize()
+Vec4<float> &math::detail::Vec4<float>::Normalize()
 {
     return *this /= MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec4<Float> &math::detail::Vec4<Float>::Rotate(const Vec3<Float> &axis, Float radians)
+Vec4<float> &math::detail::Vec4<float>::Rotate(const Vec3<float> &axis, float radians)
 {
     return (*this) = Matrix4::Rotation(axis, radians) * (*this);
 }
 
-Vec4<Float> &math::detail::Vec4<Float>::Lerp(const Vec4<Float> &to, Float amt)
+Vec4<float> &math::detail::Vec4<float>::Lerp(const Vec4<float> &to, float amt)
 {
     x = MathUtil::Lerp(x, to.x, amt);
     y = MathUtil::Lerp(y, to.y, amt);
@@ -95,13 +95,13 @@ Vec4<Float> &math::detail::Vec4<Float>::Lerp(const Vec4<Float> &to, Float amt)
     return *this;
 }
 
-Float math::detail::Vec4<Float>::Dot(const Vec4<Float> &other) const
+float math::detail::Vec4<float>::Dot(const Vec4<float> &other) const
 {
     return x * other.x + y * other.y + z * other.z + w * other.w;
 }
 
 template <>
-Vec4<Int> math::detail::Vec4<Int>::Abs(const Vec4<Int> &vec)
+Vec4<int> math::detail::Vec4<int>::Abs(const Vec4<int> &vec)
 {
     return {
         MathUtil::Abs(vec.x),
@@ -112,7 +112,7 @@ Vec4<Int> math::detail::Vec4<Int>::Abs(const Vec4<Int> &vec)
 }
 
 template <>
-Vec4<Int> math::detail::Vec4<Int>::Min(const Vec4<Int> &a, const Vec4<Int> &b)
+Vec4<int> math::detail::Vec4<int>::Min(const Vec4<int> &a, const Vec4<int> &b)
 {
     return {
         MathUtil::Min(a.x, b.x),
@@ -123,7 +123,7 @@ Vec4<Int> math::detail::Vec4<Int>::Min(const Vec4<Int> &a, const Vec4<Int> &b)
 }
 
 template <>
-Vec4<Int> math::detail::Vec4<Int>::Max(const Vec4<Int> &a, const Vec4<Int> &b)
+Vec4<int> math::detail::Vec4<int>::Max(const Vec4<int> &a, const Vec4<int> &b)
 {
     return {
         MathUtil::Max(a.x, b.x),
@@ -134,7 +134,7 @@ Vec4<Int> math::detail::Vec4<Int>::Max(const Vec4<Int> &a, const Vec4<Int> &b)
 }
 
 template <>
-Vec4<UInt> math::detail::Vec4<UInt>::Abs(const Vec4<UInt> &vec)
+Vec4<uint> math::detail::Vec4<uint>::Abs(const Vec4<uint> &vec)
 {
     return {
         MathUtil::Abs(vec.x),
@@ -145,7 +145,7 @@ Vec4<UInt> math::detail::Vec4<UInt>::Abs(const Vec4<UInt> &vec)
 }
 
 template <>
-Vec4<UInt> math::detail::Vec4<UInt>::Min(const Vec4<UInt> &a, const Vec4<UInt> &b)
+Vec4<uint> math::detail::Vec4<uint>::Min(const Vec4<uint> &a, const Vec4<uint> &b)
 {
     return {
         MathUtil::Min(a.x, b.x),
@@ -156,7 +156,7 @@ Vec4<UInt> math::detail::Vec4<UInt>::Min(const Vec4<UInt> &a, const Vec4<UInt> &
 }
 
 template <>
-Vec4<UInt> math::detail::Vec4<UInt>::Max(const Vec4<UInt> &a, const Vec4<UInt> &b)
+Vec4<uint> math::detail::Vec4<uint>::Max(const Vec4<uint> &a, const Vec4<uint> &b)
 {
     return {
         MathUtil::Max(a.x, b.x),
@@ -166,7 +166,7 @@ Vec4<UInt> math::detail::Vec4<UInt>::Max(const Vec4<UInt> &a, const Vec4<UInt> &
     };
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Abs(const Vec4<Float> &vec)
+Vec4<float> math::detail::Vec4<float>::Abs(const Vec4<float> &vec)
 {
     return {
         MathUtil::Abs(vec.x),
@@ -176,7 +176,7 @@ Vec4<Float> math::detail::Vec4<Float>::Abs(const Vec4<Float> &vec)
     };
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Round(const Vec4<Float> &vec)
+Vec4<float> math::detail::Vec4<float>::Round(const Vec4<float> &vec)
 {
     return {
         MathUtil::Round(vec.x),
@@ -186,12 +186,12 @@ Vec4<Float> math::detail::Vec4<Float>::Round(const Vec4<Float> &vec)
     };
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Clamp(const Vec4<Float> &vec, Float min_value, Float max_value)
+Vec4<float> math::detail::Vec4<float>::Clamp(const Vec4<float> &vec, float min_value, float max_value)
 {
     return Max(min_value, Min(vec, max_value));
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Min(const Vec4<Float> &a, const Vec4<Float> &b)
+Vec4<float> math::detail::Vec4<float>::Min(const Vec4<float> &a, const Vec4<float> &b)
 {
     return {
         MathUtil::Min(a.x, b.x),
@@ -201,7 +201,7 @@ Vec4<Float> math::detail::Vec4<Float>::Min(const Vec4<Float> &a, const Vec4<Floa
     };
 }
 
-Vec4<Float> math::detail::Vec4<Float>::Max(const Vec4<Float> &a, const Vec4<Float> &b)
+Vec4<float> math::detail::Vec4<float>::Max(const Vec4<float> &a, const Vec4<float> &b)
 {
     return {
         MathUtil::Max(a.x, b.x),
@@ -211,7 +211,7 @@ Vec4<Float> math::detail::Vec4<Float>::Max(const Vec4<Float> &a, const Vec4<Floa
     };
 }
 
-Vec4<Float> math::detail::Vec4<Float>::operator*(const Matrix4 &mat) const
+Vec4<float> math::detail::Vec4<float>::operator*(const Matrix4 &mat) const
 {
     return {
         x * mat.values[0] + y * mat.values[4] + z * mat.values[8]  + w * mat.values[12],
@@ -221,19 +221,19 @@ Vec4<Float> math::detail::Vec4<Float>::operator*(const Matrix4 &mat) const
     };
 }
 
-std::ostream &operator<<(std::ostream &out, const Vec4<Float> &vec) // output
+std::ostream &operator<<(std::ostream &out, const Vec4<float> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << ", " << vec.w << "]";
     return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const Vec4<Int> &vec) // output
+std::ostream &operator<<(std::ostream &out, const Vec4<int> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << ", " << vec.w << "]";
     return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const Vec4<UInt> &vec) // output
+std::ostream &operator<<(std::ostream &out, const Vec4<uint> &vec) // output
 {
     out << "[" << vec.x << ", " << vec.y << ", " << vec.z << ", " << vec.w << "]";
     return out;

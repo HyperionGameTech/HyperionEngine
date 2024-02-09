@@ -54,10 +54,10 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
 {
     Octree &octree = entity_manager.GetScene()->GetOctree();
 
-    const UInt8 visibility_cursor = octree.LoadVisibilityCursor();
+    const uint8 visibility_cursor = octree.LoadVisibilityCursor();
 
     for (auto [entity_id, visibility_state_component, bounding_box_component] : entity_manager.GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>()) {
-        Bool needs_octree_update = false;
+        bool needs_octree_update = false;
         
         if (visibility_state_component.octant_id == OctantID::invalid) {
             

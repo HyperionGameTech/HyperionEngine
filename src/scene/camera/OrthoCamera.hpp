@@ -8,7 +8,7 @@ class OrthoCameraController : public CameraController
 {
 public:
     OrthoCameraController();
-    OrthoCameraController(Float left, Float right, Float bottom, Float top, Float _near, Float _far);
+    OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far);
     virtual ~OrthoCameraController() override = default;
 
     virtual void OnAdded(Camera *camera) override;
@@ -18,7 +18,7 @@ public:
     virtual void UpdateProjectionMatrix() override;
 
 protected:
-    Float m_left, m_right,
+    float m_left, m_right,
         m_bottom, m_top,
         m_near, m_far;
 };

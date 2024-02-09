@@ -41,7 +41,7 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
                 DebugLog(
                     LogType::Warn,
                     "Light type %u not supported for shadow mapping\n",
-                    static_cast<UInt32>(light_component.light->GetType())
+                    static_cast<uint32>(light_component.light->GetType())
                 );
 
                 break;

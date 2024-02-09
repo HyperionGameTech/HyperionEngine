@@ -51,9 +51,9 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
         g_engine->GetRenderData()->lights.Set(
             light.GetID().ToIndex(),
             LightShaderData {
-                .light_id           = UInt32(draw_proxy.id),
-                .light_type         = UInt32(draw_proxy.type),
-                .color_packed       = UInt32(draw_proxy.color),
+                .light_id           = uint32(draw_proxy.id),
+                .light_type         = uint32(draw_proxy.type),
+                .color_packed       = uint32(draw_proxy.color),
                 .radius             = draw_proxy.radius,
                 .falloff            = draw_proxy.falloff,
                 .shadow_map_index   = draw_proxy.shadow_map_index,
@@ -182,14 +182,14 @@ void Light::EnqueueRenderUpdates()
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-Bool Light::IsVisible(ID<Camera> camera_id) const
+bool Light::IsVisible(ID<Camera> camera_id) const
 {
     return m_visibility_bits.Test(camera_id.ToIndex());
 }
 
-void Light::SetIsVisible(ID<Camera> camera_id, Bool is_visible)
+void Light::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 {
-    const Bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
+    const bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
 
     m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
 

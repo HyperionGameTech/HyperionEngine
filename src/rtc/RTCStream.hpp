@@ -26,9 +26,9 @@ struct RTCStreamDestination
 
 struct RTCStreamParams
 {
-    UInt samples_per_second = 60;
+    uint samples_per_second = 60;
 
-    UInt GetSampleDuration() const
+    uint GetSampleDuration() const
     {
         return 1000 * 1000 / samples_per_second;
     }
@@ -57,7 +57,7 @@ public:
     const UniquePtr<RTCStreamEncoder> &GetEncoder() const
         { return m_encoder; }
 
-    UInt64 GetCurrentTimestamp() const
+    uint64 GetCurrentTimestamp() const
         { return m_timestamp; }
 
     virtual void SendSample(const RTCStreamDestination &destination);
@@ -69,7 +69,7 @@ protected:
     RTCStreamType               m_stream_type;
     UniquePtr<RTCStreamEncoder> m_encoder;
     RTCStreamParams             m_params;
-    UInt64                      m_timestamp;
+    uint64                      m_timestamp;
 };
 
 class NullRTCStream : public RTCStream

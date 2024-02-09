@@ -28,7 +28,7 @@ struct alignas(16) Vertex
         : num_indices(0),
           num_weights(0)
     {
-        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -39,7 +39,7 @@ struct alignas(16) Vertex
           num_indices(0),
           num_weights(0)
     {
-        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -51,7 +51,7 @@ struct alignas(16) Vertex
           num_indices(0),
           num_weights(0)
     {
-        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -64,7 +64,7 @@ struct alignas(16) Vertex
           num_indices(0),
           num_weights(0)
     {
-        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -122,11 +122,11 @@ struct alignas(16) Vertex
         hc.Add(num_indices);
         hc.Add(num_weights);
 
-        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             hc.Add(bone_indices[i]);
         }
 
-        for (UInt i = 0; i < MAX_BONE_WEIGHTS; i++) {
+        for (uint i = 0; i < MAX_BONE_WEIGHTS; i++) {
             hc.Add(bone_weights[i]);
         }
 
@@ -140,11 +140,11 @@ struct alignas(16) Vertex
     Vec2f                               texcoord0;
     Vec2f                               texcoord1;
 
-    FixedArray<Float, MAX_BONE_WEIGHTS> bone_weights;
-    FixedArray<UInt, MAX_BONE_INDICES>  bone_indices;
+    FixedArray<float, MAX_BONE_WEIGHTS> bone_weights;
+    FixedArray<uint, MAX_BONE_INDICES>  bone_indices;
 
-    UInt8                               num_indices;
-    UInt8                               num_weights;
+    uint8                               num_indices;
+    uint8                               num_weights;
 };
 
 Vertex operator*(const Matrix4 &mat, const Vertex &vertex);

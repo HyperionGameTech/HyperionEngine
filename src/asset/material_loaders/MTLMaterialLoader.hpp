@@ -32,7 +32,7 @@ public:
 
         struct ParameterDef
         {
-            FixedArray<Float, 4> values;
+            FixedArray<float, 4> values;
         };
 
         struct MaterialDef

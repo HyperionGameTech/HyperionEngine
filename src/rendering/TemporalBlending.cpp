@@ -28,7 +28,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : renderer::RenderComm
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(g_engine->GetGPUDevice()));
         }
 
@@ -47,7 +47,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : renderer::RenderComma
 
     virtual Result operator()()
     {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef &descriptor_set = descriptor_sets[frame_index];
             AssertThrow(descriptor_set.IsValid());
                 
@@ -132,7 +132,7 @@ void TemporalBlending::Destroy()
 
 void TemporalBlending::CreateImageOutputs()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto &image_output = m_image_outputs[frame_index];
 
         image_output.image = MakeRenderObject<Image>(StorageImage(
@@ -151,7 +151,7 @@ void TemporalBlending::CreateImageOutputs()
 
 void TemporalBlending::CreateDescriptorSets()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         if (m_input_framebuffer) {
@@ -228,15 +228,15 @@ void TemporalBlending::CreateComputePipelines()
         shader_properties.Set("OUTPUT_RGBA32F");
         break;
     default:
-        AssertThrowMsg(false, "Unsupported format for temporal blending: %u\n", UInt(m_image_format));
+        AssertThrowMsg(false, "Unsupported format for temporal blending: %u\n", uint(m_image_format));
 
         break;
     }
 
     static const String feedback_strings[] = { "LOW", "MEDIUM", "HIGH" };
 
-    shader_properties.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(UInt(m_technique)));
-    shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(UInt(m_feedback), std::size(feedback_strings) - 1)]);
+    shader_properties.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(uint(m_technique)));
+    shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(uint(m_feedback), std::size(feedback_strings) - 1)]);
 
     m_perform_blending = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), shader_properties),
@@ -254,8 +254,8 @@ void TemporalBlending::Render(Frame *frame)
     const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
 
     struct alignas(128) {
-        ShaderVec2<UInt32> output_dimensions;
-        ShaderVec2<UInt32> depth_texture_dimensions;
+        ShaderVec2<uint32> output_dimensions;
+        ShaderVec2<uint32> depth_texture_dimensions;
     } push_constants;
 
     push_constants.output_dimensions = Extent2D(extent);

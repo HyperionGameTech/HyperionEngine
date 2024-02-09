@@ -151,7 +151,7 @@ static inline bool IsDescriptorTypeDynamicBuffer(DescriptorType type)
 
 /* Convenience descriptor classes */
 
-enum DescriptorSlot : UInt32
+enum DescriptorSlot : uint32
 {
     DESCRIPTOR_SLOT_NONE,
     DESCRIPTOR_SLOT_SRV,
@@ -166,14 +166,14 @@ enum DescriptorSlot : UInt32
 struct DescriptorDeclaration
 {
     DescriptorSlot  slot   = DESCRIPTOR_SLOT_NONE;
-    UInt            index  = ~0u;
+    uint            index  = ~0u;
     Name            name   = Name::invalid;
-    Bool            is_dynamic = false;
+    bool            is_dynamic = false;
 };
 
 struct DescriptorSetDeclaration
 {
-    UInt set_index = ~0u;
+    uint set_index = ~0u;
     Name name = Name::invalid;
     FixedArray<
         Array<DescriptorDeclaration>,
@@ -182,7 +182,7 @@ struct DescriptorSetDeclaration
 
     DescriptorSetDeclaration()                                                      = default;
 
-    DescriptorSetDeclaration(UInt set_index, Name name)
+    DescriptorSetDeclaration(uint set_index, Name name)
         : set_index(set_index),
           name(name)
     {
@@ -198,25 +198,25 @@ struct DescriptorSetDeclaration
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
-        return slots[UInt(slot) - 1];
+        return slots[uint(slot) - 1];
     }
 
     const Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot) const
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
-        return slots[UInt(slot) - 1];
+        return slots[uint(slot) - 1];
     }
 
-    void AddDescriptor(DescriptorSlot slot, Name name, Bool is_dynamic = false)
+    void AddDescriptor(DescriptorSlot slot, Name name, bool is_dynamic = false)
     {
         DebugLog(LogType::Debug, "Add descriptor to slot %u with name %s (%u), dynamic: %d\n", slot, name.LookupString(), name.GetHashCode().Value(), is_dynamic);
 
         AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
-        slots[UInt(slot) - 1].PushBack(DescriptorDeclaration {
+        slots[uint(slot) - 1].PushBack(DescriptorDeclaration {
             .slot       = slot,
-            .index      = UInt(slots[UInt(slot) - 1].Size()),
+            .index      = uint(slots[uint(slot) - 1].Size()),
             .name       = name,
             .is_dynamic = is_dynamic
         });
@@ -224,7 +224,7 @@ struct DescriptorSetDeclaration
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
         Returns -1 if not found */
-    UInt CalculateFlatIndex(DescriptorSlot slot, Name name) const;
+    uint CalculateFlatIndex(DescriptorSlot slot, Name name) const;
 
     DescriptorDeclaration *FindDescriptorDeclaration(Name name) const;
 };
@@ -249,7 +249,7 @@ public:
 
     struct DeclareSet
     {
-        DeclareSet(DescriptorTable *table, UInt set_index, Name name)
+        DeclareSet(DescriptorTable *table, uint set_index, Name name)
         {
             AssertThrow(table != nullptr);
 
@@ -266,7 +266,7 @@ public:
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(DescriptorTable *table, UInt set_index, DescriptorSlot slot_type, UInt index, Name name)
+        DeclareDescriptor(DescriptorTable *table, uint set_index, DescriptorSlot slot_type, uint index, Name name)
         {
             AssertThrow(table != nullptr);
             AssertThrow(set_index < table->declarations.Size());
@@ -275,15 +275,15 @@ public:
             AssertThrow(decl.set_index == set_index);
             AssertThrow(slot_type > 0 && slot_type < decl.slots.Size());
 
-            if (index >= decl.slots[UInt(slot_type) - 1].Size()) {
-                decl.slots[UInt(slot_type) - 1].Resize(index + 1);
+            if (index >= decl.slots[uint(slot_type) - 1].Size()) {
+                decl.slots[uint(slot_type) - 1].Resize(index + 1);
             }
 
             DescriptorDeclaration descriptor_decl;
             descriptor_decl.index = index;
             descriptor_decl.slot = slot_type;
             descriptor_decl.name = name;
-            decl.slots[UInt(slot_type) - 1][index] = std::move(descriptor_decl);
+            decl.slots[uint(slot_type) - 1][index] = std::move(descriptor_decl);
         }
     };
 };
@@ -320,7 +320,7 @@ namespace renderer {
     class class_name : public Descriptor { \
     public: \
         class_name(\
-            UInt binding \
+            uint binding \
         ) : Descriptor(binding, descriptor_type) {} \
     }
 

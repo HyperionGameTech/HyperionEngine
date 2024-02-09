@@ -30,7 +30,7 @@ namespace hyperion::v2 {
 class EncoderDataQueue
 {
 public:
-    static constexpr UInt max_queue_size = 5;
+    static constexpr uint max_queue_size = 5;
 
     EncoderDataQueue()                                              = default;
     EncoderDataQueue(const EncoderDataQueue &other)                 = delete;
@@ -43,7 +43,7 @@ public:
     {
         std::lock_guard guard(m_mutex);
 
-        if constexpr (max_queue_size != UInt(-1)) {
+        if constexpr (max_queue_size != uint(-1)) {
             while (m_queue.Size() >= max_queue_size) {
                 m_queue.Pop();
                 m_size.Decrement(1, MemoryOrder::RELAXED);
@@ -65,12 +65,12 @@ public:
     }
 
     HYP_FORCE_INLINE
-    UInt Size() const
+    uint Size() const
         { return m_size.Get(MemoryOrder::RELAXED); }
 
 private:
     Queue<ByteBuffer>  m_queue;
-    AtomicVar<UInt>    m_size;
+    AtomicVar<uint>    m_size;
     std::mutex         m_mutex;
 };
 
@@ -103,11 +103,11 @@ struct GStreamerUserData
     EncoderDataQueue    *in_queue;
     EncoderDataQueue    *out_queue;
 
-    UInt                source_id;
+    uint                source_id;
     GSourceFunc         push_data_callback;
 
-    UInt64              timestamp;
-    Double              sample_duration;
+    uint64              timestamp;
+    double              sample_duration;
 };
 
 class GStreamerThread : public TaskThread
@@ -410,13 +410,13 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
         
         SizeType i = 0;
 
-        UInt8 start_code_length = 0;
+        uint8 start_code_length = 0;
 
-        union { UByte start_code_bytes[4]; UInt32 start_code; };
+        union { ubyte start_code_bytes[4]; uint32 start_code; };
         byte_buffer.Read(i, 4, &start_code_bytes[0]);
         i += 4;
 
-        UByte nal_header = 0x0;
+        ubyte nal_header = 0x0;
 
         if (start_code_bytes[0] == 0x0 && start_code_bytes[1] == 0x0 && start_code_bytes[2] == 0x0 && start_code_bytes[3] == 0x1) {
             start_code_length = 4;
@@ -437,8 +437,8 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
             );
         }
 
-        const UInt32 nal_ref_idc = (nal_header >> 5) & 0x03;
-        const UInt32 nal_unit_type = nal_header & 0x1F;
+        const uint32 nal_ref_idc = (nal_header >> 5) & 0x03;
+        const uint32 nal_unit_type = nal_header & 0x1F;
 
         // DebugLog(LogType::Debug, "Start code bytes: %x %x %x %x\tNAL header: %x\tRef idc: %u\tUnit Type: %u\n",
         //     start_code_bytes[0], start_code_bytes[1], start_code_bytes[2], start_code_bytes[3],

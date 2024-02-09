@@ -41,9 +41,9 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : renderer::RenderCommand
 
         struct alignas(256) AlignedBuffer
         {
-            ShaderVec4<Int32> sobol_256spp_256d[256 * 256 / 4];
-            ShaderVec4<Int32> scrambling_tile[128 * 128 * 8 / 4];
-            ShaderVec4<Int32> ranking_tile[128 * 128 * 8 / 4];
+            ShaderVec4<int32> sobol_256spp_256d[256 * 256 / 4];
+            ShaderVec4<int32> scrambling_tile[128 * 128 * 8 / 4];
+            ShaderVec4<int32> ranking_tile[128 * 128 * 8 / 4];
         };
 
         static_assert(sizeof(AlignedBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
@@ -139,7 +139,7 @@ void DeferredPass::Create()
     FullScreenPass::CreatePipeline(renderable_attributes);
 }
 
-void DeferredPass::Record(UInt frame_index)
+void DeferredPass::Record(uint frame_index)
 {
     if (m_is_indirect_pass) {
         FullScreenPass::Record(frame_index);
@@ -163,8 +163,8 @@ void DeferredPass::Record(UInt frame_index)
 
             const auto &scene_binding = g_engine->GetRenderState().GetScene();
 
-            const UInt scene_index = scene_binding.id.ToIndex();
-            const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+            const uint scene_index = scene_binding.id.ToIndex();
+            const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
                 g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -197,7 +197,7 @@ void DeferredPass::Record(UInt frame_index)
                     // We'll use the EnvProbe slot to bind whatever EnvProbe
                     // is used for the light's shadow map (if applicable)
 
-                    UInt shadow_probe_index = 0;
+                    uint shadow_probe_index = 0;
 
                     if (light.shadow_map_index != ~0u) {
                         if (light.type == LightType::POINT) {
@@ -292,7 +292,7 @@ void EnvGridPass::Create()
     FullScreenPass::CreatePipeline(renderable_attributes);
 }
 
-void EnvGridPass::Record(UInt frame_index)
+void EnvGridPass::Record(uint frame_index)
 {
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
@@ -304,7 +304,7 @@ void EnvGridPass::Record(UInt frame_index)
             m_render_group->GetPipeline()->Bind(cmd);
 
             const auto &scene_binding = g_engine->render_state.GetScene();
-            const UInt scene_index = scene_binding.id.ToIndex();
+            const uint scene_index = scene_binding.id.ToIndex();
 
             cmd->BindDescriptorSet(
                 g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -381,7 +381,7 @@ void ReflectionProbePass::Create()
     FullScreenPass::CreatePipeline(renderable_attributes);
 }
 
-void ReflectionProbePass::Record(UInt frame_index)
+void ReflectionProbePass::Record(uint frame_index)
 {
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
@@ -393,8 +393,8 @@ void ReflectionProbePass::Record(UInt frame_index)
             m_render_group->GetPipeline()->Bind(cmd);
 
             const auto &scene_binding = g_engine->GetRenderState().GetScene();
-            const UInt scene_index = scene_binding.id.ToIndex();
-            const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+            const uint scene_index = scene_binding.id.ToIndex();
+            const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
                 g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -405,7 +405,7 @@ void ReflectionProbePass::Record(UInt frame_index)
             
             // Render each reflection probe
 
-            UInt counter = 0;
+            uint counter = 0;
 
             for (const auto &it : g_engine->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
                 if (counter >= max_bound_reflection_probes) {
@@ -475,7 +475,7 @@ void DeferredRenderer::Create()
     m_indirect_pass.Create();
     m_direct_pass.Create();
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_opaque_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
         m_translucent_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
     }
@@ -525,17 +525,17 @@ void DeferredRenderer::Create()
 void DeferredRenderer::CreateDescriptorSets()
 {
     // set global gbuffer data
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
         
         { // add gbuffer textures
             auto *gbuffer_textures = descriptor_set_globals->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::GBUFFER_TEXTURES);
 
-            UInt element_index = 0u;
+            uint element_index = 0u;
 
             // not including depth texture here
-            for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+            for (uint attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
                 gbuffer_textures->SetElementSRV(element_index++, m_opaque_fbo->GetAttachmentUsages()[attachment_index]->GetImageView());
             }
 
@@ -666,10 +666,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     Threads::AssertOnThread(THREAD_RENDER);
 
     CommandBuffer *primary = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     const auto &scene_binding = g_engine->render_state.GetScene();
-    const UInt scene_index = scene_binding.id.ToIndex();
+    const uint scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
     const bool do_gaussian_splatting = false;//environment && environment->IsReady();
@@ -688,7 +688,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         ApplyCameraJitter();
     }
 
-    struct alignas(128) { UInt32 flags; } deferred_data;
+    struct alignas(128) { uint32 flags; } deferred_data;
 
     Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
 
@@ -840,9 +840,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     {
         struct alignas(128) {
-            ShaderVec2<UInt32>  image_dimensions;
-            UInt32              _pad0, _pad1;
-            UInt32              deferred_flags;
+            ShaderVec2<uint32>  image_dimensions;
+            uint32              _pad0, _pad1;
+            uint32              deferred_flags;
         } deferred_combine_constants;
 
         deferred_combine_constants.image_dimensions = {
@@ -893,7 +893,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
     CommandBuffer *primary = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
+    const uint frame_index = frame->GetFrameIndex();
 
     const ImageRef &mipmapped_result = m_mip_chain->GetImage();
     AssertThrow(mipmapped_result.IsValid());
@@ -929,9 +929,9 @@ void DeferredRenderer::ApplyCameraJitter()
     const ID<Camera> camera_id = g_engine->GetRenderState().GetCamera().id;
     const CameraDrawProxy &camera = g_engine->GetRenderState().GetCamera().camera;
 
-    const UInt frame_counter = g_engine->GetRenderState().frame_counter + 1;
+    const uint frame_counter = g_engine->GetRenderState().frame_counter + 1;
 
-    static const Float jitter_scale = 0.25f;
+    static const float jitter_scale = 0.25f;
 
     if (camera.projection[3][3] < MathUtil::epsilon_f) {
         Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);
@@ -950,9 +950,9 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
-    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
-    for (UInt index = 0; index < num_render_lists; index++) {
+    for (uint index = 0; index < num_render_lists; index++) {
         g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
@@ -963,9 +963,9 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
-    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
-    for (UInt index = 0; index < num_render_lists; index++) {
+    for (uint index = 0; index < num_render_lists; index++) {
         g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,
@@ -977,9 +977,9 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
-    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
-    for (UInt index = 0; index < num_render_lists; index++) {
+    for (uint index = 0; index < num_render_lists; index++) {
         g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,

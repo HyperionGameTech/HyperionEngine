@@ -21,7 +21,7 @@ namespace fbom {
 class FBOMObject;
 } // namespace fbom
 
-using ControllerID = UInt;
+using ControllerID = uint;
 
 class Node;
 class Entity;
@@ -50,7 +50,7 @@ class Controller
 
 protected:
 public:
-    Controller(Bool receives_update = true);
+    Controller(bool receives_update = true);
     Controller(const Controller &other) = delete;
     Controller &operator=(const Controller &other) = delete;
 
@@ -73,7 +73,7 @@ public:
     void SetOwner(Entity *owner)
         { m_owner = owner; }
 
-    Bool ReceivesUpdate() const
+    bool ReceivesUpdate() const
         { return m_receives_update; }
 
     virtual void OnAdded();
@@ -115,7 +115,7 @@ public:
 private:
     String m_name;
     Entity *m_owner;
-    Bool m_receives_update;
+    bool m_receives_update;
 };
 
 class ControllerSet
@@ -180,20 +180,20 @@ public:
         return static_cast<T *>(Get(id));
     }
 
-    Bool Has(TypeID type_id) const
+    bool Has(TypeID type_id) const
     {
         return m_map.Find(type_id) != m_map.End();
     }
 
     template <class T>
-    Bool Has() const
+    bool Has() const
     {
         const auto id = TypeID::ForType<T>();
 
         return Has(id);
     }
     
-    Bool Remove(TypeID type_id)
+    bool Remove(TypeID type_id)
     {
         const auto it = m_map.Find(type_id);
 
@@ -207,7 +207,7 @@ public:
     }
     
     template <class T>
-    Bool Remove()
+    bool Remove()
     {
         const auto id = TypeID::ForType<T>();
 

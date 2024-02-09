@@ -20,7 +20,7 @@ ClassHolder::ClassHolder()
 {
 }
 
-Class *ClassHolder::GetOrCreateClassObject(Int32 type_hash, const char *type_name)
+Class *ClassHolder::GetOrCreateClassObject(int32 type_hash, const char *type_name)
 {
     auto it = m_class_objects.Find(type_hash);
 

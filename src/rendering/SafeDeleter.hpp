@@ -28,7 +28,7 @@ namespace hyperion::v2 {
 using renderer::Device;
 using renderer::GPUImageMemory;
 
-using HandleDeletionMask = UInt32;
+using HandleDeletionMask = uint32;
 
 enum HandleDeletionMaskBits : HandleDeletionMask
 {
@@ -45,7 +45,7 @@ class SafeDeleter
 {
 
 public:
-    static constexpr UInt8 initial_cycles_remaining = UInt8(max_frames_in_flight + 1);
+    static constexpr uint8 initial_cycles_remaining = uint8(max_frames_in_flight + 1);
 
     void SafeReleaseHandle(Handle<Texture> &&resource)
     {
@@ -91,9 +91,9 @@ public:
     }
     
     template <class T>
-    struct HandleDeletionEntry : private KeyValuePair<Handle<T>, UInt8>
+    struct HandleDeletionEntry : private KeyValuePair<Handle<T>, uint8>
     {
-        using Base = KeyValuePair<Handle<T>, UInt8>;
+        using Base = KeyValuePair<Handle<T>, uint8>;
 
         using Base::first;
         using Base::second;
@@ -122,10 +122,10 @@ public:
 
         ~HandleDeletionEntry() = default;
 
-        Bool operator==(const HandleDeletionEntry &other) const
+        bool operator==(const HandleDeletionEntry &other) const
             { return Base::operator==(other); }
 
-        Bool operator<(const HandleDeletionEntry &other) const
+        bool operator<(const HandleDeletionEntry &other) const
             { return Base::operator<(other); }
     
         void PerformDeletion(bool force = false)
@@ -138,9 +138,9 @@ public:
     };
 
     // stores as UniquePtr<void> (type erasure) and a function pointer to destroy it
-    struct BufferOrImageDeletionEntry : public KeyValuePair<UniquePtr<void>, UInt8>
+    struct BufferOrImageDeletionEntry : public KeyValuePair<UniquePtr<void>, uint8>
     {
-        using Base = KeyValuePair<UniquePtr<void>, UInt8>;
+        using Base = KeyValuePair<UniquePtr<void>, uint8>;
 
         renderer::Result (*destroy_buffer_fn)(void *ptr, Device *device);
 
@@ -178,7 +178,7 @@ public:
 
         ~BufferOrImageDeletionEntry() = default;
 
-        void PerformDeletion(Bool force = false)
+        void PerformDeletion(bool force = false)
         {
             // cycle should be at zero
             AssertThrow(force || Base::second == 0u);
@@ -276,7 +276,7 @@ public:
 
 private:
     template <class T>
-    void SafeReleaseHandleImpl(Handle<T> &&resource, UInt32 mask)
+    void SafeReleaseHandleImpl(Handle<T> &&resource, uint32 mask)
     {
         if (!resource) {
             return;

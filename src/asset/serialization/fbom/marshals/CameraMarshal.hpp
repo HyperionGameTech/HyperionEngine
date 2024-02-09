@@ -24,14 +24,14 @@ public:
 
     virtual FBOMResult Serialize(const Camera &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("translation", FBOMData::FromVector3(in_object.GetTranslation()));
-        out.SetProperty("direction", FBOMData::FromVector3(in_object.GetDirection()));
-        out.SetProperty("up",FBOMData::FromVector3(in_object.GetUpVector()));
-        out.SetProperty("view_matrix", FBOMData::FromMatrix4(in_object.GetViewMatrix()));
-        out.SetProperty("projection_matrix", FBOMData::FromMatrix4(in_object.GetProjectionMatrix()));
-        out.SetProperty("view_projection_matrix", FBOMData::FromMatrix4(in_object.GetViewProjectionMatrix()));
-        out.SetProperty("width", FBOMData::FromUInt32(UInt32(in_object.GetWidth())));
-        out.SetProperty("height", FBOMData::FromUInt32(UInt32(in_object.GetHeight())));
+        out.SetProperty("translation", FBOMData::FromVec3f(in_object.GetTranslation()));
+        out.SetProperty("direction", FBOMData::FromVec3f(in_object.GetDirection()));
+        out.SetProperty("up",FBOMData::FromVec3f(in_object.GetUpVector()));
+        out.SetProperty("view_matrix", FBOMData::FromMat4(in_object.GetViewMatrix()));
+        out.SetProperty("projection_matrix", FBOMData::FromMat4(in_object.GetProjectionMatrix()));
+        out.SetProperty("view_projection_matrix", FBOMData::FromMat4(in_object.GetViewProjectionMatrix()));
+        out.SetProperty("width", FBOMData::FromUnsignedInt(uint32(in_object.GetWidth())));
+        out.SetProperty("height", FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
         out.SetProperty("near", FBOMData::FromFloat(in_object.GetNear()));
         out.SetProperty("far", FBOMData::FromFloat(in_object.GetFar()));
         out.SetProperty("frustum", FBOMData::FromArray(in_object.GetFrustum().GetPlanes()));
@@ -51,15 +51,15 @@ public:
 
         struct CameraParams
         {
-            Float _near, _far, fov;
-            Float left, right, bottom, top;
-            UInt32 width, height;
+            float _near, _far, fov;
+            float left, right, bottom, top;
+            uint32 width, height;
         } camera_params;
 
         Memory::MemSet(&camera_params, 0, sizeof(camera_params));
 
-        in.GetProperty("width").ReadUInt32(&camera_params.width);
-        in.GetProperty("height").ReadUInt32(&camera_params.height);
+        in.GetProperty("width").ReadUnsignedInt(&camera_params.width);
+        in.GetProperty("height").ReadUnsignedInt(&camera_params.height);
         in.GetProperty("near").ReadFloat(&camera_params._near);
         in.GetProperty("far").ReadFloat(&camera_params._far);
         in.GetProperty("fov").ReadFloat(&camera_params.fov);
@@ -99,9 +99,9 @@ public:
             (*camera_handle)->SetDirection(direction);
             (*camera_handle)->SetUpVector(up_vector);
             
-            in.GetProperty("view_matrix").ReadMatrix4(&(*camera_handle)->GetViewMatrix());
-            in.GetProperty("projection_matrix").ReadMatrix4(&(*camera_handle)->GetProjectionMatrix());
-            in.GetProperty("view_projection_matrix").ReadMatrix4(&(*camera_handle)->GetViewProjectionMatrix());
+            in.GetProperty("view_matrix").ReadMat4(&(*camera_handle)->GetViewMatrix());
+            in.GetProperty("projection_matrix").ReadMat4(&(*camera_handle)->GetProjectionMatrix());
+            in.GetProperty("view_projection_matrix").ReadMat4(&(*camera_handle)->GetViewProjectionMatrix());
         }
 
         { // frustum
@@ -109,7 +109,7 @@ public:
 
             in.GetProperty("frustum").ReadArrayElements(FBOMVec4f(), 6, &planes[0]);
 
-            for (UInt i = 0; i < std::size(planes); i++) {
+            for (uint i = 0; i < std::size(planes); i++) {
                 (*camera_handle)->GetFrustum().GetPlane(i) = planes[i];
             }
         }

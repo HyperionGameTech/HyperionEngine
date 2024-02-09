@@ -11,7 +11,7 @@ public:
     Entity();
     ~Entity() = default;
 
-    Bool IsReady() const;
+    bool IsReady() const;
     void Init();
 };
 

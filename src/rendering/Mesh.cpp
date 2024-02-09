@@ -16,13 +16,13 @@ using renderer::GPUBufferType;
 
 struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 {
-    Array<Float> vertex_data;
+    Array<float> vertex_data;
     Array<Mesh::Index> index_data;
     GPUBufferRef vbo;
     GPUBufferRef ibo;
 
     RENDER_COMMAND(UploadMeshData)(
-        const Array<Float> &vertex_data,
+        const Array<float> &vertex_data,
         const Array<Mesh::Index> &index_data,
         const GPUBufferRef &vbo,
         const GPUBufferRef &ibo
@@ -38,7 +38,7 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
         auto *instance = g_engine->GetGPUInstance();
         auto *device = g_engine->GetGPUDevice();
 
-        const SizeType packed_buffer_size = vertex_data.Size() * sizeof(Float);
+        const SizeType packed_buffer_size = vertex_data.Size() * sizeof(float);
         const SizeType packed_indices_size = index_data.Size() * sizeof(Mesh::Index);
 
         HYPERION_BUBBLE_ERRORS(vbo->Create(device, packed_buffer_size));
@@ -244,7 +244,7 @@ void Mesh::Init()
         }
     }
 
-    m_indices_count = UInt(m_indices.Size());
+    m_indices_count = uint(m_indices.Size());
 
     PUSH_RENDER_COMMAND(
         UploadMeshData,
@@ -286,15 +286,15 @@ void Mesh::SetIndices(Array<Index> indices)
         current_offset += (arg_size);                                                            \
     } while (0)
 
-Array<Float> Mesh::BuildVertexBuffer()
+Array<float> Mesh::BuildVertexBuffer()
 {
     const SizeType vertex_size = GetVertexAttributes().CalculateVertexSize();
 
-    Array<Float> packed_buffer;
+    Array<float> packed_buffer;
     packed_buffer.Resize(vertex_size * m_vertices.Size());
 
     /* Raw buffer that is used with our helper macro. */
-    Float *raw_buffer = packed_buffer.Data();
+    float *raw_buffer = packed_buffer.Data();
     SizeType current_offset = 0;
 
     for (SizeType i = 0; i < m_vertices.Size(); i++) {
@@ -335,7 +335,7 @@ Array<Float> Mesh::BuildVertexBuffer()
 
 #undef PACKED_SET_ATTR
 
-void Mesh::Render(CommandBuffer *cmd, UInt num_instances) const
+void Mesh::Render(CommandBuffer *cmd, uint num_instances) const
 {
     cmd->BindVertexBuffer(m_vbo);
     cmd->BindIndexBuffer(m_ibo);
@@ -346,7 +346,7 @@ void Mesh::Render(CommandBuffer *cmd, UInt num_instances) const
 void Mesh::RenderIndirect(
     CommandBuffer *cmd,
     const GPUBuffer *indirect_buffer,
-    UInt32 buffer_offset
+    uint32 buffer_offset
 ) const
 {
     cmd->BindVertexBuffer(m_vbo);
@@ -548,7 +548,7 @@ void Mesh::CalculateTangents()
         Vertex v[3];
         Vector2 uv[3];
 
-        for (UInt32 j = 0; j < count; j++) {
+        for (uint32 j = 0; j < count; j++) {
             v[j] = m_vertices[m_indices[i + j]];
             uv[j] = v[j].GetTexCoord0();
         }
@@ -562,7 +562,7 @@ void Mesh::CalculateTangents()
         const Vector2 edge1uv = uv[1] - uv[0];
         const Vector2 edge2uv = uv[2] - uv[0];
         
-        const Float cp = edge1uv.x * edge2uv.y - edge1uv.y * edge2uv.x;
+        const float cp = edge1uv.x * edge2uv.y - edge1uv.y * edge2uv.x;
 
         if (cp != 0.0f) {
             const float mul = 1.0f / cp;

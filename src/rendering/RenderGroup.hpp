@@ -62,7 +62,7 @@ class RendererProxy
     RendererProxy &operator=(const RendererProxy &other) = delete;
 
 public:
-    CommandBuffer *GetCommandBuffer(UInt frame_index);
+    CommandBuffer *GetCommandBuffer(uint frame_index);
     
     const GraphicsPipelineRef &GetGraphicsPipeline() const;
 
@@ -147,7 +147,7 @@ private:
 
     void BindDescriptorSets(
         CommandBuffer *command_buffer,
-        UInt scene_index
+        uint scene_index
     );
 
     GraphicsPipelineRef m_pipeline;
@@ -170,9 +170,9 @@ private:
     // multiple times in a single pass, only running into issues if you
     // try to call it more than num_async_rendering_command_buffers
     // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
-    UInt m_command_buffer_index = 0u;
+    uint m_command_buffer_index = 0u;
 
-    FlatMap<UInt, BufferTicket<EntityInstanceBatch>> m_entity_batches;
+    FlatMap<uint, BufferTicket<EntityInstanceBatch>> m_entity_batches;
 
     Array<EntityDrawData> m_entity_draw_datas;
 

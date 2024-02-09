@@ -23,40 +23,40 @@ public:
     {
         out.SetProperty("name", FBOMName(), in_object.GetName());
 
-        out.SetProperty("attributes.bucket", FBOMUnsignedInt(), UInt32(in_object.GetRenderAttributes().bucket));
-        out.SetProperty("attributes.flags", FBOMUnsignedInt(), UInt32(in_object.GetRenderAttributes().flags));
-        out.SetProperty("attributes.cull_mode", FBOMUnsignedInt(), UInt32(in_object.GetRenderAttributes().cull_faces));
-        out.SetProperty("attributes.fill_mode", FBOMUnsignedInt(), UInt32(in_object.GetRenderAttributes().fill_mode));
+        out.SetProperty("attributes.bucket", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().bucket));
+        out.SetProperty("attributes.flags", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags));
+        out.SetProperty("attributes.cull_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces));
+        out.SetProperty("attributes.fill_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode));
 
-        out.SetProperty("params.size", FBOMUnsignedInt(), UInt32(in_object.GetParameters().Size()));
+        out.SetProperty("params.size", FBOMUnsignedInt(), uint32(in_object.GetParameters().Size()));
 
         for (SizeType i = 0; i < in_object.GetParameters().Size(); i++) {
             const auto key_value = in_object.GetParameters().KeyValueAt(i);
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key_value.first)) + ".key",
+                String("params.") + String::ToString(uint(key_value.first)) + ".key",
                 FBOMUnsignedLong(),
                 key_value.first
             );
 
             out.SetProperty(
-                String("params.") + String::ToString(UInt(key_value.first)) + ".type",
+                String("params.") + String::ToString(uint(key_value.first)) + ".type",
                 FBOMUnsignedInt(),
                 key_value.second.type
             );
 
             if (key_value.second.IsIntType()) {
-                for (UInt j = 0; j < 4; j++) {
+                for (uint j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(uint(key_value.first)) + ".values[" + String::ToString(j) + "]",
                         FBOMInt(),
                         key_value.second.values.int_values[j]
                     );
                 }
             } else if (key_value.second.IsFloatType()) {
-                for (UInt j = 0; j < 4; j++) {
+                for (uint j = 0; j < 4; j++) {
                     out.SetProperty(
-                        String("params.") + String::ToString(UInt(key_value.first)) + ".values[" + String::ToString(j) + "]",
+                        String("params.") + String::ToString(uint(key_value.first)) + ".values[" + String::ToString(j) + "]",
                         FBOMFloat(),
                         key_value.second.values.float_values[j]
                     );
@@ -64,7 +64,7 @@ public:
             }
         }
 
-        UInt32 texture_keys[Material::max_textures];
+        uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
         for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
@@ -76,7 +76,7 @@ public:
                     return err;
                 }
 
-                texture_keys[texture_index++] = UInt32(key);
+                texture_keys[texture_index++] = uint32(key);
             }
         }
 
@@ -102,19 +102,19 @@ public:
         Material::ParameterTable parameters = Material::DefaultParameters();
         Material::TextureSet textures;
 
-        in.GetProperty("attributes.bucket").ReadUInt32(&attributes.bucket);
-        in.GetProperty("attributes.flags").ReadUInt32(&attributes.flags);
-        in.GetProperty("attributes.cull_mode").ReadUInt32(&attributes.cull_faces);
-        in.GetProperty("attributes.fill_mode").ReadUInt32(&attributes.fill_mode);
+        in.GetProperty("attributes.bucket").ReadUnsignedInt(&attributes.bucket);
+        in.GetProperty("attributes.flags").ReadUnsignedInt(&attributes.flags);
+        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&attributes.cull_faces);
+        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&attributes.fill_mode);
 
-        UInt32 num_parameters;
+        uint32 num_parameters;
 
         // load parameters
-        if (auto err = in.GetProperty("params.size").ReadUInt32(&num_parameters)) {
+        if (auto err = in.GetProperty("params.size").ReadUnsignedInt(&num_parameters)) {
             return err;
         }
 
-        for (UInt i = 0; i < num_parameters; i++) {
+        for (uint i = 0; i < num_parameters; i++) {
             const auto param_string = String("params.") + String::ToString(i);
 
             Material::MaterialKey key;
@@ -124,21 +124,21 @@ public:
                 continue;
             }
 
-            if (auto err = in.GetProperty(param_string + ".key").ReadUInt64(&key)) {
+            if (auto err = in.GetProperty(param_string + ".key").ReadUnsignedLong(&key)) {
                 continue;
             }
 
-            if (auto err = in.GetProperty(param_string + ".type").ReadUInt32(&param.type)) {
+            if (auto err = in.GetProperty(param_string + ".type").ReadUnsignedInt(&param.type)) {
                 continue;
             }
 
             if (param.IsIntType()) {
-                for (UInt j = 0; j < 4; j++) {
+                for (uint j = 0; j < 4; j++) {
                     in.GetProperty(param_string + ".values[" + String::ToString(j) + "]")
-                        .ReadInt32(&param.values.int_values[j]);
+                        .ReadInt(&param.values.int_values[j]);
                 }
             } else if (param.IsFloatType()) {
-                for (UInt j = 0; j < 4; j++) {
+                for (uint j = 0; j < 4; j++) {
                     in.GetProperty(param_string + ".values[" + String::ToString(j) + "]")
                         .ReadFloat(&param.values.float_values[j]);
                 }
@@ -147,14 +147,14 @@ public:
             parameters.Set(key, param);
         }
 
-        UInt32 texture_keys[Material::max_textures];
+        uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
         if (auto err = in.GetProperty("texture_keys").ReadArrayElements(FBOMUnsignedInt(), std::size(texture_keys), &texture_keys[0])) {
             return err;
         }
 
-        UInt texture_index = 0;
+        uint texture_index = 0;
 
         Handle<Shader> shader = g_shader_manager->GetOrCreate(
             HYP_NAME(Forward),

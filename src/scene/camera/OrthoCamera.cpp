@@ -10,7 +10,7 @@ OrthoCameraController::OrthoCameraController()
 {
 }
 
-OrthoCameraController::OrthoCameraController(Float left, Float right, Float bottom, Float top, Float _near, Float _far)
+OrthoCameraController::OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far)
     : CameraController(CameraType::ORTHOGRAPHIC),
       m_left(left),
       m_right(right),

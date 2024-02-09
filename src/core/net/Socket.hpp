@@ -36,7 +36,7 @@ enum SocketResultType
 class SocketServer;
 struct SocketServerImpl;
 
-using SocketProcArgument = Variant<String, ByteBuffer, Name, Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, float, double>;
+using SocketProcArgument = Variant<String, ByteBuffer, Name, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double>;
 
 class SocketConnection
 {
@@ -73,7 +73,7 @@ public:
 private:
     virtual void operator()(SocketServer *) override;
 
-    AtomicVar<Bool> m_is_running;
+    AtomicVar<bool> m_is_running;
 };
 
 class SocketClient : public SocketConnection

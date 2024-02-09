@@ -129,9 +129,9 @@ Handle<Mesh> MeshBuilder::Cube()
     return mesh;
 }
 
-Handle<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
+Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
 {
-    const Float step = 1.0f / static_cast<Float>(num_divisions);
+    const float step = 1.0f / static_cast<float>(num_divisions);
 
     static const Vector3 origins[6] = {
         Vector3(-1.0f, -1.0f, -1.0f),
@@ -163,20 +163,20 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
     Array<Vertex> vertices;
     Array<Mesh::Index> indices;
 
-    for (UInt face = 0; face < 6; face++) {
+    for (uint face = 0; face < 6; face++) {
         const Vector3 &origin = origins[face];
         const Vector3 &right = rights[face];
         const Vector3 &up = ups[face];
 
-        for (UInt j = 0; j < num_divisions + 1; j++) {
-            for (UInt i = 0; i < num_divisions + 1; i++) {
+        for (uint j = 0; j < num_divisions + 1; j++) {
+            for (uint i = 0; i < num_divisions + 1; i++) {
                 const Vector3 point = (origin + Vector3(step) * (Vector3(i) * right + Vector3(j) * up)).Normalized();
                 Vector3 position = point;
                 Vector3 normal = point;
 
                 const Vector2 uv(
-                    static_cast<Float>(j + (face * num_divisions)) / static_cast<Float>(num_divisions * 6),
-                    static_cast<Float>(i + (face * num_divisions)) / static_cast<Float>(num_divisions * 6)
+                    static_cast<float>(j + (face * num_divisions)) / static_cast<float>(num_divisions * 6),
+                    static_cast<float>(i + (face * num_divisions)) / static_cast<float>(num_divisions * 6)
                 );
 
                 vertices.PushBack(Vertex(position, uv));
@@ -184,19 +184,19 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
         }
     }
 
-    const UInt k = num_divisions + 1;
+    const uint k = num_divisions + 1;
 
-    for (UInt face = 0; face < 6; face++) {
-        for (UInt j = 0; j < num_divisions; j++) {
+    for (uint face = 0; face < 6; face++) {
+        for (uint j = 0; j < num_divisions; j++) {
             const bool is_bottom = j < (num_divisions / 2);
 
-            for (UInt i = 0; i < num_divisions; i++) {
+            for (uint i = 0; i < num_divisions; i++) {
                 const bool is_left = i < (num_divisions / 2);
 
-                const UInt a = (face * k + j) * k + i;
-                const UInt b = (face * k + j) * k + i + 1;
-                const UInt c = (face * k + j + 1) * k + i;
-                const UInt d = (face * k + j + 1) * k + i + 1;
+                const uint a = (face * k + j) * k + i;
+                const uint b = (face * k + j) * k + i + 1;
+                const uint c = (face * k + j + 1) * k + i;
+                const uint d = (face * k + j + 1) * k + i + 1;
 
                 if (is_bottom ^ is_left) {
                     indices.PushBack(a);
@@ -299,14 +299,14 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
     return Merge(a, b, Transform(), Transform());
 }
 
-MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Float voxel_size)
+MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
 {
     BoundingBox total_aabb = mesh->GetAABB();
     Vector3 total_aabb_dimensions = total_aabb.GetExtent();
 
-    UInt num_voxels_x = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.x / voxel_size);
-    UInt num_voxels_y = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.y / voxel_size);
-    UInt num_voxels_z = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.z / voxel_size);
+    uint num_voxels_x = MathUtil::Floor<float, uint>(total_aabb_dimensions.x / voxel_size);
+    uint num_voxels_y = MathUtil::Floor<float, uint>(total_aabb_dimensions.y / voxel_size);
+    uint num_voxels_z = MathUtil::Floor<float, uint>(total_aabb_dimensions.z / voxel_size);
 
     return Voxelize(mesh, Vec3u(num_voxels_x, num_voxels_y, num_voxels_z));
 }
@@ -315,7 +315,7 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_
 {
     BoundingBox mesh_aabb = mesh->GetAABB();
 
-    Float voxel_size = 1.0f / Float(voxel_grid_size.Max());
+    float voxel_size = 1.0f / float(voxel_grid_size.Max());
 
  // building out grid
     VoxelGrid grid;
@@ -332,10 +332,10 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_
 
     BoundingBox total_aabb;
 
-    for (UInt x = 0; x < voxel_grid_size.x; x++) {
-        for (UInt y = 0; y < voxel_grid_size.y; y++) {
-            for (UInt z = 0; z < voxel_grid_size.z; z++) {
-                UInt voxel_index = grid.GetIndex(x, y, z);
+    for (uint x = 0; x < voxel_grid_size.x; x++) {
+        for (uint y = 0; y < voxel_grid_size.y; y++) {
+            for (uint z = 0; z < voxel_grid_size.z; z++) {
+                uint voxel_index = grid.GetIndex(x, y, z);
 
                 AssertThrow(voxel_index < grid.voxels.Size());
 
@@ -356,7 +356,7 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_
 
     // const Vector3 ratio = (mesh_aabb.GetExtent() / total_aabb.GetExtent()).Normalize();
 
-    UInt num_filled_voxels = 0;
+    uint num_filled_voxels = 0;
 
     // filling in data
     const Array<Vertex> &vertices = mesh->GetVertices();
@@ -379,18 +379,18 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_
         AssertThrow(triangle_aabb.GetMin().Min() >= triangle_aabb.GetMin().Min());
         AssertThrow(triangle_aabb.GetMax().Max() <= triangle_aabb.GetMax().Max());
 
-        const UInt min_x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
-        const UInt min_y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
-        const UInt min_z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+        const uint min_x = MathUtil::Floor<float, uint>(MathUtil::Clamp(min_in_aabb.x * (float(voxel_grid_size.x) - 1.0f), 0.0f, float(voxel_grid_size.x) - 1.0f));
+        const uint min_y = MathUtil::Floor<float, uint>(MathUtil::Clamp(min_in_aabb.y * (float(voxel_grid_size.y) - 1.0f), 0.0f, float(voxel_grid_size.y) - 1.0f));
+        const uint min_z = MathUtil::Floor<float, uint>(MathUtil::Clamp(min_in_aabb.z * (float(voxel_grid_size.z) - 1.0f), 0.0f, float(voxel_grid_size.z) - 1.0f));
 
-        const UInt max_x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
-        const UInt max_y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
-        const UInt max_z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+        const uint max_x = MathUtil::Floor<float, uint>(MathUtil::Clamp(max_in_aabb.x * (float(voxel_grid_size.x) - 1.0f), 0.0f, float(voxel_grid_size.x) - 1.0f));
+        const uint max_y = MathUtil::Floor<float, uint>(MathUtil::Clamp(max_in_aabb.y * (float(voxel_grid_size.y) - 1.0f), 0.0f, float(voxel_grid_size.y) - 1.0f));
+        const uint max_z = MathUtil::Floor<float, uint>(MathUtil::Clamp(max_in_aabb.z * (float(voxel_grid_size.z) - 1.0f), 0.0f, float(voxel_grid_size.z) - 1.0f));
 
-        for (UInt x = min_x; x <= max_x; x++) {
-            for (UInt y = min_y; y <= max_y; y++) {
-                for (UInt z = min_z; z <= max_z; z++) {
-                    const UInt voxel_index = grid.GetIndex(x, y, z);
+        for (uint x = min_x; x <= max_x; x++) {
+            for (uint y = min_y; y <= max_y; y++) {
+                for (uint z = min_z; z <= max_z; z++) {
+                    const uint voxel_index = grid.GetIndex(x, y, z);
 
                     AssertThrow(voxel_index < grid.voxels.Size());
 
@@ -415,11 +415,11 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_
     //     // x,y,z from 0..1 
     //     const Vector3 vertex_position_in_aabb = (vertex.GetPosition() / mesh_aabb.GetExtent()) + 0.5f;
 
-    //     const UInt x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
-    //     const UInt y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
-    //     const UInt z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+    //     const uint x = MathUtil::Floor<float, uint>(MathUtil::Clamp(vertex_position_in_aabb.x * (float(voxel_grid_size.x) - 1.0f), 0.0f, float(voxel_grid_size.x) - 1.0f));
+    //     const uint y = MathUtil::Floor<float, uint>(MathUtil::Clamp(vertex_position_in_aabb.y * (float(voxel_grid_size.y) - 1.0f), 0.0f, float(voxel_grid_size.y) - 1.0f));
+    //     const uint z = MathUtil::Floor<float, uint>(MathUtil::Clamp(vertex_position_in_aabb.z * (float(voxel_grid_size.z) - 1.0f), 0.0f, float(voxel_grid_size.z) - 1.0f));
 
-    //     const UInt voxel_index = grid.GetIndex(x, y, z);
+    //     const uint voxel_index = grid.GetIndex(x, y, z);
 
     //     grid.voxels[voxel_index].filled = true;
     //     ++num_filled_voxels;
@@ -432,10 +432,10 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid voxel_grid)
 {
     Handle<Mesh> mesh;
 
-    for (UInt x = 0; x < voxel_grid.size_x; x++) {
-        for (UInt y = 0; y < voxel_grid.size_y; y++) {
-            for (UInt z = 0; z < voxel_grid.size_z; z++) {
-                UInt index = voxel_grid.GetIndex(x, y, z);
+    for (uint x = 0; x < voxel_grid.size_x; x++) {
+        for (uint y = 0; y < voxel_grid.size_y; y++) {
+            for (uint z = 0; z < voxel_grid.size_z; z++) {
+                uint index = voxel_grid.GetIndex(x, y, z);
 
                 if (!voxel_grid.voxels[index].filled) {
                     continue;

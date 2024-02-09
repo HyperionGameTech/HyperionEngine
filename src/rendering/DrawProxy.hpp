@@ -41,7 +41,7 @@ class Scene;
 class EnvProbe;
 class Light;
 
-enum class LightType : UInt32
+enum class LightType : uint32
 {
     DIRECTIONAL,
     POINT,
@@ -92,13 +92,13 @@ struct DrawProxy<STUB_CLASS(Camera)>
     Vec3f       direction;
     Vec3f       up;
     Extent2D    dimensions;
-    Float       clip_near;
-    Float       clip_far;
-    Float       fov;
+    float       clip_near;
+    float       clip_far;
+    float       fov;
     Frustum     frustum;
 
-    UInt64      visibility_bitmask;
-    UInt16      visibility_nonce;
+    uint64      visibility_bitmask;
+    uint16      visibility_nonce;
 };
 
 using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
@@ -106,12 +106,12 @@ using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
 template <>
 struct DrawProxy<STUB_CLASS(Scene)>
 {
-    UInt32 frame_counter;
+    uint32 frame_counter;
 };
 
 using SceneDrawProxy = DrawProxy<STUB_CLASS(Scene)>;
 
-using EnvProbeFlags = UInt32;
+using EnvProbeFlags = uint32;
 
 enum EnvProbeFlagBits : EnvProbeFlags
 {
@@ -122,7 +122,7 @@ enum EnvProbeFlagBits : EnvProbeFlags
     ENV_PROBE_FLAGS_MAX = 0x7 // 3 bits after are used for shadow
 };
 
-using ShadowFlags = UInt32;
+using ShadowFlags = uint32;
 
 enum ShadowFlagBits : ShadowFlags
 {
@@ -138,12 +138,12 @@ struct DrawProxy<STUB_CLASS(EnvProbe)>
     ID<EnvProbe>    id;
     BoundingBox     aabb;
     Vec3f           world_position;
-    UInt32          texture_index;
-    Float           camera_near;
-    Float           camera_far;
+    uint32          texture_index;
+    float           camera_near;
+    float           camera_far;
     EnvProbeFlags   flags;
-    UInt32          grid_slot;
-    UInt64          visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
+    uint32          grid_slot;
+    uint64          visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
 };
 
 using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
@@ -154,11 +154,11 @@ struct DrawProxy<STUB_CLASS(Light)>
     ID<Light>   id;
     LightType   type;
     Color       color;
-    Float       radius;
-    Float       falloff;
-    UInt32      shadow_map_index;
+    float       radius;
+    float       falloff;
+    uint32      shadow_map_index;
     Vector4     position_intensity;
-    UInt64      visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
+    uint64      visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
 };
 
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;

@@ -140,18 +140,18 @@ void Image<Platform::VULKAN>::SetIsSRGB(bool srgb)
     const auto internal_format = m_format;
 
     if (is_srgb) {
-        m_format = InternalFormat(Int(internal_format) - Int(InternalFormat::SRGB));
+        m_format = InternalFormat(int(internal_format) - int(InternalFormat::SRGB));
 
         return;
     }
 
-    const auto to_srgb_format = InternalFormat(Int(InternalFormat::SRGB) + Int(internal_format));
+    const auto to_srgb_format = InternalFormat(int(InternalFormat::SRGB) + int(internal_format));
 
     if (!IsSRGBFormat(to_srgb_format)) {
         DebugLog(
             LogType::Warn,
             "No SRGB counterpart for image type (%d)\n",
-            static_cast<Int>(internal_format)
+            static_cast<int>(internal_format)
         );
     }
 
@@ -276,9 +276,9 @@ Result Image<Platform::VULKAN>::CreateImage(
     //         DebugLog(
     //             LogType::Error,
     //             "Device does not support the format %u with requested tiling %d and format features %d\n",
-    //             static_cast<UInt>(format),
-    //             static_cast<Int>(m_internal_info.tiling),
-    //             static_cast<Int>(format_features)
+    //             static_cast<uint>(format),
+    //             static_cast<int>(m_internal_info.tiling),
+    //             static_cast<int>(format_features)
     //         );
 
     //         HYP_BREAKPOINT;
@@ -288,7 +288,7 @@ Result Image<Platform::VULKAN>::CreateImage(
     // }
 
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const UInt32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
+    const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     image_info.imageType = image_type;
@@ -305,7 +305,7 @@ Result Image<Platform::VULKAN>::CreateImage(
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.flags = image_create_flags;
     image_info.pQueueFamilyIndices = image_family_indices;
-    image_info.queueFamilyIndexCount = UInt32(std::size(image_family_indices));
+    image_info.queueFamilyIndexCount = uint32(std::size(image_family_indices));
 
     *out_image_info = image_info;
 
@@ -375,18 +375,18 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
         });
 
         // copy from staging to image
-        const UInt num_faces = NumFaces();
-        const UInt buffer_offset_step = UInt(m_size) / num_faces;
+        const uint num_faces = NumFaces();
+        const uint buffer_offset_step = uint(m_size) / num_faces;
 
         AssertThrowMsg(m_size % buffer_offset_step == 0, "Invalid image size");
         AssertThrowMsg(m_size / buffer_offset_step == num_faces, "Invalid image size");
 
-        for (UInt i = 0; i < num_faces; i++) {
+        for (uint i = 0; i < num_faces; i++) {
             commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef_VULKAN &command_buffer)
             {
-                volatile UInt buffer_size = staging_buffer.size;
-                volatile UInt buffer_offset_step_ = buffer_offset_step;
-                volatile UInt total_size = m_size;
+                volatile uint buffer_size = staging_buffer.size;
+                volatile uint buffer_offset_step_ = buffer_offset_step;
+                volatile uint total_size = m_size;
 
                 VkBufferImageCopy region { };
                 region.bufferOffset = i * buffer_offset_step;
@@ -503,9 +503,9 @@ Result Image<Platform::VULKAN>::Blit(
     Rect dst_rect
 )
 {
-    const UInt num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
+    const uint num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
 
-    for (UInt face = 0; face < num_faces; face++) {
+    for (uint face = 0; face < num_faces; face++) {
         const ImageSubResource src {
             .flags = src_image->IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -573,13 +573,13 @@ Result Image<Platform::VULKAN>::Blit(
     const Image *src_image,
     Rect src_rect,
     Rect dst_rect,
-    UInt src_mip,
-    UInt dst_mip
+    uint src_mip,
+    uint dst_mip
 )
 {
     const auto num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
 
-    for (UInt face = 0; face < num_faces; face++) {
+    for (uint face = 0; face < num_faces; face++) {
         const ImageSubResource src {
             .flags = src_image->IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -613,8 +613,8 @@ Result Image<Platform::VULKAN>::Blit(
                 .layerCount     = src.num_layers
             },
             .srcOffsets = {
-                { Int32(src_rect.x0), Int32(src_rect.y0), 0 },
-                { Int32(src_rect.x1), Int32(src_rect.y1), 1 }
+                { int32(src_rect.x0), int32(src_rect.y0), 0 },
+                { int32(src_rect.x1), int32(src_rect.y1), 1 }
             },
             .dstSubresource = {
                 .aspectMask     = aspect_flag_bits,
@@ -623,8 +623,8 @@ Result Image<Platform::VULKAN>::Blit(
                 .layerCount     = dst.num_layers
             },
             .dstOffsets = {
-                { Int32(dst_rect.x0), Int32(dst_rect.y0), 0 },
-                { Int32(dst_rect.x1), Int32(dst_rect.y1), 1 }
+                { int32(dst_rect.x0), int32(dst_rect.y0), 0 },
+                { int32(dst_rect.x1), int32(dst_rect.y1), 1 }
             }
         };
 
@@ -654,11 +654,11 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
     const auto num_faces = NumFaces();
     const auto num_mipmaps = NumMipmaps();
 
-    for (UInt32 face = 0; face < num_faces; face++) {
-        for (Int32 i = 1; i < Int32(num_mipmaps + 1); i++) {
-            const auto mip_width = Int32(helpers::MipmapSize(m_extent.width, i)),
-                mip_height = Int32(helpers::MipmapSize(m_extent.height, i)),
-                mip_depth = Int32(helpers::MipmapSize(m_extent.depth, i));
+    for (uint32 face = 0; face < num_faces; face++) {
+        for (int32 i = 1; i < int32(num_mipmaps + 1); i++) {
+            const auto mip_width = int32(helpers::MipmapSize(m_extent.width, i)),
+                mip_height = int32(helpers::MipmapSize(m_extent.height, i)),
+                mip_depth = int32(helpers::MipmapSize(m_extent.depth, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
@@ -668,13 +668,13 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
                     ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                     : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .base_array_layer = face,
-                .base_mip_level = UInt32(i - 1)
+                .base_mip_level = uint32(i - 1)
             };
 
             const ImageSubResource dst {
                 .flags = src.flags,
                 .base_array_layer = src.base_array_layer,
-                .base_mip_level = UInt32(i)
+                .base_mip_level = uint32(i)
             };
             
             m_image->InsertSubResourceBarrier(
@@ -683,7 +683,7 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
                 ResourceState::COPY_SRC
             );
 
-            if (i == Int32(num_mipmaps)) {
+            if (i == int32(num_mipmaps)) {
                 if (face == num_faces - 1) {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
@@ -712,9 +712,9 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
                 .srcOffsets = {
                     { 0, 0, 0 },
                     {
-                        Int32(helpers::MipmapSize(m_extent.width, i - 1)),
-                        Int32(helpers::MipmapSize(m_extent.height, i - 1)),
-                        Int32(helpers::MipmapSize(m_extent.depth, i - 1))
+                        int32(helpers::MipmapSize(m_extent.width, i - 1)),
+                        int32(helpers::MipmapSize(m_extent.height, i - 1)),
+                        int32(helpers::MipmapSize(m_extent.depth, i - 1))
                     }
                 },
                 .dstSubresource = {
@@ -764,9 +764,9 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
             
     // copy from staging to image
     const auto num_faces = NumFaces();
-    const auto buffer_offset_step = UInt(m_size) / num_faces;
+    const auto buffer_offset_step = uint(m_size) / num_faces;
 
-    for (UInt i = 0; i < num_faces; i++) {
+    for (uint i = 0; i < num_faces; i++) {
         VkBufferImageCopy region { };
         region.bufferOffset = i * buffer_offset_step;
         region.bufferRowLength = 0;
@@ -805,9 +805,9 @@ void Image<Platform::VULKAN>::CopyToBuffer(
             
     // copy from staging to image
     const auto num_faces = NumFaces();
-    const auto buffer_offset_step = UInt(m_size) / num_faces;
+    const auto buffer_offset_step = uint(m_size) / num_faces;
 
-    for (UInt i = 0; i < num_faces; i++) {
+    for (uint i = 0; i < num_faces; i++) {
         VkBufferImageCopy region { };
         region.bufferOffset = i * buffer_offset_step;
         region.bufferRowLength = 0;
@@ -876,19 +876,19 @@ Result Image<Platform::VULKAN>::ConvertTo32BPP(
     VkFormat *out_format
 )
 {
-    constexpr UInt8 new_bpp = 4;
+    constexpr uint8 new_bpp = 4;
 
-    const UInt num_faces = NumFaces();
-    const UInt face_offset_step = UInt(m_size) / num_faces;
+    const uint num_faces = NumFaces();
+    const uint face_offset_step = uint(m_size) / num_faces;
 
-    const UInt new_size = num_faces * new_bpp * m_extent.width * m_extent.height * m_extent.depth;
-    const UInt new_face_offset_step = new_size / num_faces;
+    const uint new_size = num_faces * new_bpp * m_extent.width * m_extent.height * m_extent.depth;
+    const uint new_face_offset_step = new_size / num_faces;
     
     if (HasAssignedImageData()) {
         const ByteBuffer byte_buffer = m_streamed_data->Load();
         ByteBuffer new_byte_buffer(new_size);
 
-        for (UInt i = 0; i < num_faces; i++) {
+        for (uint i = 0; i < num_faces; i++) {
             ImageUtil::ConvertBPP(
                 m_extent.width, m_extent.height, m_extent.depth,
                 m_bpp, new_bpp,

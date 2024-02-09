@@ -13,7 +13,7 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    UInt32 Scene_GetTypeID()
+    uint32 Scene_GetTypeID()
     {
         return TypeID::ForType<Scene>().Value();
     }

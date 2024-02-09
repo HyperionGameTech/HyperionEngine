@@ -22,9 +22,9 @@ class RenderEnvironment;
 
 using renderer::Frame;
 
-enum RenderComponentName : UInt
+enum RenderComponentName : uint
 {
-    RENDER_COMPONENT_INVALID = UInt(-1),
+    RENDER_COMPONENT_INVALID = uint(-1),
 
     RENDER_COMPONENT_VCT = 0,
     RENDER_COMPONENT_SHADOWS,
@@ -46,10 +46,10 @@ enum RenderComponentName : UInt
 class RenderComponentBase
 {
 public:
-    using Index = UInt;
+    using Index = uint;
 
     /*! @param render_frame_slicing Number of frames to wait between render calls */
-    RenderComponentBase(Name name, UInt render_frame_slicing = 0)
+    RenderComponentBase(Name name, uint render_frame_slicing = 0)
         : m_name(name),
           m_render_frame_slicing(MathUtil::NextMultiple(render_frame_slicing, max_frames_in_flight)),
           m_render_frame_slicing_counter(0),
@@ -71,7 +71,7 @@ public:
     void SetParent(RenderEnvironment *parent)
         { m_parent = parent; }
 
-    Bool IsValidComponent() const
+    bool IsValidComponent() const
         { return m_index != ~0u; }
 
     Index GetComponentIndex() const
@@ -91,8 +91,8 @@ public:
 
 protected:
     Name                m_name;
-    const UInt          m_render_frame_slicing; // amount of frames to wait between render calls
-    UInt                m_render_frame_slicing_counter; // amount of frames to wait between render calls
+    const uint          m_render_frame_slicing; // amount of frames to wait between render calls
+    uint                m_render_frame_slicing_counter; // amount of frames to wait between render calls
     Index               m_index;
     RenderEnvironment   *m_parent;
 };
@@ -101,7 +101,7 @@ template <class Derived>
 class RenderComponent : public RenderComponentBase
 {
 public:
-    RenderComponent(Name name, UInt render_frame_slicing = 0)
+    RenderComponent(Name name, uint render_frame_slicing = 0)
         : RenderComponentBase(name, render_frame_slicing),
           m_component_is_render_init(false),
           m_component_is_game_init(false)
@@ -112,10 +112,10 @@ public:
     RenderComponent &operator=(const RenderComponent &other)    = delete;
     virtual ~RenderComponent() override                         = default;
 
-    Bool IsComponentRenderInit() const
+    bool IsComponentRenderInit() const
         { return m_component_is_render_init; }
 
-    Bool IsComponentGameInit() const
+    bool IsComponentGameInit() const
         { return m_component_is_game_init; }
 
     virtual void SetComponentIndex(Index index) override final

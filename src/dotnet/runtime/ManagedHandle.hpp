@@ -11,15 +11,15 @@ namespace hyperion::v2 {
 
 extern "C" struct ManagedHandle
 {
-    UInt32  id;
+    uint32  id;
 
     // Called from C# to increment the reference count
     // when an object is constructed with the handle
-    void IncRef(UInt32 type_id);
+    void IncRef(uint32 type_id);
 
     // Called from C# to release the handle
     // and decrement the reference count
-    void DecRef(UInt32 type_id);
+    void DecRef(uint32 type_id);
 };
 
 static_assert(sizeof(ManagedHandle) == 4, "ManagedHandle must be 4 bytes to match C# struct size");
