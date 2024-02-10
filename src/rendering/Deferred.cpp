@@ -300,8 +300,8 @@ void EnvGridPass::Create()
     if (m_mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE) {
         m_temporal_blending.Reset(new TemporalBlending(
             m_framebuffer->GetExtent(),
-            InternalFormat::RGBA16F,
-            TemporalBlendTechnique::TECHNIQUE_3,
+            InternalFormat::RGBA8,
+            TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::LOW,
             m_framebuffer
         ));

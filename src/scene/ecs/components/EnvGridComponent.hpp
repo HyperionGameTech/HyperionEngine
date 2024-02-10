@@ -16,7 +16,7 @@ namespace hyperion::v2 {
 struct EnvGridComponent
 {
     EnvGridType env_grid_type = ENV_GRID_TYPE_SH;
-    Vec3u       grid_size = { 7, 4, 7 };
+    Vec3u       grid_size = { 9, 4, 9 };
 
     RC<EnvGrid> render_component;
 

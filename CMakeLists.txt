@@ -59,6 +59,7 @@ find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(OpenAL)
 find_package(Vulkan)
+find_package(Bullet)
 
 if (NOT DEFINED RENDERING_BACKEND)
     if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
@@ -112,6 +113,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(Bullet_FOUND)
     add_definitions(-DHYP_BULLET=1)
+
+    include_directories(${BULLET_INCLUDE_DIRS})
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        ${BULLET_LIBRARIES}
+    )
 endif()
 
 if (${NATIVE})

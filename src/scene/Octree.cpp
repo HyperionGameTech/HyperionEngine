@@ -525,11 +525,11 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, const 
 
         // not root
 #if HYP_OCTREE_DEBUG
-            DebugLog(
-                LogType::Debug,
-                "Moving entity #%lu into the closest fitting (or root) parent\n",
-                id.Value()
-            );
+        DebugLog(
+            LogType::Debug,
+            "Moving entity #%lu into the closest fitting (or root) parent\n",
+            id.Value()
+        );
 #endif
 
 
@@ -784,6 +784,15 @@ Octree::InsertResult Octree::RebuildExtendInternal(const BoundingBox &extend_inc
 
 void Octree::ForceVisibilityStates()
 {
+#if HYP_OCTREE_DEBUG
+    DebugLog(
+        LogType::Debug,
+        "ForceVisibilityStates: %u:%u\n",
+        m_octant_id.GetDepth(),
+        m_octant_id.GetIndex()
+    );
+#endif
+
     m_visibility_state.ForceAllVisible();
     
     for (auto &node : m_nodes) {
@@ -791,7 +800,12 @@ void Octree::ForceVisibilityStates()
             m_entity_manager->PushCommand([id = node.id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
             {
                 if (mgr.HasEntity(id)) {
-                    mgr.GetComponent<VisibilityStateComponent>(id).octant_id = octant_id;
+                    VisibilityStateComponent *visibility_state_component = mgr.TryGetComponent<VisibilityStateComponent>(id);
+
+                    if (visibility_state_component) {
+                        visibility_state_component->octant_id = octant_id;
+                        visibility_state_component->visibility_state.ForceAllVisible();
+                    }
                 }
             });
         }

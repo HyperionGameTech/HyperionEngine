@@ -1,11 +1,9 @@
-#include "Mesh.hpp"
-
-#include "../Engine.hpp"
-
+#include <rendering/Mesh.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
-#include <vector>
+#include <Engine.hpp>
+
 #include <unordered_map>
 #include <cstring>
 

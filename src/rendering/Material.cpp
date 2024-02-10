@@ -1,10 +1,10 @@
-#include "Material.hpp"
+#include <rendering/Material.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <Engine.hpp>
 
-#include <rendering/backend/RendererDescriptorSet.hpp>
-
 #include <util/ByteUtil.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion::v2 {

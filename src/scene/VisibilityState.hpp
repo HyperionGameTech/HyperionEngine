@@ -44,7 +44,7 @@ struct VisibilityStateSnapshot
 
     HYP_FORCE_INLINE
     bool ValidToParent(const VisibilityStateSnapshot &parent) const
-        { return nonce == parent.nonce; }
+        { return nonce >= parent.nonce; }
 };
 
 struct VisibilityState

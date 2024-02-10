@@ -5,22 +5,34 @@
 #include "PerspectiveCamera.hpp"
 
 namespace hyperion::v2 {
+
+enum FirstPersonCameraControllerMode
+{
+    FPC_MODE_MOUSE_LOCKED,
+    FPC_MODE_MOUSE_FREE
+};
+
 class FirstPersonCameraController : public PerspectiveCameraController
 {
 public:
-    static constexpr float mouse_sensitivity = 1.0f;
-    static constexpr float mouse_blending = 0.35f;
-    static constexpr float movement_speed = 5.0f;
-    static constexpr float movement_speed_2 = movement_speed * 2.0f;
-    static constexpr float movement_blending = 0.01f;
-
-    FirstPersonCameraController();
+    FirstPersonCameraController(FirstPersonCameraControllerMode mode = FPC_MODE_MOUSE_FREE);
     virtual ~FirstPersonCameraController() = default;
+    
+    FirstPersonCameraControllerMode GetMode() const
+        { return m_mode; }
+
+    void SetMode(FirstPersonCameraControllerMode mode)
+        { m_mode = mode; }
+
+    virtual bool IsMouseLocked() const override
+        { return m_mode == FPC_MODE_MOUSE_LOCKED; }
 
     virtual void UpdateLogic(double dt) override;
 
 private:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) override;
+
+    FirstPersonCameraControllerMode m_mode;
 
     Vector3 m_move_deltas,
             m_dir_cross_y;

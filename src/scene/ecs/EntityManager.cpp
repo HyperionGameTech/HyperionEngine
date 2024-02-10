@@ -5,7 +5,7 @@
 
 namespace hyperion::v2 {
 
-#define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
+// #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
 #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
 
 // if the number of systems in a group is less than this value, they will be executed sequentially

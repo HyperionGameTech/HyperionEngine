@@ -80,6 +80,9 @@ public:
     CameraType GetType() const
         { return m_type; }
 
+    virtual bool IsMouseLocked() const
+        { return false; }
+
     virtual void SetTranslation(const Vector3 &translation) { }
     virtual void SetNextTranslation(const Vector3 &translation) { }
     virtual void SetDirection(const Vector3 &direction) { }

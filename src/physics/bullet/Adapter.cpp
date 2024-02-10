@@ -171,7 +171,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody> &rigid_body)
     btTransform bt_transform;
     bt_transform.setIdentity();
     bt_transform.setOrigin(ToBtVector(rigid_body->GetTransform().GetTranslation()));
-    bt_transform.setRotation(ToBtQuaternion(Quaternion(rigid_body->GetTransform().GetRotation()).Invert()));
+    bt_transform.setRotation(ToBtQuaternion(rigid_body->GetTransform().GetRotation()));
     internal_data->motion_state.Reset(new btDefaultMotionState(bt_transform));
 
     btRigidBody::btRigidBodyConstructionInfo construction_info(
@@ -220,7 +220,7 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody *rigid_body)
     btVector3 local_inertia = internal_data->rigid_body->getLocalInertia();
 
     if (rigid_body->GetShape() != nullptr && rigid_body->GetShape()->GetHandle() != nullptr) {
-        if (rigid_body->IsKinematic() && rigid_body->GetPhysicsMaterial().GetMass() != 0.0f) {
+        if (rigid_body->IsKinematic() && rigid_body->GetPhysicsMaterial().GetMass() >= 0.00001f) {
             static_cast<btCollisionShape *>(rigid_body->GetShape()->GetHandle().Get())
                 ->calculateLocalInertia(rigid_body->GetPhysicsMaterial().GetMass(), local_inertia);
         }

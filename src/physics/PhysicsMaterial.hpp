@@ -13,7 +13,7 @@ namespace hyperion::v2::physics {
 
 struct PhysicsMaterial
 {
-    float mass;
+    float mass = 0.0f;
 
     float GetMass() const
         { return mass; }

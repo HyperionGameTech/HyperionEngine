@@ -212,11 +212,7 @@ void Scene::Update(GameCounter::TickUnit delta)
 
     m_octree.NextVisibilityState();
 
-    ID<Camera> camera_id;
-
     if (m_camera) {
-        camera_id = m_camera->GetID();
-
         m_camera->Update(delta);
 
         // update octree visibility states using the camera

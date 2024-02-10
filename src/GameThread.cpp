@@ -9,7 +9,7 @@
 
 namespace hyperion::v2 {
 
-static constexpr float game_thread_target_ticks_per_second = 120.0f;
+static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
 GameThread::GameThread()
     : Thread(Threads::thread_ids.At(THREAD_GAME)),
@@ -38,14 +38,6 @@ void GameThread::operator()(Game *game)
     Queue<Scheduler::ScheduledTask> tasks;
 
     while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
-        if (auto num_enqueued = m_scheduler.NumEnqueued()) {
-            m_scheduler.AcceptAll(tasks);
-
-            while (tasks.Any()) {
-                tasks.Pop().Execute(counter.delta);
-            }
-        }
-
 #if HYP_GAME_THREAD_LOCKED
         if (counter.Waiting()) {
             continue;
@@ -55,6 +47,14 @@ void GameThread::operator()(Game *game)
         counter.NextTick();
         
         game->Update(counter.delta);
+
+        if (auto num_enqueued = m_scheduler.NumEnqueued()) {
+            m_scheduler.AcceptAll(tasks);
+
+            while (tasks.Any()) {
+                tasks.Pop().Execute(counter.delta);
+            }
+        }
     }
 
     // flush scheduler

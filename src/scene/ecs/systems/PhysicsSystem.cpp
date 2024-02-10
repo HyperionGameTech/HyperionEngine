@@ -51,7 +51,8 @@ void PhysicsSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
 
         Transform &rigid_body_transform = rigid_body->GetTransform();
 
-        transform = rigid_body_transform;
+        transform.SetTranslation(rigid_body_transform.GetTranslation());
+        transform.SetRotation(rigid_body_transform.GetRotation());
     }
 }
 

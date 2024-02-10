@@ -38,6 +38,7 @@ void Game::Init()
     Threads::AssertOnThread(THREAD_MAIN);
 
     AssertThrowMsg(m_application != nullptr, "No valid Application instance was provided to Game constructor!");
+    
     if (m_application->GetCurrentWindow()) {
         m_input_manager->SetWindow(m_application->GetCurrentWindow());
     }
@@ -69,13 +70,13 @@ void Game::Init()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
-    g_engine->GetWorld()->Update(delta);
+    Logic(delta);
 
     if (m_managed_game_object) {
         m_managed_game_object->InvokeMethod<void, float>("Update", float(delta));
     }
 
-    Logic(delta);
+    g_engine->GetWorld()->Update(delta);
 }
 
 void Game::InitGame()
@@ -126,7 +127,8 @@ void Game::HandleEvent(SystemEvent &&event)
         break;
     default:
         if (g_engine->game_thread->IsRunning()) {
-            g_engine->game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
+            g_engine->game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable
+            {
                 OnInputEvent(event);
 
                 HYPERION_RETURN_OK;
@@ -177,7 +179,7 @@ void Game::OnInputEvent(const SystemEvent &event)
             const int mouse_x = mouse_position.x.load(),
                 mouse_y = mouse_position.y.load();
 
-            const auto extent = m_input_manager->GetWindow()->GetExtent();
+            const Extent2D extent = m_input_manager->GetWindow()->GetExtent();
 
             const float mx = (float(mouse_x) - float(extent.width) * 0.5f) / (float(extent.width));
             const float my = (float(mouse_y) - float(extent.height) * 0.5f) / (float(extent.height));
@@ -193,6 +195,10 @@ void Game::OnInputEvent(const SystemEvent &event)
                             .my = my
                         }
                     });
+
+                    if (controller->IsMouseLocked()) {
+                        m_input_manager->SetMousePosition(extent.width / 2, extent.height / 2);
+                    }
                 }
             }
         }

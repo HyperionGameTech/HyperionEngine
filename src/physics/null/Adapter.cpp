@@ -1,4 +1,4 @@
-#include <physics/bullet/Adapter.hpp>
+#include <physics/null/Adapter.hpp>
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
 #include <core/lib/UniquePtr.hpp>

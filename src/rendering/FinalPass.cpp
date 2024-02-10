@@ -8,7 +8,7 @@
 namespace hyperion::v2 {
 
 CompositePass::CompositePass()
-    : FullScreenPass(InternalFormat::RGBA8_SRGB)
+    : FullScreenPass(InternalFormat::RGBA16F)
 {
 
 }
@@ -172,7 +172,7 @@ void FinalPass::Create()
 
     m_last_frame_image = MakeRenderObject<renderer::Image>(renderer::TextureImage(
         Extent3D { g_engine->GetGPUInstance()->GetSwapchain()->extent, 1 },
-        InternalFormat::RGBA8_SRGB,
+        InternalFormat::RGBA16F,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
         nullptr

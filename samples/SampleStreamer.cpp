@@ -264,7 +264,24 @@ void SampleStreamer::InitGame()
     m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
     {
+        auto gun = g_asset_manager->Load<Node>("models/gun/AK47NoSubdiv.obj");
+
+        if (gun) {
+            auto gun_parent = m_scene->GetRoot().AddChild();
+            gun_parent.SetName("gun");
+
+            gun.SetLocalScale(0.25f);
+            gun.SetLocalRotation(Quaternion(Vec3f(0.0f, 1.0f, 0.0f), M_PI));
+            gun_parent.AddChild(gun);
+        }
+    }
+
+    if (true) {
+        auto cube_node = m_scene->GetRoot().AddChild();
+        cube_node.SetName("TestCube");
+
         auto entity_id = m_scene->GetEntityManager()->AddEntity();
+        cube_node.SetEntity(entity_id);
 
         auto cube = MeshBuilder::Cube();
         InitObject(cube);
@@ -272,7 +289,53 @@ void SampleStreamer::InitGame()
         // add physics
         m_scene->GetEntityManager()->AddComponent(entity_id, RigidBodyComponent {
             CreateObject<physics::RigidBody>(
-                RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -0.5f }, Vec3f { 0.5f } })),
+                RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -1.0f }, Vec3f { 1.0f } })),
+                physics::PhysicsMaterial {
+                    .mass = 0.1f // static
+                }
+            )
+        });
+        
+        m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
+            cube,
+            g_material_system->GetOrCreate(
+                {
+                    .shader_definition = ShaderDefinition {
+                        HYP_NAME(Forward),
+                        ShaderProperties(renderer::static_mesh_vertex_attributes)
+                    },
+                    .bucket = Bucket::BUCKET_OPAQUE
+                },
+                {
+                    { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 0.0f, 0.0f, 1.0f) },
+                    { Material::MATERIAL_KEY_METALNESS, 0.0f },
+                    { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
+                }
+            )
+        });
+        m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
+            cube->GetAABB()
+        });
+        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
+    }
+
+    {
+
+        auto cube_node = m_scene->GetRoot().AddChild();
+        cube_node.SetName("TestCube2");
+        cube_node.Scale(1.05f);
+        cube_node.SetWorldTranslation(Vec3f { 0.0f, 150.0f, 0.0f });
+
+        auto entity_id = m_scene->GetEntityManager()->AddEntity();
+        cube_node.SetEntity(entity_id);
+
+        auto cube = MeshBuilder::Cube();
+        InitObject(cube);
+
+        // add physics
+        m_scene->GetEntityManager()->AddComponent(entity_id, RigidBodyComponent {
+            CreateObject<physics::RigidBody>(
+                RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -1.0f }, Vec3f { 1.0f } })),
                 physics::PhysicsMaterial {
                     .mass = 1.0f
                 }
@@ -290,7 +353,8 @@ void SampleStreamer::InitGame()
                     .bucket = Bucket::BUCKET_OPAQUE
                 },
                 {
-                    { Material::MATERIAL_KEY_METALNESS, 1.0f },
+                    { Material::MATERIAL_KEY_ALBEDO, Vec4f(0.0f, 0.0f, 1.0f, 1.0f) },
+                    { Material::MATERIAL_KEY_METALNESS, 0.0f },
                     { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
                 }
             )
@@ -298,16 +362,7 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
             cube->GetAABB()
         });
-        m_scene->GetEntityManager()->AddComponent(entity_id, TransformComponent {
-            Transform(
-                Vec3f(5.0f, 5.0f, 5.0f),
-                Vec3f::one,
-                Quaternion::Identity()
-            )
-        });
-        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent {
-
-        });
+        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
     }
 
     // // Add a reflection probe
@@ -339,14 +394,14 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(terrain_entity, TerrainComponent {
         });
 
-        // TransformComponent
-        m_scene->GetEntityManager()->AddComponent(terrain_entity, TransformComponent {
-            Transform(
-                Vec3f::zero,
-                Vec3f::one,
-                Quaternion::Identity()
-            )
-        });
+        // // TransformComponent
+        // m_scene->GetEntityManager()->AddComponent(terrain_entity, TransformComponent {
+        //     Transform(
+        //         Vec3f::zero,
+        //         Vec3f::one,
+        //         Quaternion::Identity()
+        //     )
+        // });
 
         terrain_node.SetEntity(terrain_entity);
         terrain_node.SetName("TerrainNode");
@@ -355,7 +410,7 @@ void SampleStreamer::InitGame()
     {
         auto sun = CreateObject<Light>(DirectionalLight(
             Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
-            Color(1.0f, 1.0f, 1.0f),
+            Color(1.0f, 0.7f, 0.4f),
             5.0f
         ));
 
@@ -384,7 +439,7 @@ void SampleStreamer::InitGame()
 
         point_lights.PushBack(CreateObject<Light>(PointLight(
             Vector3(0.0f, 6.0f, 0.0f),
-            Color(1.0f, 1.0f, 1.0f),
+            Color(1.0f, 0.9f, 0.7f),
             40.0f,
             200.35f
         )));
@@ -397,6 +452,8 @@ void SampleStreamer::InitGame()
 
         for (auto &light : point_lights) {
             auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
 
             m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
                 Transform(
@@ -455,18 +512,66 @@ void SampleStreamer::InitGame()
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
-#if 0
+        if (false) {
+            auto plane_node = m_scene->GetRoot().AddChild();
+            plane_node.Rotate(Quaternion(Vec3f(1.0f, 0.0f, 0.0f), -M_PI_2));
+            plane_node.Scale(10.0f);
+            plane_node.Translate(Vec3f(0.0f, 1.0f, 0.0f));
+
+            auto plane_entity = m_scene->GetEntityManager()->AddEntity();
+            plane_node.SetEntity(plane_entity);
+
+            auto mesh = MeshBuilder::Quad();
+            InitObject(mesh);
+
+            m_scene->GetEntityManager()->AddComponent(plane_entity, MeshComponent {
+                mesh,
+                g_material_system->GetOrCreate(
+                    {
+                        .shader_definition = ShaderDefinition {
+                            HYP_NAME(Forward),
+                            ShaderProperties(renderer::static_mesh_vertex_attributes)
+                        },
+                        .bucket = Bucket::BUCKET_OPAQUE
+                    },
+                    {
+                        { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f) },
+                        { Material::MATERIAL_KEY_METALNESS, 0.0f },
+                        { Material::MATERIAL_KEY_ROUGHNESS, 0.0f }
+                    }
+                )
+            });
+
+            m_scene->GetEntityManager()->AddComponent(plane_entity, BoundingBoxComponent {
+                mesh->GetAABB()
+            });
+
+            m_scene->GetEntityManager()->AddComponent(plane_entity, VisibilityStateComponent { });
+
+            m_scene->GetEntityManager()->AddComponent(plane_entity, RigidBodyComponent {
+                CreateObject<physics::RigidBody>(
+                    RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(
+                        BoundingBox { Vec3f(-10.0f, -0.1f, -10.0f), Vec3f(10.0f, 0.1f, 10.0f) }
+                    )),
+                    physics::PhysicsMaterial {
+                        .mass = 0.0f // static
+                    }
+                )
+            });
+        }
+
         if (auto zombie = results["zombie"].Get<Node>()) {
+            zombie.Scale(0.5f);
             auto zombie_entity = zombie[0].GetEntity();
 
             m_scene->GetRoot().AddChild(zombie);
 
             if (zombie_entity.IsValid()) {
-                if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-                }
+                // if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+                //     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                //     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
+                //     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                // }
 
                 m_scene->GetEntityManager()->AddComponent(zombie_entity, AudioComponent {
                     g_asset_manager->Load<AudioSource>("sounds/cartoon001.wav"),
@@ -485,11 +590,11 @@ void SampleStreamer::InitGame()
 
             zombie.SetName("zombie");
         }
-#endif
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            node.Scale(0.01f);
+            // node.Scale(3.0f);
+            node.Scale(0.0125f);
             node.SetName("test_model");
             
             GetScene()->GetRoot().AddChild(node);
@@ -726,6 +831,17 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
 void SampleStreamer::Logic(GameCounter::TickUnit delta)
 {
+    if (auto gun_node = m_scene->GetRoot().Select("gun")) {
+        const Vec3f &camera_position = m_scene->GetCamera()->GetTranslation();
+        const Vec3f &camera_direction = m_scene->GetCamera()->GetDirection();
+
+        const Quaternion rotation = Quaternion::LookAt(camera_direction, Vector3::UnitY());
+
+        Vec3f gun_offset = Vec3f(-0.18f, -0.2f, -0.3f);
+        gun_node.SetLocalTranslation(camera_position + (camera_direction) + (Quaternion(rotation).Invert() * gun_offset));
+        gun_node.SetLocalRotation(rotation);
+    }
+
     if (auto terrain_node = m_scene->FindNodeByName("TerrainNode")) {
         if (auto terrain_entity = terrain_node.GetEntity()) {
             TerrainComponent *terrain_component = m_scene->GetEntityManager()->TryGetComponent<TerrainComponent>(terrain_entity);
@@ -853,6 +969,232 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
 void SampleStreamer::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
+
+    const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
+
+    if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
+        // shoot bullet on mouse button left
+        if (event.GetMouseButton() == MOUSE_BUTTON_LEFT) {
+#if 0
+            const auto &mouse_position = GetInputManager()->GetMousePosition();
+
+            const int mouse_x = mouse_position.GetX();
+            const int mouse_y = mouse_position.GetY();
+
+            Optional<Vec3f> world_ray = GetWorldRay({
+                float(mouse_x) / float(GetInputManager()->GetWindow()->GetExtent().width),
+                float(mouse_y) / float(GetInputManager()->GetWindow()->GetExtent().height)
+            });
+
+            if (world_ray.HasValue()) {
+                // shot at this point in the world, create test entity at this point
+
+                auto bullet_hole = m_scene->GetRoot().AddChild();
+                bullet_hole.SetName("BulletHole");
+
+                auto entity_id = m_scene->GetEntityManager()->AddEntity();
+                bullet_hole.SetEntity(entity_id);
+
+                auto bullet_hole_mesh = MeshBuilder::Cube();
+                InitObject(bullet_hole_mesh);
+
+                bullet_hole.Scale(0.2f);
+                bullet_hole.SetWorldTranslation(world_ray.Get());
+
+                m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
+                    bullet_hole_mesh,
+                    g_material_system->GetOrCreate(
+                        {
+                            .shader_definition = ShaderDefinition {
+                                HYP_NAME(Forward),
+                                ShaderProperties(renderer::static_mesh_vertex_attributes)
+                            },
+                            .bucket = Bucket::BUCKET_OPAQUE
+                        },
+                        {
+                            { Material::MATERIAL_KEY_ALBEDO, Vec4f(0.0f, 1.0f, 0.0f, 1.0f) },
+                            { Material::MATERIAL_KEY_METALNESS, 0.0f },
+                            { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
+                        }
+                    )
+                });
+
+                m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
+                    bullet_hole_mesh->GetAABB()
+                });
+
+                m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
+            }
+#else
+            const Vec3f &camera_position = m_scene->GetCamera()->GetTranslation();
+            const Vec3f &camera_direction = m_scene->GetCamera()->GetDirection();
+
+            const Quaternion rotation = Quaternion::LookAt(camera_direction, Vector3::UnitY());
+
+            Vec3f gun_position = camera_position + (camera_direction * 0.5f);
+
+            if (auto gun_node = m_scene->GetRoot().Select("gun")) {
+                gun_position = gun_node[0].GetWorldTranslation();
+            }
+
+            Vec3f bullet_position = gun_position;
+
+            auto bullet = m_scene->GetRoot().AddChild();
+            bullet.SetName("Bullet");
+            bullet.SetLocalTranslation(bullet_position);
+            bullet.SetLocalRotation(rotation);
+            bullet.SetLocalScale(Vec3f(0.06f));
+
+            auto bullet_entity = m_scene->GetEntityManager()->AddEntity();
+            bullet.SetEntity(bullet_entity);
+
+            m_scene->GetEntityManager()->AddComponent(bullet_entity, RigidBodyComponent {
+                CreateObject<physics::RigidBody>(
+                    RC<physics::PhysicsShape>(new physics::SpherePhysicsShape(BoundingSphere { Vec3f(0.0f), 0.1f })),
+                    physics::PhysicsMaterial {
+                        .mass = 0.01f
+                    }
+                )
+            });
+
+            RigidBodyComponent &rigid_body_component = m_scene->GetEntityManager()->GetComponent<RigidBodyComponent>(bullet_entity);
+            rigid_body_component.rigid_body->ApplyForce(camera_direction * 10.0f);
+
+            m_scene->GetEntityManager()->AddComponent(bullet_entity, MeshComponent {
+                MeshBuilder::NormalizedCubeSphere(4),
+                g_material_system->GetOrCreate({
+                    .shader_definition = ShaderDefinition {
+                        HYP_NAME(Forward),
+                        ShaderProperties(renderer::static_mesh_vertex_attributes)
+                    },
+                    .bucket = Bucket::BUCKET_OPAQUE
+                })
+            });
+            m_scene->GetEntityManager()->AddComponent(bullet_entity, BoundingBoxComponent {
+                BoundingBox(Vec3f(-0.1f), Vec3f(0.1f))
+            });
+
+            m_scene->GetEntityManager()->AddComponent(bullet_entity, VisibilityStateComponent { });
+#endif
+        }
+    }
+
+#if 0
+    if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
+        if (event.GetMouseButton() == MOUSE_BUTTON_LEFT) {
+            const auto &mouse_position = GetInputManager()->GetMousePosition();
+
+            const int mouse_x = mouse_position.GetX();
+            const int mouse_y = mouse_position.GetY();
+
+            const auto mouse_world = m_scene->GetCamera()->TransformScreenToWorld(
+                Vector2(
+                    mouse_x / float(GetInputManager()->GetWindow()->GetExtent().width),
+                    mouse_y / float(GetInputManager()->GetWindow()->GetExtent().height)
+                )
+            );
+
+            auto ray_direction = mouse_world.Normalized();
+
+            // std::cout << "ray direction: " << ray_direction << "\n";
+
+            Ray ray { m_scene->GetCamera()->GetTranslation(), ray_direction.GetXYZ() };
+            RayTestResults results;
+
+            if (m_scene->GetOctree().TestRay(ray, results)) {
+                // std::cout << "hit with aabb : " << results.Front().hitpoint << "\n";
+                RayTestResults triangle_mesh_results;
+
+                for (const auto &hit : results) {
+                    // now ray test each result as triangle mesh to find exact hit point
+                    if (auto entity_id = ID<Entity>(hit.id)) {
+                        MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity_id);
+                        TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity_id);
+
+                        if (mesh_component != nullptr && mesh_component->mesh.IsValid() && transform_component != nullptr) {
+                            ray.TestTriangleList(
+                                mesh_component->mesh->GetVertices(),
+                                mesh_component->mesh->GetIndices(),
+                                transform_component->transform,
+                                entity_id.Value(),
+                                triangle_mesh_results
+                            );
+                        }
+                    }
+                }
+
+                if (!triangle_mesh_results.Empty()) {
+                    const auto &mesh_hit = triangle_mesh_results.Front();
+
+                    DebugLog(
+                        LogType::Info,
+                        "Hit mesh %u at %f, %f, %f\n",
+                        mesh_hit.id,
+                        mesh_hit.hitpoint.x,
+                        mesh_hit.hitpoint.y,
+                        mesh_hit.hitpoint.z
+                    );
+
+                    if (auto target = m_scene->GetRoot().Select("TestCube")) {
+                        DebugLog(
+                            LogType::Info,
+                            "Setting target %s position to %f, %f, %f\n",
+                            target.GetName().Data(),
+                            mesh_hit.hitpoint.x,
+                            mesh_hit.hitpoint.y,
+                            mesh_hit.hitpoint.z
+                        );
+                        target.SetLocalTranslation(mesh_hit.hitpoint);
+                        target.SetLocalRotation(Quaternion::LookAt((m_scene->GetCamera()->GetTranslation() - mesh_hit.hitpoint).Normalized(), Vector3::UnitY()));
+                    }
+                }
+            }
+        }
+    }
+#endif
+}
+
+Optional<Vec3f> SampleStreamer::GetWorldRay(const Vec2f &screen_position) const
+{
+    const auto mouse_world = m_scene->GetCamera()->TransformScreenToWorld(screen_position);
+
+    auto ray_direction = mouse_world.Normalized();
+
+    // std::cout << "ray direction: " << ray_direction << "\n";
+
+    Ray ray { m_scene->GetCamera()->GetTranslation(), ray_direction.GetXYZ() };
+    RayTestResults results;
+
+    if (m_scene->GetOctree().TestRay(ray, results)) {
+        // std::cout << "hit with aabb : " << results.Front().hitpoint << "\n";
+        RayTestResults triangle_mesh_results;
+
+        for (const auto &hit : results) {
+            // now ray test each result as triangle mesh to find exact hit point
+            if (auto entity_id = ID<Entity>(hit.id)) {
+                MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity_id);
+                TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity_id);
+
+                if (mesh_component != nullptr && mesh_component->mesh.IsValid() && transform_component != nullptr) {
+                    ray.TestTriangleList(
+                        mesh_component->mesh->GetVertices(),
+                        mesh_component->mesh->GetIndices(),
+                        transform_component->transform,
+                        entity_id.Value(),
+                        triangle_mesh_results
+                    );
+                }
+            }
+        }
+
+        if (!triangle_mesh_results.Empty()) {
+            const auto &mesh_hit = triangle_mesh_results.Front();
+
+            return mesh_hit.hitpoint;
+        }
+    }
+
+    return { };
 }
 
 void SampleStreamer::OnFrameEnd(Frame *frame)

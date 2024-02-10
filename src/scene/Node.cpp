@@ -449,10 +449,8 @@ void Node::SetEntity(ID<Entity> entity)
 
         // m_entity->SetIsAttachedToNode(this, true);
 
-        Transform entity_transform;
-
         if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
-            entity_transform = transform_component->transform;
+            SetWorldTransform(transform_component->transform);
         }
 
         if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
@@ -461,9 +459,9 @@ void Node::SetEntity(ID<Entity> entity)
             m_local_aabb = BoundingBox::empty;
         }
 
-        // m_local_aabb = m_entity->GetLocalAABB();
+        RefreshEntityTransform();
 
-        SetWorldTransform(entity_transform);
+        // m_local_aabb = m_entity->GetLocalAABB();
     } else {
         m_local_aabb = BoundingBox::empty;
 
