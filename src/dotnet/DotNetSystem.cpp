@@ -228,13 +228,25 @@ private:
     hostfxr_close_fn                            m_close_fptr;
 };
 
+const String DotNetImpl::runtime_config = R"(
+{
+    "runtimeOptions": {
+        "tfm": "net8.0",
+        "framework": {
+            "name": "Microsoft.NETCore.App",
+            "version": "8.0.1"
+        }
+    }
+}
+)";
+
 #else
 
-class DotNotImpl : public DotNetImplBase
+class DotNetImpl : public DotNetImplBase
 {
 public:
-    DotNotImpl()                    = default;
-    virtual ~DotNotImpl() override  = default;
+    DotNetImpl()                    = default;
+    virtual ~DotNetImpl() override  = default;
 
     virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
@@ -253,18 +265,6 @@ public:
 };
 
 #endif
-
-const String DotNetImpl::runtime_config = R"(
-{
-    "runtimeOptions": {
-        "tfm": "net8.0",
-        "framework": {
-            "name": "Microsoft.NETCore.App",
-            "version": "8.0.1"
-        }
-    }
-}
-)";
 
 } // namespace detail
 

@@ -188,7 +188,7 @@ void FinalPass::Destroy()
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index])
-                ->AddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::FINAL_OUTPUT)
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::FINAL_OUTPUT)
                 ->SetElementSRV(0, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
     }

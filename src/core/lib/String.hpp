@@ -164,8 +164,7 @@ public:
     void Append(const DynString &other);
     void Append(DynString &&other);
     void Append(const T *str);
-    void Append(T &&value);
-    void Append(const T &value);
+    void Append(T value);
     
     template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
     void Append(U32Char ch)
@@ -799,7 +798,7 @@ void DynString<T, IsUtf8>::Append(const T *str)
 }
 
 template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(const T &value)
+void DynString<T, IsUtf8>::Append(T value)
 {
     if (Size() + 2 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + 2) {
@@ -810,28 +809,11 @@ void DynString<T, IsUtf8>::Append(const T &value)
     }
 
     Base::PopBack(); // current NT char
-
-    new (&Base::GetStorage()[Base::m_size++].data_buffer) T(value);
-    Base::PushBack(T { 0 });
-
-    ++m_length;
-}
-
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(T &&value)
-{
-    // +2 to include NT char and new char being appended
-    if (Size() + 2 >= Base::m_capacity) {
-        if (Base::m_capacity >= Size() + 2) {
-            Base::ResetOffsets();
-        } else {
-            Base::SetCapacity(Base::GetCapacity(Size() + 2));
-        }
-    }
-    
-    Base::PopBack(); // current NT char
-
-    new (&Base::GetStorage()[Base::m_size++].data_buffer) T(std::forward<T>(value));
+    Memory::MemCpy(
+        &Base::GetStorage()[Base::m_size++].data_buffer[0],
+        &value,
+        sizeof(T)
+    );
     Base::PushBack(T { 0 });
 
     ++m_length;
@@ -885,11 +867,32 @@ bool DynString<T, IsUtf8>::EndsWith(const DynString &other) const
 template <class T, bool IsUtf8>
 auto DynString<T, IsUtf8>::ToLower() const -> DynString
 {
-    DynString result(*this);
+    DynString result;
+    result.Reserve(Size());
 
-    std::transform(result.Begin(), result.End(), result.Begin(), [](auto ch) {
-        return std::tolower(ch);
-    });
+    for (SizeType i = 0; i < Size();) {
+        if constexpr (is_utf8) {
+            uint8 num_bytes_read = 0;
+
+            union
+            {
+                utf::u32char char_u32;
+                int char_i32;
+            };
+
+            // evil union byte magic
+            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), &num_bytes_read);
+            char_i32 = std::tolower(char_i32);
+
+            result.Append(char_u32);
+
+            i += num_bytes_read;
+        } else {
+            result.Append(std::tolower(result[i]));
+
+            i++;
+        }
+    }
 
     return result;
 }

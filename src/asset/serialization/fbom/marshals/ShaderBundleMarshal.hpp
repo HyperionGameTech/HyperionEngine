@@ -11,12 +11,7 @@ template <>
 class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledShader>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("CompiledShader");
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const CompiledShader &in_object, FBOMObject &out) const override
     {
@@ -280,12 +275,7 @@ template <>
 class FBOMMarshaler<CompiledShaderBatch> : public FBOMObjectMarshalerBase<CompiledShaderBatch>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("CompiledShaderBatch");
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const CompiledShaderBatch &in_object, FBOMObject &out) const override
     {

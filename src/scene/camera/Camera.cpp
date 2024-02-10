@@ -32,8 +32,8 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
             .camera_position = Vector4(draw_proxy.position, 1.0f),
             .camera_direction = Vector4(draw_proxy.position, 1.0f),
             .camera_near = draw_proxy.clip_near,
-            .camera_fov = draw_proxy.fov,
-            .camera_far = draw_proxy.clip_far
+            .camera_far = draw_proxy.clip_far,
+            .camera_fov = draw_proxy.fov
         });
         
         HYPERION_RETURN_OK;

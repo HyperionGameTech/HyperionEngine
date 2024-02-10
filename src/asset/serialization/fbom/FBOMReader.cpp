@@ -24,29 +24,29 @@ FBOMReader::FBOMReader(const FBOMConfig &config)
 
 FBOMReader::~FBOMReader() = default;
 
-FBOMCommand FBOMReader::NextCommand(ByteReader *reader)
+FBOMCommand FBOMReader::NextCommand(BufferedReader *reader)
 {
     AssertThrow(!reader->Eof());
 
-    uint8 ins = 0;
+    uint8 ins = -1;
     reader->Read(&ins);
     CheckEndianness(ins);
 
     return FBOMCommand(ins);
 }
 
-FBOMCommand FBOMReader::PeekCommand(ByteReader *reader)
+FBOMCommand FBOMReader::PeekCommand(BufferedReader *reader)
 {
     AssertThrow(!reader->Eof());
 
-    uint8 ins = 0;
+    uint8 ins = -1;
     reader->Peek(&ins);
     CheckEndianness(ins);
 
     return FBOMCommand(ins);
 }
 
-FBOMResult FBOMReader::Eat(ByteReader *reader, FBOMCommand command, bool read)
+FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool read)
 {
     FBOMCommand received;
 
@@ -63,7 +63,7 @@ FBOMResult FBOMReader::Eat(ByteReader *reader, FBOMCommand command, bool read)
     return FBOMResult::FBOM_OK;
 }
 
-String FBOMReader::ReadString(ByteReader *reader)
+String FBOMReader::ReadString(BufferedReader *reader)
 {
     // read 4 bytes of string length
     uint32 len;
@@ -82,7 +82,7 @@ String FBOMReader::ReadString(ByteReader *reader)
     return str;
 }
 
-FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
+FBOMType FBOMReader::ReadObjectType(BufferedReader *reader)
 {
     FBOMType result = FBOMUnset();
 
@@ -137,7 +137,7 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
     return result;
 }
 
-FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
+FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &data)
 {
     // read data location
     uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
@@ -151,11 +151,9 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
         reader->Read(&sz);
         CheckEndianness(sz);
 
-        ByteBuffer byte_buffer;
+        ByteBuffer byte_buffer = reader->ReadBytes(sz);
 
-        const SizeType read_count = reader->Read(sz, byte_buffer);
-
-        if (read_count != sz) {
+        if (byte_buffer.Size() != sz) {
             return { FBOMResult::FBOM_ERR, "File is corrupted" };
         }
 
@@ -174,7 +172,7 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMObject *root)
+FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FBOMObject *root)
 {
     if (auto err = Eat(reader, FBOM_OBJECT_START)) {
         return err;
@@ -293,12 +291,10 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
         // load the file {ref_name}.chunk relative to current file
         // this could also be stored in a map
 
-        String base_path;
+        String base_path = m_config.base_path;
 
-        if (root != nullptr && root->GetType().IsOrExtends("ROOT")) {
-            if (auto err = root->GetProperty("base_path").ReadString(base_path)) {
-                return err;
-            }
+        if (base_path.Empty()) {
+            base_path = FilePath::Current();
         }
 
         const String ref_path(FileSystem::Join(FileSystem::CurrentPath(), base_path.Data(), ref_name.Data()).data());
@@ -341,7 +337,7 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObject *root)
+FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMObject *root)
 {
     AssertThrow(root != nullptr);
 

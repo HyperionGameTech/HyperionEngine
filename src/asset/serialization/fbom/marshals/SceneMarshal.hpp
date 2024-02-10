@@ -14,12 +14,7 @@ template <>
 class FBOMMarshaler<Scene> : public FBOMObjectMarshalerBase<Scene>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(Scene::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Scene &in_object, FBOMObject &out) const override
     {
@@ -53,7 +48,7 @@ public:
             if (node.GetType().IsOrExtends("Node")) {
                 (*scene_handle)->GetRoot().AddChild(node.deserialized.Get<Node>());
                 // out_object->SetRoot(node.deserialized.Get<Node>());
-            } else if (node.GetType().IsOrExtends(Camera::GetClass().GetName())) {
+            } else if (node.GetType().IsOrExtends(TypeName<Camera>().Data())) {
                 (*scene_handle)->SetCamera(node.deserialized.Get<Camera>());
             }
         }

@@ -88,21 +88,18 @@ public:
 
     virtual void Close() override { }
 
-    const Array<ubyte> &GetData() const
-        { return m_data; }
+    const ByteBuffer &GetBuffer() const
+        { return m_buffer; }
 
 private:
-    Array<ubyte>    m_data;
-    SizeType        m_pos;
+    ByteBuffer  m_buffer;
+    SizeType    m_pos;
 
     virtual void WriteBytes(const char *ptr, SizeType size) override
     {
-        m_data.Reserve(m_data.Size() + size);
-
-        for (SizeType i = 0; i < size; i++) {
-            m_data.PushBack(ptr[i]);
-            m_pos++;
-        }
+        m_buffer.SetSize(m_buffer.Size() + size);
+        m_buffer.Write(size, m_pos, ptr);
+        m_pos += size;
     }
 };
 

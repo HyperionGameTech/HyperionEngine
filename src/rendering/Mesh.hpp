@@ -10,11 +10,12 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shader.hpp>
-
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
+
+#include <streaming/StreamedMeshData.hpp>
 
 #include <cstdint>
 
@@ -43,6 +44,17 @@ public:
     Mesh();
 
     Mesh(
+        RC<StreamedMeshData> streamed_mesh_data,
+        Topology topology,
+        const VertexAttributeSet &vertex_attributes
+    );
+
+    Mesh(
+        RC<StreamedMeshData> streamed_mesh_data,
+        Topology topology = Topology::TRIANGLES
+    );
+
+    Mesh(
         Array<Vertex> vertices,
         Array<Index> indices,
         Topology topology,
@@ -63,24 +75,26 @@ public:
 
     ~Mesh();
 
-    const GPUBufferRef &GetVertexBuffer() const { return m_vbo; }
-    const GPUBufferRef &GetIndexBuffer() const { return m_ibo; }
-                                                                   
-    const Array<Vertex> &GetVertices() const { return m_vertices; }
+    const GPUBufferRef &GetVertexBuffer() const
+        { return m_vbo; }
+
+    const GPUBufferRef &GetIndexBuffer() const
+        { return m_ibo; }
 
     void SetVertices(Array<Vertex> vertices);
-    void SetIndices(Array<Index> indices);
+    void SetVertices(Array<Vertex> vertices, Array<Index> indices);
 
-    void SetVertices(Array<Vertex> vertices, Array<Index> indices)
-        { m_vertices = std::move(vertices); m_indices = std::move(indices); }
+    uint NumIndices() const
+        { return m_indices_count; }
 
-    const Array<Index> &GetIndices() const { return m_indices; }
+    const RC<StreamedMeshData> &GetStreamedMeshData() const
+        { return m_streamed_mesh_data; }
 
-    uint NumIndices() const { return m_indices_count; }
-    uint NumVertices() const { return uint(m_vertices.Size()); }
+    const VertexAttributeSet &GetVertexAttributes() const
+        { return m_mesh_attributes.vertex_attributes; }
 
-    const VertexAttributeSet &GetVertexAttributes() const { return m_mesh_attributes.vertex_attributes; }
-    void SetVertexAttributes(const VertexAttributeSet &attributes) { m_mesh_attributes.vertex_attributes = attributes; }
+    void SetVertexAttributes(const VertexAttributeSet &attributes)
+        { m_mesh_attributes.vertex_attributes = attributes; }
 
     const MeshAttributes &GetMeshAttributes() const { return m_mesh_attributes; }
 
@@ -111,19 +125,18 @@ public:
 private:
     void CalculateAABB();
 
-    Array<float> BuildVertexBuffer();
+    static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
 
-    GPUBufferRef        m_vbo;
-    GPUBufferRef        m_ibo;
+    GPUBufferRef            m_vbo;
+    GPUBufferRef            m_ibo;
 
-    uint                m_indices_count = 0;
+    uint                    m_indices_count = 0;
 
-    MeshAttributes      m_mesh_attributes;
+    MeshAttributes          m_mesh_attributes;
 
-    Array<Vertex>       m_vertices;
-    Array<Index>        m_indices;
+    RC<StreamedMeshData>    m_streamed_mesh_data;
 
-    mutable BoundingBox m_aabb;
+    mutable BoundingBox     m_aabb;
 };
 
 } // namespace hyperion::v2

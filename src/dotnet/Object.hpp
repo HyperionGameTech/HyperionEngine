@@ -40,15 +40,26 @@ public:
         const ManagedMethod *method_ptr = GetMethod(method_name);
         AssertThrowMsg(method_ptr != nullptr, "Method %s not found", method_name.Data());
 
-        void *args_vptr[] = { &args... };
+        if constexpr (sizeof...(args) != 0) {
+            void *args_vptr[] = { &args... };
 
-        if constexpr (std::is_void_v<ReturnType>) {
-            InvokeMethod(method_ptr, args_vptr, nullptr);
+            if constexpr (std::is_void_v<ReturnType>) {
+                InvokeMethod(method_ptr, args_vptr, nullptr);
+            } else {
+                ValueStorage<ReturnType> return_value_storage;
+                void *result_vptr = InvokeMethod(method_ptr, args_vptr, return_value_storage.GetPointer());
+
+                return return_value_storage.Get();
+            }
         } else {
-            ValueStorage<ReturnType> return_value_storage;
-            void *result_vptr = InvokeMethod(method_ptr, args_vptr, return_value_storage.GetPointer());
+            if constexpr (std::is_void_v<ReturnType>) {
+                InvokeMethod(method_ptr, nullptr, nullptr);
+            } else {
+                ValueStorage<ReturnType> return_value_storage;
+                void *result_vptr = InvokeMethod(method_ptr, nullptr, return_value_storage.GetPointer());
 
-            return return_value_storage.Get();
+                return return_value_storage.Get();
+            }
         }
     }
 

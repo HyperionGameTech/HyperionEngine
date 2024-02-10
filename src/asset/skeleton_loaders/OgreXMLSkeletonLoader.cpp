@@ -92,7 +92,8 @@ public:
             String parent_name = attributes.At("parent");
             String child_name = attributes.At("bone");
 
-            auto *child_bone = GetBone([&child_name](const auto &bone) {
+            auto *child_bone = GetBone([&child_name](const auto &bone)
+            {
                 return bone.name == child_name;
             });
 

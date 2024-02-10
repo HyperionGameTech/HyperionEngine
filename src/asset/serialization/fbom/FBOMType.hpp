@@ -140,7 +140,7 @@ struct FBOMType
         return extends->Extends(other);
     }
 
-    bool IsUnbouned() const { return size == 0; }
+    bool IsUnbouned() const { return size == SizeType(-1); }
 
     bool operator==(const FBOMType &other) const
     {

@@ -1,4 +1,5 @@
-#include "Quaternion.hpp"
+#include <math/Quaternion.hpp>
+#include <math/Matrix4.hpp>
 
 #include <float.h>
 

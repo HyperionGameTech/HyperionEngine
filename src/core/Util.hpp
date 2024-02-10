@@ -62,7 +62,7 @@ constexpr auto TypeName()
     constexpr StaticString<sizeof(__FUNCSIG__)> name(__FUNCSIG__);
 
     // auto __cdecl hyperion::TypeName<hyperion::v2::Task<int,int>>(void) noexcept
-    constexpr auto substr = name.template Substr<32, sizeof(__FUNCSIG__) - 16>();
+    constexpr auto substr = name.template Substr<25, sizeof(__FUNCSIG__) - 3>();
 #else
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif

@@ -5,26 +5,153 @@
 
 namespace hyperion::v2 {
 
-bool NullStreamingData::IsNull() const
+namespace detail {
+
+StreamedDataRefCount::StreamedDataRefCount(StreamedData *owner)
+    : owner(owner),
+      ref_count(0)
+{
+    AssertThrowMsg(owner != nullptr, "StreamedDataRefCount: Owner is null");
+}
+
+StreamedDataRefCount::~StreamedDataRefCount()
+{
+    AssertThrowMsg(ref_count == 0, "StreamedDataRefCount: Ref count is not zero");
+
+    if (owner->IsInMemory()) {
+        owner->Unpage();
+    }
+}
+
+void StreamedDataRefCount::IncRef()
+{
+    ++ref_count;
+
+    if (!owner->IsInMemory()) {
+        (void)owner->Load();
+    }
+}
+
+void StreamedDataRefCount::DecRef()
+{
+    AssertThrowMsg(ref_count != 0, "StreamedDataRefCount: Ref count is zero");
+
+    if (--ref_count == 0) {
+        if (owner->IsInMemory()) {
+            owner->Unpage();
+        }
+    }
+}
+
+} // namespace detail
+
+// StreamedDataRefBase
+
+StreamedDataRefBase::StreamedDataRefBase(StreamedData *owner)
+    : m_owner(owner)
+{
+    if (m_owner != nullptr) {
+        m_owner->m_ref_count++;
+
+        if (!m_owner->IsInMemory()) {
+            (void)m_owner->Load();
+        }
+    }
+}
+
+StreamedDataRefBase::StreamedDataRefBase(const StreamedDataRefBase &other)
+    : m_owner(other.m_owner)
+{
+    if (m_owner != nullptr) {
+        m_owner->m_ref_count++;
+
+        if (!m_owner->IsInMemory()) {
+            (void)m_owner->Load();
+        }
+    }
+}
+
+StreamedDataRefBase &StreamedDataRefBase::operator=(const StreamedDataRefBase &other)
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    if (m_owner != nullptr) {
+        if (--m_owner->m_ref_count == 0) {
+            m_owner->Unpage();
+        }
+    }
+
+    m_owner = other.m_owner;
+
+    if (m_owner != nullptr) {
+        m_owner->m_ref_count++;
+
+        if (!m_owner->IsInMemory()) {
+            (void)m_owner->Load();
+        }
+    }
+
+    return *this;
+}
+
+StreamedDataRefBase::StreamedDataRefBase(StreamedDataRefBase &&other) noexcept
+    : m_owner(other.m_owner)
+{
+    other.m_owner = nullptr;
+}
+
+StreamedDataRefBase &StreamedDataRefBase::operator=(StreamedDataRefBase &&other) noexcept
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    if (m_owner != nullptr) {
+        if (--m_owner->m_ref_count == 0) {
+            m_owner->Unpage();
+        }
+    }
+
+    m_owner = other.m_owner;
+    other.m_owner = nullptr;
+
+    return *this;
+}
+
+StreamedDataRefBase::~StreamedDataRefBase()
+{
+    if (m_owner != nullptr) {
+        if (--m_owner->m_ref_count == 0) {
+            m_owner->Unpage();
+        }
+    }
+}
+
+// NullStreamedData
+
+bool NullStreamedData::IsNull() const
 {
     return true;
 }
 
-bool NullStreamingData::IsInMemory() const
+bool NullStreamedData::IsInMemory() const
 {
     return false;
 }
 
-void NullStreamingData::Unpage()
+void NullStreamedData::Unpage()
 {
     // Do nothing
 }
 
-ByteBuffer NullStreamingData::Load() const
+const ByteBuffer &NullStreamedData::Load() const
 {
-    return ByteBuffer(0, nullptr);
+    return m_byte_buffer;
 }
 
+// MemoryStreamedData
 
 MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer)
     : m_byte_buffer(byte_buffer),
@@ -88,7 +215,7 @@ void MemoryStreamedData::Unpage()
     m_is_in_memory = false;
 }
 
-ByteBuffer MemoryStreamedData::Load() const
+const ByteBuffer &MemoryStreamedData::Load() const
 {
     if (!m_is_in_memory) {
         const auto &data_store = GetDataStore<StaticString("streaming")>();
@@ -99,6 +226,7 @@ ByteBuffer MemoryStreamedData::Load() const
     return m_byte_buffer;
 }
 
+// FileStreamedData
 
 FileStreamedData::FileStreamedData(const FilePath &filepath)
     : m_filepath(filepath)
@@ -135,7 +263,7 @@ void FileStreamedData::Unpage()
     m_byte_buffer = ByteBuffer(0, nullptr);
 }
 
-ByteBuffer FileStreamedData::Load() const
+const ByteBuffer &FileStreamedData::Load() const
 {
     if (!m_byte_buffer.HasValue()) {
         BufferedByteReader reader(m_filepath);

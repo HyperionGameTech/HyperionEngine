@@ -46,8 +46,6 @@ enum EnvProbeType : uint
 
 class EnvProbe;
 
-#define ENV_PROBE_STATIC_INDEX
-
 struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : renderer::RenderCommand
 {
     EnvProbe &env_probe;
@@ -67,7 +65,8 @@ struct EnvProbeIndex
     Vec3u       position;
     Extent3D    grid_size;
 
-    // defaults such that unset == ~0u
+    // defaults such that GetProbeIndex() == ~0u
+    // because (~0u * 0 * 0) + (~0u * 0) + ~0u == ~0u
     EnvProbeIndex()
         : position { ~0u, ~0u, ~0u },
           grid_size { 0, 0, 0 }

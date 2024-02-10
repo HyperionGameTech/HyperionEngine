@@ -11,12 +11,7 @@ template <>
 class FBOMMarshaler<SubShader> : public FBOMObjectMarshalerBase<SubShader>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("SubShader");
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const SubShader &in_object, FBOMObject &out) const override
     {

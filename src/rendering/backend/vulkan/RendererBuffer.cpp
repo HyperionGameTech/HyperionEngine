@@ -589,7 +589,7 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
         );
 
 #ifdef HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
+        AssertThrowMsg(false, "Create() called on a buffer that has not been destroyed!");
 #endif
 
         HYPERION_BUBBLE_ERRORS(Destroy(device));
@@ -601,7 +601,7 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
     
     if (size == 0) {
 #ifdef HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
+        AssertThrowMsg(false, "Creating empty gpu buffer will result in errors!");
 #endif
         return { Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n" };
     }

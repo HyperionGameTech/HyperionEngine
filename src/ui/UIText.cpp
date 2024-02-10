@@ -14,12 +14,12 @@ struct UICharMesh
 static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text)
 {
     Array<UICharMesh> char_meshes;
-    Vector3 placement;
+    Vec3f placement;
 
     const SizeType length = text.Length();
 
     for (SizeType i = 0; i < length; i++) {
-        auto ch = text[i];
+        char ch = text[i];
 
         if (ch == '\n') {
             // reset placement, add room for newline
@@ -33,16 +33,22 @@ static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &
         char_mesh.transform.SetTranslation(placement);
         char_mesh.quad_mesh = MeshBuilder::Quad();
 
-        const Vector2 offset = font_map.GetCharOffset(ch);
-        const Vector2 scaling = font_map.GetScaling();
+        const Vec2f offset = font_map.GetCharOffset(ch);
+        const Vec2f scaling = font_map.GetScaling();
 
-        auto vertices = char_mesh.quad_mesh->GetVertices();
+        auto streamed_mesh_data = char_mesh.quad_mesh->GetStreamedMeshData();
+        AssertThrow(streamed_mesh_data != nullptr);
 
-        for (auto &vert : vertices) {
+        auto ref = streamed_mesh_data->AcquireRef();
+
+        Array<Vertex> vertices = ref->GetMeshData().vertices;
+        const Array<uint32> &indices = ref->GetMeshData().indices;
+
+        for (Vertex &vert : vertices) {
             vert.SetTexCoord0(offset + (vert.GetTexCoord0() * scaling));
         }
 
-        char_mesh.quad_mesh->SetVertices(vertices, char_mesh.quad_mesh->GetIndices());
+        char_mesh.quad_mesh->SetVertices(std::move(vertices), indices);
 
         placement.x += 1.5f;
 

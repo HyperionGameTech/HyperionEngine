@@ -1,7 +1,5 @@
 #include <math/Matrix4.hpp>
 #include <math/Matrix3.hpp>
-#include <math/Vector3.hpp>
-#include <math/Quaternion.hpp>
 #include <math/Rect.hpp>
 #include <math/Halton.hpp>
 #include <core/Core.hpp>

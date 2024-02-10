@@ -17,7 +17,7 @@ void DefinitionsFile::Parse()
 {
     m_is_valid = false;
 
-    Reader reader;
+    BufferedReader reader;
 
     if (!m_path.Open(reader)) {
         return;

@@ -7,8 +7,8 @@ namespace hyperion::v2 {
 
 struct RENDER_COMMAND(CreateComputeShader) : renderer::RenderCommand
 {
-    ComputePipelineRef pipeline;
-    ShaderProgramRef shader_program;
+    ComputePipelineRef  pipeline;
+    ShaderProgramRef    shader_program;
 
     RENDER_COMMAND(CreateComputeShader)(
         const ComputePipelineRef &pipeline,
@@ -18,7 +18,7 @@ struct RENDER_COMMAND(CreateComputeShader) : renderer::RenderCommand
     {
     }
 
-    virtual Result operator()()
+    virtual Result operator()() override
     {
         return pipeline->Create(
             g_engine->GetGPUDevice(),

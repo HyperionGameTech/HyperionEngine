@@ -11,12 +11,7 @@ template <>
 class FBOMMarshaler<Texture> : public FBOMObjectMarshalerBase<Texture>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(Texture::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Texture &in_object, FBOMObject &out) const override
     {

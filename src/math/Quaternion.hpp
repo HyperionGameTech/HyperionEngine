@@ -1,14 +1,16 @@
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
-#include "MathUtil.hpp"
-#include "Vector3.hpp"
-#include "Matrix4.hpp"
+#include <math/MathUtil.hpp>
+#include <math/Vector3.hpp>
 
 #include <cmath>
 using std::abs;
 
 namespace hyperion {
+
+class Matrix4;
+
 struct alignas(16) Quaternion
 {
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);

@@ -11,42 +11,68 @@ template <>
 class FBOMMarshaler<Mesh> : public FBOMObjectMarshalerBase<Mesh>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(Mesh::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Mesh &in_object, FBOMObject &out) const override
     {
         out.SetProperty("topology", FBOMUnsignedInt(), in_object.GetTopology());
         out.SetProperty("attributes", FBOMStruct(sizeof(VertexAttributeSet)), &in_object.GetVertexAttributes());
-    
-        // dump vertices and indices
-        out.SetProperty(
-            "num_vertices",
-            FBOMUnsignedInt(),
-            static_cast<uint32>(in_object.GetVertices().Size())
-        );
 
-        out.SetProperty(
-            "vertices",
-            FBOMArray(FBOMStruct(sizeof(Vertex)), in_object.GetVertices().Size()),
-            in_object.GetVertices().Data()
-        );
+        const RC<StreamedMeshData> &streamed_mesh_data = in_object.GetStreamedMeshData();
 
-        out.SetProperty(
-            "num_indices",
-            FBOMUnsignedInt(),
-            static_cast<uint32>(in_object.GetVertices().Size())
-        );
-    
-        out.SetProperty(
-            "indices",
-            FBOMArray(FBOMUnsignedInt(), in_object.GetIndices().Size()),
-            in_object.GetIndices().Data()
-        );
+        if (streamed_mesh_data) {
+            auto ref = streamed_mesh_data->AcquireRef();
+            const MeshData &mesh_data = ref->GetMeshData();
+
+            // dump vertices and indices
+            out.SetProperty(
+                "num_vertices",
+                FBOMUnsignedInt(),
+                static_cast<uint32>(mesh_data.vertices.Size())
+            );
+
+            out.SetProperty(
+                "vertices",
+                FBOMArray(FBOMStruct(sizeof(Vertex)), mesh_data.vertices.Size()),
+                mesh_data.vertices.Data()
+            );
+
+            out.SetProperty(
+                "num_indices",
+                FBOMUnsignedInt(),
+                static_cast<uint32>(mesh_data.indices.Size())
+            );
+        
+            out.SetProperty(
+                "indices",
+                FBOMArray(FBOMUnsignedInt(), mesh_data.indices.Size()),
+                mesh_data.indices.Data()
+            );
+        } else {
+            out.SetProperty(
+                "num_vertices",
+                FBOMUnsignedInt(),
+                0
+            );
+
+            out.SetProperty(
+                "vertices",
+                FBOMArray(FBOMStruct(sizeof(Vertex)), 0),
+                nullptr
+            );
+
+            out.SetProperty(
+                "num_indices",
+                FBOMUnsignedInt(),
+                static_cast<uint32>(0)
+            );
+        
+            out.SetProperty(
+                "indices",
+                FBOMArray(FBOMUnsignedInt(), 0),
+                nullptr
+            );
+        }
 
         return { FBOMResult::FBOM_OK };
     }

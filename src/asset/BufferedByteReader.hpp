@@ -22,42 +22,123 @@
 
 namespace hyperion {
 
-template <SizeType BufferSize>
+class BufferedReaderSource
+{
+public:
+    virtual ~BufferedReaderSource() = default;
+
+    virtual bool IsOK() const = 0;
+    virtual SizeType Size() const = 0;
+    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) = 0;
+};
+
+class FileBufferedReaderSource : public BufferedReaderSource
+{
+public:
+    FileBufferedReaderSource(const FilePath &filepath)
+    {
+        m_ifstream = new std::ifstream(filepath.Data(), std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
+
+        m_size = m_ifstream->tellg();
+        m_ifstream->seekg(0);
+    }
+
+    virtual ~FileBufferedReaderSource() override
+    {
+        delete m_ifstream;
+    }
+
+    virtual bool IsOK() const override
+        { return m_ifstream != nullptr && m_ifstream->good(); }
+
+    virtual SizeType Size() const override
+        { return m_size; }
+
+    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) override
+    {
+        m_ifstream->seekg(offset);
+        m_ifstream->read(reinterpret_cast<char *>(ptr), count);
+        return m_ifstream->gcount();
+    }
+
+private:
+    SizeType        m_size;
+    std::ifstream   *m_ifstream;
+};
+
+class MemoryBufferedReaderSource : public BufferedReaderSource
+{
+public:
+    MemoryBufferedReaderSource(ByteBuffer buffer)
+        : m_buffer(std::move(buffer))
+    {
+    }
+
+    virtual ~MemoryBufferedReaderSource() override = default;
+
+    virtual bool IsOK() const override
+        { return m_buffer.Any(); }
+
+    virtual SizeType Size() const override
+        { return m_buffer.Size(); }
+
+    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) override
+    {
+        if (offset >= m_buffer.Size()) {
+            return 0;
+        }
+
+        const SizeType num_bytes = MathUtil::Min(count, m_buffer.Size() - offset);
+        Memory::MemCpy(ptr, m_buffer.Data() + offset, num_bytes);
+        return num_bytes;
+    }
+
+private:
+    ByteBuffer  m_buffer;
+};
+
 class BufferedReader
 {
 public:
     using Byte = ubyte;
 
+    static constexpr SizeType buffer_size = 2048;
+    static constexpr uint32 eof_pos = ~0u;
+
     BufferedReader()
-        : file(nullptr),
-          pos(0),
-          max_pos(0)
+        : pos(eof_pos)
     {
+    }
+
+    BufferedReader(RC<BufferedReaderSource> source)
+        : source(std::move(source)),
+          pos(eof_pos)
+    {
+        if (this->source->IsOK()) {
+            Seek(0);
+        }
     }
 
     BufferedReader(const FilePath &filepath)
         : filepath(filepath),
-          file(nullptr),
-          pos(0),
-          max_pos(0)
+          source(new FileBufferedReaderSource(filepath)),
+          pos(eof_pos)
     {
-        file = new std::ifstream(filepath.Data(), std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
-
-        max_pos = file->tellg();
-        Seek(0);
+        if (source->IsOK()) {
+            Seek(0);
+        }
     }
 
-    BufferedReader(const BufferedReader &other) = delete;
-    BufferedReader &operator=(const BufferedReader &other) = delete;
+    BufferedReader(const BufferedReader &other)             = delete;
+    BufferedReader &operator=(const BufferedReader &other)  = delete;
 
     BufferedReader(BufferedReader &&other) noexcept
         : filepath(std::move(other.filepath)),
-          max_pos(std::move(other.max_pos)),
-          pos(std::move(other.pos)),
-          file(std::move(other.file)),
+          source(std::move(other.source)),
+          pos(other.pos),
           buffer(std::move(other.buffer))
     {
-        other.file = nullptr;
+        other.pos = eof_pos;
     }
 
     BufferedReader &operator=(BufferedReader &&other) noexcept
@@ -68,19 +149,12 @@ public:
 
         Close();
 
-        if (file != nullptr) {
-            delete file;
-        }
-
         filepath = std::move(other.filepath);
-        max_pos = other.max_pos;
+        source = std::move(other.source);
         pos = other.pos;
-        file = other.file;
         buffer = std::move(other.buffer);
-
-        other.file = nullptr;
-        other.pos = 0;
-        other.max_pos = 0;
+        
+        other.pos = eof_pos;
 
         return *this;
     }
@@ -88,8 +162,6 @@ public:
     ~BufferedReader()
     {
         Close();
-
-        delete file;
     }
 
     /*! \brief Returns a boolean indicating whether or not the file could be opened without issue */
@@ -101,16 +173,16 @@ public:
 
     /*! \brief Returns a boolean indicating whether or not the file could be opened without issue */
     bool IsOpen() const
-        { return file != nullptr && file->good(); }
+        { return source != nullptr && source->IsOK(); }
 
     SizeType Position() const
         { return pos; }
 
     SizeType Max() const
-        { return max_pos; }
+        { return source != nullptr ? source->Size() : 0; }
 
     bool Eof() const
-        { return file == nullptr || pos >= max_pos; }
+        { return source == nullptr || pos >= source->Size(); }
 
     void Rewind(unsigned long amount)
     {
@@ -119,37 +191,27 @@ public:
         } else {
             pos -= amount;
         }
-
-        if (file != nullptr) {
-            file->seekg(pos);
-        }
     }
 
     void Skip(unsigned long amount)
     {
-        pos += amount;
-
-        if (file != nullptr) {
-            file->seekg(pos);
+        if (Eof()) {
+            return;
         }
+
+        pos += amount;
     }
 
     void Seek(unsigned long where_to)
     {
         pos = where_to;
-
-        if (file != nullptr) {
-            file->seekg(pos);
-        }
     }
 
     void Close()
     {
-        pos = max_pos; // eof
+        pos = eof_pos;
 
-        if (file != nullptr) {
-            file->close();
-        }
+        source.Reset();
     }
 
     /*! \brief Reads the next \ref{count} bytes from the file and returns a ByteBuffer.
@@ -160,11 +222,11 @@ public:
             return { };
         }
 
-        const SizeType remaining = max_pos - pos;
+        const SizeType remaining = source->Size() - pos;
         const SizeType to_read = MathUtil::Min(remaining, count);
 
         ByteBuffer byte_buffer(to_read);
-        file->read(reinterpret_cast<char *>(byte_buffer.Data()), to_read);
+        source->Read(byte_buffer.Data(), to_read, pos);
         pos += to_read;
 
         return byte_buffer;
@@ -179,10 +241,10 @@ public:
             return { };
         }
 
-        const SizeType remaining = max_pos - pos;
+        const SizeType remaining = source->Size() - pos;
 
         ByteBuffer byte_buffer(remaining);
-        file->read(reinterpret_cast<char *>(byte_buffer.Data()), remaining);
+        source->Read(byte_buffer.Data(), remaining, pos);
         pos += remaining;
 
         return byte_buffer;
@@ -198,10 +260,10 @@ public:
             return 0;
         }
 
-        const SizeType remaining = max_pos - pos;
+        const SizeType remaining = source->Size() - pos;
         const SizeType to_read = MathUtil::Min(remaining, count);
 
-        file->read(reinterpret_cast<char *>(ptr), to_read);
+        source->Read(ptr, to_read, pos);
         pos += to_read;
 
         return to_read;
@@ -218,7 +280,8 @@ public:
         
         Array<String> lines;
 
-        ReadLines([&lines](const String &line, bool *) {
+        ReadLines([&lines](const String &line, bool *)
+        {
             lines.PushBack(line);
         });
 
@@ -227,15 +290,17 @@ public:
 
     SizeType Read(ByteBuffer &byte_buffer)
     {
-        return Read(byte_buffer.Data(), byte_buffer.Size(), [](void *ptr, const Byte *buffer, SizeType chunk_size) {
-           Memory::MemCpy(ptr, buffer, chunk_size);
+        return Read(byte_buffer.Data(), byte_buffer.Size(), [](void *ptr, const Byte *buffer, SizeType chunk_size)
+        {
+            Memory::MemCpy(ptr, buffer, chunk_size);
         });
     }
 
     SizeType Read(void *ptr, SizeType count)
     {
-        return Read(ptr, count, [](void *ptr, const Byte *buffer, SizeType chunk_size) {
-           Memory::MemCpy(ptr, buffer, chunk_size);
+        return Read(ptr, count, [](void *ptr, const Byte *buffer, SizeType chunk_size)
+        {
+            Memory::MemCpy(ptr, buffer, chunk_size);
         });
     }
 
@@ -250,7 +315,7 @@ public:
         SizeType total_read = 0;
 
         while (count) {
-            const SizeType chunk_requested = MathUtil::Min(count, BufferSize);
+            const SizeType chunk_requested = MathUtil::Min(count, buffer_size);
             const SizeType chunk_returned = Read(chunk_requested);
             const SizeType offset = total_read;
 
@@ -279,6 +344,12 @@ public:
         return Read(static_cast<void *>(ptr), sizeof(T));
     }
 
+    template <class T>
+    SizeType Peek(T *ptr) const
+    {
+        return Peek(static_cast<void *>(ptr), sizeof(T));
+    }
+
     template <class LambdaFunction>
     void ReadLines(LambdaFunction &&func, bool buffered = true)
     {
@@ -295,7 +366,7 @@ public:
             total_read = all_bytes.Size();
 
             String accum;
-            accum.Reserve(BufferSize);
+            accum.Reserve(buffer_size);
             
             for (SizeType i = 0; i < all_bytes.Size(); i++) {
                 if (all_bytes[i] == '\n') {
@@ -336,11 +407,11 @@ public:
         // holding onto the last one (assuming no newline at the end)
         // keep that last line and continue accumulating until a newline is found
         String accum;
-        accum.Reserve(BufferSize);
+        accum.Reserve(buffer_size);
 
         ByteBuffer byte_buffer;
 
-        while ((byte_buffer = ReadBytes(BufferSize)).Any()) {
+        while ((byte_buffer = ReadBytes(buffer_size)).Any()) {
             total_read += byte_buffer.Size();
 
             for (SizeType i = 0; i < byte_buffer.Size(); i++) {
@@ -384,11 +455,10 @@ public:
     }
 
 private:
-    FilePath filepath;
-    std::ifstream *file;
-    SizeType pos;
-    SizeType max_pos;
-    std::array<Byte, BufferSize> buffer{};
+    FilePath                        filepath;
+    RC<BufferedReaderSource>        source;
+    SizeType                        pos;
+    std::array<Byte, buffer_size>   buffer{};
 
     SizeType Read()
     {
@@ -396,11 +466,8 @@ private:
             return 0;
         }
 
-        file->read(reinterpret_cast<char *>(&buffer[0]), BufferSize);
-
-        const SizeType count = file->gcount();
-
-        AssertThrow(count <= BufferSize);
+        const SizeType count = source->Read(&buffer[0], buffer_size, pos);
+        AssertThrow(count <= buffer_size);
 
         pos += count;
 
@@ -409,22 +476,35 @@ private:
 
     SizeType Read(SizeType sz)
     {
-        AssertThrow(sz <= BufferSize);
+        AssertThrow(sz <= buffer_size);
 
         if (Eof()) {
             return 0;
         }
 
-        file->read(reinterpret_cast<char *>(&buffer[0]), sz);
-
-        const SizeType count = file->gcount();
+        const SizeType count = source->Read(&buffer[0], sz, pos);
         pos += count;
 
         return count;
     }
+
+    SizeType Peek(void *dest, SizeType sz) const
+    {
+        if (Eof()) {
+            return 0;
+        }
+
+        AssertThrowMsg(pos + sz <= source->Size(),
+             "Attempt to read past end of file: %llu + %llu > %llu",
+              pos,
+              sz,
+              source->Size());
+
+        return source->Read(static_cast<ubyte *>(dest), sz, pos);
+    }
 };
 
-using BufferedByteReader = BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE>;
+using BufferedByteReader = BufferedReader;
 
 } // namespace hyperion
 

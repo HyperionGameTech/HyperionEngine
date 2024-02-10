@@ -2,15 +2,11 @@
 #define BOUNDING_BOX_H
 
 #include <math/Vector3.hpp>
-#include <math/Matrix4.hpp>
 #include <math/Transform.hpp>
-#include <math/Ray.hpp>
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/CMemory.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
-
-#include <limits>
 
 namespace hyperion {
 

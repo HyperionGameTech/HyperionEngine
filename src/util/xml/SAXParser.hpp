@@ -53,7 +53,7 @@ public:
 
     SAXParser(SAXHandler *handler);
     Result Parse(const FilePath &filepath);
-    Result Parse(BufferedReader<2048> *reader);
+    Result Parse(BufferedReader *reader);
 
 private:
     SAXHandler *handler;

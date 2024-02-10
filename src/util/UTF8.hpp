@@ -442,17 +442,22 @@ inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::uint
 }
 
 /*! \brief Convert a single UTF-32 char to UTF-8 array of code points.
- *  \ref{dst} MUST have a size of at least 4 bytes.
+ *  The array at \ref{dst} MUST have a sizeof u32char (4 bytes)
  */
 inline void char32to8(u32char src, char *dst, int *out_length = nullptr)
 {
-    std::memset(dst, 0x00, sizeof(u32char));
+    int len;
+
+    if (!out_length) {
+        out_length = &len;
+    }
+
+    *out_length = 0;
+
+    // set all bytes to 0
+    std::memset(dst, 0, sizeof(u32char));
 
     const char *src_bytes = reinterpret_cast<char *>(&src);
-
-    if (out_length) {
-        *out_length = 0;
-    }
 
     for (hyperion::SizeType i = 0; i < sizeof(u32char); i++) {
         if (src_bytes[i] == 0) {
@@ -461,10 +466,7 @@ inline void char32to8(u32char src, char *dst, int *out_length = nullptr)
         }
 
         dst[i] = src_bytes[i];
-
-        if (out_length) {
-            (*out_length)++;
-        }
+        (*out_length)++;
     }
 }
 

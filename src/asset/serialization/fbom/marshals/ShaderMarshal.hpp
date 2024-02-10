@@ -12,7 +12,7 @@ template <>
 class FBOMMarshaler<Shader> : public FBOMObjectMarshalerBase<Shader>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMType GetObjectType() const override
     {

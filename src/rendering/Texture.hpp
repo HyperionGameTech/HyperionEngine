@@ -167,13 +167,13 @@ public:
         m_image->SetNumLayers(num_layers);
     }
 
-    void SetLayer(uint layer, const ByteBuffer &data)
+    /*void SetLayer(uint layer, const ByteBuffer &data)
     {
         AssertThrowMsg(layer < NumLayers(), "layer index out of bounds");
         AssertThrowMsg(data.Size() == m_image->GetExtent().Size() * NumComponents(m_image->GetTextureFormat()), "data size does not match texture size");
 
         Memory::MemCpy(m_image->GetStreamedData()->Load().Data() + layer * m_image->GetExtent().Size() * NumComponents(m_image->GetTextureFormat()), data.Data(), data.Size());
-    }
+    }    */
 };
 
 class TextureCube : public Texture

@@ -46,7 +46,7 @@ static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
     for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
         const auto it = VertexAttribute::mapping.KeyValueAt(i);
         
-        if (it.second.name == name) {
+        if (name == it.second.name) {
             out_type = it.first;
 
             return true;

@@ -7,6 +7,7 @@
 #include <core/lib/Mutex.hpp>
 #include <core/Name.hpp>
 #include <core/lib/HashMap.hpp>
+#include <core/Util.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
@@ -145,7 +146,7 @@ public:
         AssertThrowMsg(
             index < HandleDefinition<T>::max_size,
             "Maximum number of type '%s' allocated! Maximum: %llu\n",
-            T::GetClass().GetName(),
+            TypeName<T>().Data(),
             HandleDefinition<T>::max_size
         );
 

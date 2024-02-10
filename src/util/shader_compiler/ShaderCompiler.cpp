@@ -1276,12 +1276,13 @@ bool ShaderCompiler::CompileBundle(
     TaskBatch task_batch;
 
     for (SizeType index = 0; index < bundle.sources.Size(); index++) {
-        task_batch.AddTask([this, index, &bundle, &required_vertex_attributes, &optional_vertex_attributes, &loaded_source_files, &process_errors, &descriptor_usages](...) {
+        task_batch.AddTask([this, index, &bundle, &required_vertex_attributes, &optional_vertex_attributes, &loaded_source_files, &process_errors, &descriptor_usages](...)
+        {
             const auto &it = bundle.sources.AtIndex(index);
 
             const FilePath filepath = it.second.path;
 
-            Reader reader;
+            BufferedReader reader;
 
             if (!filepath.Open(reader)) {
                 // could not open file!
@@ -1480,7 +1481,7 @@ bool ShaderCompiler::CompileBundle(
             if (output_filepath.Exists()) {
                 // file exists and is older than the original source file; no need to build
                 if (output_filepath.LastModifiedTimestamp() >= item.last_modified_timestamp) {
-                    Reader reader;
+                    BufferedReader reader;
 
                     if (output_filepath.Open(reader)) {
                         DebugLog(

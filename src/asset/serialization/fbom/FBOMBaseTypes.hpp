@@ -21,7 +21,7 @@ struct FBOMStruct       : FBOMType { FBOMStruct(SizeType sz) : FBOMType("struct"
 
 struct FBOMArray : FBOMType
 {
-    FBOMArray() : FBOMType("array", 0) {}
+    FBOMArray() : FBOMType("array", -1) {}
 
     FBOMArray(const FBOMType &held_type, SizeType count)
         : FBOMType("array", held_type.size * count)

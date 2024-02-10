@@ -15,12 +15,7 @@ template <>
 class FBOMMarshaler<Camera> : public FBOMObjectMarshalerBase<Camera>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(Camera::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Camera &in_object, FBOMObject &out) const override
     {

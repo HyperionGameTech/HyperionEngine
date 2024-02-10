@@ -136,7 +136,7 @@ void LibDataChannelRTCServer::Start()
         });
 
         m_websocket->onError([this](const std::string &error) {
-            m_callbacks.Trigger(RTCServerCallbackMessages::ERROR, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::ERR, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>(RTCServerError { error.c_str() })
             });
@@ -221,7 +221,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
         Memory::MemCpy(bin.data(), byte_buffer->Data(), byte_buffer->Size());
 
         if (!m_websocket->send(std::move(bin))) {
-            m_callbacks.Trigger(RTCServerCallbackMessages::ERROR, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::ERR, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>(RTCServerError { "Message could not be sent" })
             });

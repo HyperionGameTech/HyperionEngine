@@ -25,8 +25,6 @@ struct RegisteredClass
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
-
-    const RC<ClassInfoBase> &GetRefCounted() const;
 };
 
 struct GlobalClassInfoTable
@@ -51,8 +49,6 @@ struct GlobalClassInfoTable
     }
 };
 
-extern GlobalClassInfoTable g_global_class_info_table;
-
 template <class ClassInfo>
 struct ClassInstance
 {
@@ -60,8 +56,6 @@ struct ClassInstance
 
     ClassInstance()
     {
-        registered_class = g_global_class_info_table.Register<ClassInfo>();
-        AssertThrow(registered_class.IsValid());
     }
 };
 
@@ -86,13 +80,6 @@ public:
     ClassInfo &operator=(ClassInfo &&other) noexcept = delete;
 
     virtual ~ClassInfo() = default;
-
-    static const ClassInfo &GetInstance()
-    {
-        static ClassInstance<ClassInfo> instance;
-
-        return *static_cast<ClassInfo *>(instance.registered_class.GetRefCounted().Get());
-    }
 };
 } // namespace hyperion
 

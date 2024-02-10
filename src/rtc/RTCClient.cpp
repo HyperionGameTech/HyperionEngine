@@ -104,7 +104,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer *server)
             
             m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
-            m_callbacks.Trigger(RTCClientCallbackMessages::ERROR, RTCClientCallbackData {
+            m_callbacks.Trigger(RTCClientCallbackMessages::ERR, RTCClientCallbackData {
                 Optional<ByteBuffer>(),
                 Optional<RTCClientError>({ "Connection failed" })
             });

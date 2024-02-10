@@ -5,78 +5,11 @@
 #include <core/lib/String.hpp>
 #include <util/Defines.hpp>
 
-#ifdef HYP_WINDOWS
-#include <windows.h>
-#elif defined(HYP_UNIX)
-#include <execinfo.h>
-#endif
-
 namespace hyperion {
 
 class StackDump
 {
-    static Array<String> CreateStackTrace(uint depth = 20)
-    {
-        Array<String> stack_trace;
-        stack_trace.Reserve(depth);
-
-#ifdef HYP_WINDOWS
-        HANDLE process = GetCurrentProcess();
-        SymInitialize(process, nullptr, true);
-
-        void **stack = (void **)malloc(depth * sizeof(void *));
-        const auto frames = CaptureStackBackTrace(0, depth, stack, nullptr);
-
-        Array<StackFrameSymbolInfoHandle> symbol_info(frames);
-        for (uint32 i = 0; i < frames; ++i) {
-            symbol_info[i] = static_cast<StackFrameSymbolInfoHandle>(malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char)));
-            symbol_info[i]->MaxNameLen = 255;
-            symbol_info[i]->SizeOfStruct = sizeof(SYMBOL_INFO);
-        }
-
-        SymSetOptions(SYMOPT_LOAD_LINES);
-
-        SymFromAddr(process, reinterpret_cast<DWORD64>(stack[0]), nullptr, symbol_info[0]);
-
-        for (uint32 i = 0; i < frames; ++i) {
-            SymFromAddr(process, reinterpret_cast<DWORD64>(stack[i]), nullptr, symbol_info[i]);
-
-            String frame = String::Format("%s(%d): %s", symbol_info[i]->Name, symbol_info[i]->LineNumber, symbol_info[i]->Name);
-            stack_trace.PushBack(std::move(frame));
-        }
-
-        for (uint32 i = 0; i < frames; ++i) {
-            free(symbol_info[i]);
-        }
-
-        free(stack);
-
-        SymCleanup(process);
-#elif defined(HYP_UNIX)
-        void **stack = (void **)malloc(depth * sizeof(void *));
-        const int frames = backtrace(stack, depth);
-
-        Array<String> symbols;
-        symbols.Resize(frames);
-
-        char **strings = backtrace_symbols(stack, frames);
-
-        for (int i = 0; i < frames; ++i) {
-            symbols[i] = strings[i];
-        }
-
-        for (int i = 0; i < frames; ++i) {
-            stack_trace.PushBack(symbols[i]);
-        }
-
-        free(strings);
-        free(stack);
-#else
-        stack_trace.PushBack("Stack trace not supported on this platform.");
-#endif
-
-        return stack_trace;
-    }
+    static Array<String> CreateStackTrace(uint depth = 20);
 
 public:
     StackDump(uint depth = 20)

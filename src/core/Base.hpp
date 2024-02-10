@@ -148,9 +148,6 @@ public:
     bool IsReady() const
         { return m_is_ready.load(); }
 
-    static inline const auto &GetClass()
-        { return Type::GetInstance(); }
-
     /*! \brief Create a new UniquePtr instance of the type. */
     template <class ...Args>
     static inline auto Construct(Args &&... args) -> UniquePtr<InnerType>

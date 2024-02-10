@@ -15,12 +15,7 @@ template <>
 class FBOMMarshaler<Entity> : public FBOMObjectMarshalerBase<Entity>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(Entity::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Entity &in_object, FBOMObject &out) const override
     {

@@ -20,16 +20,18 @@
 #include <system/CommandQueue.hpp>
 #include <system/StackDump.hpp>
 
+#ifdef HYP_UNIX
 #include <sys/fcntl.h>
 #include <sys/semaphore.h>
 #include <unistd.h>
+
+sem_t *semaphore = nullptr;
+#endif
 
 using namespace hyperion;
 
 SharedMemory *framebuffer_shared = nullptr;
 SharedMemory *command_queue_shared = nullptr;
-
-sem_t *semaphore = nullptr;
 
 class Editor : public Game {
 public:
@@ -263,8 +265,7 @@ void HandleSignal(int signum) {
   // Dump stack trace
   DebugLog(LogType::Warn, "Received signal %d\n", signum);
 
-  if (signum == SIGSEGV || signum == SIGABRT || signum == SIGFPE ||
-      signum == SIGTRAP || signum == SIGILL) {
+  if (signum == SIGSEGV || signum == SIGABRT || signum == SIGFPE || signum == SIGILL) {
     const StackDump stack_dump;
 
     fprintf(stderr, "Received signal %d\n", signum);
@@ -301,7 +302,6 @@ int main(int argc, char *argv[]) {
   signal(SIGABRT, HandleSignal);
   signal(SIGFPE, HandleSignal);
   signal(SIGILL, HandleSignal);
-  signal(SIGTRAP, HandleSignal);
 
   if (argc > 1) {
     framebuffer_shared = new SharedMemory(argv[1], 1024 * 1024 * 4,
@@ -314,6 +314,7 @@ int main(int argc, char *argv[]) {
       AssertThrow(command_queue_shared->Open());
     }
 
+#ifdef HYP_UNIX
     if (argc > 3) {
       semaphore = sem_open(argv[3], O_RDWR);
       AssertThrowMsg(semaphore != SEM_FAILED,
@@ -321,6 +322,7 @@ int main(int argc, char *argv[]) {
       DebugLog(LogType::Debug, "Opened server side semaphore\n");
       fflush(stdout);
     }
+#endif
   }
 
   RC<Application> application(new SDLApplication("My Application", argc, argv));

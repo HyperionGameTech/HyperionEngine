@@ -11,12 +11,7 @@ template <>
 class FBOMMarshaler<physics::PhysicsShape> : public FBOMObjectMarshalerBase<physics::PhysicsShape>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("PhysicsShape");
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const physics::PhysicsShape &in_object, FBOMObject &out) const override
     {

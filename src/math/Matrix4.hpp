@@ -4,6 +4,7 @@
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
+#include <math/Quaternion.hpp>
 #include <util/Defines.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
@@ -13,7 +14,6 @@
 
 namespace hyperion {
 
-class Quaternion;
 class Matrix3;
 
 class Matrix4

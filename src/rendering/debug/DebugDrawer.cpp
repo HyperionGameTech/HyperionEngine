@@ -43,7 +43,9 @@ void DebugDrawer::Create()
     m_shapes[uint(DebugDrawShape::BOX)] = MeshBuilder::Cube();
     m_shapes[uint(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
 
+    uint index = 0;
     for (auto &shape : m_shapes) {
+        DebugLog(LogType::Debug, "init object at %u\n", index++);
         AssertThrow(InitObject(shape));
     }
 

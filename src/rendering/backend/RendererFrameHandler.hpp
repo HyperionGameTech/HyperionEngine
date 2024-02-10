@@ -35,9 +35,11 @@ public:
     using NextImageFunction = std::add_pointer_t<Result(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, uint *image_index)>;
 
     FrameHandler(uint num_frames, NextImageFunction next_image);
-    FrameHandler(const FrameHandler &other) = delete;
-    FrameHandler &operator=(const FrameHandler &other) = delete;
-    ~FrameHandler();
+    FrameHandler(const FrameHandler &other)                 = delete;
+    FrameHandler &operator=(const FrameHandler &other)      = delete;
+    FrameHandler(FrameHandler &&other) noexcept             = delete;
+    FrameHandler &operator=(FrameHandler &&other) noexcept  = delete;
+    ~FrameHandler()                                         = default;
 
     const FrameRef<PLATFORM> &GetCurrentFrame() const
         { return m_frames[m_current_frame_index]; }

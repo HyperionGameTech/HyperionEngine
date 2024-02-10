@@ -30,7 +30,7 @@ LoadedAsset AssetLoader::Load(AssetManager &asset_manager, const String &path) c
     const auto paths = GetTryFilepaths(filepath, original_filepath);
 
     for (const auto &path : paths) {
-        BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE> reader;
+        BufferedReader reader;
 
         if (!path.Open(reader)) {
             // could not open... try next path

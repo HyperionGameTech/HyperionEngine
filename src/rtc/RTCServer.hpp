@@ -20,7 +20,7 @@ enum class RTCServerCallbackMessages : uint32
 {
     UNKNOWN         = 0,
 
-    ERROR           = uint32(-1),
+    ERR             = uint32(-1),
 
     CONNECTED       = 1,
     DISCONNECTED,

@@ -6,9 +6,9 @@ namespace hyperion {
 uint ByteUtil::HighestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_WINDOWS
-    uint index;
+    unsigned long index;
     _BitScanReverse64(&index, bits);
-    return index;
+    return uint(index);
 #elif defined(HYP_CLANG_OR_GCC)
     return 63 - __builtin_clzll(bits);
 #else

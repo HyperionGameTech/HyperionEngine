@@ -22,9 +22,6 @@ FrameHandler<Platform::VULKAN>::FrameHandler(uint num_frames, NextImageFunction 
 }
 
 template <>
-FrameHandler<Platform::VULKAN>::~FrameHandler() = default;
-
-template <>
 Result FrameHandler<Platform::VULKAN>::CreateFrames(Device<Platform::VULKAN> *device, DeviceQueue *queue)
 {
     for (uint i = 0; i < m_frames.Size(); i++) {

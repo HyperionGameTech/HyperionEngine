@@ -13,11 +13,7 @@
 namespace hyperion {
 
 class FilePath;
-
-template <SizeType BufferSize>
 class BufferedReader;
-
-using Reader = BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE>;
 
 class FileSystem
 {
@@ -165,7 +161,7 @@ public:
         return FilePath(StringUtil::BasePath(Data()).c_str());
     }
 
-    bool Open(BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE> &out) const;
+    bool Open(BufferedReader &out) const;
 
     static inline FilePath Current()
     {

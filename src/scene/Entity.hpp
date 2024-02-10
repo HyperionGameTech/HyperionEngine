@@ -9,7 +9,7 @@ class Entity : public BasicObject<STUB_CLASS(Entity)>
 {
 public:
     Entity();
-    ~Entity() = default;
+    ~Entity();
 
     bool IsReady() const;
     void Init();

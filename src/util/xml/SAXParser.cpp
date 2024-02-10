@@ -10,12 +10,12 @@ SAXParser::SAXParser(SAXHandler *handler)
 
 SAXParser::Result SAXParser::Parse(const FilePath &filepath)
 {
-    BufferedReader<2048> reader(filepath);
+    BufferedReader reader(filepath);
 
     return Parse(&reader);
 }
 
-SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
+SAXParser::Result SAXParser::Parse(BufferedReader *reader)
 {
     if (reader == nullptr) {
         return Result(Result::SAX_ERR, "Reader was null");

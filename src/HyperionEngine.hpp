@@ -3,13 +3,14 @@
 
 #include <Engine.hpp>
 #include <system/Application.hpp>
+#include <util/Defines.hpp>
 
 namespace hyperion {
 
 using namespace v2;
 
-void InitializeApplication(RC<Application> application);
-void ShutdownApplication();
+HYP_EXPORT void InitializeApplication(RC<Application> application);
+HYP_EXPORT void ShutdownApplication();
 
 } // namespace hyperion
 

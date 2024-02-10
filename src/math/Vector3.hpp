@@ -11,7 +11,7 @@
 
 namespace hyperion {
 
-class Quaternion;
+struct Quaternion;
 class Matrix3;
 class Matrix4;
 

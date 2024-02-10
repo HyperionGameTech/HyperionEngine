@@ -3,6 +3,7 @@
 
 #include <core/Core.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/Util.hpp>
 
 #include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
 #include <asset/serialization/fbom/FBOMType.hpp>
@@ -34,7 +35,8 @@ class FBOMObjectMarshalerBase : public FBOMMarshalerBase
 public:
     virtual ~FBOMObjectMarshalerBase() = default;
 
-    virtual FBOMType GetObjectType() const override = 0;
+    virtual FBOMType GetObjectType() const
+        { return FBOMObjectType(TypeName<T>().Data()); }
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const = 0;

@@ -9,6 +9,12 @@
 
 namespace hyperion {
 
+constexpr uint8 engine_major_version = 1;
+constexpr uint8 engine_minor_version = 0;
+constexpr uint8 engine_patch_version = 0;
+constexpr uint32 engine_version = (engine_major_version << 16) | (engine_minor_version << 8) | engine_patch_version;
+constexpr uint64 engine_binary_magic_number = (uint64(0x505948) << 32) | engine_version;
+
 constexpr uint max_frames_in_flight = 2;
 constexpr uint num_async_rendering_command_buffers = 4;
 constexpr uint num_async_compute_command_buffers = 1;

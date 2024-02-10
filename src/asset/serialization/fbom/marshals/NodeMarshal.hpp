@@ -13,12 +13,7 @@ template <>
 class FBOMMarshaler<Node> : public FBOMObjectMarshalerBase<Node>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType("Node");
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
     {

@@ -277,10 +277,10 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
                 AnimationComponent {
                     {
                         .animation_index = 0,
-                        .current_time = 0.0f,
-                        .speed = 1.0f,
                         .status = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
-                        .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT
+                        .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
+                        .speed = 1.0f,
+                        .current_time = 0.0f
                     }
                 }
             );

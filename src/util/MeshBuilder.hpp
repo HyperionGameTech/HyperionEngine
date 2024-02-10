@@ -32,31 +32,6 @@ class MeshBuilder
     static const Array<Vertex>      cube_vertices;
 
 public:
-    struct Voxel
-    {
-        BoundingBox aabb;
-        bool filled;
-
-        Voxel()
-            : aabb(BoundingBox()), filled(false) {}
-        Voxel(const BoundingBox &aabb, bool filled = false)
-            : aabb(aabb), filled(filled) {}
-        Voxel(const Voxel &other)
-            : aabb(other.aabb), filled(other.filled) {}
-    };
-
-    struct VoxelGrid
-    {
-        Array<Voxel>    voxels;
-        uint            size_x, size_y, size_z;
-        float           voxel_size;
-
-        uint GetIndex(uint x, uint y, uint z) const
-        {
-            return (x * size_y * size_z) + (y * size_z) + z;
-        }
-    };
-
     static Handle<Mesh> Quad(Topology topology = Topology::TRIANGLES);
     static Handle<Mesh> Cube();
     static Handle<Mesh> NormalizedCubeSphere(uint num_divisions);
@@ -64,10 +39,6 @@ public:
     static Handle<Mesh> ApplyTransform(const Mesh *mesh, const Transform &transform);
     static Handle<Mesh> Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform);
     static Handle<Mesh> Merge(const Mesh *a, const Mesh *b);
-
-    static VoxelGrid Voxelize(const Mesh *mesh, float voxel_size);
-    static VoxelGrid Voxelize(const Mesh *mesh, Vec3u voxel_grid_size);
-    static Handle<Mesh> BuildVoxelMesh(VoxelGrid voxel_grid);
 };
 
 } // namespace hyperion::v2

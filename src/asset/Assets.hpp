@@ -44,6 +44,8 @@ class AssetManager
 public:
     using ProcessAssetFunctorFactory = std::add_pointer_t<UniquePtr<ProcessAssetFunctorBase>(const String & /* key */, const String & /* path */, AssetBatchCallbacks * /* callbacks */)>;
 
+    static const bool asset_cache_enabled;
+
     AssetManager();
     AssetManager(const AssetManager &other)                 = delete;
     AssetManager &operator=(const AssetManager &other)      = delete;
@@ -113,7 +115,7 @@ public:
 
         AssetCachePool<Normalized> *cache_pool = m_asset_cache->GetPool<Normalized>();
 
-        if (flags & ASSET_LOAD_FLAGS_CACHE_READ && cache_pool->Has(path)) {
+        if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_READ) && cache_pool->Has(path)) {
             out_result = { };
 
             DebugLog(LogType::Info, "%s: Load from cache\n", path.Data());
@@ -134,7 +136,7 @@ public:
         const auto result = AssetLoaderWrapper<Normalized>(*loader)
             .Load(*this, path, out_result);
 
-        if (flags & ASSET_LOAD_FLAGS_CACHE_WRITE) {
+        if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_WRITE)) {
             cache_pool->Set(path, result);
         }
 

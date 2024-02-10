@@ -15,6 +15,8 @@
 
 namespace hyperion::v2 {
 
+const bool AssetManager::asset_cache_enabled = false;
+
 AssetManager::AssetManager()
     : m_asset_cache(new AssetCache())
 {

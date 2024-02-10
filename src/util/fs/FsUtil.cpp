@@ -75,6 +75,12 @@ int FileSystem::MkDir(const std::string &path)
     #define MKDIR_FUNCTION(path, mode) ::mkdir(path, mode)
 #endif
 
+#ifdef HYP_UNIX
+#define HYP_ISDIR(mode) S_ISDIR(mode)
+#elif defined(HYP_WINDOWS)
+#define HYP_ISDIR(mode) (((mode) & _S_IFDIR) > 0)
+#endif
+
     struct stat st;
 
     int status = 0;
@@ -87,7 +93,7 @@ int FileSystem::MkDir(const std::string &path)
                     status = -1;
                     break;
                 }
-            } else if (!S_ISDIR(st.st_mode)) {
+            } else if (!HYP_ISDIR(st.st_mode)) {
                 status = -1;
                 break;
             }
@@ -151,13 +157,13 @@ uint64 FilePath::LastModifiedTimestamp() const
 #endif
 }
 
-bool FilePath::Open(BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE> &out) const
+bool FilePath::Open(BufferedReader &out) const
 {
     if (!Exists()) {
         return false;
     }
 
-    out = BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE>(*this);
+    out = BufferedReader(*this);
 
     return true;
 }

@@ -44,11 +44,9 @@ if(MSVC)
 endif()
 
 
-set(COMMON_LIBRARIES
-    hyperion
-)
-
-target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+# link with shared library hyperion
+add_dependencies(${BUILD_NAME} hyperion)
+target_link_libraries(${BUILD_NAME} hyperion)
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 

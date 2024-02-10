@@ -112,6 +112,8 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(Bullet_FOUND)
+    message(STATUS "Bullet found")
+
     add_definitions(-DHYP_BULLET=1)
 
     include_directories(${BULLET_INCLUDE_DIRS})
@@ -137,17 +139,19 @@ if (${NATIVE})
         )
     endif()
 
-    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
-        add_definitions(-DHYP_ZLIB=1)
+    # TEMPORARILY DISABLE ZLIB
 
-        include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-        add_subdirectory(submodules/zlib)
-        
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            zlibstatic
-        )
-    endif()
+    # if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
+    #     add_definitions(-DHYP_ZLIB=1)
+    # 
+    #     include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+    #     add_subdirectory(submodules/zlib)
+    #     
+    #     set(COMMON_LIBRARIES
+    #         ${COMMON_LIBRARIES}
+    #         zlibstatic
+    #     )
+    # endif()
 
 
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
@@ -217,14 +221,23 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
     # Run dotnet.sh to build the dotnet runtime
 
     # copy all .so and .a files to lib/<platform name>
+    
+    if(UNIX)
+        execute_process(
+            COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.sh
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
+        )
+    elseif(WIN32)
+        execute_process(
+            COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.bat
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
+        )
+    endif()
 
-    execute_process(
-        COMMAND ${CMAKE_SOURCE_DIR}/submodules/dotnet/build.sh
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/dotnet
-    )
 
-
-    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so" "${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.a")
+    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.a"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.lib")
 
     foreach(DOTNET_LIB ${DOTNET_LIBS})
         message(STATUS "Copying ${DOTNET_LIB} to ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}")
@@ -255,6 +268,11 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
 
 endif()
 
+# if Win32, link with DbgHelp
+if(WIN32)
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
+endif()
+
 # if aftermath lib exists on windows, link to it
 if(WIN32)
     if(EXISTS "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.lib")
@@ -273,7 +291,13 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+if(WIN32)
+    # DLL is currently not working on Win32 as it is not exporting the symbols.
+    # When this is fixed, make it also shared.
+    add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+else()
+    add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+endif()
 
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}

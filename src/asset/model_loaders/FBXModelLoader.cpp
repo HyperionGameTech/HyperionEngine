@@ -217,6 +217,15 @@ struct FBXNodeMapping
 
 const FBXObject FBXObject::empty = { };
 
+using FBXVersion = uint32;
+
+static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_property);
+static LoaderResult ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXPropertyValue &out_value);
+static uint64 ReadFBXOffset(ByteReader &reader, FBXVersion version);
+static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out);
+static SizeType PrimitiveSize(uint8 primitive_type);
+static bool ReadMagic(ByteReader &reader);
+
 static bool ReadMagic(ByteReader &reader)
 {
     if (reader.Max() < sizeof(header_string) + sizeof(header_bytes)) {
@@ -424,8 +433,6 @@ static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_propert
 
     return { };
 }
-
-using FBXVersion = uint32;
 
 static uint64 ReadFBXOffset(ByteReader &reader, FBXVersion version)
 {
@@ -1259,7 +1266,9 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
     std::function<void(FBXNode::Type, FBXNode &, Node *)> BuildNodes;
 
-    BuildNodes = [&](FBXNode::Type type, FBXNode &node, Node *parent_node) {
+    BuildNodes = [&](FBXNode::Type type, FBXNode &node, Node *parent_node)
+    {
+#if 0 // temporarily disabled due to 'Internal Server Error' on MSW
         AssertThrow(parent_node != nullptr);
         
         if (node.type != type) {
@@ -1354,6 +1363,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         }
 
         parent_node->AddChild(node_proxy);
+#endif
     };
 
     auto ApplyBindPoses = [&]() {

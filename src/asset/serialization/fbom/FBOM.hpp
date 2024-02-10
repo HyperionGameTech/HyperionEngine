@@ -326,28 +326,26 @@ public:
 
         return loader->Deserialize(in, out_object);
     }
-
-    FBOMResult LoadFromFile(const String &path, FBOMObject &out)
+    
+    FBOMResult Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
     {
-        DebugLog(LogType::Debug, "FBOM: Loading file %s\n", path.Data());
+        FBOMObject obj;
+        FBOMResult res = Deserialize(reader, obj);
+
+        if (res.value != FBOMResult::FBOM_OK) {
+            return res;
+        }
+
+        return Deserialize(obj, out_object);
+    }
+
+    FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out)
+    {
+        if (reader.Eof()) {
+            return { FBOMResult::FBOM_ERR, "Stream not open" };
+        }
 
         FBOMObject root(FBOMObjectType("ROOT"));
-
-        // Include our root dir as part of the path
-        const auto base_path = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath());
-        root.SetProperty("base_path", FBOMString(), base_path.size(), base_path.data());
-
-        DebugLog(LogType::Warn, "base_path: %s\n", base_path.c_str());
-
-        const auto read_path = FileSystem::Join(base_path, std::string(FilePath(path).Basename().Data()));
-
-        FileByteReader reader(read_path);
-
-        if (reader.Eof()) {
-            DebugLog(LogType::Warn, "Could not open file %s\n", read_path.c_str());
-
-            return { FBOMResult::FBOM_ERR, "File not open" };
-        }
 
         { // read header
             ubyte header_bytes[FBOM::header_size];
@@ -404,6 +402,23 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
+    
+    FBOMResult LoadFromFile(const String &path, FBOMObject &out)
+    {
+        DebugLog(LogType::Debug, "FBOM: Loading file %s\n", path.Data());
+
+        // Include our root dir as part of the path
+        if (m_config.base_path.Empty()) {
+            m_config.base_path = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath()).c_str();
+        }
+
+        const FilePath read_path { FileSystem::Join(m_config.base_path.Data(), std::string(FilePath(path).Basename().Data())).c_str()};
+
+        BufferedReader reader(RC<FileBufferedReaderSource>(new FileBufferedReaderSource(read_path)));
+
+        return Deserialize(reader, out);
+    }
+
     FBOMResult LoadFromFile(const String &path, FBOMDeserializedObject &out)
     {
         FBOMObject object;
@@ -428,16 +443,16 @@ private:
         }
     }
 
-    FBOMCommand NextCommand(ByteReader *);
-    FBOMCommand PeekCommand(ByteReader *);
-    FBOMResult Eat(ByteReader *, FBOMCommand, bool read = true);
+    FBOMCommand NextCommand(BufferedReader *);
+    FBOMCommand PeekCommand(BufferedReader *);
+    FBOMResult Eat(BufferedReader *, FBOMCommand, bool read = true);
 
-    String ReadString(ByteReader *);
-    FBOMType ReadObjectType(ByteReader *);
-    FBOMResult ReadData(ByteReader *, FBOMData &data);
-    FBOMResult ReadObject(ByteReader *, FBOMObject &object, FBOMObject *root);
+    String ReadString(BufferedReader *);
+    FBOMType ReadObjectType(BufferedReader *);
+    FBOMResult ReadData(BufferedReader *, FBOMData &data);
+    FBOMResult ReadObject(BufferedReader *, FBOMObject &object, FBOMObject *root);
 
-    FBOMResult Handle(ByteReader *, FBOMCommand, FBOMObject *root);
+    FBOMResult Handle(BufferedReader *, FBOMCommand, FBOMObject *root);
 
     FBOMConfig m_config;
 

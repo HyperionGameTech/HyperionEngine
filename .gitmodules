@@ -11,9 +11,9 @@
 [submodule "submodules/webgpu"]
 	path = submodules/webgpu
 	url = https://github.com/eliemichel/WebGPU-binaries
-[submodule "submodules/dotnet/runtime"]
-	path = submodules/dotnet/runtime
+[submodule "submodules/dotnet"]
+	path = submodules/dotnet
 	url = https://github.com/dotnet/runtime
-[submodule "runtime"]
-	path = runtime
+[submodule "submodules/runtime"]
+	path = submodules/runtime
 	url = https://github.com/dotnet/runtime

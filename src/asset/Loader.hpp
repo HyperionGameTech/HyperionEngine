@@ -17,11 +17,11 @@ class AssetManager;
 
 struct LoaderState
 {
-    using Stream = BufferedReader<HYP_LOADER_BUFFER_SIZE>;
+    using Stream = BufferedReader;
 
-    AssetManager *asset_manager;
-    String filepath;
-    Stream stream;
+    AssetManager    *asset_manager;
+    String          filepath;
+    Stream          stream;
 };
 
 struct LoaderResult

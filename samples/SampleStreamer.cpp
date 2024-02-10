@@ -137,19 +137,23 @@ void SampleStreamer::InitGame()
         AssertThrow(m_rtc_instance->GetServer() != nullptr);
 
         if (const RC<RTCServer> &server = m_rtc_instance->GetServer()) {
-            server->GetCallbacks().On(RTCServerCallbackMessages::ERROR, [](RTCServerCallbackData data) {
+            server->GetCallbacks().On(RTCServerCallbackMessages::ERR, [](RTCServerCallbackData data)
+            {
                 DebugLog(LogType::Error, "Server error: %s\n", data.error.HasValue() ? data.error.Get().message.Data() : "<unknown>");
             });
 
-            server->GetCallbacks().On(RTCServerCallbackMessages::CONNECTED, [](RTCServerCallbackData) {
+            server->GetCallbacks().On(RTCServerCallbackMessages::CONNECTED, [](RTCServerCallbackData)
+            {
                 DebugLog(LogType::Debug, "Server started\n");
             });
 
-            server->GetCallbacks().On(RTCServerCallbackMessages::DISCONNECTED, [](RTCServerCallbackData) {
+            server->GetCallbacks().On(RTCServerCallbackMessages::DISCONNECTED, [](RTCServerCallbackData)
+            {
                 DebugLog(LogType::Debug, "Server stopped\n");
             });
 
-            server->GetCallbacks().On(RTCServerCallbackMessages::MESSAGE, [this](RTCServerCallbackData data) {
+            server->GetCallbacks().On(RTCServerCallbackMessages::MESSAGE, [this](RTCServerCallbackData data)
+            {
                 using namespace hyperion::json;
 
                 if (!data.bytes.HasValue()) {
@@ -1176,9 +1180,18 @@ Optional<Vec3f> SampleStreamer::GetWorldRay(const Vec2f &screen_position) const
                 TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity_id);
 
                 if (mesh_component != nullptr && mesh_component->mesh.IsValid() && transform_component != nullptr) {
+                    // @TODO: generate a BVH instead of using raw mesh data
+                    auto streamed_mesh_data = mesh_component->mesh->GetStreamedMeshData();
+
+                    if (!streamed_mesh_data) {
+                        continue;
+                    }
+
+                    auto ref = streamed_mesh_data->AcquireRef();
+
                     ray.TestTriangleList(
-                        mesh_component->mesh->GetVertices(),
-                        mesh_component->mesh->GetIndices(),
+                        ref->GetMeshData().vertices,
+                        ref->GetMeshData().indices,
                         transform_component->transform,
                         entity_id.Value(),
                         triangle_mesh_results

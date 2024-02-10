@@ -7,6 +7,10 @@ Entity::Entity()
 {
 }
 
+Entity::~Entity()
+{
+}
+
 void Entity::Init()
 {
     if (IsInitCalled()) {

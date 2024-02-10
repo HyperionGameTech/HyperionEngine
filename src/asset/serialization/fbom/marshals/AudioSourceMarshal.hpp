@@ -11,12 +11,7 @@ template <>
 class FBOMMarshaler<AudioSource> : public FBOMObjectMarshalerBase<AudioSource>
 {
 public:
-    virtual ~FBOMMarshaler() = default;
-
-    virtual FBOMType GetObjectType() const override
-    {
-        return FBOMObjectType(AudioSource::GetClass().GetName());
-    }
+    virtual ~FBOMMarshaler() override = default;
 
     virtual FBOMResult Serialize(const AudioSource &in_object, FBOMObject &out) const override
     {

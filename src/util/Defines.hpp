@@ -282,4 +282,15 @@
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
+// Exporting
+
+#ifdef HYP_WINDOWS
+    #define HYP_EXPORT __declspec(dllexport)
+    #define HYP_IMPORT __declspec(dllimport)
+
+#elif defined(HYP_UNIX)
+    #define HYP_EXPORT __attribute__((visibility("default")))
+    #define HYP_IMPORT
+#endif
+
 #endif // !HYPERION_DEFINES_H

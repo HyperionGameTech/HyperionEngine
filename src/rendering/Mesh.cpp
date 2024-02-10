@@ -14,24 +14,35 @@ using renderer::GPUBufferType;
 
 struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 {
-    Array<float> vertex_data;
-    Array<Mesh::Index> index_data;
-    GPUBufferRef vbo;
-    GPUBufferRef ibo;
+    Array<float>        vertex_data;
+    Array<Mesh::Index>  index_data;
+    GPUBufferRef        vbo;
+    GPUBufferRef        ibo;
 
     RENDER_COMMAND(UploadMeshData)(
-        const Array<float> &vertex_data,
-        const Array<Mesh::Index> &index_data,
-        const GPUBufferRef &vbo,
-        const GPUBufferRef &ibo
-    ) : vertex_data(vertex_data),
-        index_data(index_data),
-        vbo(vbo),
-        ibo(ibo)
+        Array<float> vertex_data,
+        Array<Mesh::Index> index_data,
+        GPUBufferRef vbo,
+        GPUBufferRef ibo
+    ) : vertex_data(std::move(vertex_data)),
+        index_data(std::move(index_data)),
+        vbo(std::move(vbo)),
+        ibo(std::move(ibo))
     {
+        // Ensure vertex buffer is not empty
+        if (this->vertex_data.Empty()) {
+            this->vertex_data.Resize(1);
+        }
+
+        // Ensure indices exist and are a multiple of 3
+        if (this->index_data.Empty()) {
+            this->index_data.Resize(3);
+        } else if (this->index_data.Size() % 3 != 0) {
+            this->index_data.Resize(this->index_data.Size() + (3 - (this->index_data.Size() % 3)));
+        }
     }
 
-    virtual Result operator()()
+    virtual Result operator()() override
     {
         auto *instance = g_engine->GetGPUInstance();
         auto *device = g_engine->GetGPUDevice();
@@ -44,7 +55,8 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 
         HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
             device,
-            [&](renderer::StagingBufferPool::Context &holder) {
+            [&](renderer::StagingBufferPool::Context &holder)
+            {
                 auto commands = instance->GetSingleTimeCommands();
 
                 auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
@@ -122,6 +134,34 @@ Mesh::Mesh()
 }
 
 Mesh::Mesh(
+    RC<StreamedMeshData> streamed_mesh_data,
+    Topology topology,
+    const VertexAttributeSet &vertex_attributes
+) : BasicObject(),
+    m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
+    m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
+    m_mesh_attributes {
+        .vertex_attributes = vertex_attributes,
+        .topology = topology
+    },
+    m_streamed_mesh_data(std::move(streamed_mesh_data)),
+    m_aabb(BoundingBox::empty)
+{
+    CalculateAABB();
+}
+
+Mesh::Mesh(
+    RC<StreamedMeshData> streamed_mesh_data,
+    Topology topology
+) : Mesh(
+        std::move(streamed_mesh_data),
+        topology,
+        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
+    )
+{
+}
+
+Mesh::Mesh(
     Array<Vertex> vertices,
     Array<Index> indices,
     Topology topology,
@@ -133,8 +173,10 @@ Mesh::Mesh(
         .vertex_attributes = vertex_attributes,
         .topology = topology
     },
-    m_vertices(std::move(vertices)),
-    m_indices(std::move(indices)),
+    m_streamed_mesh_data(StreamedMeshData::FromMeshData({
+        std::move(vertices),
+        std::move(indices)
+    })),
     m_aabb(BoundingBox::empty)
 {
     CalculateAABB();
@@ -157,8 +199,7 @@ Mesh::Mesh(Mesh &&other) noexcept
     : m_vbo(std::move(other.m_vbo)),
       m_ibo(std::move(other.m_ibo)),
       m_mesh_attributes(other.m_mesh_attributes),
-      m_vertices(std::move(other.m_vertices)),
-      m_indices(std::move(other.m_indices)),
+      m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_aabb(other.m_aabb)
 {
     other.m_aabb = BoundingBox::empty;
@@ -173,8 +214,7 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
     m_vbo = std::move(other.m_vbo);
     m_ibo = std::move(other.m_ibo);
     m_mesh_attributes = other.m_mesh_attributes;
-    m_vertices = std::move(other.m_vertices);
-    m_indices = std::move(other.m_indices);
+    m_streamed_mesh_data = std::move(other.m_streamed_mesh_data);
     m_aabb = other.m_aabb;
 
     other.m_aabb = BoundingBox::empty;
@@ -210,44 +250,19 @@ void Mesh::Init()
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    if (m_indices.Size() < 3) {
-        DebugLog(
-            LogType::Warn,
-            "Attempt to create Mesh #%u with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
-            m_id.value
-        );
-
-        if (m_vertices.Empty()) {
-            /* set to 1 vertex / index to prevent explosions */
-            m_vertices = { Vertex() };
-        }
-
-        m_indices = { 0, 0, 0 };
-    } else if (m_indices.Size() % 3 != 0) {
-        DebugLog(
-            LogType::Warn,
-            "Index count not a multiple of 3! Padding with extra indices...",
-            m_id.value
-        );
-
-        if (m_vertices.Empty()) {
-            /* set to 1 vertex / index to prevent explosions */
-            m_vertices = { Vertex() };
-        }
-
-        const SizeType remainder = m_indices.Size() % 3;
-
-        for (SizeType i = 0; i < remainder; i++) {
-            m_indices.PushBack(0);
-        }
+    if (!m_streamed_mesh_data) {
+        m_streamed_mesh_data.Reset(new StreamedMeshData());
     }
 
-    m_indices_count = uint(m_indices.Size());
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    const MeshData &mesh_data = ref->GetMeshData();
+
+    m_indices_count = uint(mesh_data.indices.Size());
 
     PUSH_RENDER_COMMAND(
         UploadMeshData,
-        BuildVertexBuffer(),
-        m_indices,
+        BuildVertexBuffer(GetVertexAttributes(), mesh_data),
+        mesh_data.indices,
         m_vbo,
         m_ibo
     );
@@ -260,20 +275,24 @@ void Mesh::Init()
 
 void Mesh::SetVertices(Array<Vertex> vertices)
 {
-    m_vertices = std::move(vertices);
+    Array<uint32> indices;
+    indices.Resize(vertices.Size());
 
-    m_indices.Resize(m_vertices.Size());
-
-    for (SizeType index = 0; index < m_vertices.Size(); index++) {
-        m_indices[index] = Index(index);
+    for (SizeType index = 0; index < vertices.Size(); index++) {
+        indices[index] = uint32(index);
     }
 
-    CalculateAABB();
+    SetVertices(std::move(vertices), std::move(indices));
 }
 
-void Mesh::SetIndices(Array<Index> indices)
+void Mesh::SetVertices(Array<Vertex> vertices, Array<Index> indices)
 {
-    m_indices = std::move(indices);
+    m_streamed_mesh_data = StreamedMeshData::FromMeshData({
+       std::move(vertices),
+       std::move(indices)
+    });
+
+    CalculateAABB();
 }
 
 /* Copy our values into the packed vertex buffer, and increase the index for the next possible
@@ -284,34 +303,34 @@ void Mesh::SetIndices(Array<Index> indices)
         current_offset += (arg_size);                                                            \
     } while (0)
 
-Array<float> Mesh::BuildVertexBuffer()
+Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data)
 {
-    const SizeType vertex_size = GetVertexAttributes().CalculateVertexSize();
+    const SizeType vertex_size = vertex_attributes.CalculateVertexSize();
 
     Array<float> packed_buffer;
-    packed_buffer.Resize(vertex_size * m_vertices.Size());
+    packed_buffer.Resize(vertex_size * mesh_data.vertices.Size());
 
     /* Raw buffer that is used with our helper macro. */
     float *raw_buffer = packed_buffer.Data();
     SizeType current_offset = 0;
 
-    for (SizeType i = 0; i < m_vertices.Size(); i++) {
-        const Vertex &vertex = m_vertices[i];
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
+        const Vertex &vertex = mesh_data.vertices[i];
         /* Offset aligned to the current vertex */
         //current_offset = i * vertex_size;
 
         /* Position and normals */
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION)  PACKED_SET_ATTR(vertex.GetPosition().values, 3);
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL)    PACKED_SET_ATTR(vertex.GetNormal().values,   3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION)  PACKED_SET_ATTR(vertex.GetPosition().values, 3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL)    PACKED_SET_ATTR(vertex.GetNormal().values,   3);
         /* Texture coordinates */
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1) PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1) PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
         /* Tangents and Bitangents */
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT)   PACKED_SET_ATTR(vertex.GetTangent().values,   3);
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT) PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT)   PACKED_SET_ATTR(vertex.GetTangent().values,   3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT) PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
 
         /* TODO: modify GetBoneIndex/GetBoneWeight to return a Vector4. */
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS) {
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS) {
             float weights[4] = {
                 vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
                 vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
@@ -319,7 +338,7 @@ Array<float> Mesh::BuildVertexBuffer()
             PACKED_SET_ATTR(weights, std::size(weights));
         }
 
-        if (GetVertexAttributes() & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES) {
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES) {
             float indices[4] = {
                     (float)vertex.GetBoneIndex(0), (float)vertex.GetBoneIndex(1),
                     (float)vertex.GetBoneIndex(2), (float)vertex.GetBoneIndex(3)
@@ -369,11 +388,14 @@ void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 
 Array<PackedVertex> Mesh::BuildPackedVertices() const
 {
-    Array<PackedVertex> packed_vertices;
-    packed_vertices.Resize(m_vertices.Size());
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    const MeshData &mesh_data = ref->GetMeshData();
 
-    for (SizeType i = 0; i < m_vertices.Size(); i++) {
-        const auto &vertex = m_vertices[i];
+    Array<PackedVertex> packed_vertices;
+    packed_vertices.Resize(mesh_data.vertices.Size());
+
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
+        const auto &vertex = mesh_data.vertices[i];
 
         packed_vertices[i] = PackedVertex {
             .position_x = vertex.GetPosition().x,
@@ -392,14 +414,26 @@ Array<PackedVertex> Mesh::BuildPackedVertices() const
 
 Array<PackedIndex> Mesh::BuildPackedIndices() const
 {
-    AssertThrow(m_indices.Size() % 3 == 0);
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    const MeshData &mesh_data = ref->GetMeshData();
 
-    return Array<PackedIndex>(m_indices.Begin(), m_indices.End());
+    AssertThrow(mesh_data.indices.Size() % 3 == 0);
+
+    return Array<PackedIndex>(mesh_data.indices.Begin(), mesh_data.indices.End());
 }
 
 void Mesh::CalculateNormals(bool weighted)
 {
-    if (m_indices.Empty()) {
+    if (!m_streamed_mesh_data) {
+        DebugLog(LogType::Warn, "Cannot calculate normals before mesh data is set!\n");
+
+        return;
+    }
+
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    MeshData mesh_data = ref->GetMeshData();
+
+    if (mesh_data.indices.Empty()) {
         DebugLog(LogType::Warn, "Cannot calculate normals before indices are generated!\n");
 
         return;
@@ -408,14 +442,14 @@ void Mesh::CalculateNormals(bool weighted)
     std::unordered_map<Index, Array<Vector3>> normals;
 
     // compute per-face normals (facet normals)
-    for (SizeType i = 0; i < m_indices.Size(); i += 3) {
-        const Index i0 = m_indices[i];
-        const Index i1 = m_indices[i + 1];
-        const Index i2 = m_indices[i + 2];
+    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3) {
+        const Index i0 = mesh_data.indices[i];
+        const Index i1 = mesh_data.indices[i + 1];
+        const Index i2 = mesh_data.indices[i + 2];
 
-        const Vector3 &p0 = m_vertices[i0].GetPosition();
-        const Vector3 &p1 = m_vertices[i1].GetPosition();
-        const Vector3 &p2 = m_vertices[i2].GetPosition();
+        const Vector3 &p0 = mesh_data.vertices[i0].GetPosition();
+        const Vector3 &p1 = mesh_data.vertices[i1].GetPosition();
+        const Vector3 &p2 = mesh_data.vertices[i2].GetPosition();
 
         const Vector3 u = p2 - p0;
         const Vector3 v = p1 - p0;
@@ -426,15 +460,17 @@ void Mesh::CalculateNormals(bool weighted)
         normals[i2].PushBack(n);
     }
 
-    for (SizeType i = 0; i < m_vertices.Size(); i++) {
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
         if (weighted) {
-            m_vertices[i].SetNormal(normals[i].Sum());
+            mesh_data.vertices[i].SetNormal(normals[i].Sum());
         } else {
-            m_vertices[i].SetNormal(normals[i].Sum().Normalize());
+            mesh_data.vertices[i].SetNormal(normals[i].Sum().Normalize());
         }
     }
 
     if (!weighted) {
+        m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
+
         return;
     }
 
@@ -442,18 +478,18 @@ void Mesh::CalculateNormals(bool weighted)
 
     // weighted (smooth) normals
 
-    for (SizeType i = 0; i < m_indices.Size(); i += 3) {
-        const Index i0 = m_indices[i];
-        const Index i1 = m_indices[i + 1];
-        const Index i2 = m_indices[i + 2];
+    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3) {
+        const Index i0 = mesh_data.indices[i];
+        const Index i1 = mesh_data.indices[i + 1];
+        const Index i2 = mesh_data.indices[i + 2];
 
-        const auto &p0 = m_vertices[i0].GetPosition();
-        const auto &p1 = m_vertices[i1].GetPosition();
-        const auto &p2 = m_vertices[i2].GetPosition();
+        const auto &p0 = mesh_data.vertices[i0].GetPosition();
+        const auto &p1 = mesh_data.vertices[i1].GetPosition();
+        const auto &p2 = mesh_data.vertices[i2].GetPosition();
 
-        const auto &n0 = m_vertices[i0].GetNormal();
-        const auto &n1 = m_vertices[i1].GetNormal();
-        const auto &n2 = m_vertices[i2].GetNormal();
+        const auto &n0 = mesh_data.vertices[i0].GetNormal();
+        const auto &n1 = mesh_data.vertices[i1].GetNormal();
+        const auto &n2 = mesh_data.vertices[i2].GetNormal();
 
         // Vector3 n = FixedArray { n0, n1, n2 }.Avg();
 
@@ -462,25 +498,25 @@ void Mesh::CalculateNormals(bool weighted)
         // nested loop through faces to get weighted neighbours
         // any code that uses this really should bake the normals in
         // especially for any production code. this is an expensive process
-        for (SizeType j = 0; j < m_indices.Size(); j += 3) {
+        for (SizeType j = 0; j < mesh_data.indices.Size(); j += 3) {
             if (j == i) {
                 continue;
             }
 
-            const Index j0 = m_indices[j];
-            const Index j1 = m_indices[j + 1];
-            const Index j2 = m_indices[j + 2];
+            const Index j0 = mesh_data.indices[j];
+            const Index j1 = mesh_data.indices[j + 1];
+            const Index j2 = mesh_data.indices[j + 2];
 
             const FixedArray face_positions {
-                m_vertices[j0].GetPosition(),
-                m_vertices[j1].GetPosition(),
-                m_vertices[j2].GetPosition()
+                mesh_data.vertices[j0].GetPosition(),
+                mesh_data.vertices[j1].GetPosition(),
+                mesh_data.vertices[j2].GetPosition()
             };
 
             const FixedArray face_normals {
-                m_vertices[j0].GetNormal(),
-                m_vertices[j1].GetNormal(),
-                m_vertices[j2].GetNormal()
+                mesh_data.vertices[j0].GetNormal(),
+                mesh_data.vertices[j1].GetNormal(),
+                mesh_data.vertices[j2].GetNormal()
             };
 
             const auto a = p1 - p0;
@@ -522,16 +558,25 @@ void Mesh::CalculateNormals(bool weighted)
         normals[i2].PushBack(weighted_normals[2].Normalized());
     }
 
-    for (SizeType i = 0; i < m_vertices.Size(); i++) {
-        m_vertices[i].SetNormal(normals[i].Sum().Normalized());
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
+        mesh_data.vertices[i].SetNormal(normals[i].Sum().Normalized());
     }
 
     normals.clear();
-
+    
+    m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 
 void Mesh::CalculateTangents()
 {
+    if (!m_streamed_mesh_data) {
+        DebugLog(LogType::Warn, "Cannot calculate normals before mesh data is set!\n");
+
+        return;
+    }
+
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
+
     struct TangentBitangentPair
     {
         Vector3 tangent;
@@ -540,20 +585,20 @@ void Mesh::CalculateTangents()
 
     std::unordered_map<Index, Array<TangentBitangentPair>> data;
 
-    for (SizeType i = 0; i < m_indices.Size();) {
-        const SizeType count = MathUtil::Min(3, m_indices.Size() - i);
+    for (SizeType i = 0; i < mesh_data.indices.Size();) {
+        const SizeType count = MathUtil::Min(3, mesh_data.indices.Size() - i);
 
         Vertex v[3];
         Vector2 uv[3];
 
         for (uint32 j = 0; j < count; j++) {
-            v[j] = m_vertices[m_indices[i + j]];
+            v[j] = mesh_data.vertices[mesh_data.indices[i + j]];
             uv[j] = v[j].GetTexCoord0();
         }
 
-        Index i0 = m_indices[i];
-        Index i1 = m_indices[i + 1];
-        Index i2 = m_indices[i + 2];
+        Index i0 = mesh_data.indices[i];
+        Index i1 = mesh_data.indices[i + 1];
+        Index i2 = mesh_data.indices[i + 2];
         
         const Vector3 edge1 = v[1].GetPosition() - v[0].GetPosition();
         const Vector3 edge2 = v[2].GetPosition() - v[0].GetPosition();
@@ -578,7 +623,7 @@ void Mesh::CalculateTangents()
         i += count;
     }
 
-    for (SizeType i = 0; i < m_vertices.Size(); i++) {
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
         const auto &tangent_bitangents = data[i];
 
         // find average
@@ -592,26 +637,34 @@ void Mesh::CalculateTangents()
         average_tangent.Normalize();
         average_bitangent.Normalize();
 
-        m_vertices[i].SetTangent(average_tangent);
-        m_vertices[i].SetBitangent(average_bitangent);
+        mesh_data.vertices[i].SetTangent(average_tangent);
+        mesh_data.vertices[i].SetBitangent(average_bitangent);
     }
     
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
+    
+    m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 
 void Mesh::InvertNormals()
 {
-    for (Vertex &vertex : m_vertices) {
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
+
+    for (Vertex &vertex : mesh_data.vertices) {
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
+    
+    m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 
 void Mesh::CalculateAABB()
 {
+    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
+
     BoundingBox aabb = BoundingBox::empty;
 
-    for (const Vertex &vertex : m_vertices) {
+    for (const Vertex &vertex : mesh_data.vertices) {
         aabb.Extend(vertex.GetPosition());
     }
 
