@@ -7,15 +7,15 @@ namespace hyperion::v2 {
 
 struct RENDER_COMMAND(CreateRenderPass) : renderer::RenderCommand
 {
-    RenderPassRef   render_pass;
-    AttachmentMap   *attachment_map;
+    RenderPassRef       render_pass;
+    RC<AttachmentMap>   attachment_map;
 
-    RENDER_COMMAND(CreateRenderPass)(RenderPassRef render_pass, AttachmentMap *attachment_map)
+    RENDER_COMMAND(CreateRenderPass)(RenderPassRef render_pass, RC<AttachmentMap> attachment_map)
         : render_pass(std::move(render_pass)),
-          attachment_map(attachment_map)
+          attachment_map(std::move(attachment_map))
     {
         AssertThrow(this->render_pass.IsValid());
-        AssertThrow(attachment_map != nullptr);
+        AssertThrow(this->attachment_map != nullptr);
     }
 
     virtual Result operator()()
@@ -35,16 +35,16 @@ struct RENDER_COMMAND(CreateFramebuffer) : renderer::RenderCommand
 {
     FramebufferObjectRef    framebuffer;
     RenderPassRef           render_pass;
-    AttachmentMap           *attachment_map;
+    RC<AttachmentMap>       attachment_map;
 
-    RENDER_COMMAND(CreateFramebuffer)(FramebufferObjectRef framebuffer, RenderPassRef render_pass, AttachmentMap *attachment_map)
+    RENDER_COMMAND(CreateFramebuffer)(FramebufferObjectRef framebuffer, RenderPassRef render_pass, RC<AttachmentMap> attachment_map)
         : framebuffer(std::move(framebuffer)),
           render_pass(std::move(render_pass)),
-          attachment_map(attachment_map)
+          attachment_map(std::move(attachment_map))
     {
         AssertThrow(this->framebuffer.IsValid());
         AssertThrow(this->render_pass.IsValid());
-        AssertThrow(attachment_map != nullptr);
+        AssertThrow(this->attachment_map != nullptr);
     }
 
     virtual Result operator()()
@@ -64,12 +64,12 @@ struct RENDER_COMMAND(CreateFramebuffer) : renderer::RenderCommand
 
 struct RENDER_COMMAND(CreateAttachmentMap) : renderer::RenderCommand
 {
-    AttachmentMap *attachment_map;
+    RC<AttachmentMap>   attachment_map;
 
-    RENDER_COMMAND(CreateAttachmentMap)(AttachmentMap *attachment_map)
-        : attachment_map(attachment_map)
+    RENDER_COMMAND(CreateAttachmentMap)(RC<AttachmentMap> attachment_map)
+        : attachment_map(std::move(attachment_map))
     {
-        AssertThrow(attachment_map != nullptr);
+        AssertThrow(this->attachment_map != nullptr);
     }
 
     virtual Result operator()()
@@ -121,7 +121,8 @@ Framebuffer::Framebuffer(
     RenderPassMode render_pass_mode,
     uint num_multiview_layers
 ) : BasicObject(),
-    m_extent(extent)
+    m_extent(extent),
+    m_attachment_map(new AttachmentMap)
 {
     m_render_pass = MakeRenderObject<renderer::RenderPass>(stage, render_pass_mode, num_multiview_layers);
 
@@ -144,16 +145,14 @@ void Framebuffer::Init()
 
     BasicObject::Init();
     
-    PUSH_RENDER_COMMAND(CreateAttachmentMap, &m_attachment_map);
-    PUSH_RENDER_COMMAND(CreateRenderPass, m_render_pass, &m_attachment_map);
+    PUSH_RENDER_COMMAND(CreateAttachmentMap, m_attachment_map);
+    PUSH_RENDER_COMMAND(CreateRenderPass, m_render_pass, m_attachment_map);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         AssertThrow(m_framebuffers[frame_index].IsValid());
 
-        PUSH_RENDER_COMMAND(CreateFramebuffer, m_framebuffers[frame_index], m_render_pass, &m_attachment_map);
+        PUSH_RENDER_COMMAND(CreateFramebuffer, m_framebuffers[frame_index], m_render_pass, m_attachment_map);
     }
-
-    HYP_SYNC_RENDER();
 
     SetReady(true);
 }

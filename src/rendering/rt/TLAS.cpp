@@ -5,50 +5,25 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateTLAS) : renderer::RenderCommand
-{
-    renderer::TopLevelAccelerationStructure *tlas;
-    Array<renderer::BottomLevelAccelerationStructure *> blases;
-
-    RENDER_COMMAND(CreateTLAS)(renderer::TopLevelAccelerationStructure *tlas, Array<renderer::BottomLevelAccelerationStructure *> &&blases)
-        : tlas(tlas),
-          blases(std::move(blases))
-    {
-    }
-
-    virtual Result operator()()
-    {
-        return tlas->Create(
-            g_engine->GetGPUDevice(),
-            g_engine->GetGPUInstance(),
-            std::vector<renderer::BottomLevelAccelerationStructure *>(blases.Begin(), blases.End())
-        );
-    }
-};
-
-struct RENDER_COMMAND(DestroyTLAS) : renderer::RenderCommand
-{
-    renderer::TopLevelAccelerationStructure *tlas;
-
-    RENDER_COMMAND(DestroyTLAS)(renderer::TopLevelAccelerationStructure *tlas)
-        : tlas(tlas)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        return tlas->Destroy(g_engine->GetGPUDevice());
-    }
-};
-
 TLAS::TLAS()
-    : BasicObject()
+    : BasicObject(),
+      m_tlas(MakeRenderObject<TopLevelAccelerationStructure>())
 {
 }
 
 TLAS::~TLAS()
 {
-    Teardown();
+    m_blas.Clear();
+
+    if (m_has_blas_updates.load()) {
+        m_blas_updates_mutex.lock();
+        m_blas_pending_addition.Clear();
+        m_blas_updates_mutex.unlock();
+
+        m_has_blas_updates.store(false);
+    }
+
+    SafeRelease(std::move(m_tlas));
 }
 
 void TLAS::AddBLAS(Handle<BLAS> blas)
@@ -113,36 +88,21 @@ void TLAS::Init()
         AssertThrow(InitObject(m_blas[i]));
     }
 
-    Array<BottomLevelAccelerationStructure *> internal_blases;
+    Array<BLASRef> internal_blases;
     internal_blases.Resize(m_blas.Size());
 
     for (SizeType i = 0; i < m_blas.Size(); i++) {
-        internal_blases[i] = &m_blas[i]->GetInternalBLAS();
+        internal_blases[i] = m_blas[i]->GetInternalBLAS();
     }
 
-    PUSH_RENDER_COMMAND(CreateTLAS, &m_tlas, std::move(internal_blases));
-
-    HYP_SYNC_RENDER();
+    DeferCreate(
+        m_tlas,
+        g_engine->GetGPUDevice(),
+        g_engine->GetGPUInstance(),
+        std::move(internal_blases)
+    );
 
     SetReady(true);
-
-    OnTeardown([this]() {
-        SetReady(false);
-
-        m_blas.Clear();
-
-        if (m_has_blas_updates.load()) {
-            m_blas_updates_mutex.lock();
-            m_blas_pending_addition.Clear();
-            m_blas_updates_mutex.unlock();
-
-            m_has_blas_updates.store(false);
-        }
-
-        PUSH_RENDER_COMMAND(DestroyTLAS, &m_tlas);
-
-        HYP_SYNC_RENDER();
-    });
 }
 
 void TLAS::PerformBLASUpdates()
@@ -153,7 +113,7 @@ void TLAS::PerformBLASUpdates()
         auto blas = m_blas_pending_addition.PopFront();
         AssertThrow(blas);
 
-        m_tlas.AddBLAS(&blas->GetInternalBLAS());
+        m_tlas->AddBLAS(blas->GetInternalBLAS());
 
         m_blas.PushBack(std::move(blas));
     }
@@ -178,15 +138,15 @@ void TLAS::UpdateRender(
     for (auto &blas : m_blas) {
         AssertThrow(blas != nullptr);
         
-        AssertThrow(!blas->GetInternalBLAS().GetGeometries().empty());
-        AssertThrow(blas->GetInternalBLAS().GetGeometries()[0]->GetPackedIndexStorageBuffer() != nullptr);
-        AssertThrow(blas->GetInternalBLAS().GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
+        AssertThrow(!blas->GetInternalBLAS()->GetGeometries().Empty());
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedIndexStorageBuffer() != nullptr);
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
 
         //bool was_blas_rebuilt = false;
         //blas->UpdateRenderframe, was_blas_rebuilt);
     }
     
-    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(g_engine->GetGPUInstance(), out_update_state_flags));
+    HYPERION_ASSERT_RESULT(m_tlas->UpdateStructure(g_engine->GetGPUInstance(), out_update_state_flags));
 }
 
 } // namespace hyperion::v2

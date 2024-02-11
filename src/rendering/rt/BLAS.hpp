@@ -30,9 +30,8 @@ public:
     BLAS(const BLAS &other) = delete;
     BLAS &operator=(const BLAS &other) = delete;
     ~BLAS();
-
-    BottomLevelAccelerationStructure &GetInternalBLAS() { return m_blas; }
-    const BottomLevelAccelerationStructure &GetInternalBLAS() const { return m_blas; }
+    
+    const BLASRef &GetInternalBLAS() const { return m_blas; }
     
     Handle<Mesh> &GetMesh() { return m_mesh; }
     const Handle<Mesh> &GetMesh() const { return m_mesh; }
@@ -48,23 +47,22 @@ public:
     void Init();
     void Update();
     void UpdateRender(
-        
         Frame *frame,
         bool &out_was_rebuilt
     );
 
 private:
     void SetNeedsUpdate()
-        { m_blas.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+        { m_blas->SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     bool NeedsUpdate() const
-        { return bool(m_blas.GetFlags()); }
+        { return bool(m_blas->GetFlags()); }
 
-    ID<Entity>                          m_entity_id;
-    Handle<Mesh>                        m_mesh;
-    Handle<Material>                    m_material;
-    Transform                           m_transform;
-    BottomLevelAccelerationStructure    m_blas;
+    ID<Entity>          m_entity_id;
+    Handle<Mesh>        m_mesh;
+    Handle<Material>    m_material;
+    Transform           m_transform;
+    BLASRef             m_blas;
 };
 
 } // namespace hyperion::v2

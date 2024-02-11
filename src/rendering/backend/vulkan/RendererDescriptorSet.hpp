@@ -57,6 +57,12 @@ class ComputePipeline;
 template <PlatformType PLATFORM>
 class RaytracingPipeline;
 
+template <PlatformType PLATFORM>
+class AccelerationGeometry;
+
+template <PlatformType PLATFORM>
+class AccelerationStructure;
+
 } // namespace platform
 
 using Device                = platform::Device<Platform::VULKAN>;
@@ -67,8 +73,9 @@ using Pipeline              = platform::Pipeline<Platform::VULKAN>;
 using GraphicsPipeline      = platform::GraphicsPipeline<Platform::VULKAN>;
 using ComputePipeline       = platform::ComputePipeline<Platform::VULKAN>;
 using RaytracingPipeline    = platform::RaytracingPipeline<Platform::VULKAN>;
+using AccelerationGeometry  = platform::AccelerationGeometry<Platform::VULKAN>;
+using AccelerationStructure = platform::AccelerationStructure<Platform::VULKAN>;
 
-class AccelerationStructure;
 class DescriptorSet;
 class DescriptorPool;
 

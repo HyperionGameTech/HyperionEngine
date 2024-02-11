@@ -1332,8 +1332,10 @@ bool ShaderCompiler::CompileBundle(
         });
     }
 
-    TaskSystem::GetInstance().EnqueueBatch(&task_batch);
-    task_batch.AwaitCompletion();
+    //TaskSystem::GetInstance().EnqueueBatch(&task_batch);
+    //task_batch.AwaitCompletion();
+
+    task_batch.ForceExecute(); // not async, running into lock issues
 
     Array<ProcessError> all_process_errors;
 

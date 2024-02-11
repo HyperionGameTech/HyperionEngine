@@ -5,35 +5,124 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateBLAS) : renderer::RenderCommand
-{
-    renderer::BottomLevelAccelerationStructure *blas;
+#pragma region Render commands
 
-    RENDER_COMMAND(CreateBLAS)(renderer::BottomLevelAccelerationStructure *blas)
-        : blas(blas)
+struct RENDER_COMMAND(SetBLASMaterial) : renderer::RenderCommand
+{
+    BLASRef         blas;
+    ID<Material>    material_id;
+
+    RENDER_COMMAND(SetBLASMaterial)(BLASRef blas, ID<Material> material_id)
+        : blas(std::move(blas)),
+          material_id(material_id)
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(SetBLASMaterial)() override = default;
+
+    virtual Result operator()() override
     {
-        return blas->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        if (!blas.IsValid()) {
+            return { Result::RENDERER_ERR, "Invalid BLAS" };
+        }
+
+        const uint material_index = material_id.ToIndex();
+
+        if (!blas->GetGeometries().Empty()) {
+            for (AccelerationGeometryRef &geometry : blas->GetGeometries()) {
+                if (!geometry) {
+                    continue;
+                }
+
+                geometry->SetMaterialIndex(material_index);
+            }
+
+            blas->SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+        }
+
+        return { };
     }
 };
 
-struct RENDER_COMMAND(DestroyBLAS) : renderer::RenderCommand
+struct RENDER_COMMAND(SetBLASTransform) : renderer::RenderCommand
 {
-    renderer::BottomLevelAccelerationStructure *blas;
+    BLASRef blas;
+    Matrix4 transform;
 
-    RENDER_COMMAND(DestroyBLAS)(renderer::BottomLevelAccelerationStructure *blas)
-        : blas(blas)
+    RENDER_COMMAND(SetBLASTransform)(BLASRef blas, const Matrix4 &transform)
+        : blas(std::move(blas)),
+          transform(transform)
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(SetBLASTransform)() override = default;
+
+    virtual Result operator()() override
     {
-        return blas->Destroy(g_engine->GetGPUDevice());
+        if (!blas.IsValid()) {
+            return { Result::RENDERER_ERR, "Invalid BLAS" };
+        }
+        
+        blas->SetTransform(transform);
+
+        return { };
     }
 };
+
+struct RENDER_COMMAND(SetBLASMesh) : renderer::RenderCommand
+{
+    BLASRef         blas;
+    Handle<Mesh>    mesh;
+    ID<Entity>      entity_id;
+    ID<Material>    material_id;
+
+    RENDER_COMMAND(SetBLASMesh)(BLASRef blas, Handle<Mesh> mesh, ID<Entity> entity_id, ID<Material> material_id)
+        : blas(std::move(blas)),
+          mesh(std::move(mesh)),
+          entity_id(entity_id),
+          material_id(material_id)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(SetBLASMesh)() override = default;
+
+    virtual Result operator()() override
+    {
+        if (!blas.IsValid()) {
+            return { Result::RENDERER_ERR, "Invalid BLAS" };
+        }
+        
+
+        if (!blas->GetGeometries().Empty()) {
+            uint size = uint(blas->GetGeometries().Size());
+
+            while (size) {
+                blas->RemoveGeometry(--size);
+            }
+        }
+
+        if (mesh) {
+            AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
+                mesh->BuildPackedVertices(),
+                mesh->BuildPackedIndices(),
+                entity_id.ToIndex(),
+                material_id.ToIndex()
+            );
+
+            Result create_geometry_result = geometry->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+
+            if (!create_geometry_result) {
+                return create_geometry_result;
+            }
+
+            blas->AddGeometry(std::move(geometry));
+        }
+
+        return { };
+    }
+};
+
+#pragma endregion
 
 BLAS::BLAS(
     ID<Entity> entity_id,
@@ -44,80 +133,54 @@ BLAS::BLAS(
     m_entity_id(entity_id),
     m_mesh(std::move(mesh)),
     m_material(std::move(material)),
-    m_transform(transform)
+    m_transform(transform),
+    m_blas(MakeRenderObject<renderer::BottomLevelAccelerationStructure>())
 {
 }
 
 BLAS::~BLAS()
 {
-    Teardown();
+    SafeRelease(std::move(m_blas));
 }
 
 void BLAS::SetMesh(Handle<Mesh> mesh)
 {
-    // TODO: thread safety
-
     m_mesh = std::move(mesh);
+    InitObject(m_mesh);
 
-    if (!m_blas.GetGeometries().empty()) {
-        auto size = static_cast<uint>(m_blas.GetGeometries().size());
-
-        while (size) {
-            m_blas.RemoveGeometry(--size);
-        }
-    }
-
-    if (m_mesh) {
-        InitObject(m_mesh);
-
-        ID<Material> material_id = m_material
-            ? m_material->GetID()
-            : ID<Material> { };
-        
-        m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
-            m_mesh->BuildPackedVertices(),
-            m_mesh->BuildPackedIndices(),
-            m_entity_id.ToIndex(),
-            material_id.ToIndex()
-        ));
-    }
+    PUSH_RENDER_COMMAND(
+        SetBLASMesh,
+        m_blas,
+        m_mesh,
+        m_entity_id,
+        m_material.GetID()
+    );
 }
 
 void BLAS::SetMaterial(Handle<Material> material)
 {
-    // TODO: thread safety
-
     m_material = std::move(material);
+    InitObject(m_material);
 
     if (IsInitCalled()) {
-        auto material_id = m_material
-            ? m_material->GetID()
-            : Material::empty_id;
-        
-        const auto material_index = material_id.ToIndex();
-
-        if (!m_blas.GetGeometries().empty()) {
-            for (auto &geometry : m_blas.GetGeometries()) {
-                if (!geometry) {
-                    continue;
-                }
-
-                geometry->SetMaterialIndex(material_index);
-            }
-
-            m_blas.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
-        }
+        PUSH_RENDER_COMMAND(
+            SetBLASMaterial,
+            m_blas,
+            m_material.GetID()
+        );
     }
 }
 
 void BLAS::SetTransform(const Transform &transform)
 {
-    // TODO: thread safety
-
     m_transform = transform;
 
     if (IsInitCalled()) {
-        m_blas.SetTransform(m_transform.GetMatrix());
+        PUSH_RENDER_COMMAND(
+           SetBLASTransform,
+           m_blas,
+           m_transform.GetMatrix()
+        );
     }
 }
 
@@ -129,33 +192,22 @@ void BLAS::Init()
 
     BasicObject::Init();
 
-    uint material_index = 0;
-
-    if (InitObject(m_material)) {
-        material_index = m_material->GetID().ToIndex();
-    }
-
+    InitObject(m_material);
     AssertThrow(InitObject(m_mesh));
-    
-    m_blas.SetTransform(m_transform.GetMatrix());
-    m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
+
+    AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
         m_mesh->BuildPackedVertices(),
         m_mesh->BuildPackedIndices(),
         m_entity_id.ToIndex(),
-        material_index
-    ));
+        m_material.GetID().ToIndex()
+    );
+    
+    m_blas->SetTransform(m_transform.GetMatrix());
+    m_blas->AddGeometry(geometry);
 
-    PUSH_RENDER_COMMAND(CreateBLAS, &m_blas);
+    DeferCreate(m_blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
 
     SetReady(true);
-
-    OnTeardown([this]() {
-        SetReady(false);
-
-        PUSH_RENDER_COMMAND(DestroyBLAS, &m_blas);
-
-        HYP_SYNC_RENDER();
-    });
 }
 
 void BLAS::Update()

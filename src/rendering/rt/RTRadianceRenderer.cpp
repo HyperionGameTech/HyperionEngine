@@ -337,13 +337,13 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
             m_descriptor_sets[frame_index]->GetDescriptor(0)
-                ->SetElementAccelerationStructure(0, &m_tlas->GetInternalTLAS());
+                ->SetElementAccelerationStructure(0, m_tlas->GetInternalTLAS());
         }
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
             // update mesh descriptions buffer in descriptor set
             m_descriptor_sets[frame_index]->GetDescriptor(2)
-                ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
+                ->SetElementBuffer(0, m_tlas->GetInternalTLAS()->GetMeshDescriptionsBuffer());
         }
 
         m_updates[frame_index] |= RT_RADIANCE_UPDATES_TLAS;
@@ -356,14 +356,14 @@ void RTRadianceRenderer::CreateDescriptorSets()
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
-            ->SetElementAccelerationStructure(0, &m_tlas->GetInternalTLAS());
+            ->SetElementAccelerationStructure(0, m_tlas->GetInternalTLAS());
 
         descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(1)
             ->SetElementUAV(0, m_image_outputs[frame_index].image_view);
         
         // mesh descriptions
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(2)
-            ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
+            ->SetElementBuffer(0, m_tlas->GetInternalTLAS()->GetMeshDescriptionsBuffer());
         
         // materials
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(3)
@@ -458,9 +458,11 @@ void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending.Reset(new TemporalBlending(
         m_extent,
-        InternalFormat::RGBA16F,
-        TemporalBlendTechnique::TECHNIQUE_1,
-        m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER
+        InternalFormat::RGBA8,
+        (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
+            ? TemporalBlendTechnique::TECHNIQUE_0
+            : TemporalBlendTechnique::TECHNIQUE_1,
+        (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::LOW,
         FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }

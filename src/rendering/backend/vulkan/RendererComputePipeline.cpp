@@ -116,8 +116,8 @@ Result ComputePipeline<Platform::VULKAN>::Create(
     const VkPushConstantRange push_constant_ranges[] = {
         {
             .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-            .offset = 0,
-            .size = uint32_t(device->GetFeatures().PaddedSize<PushConstantData>())
+            .offset     = 0,
+            .size       = uint32(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
     

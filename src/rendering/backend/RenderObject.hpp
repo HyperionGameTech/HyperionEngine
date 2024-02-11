@@ -140,7 +140,8 @@ public:
 
     ~RenderObjectContainer() = default;
 
-    HYP_FORCE_INLINE uint NextIndex()
+    HYP_FORCE_INLINE
+    uint NextIndex()
     {
         using RenderObjectDefinitionType = RenderObjectDefinition<T, PLATFORM>;
 
@@ -187,15 +188,38 @@ public:
     uint16 GetRefCountWeak(uint index)
         { return m_data[index].GetRefCountWeak(); }
 
-    HYP_FORCE_INLINE T &Get(uint index)
+    HYP_FORCE_INLINE
+    T &Get(uint index)
         { return m_data[index].Get(); }
     
     template <class ...Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
+    HYP_FORCE_INLINE
+    void ConstructAtIndex(uint index, Args &&... args)
         { m_data[index].Construct(std::forward<Args>(args)...); }
+
+    HYP_FORCE_INLINE
+    Name GetDebugName(uint index) const
+    {
+#ifdef HYP_DEBUG_MODE
+        return m_debug_names[index];
+#else
+        return HYP_NAME(DebugNamesNotEnabled);
+#endif
+    }
+
+    HYP_FORCE_INLINE
+    void SetDebugName(uint index, Name name)
+    {
+#ifdef HYP_DEBUG_MODE
+        m_debug_names[index] = name;
+#endif
+    }
 
 private:
     HeapArray<Instance, max_size>   m_data;
+#ifdef HYP_DEBUG_MODE
+    HeapArray<Name, max_size>       m_debug_names;
+#endif
     SizeType                        m_size;
 };
 
@@ -364,6 +388,16 @@ public:
 
     operator T *() const
         { return Get(); }
+
+    void SetName(Name name)
+    {
+        _container->SetDebugName(index - 1, name);
+    }
+
+    Name GetName() const
+    {
+        return _container->GetDebugName(index - 1);
+    }
 
     uint index;
 };
@@ -535,6 +569,28 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     using T##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::T##_##_platform, renderer::Platform::_platform >; \
     using T##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::T##_##_platform, renderer::Platform::_platform >; \
 
+#define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, NAME, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    using NAME##_##_platform = platform::T<renderer::Platform::_platform>; \
+    template <> \
+    struct RenderObjectDefinition< NAME##_##_platform, renderer::Platform::_platform > \
+    { \
+        static constexpr SizeType max_size = (_max_size); \
+        \
+        static Name GetNameForType() \
+        { \
+            static const Name name = HYP_NAME(T); \
+            return name; \
+        } \
+    }; \
+    } \
+    using NAME##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::NAME##_##_platform, renderer::Platform::_platform >; \
+    using NAME##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::NAME##_##_platform, renderer::Platform::_platform >; \
+
 #define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
@@ -544,6 +600,18 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
     template <PlatformType _platform> \
     using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    } \
+    } \
+
+#define DEF_RENDER_PLATFORM_OBJECT_NAMED(NAME, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_NAMED_(VULKAN, NAME, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_NAMED_(WEBGPU, NAME, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType _platform> \
+    using NAME##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    template <PlatformType _platform> \
+    using NAME##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
     } \
     } \
 
@@ -602,20 +670,23 @@ DEF_RENDER_OBJECT(DescriptorSet,       4096);
 DEF_RENDER_OBJECT(Attachment,          4096);
 DEF_RENDER_OBJECT(AttachmentUsage,     8192);
 
-DEF_RENDER_PLATFORM_OBJECT(Device,              1);
-DEF_RENDER_PLATFORM_OBJECT(Image,               16384);
-DEF_RENDER_PLATFORM_OBJECT(ImageView,           65536);
-DEF_RENDER_PLATFORM_OBJECT(Sampler,             16384);
-DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,           65536);
-DEF_RENDER_PLATFORM_OBJECT(CommandBuffer,       2048);
-DEF_RENDER_PLATFORM_OBJECT(ComputePipeline,     4096);
-DEF_RENDER_PLATFORM_OBJECT(GraphicsPipeline,    4096);
-DEF_RENDER_PLATFORM_OBJECT(RaytracingPipeline,  128);
-DEF_RENDER_PLATFORM_OBJECT(FramebufferObject,   8192);
-DEF_RENDER_PLATFORM_OBJECT(RenderPass,          8192);
-DEF_RENDER_PLATFORM_OBJECT(ShaderProgram,       2048);
-DEF_RENDER_PLATFORM_OBJECT(Fence,               16);
-DEF_RENDER_PLATFORM_OBJECT(Frame,               16);
+DEF_RENDER_PLATFORM_OBJECT(Device,                  1);
+DEF_RENDER_PLATFORM_OBJECT(Image,                   16384);
+DEF_RENDER_PLATFORM_OBJECT(ImageView,               65536);
+DEF_RENDER_PLATFORM_OBJECT(Sampler,                 16384);
+DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,               65536);
+DEF_RENDER_PLATFORM_OBJECT(CommandBuffer,           2048);
+DEF_RENDER_PLATFORM_OBJECT(ComputePipeline,         4096);
+DEF_RENDER_PLATFORM_OBJECT(GraphicsPipeline,        4096);
+DEF_RENDER_PLATFORM_OBJECT(RaytracingPipeline,      128);
+DEF_RENDER_PLATFORM_OBJECT(FramebufferObject,       8192);
+DEF_RENDER_PLATFORM_OBJECT(RenderPass,              8192);
+DEF_RENDER_PLATFORM_OBJECT(ShaderProgram,           2048);
+DEF_RENDER_PLATFORM_OBJECT(AccelerationGeometry,    8192);
+DEF_RENDER_PLATFORM_OBJECT(Fence,                   16);
+DEF_RENDER_PLATFORM_OBJECT(Frame,                   16);
+DEF_RENDER_PLATFORM_OBJECT_NAMED(BLAS, BottomLevelAccelerationStructure, 65536);
+DEF_RENDER_PLATFORM_OBJECT_NAMED(TLAS, TopLevelAccelerationStructure, 16);
 
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Device);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Image);
@@ -629,8 +700,11 @@ DEF_CURRENT_PLATFORM_RENDER_OBJECT(RaytracingPipeline);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(FramebufferObject);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(RenderPass);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(ShaderProgram);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(AccelerationGeometry);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Fence);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Frame);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(BLAS);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(TLAS);
 
 #undef DEF_RENDER_OBJECT
 #undef DEF_RENDER_PLATFORM_OBJECT
@@ -707,6 +781,14 @@ struct RenderObjectDeleter
             Base::mtx.unlock();
 
             while (to_delete.Any()) {
+#ifdef HYP_DEBUG_MODE
+                DebugLog(
+                    LogType::Debug,
+                    "Deleting render object of type %s (Name: %s)\n",
+                    TypeName<T>().Data(),
+                    to_delete.Front().GetName().LookupString()
+                );
+#endif
                 HYPERION_ASSERT_RESULT(to_delete.Front()->Destroy(v2::GetEngineDevice()));
 
                 to_delete.Pop();

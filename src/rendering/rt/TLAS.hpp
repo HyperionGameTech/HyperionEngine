@@ -21,9 +21,9 @@ public:
     TLAS(const TLAS &other) = delete;
     TLAS &operator=(const TLAS &other) = delete;
     ~TLAS();
-
-    TopLevelAccelerationStructure &GetInternalTLAS() { return m_tlas; }
-    const TopLevelAccelerationStructure &GetInternalTLAS() const { return m_tlas; }
+    
+    const TLASRef &GetInternalTLAS() const
+        { return m_tlas; }
 
     void AddBLAS(Handle<BLAS> blas);
     void RemoveBLAS(ID<BLAS> blas_id);
@@ -42,7 +42,7 @@ public:
 private:
     void PerformBLASUpdates();
 
-    TopLevelAccelerationStructure m_tlas;
+    TLASRef             m_tlas;
 
     Array<Handle<BLAS>> m_blas;
     Array<Handle<BLAS>> m_blas_pending_addition;

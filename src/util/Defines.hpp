@@ -241,7 +241,7 @@
         #endif
     #endif
 #else
-    #define HYP_FEATURES_ENABLE_RAYTRACING 0
+    #define HYP_FEATURES_ENABLE_RAYTRACING 1
     #define HYP_FEATURES_BINDLESS_TEXTURES 1
 
     #if defined(HYP_VULKAN) && HYP_VULKAN
@@ -275,8 +275,6 @@
 #define HYP_LIKELY(cond) cond
 #define HYP_UNLIKELY(cond) cond
 
-#define HYP_READER_DEFAULT_BUFFER_SIZE 2048
-
 #define HYP_FEATURES_PARALLEL_RENDERING 1
 
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
@@ -284,11 +282,10 @@
 
 // Exporting
 
-#ifdef HYP_WINDOWS
+#ifdef HYP_MSVC
     #define HYP_EXPORT __declspec(dllexport)
     #define HYP_IMPORT __declspec(dllimport)
-
-#elif defined(HYP_UNIX)
+#elif defined(HYP_CLANG_OR_GCC)
     #define HYP_EXPORT __attribute__((visibility("default")))
     #define HYP_IMPORT
 #endif

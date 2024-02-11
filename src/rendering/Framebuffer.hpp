@@ -103,7 +103,7 @@ public:
         StoreOperation store_op
     )
     {
-        m_attachment_map.AddAttachment(
+        m_attachment_map->AddAttachment(
             binding,
             std::move(image),
             stage,
@@ -115,7 +115,7 @@ public:
     void AddAttachmentUsage(AttachmentUsage *attachment);
     void RemoveAttachmentUsage(const Attachment *attachment);
 
-    const AttachmentMap &GetAttachmentMap() const
+    const RC<AttachmentMap> &GetAttachmentMap() const
         { return m_attachment_map; }
 
     auto &GetAttachmentUsages()
@@ -138,7 +138,7 @@ public:
     void EndCapture(uint frame_index, CommandBuffer *command_buffer);
 
 private:
-    AttachmentMap                                           m_attachment_map;
+    RC<AttachmentMap>                                       m_attachment_map;
     FixedArray<FramebufferObjectRef, max_frames_in_flight>  m_framebuffers;
     RenderPassRef                                           m_render_pass;
     Extent3D                                                m_extent;

@@ -1,12 +1,8 @@
 #include <util/json/parser/Lexer.hpp>
 #include <util/json/parser/CompilerError.hpp>
 
-#include <array>
 #include <sstream>
-#include <cctype>
-#include <cstdio>
 #include <cstdlib>
-#include <iostream>
 
 namespace hyperion::json {
 
@@ -71,7 +67,7 @@ Token Lexer::NextToken()
 {
     SourceLocation location = m_source_location;
 
-    std::array<u32char, 3> ch;
+    u32char ch[3] = { 0 };
     int total_pos_change = 0;
     for (int i = 0; i < 3; i++) {
         int pos_change = 0;
@@ -285,8 +281,7 @@ Token Lexer::ReadNumberLiteral()
         m_source_location.GetColumn() += pos_change;
     }
 
-    Token::Flags token_flags;
-    std::memset(token_flags, 0, sizeof(token_flags));
+    Token::Flags token_flags { };
 
     u32char ch = m_source_stream.Peek();
 

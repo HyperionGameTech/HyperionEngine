@@ -26,47 +26,22 @@ class Instance;
 template <PlatformType PLATFORM>
 class Device;
 
-} // namespace platform
-
-using Device    = platform::Device<Platform::VULKAN>;
-using Instance  = platform::Instance<Platform::VULKAN>;
-
+template <PlatformType PLATFORM>
 class AccelerationStructure;
 
-enum class AccelerationStructureType
-{
-    BOTTOM_LEVEL,
-    TOP_LEVEL
-};
+template <PlatformType PLATFORM>
+class TopLevelAccelerationStructure;
 
-using RTUpdateStateFlags = uint;
+template <PlatformType PLATFORM>
+class BottomLevelAccelerationStructure;
 
-enum RTUpdateStateFlagBits : RTUpdateStateFlags
-{
-    RT_UPDATE_STATE_FLAGS_NONE                          = 0x0,
-    RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE = 0x1,
-    RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS      = 0x2,
-    RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES              = 0x4,
-    RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM              = 0x8
-};
-
-using AccelerationStructureFlags = uint;
-
-enum AccelerationStructureFlagBits : AccelerationStructureFlags
-{
-    ACCELERATION_STRUCTURE_FLAGS_NONE               = 0x0,
-    ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING   = 0x1,
-    ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE   = 0x2,
-    ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE    = 0x4
-};
-
+template <PlatformType PLATFORM>
 class AccelerationGeometry
 {
-    friend class AccelerationStructure;
-    friend class TopLevelAccelerationStructure;
-    friend class BottomLevelAccelerationStructure;
-
 public:
+    friend class TopLevelAccelerationStructure<PLATFORM>;
+    friend class BottomLevelAccelerationStructure<PLATFORM>;
+
     AccelerationGeometry(
         Array<PackedVertex> &&packed_vertices,
         Array<PackedIndex> &&packed_indices,
@@ -81,8 +56,8 @@ public:
     const Array<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
     const Array<PackedIndex> &GetPackedIndices() const { return m_packed_indices; }
 
-    PackedVertexStorageBuffer *GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer.get(); }
-    PackedIndexStorageBuffer *GetPackedIndexStorageBuffer() const { return m_packed_index_buffer.get(); }
+    const GPUBufferRef<PLATFORM> &GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer; }
+    const GPUBufferRef<PLATFORM> &GetPackedIndexStorageBuffer() const { return m_packed_index_buffer; }
 
     uint GetEntityIndex() const
         { return m_entity_index; }
@@ -100,23 +75,24 @@ public:
     void SetMaterialIndex(uint material_index)
         { m_material_index = material_index; }
 
-    Result Create(Device *device, Instance *instance);
+    Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
     /* Remove from the parent acceleration structure */
-    Result Destroy(Device *device);
+    Result Destroy(Device<PLATFORM> *device);
 
 private:
     Array<PackedVertex>                         m_packed_vertices;
     Array<PackedIndex>                          m_packed_indices;
 
-    std::unique_ptr<PackedVertexStorageBuffer>  m_packed_vertex_buffer;
-    std::unique_ptr<PackedIndexStorageBuffer>   m_packed_index_buffer;
-
-    VkAccelerationStructureGeometryKHR          m_geometry;
+    GPUBufferRef<PLATFORM>                      m_packed_vertex_buffer;
+    GPUBufferRef<PLATFORM>                      m_packed_index_buffer;
     
     uint                                        m_entity_index;
     uint                                        m_material_index;
+
+    VkAccelerationStructureGeometryKHR          m_geometry;
 };
 
+template <PlatformType PLATFORM>
 class AccelerationStructure
 {
 public:
@@ -125,11 +101,8 @@ public:
     AccelerationStructure &operator=(const AccelerationStructure &other)    = delete;
     ~AccelerationStructure();
 
-    AccelerationStructureBuffer *GetBuffer() const
-        { return m_buffer.get(); }
-
-    AccelerationStructureInstancesBuffer *GetInstancesBuffer() const
-        { return m_instances_buffer.get(); }
+    const GPUBufferRef<PLATFORM> &GetBuffer() const
+        { return m_buffer; }
 
     VkAccelerationStructureKHR &GetAccelerationStructure()
         { return m_acceleration_structure; }
@@ -149,22 +122,21 @@ public:
     void ClearFlag(AccelerationStructureFlagBits flag)
         { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
 
-    std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries()
+    Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries()
         { return m_geometries; }
 
-    const std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries() const
+    const Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries() const
         { return m_geometries; }
 
-    void AddGeometry(std::unique_ptr<AccelerationGeometry> &&geometry)
-        { m_geometries.push_back(std::move(geometry)); SetNeedsRebuildFlag(); }
+    void AddGeometry(AccelerationGeometryRef<PLATFORM> geometry)
+        { m_geometries.PushBack(std::move(geometry)); SetNeedsRebuildFlag(); }
 
-    void RemoveGeometry(uint index)
-        { m_geometries.erase(m_geometries.begin() + index); SetNeedsRebuildFlag(); }
+    void RemoveGeometry(uint index);
 
     /*! \brief Remove the geometry from the internal list of Nodes and set a flag that the
      * structure needs to be rebuilt. Will not automatically rebuild.
      */
-    void RemoveGeometry(AccelerationGeometry *geometry);
+    void RemoveGeometry(const AccelerationGeometryRef<PLATFORM> &geometry);
 
     const Matrix4 &GetTransform() const
         { return m_transform; }
@@ -172,7 +144,7 @@ public:
     void SetTransform(const Matrix4 &transform)
         { m_transform = transform; SetTransformUpdateFlag(); }
 
-    Result Destroy(Device *device);
+    Result Destroy(Device<PLATFORM> *device);
 
 protected:
     static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
@@ -184,25 +156,26 @@ protected:
         { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     Result CreateAccelerationStructure(
-        Instance *instance,
+        Instance<PLATFORM> *instance,
         AccelerationStructureType type,
-        std::vector<VkAccelerationStructureGeometryKHR> &&geometries,
-        std::vector<uint32> &&primitive_counts,
+        const std::vector<VkAccelerationStructureGeometryKHR> &geometries,
+        const std::vector<uint32> &primitive_counts,
         bool update,
         RTUpdateStateFlags &out_update_state_flags
     );
     
-    std::unique_ptr<AccelerationStructureBuffer> m_buffer;
-    std::unique_ptr<AccelerationStructureInstancesBuffer> m_instances_buffer;
-    std::unique_ptr<ScratchBuffer> m_scratch_buffer;
-    std::vector<std::unique_ptr<AccelerationGeometry>> m_geometries;
-    Matrix4 m_transform;
-    VkAccelerationStructureKHR m_acceleration_structure;
-    uint64 m_device_address;
-    AccelerationStructureFlags m_flags;
+    GPUBufferRef<PLATFORM>                      m_buffer;
+    GPUBufferRef<PLATFORM>                      m_instances_buffer;
+    GPUBufferRef<PLATFORM>                      m_scratch_buffer;
+    Array<AccelerationGeometryRef<PLATFORM>>    m_geometries;
+    Matrix4                                     m_transform;
+    VkAccelerationStructureKHR                  m_acceleration_structure;
+    uint64                                      m_device_address;
+    AccelerationStructureFlags                  m_flags;
 };
 
-class BottomLevelAccelerationStructure : public AccelerationStructure
+template <PlatformType PLATFORM>
+class BottomLevelAccelerationStructure : public AccelerationStructure<PLATFORM>
 {
 public:
     BottomLevelAccelerationStructure();
@@ -212,16 +185,17 @@ public:
 
     AccelerationStructureType GetType() const { return AccelerationStructureType::BOTTOM_LEVEL; }
     
-    Result Create(Device *device, Instance *instance);
+    Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
+    Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    Result Rebuild(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
+    Result Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 };
 
-class TopLevelAccelerationStructure : public AccelerationStructure
+template <PlatformType PLATFORM>
+class TopLevelAccelerationStructure : public AccelerationStructure<PLATFORM>
 {
 public:
     TopLevelAccelerationStructure();
@@ -230,39 +204,43 @@ public:
     ~TopLevelAccelerationStructure();
 
     AccelerationStructureType GetType() const { return AccelerationStructureType::TOP_LEVEL; }
-    StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
 
-    void AddBLAS(BottomLevelAccelerationStructure *blas);
-    void RemoveBLAS(BottomLevelAccelerationStructure *blas);
+    const GPUBufferRef<PLATFORM> &GetMeshDescriptionsBuffer() const
+        { return m_mesh_descriptions_buffer; }
+
+    void AddBLAS(BLASRef<PLATFORM> blas);
+    void RemoveBLAS(const BLASRef<PLATFORM> &blas);
     
     Result Create(
-        Device *device,
-        Instance *instance,
-        std::vector<BottomLevelAccelerationStructure *> &&blas
+        Device<PLATFORM> *device,
+        Instance<PLATFORM> *instance,
+        Array<BLASRef<PLATFORM>> &&blas
     );
 
-    Result Destroy(Device *device);
+    Result Destroy(Device<PLATFORM> *device);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
+    Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    Result Rebuild(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
+    Result Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 
-    std::vector<VkAccelerationStructureGeometryKHR> GetGeometries(Instance *instance) const;
+    std::vector<VkAccelerationStructureGeometryKHR> GetGeometries(Instance<PLATFORM> *instance) const;
     std::vector<uint32> GetPrimitiveCounts() const;
 
-    Result CreateOrRebuildInstancesBuffer(Instance *instance);
-    Result UpdateInstancesBuffer(Instance *instance, uint first, uint last);
+    Result CreateOrRebuildInstancesBuffer(Instance<PLATFORM> *instance);
+    Result UpdateInstancesBuffer(Instance<PLATFORM> *instance, uint first, uint last);
     
-    Result CreateMeshDescriptionsBuffer(Instance *instance);
-    Result UpdateMeshDescriptionsBuffer(Instance *instance);
-    Result UpdateMeshDescriptionsBuffer(Instance *instance, uint first, uint last);
-    Result RebuildMeshDescriptionsBuffer(Instance *instance);
+    Result CreateMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
+    Result UpdateMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
+    Result UpdateMeshDescriptionsBuffer(Instance<PLATFORM> *instance, uint first, uint last);
+    Result RebuildMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
 
-    std::vector<BottomLevelAccelerationStructure *> m_blas;
-    std::unique_ptr<StorageBuffer> m_mesh_descriptions_buffer;
+    Array<BLASRef<PLATFORM>>    m_blas;
+    GPUBufferRef<PLATFORM>      m_mesh_descriptions_buffer;
 };
+
+} // namespace platform
 
 } // namespace renderer
 } // namespace hyperion

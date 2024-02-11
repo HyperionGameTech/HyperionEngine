@@ -447,11 +447,11 @@ void ProbeGrid::CreateDescriptorSets()
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
-            ->SetElementAccelerationStructure(0, &m_tlas->GetInternalTLAS());
+            ->SetElementAccelerationStructure(0, m_tlas->GetInternalTLAS());
 
         // mesh descriptions
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(4)
-            ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
+            ->SetElementBuffer(0, m_tlas->GetInternalTLAS()->GetMeshDescriptionsBuffer());
         
         // materials
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5)
@@ -533,14 +533,14 @@ void ProbeGrid::ApplyTLASUpdates(RTUpdateStateFlags flags)
             m_descriptor_sets[frame_index]->GetDescriptor(0)
                 ->SetSubDescriptor({
                     .element_index = 0u,
-                    .acceleration_structure = &m_tlas->GetInternalTLAS()
+                    .acceleration_structure = m_tlas->GetInternalTLAS()
                 });
         }
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
             // update mesh descriptions buffer in descriptor set
             m_descriptor_sets[frame_index]->GetDescriptor(4)
-                ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
+                ->SetElementBuffer(0, m_tlas->GetInternalTLAS()->GetMeshDescriptionsBuffer());
         }
 
         m_updates[frame_index] &= ~PROBE_SYSTEM_UPDATES_TLAS;

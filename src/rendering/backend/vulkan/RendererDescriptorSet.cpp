@@ -6,8 +6,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
-#include "rt/RendererRaytracingPipeline.hpp"
-#include "rt/RendererAccelerationStructure.hpp"
+#include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
+#include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
 #include <math/MathUtil.hpp>
 

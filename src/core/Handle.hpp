@@ -95,43 +95,56 @@ struct Handle
             GetContainer<T>().DecRefStrong(index - 1);
         }
     }
-
+    
+    HYP_FORCE_INLINE
     T *operator->() const
         { return Get(); }
-
+    
+    HYP_FORCE_INLINE
     T &operator*()
         { return *Get(); }
-
+    
+    HYP_FORCE_INLINE
     const T &operator*() const
         { return *Get(); }
-
+    
+    HYP_FORCE_INLINE
     bool operator!() const
         { return !IsValid(); }
-
+    
+    HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
-
+    
+    HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
-
+    
+    HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return IsValid(); }
-
+    
+    HYP_FORCE_INLINE
     bool operator==(const Handle &other) const
         { return index == other.index; }
-
+    
+    HYP_FORCE_INLINE
     bool operator!=(const Handle &other) const
-        { return index == other.index; }
-
+        { return index != other.index; }
+    
+    HYP_FORCE_INLINE
     bool operator<(const Handle &other) const
         { return index < other.index; }
 
+    HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
-
+    
+    HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
-
+    
+    HYP_FORCE_INLINE
     T *Get() const
     {
         if (index == 0) {
@@ -140,7 +153,8 @@ struct Handle
 
         return &GetContainer<T>().Get(index - 1);
     }
-
+    
+    HYP_FORCE_INLINE
     void Reset()
     {
         auto &container = GetContainer<T>();  
@@ -152,12 +166,15 @@ struct Handle
         index = 0;
     }
 
-    HYP_FORCE_INLINE static Name GetTypeName()
+    HYP_FORCE_INLINE
+    static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
 
-    HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
+    HYP_FORCE_INLINE
+    static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
-
+    
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

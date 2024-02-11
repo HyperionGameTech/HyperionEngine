@@ -62,6 +62,8 @@
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCDataChannel.hpp>
 
+#include "scene/ecs/components/BLASComponent.hpp"
+
 // static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
 // {
 //     const auto &entity = node.GetEntity();
@@ -200,68 +202,6 @@ void SampleStreamer::InitGame()
         0.01f, 30000.0f
     ));
 
-    { // compare Proc<> to std::function
-        struct TestObject
-        {
-            int i = 0;
-            float f = 0.0f;
-            String str = "hello world";
-        };
-
-        std::chrono::high_resolution_clock::time_point start, end;
-
-        start = std::chrono::high_resolution_clock::now();
-
-        for (int i = 0; i < 1000000; i++) {
-            TestObject test_object {
-                .i = i,
-                .f = float(i),
-                .str = String::ToString(i)
-            };
-
-            constexpr auto x = sizeof(test_object);
-
-            Proc<void, int> proc;
-            proc = [t = test_object](int i) mutable
-            {
-                t.i += i;
-                t.f += float(i);
-                t.str = String::ToString(i);
-            };
-
-            proc(i);
-        }
-
-        end = std::chrono::high_resolution_clock::now();
-
-        DebugLog(LogType::Debug, "Proc<>: %f\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0f);
-
-
-        start = std::chrono::high_resolution_clock::now();
-
-        for (int i = 0; i < 1000000; i++) {
-            TestObject test_object {
-                .i = i,
-                .f = float(i),
-                .str = String::ToString(i)
-            };
-
-            std::function<void(int)> func;
-            func = [t = test_object](int i) mutable
-            {
-                t.i += i;
-                t.f += float(i);
-                t.str = String::ToString(i);
-            };
-
-            func(i);
-        }
-
-        end = std::chrono::high_resolution_clock::now();
-
-        DebugLog(LogType::Debug, "std::function: %f\n", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0f);
-    }
-
     /*m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
         Vector3(0.0f, 7.0f, 0.0f), Vector3(0.0f, 0.0f, 5.0f)
     ));*/
@@ -290,6 +230,21 @@ void SampleStreamer::InitGame()
         auto cube = MeshBuilder::Cube();
         InitObject(cube);
 
+        auto material = g_material_system->GetOrCreate(
+            {
+                .shader_definition = ShaderDefinition {
+                    HYP_NAME(Forward),
+                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+                },
+                .bucket = Bucket::BUCKET_OPAQUE
+            },
+            {
+                { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 0.0f, 0.0f, 1.0f) },
+                { Material::MATERIAL_KEY_METALNESS, 0.0f },
+                { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
+            }
+        );
+
         // add physics
         m_scene->GetEntityManager()->AddComponent(entity_id, RigidBodyComponent {
             CreateObject<physics::RigidBody>(
@@ -299,23 +254,12 @@ void SampleStreamer::InitGame()
                 }
             )
         });
+
+        m_scene->GetEntityManager()->AddComponent(entity_id, BLASComponent { });
         
         m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
             cube,
-            g_material_system->GetOrCreate(
-                {
-                    .shader_definition = ShaderDefinition {
-                        HYP_NAME(Forward),
-                        ShaderProperties(renderer::static_mesh_vertex_attributes)
-                    },
-                    .bucket = Bucket::BUCKET_OPAQUE
-                },
-                {
-                    { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 0.0f, 0.0f, 1.0f) },
-                    { Material::MATERIAL_KEY_METALNESS, 0.0f },
-                    { Material::MATERIAL_KEY_ROUGHNESS, 0.01f }
-                }
-            )
+            material
         });
         m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
             cube->GetAABB()
@@ -602,6 +546,14 @@ void SampleStreamer::InitGame()
             node.SetName("test_model");
             
             GetScene()->GetRoot().AddChild(node);
+
+            for (auto &node : node.GetChildren()) {
+                if (auto child_entity = node.GetEntity()) {
+                    // Add BLASComponent
+
+                    m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+                }
+            }
 
             auto env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
