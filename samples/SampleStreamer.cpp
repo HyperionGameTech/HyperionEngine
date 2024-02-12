@@ -217,10 +217,12 @@ void SampleStreamer::InitGame()
             gun.SetLocalScale(0.25f);
             gun.SetLocalRotation(Quaternion(Vec3f(0.0f, 1.0f, 0.0f), M_PI));
             gun_parent.AddChild(gun);
+
+            m_scene->GetEntityManager()->AddComponent(gun[0].GetEntity(), BLASComponent { });
         }
     }
 
-    if (true) {
+    if (false) {
         auto cube_node = m_scene->GetRoot().AddChild();
         cube_node.SetName("TestCube");
 
@@ -364,15 +366,13 @@ void SampleStreamer::InitGame()
 
         InitObject(sun);
 
-        auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+        auto sun_node = m_scene->GetRoot().AddChild();
+        sun_node.SetName("Sun");
 
-        m_scene->GetEntityManager()->AddComponent(sun_entity, TransformComponent {
-            Transform(
-                Vec3f(-0.1f, 0.65f, 0.1f).Normalized(),
-                Vec3f::one,
-                Quaternion::Identity()
-            )
-        });
+        auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+        sun_node.SetEntity(sun_entity);
+
+        sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
         m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
             sun
@@ -386,10 +386,10 @@ void SampleStreamer::InitGame()
         Array<Handle<Light>> point_lights;
 
         point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(0.0f, 6.0f, 0.0f),
+            Vector3(3.0f, 3.0f, 0.0f),
             Color(1.0f, 0.9f, 0.7f),
-            40.0f,
-            200.35f
+            5.0f,
+            12.0f
         )));
         // point_lights.PushBack(CreateObject<Light>(PointLight(
         //     Vector3(0.0f, 10.0f, 12.0f),
@@ -455,7 +455,7 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");
+        batch->Add("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");//pica_pica/pica_pica.obj");
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
@@ -508,6 +508,7 @@ void SampleStreamer::InitGame()
             });
         }
 
+#if 0
         if (auto zombie = results["zombie"].Get<Node>()) {
             zombie.Scale(0.5f);
             auto zombie_entity = zombie[0].GetEntity();
@@ -538,10 +539,11 @@ void SampleStreamer::InitGame()
 
             zombie.SetName("zombie");
         }
+#endif
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            // node.Scale(3.0f);
+            //node.Scale(2.0f);
             node.Scale(0.0125f);
             node.SetName("test_model");
             
@@ -927,6 +929,34 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
     Game::OnInputEvent(event);
 
     const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
+
+    if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
+        if (event.GetKeyCode() == KEY_ARROW_LEFT) {
+            auto sun_node = m_scene->GetRoot().Select("Sun");
+
+            if (sun_node) {
+                sun_node.Translate(Vec3f(-0.1f, 0.0f, 0.0f));
+            }
+        } else if (event.GetKeyCode() == KEY_ARROW_RIGHT) {
+            auto sun_node = m_scene->GetRoot().Select("Sun");
+
+            if (sun_node) {
+                sun_node.Translate(Vec3f(0.1f, 0.0f, 0.0f));
+            }
+        } else if (event.GetKeyCode() == KEY_ARROW_UP) {
+            auto sun_node = m_scene->GetRoot().Select("Sun");
+
+            if (sun_node) {
+                sun_node.Translate(Vec3f(0.0f, 0.1f, 0.0f));
+            }
+        } else if (event.GetKeyCode() == KEY_ARROW_DOWN) {
+            auto sun_node = m_scene->GetRoot().Select("Sun");
+
+            if (sun_node) {
+                sun_node.Translate(Vec3f(0.0f, -0.1f, 0.0f));
+            }
+        }
+    }
 
     if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
         // shoot bullet on mouse button left

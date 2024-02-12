@@ -387,29 +387,34 @@ void RTRadianceRenderer::CreateDescriptorSets()
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
 
-        descriptor_set // gbuffer albedo texture
+        descriptor_set // gbuffer depth texture
             ->AddDescriptor<ImageDescriptor>(8)
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
+        descriptor_set // gbuffer albedo texture
+            ->AddDescriptor<ImageDescriptor>(9)
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_ALBEDO)->GetImageView());
+
         // nearest sampler
         descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(9)
+            ->AddDescriptor<renderer::SamplerDescriptor>(10)
             ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         // linear sampler
         descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(10)
+            ->AddDescriptor<renderer::SamplerDescriptor>(11)
             ->SetElementSampler(0, g_engine->GetPlaceholderData()->GetSamplerLinear());
 
         // blue noise buffer
         descriptor_set
-            ->AddDescriptor<renderer::StorageBufferDescriptor>(11)
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(12)
             ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer());
 
         // RT radiance uniforms
         descriptor_set
-            ->AddDescriptor<renderer::UniformBufferDescriptor>(12)
+            ->AddDescriptor<renderer::UniformBufferDescriptor>(13)
             ->SetElementBuffer(0, m_uniform_buffer);
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
@@ -460,7 +465,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
         m_extent,
         InternalFormat::RGBA8,
         (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
-            ? TemporalBlendTechnique::TECHNIQUE_0
+            ? TemporalBlendTechnique::TECHNIQUE_1
             : TemporalBlendTechnique::TECHNIQUE_1,
         (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
             ? TemporalBlendFeedback::HIGH
