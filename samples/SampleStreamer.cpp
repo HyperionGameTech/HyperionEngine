@@ -269,7 +269,7 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
     }
 
-    {
+    if (false) {
 
         auto cube_node = m_scene->GetRoot().AddChild();
         cube_node.SetName("TestCube2");
@@ -455,8 +455,9 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");//pica_pica/pica_pica.obj");
+        batch->Add("test_model", "models/pica_pica/pica_pica.obj");///living_room/living_room.obj");//sponza/sponza.obj");
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+        batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -541,10 +542,26 @@ void SampleStreamer::InitGame()
         }
 #endif
 
+        if (results["cart"]) {
+            auto cart = results["cart"].ExtractAs<Node>();
+            cart.Scale(1.5f);
+            cart.SetName("cart");
+
+            m_scene->GetRoot().AddChild(cart);
+
+            for (auto &node : cart.GetChildren()) {
+                if (auto child_entity = node.GetEntity()) {
+                    // Add BLASComponent
+
+                    m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+                }
+            }
+        }
+
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            //node.Scale(2.0f);
-            node.Scale(0.0125f);
+            node.Scale(3.0f);
+            //node.Scale(0.0125f);
             node.SetName("test_model");
             
             GetScene()->GetRoot().AddChild(node);
@@ -935,25 +952,25 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
-                sun_node.Translate(Vec3f(-0.1f, 0.0f, 0.0f));
+                sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(-0.1f, 0.0f, 0.0f)).Normalized());
             }
         } else if (event.GetKeyCode() == KEY_ARROW_RIGHT) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
-                sun_node.Translate(Vec3f(0.1f, 0.0f, 0.0f));
+                sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(0.1f, 0.0f, 0.0f)).Normalized());
             }
         } else if (event.GetKeyCode() == KEY_ARROW_UP) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
-                sun_node.Translate(Vec3f(0.0f, 0.1f, 0.0f));
+                sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(0.0f, 0.1f, 0.0f)).Normalized());
             }
         } else if (event.GetKeyCode() == KEY_ARROW_DOWN) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
-                sun_node.Translate(Vec3f(0.0f, -0.1f, 0.0f));
+                sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(0.0f, -0.1f, 0.0f)).Normalized());
             }
         }
     }

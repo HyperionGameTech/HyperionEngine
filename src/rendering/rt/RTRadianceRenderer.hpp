@@ -29,7 +29,6 @@ using renderer::Sampler;
 using renderer::Device;
 using renderer::DescriptorSet;
 using renderer::AttachmentUsage;
-;
 using renderer::Result;
 using renderer::RaytracingPipeline;
 using renderer::RTUpdateStateFlags;
@@ -105,21 +104,21 @@ private:
         Result Create(Device *device);
     };
 
-    RTRadianceRendererOptions m_options;
+    RTRadianceRendererOptions                           m_options;
 
-    Extent2D m_extent;
-    Handle<TLAS> m_tlas;
+    Extent2D                                            m_extent;
+    Handle<TLAS>                                        m_tlas;
     
-    FixedArray<uint32, max_frames_in_flight> m_updates;
+    FixedArray<uint32, max_frames_in_flight>            m_updates;
 
-    Handle<Shader> m_shader;
+    Handle<Shader>                                      m_shader;
 
-    FixedArray<ImageOutput, max_frames_in_flight> m_image_outputs;
-    UniquePtr<TemporalBlending> m_temporal_blending;
+    Handle<Texture>                                     m_texture;
+    UniquePtr<TemporalBlending>                         m_temporal_blending;
 
-    RaytracingPipelineRef m_raytracing_pipeline;
-    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
-    GPUBufferRef m_uniform_buffer;
+    RaytracingPipelineRef                               m_raytracing_pipeline;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
+    GPUBufferRef                                        m_uniform_buffer;
 };
 
 } // namespace hyperion::v2

@@ -668,7 +668,7 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
             AssertThrow(descriptor_key != DescriptorKey::UNUSED);
 
-            DescriptorSet *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            DescriptorSet *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
             Descriptor *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
 
             descriptor->SetElementSRV(

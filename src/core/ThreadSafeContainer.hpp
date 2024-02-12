@@ -114,7 +114,8 @@ public:
         while (pending_removal.Any()) {
             auto front = pending_removal.PopFront();
 
-            auto it = m_owned_items.FindIf([&front](const auto &item) {
+            auto it = m_owned_items.FindIf([&front](const auto &item)
+            {
                 return item->GetID() == front;
             });
 

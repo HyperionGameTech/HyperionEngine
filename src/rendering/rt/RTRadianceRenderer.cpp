@@ -111,25 +111,6 @@ struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : renderer::RenderCommand
-{
-    RTRadianceRenderer::ImageOutput *image_outputs;
-
-    RENDER_COMMAND(CreateRTRadianceImageOutputs)(RTRadianceRenderer::ImageOutput *image_outputs)
-        : image_outputs(image_outputs)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(g_engine->GetGPUDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(CreateRTRadianceUniformBuffer) : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
@@ -164,18 +145,6 @@ Result RTRadianceRenderer::ImageOutput::Create(Device *device)
 RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent, RTRadianceRendererOptions options)
     : m_extent(extent),
       m_options(options),
-      m_image_outputs {
-          ImageOutput(StorageImage(
-              Extent3D(extent),
-              InternalFormat::RGBA16F,
-              ImageType::TEXTURE_TYPE_2D
-          )),
-          ImageOutput(StorageImage(
-              Extent3D(extent),
-              InternalFormat::RGBA16F,
-              ImageType::TEXTURE_TYPE_2D
-          ))
-      },
       m_updates { RT_RADIANCE_UPDATES_NONE, RT_RADIANCE_UPDATES_NONE }
 {
 }
@@ -214,10 +183,7 @@ void RTRadianceRenderer::Destroy()
     }
     
     // remove result image from global descriptor set
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        SafeRelease(std::move(m_image_outputs[frame_index].image));
-        SafeRelease(std::move(m_image_outputs[frame_index].image_view));
-    }
+    g_safe_deleter->SafeReleaseHandle(std::move(m_texture));
 
     PUSH_RENDER_COMMAND(RemoveRTRadianceDescriptors);
 
@@ -262,6 +228,13 @@ void RTRadianceRenderer::SubmitPushConstants(CommandBuffer *command_buffer)
 
 void RTRadianceRenderer::Render(Frame *frame)
 {
+    // Used for environment map
+    ID<EnvProbe> env_probe_id;
+
+    if (g_engine->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
+        env_probe_id = g_engine->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first;
+    }
+
     UpdateUniforms(frame);
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
@@ -284,7 +257,7 @@ void RTRadianceRenderer::Render(Frame *frame)
             HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
             HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, env_probe_id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
         }
     );
@@ -296,18 +269,24 @@ void RTRadianceRenderer::Render(Frame *frame)
         2
     );
 
-    m_image_outputs[frame->GetFrameIndex()].image->GetGPUImage()->InsertBarrier(
+    m_texture->GetImage()->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
 
+    const Extent3D image_extent = m_texture->GetImage()->GetExtent();
+    const SizeType num_pixels = image_extent.Size();
+    const SizeType half_num_pixels = num_pixels / 2;
+
     m_raytracing_pipeline->TraceRays(
         g_engine->GetGPUDevice(),
         frame->GetCommandBuffer(),
-        m_image_outputs[frame->GetFrameIndex()].image->GetExtent()
+        Extent3D {
+            uint32(half_num_pixels), 1, 1
+        }
     );
 
-    m_image_outputs[frame->GetFrameIndex()].image->GetGPUImage()->InsertBarrier(
+    m_texture->GetImage()->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );
@@ -317,7 +296,16 @@ void RTRadianceRenderer::Render(Frame *frame)
 
 void RTRadianceRenderer::CreateImages()
 {
-    PUSH_RENDER_COMMAND(CreateRTRadianceImageOutputs, m_image_outputs.Data());
+    m_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        InternalFormat::RGBA8,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_texture);
 }
 
 void RTRadianceRenderer::CreateUniformBuffer()
@@ -359,7 +347,7 @@ void RTRadianceRenderer::CreateDescriptorSets()
             ->SetElementAccelerationStructure(0, m_tlas->GetInternalTLAS());
 
         descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(1)
-            ->SetElementUAV(0, m_image_outputs[frame_index].image_view);
+            ->SetElementUAV(0, m_texture->GetImageView());
         
         // mesh descriptions
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(2)
@@ -464,13 +452,14 @@ void RTRadianceRenderer::CreateTemporalBlending()
     m_temporal_blending.Reset(new TemporalBlending(
         m_extent,
         InternalFormat::RGBA8,
-        (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
-            ? TemporalBlendTechnique::TECHNIQUE_1
-            : TemporalBlendTechnique::TECHNIQUE_1,
+        TemporalBlendTechnique::TECHNIQUE_1,
         (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER)
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::LOW,
-        FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
+        FixedArray<ImageViewRef, max_frames_in_flight> {
+            m_texture->GetImageView(),
+            m_texture->GetImageView(),
+        }
     ));
 
     m_temporal_blending->Create();

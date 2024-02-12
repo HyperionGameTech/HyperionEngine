@@ -94,7 +94,7 @@ struct RenderState
     Stack<RenderBinding<Scene>>                                             scene_bindings;
     Stack<RenderBinding<Camera>>                                            camera_bindings;
     FlatMap<ID<Light>, LightDrawProxy>                                      lights;
-    FixedArray<FlatMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>   bound_env_probes; // map to texture slot
+    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>  bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                     env_probe_bindings;
     uint32                                                                  frame_counter = ~0u;

@@ -335,24 +335,6 @@ void Engine::Initialize(RC<Application> application)
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(descriptor_set_index);
 
-        auto *env_probe_textures_descriptor = descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
-
-        for (uint env_probe_index = 0; env_probe_index < max_bound_reflection_probes; env_probe_index++) {
-            env_probe_textures_descriptor->SetElementSRV(env_probe_index, GetPlaceholderData()->GetImageViewCube1x1R8());
-        }
-
-        descriptor_set
-            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
-            ->SetElementBuffer(0, m_render_data->env_probes.GetBuffer());
-
-        auto *point_shadow_maps_descriptor = descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
-
-        for (uint shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
-            point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());
-        }
-
         // ssr result image
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RESULT)
@@ -489,6 +471,24 @@ void Engine::Initialize(RC<Application> application)
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
+
+        auto *env_probe_textures_descriptor = descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
+
+        for (uint env_probe_index = 0; env_probe_index < max_bound_reflection_probes; env_probe_index++) {
+            env_probe_textures_descriptor->SetElementSRV(env_probe_index, GetPlaceholderData()->GetImageViewCube1x1R8());
+        }
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
+            ->SetElementBuffer(0, m_render_data->env_probes.GetBuffer());
+
+        auto *point_shadow_maps_descriptor = descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
+
+        for (uint shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
+            point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());
+        }
 
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SHADOW_MAPS);

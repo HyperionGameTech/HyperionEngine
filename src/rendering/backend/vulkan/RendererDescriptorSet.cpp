@@ -37,10 +37,6 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::SSR_SAMPLE_TEXTURE,    18},
             {DescriptorKey::SSR_FINAL_TEXTURE,     22},
 
-            {DescriptorKey::ENV_PROBE_TEXTURES,    25},
-            {DescriptorKey::ENV_PROBES,            26},
-            {DescriptorKey::POINT_SHADOW_MAPS,     27},
-
             {DescriptorKey::VOXEL_IMAGE,           30},
 
             // result from depth pyramid generation
@@ -112,7 +108,12 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::CAMERA_BUFFER,     4},
             {DescriptorKey::SHADOW_MAPS,      12},
             {DescriptorKey::SHADOW_MATRICES,  13},
-            {DescriptorKey::ENVIRONMENT_MAPS, 20}
+            {DescriptorKey::ENVIRONMENT_MAPS, 20},
+            
+
+            {DescriptorKey::ENV_PROBE_TEXTURES,    25},
+            {DescriptorKey::ENV_PROBES,            26},
+            {DescriptorKey::POINT_SHADOW_MAPS,     27},
         }
     },
     {
