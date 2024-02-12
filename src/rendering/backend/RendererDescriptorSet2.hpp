@@ -5,7 +5,7 @@
 #include <core/lib/Optional.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/ArrayMap.hpp>
-#include <core/lib/Mutex.hpp>
+#include <core/lib/FixedArray.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <Types.hpp>
@@ -23,7 +23,7 @@ class Device;
 template <PlatformType PLATFORM>
 class Instance;
 
-enum class DescriptorSetElementType
+enum class DescriptorSetElementType : uint32
 {
     UNSET,
     UNIFORM_BUFFER,
@@ -39,6 +39,12 @@ enum class DescriptorSetElementType
 
 template <PlatformType PLATFORM>
 class DescriptorSet2;
+
+template <DescriptorSetElementType ... Types>
+static inline uint32 GetDescriptorSetElementTypeMask(Types ... types)
+{
+    return (1u << uint32(types)) | ...;
+}
 
 template <PlatformType PLATFORM>
 class DescriptorSetLayout

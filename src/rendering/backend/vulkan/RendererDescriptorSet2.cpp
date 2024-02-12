@@ -70,6 +70,26 @@ void DescriptorSet2Ref<Platform::VULKAN>::SetElement(const String &name, uint in
 {
     auto element = m_layout.GetElement(name);
     AssertThrowMsg(element.HasValue(), "Invalid element: No item with name %s found", name.Data());
+
+    static const uint32 mask = GetDescriptorSetElementTypeMask(
+        DescriptorSetElementType::UNIFORM_BUFFER,
+        DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC,
+        DescriptorSetElementType::STORAGE_BUFFER,
+        DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC
+    );
+
+    AssertThrowMsg(mask & (1u << uint32(element.Get())), "Layout type for %s does not match given type", name.Data());
+
+    auto it = m_elements.Find(name);
+
+    if (it == m_elements.End()) {
+        m_elements.Insert({
+            name,
+            DescriptorSetElement<Platform::VULKAN>::ValueType(ref)
+        });
+    } else {
+        it->second = DescriptorSetElement<Platform::VULKAN>::ValueType(ref);
+    }
 }
 
 template <>
