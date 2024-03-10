@@ -19,14 +19,14 @@ struct BoundingSphere
 {
 public:
     BoundingSphere();
-    BoundingSphere(const Vector3 &center, float radius);
+    BoundingSphere(const Vec3f &center, float radius);
     BoundingSphere(const BoundingSphere &other);
     BoundingSphere(const BoundingBox &box);
 
-    const Vector3 &GetCenter() const
+    const Vec3f &GetCenter() const
         { return center; }
 
-    void SetCenter(const Vector3 &center)
+    void SetCenter(const Vec3f &center)
         { this->center = center; }
 
     float GetRadius() const
@@ -43,10 +43,14 @@ public:
 
     BoundingSphere &Extend(const BoundingBox &box);
 
+    /*! \brief Convert the BoundingSphere to an AABB. */
+    operator BoundingBox() const
+        { return BoundingBox(center - Vec3f(radius), center + Vec3f(radius)); }
+
     /*! \brief Store the BoundingSphere in a Vector4.
         x,y,z components will be the center of the sphere,
         w will be the radius. */
-    Vector4 ToVector4() const;
+    Vec4f ToVector4() const;
 
     HashCode GetHashCode() const
     {
@@ -58,8 +62,8 @@ public:
         return hc;
     }
 
-    Vector3 center;
-    float radius;
+    Vec3f   center;
+    float   radius;
 };
 
 } // namespace hyperion

@@ -74,7 +74,16 @@ public:
     }
 
     float GetRadius() const
-        { return m_radius; }
+    {
+        switch (m_type) {
+        case LightType::DIRECTIONAL:
+            return MathUtil::Infinity<float>();
+        case LightType::POINT:
+            return m_radius;
+        default:
+            return 0.0f;
+        }
+    }
 
     void SetRadius(float radius)
     {

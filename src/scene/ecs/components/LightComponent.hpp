@@ -11,8 +11,7 @@ using LightComponentFlags = uint32;
 
 enum LightComponentFlagBits : LightComponentFlags
 {
-    LIGHT_COMPONENT_FLAGS_NONE  = 0x00,
-    LIGHT_COMPONENT_FLAGS_INIT  = 0x01
+    LIGHT_COMPONENT_FLAGS_NONE  = 0x00
 };
 
 struct LightComponent

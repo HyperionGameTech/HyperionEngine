@@ -10,7 +10,7 @@ struct RenderCommand_DestroyCubemapRenderPass;
 
 using renderer::Result;
 
-static const InternalFormat reflection_probe_format = InternalFormat::R10G10B10A2;
+static const InternalFormat reflection_probe_format = InternalFormat::RGBA8_SRGB;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin);
@@ -395,25 +395,12 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     
     // Check if octree has changes, and we need to re-render.
 
-    //const bool is_rendered = m_is_rendered.Get(MemoryOrder::ACQUIRE);
-
-    Octree const *octree = nullptr;
-
-    HashCode octant_hash;
-
-    AssertThrow(m_parent_scene.IsValid());
-    
-    if (m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree)) {
-        AssertThrow(octree != nullptr);
-
-        octant_hash = octree->GetNodesHash();
-    }
+    Octree const *octree = &m_parent_scene->GetOctree();
+    m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree);
+    const HashCode octant_hash = octree->GetNodesHash();
 
     if (m_octant_hash_code != octant_hash) {
         SetNeedsUpdate(true);
-
-        // DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu), new octant ID: %u:%u\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value(),
-        //     octree->GetOctantID().GetDepth(), octree->GetOctantID().GetIndex());
 
         m_octant_hash_code = octant_hash;
     }
@@ -429,6 +416,14 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         AssertThrow(m_shader.IsValid());
 
         m_camera->Update(delta);
+
+        if (IsShadowProbe()) {
+            DebugLog(
+                LogType::Debug,
+                "Updating shadow probe #%u\n",
+                GetID().Value()
+            );
+        }
 
         if (OnlyCollectStaticEntities()) {
             m_parent_scene->CollectStaticEntities(
@@ -650,9 +645,6 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
 void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 {
-    Threads::AssertOnThread(THREAD_RENDER);
-    AssertReady();
-
     bool set_texture = true;
 
     if (IsControlledByEnvGrid()) {
@@ -677,7 +669,36 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 
     m_bound_index = probe_index;
 
-    UpdateRenderData(set_texture);
+    if (IsReady()) {
+        if (Threads::IsOnThread(THREAD_RENDER)) {
+            UpdateRenderData(set_texture);
+        } else {
+            struct RENDER_COMMAND(UpdateEnvProbeRenderData) : renderer::RenderCommand
+            {
+                EnvProbe    &env_probe;
+                bool        set_texture;
+
+                RENDER_COMMAND(UpdateEnvProbeRenderData)(EnvProbe &env_probe, bool set_texture)
+                    : env_probe(env_probe),
+                      set_texture(set_texture)
+                {
+                }
+
+                virtual ~RENDER_COMMAND(UpdateEnvProbeRenderData)() override = default;
+
+                virtual Result operator()() override
+                {
+                    env_probe.UpdateRenderData(set_texture);
+
+                    return Result::OK;
+                }
+            };
+
+            PUSH_RENDER_COMMAND(UpdateEnvProbeRenderData, *this, set_texture);
+
+            HYP_SYNC_RENDER();
+        }
+    }
 }
 
 } // namespace hyperion::v2

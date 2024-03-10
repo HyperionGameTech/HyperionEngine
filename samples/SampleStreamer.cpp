@@ -404,7 +404,7 @@ void SampleStreamer::InitGame()
         Vector3(0.0f, 0.5f, 0.0f),
         Color(1.0f, 0.9f, 0.7f),
         5.0f,
-        40.0f
+        20.0f
     )));
     // point_lights.PushBack(CreateObject<Light>(PointLight(
     //     Vector3(0.0f, 10.0f, 12.0f),

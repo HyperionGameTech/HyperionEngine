@@ -34,7 +34,7 @@ namespace Hyperion
             scene = new Scene(sceneHandle);
         }
 
-        public void Init(Entity entity)
+        public virtual void Init(Entity entity)
         {
             this.entity = entity;
         }

@@ -6,12 +6,12 @@
 namespace hyperion {
 
 BoundingSphere::BoundingSphere()
-    : center(Vector3::Zero()),
+    : center(Vec3f::Zero()),
       radius(0.0f)
 {
 }
 
-BoundingSphere::BoundingSphere(const Vector3 &center, float radius)
+BoundingSphere::BoundingSphere(const Vec3f &center, float radius)
     : center(center),
       radius(radius)
 {
@@ -38,9 +38,9 @@ BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
 
     BoundingBox new_aabb(box);
 
-    Vector3 direction_vector;
+    Vec3f direction_vector;
 
-    for (const Vector3 &corner : box.GetCorners()) {
+    for (const Vec3f &corner : box.GetCorners()) {
         direction_vector = (corner - center).Normalized();
         direction_vector *= -radius;
         direction_vector += center;
@@ -54,9 +54,9 @@ BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
     return *this;
 }
 
-Vector4 BoundingSphere::ToVector4() const
+Vec4f BoundingSphere::ToVector4() const
 {
-    return Vector4(center, radius);
+    return Vec4f(center, radius);
 }
 
 } // namespace hyperion

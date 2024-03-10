@@ -299,6 +299,7 @@ void EnvGrid::Init()
                     );
 
                     m_env_probe_collection.AddProbe(index, probe);
+
                     probe->m_grid_slot = index;
 
                     InitObject(probe);
@@ -524,7 +525,7 @@ void EnvGrid::OnRender(Frame *frame)
                     if (m_next_render_indices.Size() < max_queued_probes_for_render) {
                         probe->UpdateRenderData(
                             ~0u,
-                            probe->m_grid_slot,
+                            indirect_index,
                             m_density
                         );
 
@@ -937,16 +938,11 @@ void EnvGrid::ComputeSH(
         ShaderVec4<uint32> cubemap_dimensions;
     } push_constants;
 
-    AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
-
-    //temp
-    AssertThrow(probe->m_grid_slot == probe_index);//m_env_probe_collection.GetEnvProbeIndexOnRenderThread(probe_index));
-    
     push_constants.probe_grid_position = {
-        probe->m_grid_slot % m_density.width,
-        (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
-        probe->m_grid_slot / (m_density.width * m_density.height),
-        probe->m_grid_slot
+        probe_index % m_density.width,
+        (probe_index % (m_density.width * m_density.height)) / m_density.width,
+        probe_index / (m_density.width * m_density.height),
+        probe_index
     };
     
     push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
@@ -1089,8 +1085,6 @@ void EnvGrid::VoxelizeProbe(
 
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
-    AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
-    // AssertThrow(probe->m_grid_slot == probe_index);
 
     const ImageRef &color_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
     const Extent2D cubemap_dimensions = Extent2D(color_image->GetExtent());
@@ -1104,9 +1098,9 @@ void EnvGrid::VoxelizeProbe(
     } push_constants;
 
     push_constants.probe_grid_position = {
-        probe->m_grid_slot % m_density.width,
-        (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
-        probe->m_grid_slot / (m_density.width * m_density.height),
+        probe_index % m_density.width,
+        (probe_index % (m_density.width * m_density.height)) / m_density.width,
+        probe_index / (m_density.width * m_density.height),
         probe.GetID().ToIndex()
     };
 
@@ -1118,7 +1112,7 @@ void EnvGrid::VoxelizeProbe(
 
     // m_probe_data_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    if (true) {   // Clear our voxel grid at the start of each probe
+    if (false) {   // Clear our voxel grid at the start of each probe
         m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
         m_clear_voxels->GetDescriptorTable().Get()->Bind(

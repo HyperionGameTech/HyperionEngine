@@ -13,6 +13,69 @@
 
 namespace hyperion::v2 {
 
+void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+{
+    ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
+    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
+
+    if (!light_component.light) {
+        return;
+    }
+
+    if (shadow_map_component.render_component) {
+        return;
+    }
+
+    switch (light_component.light->GetType()) {
+    case LightType::DIRECTIONAL:
+        shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<DirectionalLightShadowRenderer>(
+            Name::Unique("shadow_map_renderer_directional"),
+            shadow_map_component.resolution
+        );
+
+        break;
+    case LightType::POINT:
+        shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<PointLightShadowRenderer>(
+            Name::Unique("shadow_map_renderer_point"),
+            light_component.light,
+            shadow_map_component.resolution
+        );
+
+        break;
+    default:
+        DebugLog(
+            LogType::Warn,
+            "Light type %u not supported for shadow mapping\n",
+            uint32(light_component.light->GetType())
+        );
+
+        break;
+    }
+}
+
+void ShadowMapUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+{
+    ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
+    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
+
+    if (shadow_map_component.render_component) {
+        switch (light_component.light->GetType()) {
+        case LightType::DIRECTIONAL:
+            entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<DirectionalLightShadowRenderer>(shadow_map_component.render_component->GetName());
+
+            break;
+        case LightType::POINT:
+            entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<PointLightShadowRenderer>(shadow_map_component.render_component->GetName());
+
+            break;
+        default:
+            break;
+        }
+
+        shadow_map_component.render_component = nullptr;
+    }
+}
+
 void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     for (auto [entity_id, shadow_map_component, light_component, transform_component] : entity_manager.GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>()) {
@@ -21,37 +84,9 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
         }
 
         if (!shadow_map_component.render_component) {
-            switch (light_component.light->GetType()) {
-            case LightType::DIRECTIONAL:
-                shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<DirectionalLightShadowRenderer>(
-                    Name::Unique("shadow_map_renderer_directional"),
-                    shadow_map_component.resolution
-                );
-
-                break;
-            case LightType::POINT:
-                shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<PointLightShadowRenderer>(
-                    Name::Unique("shadow_map_renderer_point"),
-                    light_component.light,
-                    shadow_map_component.resolution
-                );
-
-                break;
-            default:
-                DebugLog(
-                    LogType::Warn,
-                    "Light type %u not supported for shadow mapping\n",
-                    static_cast<uint32>(light_component.light->GetType())
-                );
-
-                break;
-            }
-
-            if (!shadow_map_component.render_component) {
-                continue;
-            }
+            continue;
         }
-
+        
         // only update shadow map every 10 ticks
         if (shadow_map_component.update_counter++ % 10 != 0) {
             continue;

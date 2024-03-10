@@ -9,12 +9,14 @@
 namespace hyperion::v2 {
 
 class LightVisibilityUpdaterSystem : public System<
-    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>
 >
 {
 public:
     virtual ~LightVisibilityUpdaterSystem() override = default;
+
+    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity) override;
+    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity) override;
 
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
 };

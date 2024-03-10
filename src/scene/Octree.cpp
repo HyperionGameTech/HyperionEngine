@@ -385,7 +385,7 @@ Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool
     }
 
     // stop recursing if we are at max depth
-    if (m_octant_id.depth < OctantID::max_depth) {
+    if (m_octant_id.GetDepth() < OctantID::max_depth - 1) {
         for (Octant &octant : m_octants) {
             if (octant.aabb.Contains(aabb)) {
                 if (!IsDivided()) {
@@ -663,7 +663,7 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
                 }
                 
                 if (!IsDivided()) {
-                    if (allow_rebuild && m_octant_id.GetDepth() < OctantID::max_depth) {
+                    if (allow_rebuild && m_octant_id.GetDepth() < OctantID::max_depth - 1) {
                         Divide();
                     } else {
                         continue;

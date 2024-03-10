@@ -5,19 +5,19 @@ using Hyperion;
 
 public class TestScript : Script
 {
-    public void Init(Entity entity)
+    public override void Init(Entity entity)
     {
         base.Init(entity);
         
         // Logger.Log(LogType.Info, "Init a script with entity ID: " + Entity.ID);
     }
 
-    public void Destroy()
+    public override void Destroy()
     {
         // Logger.Log(LogType.Info, "Destroy a script");
     }
 
-    public void Update(float deltaTime)
+    public override void Update(float deltaTime)
     {
         // Logger.Log(LogType.Info, "Update a script");
     }
