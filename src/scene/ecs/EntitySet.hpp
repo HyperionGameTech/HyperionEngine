@@ -197,6 +197,15 @@ public:
         return m_entities.GetEntityData(entity).template HasComponents<Components...>();
     }
 
+    template <class TaskSystem, class Lambda>
+    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
+    {
+        task_system.ParallelForEach(m_elements.Size(), [this, &lambda](uint index, uint)
+        {
+            lambda(Iterator(*this, index));
+        });
+    }
+
     HYP_DEF_STL_BEGIN_END(
         Iterator(*this, 0),
         Iterator(*this, m_elements.Size())

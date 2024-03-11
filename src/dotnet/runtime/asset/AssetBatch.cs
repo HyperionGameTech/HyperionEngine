@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-
     public class AssetBatch : IDisposable
     {
         private IntPtr ptr;

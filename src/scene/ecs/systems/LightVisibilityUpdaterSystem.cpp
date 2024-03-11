@@ -8,6 +8,8 @@ namespace hyperion::v2 {
 
 void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
 
     if (!light_component.light) {
@@ -27,39 +29,55 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
         BoundingBoxComponent *bounding_box_component = entity_manager.TryGetComponent<BoundingBoxComponent>(entity);
 
         if (!bounding_box_component) {
-            entity_manager.AddComponent<BoundingBoxComponent>(entity, { });
+            entity_manager.AddComponent(entity, BoundingBoxComponent { });
 
             bounding_box_component = &entity_manager.GetComponent<BoundingBoxComponent>(entity);
         }
 
-        const BoundingBox local_aabb = BoundingBox(BoundingSphere(light->GetPosition(), light->GetRadius()));
-
-        bounding_box_component->local_aabb = local_aabb;
-        bounding_box_component->world_aabb = local_aabb * transform_component.transform;
+        switch (light->GetType()) {
+        case LightType::DIRECTIONAL:
+            bounding_box_component->local_aabb = BoundingBox::infinity;
+            bounding_box_component->world_aabb = BoundingBox::infinity;
+            break;
+        case LightType::POINT:
+            bounding_box_component->local_aabb = BoundingBox(BoundingSphere(light->GetPosition(), light->GetRadius()));
+            bounding_box_component->world_aabb = bounding_box_component->local_aabb * transform_component.transform;
+            break;
+        default:
+            break;
+        }
     }
 
     { // Add a visibility state component if it doesn't exist yet
         VisibilityStateComponent *visibility_state_component = entity_manager.TryGetComponent<VisibilityStateComponent>(entity);
 
         if (!visibility_state_component) {
-            entity_manager.AddComponent<VisibilityStateComponent>(entity, { });
+            // Directional light sources are always visible
+            if (light->GetType() == LightType::DIRECTIONAL) {
+                entity_manager.AddComponent(entity, VisibilityStateComponent {
+                    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+                });
+            } else {
+                entity_manager.AddComponent(entity, VisibilityStateComponent { });
+            }
         }
     }
 }
 
 void LightVisibilityUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
 }
 
 void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     const Handle<Camera> &camera = entity_manager.GetScene()->GetCamera();
 
-    for (auto [entity_id, light_component, transform_component] : entity_manager.GetEntitySet<LightComponent, TransformComponent>()) {
+    for (auto [entity_id, light_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!light_component.light) {
             continue;
         }
-        
+
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (transform_hash_code != light_component.transform_hash_code) {

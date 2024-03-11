@@ -12,6 +12,8 @@ namespace hyperion::v2 {
 
 void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     ScriptComponent &script_component = entity_manager.GetComponent<ScriptComponent>(entity);
 
     script_component.assembly = nullptr;
@@ -50,6 +52,8 @@ void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entit
 
 void ScriptSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     ScriptComponent &script_component = entity_manager.GetComponent<ScriptComponent>(entity);
 
     if (script_component.object != nullptr) {

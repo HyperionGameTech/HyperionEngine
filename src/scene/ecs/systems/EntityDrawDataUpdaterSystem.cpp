@@ -43,6 +43,8 @@ struct RENDER_COMMAND(UpdateEntityDrawDatas) : renderer::RenderCommand
 
 void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
 
     InitObject(mesh_component.mesh);
@@ -53,6 +55,8 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, I
 
 void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
 
     mesh_component.flags &= ~MESH_COMPONENT_FLAG_INIT;

@@ -5,6 +5,8 @@
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 
+#include <core/Util.hpp>
+
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
@@ -135,7 +137,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(NaN<VectorScalarType>());
         }
 
@@ -145,6 +147,18 @@ public:
     template <class T>
     static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsNaN(T value)
         { return value != value; }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsNaN(const T &value)
+    {
+        for (uint i = 0; i < ArraySize(value.values); i++) {
+            if (IsNaN(value.values[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     template <class T>
     static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Infinity()
@@ -157,7 +171,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Infinity<VectorScalarType>());
         }
 
@@ -167,6 +181,18 @@ public:
     template <class T>
     static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsFinite(T value)
         { return value != Infinity<T>() && value != -Infinity<T>(); }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsFinite(const T &value)
+    {
+        for (uint i = 0; i < ArraySize(value.values); i++) {
+            if (!IsFinite(value.values[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     template <class T>
     static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, bool) ApproxEqual(const T &a, const T &b)
@@ -181,7 +207,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < static_cast<uint>(std::size(result.values)); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = RandRange(a.values[i], b.values[i]);
         }
 
@@ -257,7 +283,7 @@ public:
 
         T result { };
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Sign<VectorScalarType>(a.values[i]));
         }
 
@@ -271,7 +297,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Trunc<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -285,7 +311,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Floor<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -299,7 +325,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Ceil<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -339,7 +365,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (SizeType i = 0; i < std::size(result.values); i++) {
+        for (uint i = 0; i < ArraySize(result.values); i++) {
             result.values[i] = VectorScalarType(Abs<VectorScalarType>(a.values[i]));
         }
 

@@ -190,6 +190,43 @@ public:
         ID<Entity>  id;
         BoundingBox aabb;
 
+        Node() = default;
+
+        Node(ID<Entity> id, const BoundingBox &aabb)
+            : id(id), aabb(aabb) {}
+
+        Node(const Node &other)
+            : id(other.id), aabb(other.aabb) {}
+
+        Node &operator=(const Node &other)
+        {
+            id = other.id;
+            aabb = other.aabb;
+
+            return *this;
+        }
+
+        Node(Node &&other) noexcept
+            : id(other.id), aabb(other.aabb) {}
+
+        Node &operator=(Node &&other) noexcept
+        {
+            id = other.id;
+            aabb = other.aabb;
+
+            return *this;
+        }
+
+        ~Node() = default;
+
+        HYP_FORCE_INLINE
+        bool operator==(const Node &other) const
+            { return id == other.id && aabb == other.aabb; }
+
+        HYP_FORCE_INLINE
+        bool operator!=(const Node &other) const
+            { return !(*this == other); }
+
         HashCode GetHashCode() const
         {
             HashCode hc;
@@ -253,13 +290,13 @@ public:
 
         hc.Add(m_nodes_hash);
 
-        if (m_is_divided) {
-            for (const Octant &octant : m_octants) {
-                AssertThrow(octant.octree != nullptr);
+        // if (m_is_divided) {
+        //     for (const Octant &octant : m_octants) {
+        //         AssertThrow(octant.octree != nullptr);
 
-                hc.Add(octant.octree->GetNodesHash());
-            }
-        }
+        //         hc.Add(octant.octree->GetNodesHash());
+        //     }
+        // }
 
         return hc;
     }

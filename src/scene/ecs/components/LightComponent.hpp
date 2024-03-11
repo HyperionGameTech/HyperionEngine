@@ -21,6 +21,8 @@ struct LightComponent
     LightComponentFlags     flags = LIGHT_COMPONENT_FLAGS_NONE;
 };
 
+static_assert(sizeof(LightComponent) == 24, "LightComponent size mismatch with C#");
+
 } // namespace hyperion::v2
 
 #endif

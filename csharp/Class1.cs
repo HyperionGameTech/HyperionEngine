@@ -8,8 +8,32 @@ public class TestScript : Script
     public override void Init(Entity entity)
     {
         base.Init(entity);
-        
-        // Logger.Log(LogType.Info, "Init a script with entity ID: " + Entity.ID);
+
+        var lightEntity = Scene.EntityManager.AddEntity();
+        Scene.EntityManager.AddComponent<LightComponent>(lightEntity, new LightComponent
+        {
+            Light = new Light(
+                LightType.Point,
+                new Vec3f(0f, 0.5f, 0f),
+                new Color(1, 0, 0, 1),
+                1.0f,
+                25.0f
+            )
+        });
+
+        Scene.EntityManager.AddComponent<TransformComponent>(lightEntity, new TransformComponent
+        {
+            transform = new Transform
+            {
+                Translation = new Vec3f(0, 0.5f, 0),
+                Scale = new Vec3f(1, 1, 1),
+                Rotation = new Quaternion(0, 0, 0, 1)
+            }
+        });
+
+        Scene.EntityManager.AddComponent<ShadowMapComponent>(lightEntity, new ShadowMapComponent { });
+
+        Logger.Log(LogType.Info, "Init script, added light entity: " + lightEntity.ID);
     }
 
     public override void Destroy()
@@ -28,7 +52,7 @@ public class TestGame : Game
     public override void Init()
     {
         return;
-        
+
         TypeID testTypeID = TypeID.ForType<TransformComponent>();
 
         var assetBatch = new AssetBatch(AssetManager);
@@ -36,7 +60,7 @@ public class TestGame : Game
         assetBatch.LoadAsync();
 
         var assetMap = assetBatch.AwaitResults();
-        
+
         Scene.Root.AddChild(assetMap["test_model"].GetNode());
 
         var lightNode = Scene.Root.AddChild();
@@ -123,7 +147,7 @@ public class MyClass
 
         Logger.Log(LogType.Info, "Hello from C#, entity ID: {0}", entity.ID);
         Logger.Log(LogType.Info, "Hello from C#, entity has transform component: {0}", entityManager.HasComponent<TransformComponent>(entity));
-        Logger.Log(LogType.Info, "Hello from C#, transformComponentId: {0}", transformComponentId);     
+        Logger.Log(LogType.Info, "Hello from C#, transformComponentId: {0}", transformComponentId);
 
         // try getting the transform component
         var transformComponent1 = entityManager.GetComponent<TransformComponent>(entity);
@@ -145,7 +169,7 @@ public class MyClass
                     new Vertex(new Vec3f(0, 0, 0), new Vec2f(0, 0), new Vec3f(0, 0, 1)),
                     new Vertex(new Vec3f(1, 0, 0), new Vec2f(1, 0), new Vec3f(0, 0, 1)),
                     new Vertex(new Vec3f(1, 1, 0), new Vec2f(1, 1), new Vec3f(0, 0, 1)),
-                    new Vertex(new Vec3f(0, 1, 0), new Vec2f(0, 1), new Vec3f(0, 0, 1))    
+                    new Vertex(new Vec3f(0, 1, 0), new Vec2f(0, 1), new Vec3f(0, 0, 1))
                 },
                 new List<uint>
                 {
@@ -168,7 +192,7 @@ public class MyClass
         meshComponent.Material.Textures[TextureKey.AlbedoMap] = new Texture();
         meshComponent.Material.Textures[TextureKey.AlbedoMap].Init();
         Logger.Log(LogType.Info, "Hello from C#, material texture albedo map: {0}", meshComponent.Material.Textures[TextureKey.AlbedoMap].ID);
-        
+
         scene.EntityManager.AddComponent<VisibilityStateComponent>(entity, new VisibilityStateComponent { });
 
         bool childRemoved = root.RemoveChild(myNode);

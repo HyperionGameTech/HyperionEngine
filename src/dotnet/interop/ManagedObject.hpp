@@ -13,7 +13,7 @@ extern "C" {
 struct ManagedObject
 {
     ManagedGuid guid;
-    void *ptr;
+    void        *ptr;
 };
 
 static_assert(sizeof(ManagedObject) == 24, "ManagedObject size mismatch with C#");

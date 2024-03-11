@@ -94,6 +94,12 @@ public:
     bool ContainsPoint(const Vec3f &vec) const;
     float Area() const;
 
+    bool IsFinite() const
+        { return MathUtil::IsFinite(min) && MathUtil::IsFinite(max); }
+
+    bool IsValid() const
+        { return min.x <= max.x && min.y <= max.y && min.z <= max.z; }
+
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {

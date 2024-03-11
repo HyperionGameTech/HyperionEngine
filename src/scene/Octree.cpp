@@ -310,8 +310,9 @@ undivide:
 void Octree::Clear()
 {
     Array<Node> nodes;
-
     Clear(nodes);
+
+    RebuildNodesHash();
 }
 
 void Octree::Clear(Array<Node> &out_nodes)
@@ -325,7 +326,7 @@ void Octree::Clear(Array<Node> &out_nodes)
 
 void Octree::ClearInternal(Array<Node> &out_nodes)
 {
-    out_nodes.Reserve(m_nodes.Size());
+    out_nodes.Reserve(out_nodes.Size() + m_nodes.Size());
 
     // Push command to unset octant ID for all entities
     if (m_entity_manager) {
@@ -366,6 +367,20 @@ void Octree::ClearInternal(Array<Node> &out_nodes)
 
 Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild)
 {
+    // if (!aabb.IsValid()) {
+    //     return {
+    //         { Octree::Result::OCTREE_ERR, "AABB is in invalid state" },
+    //         OctantID::invalid
+    //     };
+    // }
+
+    if (!aabb.IsFinite()) {
+        return {
+            { Octree::Result::OCTREE_ERR, "AABB is not finite" },
+            OctantID::invalid
+        };
+    }
+
     if (allow_rebuild) {
         if (!m_aabb.Contains(aabb)) {
             auto rebuild_result = RebuildExtendInternal(aabb);
@@ -428,7 +443,7 @@ Octree::InsertResult Octree::InsertInternal(ID<Entity> id, const BoundingBox &aa
         {
             if (mgr.HasEntity(id)) {
                 if (!mgr.HasComponent<VisibilityStateComponent>(id)) {
-                    mgr.AddComponent<VisibilityStateComponent>(id, {
+                    mgr.AddComponent(id, VisibilityStateComponent {
                         .octant_id = octant_id
                     });
 
@@ -818,11 +833,6 @@ Octree::InsertResult Octree::Rebuild()
         }
     }
 
-    RebuildNodesHash();
-    
-    // // force all entities visible to prevent flickering
-    // ForceVisibilityStates();
-
     return {
         { Octree::Result::OCTREE_OK },
         m_octant_id
@@ -843,9 +853,6 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox &new_aabb)
             return insert_result;
         }
     }
-    
-    // // force all entities visible to prevent flickering
-    // ForceVisibilityStates();
 
     return {
         { Octree::Result::OCTREE_OK },
@@ -912,12 +919,17 @@ void Octree::PerformUpdates()
         return;
     }
 
-    Octree *child_octant = GetChildOctant(m_state->rebuild_state);
-    AssertThrow(child_octant != nullptr);
+    Octree *octant = GetChildOctant(m_state->rebuild_state);
+    AssertThrow(octant != nullptr);
 
-    child_octant->Rebuild();
+    const auto rebuild_result = octant->Rebuild();
 
-    m_state->rebuild_state = OctantID::invalid;
+    RebuildNodesHash();
+
+    if (rebuild_result.first) {
+        // set rebuild state to invalid if rebuild was successful
+        m_state->rebuild_state = OctantID::invalid;
+    }
 }
 
 void Octree::CollectEntities(Array<ID<Entity>> &out) const
@@ -1093,17 +1105,6 @@ void Octree::UpdateVisibilityState(Camera *camera, uint8 cursor)
     }
 }
 
-// void Octree::OnEntityRemoved(Entity *entity)
-// {
-//     if (entity == nullptr) {
-//         return;
-//     }
-    
-//     if (!Remove(entity)) {
-//         DebugLog(LogType::Error, "Failed to find Entity #%lu in octree\n", entity->GetID().value);
-//     }
-// }
-
 void Octree::ResetNodesHash()
 {
     m_nodes_hash = { 0 };
@@ -1115,6 +1116,16 @@ void Octree::RebuildNodesHash(uint level)
 
     for (const Node &item : m_nodes) {
         m_nodes_hash.Add(item.GetHashCode());
+    }
+
+    if (m_is_divided) {
+        for (const Octant &octant : m_octants) {
+            AssertThrow(octant.octree != nullptr);
+
+            octant.octree->RebuildNodesHash(level + 1);
+
+            m_nodes_hash.Add(octant.octree->GetNodesHash());
+        }
     }
 }
 

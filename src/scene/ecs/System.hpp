@@ -18,6 +18,9 @@ class SystemBase
 public:
     virtual ~SystemBase() = default;
 
+    bool IsEntityInitialized(ID<Entity> entity) const
+        { return m_initialized_entities.Contains(entity); }
+
     virtual bool AllowParallelExecution() const
         { return true; }
 
@@ -89,8 +92,15 @@ public:
         return m_component_rw_flags[index];
     }
 
-    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity_id) {}
-    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity_id) {}
+    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity_id)
+    {
+        m_initialized_entities.Insert(entity_id);
+    }
+
+    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity_id)
+    {
+        m_initialized_entities.Erase(entity_id);
+    }
 
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) = 0;
 
@@ -104,6 +114,9 @@ protected:
 
     Array<TypeID>           m_component_type_ids;
     Array<ComponentRWFlags> m_component_rw_flags;
+
+private:
+    FlatSet<ID<Entity>>     m_initialized_entities;
 };
 
 /*! \brief A System is a class that operates on a set of components.

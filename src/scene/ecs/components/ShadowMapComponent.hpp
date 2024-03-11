@@ -14,7 +14,7 @@ namespace hyperion::v2 {
 
 class RenderComponentBase;
 
-enum ShadowMapFilter
+enum ShadowMapFilter : uint32
 {
     SHADOW_MAP_FILTER_NONE,
     SHADOW_MAP_FILTER_PCF,
@@ -25,12 +25,14 @@ enum ShadowMapFilter
 struct ShadowMapComponent
 {
     ShadowMapFilter         filter = SHADOW_MAP_FILTER_VSM;
-    float                   radius = 60.0f;
-    Extent2D                resolution = { 1024, 1024 };
+    float                   radius = 20.0f;
+    Extent2D                resolution = { 512, 512 };
     RC<RenderComponentBase> render_component;
 
-    uint                    update_counter = 0;
+    uint32                  update_counter = 0;
 };
+
+static_assert(sizeof(ShadowMapComponent) == 32, "ShadowMapComponent size mismatch with C#");
 
 } // namespace hyperion::v2
 

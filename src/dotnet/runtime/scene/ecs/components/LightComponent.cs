@@ -5,8 +5,7 @@ namespace Hyperion
 {
     public enum LightComponentFlags : uint
     {
-        None = 0x0,
-        Init = 0x1
+        None = 0x0
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 24)]

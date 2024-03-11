@@ -394,24 +394,25 @@ void SampleStreamer::InitGame()
     });
 
     m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
-        .radius = 15.0f,
+        .filter = SHADOW_MAP_FILTER_CONTACT_HARDENED,
+        .radius = 20.0f,
         .resolution = { 2048, 2048 }
     });
 
     Array<Handle<Light>> point_lights;
 
     point_lights.PushBack(CreateObject<Light>(PointLight(
-        Vector3(0.0f, 0.5f, 0.0f),
-        Color(1.0f, 0.9f, 0.7f),
-        5.0f,
-        20.0f
+        Vector3(-5.0f, 0.5f, 0.0f),
+        Color(1.0f, 0.0f, 0.0f),
+        1.0f,
+        5.0f
     )));
-    // point_lights.PushBack(CreateObject<Light>(PointLight(
-    //     Vector3(0.0f, 10.0f, 12.0f),
-    //     Color(1.0f, 0.0f, 0.0f),
-    //     15.0f,
-    //     200.0f
-    // )));
+    point_lights.PushBack(CreateObject<Light>(PointLight(
+        Vector3(5.0f, 2.0f, 0.0f),
+        Color(0.0f, 1.0f, 0.0f),
+        1.0f,
+        15.0f
+    )));
 
     for (auto &light : point_lights) {
         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();

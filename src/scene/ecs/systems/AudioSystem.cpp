@@ -9,6 +9,8 @@ namespace hyperion::v2 {
 
 void AudioSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     AudioComponent &audio_component = entity_manager.GetComponent<AudioComponent>(entity);
 
     if (audio_component.audio_source.IsValid()) {

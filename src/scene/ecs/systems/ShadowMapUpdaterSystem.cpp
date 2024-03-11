@@ -15,6 +15,8 @@ namespace hyperion::v2 {
 
 void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
     LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
 
@@ -55,6 +57,8 @@ void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
 
 void ShadowMapUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
     LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
 
@@ -86,7 +90,7 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
         if (!shadow_map_component.render_component) {
             continue;
         }
-        
+
         // only update shadow map every 10 ticks
         if (shadow_map_component.update_counter++ % 10 != 0) {
             continue;

@@ -70,6 +70,13 @@ constexpr auto TypeName()
     return detail::StripNamespace<substr>();
 }
 
+/*! \brief Size of an array literal (Hyperion equivalent of std::size) */
+template <class T, uint N>
+constexpr uint ArraySize(const T (&)[N])
+{
+    return N;
+}
+
 } // namespace hyperion
 
 #endif

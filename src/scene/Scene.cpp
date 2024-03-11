@@ -107,10 +107,10 @@ Scene::Scene(
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
-    m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
-    m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
+    m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
+    m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();

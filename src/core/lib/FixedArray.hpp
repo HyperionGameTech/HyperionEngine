@@ -329,6 +329,12 @@ public:
 } // namespace detail
 } // namespace containers
 
+template <class T, uint N>
+constexpr uint ArraySize(const FixedArray<T, N> &)
+{
+    return N;
+}
+
 } // namespace hyperion
 
 #endif

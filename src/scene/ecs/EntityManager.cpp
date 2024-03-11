@@ -143,7 +143,7 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
     }
 
     // Threads::AssertOnThread(m_owner_thread_mask);
-    
+
     const auto entity_it = m_entities.Find(id);
     AssertThrowMsg(entity_it != m_entities.End(), "Entity does not exist");
 
@@ -235,6 +235,10 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> id, const TypeMap<Comp
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
+            if (system_it.second->IsEntityInitialized(id)) {
+                continue;
+            }
+
             if (system_it.second->ActsOnComponents(component_type_ids)) {
                 system_it.second->OnEntityAdded(*this, id);
             }

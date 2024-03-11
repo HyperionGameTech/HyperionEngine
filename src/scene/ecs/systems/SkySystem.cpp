@@ -10,6 +10,8 @@ namespace hyperion::v2 {
 
 void SkySystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     SkyComponent &sky_component = entity_manager.GetComponent<SkyComponent>(entity);
     MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
 
@@ -48,6 +50,8 @@ void SkySystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 
 void SkySystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     SkyComponent &sky_component = entity_manager.GetComponent<SkyComponent>(entity);
     MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
 
@@ -61,7 +65,7 @@ void SkySystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity
 void SkySystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
     for (auto [entity_id, sky_component, mesh_component] : entity_manager.GetEntitySet<SkyComponent, MeshComponent>()) {
-        
+
     }
 }
 

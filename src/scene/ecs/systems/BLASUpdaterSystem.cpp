@@ -6,6 +6,8 @@ namespace hyperion::v2 {
 
 void BLASUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
@@ -36,6 +38,8 @@ void BLASUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> 
 
 void BLASUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
@@ -56,10 +60,10 @@ void BLASUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::Tick
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
-    
+
     for (auto [entity_id, blas_component, mesh_component, transform_component] : entity_manager.GetEntitySet<BLASComponent, MeshComponent, TransformComponent>()) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
-        
+
         if (!blas_component.blas.IsValid()) {
             continue;
         }
@@ -71,7 +75,7 @@ void BLASUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::Tick
         if (blas_component.blas->GetMaterial() != mesh_component.material) {
             blas_component.blas->SetMaterial(mesh_component.material);
         }
-        
+
         if (transform_hash_code != blas_component.transform_hash_code) {
             blas_component.blas->SetTransform(transform_component.transform);
 

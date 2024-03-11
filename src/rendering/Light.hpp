@@ -77,7 +77,7 @@ public:
     {
         switch (m_type) {
         case LightType::DIRECTIONAL:
-            return MathUtil::Infinity<float>();
+            return INFINITY;
         case LightType::POINT:
             return m_radius;
         default:

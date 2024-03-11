@@ -399,6 +399,23 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree);
     const HashCode octant_hash = octree->GetNodesHash();
 
+    // if (IsShadowProbe()) {
+    //     DebugLog(
+    //         LogType::Debug,
+    //         "Shadow probe #%u (Octant ID: %u:%u) octant hash: %u, \
+    //             EnvProbe AABB: [%f, %f, %f]\t[%f, %f, %f]\n\t \
+    //             Octant AABB: [%f, %f, %f]\t[%f, %f, %f]\n",
+    //         GetID().Value(),
+    //         octree->GetOctantID().GetDepth(),
+    //         octree->GetOctantID().GetIndex(),
+    //         octant_hash.Value(),
+    //         m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
+    //         m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
+    //         octree->GetAABB().min.x, octree->GetAABB().min.y, octree->GetAABB().min.z,
+    //         octree->GetAABB().max.x, octree->GetAABB().max.y, octree->GetAABB().max.z
+    //     );
+    // }
+
     if (m_octant_hash_code != octant_hash) {
         SetNeedsUpdate(true);
 
@@ -417,14 +434,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         m_camera->Update(delta);
 
-        if (IsShadowProbe()) {
-            DebugLog(
-                LogType::Debug,
-                "Updating shadow probe #%u\n",
-                GetID().Value()
-            );
-        }
-
         if (OnlyCollectStaticEntities()) {
             m_parent_scene->CollectStaticEntities(
                 m_render_list,
@@ -440,6 +449,9 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 true // skip frustum culling
             );
         } else {
+            // // Calculate visibility of entities in the octree
+            // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
+
             m_parent_scene->CollectEntities(
                 m_render_list,
                 m_camera,
@@ -451,7 +463,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                         .cull_faces         = FaceCullMode::NONE
                     }
                 ),
-                true // skip frustum culling
+                true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
             );
         }
 

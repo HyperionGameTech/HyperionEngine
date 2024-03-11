@@ -217,8 +217,8 @@ struct RenderState
         };
 
         constexpr uint max_counts[ENV_PROBE_BINDING_SLOT_MAX] = {
-            max_bound_reflection_probes,
-            max_bound_point_shadow_maps
+            max_bound_reflection_probes,    // ENV_PROBE_BINDING_SLOT_CUBEMAP
+            max_bound_point_shadow_maps     // ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP
         };
 
         const auto it = bound_env_probes[type].Find(probe_id);
@@ -234,25 +234,33 @@ struct RenderState
             return;
         }
 
-        const uint texture_slot_index = binding_slots[type];
+        const EnvProbeBindingSlot binding_slot = binding_slots[type];
 
-        if (texture_slot_index != ENV_PROBE_BINDING_SLOT_INVALID) {
-            if (m_env_probe_texture_slot_counters[texture_slot_index] >= max_counts[texture_slot_index]) {
+        if (binding_slot != ENV_PROBE_BINDING_SLOT_INVALID) {
+            if (m_env_probe_texture_slot_counters[uint(binding_slot)] >= max_counts[uint(binding_slot)]) {
                 DebugLog(
                     LogType::Warn,
                     "Maximum bound probes of type %u exceeded! (%u)\n",
                     type,
-                    max_counts[type]
+                    max_counts[uint(binding_slot)]
                 );
 
                 return;
             }
         }
 
+        DebugLog(
+            LogType::Info,
+            "Binding probe #%u (type: %u) to slot %u\n",
+            probe_id.Value(),
+            uint(type),
+            binding_slot
+        );
+
         bound_env_probes[type].Insert(
             probe_id,
-            texture_slot_index != ENV_PROBE_BINDING_SLOT_INVALID
-                ? Optional<uint>(m_env_probe_texture_slot_counters[texture_slot_index]++)
+            binding_slot != ENV_PROBE_BINDING_SLOT_INVALID
+                ? Optional<uint>(m_env_probe_texture_slot_counters[uint(binding_slot)]++)
                 : Optional<uint>()
         );
     }

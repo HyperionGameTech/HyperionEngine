@@ -6,7 +6,6 @@ namespace Hyperion
     /// <summary>
     ///  Represents HashCode.hpp from the core library
     /// </summary>
-    
     [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct HashCode
     {

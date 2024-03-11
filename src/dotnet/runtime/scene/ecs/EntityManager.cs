@@ -51,6 +51,12 @@ namespace Hyperion
                 nativeTypeId = LightComponent_GetNativeTypeID(),
                 addComponent = (entityManagerPtr, entity, ptr) => LightComponent_AddComponent(entityManagerPtr, entity, ptr)
             });
+
+            RegisterComponent<ShadowMapComponent>(new ComponentDefinition
+            {
+                nativeTypeId = ShadowMapComponent_GetNativeTypeID(),
+                addComponent = (entityManagerPtr, entity, ptr) => ShadowMapComponent_AddComponent(entityManagerPtr, entity, ptr)
+            });
         }
 
         public void RegisterComponent<T>(ComponentDefinition componentDefinition) where T : IComponent
@@ -162,5 +168,12 @@ namespace Hyperion
 
         [DllImport("libhyperion", EntryPoint = "LightComponent_AddComponent")]
         private static extern ComponentID LightComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
+
+        // ShadowMapComponent
+        [DllImport("libhyperion", EntryPoint = "ShadowMapComponent_GetNativeTypeID")]
+        private static extern TypeID ShadowMapComponent_GetNativeTypeID();
+
+        [DllImport("libhyperion", EntryPoint = "ShadowMapComponent_AddComponent")]
+        private static extern ComponentID ShadowMapComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
     }
 }

@@ -7,6 +7,8 @@ namespace hyperion::v2 {
 
 void PhysicsSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     if (!entity_manager.GetScene()->GetWorld()) {
         return;
     }
@@ -28,6 +30,8 @@ void PhysicsSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> enti
 
 void PhysicsSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     if (!entity_manager.GetScene()->GetWorld()) {
         return;
     }

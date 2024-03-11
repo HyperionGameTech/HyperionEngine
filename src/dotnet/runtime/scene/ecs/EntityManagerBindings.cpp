@@ -6,6 +6,7 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
+#include <scene/ecs/components/ShadowMapComponent.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -117,6 +118,17 @@ extern "C" {
     }
 
     ComponentID LightComponent_AddComponent(EntityManager *manager, ManagedEntity entity, LightComponent *component)
+    {
+        return manager->AddComponent(entity, std::move(*component));
+    }
+
+    // ShadowMapComponent
+    uint32 ShadowMapComponent_GetNativeTypeID()
+    {
+        return TypeID::ForType<ShadowMapComponent>().Value();
+    }
+
+    ComponentID ShadowMapComponent_AddComponent(EntityManager *manager, ManagedEntity entity, ShadowMapComponent *component)
     {
         return manager->AddComponent(entity, std::move(*component));
     }

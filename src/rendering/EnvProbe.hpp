@@ -259,7 +259,7 @@ public:
     
 private:
     bool OnlyCollectStaticEntities() const
-        { return IsAmbientProbe(); }
+        { return IsReflectionProbe() || IsAmbientProbe(); }
 
     void CreateShader();
     void CreateFramebuffer();

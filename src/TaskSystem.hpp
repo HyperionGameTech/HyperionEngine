@@ -55,7 +55,7 @@ struct TaskBatch
     HYP_FORCE_INLINE void AddTask(TaskThread::Scheduler::Task &&task)
         { tasks.PushBack(std::move(task)); }
 
-    // we can use memory_order_relaxed because we do not add taks once the 
+    // we can use memory_order_relaxed because we do not add taks once the
     // batch has been enqueued, so once num_completed is equal to num_enqueued,
     // we know it's done
     HYP_FORCE_INLINE bool IsCompleted() const
@@ -175,8 +175,79 @@ public:
      */
     Array<bool> DequeueBatch(TaskBatch *batch);
 
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into \ref{num_batches} batches.
+        The lambda will be called with (item, index) for each item. */
+    template <class Lambda>
+    void ParallelForEach(TaskThreadPoolName pool, uint num_batches, uint num_items, Lambda &&lambda)
+    {
+        if (num_items == 0) {
+            return;
+        }
+
+        num_batches = MathUtil::Clamp(num_batches, 1u, num_items);
+
+        TaskBatch batch;
+        batch.pool = pool;
+
+        const uint items_per_batch = (num_items + num_batches - 1) / num_batches;
+
+        for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
+            batch.AddTask([batch_index, items_per_batch, num_items, lambda](...)
+            {
+                const uint offset_index = batch_index * items_per_batch;
+                const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+
+                for (uint i = offset_index; i < max_index; i++) {
+                    lambda(i, batch_index);
+                }
+            });
+        }
+
+        if (batch.tasks.Size() > 1) {
+            EnqueueBatch(&batch);
+            batch.AwaitCompletion();
+        } else if (batch.tasks.Size() == 1) {
+            // no point in enqueing for just 1 task, execute immediately
+            batch.ForceExecute();
+        }
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Lambda>
+    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, uint num_items, Lambda &&lambda)
+    {
+        const auto &pool = GetPool(priority);
+
+        ParallelForEach(
+            priority,
+            uint(pool.threads.Size()),
+            num_items,
+            std::forward<Lambda>(lambda)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Lambda>
+    HYP_FORCE_INLINE void ParallelForEach(uint num_items, Lambda &&lambda)
+    {
+        constexpr auto priority = THREAD_POOL_GENERIC;
+        const auto &pool = GetPool(priority);
+
+        ParallelForEach(
+            priority,
+            uint(pool.threads.Size()),
+            num_items,
+            std::forward<Lambda>(lambda)
+        );
+    }
+
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
-     *  The tasks will be split evenly into \ref{batches} batches.
+     *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class Container, class Lambda>
     void ParallelForEach(TaskThreadPoolName pool, uint num_batches, Container &&items, Lambda &&lambda)
@@ -218,7 +289,7 @@ public:
             batch.ForceExecute();
         }
     }
-    
+
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
@@ -229,12 +300,12 @@ public:
 
         ParallelForEach(
             priority,
-            static_cast<uint>(pool.threads.Size()),
+            uint(pool.threads.Size()),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );
     }
-    
+
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
@@ -246,7 +317,7 @@ public:
 
         ParallelForEach(
             priority,
-            static_cast<uint>(pool.threads.Size()),
+            uint(pool.threads.Size()),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );
@@ -254,8 +325,6 @@ public:
 
     HYP_FORCE_INLINE bool Unschedule(const TaskRef &task_ref)
         { return task_ref.runner->GetScheduler().Dequeue(task_ref.id); }
-
-
 
 private:
     FixedArray<TaskThreadPool, THREAD_POOL_MAX> m_pools;

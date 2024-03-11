@@ -10,6 +10,8 @@ namespace hyperion::v2 {
 
 void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityAdded(entity_manager, entity);
+
     EnvGridComponent &env_grid_component = entity_manager.GetComponent<EnvGridComponent>(entity);
     BoundingBoxComponent &bounding_box_component = entity_manager.GetComponent<BoundingBoxComponent>(entity);
 
@@ -27,6 +29,8 @@ void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entit
 
 void EnvGridUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
 {
+    SystemBase::OnEntityRemoved(entity_manager, entity);
+
     EnvGridComponent &env_grid_component = entity_manager.GetComponent<EnvGridComponent>(entity);
 
     if (env_grid_component.render_component) {
