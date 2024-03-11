@@ -45,7 +45,7 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
         + int(diff_units.z);
 
     EnvProbeIndex calculated_probe_index = invalid_probe_index;
-    
+
     if (probe_index_at_point >= 0 && uint(probe_index_at_point) < max_bound_ambient_probes) {
         calculated_probe_index = EnvProbeIndex(
             Extent3D { uint(diff_units.x), uint(diff_units.y), uint(diff_units.z) },
@@ -206,7 +206,7 @@ void EnvGrid::SetCameraData(const Vec3f &position)
                     MathUtil::Mod(scrolled_coord.y, Vec3i::Type(m_density.height)),
                     MathUtil::Mod(scrolled_coord.z, Vec3i::Type(m_density.depth))
                 };
-                
+
                 const int scrolled_clamped_index = scrolled_coord_clamped.x * m_density.width * m_density.height
                     + scrolled_coord_clamped.y * m_density.width
                     + scrolled_coord_clamped.z;
@@ -485,7 +485,7 @@ void EnvGrid::OnRender(Frame *frame)
     while (m_next_render_indices.Any()) {
         RenderEnvProbe(frame, m_next_render_indices.Pop());
     }
-    
+
     if (num_ambient_probes != 0) {
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_env_probe_collection.num_probes);
@@ -554,7 +554,7 @@ void EnvGrid::OnRender(Frame *frame)
             }
         }
     }
-    
+
     m_shader_data.extent = Vector4(grid_aabb.GetExtent(), 1.0f);
     m_shader_data.center = Vector4(grid_aabb.GetCenter(), 1.0f);
     m_shader_data.aabb_max = Vector4(grid_aabb.GetMax(), 1.0f);
@@ -630,7 +630,7 @@ void EnvGrid::CreateVoxelGridData()
     const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader().GetDefinition().GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
-    
+
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // create descriptor sets for depth pyramid generation.
         DescriptorSet2Ref descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(VoxelizeProbeDescriptorSet), frame_index);
@@ -691,7 +691,7 @@ void EnvGrid::CreateVoxelGridData()
 
             DeferCreate(
                 m_voxel_grid_mips[mip_level],
-                g_engine->GetGPUDevice(), 
+                g_engine->GetGPUDevice(),
                 m_voxel_grid_texture->GetImage(),
                 mip_level, 1,
                 0, m_voxel_grid_texture->GetImage()->NumFaces()
@@ -733,7 +733,7 @@ void EnvGrid::CreateSHData()
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
     m_sh_tiles_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    
+
     PUSH_RENDER_COMMAND(
         CreateSHData,
         m_sh_tiles_buffer
@@ -748,7 +748,7 @@ void EnvGrid::CreateSHData()
     for (const Handle<Shader> &shader : shaders) {
         AssertThrow(shader.IsValid());
     }
-        
+
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shaders[0]->GetCompiledShader().GetDefinition().GetDescriptorUsages().BuildDescriptorTable();
 
     m_compute_sh_descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
@@ -765,7 +765,7 @@ void EnvGrid::CreateSHData()
         m_compute_sh_descriptor_table,
         g_engine->GetGPUDevice()
     );
-    
+
     m_clear_sh = MakeRenderObject<renderer::ComputePipeline>(
         shaders[0]->GetShaderProgram(),
         m_compute_sh_descriptor_table
@@ -790,7 +790,7 @@ void EnvGrid::CreateSHData()
 
 void EnvGrid::CreateShader()
 {
-    ShaderProperties shader_properties(renderer::static_mesh_vertex_attributes, {
+    ShaderProperties shader_properties(static_mesh_vertex_attributes, {
         "MODE_AMBIENT",
         "WRITE_NORMALS",
         "WRITE_MOMENTS"
@@ -899,10 +899,10 @@ void EnvGrid::RenderEnvProbe(
         g_engine->GetRenderState().UnbindScene();
         g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
-    
+
     const ImageRef &framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
     const ImageViewRef &framebuffer_image_view = m_framebuffer->GetAttachmentUsages()[0]->GetImageView();
-    
+
     switch (GetEnvGridType()) {
     case ENV_GRID_TYPE_SH:
         ComputeSH(frame, framebuffer_image, framebuffer_image_view, probe_index);
@@ -944,9 +944,9 @@ void EnvGrid::ComputeSH(
         probe_index / (m_density.width * m_density.height),
         probe_index
     };
-    
+
     push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
-    
+
     m_compute_sh_descriptor_table->GetDescriptorSet(HYP_NAME(ComputeSHDescriptorSet), frame->GetFrameIndex())
         ->SetElement(HYP_NAME(InCubemap), image_view);
 
@@ -1060,7 +1060,7 @@ void EnvGrid::OffsetVoxelGrid(
 
     m_offset_voxel_grid->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
     m_offset_voxel_grid->Dispatch(
-        frame->GetCommandBuffer(), 
+        frame->GetCommandBuffer(),
         Extent3D {
             (m_voxel_grid_texture->GetImage()->GetExtent().width + 7) / 8,
             (m_voxel_grid_texture->GetImage()->GetExtent().height + 7) / 8,
@@ -1130,7 +1130,7 @@ void EnvGrid::VoxelizeProbe(
 
         m_clear_voxels->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
         m_clear_voxels->Dispatch(
-            frame->GetCommandBuffer(), 
+            frame->GetCommandBuffer(),
             Extent3D {
                 (probe_voxel_extent.width + 7) / 8,
                 (probe_voxel_extent.height + 7) / 8,
@@ -1157,7 +1157,7 @@ void EnvGrid::VoxelizeProbe(
 
         m_voxelize_probe->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
         m_voxelize_probe->Dispatch(
-            frame->GetCommandBuffer(), 
+            frame->GetCommandBuffer(),
             Extent3D {
                 (cubemap_dimensions.width + 31) / 32,//(framebuffer_dimensions.width + 31) / 32,
                 (cubemap_dimensions.height + 31) / 32,//(framebuffer_dimensions.height + 31) / 32,
@@ -1180,7 +1180,7 @@ void EnvGrid::VoxelizeProbe(
             mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
             mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);
             mip_extent.depth = MathUtil::Max(1u, voxel_image_extent.depth >> mip_level);
-        
+
             if (mip_level != 0) {
                 // put the mip into writeable state
                 m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
@@ -1206,7 +1206,7 @@ void EnvGrid::VoxelizeProbe(
                     }
                 }
             );
-            
+
             // dispatch to generate this mip level
             m_generate_voxel_grid_mipmaps->Dispatch(
                 frame->GetCommandBuffer(),

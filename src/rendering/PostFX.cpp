@@ -8,8 +8,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::VertexAttribute;
-using renderer::VertexAttributeSet;
 
 PostFXPass::PostFXPass(InternalFormat image_format)
     : FullScreenPass(Handle<Shader>(), image_format)
@@ -47,7 +45,7 @@ PostFXPass::~PostFXPass() = default;
 void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(THREAD_RENDER);
-    
+
     if (!m_framebuffer->GetAttachmentUsages().Empty()) {
         if (m_effect_index == ~0u) {
             DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
@@ -246,7 +244,7 @@ PostProcessingUniforms PostProcessing::GetUniforms() const
 void PostProcessing::CreateUniformBuffer()
 {
     Threads::AssertOnThread(THREAD_RENDER);
-    
+
     const PostProcessingUniforms post_processing_uniforms = GetUniforms();
 
     m_uniform_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
@@ -287,7 +285,7 @@ void PostProcessing::RenderPost(Frame *frame) const
 
     for (auto &it : m_effects[uint(POST_PROCESSING_STAGE_POST_SHADING)]) {
         auto &effect = it.second;
-        
+
         effect->RenderEffect(frame, index);
 
         ++index;

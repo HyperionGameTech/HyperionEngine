@@ -21,7 +21,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::VertexAttributeSet;
 using renderer::Attachment;
 using renderer::ImageView;
 using renderer::FramebufferObject;
@@ -177,10 +176,10 @@ void Engine::Initialize(RC<Application> application)
     HYPERION_ASSERT_RESULT(m_instance->Initialize(use_debug_layers));
 
     FindTextureFormatDefaults();
-    
+
     m_configuration.SetToDefaultConfiguration();
     m_configuration.LoadFromDefinitionsFile();
-    
+
     // save default configuration to file if
     // anything changed from the loading process
     if (!m_configuration.SaveToDefinitionsFile()) {
@@ -208,7 +207,7 @@ void Engine::Initialize(RC<Application> application)
         for (uint i = 0; i < num_gbuffer_textures; i++) {
             m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Global), frame_index)->SetElement(HYP_NAME(GBufferTextures), i, GetPlaceholderData()->GetImageView2D1x1R8());
         }
-        
+
         m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Global), frame_index)->SetElement(HYP_NAME(GBufferDepthTexture), GetPlaceholderData()->GetImageView2D1x1R8());
         m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Global), frame_index)->SetElement(HYP_NAME(GBufferMipChain), GetPlaceholderData()->GetImageView2D1x1R8());
 
@@ -348,7 +347,7 @@ void Engine::Compile()
         /* Finalize instance batch data */
         m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
     }
-    
+
     m_deferred_renderer.Create();
 
     HYP_SYNC_RENDER();
@@ -587,14 +586,14 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 
     return renderer_instance;
 }
-    
+
 void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 {
     std::lock_guard guard(m_render_group_mapping_mutex);
 
     AddRenderGroupInternal(render_group, true);
 }
-    
+
 void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
 {
     if (cache) {
@@ -654,7 +653,7 @@ void Engine::UpdateBuffersAndDescriptors(Frame *frame)
     m_material_descriptor_set_manager.Update(frame);
 
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame_index));
-    
+
     RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();
 
     g_safe_deleter->PerformEnqueuedDeletions();
@@ -674,7 +673,7 @@ GlobalDescriptorSetManager::GlobalDescriptorSetManager(Engine *engine)
 
     for (auto &it : renderer::g_static_descriptor_table_decl->GetElements()) {
         renderer::DescriptorSetLayout layout(it);
-        
+
         DescriptorSet2Ref ref = layout.CreateDescriptorSet();
         AssertThrow(ref.IsValid());
 

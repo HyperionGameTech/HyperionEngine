@@ -116,7 +116,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
 
         // Discard the data we used for initially setting up the buffers
         delete[] indices_buffer_data;
-        
+
 
         const GaussianSplattingSceneShaderData gaussian_splatting_scene_shader_data = {
             model->transform.GetMatrix()
@@ -132,7 +132,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
             sizeof(GaussianSplattingSceneShaderData),
             &gaussian_splatting_scene_shader_data
         );
-        
+
         HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(
             g_engine->GetGPUDevice(),
             sizeof(IndirectDrawCommand)
@@ -231,7 +231,7 @@ void GaussianSplattingInstance::Init()
     CreateShader();
     CreateRenderGroup();
     CreateComputePipelines();
-    
+
 #ifdef HYP_GAUSSIAN_SPLATTING_CPU_SORT
     // Temporary
     m_cpu_sorted_indices.Resize(m_model->points.Size());
@@ -262,7 +262,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         } update_splats_distances_push_constants;
 
         update_splats_distances_push_constants.num_points = num_points;
-        
+
         m_update_splat_distances->Bind(frame->GetCommandBuffer());
 
         m_update_splat_distances->SetPushConstants(
@@ -428,7 +428,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         } update_splats_push_constants;
 
         update_splats_push_constants.num_points = num_points;
-        
+
         m_update_splats->Bind(frame->GetCommandBuffer());
 
         m_update_splats->SetPushConstants(
@@ -517,7 +517,7 @@ void GaussianSplattingInstance::CreateRenderGroup()
         Handle<Shader>(m_shader),
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes//VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+                .vertex_attributes = static_mesh_vertex_attributes//VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
@@ -575,7 +575,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         m_update_splats,
         g_engine->GetGPUDevice()
     );
-    
+
     // UpdateDistances
 
     Handle<Shader> update_splat_distances_shader = g_shader_manager->GetOrCreate(
@@ -674,7 +674,7 @@ void GaussianSplatting::Init()
     }
 
     BasicObject::Init();
-    
+
     static const Array<Vertex> vertices = {
         Vertex {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{ 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
@@ -691,7 +691,7 @@ void GaussianSplatting::Init()
         vertices,
         indices,
         renderer::Topology::TRIANGLES,
-        renderer::static_mesh_vertex_attributes
+        static_mesh_vertex_attributes
     );
 
     InitObject(m_quad_mesh);
@@ -700,7 +700,7 @@ void GaussianSplatting::Init()
 
     CreateBuffers();
     CreateCommandBuffers();
-    
+
     SetReady(true);
 }
 
@@ -717,7 +717,7 @@ void GaussianSplatting::CreateBuffers()
 {
     m_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
 
-    PUSH_RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers, 
+    PUSH_RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers,
         m_staging_buffer,
         m_quad_mesh
     );
@@ -729,7 +729,7 @@ void GaussianSplatting::CreateCommandBuffers()
         m_command_buffers[frame_index] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
-    PUSH_RENDER_COMMAND(CreateGaussianSplattingCommandBuffers, 
+    PUSH_RENDER_COMMAND(CreateGaussianSplattingCommandBuffers,
         m_command_buffers
     );
 }
@@ -815,7 +815,7 @@ void GaussianSplatting::Render(Frame *frame)
             HYPERION_RETURN_OK;
         }
     );
-    
+
     m_command_buffers[frame_index]->SubmitSecondary(frame->GetCommandBuffer());
 }
 

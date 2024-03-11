@@ -120,7 +120,7 @@ void DeferredPass::Create()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = renderer::static_mesh_vertex_attributes
+            .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
             .bucket = Bucket::BUCKET_INTERNAL,
@@ -138,7 +138,7 @@ void DeferredPass::Record(uint frame_index)
 {
     if (m_is_indirect_pass) {
         FullScreenPass::Record(frame_index);
-        
+
         return;
     }
 
@@ -265,12 +265,12 @@ void EnvGridPass::CreateShader()
 
         break;
     }
-    
+
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(ApplyEnvGrid),
         properties
     );
-    
+
     InitObject(m_shader);
 }
 
@@ -283,7 +283,7 @@ void EnvGridPass::Create()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = renderer::static_mesh_vertex_attributes
+            .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
             .bucket     = Bucket::BUCKET_INTERNAL,
@@ -302,7 +302,7 @@ void EnvGridPass::Create()
             TemporalBlendFeedback::LOW,
             m_framebuffer
         ));
-        
+
         m_temporal_blending->Create();
     }
 
@@ -322,7 +322,7 @@ void EnvGridPass::Create()
         descriptor_set->SetElement(HYP_NAME(InTexture), m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());    
+    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
     m_render_texture_to_screen_pass.Reset(new FullScreenPass(
         render_texture_to_screen_shader,
@@ -341,7 +341,7 @@ void EnvGridPass::Record(uint frame_index)
 void EnvGridPass::Render(Frame *frame)
 {
     const uint frame_index = frame->GetFrameIndex();
-    
+
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
     const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
     const uint env_grid_index = g_engine->GetRenderState().bound_env_grid.ToIndex();
@@ -448,12 +448,12 @@ ReflectionProbePass::~ReflectionProbePass() = default;
 void ReflectionProbePass::CreateShader()
 {
     ShaderProperties properties { };
-    
+
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(ApplyReflectionProbe),
         properties
     );
-    
+
     InitObject(m_shader);
 }
 
@@ -466,7 +466,7 @@ void ReflectionProbePass::Create()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = renderer::static_mesh_vertex_attributes
+            .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
             .bucket     = Bucket::BUCKET_INTERNAL,
@@ -503,7 +503,7 @@ void ReflectionProbePass::Record(uint frame_index)
                     { },
                     global_descriptor_set_index
                 );
-            
+
             // Render each probe
 
             uint counter = 0;
@@ -570,7 +570,7 @@ DeferredRenderer::~DeferredRenderer() = default;
 void DeferredRenderer::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
-    
+
     m_env_grid_radiance_pass.Create();
     m_env_grid_irradiance_pass.Create();
 
@@ -584,7 +584,7 @@ void DeferredRenderer::Create()
         m_opaque_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
         m_translucent_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
     }
-    
+
     const AttachmentUsageRef &depth_attachment_usage = g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentUsages().Back();
     AssertThrow(depth_attachment_usage != nullptr);
 
@@ -602,10 +602,10 @@ void DeferredRenderer::Create()
 
     m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent / 2));
     m_hbao->Create();
-    
+
     m_indirect_pass.CreateDescriptors(); // no-op
     m_direct_pass.CreateDescriptors();
-    
+
     CreateBlueNoiseBuffer();
 
     m_ssr.Reset(new SSRRenderer(
@@ -620,7 +620,7 @@ void DeferredRenderer::Create()
 
     CreateCombinePass();
     CreateDescriptorSets();
-    
+
     m_temporal_aa.Reset(new TemporalAA(g_engine->GetGPUInstance()->GetSwapchain()->extent));
     m_temporal_aa->Create();
 
@@ -756,9 +756,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
-    
+
     CollectDrawCalls(frame);
-    
+
     if (do_particles) {
         environment->GetParticleSystem()->UpdateParticles(frame);
     }
@@ -776,7 +776,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     { // direct lighting
         DebugMarker marker(primary, "Record deferred direct lighting pass");
-        
+
         m_direct_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_direct_pass.Record(frame_index);
     }
@@ -785,7 +785,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         DebugMarker marker(primary, "Render opaque objects");
 
         m_opaque_fbo->BeginCapture(frame_index, primary);
-        
+
         RenderOpaqueObjects(frame);
 
         g_engine->GetDebugDrawer().Render(frame);
@@ -843,10 +843,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     if (use_hbao || use_hbil) {
         m_hbao->Render(frame);
     }
-    
+
     // Redirect indirect and direct lighting into the same framebuffer
     const Handle<Framebuffer> &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
-    
+
     m_post_processing.RenderPre(frame);
 
     { // deferred lighting on opaque objects
@@ -964,7 +964,7 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     AssertThrow(mipmapped_result.IsValid());
 
     DebugMarker marker(primary, "Mip chain generation");
-    
+
     // put src image in state for copying from
     src_image->GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::COPY_SRC);
     // put dst image in state for copying to

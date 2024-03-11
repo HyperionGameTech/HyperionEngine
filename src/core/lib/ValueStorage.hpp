@@ -13,6 +13,42 @@ struct alignas(T) ValueStorage
 {
     alignas(T) ubyte data_buffer[sizeof(T)];
 
+    ValueStorage()                                          = default;
+
+    template <class OtherType>
+    explicit ValueStorage(const ValueStorage<OtherType> &other)
+    {
+        static_assert(std::is_standard_layout_v<OtherType>, "OtherType must be standard layout");
+        static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+
+        static_assert(sizeof(T) == sizeof(OtherType), "sizeof must match for both T and OtherType");
+
+        // Should alignof be checked?
+
+        Memory::MemCpy(data_buffer, other.data_buffer, sizeof(T));
+    }
+
+    template <class OtherType>
+    explicit ValueStorage(const OtherType *ptr)
+    {
+        static_assert(std::is_standard_layout_v<OtherType>, "OtherType must be standard layout");
+        static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+
+        static_assert(sizeof(T) == sizeof(OtherType), "sizeof must match for both T and OtherType");
+
+        // Should alignof be checked?
+
+        Memory::MemCpy(data_buffer, ptr, sizeof(T));
+    }
+
+    ValueStorage(const ValueStorage &other)                 = default;
+    ValueStorage &operator=(const ValueStorage &other)      = default;
+    ValueStorage(ValueStorage &&other) noexcept             = default;
+    ValueStorage &operator=(ValueStorage &&other) noexcept  = default;
+    ~ValueStorage()                                         = default;
+
     template <class ...Args>
     T *Construct(Args &&... args)
     {
@@ -91,25 +127,6 @@ struct ValueStorageArray<T, 0>
 
 static_assert(sizeof(ValueStorageArray<int, 200>) == sizeof(int) * 200);
 static_assert(sizeof(ValueStorageArray<int, 0>) == 1);
-
-template <class To, class From>
-static HYP_FORCE_INLINE To BitCast(const From &from)
-{
-    static_assert(std::is_standard_layout_v<From>, "From type must be standard layout");
-    static_assert(std::is_standard_layout_v<To>, "To type must be standard layout");
-    static_assert(sizeof(To) == sizeof(From), "sizeof must match for bit cast");
-
-    ValueStorage<To> to_memory;
-
-    ValueStorage<From> from_memory;
-    Memory::MemCpy(&from_memory.data_buffer[0], &from, sizeof(From));
-
-    for (SizeType i = 0; i < sizeof(from); i++) {
-        to_memory.data_buffer[i] = from_memory.data_buffer[i];
-    }
-
-    return to_memory.Get();
-}
 
 } // namespace hyperion
 

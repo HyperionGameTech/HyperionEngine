@@ -27,7 +27,7 @@ void DebugDrawer::Create()
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(DebugAABB),
         ShaderProperties(
-            renderer::static_mesh_vertex_attributes,
+            static_mesh_vertex_attributes,
             Array<String> { "IMMEDIATE_MODE" }
         )
     );
@@ -52,7 +52,7 @@ void DebugDrawer::Create()
         m_shader,
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes
+                .vertex_attributes = static_mesh_vertex_attributes
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_OPAQUE,
@@ -63,7 +63,7 @@ void DebugDrawer::Create()
         ),
         std::move(descriptor_table)
     );
-    
+
     if (m_render_group) {
         g_engine->GetDeferredSystem()
             .Get(m_render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
@@ -208,7 +208,7 @@ void DebugDrawer::UpdateDrawCommands()
 void DebugDrawer::CommitCommands(DebugDrawCommandList &&command_list)
 {
     std::lock_guard guard(m_draw_commands_mutex);
-    
+
     m_num_draw_commands_pending_addition.fetch_add(int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }

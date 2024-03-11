@@ -8,8 +8,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::VertexAttribute;
-using renderer::VertexAttributeSet;
 using renderer::CommandBufferType;
 using renderer::FillMode;
 
@@ -79,7 +77,7 @@ void FullScreenPass::Create()
     CreateFramebuffer();
     CreatePipeline();
     CreateDescriptors();
-    
+
     // HYP_SYNC_RENDER();
 }
 
@@ -141,7 +139,7 @@ void FullScreenPass::CreateFramebuffer()
 
     DeferCreate(attachment_usage, g_engine->GetGPUInstance()->GetDevice());
     m_framebuffer->AddAttachmentUsage(attachment_usage);
-    
+
     InitObject(m_framebuffer);
 }
 
@@ -149,7 +147,7 @@ void FullScreenPass::CreatePipeline()
 {
     CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
-            .vertex_attributes = renderer::static_mesh_vertex_attributes
+            .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
             .bucket     = Bucket::BUCKET_INTERNAL,

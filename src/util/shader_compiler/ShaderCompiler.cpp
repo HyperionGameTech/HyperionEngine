@@ -553,7 +553,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
     properties.Set(ShaderProperty("HYP_VULKAN", false));
 
     constexpr uint vulkan_version = HYP_VULKAN_API_VERSION;
-    
+
     switch (vulkan_version) {
     case VK_API_VERSION_1_1:
         properties.Set(ShaderProperty("HYP_VULKAN_1_1", false));
@@ -674,7 +674,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
             mtx.unlock();
         });
-        
+
         const auto it = batch.compiled_shaders.FindIf([properties_hash = additional_versions.GetHashCode()](const CompiledShader &item) {
             return item.GetDefinition().GetProperties().GetHashCode() == properties_hash;
         });
@@ -790,7 +790,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     // apply each permutable property from the definitions file
     const DefinitionsFile::Section &section = m_definitions->GetSection(name_string);
     ParseDefinitionSection(section, bundle);
-    
+
     const FilePath output_file_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
 
     // read file if it already exists.
@@ -830,7 +830,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     } else {
         return false;
     }
- 
+
     return HandleCompiledShaderBatch(bundle, properties, output_file_path, out);
 }
 
@@ -839,7 +839,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
     if (m_definitions && m_definitions->IsValid()) {
         return true;
     }
-    
+
     const FilePath data_path = g_asset_manager->GetBasePath() / "data/compiled_shaders";
 
     if (!data_path.Exists()) {
@@ -910,8 +910,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         }
 
         if (bundle.HasVertexShader()) {
-            bundle.versions.Merge(ShaderProperties(renderer::static_mesh_vertex_attributes));
-            bundle.versions.Merge(ShaderProperties(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes));
+            bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes));
+            bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes | skeleton_vertex_attributes));
         }
 
         ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties) {
@@ -1033,7 +1033,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
 
     for (uint line_index = 0; line_index < lines.Size();) {
         const String line = lines[line_index].Trimmed();
-    
+
         if (line.StartsWith("HYP_ATTRIBUTE")) {
             Array<String> parts = line.Split(' ');
 
@@ -1046,7 +1046,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             }
 
             char ch;
-            
+
             String attribute_keyword,
                 attribute_type,
                 attribute_location,
@@ -1063,7 +1063,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
                 }
 
                 if (attribute_keyword == "HYP_ATTRIBUTE_OPTIONAL") {
-                    optional = true; 
+                    optional = true;
                 } else if (attribute_keyword == "HYP_ATTRIBUTE") {
                     optional = false;
                 } else {
@@ -1142,7 +1142,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             }
 
             result.processed_source += "layout(location=" + String::ToString(attribute_definition.location) + ") in " + attribute_definition.type_class + " " + attribute_definition.name + ";\n";
-            
+
             if (optional) {
                 result.processed_source += "#endif\n";
             }
@@ -1255,7 +1255,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
                 } else {
                     additional_params.PushBack("row_major");
                 }
-                
+
                 result.processed_source += "layout(" + std_version + ", set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : "") + ") " + parse_result.remaining + "\n";
                 break;
             default:
@@ -1429,7 +1429,7 @@ bool ShaderCompiler::CompileBundle(
                 required_vertex_attribute_set |= type;
             }
         }
-        
+
         for (const auto &definitions : optional_vertex_attributes) {
             for (const VertexAttributeDefinition &definition : definitions) {
                 VertexAttribute::Type type;
@@ -1518,7 +1518,7 @@ bool ShaderCompiler::CompileBundle(
 
         for (const LoadedSourceFile &item : loaded_source_files) {
             // check if a file exists w/ same hash
-            
+
             const auto output_filepath = item.GetOutputFilepath(
                 g_asset_manager->GetBasePath(),
                 properties
@@ -1537,7 +1537,7 @@ bool ShaderCompiler::CompileBundle(
                             output_filepath.Data(),
                             properties.ToString().Data()
                         );
-                        
+
                         compiled_shader.modules[item.type] = reader.ReadBytes();
 
                         continue;
@@ -1588,7 +1588,7 @@ bool ShaderCompiler::CompileBundle(
             const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
 
             String preamble;
-            
+
             { // Build preamble string.
                 // Start off with the descriptor table defines
                 // These will be used to generate the descriptor table layout
@@ -1600,7 +1600,7 @@ bool ShaderCompiler::CompileBundle(
 
                 // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
                 // before compiling the shader, they should have all been made Required.
-                
+
                 for (const ShaderProperty &property : properties.GetPropertySet()) {
                     if (property.name.Empty()) {
                         continue;
@@ -1719,13 +1719,13 @@ bool ShaderCompiler::GetCompiledShader(
     final_properties.Merge(properties);
 
     const HashCode final_properties_hash = final_properties.GetHashCode();
-    
+
     if (m_cache.GetShaderInstance(name, final_properties_hash.Value(), out)) {
         return true;
     }
 
     CompiledShaderBatch batch;
-    
+
     if (!LoadOrCreateCompiledShaderBatch(name, final_properties, batch)) {
         DebugLog(
             LogType::Error,

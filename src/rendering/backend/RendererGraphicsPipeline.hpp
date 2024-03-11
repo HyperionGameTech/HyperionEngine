@@ -3,6 +3,9 @@
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererPipeline.hpp>
+
+#include <math/Vertex.hpp>
+
 #include <util/Defines.hpp>
 
 namespace hyperion {

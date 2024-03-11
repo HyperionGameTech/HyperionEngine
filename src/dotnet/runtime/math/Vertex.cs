@@ -3,6 +3,19 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    public enum VertexAttributeType : ulong
+    {
+        Undefined = 0x0,
+        Position = 0x1,
+        Normal = 0x2,
+        TexCoord0 = 0x4,
+        TexCoord1 = 0x8,
+        Tangent = 0x10,
+        Bitangent = 0x20,
+        BoneIndices = 0x40,
+        BoneWeights = 0x80
+    }
+
     [StructLayout(LayoutKind.Explicit, Size = 128)]
     public struct Vertex
     {
@@ -232,6 +245,22 @@ namespace Hyperion
                 {
                     boneIndices3 = value[3];
                 }
+            }
+        }
+
+        public int NumBoneWeights
+        {
+            get
+            {
+                return (int)numBoneWeights;
+            }
+        }
+
+        public int NumBoneIndices
+        {
+            get
+            {
+                return (int)numBoneIndices;
             }
         }
     }

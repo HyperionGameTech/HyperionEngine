@@ -55,7 +55,7 @@ void CompositePass::Create()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = renderer::static_mesh_vertex_attributes
+            .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
             .bucket = Bucket::BUCKET_INTERNAL,
@@ -84,7 +84,7 @@ void FinalPass::Create()
 
     m_quad = MeshBuilder::Quad();
     AssertThrow(InitObject(m_quad));
-    
+
     auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Blit));
     AssertThrow(InitObject(shader));
 
@@ -107,7 +107,7 @@ void FinalPass::Create()
         )),
         renderer::RenderPassStage::PRESENT
     ));
-    
+
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUDevice()));
     }
@@ -154,7 +154,7 @@ void FinalPass::Create()
                 std::move(shader),
                 RenderableAttributeSet(
                     MeshAttributes {
-                        .vertex_attributes = renderer::static_mesh_vertex_attributes
+                        .vertex_attributes = static_mesh_vertex_attributes
                     },
                     MaterialAttributes {
                         .bucket = BUCKET_SWAPCHAIN
@@ -167,7 +167,7 @@ void FinalPass::Create()
 
         ++iteration;
     }
-    
+
     InitObject(m_render_group);
 
     m_last_frame_image = MakeRenderObject<renderer::Image>(renderer::TextureImage(
@@ -201,7 +201,7 @@ void FinalPass::Render(Frame *frame)
 
     { // Copy result to store previous frame's color buffer
         const ImageRef &source_image = m_composite_pass.GetAttachments()[0]->GetImage();
-        
+
         source_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
         m_last_frame_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
@@ -215,7 +215,7 @@ void FinalPass::Render(Frame *frame)
 
 
     m_render_group->GetFramebuffers()[acquired_image_index]->BeginCapture(0, frame->GetCommandBuffer());
-    
+
     pipeline->Bind(frame->GetCommandBuffer());
 
     pipeline->GetDescriptorTable().Get()->Bind(
@@ -226,7 +226,7 @@ void FinalPass::Render(Frame *frame)
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
     m_quad->Render(frame->GetCommandBuffer());
-    
+
     m_render_group->GetFramebuffers()[acquired_image_index]->EndCapture(0, frame->GetCommandBuffer());
 }
 

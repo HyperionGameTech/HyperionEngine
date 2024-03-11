@@ -25,7 +25,6 @@ namespace hyperion::v2 {
 using renderer::Attachment;
 using renderer::Frame;
 using renderer::CommandBuffer;
-using renderer::VertexAttributeSet;
 using renderer::Image;
 using renderer::ImageView;
 using renderer::Pipeline;
@@ -64,13 +63,13 @@ public:
 
     const Array<AttachmentRef> &GetAttachments() const
         { return m_attachments; }
-    
+
     const CommandBufferRef &GetCommandBuffer(uint index) const
         { return m_command_buffers[index]; }
 
     const Handle<Framebuffer> &GetFramebuffer() const
         { return m_framebuffer; }
-                                                      
+
     const Handle<Shader> &GetShader() const
         { return m_shader; }
 

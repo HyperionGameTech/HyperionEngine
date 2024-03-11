@@ -26,7 +26,6 @@ namespace hyperion::v2 {
 
 using renderer::Frame;
 using renderer::CommandBuffer;
-using renderer::VertexAttributeSet;
 using renderer::ShaderVec2;
 
 class Engine;
@@ -183,7 +182,7 @@ private:
         } else {
             m_effects_pending_addition[uint(stage)].Set<EffectClass>(std::move(effect));
         }
-        
+
         m_effects_updated.Set(true, MemoryOrder::RELAXED);
     }
 
@@ -217,4 +216,3 @@ private:
 } // namespace hyperion::v2
 
 #endif // HYPERION_V2_POST_FX_H
-

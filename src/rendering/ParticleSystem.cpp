@@ -271,7 +271,7 @@ void ParticleSpawner::CreateRenderGroup()
         m_shader,
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes
+                .vertex_attributes = static_mesh_vertex_attributes
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
@@ -354,17 +354,17 @@ void ParticleSystem::Init()
 
     CreateBuffers();
     CreateCommandBuffers();
-    
+
     SetReady(true);
 
     OnTeardown([this]() {
         PUSH_RENDER_COMMAND(
-            DestroyParticleSystem, 
+            DestroyParticleSystem,
             &m_particle_spawners
         );
-        
+
         HYP_SYNC_RENDER();
-        
+
         SetReady(false);
     });
 }
@@ -373,7 +373,7 @@ void ParticleSystem::CreateBuffers()
 {
     m_staging_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
-    PUSH_RENDER_COMMAND(CreateParticleSystemBuffers, 
+    PUSH_RENDER_COMMAND(CreateParticleSystemBuffers,
         m_staging_buffer,
         m_quad_mesh
     );
@@ -500,7 +500,7 @@ void ParticleSystem::Render(Frame *frame)
     const uint frame_index = frame->GetFrameIndex();
 
     FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
-    
+
     // always run renderer items as HIGH priority,
     // so we do not lock up because we're waiting for a large process to
     // complete in the same thread

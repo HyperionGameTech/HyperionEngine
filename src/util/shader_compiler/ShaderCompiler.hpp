@@ -3,11 +3,15 @@
 
 #include <core/Containers.hpp>
 #include <core/Name.hpp>
+
+#include <math/Vertex.hpp>
+
 #include <rendering/backend/RendererShader.hpp>
-#include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererDescriptorSet2.hpp>
+
 #include <util/definitions/DefinitionsFile.hpp>
 #include <util/Defines.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -28,8 +32,6 @@ class Engine;
 
 using renderer::ShaderModule;
 using renderer::ShaderModuleType;
-using renderer::VertexAttribute;
-using renderer::VertexAttributeSet;
 using renderer::DescriptorTableDeclaration;
 using renderer::DescriptorSetDeclaration;
 using renderer::DescriptorDeclaration;
@@ -56,7 +58,7 @@ static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
 {
     for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
         const auto it = VertexAttribute::mapping.KeyValueAt(i);
-        
+
         if (name == it.second.name) {
             out_type = it.first;
 
@@ -461,7 +463,7 @@ public:
 
         return properties_string;
     }
-    
+
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -473,7 +475,7 @@ public:
 
         return m_cached_hash_code;
     }
-    
+
     HYP_FORCE_INLINE
     HashCode GetPropertySetHashCode() const
     {
@@ -514,7 +516,7 @@ private:
         } else {
             *it = shader_property;
         }
-        
+
         m_needs_hash_code_recalculation = true;
 
         return *this;
@@ -565,7 +567,7 @@ struct HashedShaderDefinition
     HYP_FORCE_INLINE
     bool operator!=(const HashedShaderDefinition &other) const
         { return !(*this == other); }
-    
+
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -649,7 +651,7 @@ struct DescriptorUsage
 
         return *this;
     }
-    
+
     ~DescriptorUsage()                                              = default;
 
     bool operator==(const DescriptorUsage &other) const
@@ -756,15 +758,15 @@ struct ShaderDefinition
     Name                name;
     ShaderProperties    properties;
     DescriptorUsageSet  descriptor_usages;
-    
+
     HYP_FORCE_INLINE
     Name GetName() const
         { return name; }
-    
+
     HYP_FORCE_INLINE
     ShaderProperties &GetProperties()
         { return properties; }
-    
+
     HYP_FORCE_INLINE
     const ShaderProperties &GetProperties() const
         { return properties; }
@@ -776,7 +778,7 @@ struct ShaderDefinition
     HYP_FORCE_INLINE
     const DescriptorUsageSet &GetDescriptorUsages() const
         { return descriptor_usages; }
-    
+
     HYP_FORCE_INLINE
     explicit operator bool() const
         { return name.IsValid(); }
@@ -792,11 +794,11 @@ struct ShaderDefinition
     HYP_FORCE_INLINE
     bool operator!=(const ShaderDefinition &other) const
         { return GetHashCode() != other.GetHashCode(); }
-    
+
     HYP_FORCE_INLINE
     explicit operator HashedShaderDefinition() const
         { return HashedShaderDefinition { name, properties.GetPropertySetHashCode(), properties.GetRequiredVertexAttributes() }; }
-    
+
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {

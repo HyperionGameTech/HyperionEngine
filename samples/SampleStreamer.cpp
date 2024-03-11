@@ -247,7 +247,7 @@ void SampleStreamer::InitGame()
             mesh_component.material = g_material_system->GetOrCreate({
                .shader_definition = ShaderDefinition {
                    HYP_NAME(Forward),
-                   ShaderProperties(renderer::static_mesh_vertex_attributes)
+                   ShaderProperties(static_mesh_vertex_attributes)
                 },
                 .bucket = Bucket::BUCKET_OPAQUE
             });
@@ -270,7 +270,7 @@ void SampleStreamer::InitGame()
             {
                 .shader_definition = ShaderDefinition {
                     HYP_NAME(Forward),
-                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+                    ShaderProperties(static_mesh_vertex_attributes)
                 },
                 .bucket = Bucket::BUCKET_OPAQUE
             },
@@ -321,7 +321,7 @@ void SampleStreamer::InitGame()
                 {
                     .shader_definition = ShaderDefinition {
                         HYP_NAME(Forward),
-                        ShaderProperties(renderer::static_mesh_vertex_attributes)
+                        ShaderProperties(static_mesh_vertex_attributes)
                     },
                     .bucket = Bucket::BUCKET_OPAQUE
                 },
@@ -350,7 +350,7 @@ void SampleStreamer::InitGame()
             g_material_system->GetOrCreate({
                 .shader_definition = ShaderDefinition {
                     HYP_NAME(Terrain),
-                    ShaderProperties(renderer::static_mesh_vertex_attributes)
+                    ShaderProperties(static_mesh_vertex_attributes)
                 },
                 .bucket = Bucket::BUCKET_OPAQUE
             })
@@ -450,7 +450,7 @@ void SampleStreamer::InitGame()
         //     g_material_system->GetOrCreate({
         //         .shader_definition = ShaderDefinition {
         //             HYP_NAME(Skybox),
-        //             ShaderProperties(renderer::static_mesh_vertex_attributes)
+        //             ShaderProperties(static_mesh_vertex_attributes)
         //         },
         //         .bucket = Bucket::BUCKET_SKYBOX,
         //         .cull_faces = FaceCullMode::FRONT
@@ -732,7 +732,7 @@ void SampleStreamer::InitGame()
                     {
                         .shader_definition = ShaderDefinition {
                             HYP_NAME(Forward),
-                            ShaderProperties(renderer::static_mesh_vertex_attributes)
+                            ShaderProperties(static_mesh_vertex_attributes)
                         },
                         .bucket = Bucket::BUCKET_OPAQUE
                     },
@@ -1327,7 +1327,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
                 g_material_system->GetOrCreate({
                     .shader_definition = ShaderDefinition {
                         HYP_NAME(Forward),
-                        ShaderProperties(renderer::static_mesh_vertex_attributes)
+                        ShaderProperties(static_mesh_vertex_attributes)
                     },
                     .bucket = Bucket::BUCKET_OPAQUE
                 })

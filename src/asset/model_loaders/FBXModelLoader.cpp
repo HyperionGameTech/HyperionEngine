@@ -170,7 +170,7 @@ struct FBXMesh
 
             result.Set(std::move(handle));
         }
-        
+
         return result.Get();
     }
 };
@@ -408,7 +408,7 @@ static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_propert
                 FBXPropertyValue value;
 
                 LoaderResult result = ReadFBXPropertyValue(memory_reader, array_held_type, value);
-                
+
                 if (!result) {
                     return result;
                 }
@@ -419,9 +419,9 @@ static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_propert
         } else {
             for (uint32 index = 0; index < num_elements; ++index) {
                 FBXPropertyValue value;
-                
+
                 LoaderResult result = ReadFBXPropertyValue(reader, array_held_type, value);
-                
+
                 if (!result) {
                     return result;
                 }
@@ -459,7 +459,7 @@ static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePt
 
     uint8 name_length;
     reader.Read(&name_length);
-    
+
     ByteBuffer name_buffer;
     reader.Read(name_length, name_buffer);
 
@@ -492,7 +492,7 @@ static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePt
             out->children.PushBack(std::move(child));
         }
     }
-    
+
     return { };
 }
 
@@ -531,7 +531,7 @@ static LoaderResult ReadBinaryArray(const FBXObject &object, Array<T> &ary)
 {
     if (FBXProperty property = object.GetProperty(0)) {
         ary.Resize(property.array_elements.Size());
-        
+
         for (SizeType index = 0; index < property.array_elements.Size(); ++index) {
             const auto &item = property.array_elements[index];
 
@@ -569,7 +569,7 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping> &mapping,
 // static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *node)
 // {
 //     AssertThrow(node != nullptr);
-    
+
 //     if (Handle<Entity> &entity = node->GetEntity()) {
 //         entity->SetSkeleton(skeleton);
 
@@ -589,7 +589,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
     auto top = UniquePtr<Node>::Construct();
     Handle<Skeleton> root_skeleton = CreateObject<Skeleton>();
-    
+
     // Include our root dir as part of the path
     const String path = state.filepath;
     const auto current_dir = FileSystem::CurrentPath();
@@ -636,7 +636,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         }
 
         for (uint index = 0; index < uint(num_definitions); ++index) {
-            
+
         }
 
         for (auto &child : definitions_node.children) {
@@ -765,7 +765,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     continue;
                 }
 #endif
-                
+
                 const uint bone_index = skeleton->FindBoneIndex(limb_node->name);
 
                 if (bone_index == uint(-1)) {
@@ -827,7 +827,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                 DebugLog(LogType::Warn, "Invalid FBX Node connection, cannot get left ID value\n");
                 continue;
             }
-            
+
             if (!child->GetFBXPropertyValue<FBXObjectID>(2, connection.right)) {
                 DebugLog(LogType::Warn, "Invalid FBX Node connection, cannot get right ID value\n");
                 continue;
@@ -869,7 +869,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                             if (const FBXObject &node_node = pose_child->FindChild("Node")) {
                                 node_node.GetFBXPropertyValue<FBXObjectID>(0, pose.node_id);
                             }
-                            
+
                             pose.matrix = ReadMatrix(pose_child->FindChild("Matrix"));
 
                             bind_pose.pose_nodes.PushBack(pose);
@@ -1015,7 +1015,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                         if (SizeType(i) >= model_vertices.Size()) {
                             return { { LoaderResult::Status::ERR, "Index out of range" } };
                         }
-                        
+
                         model_indices[index] = Mesh::Index(i);
                     }
                 }
@@ -1026,7 +1026,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                 for (SizeType index = 0; index < model_indices.Size(); ++index) {
                     vertices[index].SetPosition(model_vertices[model_indices[index]]);
                 }
-                
+
                 for (const String &name : layer_node_names) {
                     if (name == "LayerElementUV") {
                         if (const auto &uv_node = (*child)[name]["UV"]) {
@@ -1036,7 +1036,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                         }
                     } else if (name == "LayerElementNormal") {
                         const FBXVertexMappingType mapping_type = GetVertexMappingType((*child)[name]["MappingInformationType"]);
-                        
+
                         if (const auto &normals_node = (*child)[name]["Normals"]) {
                             attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL;
 
@@ -1064,7 +1064,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                                             return { { LoaderResult::Status::ERR, "Invalid type for vertex position element -- must be float or double" } };
                                         }
                                     }
-                                    
+
                                     vertices[triangle_index * 3 + normal_index].SetNormal(normal);
                                 }
                             }
@@ -1075,21 +1075,21 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                 FBXMesh mesh;
                 mesh.vertices = vertices;
                 mesh.indices = model_indices;
-                mesh.attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
+                mesh.attributes = static_mesh_vertex_attributes | skeleton_vertex_attributes;
 
                 mapping.data.Set(mesh);
 
             } else if (child->name == "Model") {
                 String model_type;
                 child->GetFBXPropertyValue<String>(2, model_type);
-                
+
                 Transform transform;
 
                 for (const auto &model_child : child->children) {
                     if (model_child->name.StartsWith("Properties")) {
                         for (const auto &properties_child : model_child->children) {
                             String properties_child_name;
-                            
+
                             if (!properties_child->GetFBXPropertyValue<String>(0, properties_child_name)) {
                                 continue;
                             }
@@ -1138,7 +1138,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             object_mapping[object_id] = std::move(mapping);
         }
     }
-    
+
     FBXNode root_fbx_node;
     root_fbx_node.name = "[FBX Model Root]";
 
@@ -1188,7 +1188,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         if (!left_it->second.data.IsValid()) {
             INVALID_NODE_CONNECTION("Left node has no valid data");
         }
-        
+
         if (connection.right == 0) {
             if (auto *left_node = left_it->second.data.TryGet<FBXNode>()) {
                 left_node->parent_id = 0;
@@ -1229,7 +1229,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
                     continue;
                 }
-            } 
+            }
         } else if (auto *left_cluster = left_it->second.data.TryGet<FBXCluster>()) {
             if (auto *right_skin = right_it->second.data.TryGet<FBXSkin>()) {
                 DebugLog(LogType::Debug, "Attach cluster to Skin\n");
@@ -1258,7 +1258,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
 #undef INVALID_NODE_CONNECTION
     }
-    
+
     NodeProxy root_bone(new Bone);
     root_skeleton->SetRootBone(root_bone);
 
@@ -1270,7 +1270,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
     {
 #if 0 // temporarily disabled due to 'Internal Server Error' on MSW
         AssertThrow(parent_node != nullptr);
-        
+
         if (node.type != type) {
             return;
         }
@@ -1392,12 +1392,12 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
                     continue;
                 }
-                
+
                 linked_node->world_bind_matrix = pose_node.matrix;
             }
         }
     };
-    
+
     std::function<void(FBXNode &)> ApplyLocalBindPose;
 
     ApplyLocalBindPose = [&](FBXNode &node) {
@@ -1421,7 +1421,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             }
         }
     };
-    
+
     auto CalculateLocalBindPoses = [&]() {
         for (const FBXObjectID id : bind_pose_ids) {
             FBXBindPose *bind_pose;
@@ -1448,7 +1448,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
                     continue;
                 }
-                
+
                 ApplyLocalBindPose(*linked_node);
             }
         }
@@ -1503,7 +1503,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
 #endif
 
-    
+
     // prepare limb nodes first,
     // so the root skeleton's bones are built out before
     // we apply clusters to each entity mesh
@@ -1523,7 +1523,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         // Add Skeleton and AnimationController to Entities
         //AddSkeletonToEntities(root_skeleton, top.Get());
     }
-    
+
     top->UpdateWorldTransform();
 
     if (Skeleton *skeleton = root_skeleton.Get()) {

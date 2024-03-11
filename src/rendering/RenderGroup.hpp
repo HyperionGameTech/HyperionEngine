@@ -28,7 +28,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::VertexAttributeSet;
 using renderer::Topology;
 using renderer::FillMode;
 using renderer::FaceCullMode;
@@ -60,7 +59,7 @@ class RendererProxy
 
 public:
     const CommandBufferRef &GetCommandBuffer(uint frame_index) const;
-    
+
     const GraphicsPipelineRef &GetGraphicsPipeline() const;
 
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
@@ -88,7 +87,7 @@ class RenderGroup
     friend class RenderList;
 public:
     using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
-    
+
     RenderGroup(
         Handle<Shader> shader,
         const RenderableAttributeSet &renderable_attributes
@@ -109,15 +108,15 @@ public:
 
     const Handle<Shader> &GetShader() const
         { return m_shader; }
-    
+
     const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
     void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
     void RemoveFramebuffer(ID<Framebuffer> id);
-    Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
+    Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; }
     const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
-    
+
     void Init();
 
     void SetEntityDrawDatas(Array<EntityDrawData> entity_draw_datas);
@@ -139,7 +138,7 @@ private:
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(Frame *frame);
-    
+
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
     void PerformRenderingIndirect(Frame *frame);
@@ -155,7 +154,7 @@ private:
     RenderableAttributeSet m_renderable_attributes;
 
     RC<IndirectRenderer> m_indirect_renderer;
-    
+
     Array<Handle<Framebuffer>> m_fbos;
 
     // for each frame in flight - have an array of command buffers to use

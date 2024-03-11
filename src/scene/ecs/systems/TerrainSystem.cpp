@@ -211,7 +211,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
         vertices,
         indices,
         Topology::TRIANGLES,
-        renderer::static_mesh_vertex_attributes
+        static_mesh_vertex_attributes
     );
 
     mesh->CalculateNormals();
@@ -341,7 +341,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
 
         if (state->patch_generation_queue_shared->has_updates.Get(MemoryOrder::RELAXED)) {
             state->patch_generation_queue_shared->mutex.Lock();
-            
+
             state->patch_generation_queue_shared->has_updates.Set(false, MemoryOrder::RELAXED);
             state->patch_generation_queue_owned = std::move(state->patch_generation_queue_shared->queue);
 
@@ -402,7 +402,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                         }
                     });
 
-                    
+
                 } else {
                     DebugLog(
                         LogType::Warn,
@@ -412,7 +412,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                 }
             }
         }
-    
+
         const TerrainPatchCoord camera_patch_coord = WorldSpaceToPatchCoord(terrain_component.camera_position, terrain_component, transform_component);
 
         if (!state->GetPatchEntity(camera_patch_coord).IsValid()) {
@@ -483,7 +483,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                     // Add BoundingBoxComponent
                     mgr.AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent { });
                 });
-                
+
                 // add task to generation queue
                 const TaskRef task_ref = TaskSystem::GetInstance().ScheduleTask([patch_info, generation_queue = state->patch_generation_queue_shared, noise_combinator = state->noise_combinator]()
                 {
@@ -590,7 +590,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
             }
             }
         }
-    
+
         for (auto &it : state->patch_entities) {
             const auto in_range_it = patch_coords_in_range.Find(it.first);
 

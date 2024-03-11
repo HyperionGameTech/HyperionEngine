@@ -74,18 +74,18 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 
                     HYPERION_RETURN_OK;
                 });
-            
+
                 commands.Push([&](CommandBuffer *cmd) {
                     ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
 
                     HYPERION_RETURN_OK;
                 });
-            
+
                 HYPERION_BUBBLE_ERRORS(commands.Execute(device));
 
                 HYPERION_RETURN_OK;
             }));
-    
+
         HYPERION_RETURN_OK;
     }
 };
@@ -157,7 +157,7 @@ Mesh::Mesh()
       m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
       m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
       m_mesh_attributes {
-          .vertex_attributes = renderer::static_mesh_vertex_attributes,
+          .vertex_attributes = static_mesh_vertex_attributes,
           .topology = Topology::TRIANGLES
       },
       m_aabb(BoundingBox::empty)
@@ -187,7 +187,7 @@ Mesh::Mesh(
 ) : Mesh(
         std::move(streamed_mesh_data),
         topology,
-        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
+        static_mesh_vertex_attributes | skeleton_vertex_attributes
     )
 {
 }
@@ -200,7 +200,7 @@ Mesh::Mesh(
         std::move(vertices),
         std::move(indices),
         topology,
-        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
+        static_mesh_vertex_attributes | skeleton_vertex_attributes
     )
 {
 }
@@ -306,7 +306,7 @@ void Mesh::Init()
 
     //m_vertices.clear();
     //m_indices.clear();
-            
+
     SetReady(true);
 }
 
@@ -646,7 +646,7 @@ void Mesh::CalculateNormals(bool weighted)
     }
 
     normals.clear();
-    
+
     m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 
@@ -682,12 +682,12 @@ void Mesh::CalculateTangents()
         Index i0 = mesh_data.indices[i];
         Index i1 = mesh_data.indices[i + 1];
         Index i2 = mesh_data.indices[i + 2];
-        
+
         const Vector3 edge1 = v[1].GetPosition() - v[0].GetPosition();
         const Vector3 edge2 = v[2].GetPosition() - v[0].GetPosition();
         const Vector2 edge1uv = uv[1] - uv[0];
         const Vector2 edge2uv = uv[2] - uv[0];
-        
+
         const float cp = edge1uv.x * edge2uv.y - edge1uv.y * edge2uv.x;
 
         if (cp != 0.0f) {
@@ -723,10 +723,10 @@ void Mesh::CalculateTangents()
         mesh_data.vertices[i].SetTangent(average_tangent);
         mesh_data.vertices[i].SetBitangent(average_bitangent);
     }
-    
+
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
-    
+
     m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 
@@ -737,7 +737,7 @@ void Mesh::InvertNormals()
     for (Vertex &vertex : mesh_data.vertices) {
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
-    
+
     m_streamed_mesh_data = StreamedMeshData::FromMeshData(mesh_data);
 }
 

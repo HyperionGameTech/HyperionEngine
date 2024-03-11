@@ -267,6 +267,9 @@ struct RenderState
 
     void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
     {
+        // @FIXME: There's currently a bug where if an EnvProbe is unbound and then after several EnvProbes are bound, the
+        // counter keeps increasing and the slot is never reused. This is because the counter is never reset.
+
         AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
         bound_env_probes[type].Erase(probe_id);

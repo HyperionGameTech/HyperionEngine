@@ -6,13 +6,12 @@
 
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/Variant.hpp>
+#include <util/EnumOptions.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
 #include <math/Transform.hpp>
 #include <math/Matrix4.hpp>
-
-#include <rendering/backend/RendererStructs.hpp>
 
 #include <HashCode.hpp>
 #include <util/Defines.hpp>
@@ -21,6 +20,208 @@
 #include <type_traits>
 
 namespace hyperion {
+
+struct VertexAttribute
+{
+    enum Type : uint64
+    {
+        MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0x0,
+        MESH_INPUT_ATTRIBUTE_POSITION     = 0x1,
+        MESH_INPUT_ATTRIBUTE_NORMAL       = 0x2,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD0    = 0x4,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD1    = 0x8,
+        MESH_INPUT_ATTRIBUTE_TANGENT      = 0x10,
+        MESH_INPUT_ATTRIBUTE_BITANGENT    = 0x20,
+        MESH_INPUT_ATTRIBUTE_BONE_INDICES = 0x40,
+        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80,
+    };
+
+    static const EnumOptions<Type, VertexAttribute, 16> mapping;
+
+    const char  *name;
+    uint32      location;
+    uint32      binding;
+    SizeType    size; // total size == num elements * 4
+
+    HYP_FORCE_INLINE
+    bool operator<(const VertexAttribute &other) const
+        { return location < other.location; }
+
+        HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(String(name));
+        hc.Add(location);
+        hc.Add(binding);
+        hc.Add(size);
+
+        return hc;
+    }
+};
+
+struct VertexAttributeSet
+{
+    uint64 flag_mask;
+
+    constexpr VertexAttributeSet()
+        : flag_mask(0) {}
+
+    constexpr VertexAttributeSet(uint64 flag_mask)
+        : flag_mask(flag_mask) {}
+
+    constexpr VertexAttributeSet(VertexAttribute::Type flags)
+        : flag_mask(uint64(flags)) {}
+
+    constexpr VertexAttributeSet(const VertexAttributeSet &other)
+        : flag_mask(other.flag_mask) {}
+
+    VertexAttributeSet &operator=(const VertexAttributeSet &other)
+    {
+        flag_mask = other.flag_mask;
+
+        return *this;
+    }
+
+    ~VertexAttributeSet() = default;
+
+    HYP_FORCE_INLINE
+    explicit operator bool() const { return flag_mask != 0; }
+
+    HYP_FORCE_INLINE
+    bool operator==(const VertexAttributeSet &other) const
+        { return flag_mask == other.flag_mask; }
+
+    HYP_FORCE_INLINE
+    bool operator!=(const VertexAttributeSet &other) const
+        { return flag_mask != other.flag_mask; }
+
+    HYP_FORCE_INLINE
+    bool operator==(uint64 flags) const
+        { return flag_mask == flags; }
+
+    HYP_FORCE_INLINE
+    bool operator!=(uint64 flags) const
+        { return flag_mask != flags; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet operator~() const
+        { return ~flag_mask; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet operator&(const VertexAttributeSet &other) const
+        { return { flag_mask & other.flag_mask }; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet &operator&=(const VertexAttributeSet &other)
+        { flag_mask &= other.flag_mask; return *this; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet operator&(uint64 flags) const
+        { return { flag_mask & flags }; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet &operator&=(uint64 flags)
+        { flag_mask &= flags; return *this; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet operator|(const VertexAttributeSet &other) const
+        { return { flag_mask | other.flag_mask }; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet &operator|=(const VertexAttributeSet &other)
+        { flag_mask |= other.flag_mask; return *this; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet operator|(uint64 flags) const
+        { return { flag_mask | flags }; }
+
+    HYP_FORCE_INLINE
+    VertexAttributeSet &operator|=(uint64 flags)
+        { flag_mask |= flags; return *this; }
+
+    HYP_FORCE_INLINE
+    bool operator<(const VertexAttributeSet &other) const { return flag_mask < other.flag_mask; }
+
+    HYP_FORCE_INLINE
+    bool Has(VertexAttribute::Type type) const { return bool(operator&(uint64(type))); }
+
+    HYP_FORCE_INLINE
+    void Set(uint64 flags, bool enable = true)
+    {
+        if (enable) {
+            flag_mask |= flags;
+        } else {
+            flag_mask &= ~flags;
+        }
+    }
+
+    HYP_FORCE_INLINE
+    void Set(VertexAttribute::Type type, bool enable = true)
+        { Set(uint64(type), enable); }
+
+    HYP_FORCE_INLINE
+    void Merge(const VertexAttributeSet &other)
+        { flag_mask |= other.flag_mask; }
+
+    HYP_FORCE_INLINE
+    uint Size() const
+        { return uint(MathUtil::BitCount(flag_mask)); }
+
+    Array<VertexAttribute::Type> BuildAttributes() const
+    {
+        Array<VertexAttribute::Type> attributes;
+        attributes.Reserve(VertexAttribute::mapping.Size());
+
+        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+
+            if (flag_mask & iter_flag_mask) {
+                attributes.PushBack(VertexAttribute::Type(iter_flag_mask));
+            }
+        }
+
+        return attributes;
+    }
+
+    SizeType CalculateVertexSize() const
+    {
+        SizeType size = 0;
+
+        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+
+            if (flag_mask & iter_flag_mask) {
+                size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
+            }
+        }
+
+        return size;
+    }
+
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(flag_mask);
+
+        return hc;
+    }
+};
+
+constexpr VertexAttributeSet static_mesh_vertex_attributes(
+    VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT
+);
+
+constexpr VertexAttributeSet skeleton_vertex_attributes(
+    VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES
+);
 
 struct alignas(16) Vertex
 {
@@ -86,7 +287,7 @@ struct alignas(16) Vertex
           bone_indices(other.bone_indices)
     {
     }
-    
+
     bool operator==(const Vertex &other) const;
     // Vertex &operator=(const Vertex &other);
     Vertex operator*(float scalar) const;
@@ -119,31 +320,31 @@ struct alignas(16) Vertex
      *  \param attr The attribute to read.
      *  \param ptr The pointer to write the attribute to.
      */
-    void ReadAttribute(renderer::VertexAttribute::Type attr, void *ptr) const
+    void ReadAttribute(VertexAttribute::Type attr, void *ptr) const
     {
         switch (attr) {
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION:
             Memory::MemCpy(ptr, &position, sizeof(float) * 3);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL:
             Memory::MemCpy(ptr, &normal, sizeof(float) * 3);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT:
             Memory::MemCpy(ptr, &tangent, sizeof(float) * 3);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT:
             Memory::MemCpy(ptr, &bitangent, sizeof(float) * 3);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0:
             Memory::MemCpy(ptr, &texcoord0, sizeof(float) * 2);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1:
             Memory::MemCpy(ptr, &texcoord1, sizeof(float) * 2);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES:
             Memory::MemCpy(ptr, bone_indices.Data(), sizeof(uint) * MAX_BONE_INDICES);
             break;
-        case renderer::VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS:
+        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS:
             Memory::MemCpy(ptr, bone_weights.Data(), sizeof(float) * MAX_BONE_WEIGHTS);
             break;
         default:

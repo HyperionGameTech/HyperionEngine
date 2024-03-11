@@ -300,21 +300,21 @@ void EnvProbe::CreateShader()
     case EnvProbeType::ENV_PROBE_TYPE_REFLECTION:
         m_shader = g_shader_manager->GetOrCreate({
             HYP_NAME(RenderToCubemap),
-            ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_REFLECTION" })
+            ShaderProperties(static_mesh_vertex_attributes, { "MODE_REFLECTION" })
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SKY:
         m_shader = g_shader_manager->GetOrCreate({
             HYP_NAME(RenderToCubemap_Skydome),
-            ShaderProperties(renderer::static_mesh_vertex_attributes)
+            ShaderProperties(static_mesh_vertex_attributes)
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SHADOW:
         m_shader = g_shader_manager->GetOrCreate({
             HYP_NAME(RenderToCubemap),
-            ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_SHADOWS" })
+            ShaderProperties(static_mesh_vertex_attributes, { "MODE_SHADOWS" })
         });
 
         break;
@@ -392,7 +392,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
-    
+
     // Check if octree has changes, and we need to re-render.
 
     Octree const *octree = &m_parent_scene->GetOctree();
@@ -421,7 +421,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         m_octant_hash_code = octant_hash;
     }
-    
+
     if (!NeedsUpdate()) {
         return;
     }
@@ -619,7 +619,7 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
         if (NeedsRender()) {
             m_draw_proxy.flags |= ENV_PROBE_FLAGS_DIRTY;
-        } 
+        }
 
         m_draw_proxy.flags |= shadow_flags << 3;
     }

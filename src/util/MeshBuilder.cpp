@@ -24,7 +24,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
     Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
     Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-    
+
     Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
     Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
     Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
@@ -32,7 +32,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
     Vertex {{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
     Vertex {{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-    
+
     Vertex {{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
@@ -40,7 +40,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
     Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
     Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-    
+
     Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
     Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
     Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -48,7 +48,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
     Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
     Vertex {{1.0f, 1.0f, -1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    
+
     Vertex {{1.0f, 1.0f, -1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
     Vertex {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
     Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
@@ -56,7 +56,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
     Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
     Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-    
+
     Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
     Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
     Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
@@ -64,7 +64,7 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
     Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
     Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-    
+
     Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
     Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
     Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
@@ -74,7 +74,7 @@ Handle<Mesh> MeshBuilder::Quad(Topology topology)
 {
     Handle<Mesh> mesh;
 
-    const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
+    const VertexAttributeSet vertex_attributes = static_mesh_vertex_attributes;
 
 #ifndef HYP_APPLE
     switch (topology) {
@@ -113,7 +113,7 @@ Handle<Mesh> MeshBuilder::Cube()
 {
     Handle<Mesh> mesh;
 
-    const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
+    const VertexAttributeSet vertex_attributes = static_mesh_vertex_attributes;
 
     auto mesh_data = Mesh::CalculateIndices(cube_vertices);
 
@@ -221,7 +221,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
         vertices,
         indices,
         Topology::TRIANGLES,
-        renderer::static_mesh_vertex_attributes
+        static_mesh_vertex_attributes
     );
 
     mesh->CalculateNormals(true);
@@ -287,12 +287,12 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
         streamed_mesh_datas[0],
         streamed_mesh_datas[1]
     };
-    
+
     const auto merged_vertex_attributes = a->GetVertexAttributes() | b->GetVertexAttributes();
 
     Array<Vertex> all_vertices;
     all_vertices.Resize(streamed_mesh_data_refs[0]->GetMeshData().vertices.Size() + streamed_mesh_data_refs[1]->GetMeshData().vertices.Size());
-    
+
     Array<Mesh::Index> all_indices;
     all_indices.Resize(streamed_mesh_data_refs[0]->GetMeshData().indices.Size() + streamed_mesh_data_refs[1]->GetMeshData().indices.Size());
 
@@ -301,7 +301,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
 
     for (SizeType mesh_index = 0; mesh_index < 2; mesh_index++) {
         const SizeType vertex_offset_before = vertex_offset;
-        
+
         for (SizeType i = 0; i < streamed_mesh_data_refs[mesh_index]->GetMeshData().vertices.Size(); i++) {
             all_vertices[vertex_offset++] = streamed_mesh_data_refs[mesh_index]->GetMeshData().vertices[i];
         }

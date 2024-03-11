@@ -190,7 +190,7 @@ public:
 
     /*! \brief Set the local-space translation of this Node (not influenced by the parent Node) */
     void SetLocalTranslation(const Vector3 &translation);
-    
+
     /*! \brief Move the Node in local-space by adding the given vector to the current local-space translation.
      * @param translation The vector to translate this Node by
      */
@@ -208,7 +208,7 @@ public:
      */
     void Scale(const Vector3 &scale)
         { SetLocalScale(GetLocalScale() * scale); }
-    
+
     /*! @returns The local-space rotation of this Node. */
     const Quaternion &GetLocalRotation() const;
 
@@ -268,11 +268,36 @@ public:
     void UnlockTransform();
 
     HashCode GetHashCode() const;
+};
 
-private:
-    // void ReleaseNode();
+class WeakNodeProxy : public Weak<Node>
+{
+protected:
+    using Base = Weak<Node>;
 
-    // Node *Get();
+public:
+    WeakNodeProxy() = default;
+
+    WeakNodeProxy(const NodeProxy &node) : Base(node) {}
+
+    WeakNodeProxy(const WeakNodeProxy &other)
+        : Base(other)
+    {
+    }
+    WeakNodeProxy &operator=(const WeakNodeProxy &other)
+        { Base::operator=(other); return *this; }
+
+    WeakNodeProxy(WeakNodeProxy &&other)  noexcept
+        : Base(std::move(other))
+    {
+    }
+
+    WeakNodeProxy &operator=(WeakNodeProxy &&other) noexcept
+        { Base::operator=(std::move(other)); return *this; }
+
+    ~WeakNodeProxy() = default;
+
+    NodeProxy Lock() const { return NodeProxy(Base::Lock()); }
 };
 
 } // namespace hyperion::v2

@@ -142,7 +142,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
         data.aabb_min = Vector4(aabb.min, 1.0f);
         data.dimensions = dimensions;
         data.flags = uint32(flags);
-        
+
         g_engine->GetRenderData()->shadow_map_data.Set(
             shadow_map_index,
             data
@@ -168,7 +168,7 @@ ShadowPass::~ShadowPass() = default;
 void ShadowPass::CreateShader()
 {
     ShaderProperties properties;
-    properties.SetRequiredVertexAttributes(renderer::static_mesh_vertex_attributes);
+    properties.SetRequiredVertexAttributes(static_mesh_vertex_attributes);
 
     switch (m_shadow_mode) {
     case ShadowMode::VSM:
@@ -478,7 +478,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         ),
         true // no culling for now
     );
-    
+
     m_shadow_pass->GetRenderList().UpdateRenderGroups();
 }
 
@@ -487,7 +487,7 @@ void DirectionalLightShadowRenderer::OnRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertThrow(m_shadow_pass != nullptr);
-    
+
     m_shadow_pass->Render(frame);
 }
 

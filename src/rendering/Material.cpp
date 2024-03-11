@@ -33,7 +33,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
     }
 
     virtual ~RENDER_COMMAND(UpdateMaterialRenderData)() override = default;
-    
+
     virtual Result operator()() override
     {
         shader_data.texture_usage = 0;
@@ -69,7 +69,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
     ID<Material>    id;
     SizeType        texture_index;
     Handle<Texture> texture;
-    
+
     RENDER_COMMAND(UpdateMaterialTexture)(
         ID<Material> id,
         SizeType texture_index,
@@ -135,7 +135,7 @@ Material::Material()
       m_render_attributes {
         .shader_definition = ShaderDefinition {
             HYP_NAME(Forward),
-            renderer::static_mesh_vertex_attributes
+            static_mesh_vertex_attributes
         },
         .bucket = Bucket::BUCKET_OPAQUE
       },
@@ -150,7 +150,7 @@ Material::Material(Name name, Bucket bucket)
       m_render_attributes {
         .shader_definition = ShaderDefinition {
             HYP_NAME(Forward),
-            renderer::static_mesh_vertex_attributes
+            static_mesh_vertex_attributes
         },
         .bucket = Bucket::BUCKET_OPAQUE
       },
@@ -243,7 +243,7 @@ void Material::Update()
 void Material::EnqueueDescriptorSetCreate()
 {
     FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
-    
+
     for (const Pair<TextureKey, Handle<Texture> &> it : m_textures) {
         const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(it.first);
 
@@ -267,11 +267,11 @@ void Material::EnqueueDescriptorSetDestroy()
 void Material::EnqueueRenderUpdates()
 {
     AssertReady();
-    
+
     FixedArray<ID<Texture>, max_bound_textures> bound_texture_ids { };
 
     const uint num_bound_textures = max_textures_to_set;
-    
+
     for (uint i = 0; i < num_bound_textures; i++) {
         if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             bound_texture_ids[i] = texture->GetID();
@@ -480,10 +480,10 @@ Handle<Material> MaterialCache::CreateMaterial(
     if (!attributes.shader_definition) {
         attributes.shader_definition = ShaderDefinition {
             HYP_NAME(Forward),
-            renderer::static_mesh_vertex_attributes
+            static_mesh_vertex_attributes
         };
     }
-    
+
     auto handle = g_engine->CreateObject<Material>(
         Name::Unique("material"),
         attributes,
@@ -505,7 +505,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     if (!attributes.shader_definition) {
         attributes.shader_definition = ShaderDefinition {
             HYP_NAME(Forward),
-            renderer::static_mesh_vertex_attributes
+            static_mesh_vertex_attributes
         };
     }
 
@@ -597,7 +597,7 @@ void MaterialDescriptorSetManager::EnqueueAdd(ID<Material> material)
 
     const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(HYP_NAME(Material));
     AssertThrow(declaration != nullptr);
-    
+
     renderer::DescriptorSetLayout layout(*declaration);
 
     FixedArray<DescriptorSet2Ref, max_frames_in_flight> descriptor_sets;
@@ -624,7 +624,7 @@ void MaterialDescriptorSetManager::EnqueueAdd(ID<Material> material, FixedArray<
 
     const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(HYP_NAME(Material));
     AssertThrow(declaration != nullptr);
-    
+
     renderer::DescriptorSetLayout layout(*declaration);
 
     FixedArray<DescriptorSet2Ref, max_frames_in_flight> descriptor_sets;

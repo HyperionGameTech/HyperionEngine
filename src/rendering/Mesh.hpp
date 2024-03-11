@@ -21,8 +21,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::VertexAttribute;
-using renderer::VertexAttributeSet;
 using renderer::CommandBuffer;
 using renderer::Device;
 using renderer::GPUBuffer;
@@ -111,11 +109,11 @@ public:
 
     Array<PackedVertex> BuildPackedVertices() const;
     Array<PackedIndex> BuildPackedIndices() const;
-    
+
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
     void InvertNormals();
-    
+
     const BoundingBox &GetAABB() const
         { return m_aabb; }
 
