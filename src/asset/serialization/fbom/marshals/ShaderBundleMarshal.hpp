@@ -37,6 +37,9 @@ public:
         for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++) {
             const DescriptorUsage &item = in_object.GetDescriptorUsages()[index];
 
+            const ANSIString descriptor_name_string(item.descriptor_name.LookupString());
+            const ANSIString set_name_string(item.set_name.LookupString());
+
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".slot",
                 FBOMData::FromUnsignedInt(item.slot)
@@ -44,14 +47,14 @@ public:
 
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".descriptor_name",
-                FBOMName(),
-                item.descriptor_name
+                FBOMString(descriptor_name_string.Size()),
+                descriptor_name_string.Data()
             );
 
             out.SetProperty(
                 String("descriptor_usages.") + String::ToString(index) + ".set_name",
-                FBOMName(),
-                item.set_name
+                FBOMString(set_name_string.Size()),
+                set_name_string.Data()
             );
 
             out.SetProperty(
@@ -193,17 +196,23 @@ public:
 
                     DescriptorUsage usage;
 
+                    ANSIString descriptor_name_string;
+                    ANSIString set_name_string;
+
                     if (auto err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
                         return err;
                     }
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".descriptor_name").ReadName(&usage.descriptor_name)) {
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".descriptor_name").ReadString(descriptor_name_string)) {
                         return err;
                     }
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadName(&usage.set_name)) {
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadString(set_name_string)) {
                         return err;
                     }
+
+                    usage.descriptor_name = CreateNameFromDynamicString(descriptor_name_string);
+                    usage.set_name = CreateNameFromDynamicString(set_name_string);
 
                     in.GetProperty(descriptor_usage_index_string + ".flags").ReadUnsignedInt(&usage.flags);
 

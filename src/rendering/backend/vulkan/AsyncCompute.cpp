@@ -11,6 +11,9 @@ namespace hyperion::renderer {
 namespace platform {
 
 template <>
+Result AsyncCompute<Platform::VULKAN>::WaitForFence(Device<Platform::VULKAN> *device, Frame<Platform::VULKAN> *frame);
+
+template <>
 AsyncCompute<Platform::VULKAN>::AsyncCompute()
     : m_command_buffers({
           MakeRenderObject<CommandBuffer<Platform::VULKAN>, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY),

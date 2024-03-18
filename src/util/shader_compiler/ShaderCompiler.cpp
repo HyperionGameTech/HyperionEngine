@@ -31,7 +31,7 @@ using renderer::g_static_descriptor_table_decl;
 
 static const bool should_compile_missing_variants = true;
 
-// #define HYP_SHADER_COMPILER_LOGGING
+#define HYP_SHADER_COMPILER_LOGGING
 
 enum class ShaderLanguage
 {
@@ -957,9 +957,9 @@ struct LoadedSourceFile
     uint64                      last_modified_timestamp;
     String                      source;
 
-    FilePath GetOutputFilepath(const FilePath &base_path, const ShaderProperties &properties) const
+    FilePath GetOutputFilepath(const FilePath &base_path, const String &bundle_name, const ShaderProperties &properties) const
     {
-        return base_path / "data/compiled_shaders/tmp" / (FilePath(file.path).Basename()
+        return base_path / "data/compiled_shaders/tmp" / (bundle_name + "__" + FilePath(file.path).Basename()
             + "_" + String::ToString(properties.GetHashCode().Value()) + ".spirv");
     }
 
@@ -1536,6 +1536,7 @@ bool ShaderCompiler::CompileBundle(
 
             const auto output_filepath = item.GetOutputFilepath(
                 g_asset_manager->GetBasePath(),
+                bundle.name.LookupString(),
                 properties
             );
 

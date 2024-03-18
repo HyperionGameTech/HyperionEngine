@@ -334,11 +334,6 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     layout_info.pushConstantRangeCount = uint32(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
-    DebugLog(
-        LogType::Debug,
-        "Creating graphics pipeline layout\n"
-    );
-
     HYPERION_VK_CHECK_MSG(
         vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &this->layout),
         "Failed to create graphics pipeline layout"

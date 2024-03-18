@@ -41,17 +41,17 @@ public:
     Optional(Ty &&value) noexcept
         : m_has_value(true)
     {
-        new (&m_storage.data_buffer) T(std::forward<Ty>(value));
+        new (&m_storage.data_buffer) T(std::move(value));
     }
 
     template <class Ty, class = std::enable_if_t<std::is_convertible_v<Ty, T>>>
     Optional &operator=(Ty &&value) noexcept
     {
         if (m_has_value) {
-            Get() = std::forward<Ty>(value);
+            Get() = std::move(value);
         } else {
             m_has_value = true;
-            new (&m_storage.data_buffer) T(std::forward<Ty>(value));
+            new (&m_storage.data_buffer) T(std::move(value));
         }
 
         return *this;
