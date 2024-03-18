@@ -35,12 +35,24 @@ public:
     /*! \brief Returns true if all given TypeIDs are operated on by this System, false otherwise.
      *
      *  \param component_type_ids The TypeIDs of the components to check.
+     *  \param receive_events_context If true, this function will skip components that do not receive events for this System.
      *
      *  \return True if all given TypeIDs are operated on by this System, false otherwise.
      */
-    bool ActsOnComponents(const Array<TypeID> &component_type_ids) const
+    bool ActsOnComponents(const Array<TypeID> &component_type_ids, bool receive_events_context) const
     {
         for (const TypeID component_type_id : m_component_type_ids) {
+            const ComponentInfo &component_info = GetComponentInfo(component_type_id);
+
+            // skip observe-only components
+            if (!(component_info.rw_flags & COMPONENT_RW_FLAGS_READ) && !(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE)) {
+                continue;
+            }
+
+            if (receive_events_context && !component_info.receives_events) {
+                continue;
+            }
+            
             if (!component_type_ids.Contains(component_type_id)) {
                 return false;
             }
@@ -70,18 +82,18 @@ public:
             return true;
         }
 
-        const ComponentRWFlags rw_flags = GetComponentRWFlags(component_type_id);
+        const ComponentInfo &component_info = GetComponentInfo(component_type_id);
 
-        return rw_flags != COMPONENT_RW_FLAGS_READ;
+        return component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE;
     }
 
-    /*! \brief Returns the ComponentRWFlags of the component with the given TypeID.
+    /*! \brief Returns the ComponentInfo of the component with the given TypeID.
      *
      *  \param component_type_id The TypeID of the component to check.
      *
-     *  \return The ComponentRWFlags of the component with the given TypeID.
+     *  \return The ComponentInfo of the component with the given TypeID.
      */
-    ComponentRWFlags GetComponentRWFlags(TypeID component_type_id) const
+    const ComponentInfo &GetComponentInfo(TypeID component_type_id) const
     {
         const auto it = m_component_type_ids.Find(component_type_id);
         AssertThrowMsg(it != m_component_type_ids.End(), "Component type ID not found");
@@ -89,7 +101,7 @@ public:
         const SizeType index = m_component_type_ids.IndexOf(it);
         AssertThrowMsg(index != SizeType(-1), "Component type ID not found");
 
-        return m_component_rw_flags[index];
+        return m_component_infos[index];
     }
 
     virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity_id)
@@ -105,15 +117,15 @@ public:
     virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) = 0;
 
 protected:
-    SystemBase(Array<TypeID> &&component_type_ids, Array<ComponentRWFlags> &&component_rw_flags)
+    SystemBase(Array<TypeID> &&component_type_ids, Array<ComponentInfo> &&component_infos)
         : m_component_type_ids(std::move(component_type_ids)),
-          m_component_rw_flags(std::move(component_rw_flags))
+          m_component_infos(std::move(component_infos))
     {
-        AssertThrowMsg(m_component_type_ids.Size() == m_component_rw_flags.Size(), "Component type ID count and component RW flags count mismatch");
+        AssertThrowMsg(m_component_type_ids.Size() == m_component_infos.Size(), "Component type ID count and component infos count mismatch");
     }
 
     Array<TypeID>           m_component_type_ids;
-    Array<ComponentRWFlags> m_component_rw_flags;
+    Array<ComponentInfo>    m_component_infos;
 
 private:
     FlatSet<ID<Entity>>     m_initialized_entities;
@@ -130,7 +142,7 @@ public:
     using ComponentDescriptorTypes = std::tuple<ComponentDescriptors...>;
 
     System()
-        : SystemBase({ TypeID::ForType<typename ComponentDescriptors::Type>()... }, { ComponentDescriptors::rw_flags... })
+        : SystemBase({ TypeID::ForType<typename ComponentDescriptors::Type>()... }, { ComponentInfo(ComponentDescriptors())... })
     {
     }
 

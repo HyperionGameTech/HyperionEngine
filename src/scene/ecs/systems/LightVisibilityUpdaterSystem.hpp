@@ -4,13 +4,17 @@
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <rendering/EntityDrawData.hpp>
 
 namespace hyperion::v2 {
 
 class LightVisibilityUpdaterSystem : public System<
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+
+    // Can read and write the VisibilityStateComponent but does not receive events
+    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

@@ -490,7 +490,7 @@ void ReflectionProbePass::Record(uint frame_index)
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const uint scene_index =  g_engine->GetRenderState().GetScene().id.ToIndex();
+            const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
             const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
             const uint global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Global));
@@ -548,12 +548,6 @@ void ReflectionProbePass::Record(uint frame_index)
                     ++counter;
                 }
             }
-
-            DebugLog(
-                LogType::Debug,
-                "Rendered %u reflection probes\n",
-                counter
-            );
 
             HYPERION_RETURN_OK;
         });

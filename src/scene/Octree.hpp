@@ -194,10 +194,16 @@ public:
         Node() = default;
 
         Node(ID<Entity> id, const BoundingBox &aabb)
-            : id(id), aabb(aabb) {}
+            : id(id),
+              aabb(aabb)
+        {
+        }
 
         Node(const Node &other)
-            : id(other.id), aabb(other.aabb) {}
+            : id(other.id),
+              aabb(other.aabb)
+        {
+        }
 
         Node &operator=(const Node &other)
         {
@@ -208,12 +214,20 @@ public:
         }
 
         Node(Node &&other) noexcept
-            : id(other.id), aabb(other.aabb) {}
+            : id(other.id),
+              aabb(other.aabb)
+        {
+            other.id = ID<Entity>::invalid;
+            other.aabb = BoundingBox::empty;
+        }
 
         Node &operator=(Node &&other) noexcept
         {
             id = other.id;
             aabb = other.aabb;
+
+            other.id = ID<Entity>::invalid;
+            other.aabb = BoundingBox::empty;
 
             return *this;
         }
@@ -222,7 +236,10 @@ public:
 
         HYP_FORCE_INLINE
         bool operator==(const Node &other) const
-            { return id == other.id && aabb == other.aabb; }
+        {
+            return id == other.id
+                && aabb == other.aabb;
+        }
 
         HYP_FORCE_INLINE
         bool operator!=(const Node &other) const
@@ -280,7 +297,7 @@ public:
     {
         const uint32 mask = ((tags == EntityTag::NONE ? 0 : (1u << (uint32(tags) - 1))) | ...);
 
-        return m_entry_hashes[mask];
+        return HashCode(m_entry_hashes[mask]).Add(m_invalidation_marker);
     }
 
     /*! \brief Get a hashcode of all entities currently in this Octant that match the mask tag (child octants affect this too)
@@ -289,13 +306,20 @@ public:
     {
         AssertThrow(entity_tag_mask < m_entry_hashes.Size());
 
-        return m_entry_hashes[entity_tag_mask];
+        return HashCode(m_entry_hashes[entity_tag_mask]).Add(m_invalidation_marker);
     }
         
     void Clear();
-    InsertResult Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild);
+    InsertResult Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild = false);
     Result Remove(ID<Entity> id, bool allow_rebuild);
-    InsertResult Update(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild);
+    
+    /*! \brief Update the entry in the octree. 
+     * \param id The ID of the entity to update
+     * \param aabb The new AABB of the entity
+     * \param allow_rebuild If true, the octree will be rebuilt if the entity doesn't fit in the new octant. Otherwise, the octree will be marked as dirty and rebuilt on the next call to PerformUpdates()
+     * \param force_invalidation If true, the entry will have its invalidation marker incremented, causing the octant's hash to be updated
+     */
+    InsertResult Update(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation = false, bool allow_rebuild = false);
     InsertResult Rebuild();
     InsertResult Rebuild(const BoundingBox &new_aabb);
     
@@ -345,12 +369,14 @@ private:
     void Divide();
     void Undivide();
 
+    void Invalidate();
+
     /*! \brief If \ref{allow_rebuild} is true, removes any potentially empty octants above the node.
         If \ref{allow_rebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allow_rebuild);
     InsertResult InsertInternal(ID<Entity> id, const BoundingBox &aabb);
-    InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild);
+    InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild);
     Result RemoveInternal(ID<Entity> id, bool allow_rebuild);
     InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
     void UpdateVisibilityState(const Handle<Camera> &camera, uint16 validity_marker);
@@ -369,6 +395,7 @@ private:
     OctreeState                                         *m_state;
     RC<VisibilityState>                                 m_visibility_state;
     OctantID                                            m_octant_id;
+    uint                                                m_invalidation_marker;
 };
 
 } // namespace hyperion::v2

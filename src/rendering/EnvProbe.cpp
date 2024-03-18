@@ -139,8 +139,8 @@ void EnvProbe::UpdateRenderData(
                   int32(grid_slot / (grid_size.width * grid_size.height)),
                   int32(grid_slot)
               }
-            : Vec4i::zero,
-        .position_offset    = Vec4i::zero
+            : Vec4i::Zero(),
+        .position_offset    = Vec4i::Zero()
     };
 
     g_engine->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
@@ -408,23 +408,13 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     }
 
     if (m_octant_hash_code != octant_hash) {
-        DebugLog(
-            LogType::Debug,
-            "EnvProbe #%u (Octant ID: %u:%u) octant hash changed: %u -> %u\n",
-            GetID().Value(),
-            octree->GetOctantID().GetDepth(),
-            octree->GetOctantID().GetIndex(),
-            m_octant_hash_code.Value(),
-            octant_hash.Value()
-        );
-
         SetNeedsUpdate(true);
 
         m_octant_hash_code = octant_hash;
     }
 
     if (!NeedsUpdate()) {
-    //    return;
+        return;
     }
 
     // Ambient probes do not use their own render list,
@@ -503,10 +493,8 @@ void EnvProbe::Render(Frame *frame)
     }
 
     if (!NeedsRender()) {
-        //return;
+        return;
     }
-
-    DebugLog(LogType::Debug, "Rendering probe #%u, type: %u\n", GetID().Value(), GetEnvProbeType());
 
     AssertThrow(m_texture.IsValid());
 

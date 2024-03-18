@@ -76,12 +76,6 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    DebugLog(
-        LogType::Debug,
-        "Rendering reflection probe %s\n",
-        GetName().LookupString()
-    );
-
     m_env_probe->Render(frame);
 
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTION_PROBES)) {

@@ -5,6 +5,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/lib/TypeID.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 
@@ -23,12 +24,28 @@ enum ComponentRWFlagBits : ComponentRWFlags
     COMPONENT_RW_FLAGS_READ_WRITE   = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
 };
 
-template <class T, ComponentRWFlags RWFlags = COMPONENT_RW_FLAGS_READ_WRITE>
+template <class T, ComponentRWFlags _rw_flags = COMPONENT_RW_FLAGS_READ_WRITE, bool _receives_events = true>
 struct ComponentDescriptor
 {
     using Type = T;
 
-    constexpr static ComponentRWFlags rw_flags = RWFlags;
+    constexpr static ComponentRWFlags rw_flags = _rw_flags;
+    constexpr static bool receives_events = _receives_events;
+};
+
+struct ComponentInfo
+{
+    TypeID              type_id;
+    ComponentRWFlags    rw_flags;
+    bool                receives_events;
+
+    template <class ComponentDescriptorType>
+    ComponentInfo(ComponentDescriptorType &&)
+        : type_id(TypeID::ForType<typename ComponentDescriptorType::Type>()),
+          rw_flags(ComponentDescriptorType::rw_flags),
+          receives_events(ComponentDescriptorType::receives_events)
+    {
+    }
 };
 
 class ComponentContainerFactoryBase;

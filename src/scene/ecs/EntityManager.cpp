@@ -239,7 +239,7 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> id, const TypeMap<Comp
                 continue;
             }
 
-            if (system_it.second->ActsOnComponents(component_type_ids)) {
+            if (system_it.second->ActsOnComponents(component_type_ids, true)) {
                 system_it.second->OnEntityAdded(*this, id);
             }
         }
@@ -257,7 +257,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> id, const TypeMap<Co
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (system_it.second->ActsOnComponents(component_type_ids)) {
+            if (system_it.second->ActsOnComponents(component_type_ids, true)) {
                 system_it.second->OnEntityRemoved(*this, id);
             }
         }

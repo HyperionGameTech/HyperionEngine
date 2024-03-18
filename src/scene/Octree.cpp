@@ -62,7 +62,8 @@ Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree
       m_is_divided(false),
       m_state(nullptr),
       m_visibility_state(new VisibilityState { }),
-      m_octant_id(index, OctantID::invalid)
+      m_octant_id(index, OctantID::invalid),
+      m_invalidation_marker(0)
 {
     if (parent != nullptr) {
         SetParent(parent); // call explicitly to set root ptr
@@ -239,6 +240,19 @@ void Octree::Undivide()
     }
 
     m_is_divided = false;
+}
+
+void Octree::Invalidate()
+{
+    m_invalidation_marker++;
+
+    if (IsDivided()) {
+        for (Octant &octant : m_octants) {
+            AssertThrow(octant.octree != nullptr);
+
+            octant.octree->Invalidate();
+        }
+    }
 }
 
 void Octree::CollapseParents(bool allow_rebuild)
@@ -718,7 +732,7 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
     };
 }
 
-Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild)
+Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild)
 {
     if (m_state != nullptr) {
         const auto it = m_state->node_to_octree.Find(id);
@@ -731,7 +745,7 @@ Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool
         }
 
         if (Octree *octree = it->second) {
-            return octree->UpdateInternal(id, aabb, allow_rebuild);
+            return octree->UpdateInternal(id, aabb, force_invalidation, allow_rebuild);
         }
 
         return {
@@ -740,10 +754,10 @@ Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool
         };
     }
 
-    return UpdateInternal(id, aabb, allow_rebuild);
+    return UpdateInternal(id, aabb, force_invalidation, allow_rebuild);
 }
 
-Octree::InsertResult Octree::UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild)
+Octree::InsertResult Octree::UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild)
 {
     const auto it = FindNode(id);
 
@@ -752,7 +766,7 @@ Octree::InsertResult Octree::UpdateInternal(ID<Entity> id, const BoundingBox &aa
             for (Octant &octant : m_octants) {
                 AssertThrow(octant.octree != nullptr);
 
-                auto update_internal_result = octant.octree->UpdateInternal(id, aabb, allow_rebuild);
+                auto update_internal_result = octant.octree->UpdateInternal(id, aabb, force_invalidation, allow_rebuild);
 
                 if (update_internal_result.first) {
                     return update_internal_result;
@@ -766,10 +780,26 @@ Octree::InsertResult Octree::UpdateInternal(ID<Entity> id, const BoundingBox &aa
         };
     }
 
+    if (force_invalidation) {
+        DebugLog(
+            LogType::Debug,
+            "Forcing invalidation of octant entity #%lu\n",
+            id.Value()
+        );
+
+        // force invalidation of this entry so the octant's hash will be updated
+        Invalidate();
+    }
+
     const BoundingBox &new_aabb = aabb;
     const BoundingBox &old_aabb = it->aabb;
 
     if (new_aabb == old_aabb) {
+        if (force_invalidation) {
+            // force invalidation of this entry so the octant's hash will be updated
+            m_state->MarkOctantDirty(m_octant_id);
+        }
+
         /* AABB has not changed - no need to update */
         return {
             { Result::OCTREE_OK },
@@ -1092,9 +1122,15 @@ void Octree::RebuildNodesHash(uint level)
 
             octant.octree->RebuildNodesHash(level + 1);
 
-            for (uint i = 0; i < uint(m_entry_hashes.Size()); i++) {
-                m_entry_hashes[i].Add(octant.octree->GetEntryListHash(i));
-            }
+            // for (uint i = 0; i < uint(m_entry_hashes.Size()); i++) {
+            //     m_entry_hashes[i].Add(octant.octree->GetEntryListHash(i));
+            // }
+        }
+    }
+
+    if (m_parent) {
+        for (uint i = 0; i < uint(m_entry_hashes.Size()); i++) {
+            m_parent->m_entry_hashes[i].Add(m_entry_hashes[i]);
         }
     }
 }

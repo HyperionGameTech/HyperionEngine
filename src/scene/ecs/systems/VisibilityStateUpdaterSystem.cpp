@@ -32,11 +32,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     if (bounding_box_component.world_aabb.IsValid()) {
         Octree &octree = entity_manager.GetScene()->GetOctree();
 
-        const Octree::InsertResult insert_result = octree.Insert(
-            entity,
-            bounding_box_component.world_aabb,
-            false
-        );
+        const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
         if (insert_result.first) {
             AssertThrowMsg(insert_result.second != OctantID::invalid, "Invalid octant ID returned from Insert()");
@@ -85,11 +81,29 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
     for (auto [entity_id, visibility_state_component, bounding_box_component] : entity_manager.GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>()) {
         bool needs_octree_update = false;
 
+        const bool visibility_state_invalidated = visibility_state_component.flags & VISIBILITY_STATE_FLAG_INVALIDATED;
+
+        if (visibility_state_invalidated) {
+            DebugLog(
+                LogType::Debug,
+                "VisibilityStateUpdaterSystem::Process(%u): visibility state invalidated\n",
+                entity_id.Value()
+            );
+        }
+
         const HashCode aabb_hash_code = bounding_box_component.world_aabb.GetHashCode();
+
         needs_octree_update |= (aabb_hash_code != visibility_state_component.last_aabb_hash);
+        needs_octree_update |= visibility_state_invalidated;
+
+        visibility_state_component.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
 
         if (needs_octree_update) {
-            auto update_result = octree.Update(entity_id, bounding_box_component.world_aabb, false);
+            // force entry invalidation if the bounding box is not finite,
+            // so directional lights changing cause the octree to be updated
+            const bool force_entry_invalidation = visibility_state_invalidated;
+
+            auto update_result = octree.Update(entity_id, bounding_box_component.world_aabb, force_entry_invalidation);
 
             if (!update_result.first) {
                 // DebugLog(LogType::Warn, "Failed to update entity %u in octree: %s\n", entity_id.Value(), update_result.first.message);

@@ -10,9 +10,9 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
 {
     SystemBase::OnEntityAdded(entity_manager, entity);
 
-    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
-
     entity_manager.AddTag<EntityTag::LIGHT>(entity);
+
+    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
 
     if (!light_component.light) {
         return;
@@ -87,6 +87,12 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         if (transform_hash_code != light_component.transform_hash_code) {
             if (light_component.light->GetType() == LightType::DIRECTIONAL) {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
+
+                VisibilityStateComponent *visibility_state_component = entity_manager.TryGetComponent<VisibilityStateComponent>(entity_id);
+
+                if (visibility_state_component) {
+                    visibility_state_component->flags |= VISIBILITY_STATE_FLAG_INVALIDATED;
+                }
             } else {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation());
             }

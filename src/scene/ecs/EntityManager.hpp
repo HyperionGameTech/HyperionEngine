@@ -57,15 +57,15 @@ public:
 
         for (const auto &it : m_systems) {
             for (TypeID component_type_id : component_type_ids) {
-                const ComponentRWFlags rw_flags = system_ptr->GetComponentRWFlags(component_type_id);
+                const ComponentInfo &component_info = system_ptr->GetComponentInfo(component_type_id);
 
-                // This System is read-only for this component, so it can be processed with other Systems
-                if (rw_flags == COMPONENT_RW_FLAGS_READ) {
-                    if (it.second->HasComponentTypeID(component_type_id, false)) {
+                if (component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE) {
+                    if (it.second->HasComponentTypeID(component_type_id, true)) {
                         return false;
                     }
                 } else {
-                    if (it.second->HasComponentTypeID(component_type_id, true)) {
+                    // This System is read-only for this component, so it can be processed with other Systems
+                    if (it.second->HasComponentTypeID(component_type_id, false)) {
                         return false;
                     }
                 }

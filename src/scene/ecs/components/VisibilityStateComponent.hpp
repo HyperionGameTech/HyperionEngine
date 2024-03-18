@@ -13,7 +13,8 @@ using VisibilityStateFlags = uint32;
 enum VisibilityStateFlagBits : VisibilityStateFlags
 {
     VISIBILITY_STATE_FLAG_NONE              = 0x0,
-    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE    = 0x1
+    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE    = 0x1,
+    VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
 };
 
 struct VisibilityStateComponent
