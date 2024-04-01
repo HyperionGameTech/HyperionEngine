@@ -47,8 +47,8 @@
 
 #include <rendering/render_components/ScreenCapture.hpp>
 
-#include <rendering/font/Face.hpp>
-#include <rendering/FontAtlas.hpp>
+#include <rendering/font/FontFace.hpp>
+#include <rendering/font/FontAtlas.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
 #include <scene/camera/CameraTrackController.hpp>
@@ -191,7 +191,7 @@ void SampleStreamer::InitGame()
     }
 
     // // Test freetype font rendering
-    auto font_face = g_asset_manager->Load<Face>("fonts/FreeSerif/FreeSerif.otf");
+    auto font_face = g_asset_manager->Load<FontFace>("fonts/FreeSerif/FreeSerif.otf");
     FontAtlas atlas(font_face);
 
     // atlas.RenderSync();
@@ -207,7 +207,7 @@ void SampleStreamer::InitGame()
     auto font_metadata_json = fr.GenerateMetadataJSON("font_bitmap.png");
 
     FileByteWriter bw("font_definition.json");
-    bw.WriteString(font_metadata_json.ToString(true));
+    bw.WriteString(font_metadata_json.ToString(true) + '\n');
     bw.Close();
 
 

@@ -1,4 +1,4 @@
-#include <rendering/FontAtlas.hpp>
+#include <rendering/font/FontAtlas.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
 #include <Engine.hpp>
@@ -29,7 +29,7 @@ struct RENDER_COMMAND(RenderFontAtlas) : renderer::RenderCommand
 
 #pragma endregion
 
-FontAtlas::FontAtlas(RC<Face> face)
+FontAtlas::FontAtlas(RC<FontFace> face)
     : m_face(std::move(face))
 {
     // Each cell will be the same size at the largest symbol
@@ -222,7 +222,7 @@ void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyp
     }
 }
 
-Extent2D FontAtlas::FindMaxDimensions(const RC<Face> &face, SymbolList symbol_list) const
+Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face, SymbolList symbol_list) const
 {
     Extent2D highest_dimensions = { 0, 0 };
 

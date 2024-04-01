@@ -1,11 +1,12 @@
-#include "FBOM.hpp"
+#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
+
 #include <core/lib/Path.hpp>
 #include <core/lib/SortedArray.hpp>
+#include <core/lib/Stack.hpp>
 
 #include <Constants.hpp>
 
-#include <stack>
 #include <algorithm>
 
 namespace hyperion::v2::fbom {
@@ -134,7 +135,7 @@ void FBOMWriter::Prune(const FBOMObject &object)
 FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
 {
     Array<FBOMStaticData> static_data_ordered;
-    static_data_ordered.Reserve(m_write_stream.m_static_data.size());
+    static_data_ordered.Reserve(m_write_stream.m_static_data.Size());
     // static_data_ordered.Reserve(m_write_stream.m_static_data.size());
 
     for (auto &it : m_write_stream.m_static_data) {
@@ -318,25 +319,25 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
     }
 
     if (data_location == FBOM_DATA_LOCATION_INPLACE) {
-        std::stack<const FBOMType *> type_chain;
+        Stack<const FBOMType *> type_chain;
         const FBOMType *type_ptr = &type;
 
         while (type_ptr != nullptr) {
-            type_chain.push(type_ptr);
+            type_chain.Push(type_ptr);
             type_ptr = type_ptr->extends;
         }
 
         // TODO: assert length < max of uint8_t
-        out->Write<uint8>(static_cast<uint8>(type_chain.size()));
+        out->Write<uint8>(static_cast<uint8>(type_chain.Size()));
 
-        while (!type_chain.empty()) {
+        while (!type_chain.Empty()) {
             // write string of object type (loader to use)
-            out->WriteString(type_chain.top()->name, BYTE_WRITER_FLAGS_WRITE_SIZE);
+            out->WriteString(type_chain.Top()->name, BYTE_WRITER_FLAGS_WRITE_SIZE);
 
             // write size of the type
-            out->Write<uint64>(type_chain.top()->size);
+            out->Write<uint64>(type_chain.Top()->size);
 
-            type_chain.pop();
+            type_chain.Pop();
         }
 
         m_write_stream.MarkStaticDataWritten(unique_id);
@@ -399,7 +400,7 @@ void FBOMWriter::AddObjectData(const FBOMObject &object)
 {
     const auto unique_id = object.GetUniqueID();
 
-    m_write_stream.m_object_data.push_back(object);
+    m_write_stream.m_object_data.PushBack(object);
 
     auto it = m_write_stream.m_hash_use_count_map.Find(unique_id);
 
@@ -416,9 +417,9 @@ void FBOMWriter::AddStaticData(const FBOMType &type)
 
     const auto unique_id = sd.GetUniqueID();
 
-    auto it = m_write_stream.m_static_data.find(unique_id);
+    auto it = m_write_stream.m_static_data.Find(unique_id);
 
-    if (it == m_write_stream.m_static_data.end()) {
+    if (it == m_write_stream.m_static_data.End()) {
         sd.offset = m_write_stream.m_static_data_offset++;
         m_write_stream.m_static_data[unique_id] = std::move(sd);
     }
@@ -432,9 +433,9 @@ void FBOMWriter::AddStaticData(const FBOMObject &object)
 
     const auto unique_id = sd.GetUniqueID();
 
-    auto it = m_write_stream.m_static_data.find(unique_id);
+    auto it = m_write_stream.m_static_data.Find(unique_id);
 
-    if (it == m_write_stream.m_static_data.end()) {
+    if (it == m_write_stream.m_static_data.End()) {
         sd.offset = m_write_stream.m_static_data_offset++;
         m_write_stream.m_static_data[unique_id] = std::move(sd);
     }
@@ -448,9 +449,9 @@ void FBOMWriter::AddStaticData(const FBOMData &data)
 
     const auto unique_id = sd.GetUniqueID();
 
-    auto it = m_write_stream.m_static_data.find(unique_id);
+    auto it = m_write_stream.m_static_data.Find(unique_id);
 
-    if (it == m_write_stream.m_static_data.end()) {
+    if (it == m_write_stream.m_static_data.End()) {
         sd.offset = m_write_stream.m_static_data_offset++;
         m_write_stream.m_static_data[unique_id] = std::move(sd);
     }
@@ -459,9 +460,9 @@ void FBOMWriter::AddStaticData(const FBOMData &data)
 FBOMDataLocation FBOMWriter::WriteStream::GetDataLocation(const UniqueID &unique_id, FBOMStaticData &out_static_data, String &out_external_key) const
 {
     { // check static data
-        auto it = m_static_data.find(unique_id);
+        auto it = m_static_data.Find(unique_id);
 
-        if (it != m_static_data.end() && it->second.written) {
+        if (it != m_static_data.End() && it->second.written) {
             out_static_data = it->second;
             return FBOM_DATA_LOCATION_STATIC;
         }
@@ -491,8 +492,8 @@ FBOMDataLocation FBOMWriter::WriteStream::GetDataLocation(const UniqueID &unique
 
 void FBOMWriter::WriteStream::MarkStaticDataWritten(const UniqueID &unique_id)
 {
-    auto it = m_static_data.find(unique_id);
-    AssertThrow(it != m_static_data.end());
+    auto it = m_static_data.Find(unique_id);
+    AssertThrow(it != m_static_data.End());
 
     m_static_data[unique_id].written = true;
 }

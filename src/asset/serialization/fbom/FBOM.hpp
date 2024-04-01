@@ -527,12 +527,12 @@ private:
 
     struct WriteStream
     {
-        FlatMap<String, FBOMExternalData> m_external_objects; // map filepath -> external object
-        std::unordered_map<UniqueID, FBOMStaticData> m_static_data; // map hashcodes to static data to be stored.
-        FlatMap<UniqueID, int> m_hash_use_count_map;
-        std::vector<FBOMObject> m_object_data; // TODO: make multiple objects be supported by the loader.
-        SizeType m_static_data_offset = 0;
-        FBOMResult m_last_result = FBOMResult::FBOM_OK;
+        FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
+        HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
+        FlatMap<UniqueID, int>              m_hash_use_count_map;
+        Array<FBOMObject>                   m_object_data;// TODO: make multiple objects be supported by the loader.
+        SizeType                            m_static_data_offset = 0;
+        FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
 
         WriteStream() = default;
         WriteStream(const WriteStream &other) = default;

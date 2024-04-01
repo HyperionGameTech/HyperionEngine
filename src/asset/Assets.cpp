@@ -47,7 +47,7 @@ void AssetManager::RegisterDefaultLoaders()
     // Register<PLYModelLoader, PLYModel>("ply");
     Register<JSONLoader, JSONValue>("json");
     // freetype font loader
-    Register<FontFaceLoader, Face>(
+    Register<FontFaceLoader, FontFace>(
         "ttf", "otf", "ttc", "dfont"
     );
 }

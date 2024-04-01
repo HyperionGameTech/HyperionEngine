@@ -1,7 +1,7 @@
 #ifndef HYPERION_FONTATLAS_HPP
 #define HYPERION_FONTATLAS_HPP
 
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 #include <rendering/font/Glyph.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Framebuffer.hpp>
@@ -27,7 +27,7 @@ public:
 
     static constexpr uint data_lines_offset = 2;
 
-    using SymbolList = Array<Face::WChar>;
+    using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
 
     FontAtlas() = default;
@@ -39,13 +39,13 @@ public:
     {
     }
 
-    FontAtlas(RC<Face> face);
+    FontAtlas(RC<FontFace> face);
 
     SymbolList GetDefaultSymbolList() const;
 
     void Render(Optional<SymbolList> symbol_list = { });
 
-    Extent2D FindMaxDimensions(const RC<Face> &face, SymbolList symbol_list = { }) const;
+    Extent2D FindMaxDimensions(const RC<FontFace> &face, SymbolList symbol_list = { }) const;
 
     [[nodiscard]] GlyphMetricsBuffer GetGlyphMetrics() const
         { return m_glyph_metrics; }
@@ -64,7 +64,7 @@ public:
 private:
     void RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const;
 
-    RC<Face>            m_face;
+    RC<FontFace>            m_face;
 
     Handle<Texture>     m_atlas;
     Extent2D            m_cell_dimensions;

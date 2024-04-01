@@ -9,7 +9,7 @@ struct FT_GlyphSlotRec_;
 
 namespace hyperion::v2 {
 
-class Face;
+class FontFace;
 
 class FontEngine
 {
@@ -23,7 +23,7 @@ public:
     FontEngine();
     ~FontEngine();
 
-    Face LoadFont(const FilePath &path);
+    FontFace LoadFont(const FilePath &path);
 
     Backend GetFontBackend();
 

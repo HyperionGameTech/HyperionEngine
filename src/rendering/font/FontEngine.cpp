@@ -1,5 +1,5 @@
 #include <rendering/font/FontEngine.hpp>
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 
 #include <system/Debug.hpp>
 
@@ -46,7 +46,7 @@ FontEngine::Backend FontEngine::GetFontBackend()
     return m_backend;
 }
 
-hyperion::v2::Face FontEngine::LoadFont(const FilePath &path)
+hyperion::v2::FontFace FontEngine::LoadFont(const FilePath &path)
 {
     if (m_backend == nullptr) {
         DebugLog(LogType::Error, "Font backend system not initialized!\n");

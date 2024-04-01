@@ -7,7 +7,7 @@ LoadedAsset FontFaceLoader::LoadAsset(LoaderState &state) const
 {
     FontEngine &font_engine = FontEngine::GetInstance();
 
-    auto font_face = UniquePtr<Face>::Construct(
+    auto font_face = UniquePtr<FontFace>::Construct(
         font_engine.GetFontBackend(),
         state.filepath
     );

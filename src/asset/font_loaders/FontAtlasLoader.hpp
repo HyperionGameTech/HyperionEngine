@@ -7,7 +7,7 @@
 
 #include <core/Containers.hpp>
 
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 
 #include <Types.hpp>
 

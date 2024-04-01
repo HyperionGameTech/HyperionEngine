@@ -2,7 +2,7 @@
 #define HYP_FONT_FONTGLYPH_HPP
 
 #include <rendering/font/FontEngine.hpp>
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/Texture.hpp>
@@ -43,7 +43,7 @@ public:
             { return metrics; }
     };
 
-    Glyph(RC<Face> face, Face::GlyphIndex index, bool render);
+    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render);
     void Render();
 
     [[nodiscard]] Metrics GetMetrics() const
@@ -56,7 +56,7 @@ public:
         { return m_glyph_image_data; }
 
 private:
-    RC<Face>                    m_face;
+    RC<FontFace>                    m_face;
 
     FontEngine::Glyph           m_glyph;
     GlyphImageData              m_glyph_image_data;

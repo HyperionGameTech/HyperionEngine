@@ -1,5 +1,5 @@
 #include <rendering/font/FontEngine.hpp>
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 
 #ifdef HYP_FREETYPE
 
@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-Face::Face(FontEngine::Backend backend, const FilePath &path)
+FontFace::FontFace(FontEngine::Backend backend, const FilePath &path)
     : m_face(nullptr)
 {
 #ifdef HYP_FREETYPE
@@ -21,13 +21,13 @@ Face::Face(FontEngine::Backend backend, const FilePath &path)
 #endif
 }
 
-Face::Face(Face &&other) noexcept
+FontFace::FontFace(FontFace &&other) noexcept
     : m_face(other.m_face)
 {
     other.m_face = nullptr;
 }
 
-Face &Face::operator=(Face &&other) noexcept
+FontFace &FontFace::operator=(FontFace &&other) noexcept
 {
     if (this != &other) {
         m_face = other.m_face;
@@ -37,11 +37,11 @@ Face &Face::operator=(Face &&other) noexcept
     return *this;
 }
 
-Face::~Face()
+FontFace::~FontFace()
 {
 }
 
-void Face::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height)
+void FontFace::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height)
 {
 #ifdef HYP_FREETYPE
     int error = FT_Set_Char_Size(m_face, pt_w * 64, pt_h * 64, screen_width, screen_height);
@@ -51,7 +51,7 @@ void Face::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height)
 #endif
 }
 
-void Face::RequestPixelSizes(int width, int height)
+void FontFace::RequestPixelSizes(int width, int height)
 {
 #ifdef HYP_FREETYPE
     if (FT_Set_Pixel_Sizes(m_face, width, height)) {
@@ -60,7 +60,7 @@ void Face::RequestPixelSizes(int width, int height)
 #endif
 }
 
-Face::GlyphIndex Face::GetGlyphIndex(WChar to_find)
+FontFace::GlyphIndex FontFace::GetGlyphIndex(WChar to_find)
 {
 #ifdef HYP_FREETYPE
     return FT_Get_Char_Index(m_face, to_find);
@@ -69,7 +69,7 @@ Face::GlyphIndex Face::GetGlyphIndex(WChar to_find)
 #endif
 }
 
-FontEngine::Font Face::GetFace()
+FontEngine::Font FontFace::GetFace()
 {
     return m_face;
 }

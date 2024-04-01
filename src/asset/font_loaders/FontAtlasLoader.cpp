@@ -1,5 +1,5 @@
 #include <asset/font_loaders/FontAtlasLoader.hpp>
-#include <rendering/FontAtlas.hpp>
+#include <rendering/font/FontAtlas.hpp>
 
 #include <util/json/JSON.hpp>
 
@@ -33,7 +33,7 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
     Handle<Texture> bitmap_texture;
 
     if (auto bitmap_filepath_value = json_value["bitmap_filepath"]) {
-        bitmap_texture = state.asset_manager->Load<Texture>(bitmap_filepath_value.AsString());
+        bitmap_texture = state.asset_manager ->Load<Texture>(bitmap_filepath_value.AsString());
 
         if (!bitmap_texture.IsValid()) {
             return { { LoaderResult::Status::ERR, "Failed to load bitmap texture" } };

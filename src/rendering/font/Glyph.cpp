@@ -1,6 +1,6 @@
 #include <rendering/font/Glyph.hpp>
 #include <rendering/font/FontEngine.hpp>
-#include <rendering/font/Face.hpp>
+#include <rendering/font/FontFace.hpp>
 
 #include <rendering/Texture.hpp>
 
@@ -40,7 +40,7 @@ Handle<Texture> GlyphImageData::CreateTexture() const
 
 // Glyph
 
-Glyph::Glyph(RC<Face> face, Face::GlyphIndex index, bool render = false)
+Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false)
     : m_face(std::move(face))
 {
 #ifdef HYP_FREETYPE
