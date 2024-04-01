@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_FONT_LOADER_H
-#define HYPERION_V2_FONT_LOADER_H
+#ifndef HYPERION_V2_FONT_ATLAS_LOADER_H
+#define HYPERION_V2_FONT_ATLAS_LOADER_H
 
 #include <asset/Assets.hpp>
 
@@ -13,14 +13,12 @@
 
 namespace hyperion::v2 {
 
-class FontLoader : public AssetLoader
+class FontAtlasLoader : public AssetLoader
 {
 public:
-    virtual ~FontLoader() = default;
+    virtual ~FontAtlasLoader() = default;
 
     virtual LoadedAsset LoadAsset(LoaderState &state) const override;
-
-    Face font_face;
 };
 
 } // namespace hyperion::v2

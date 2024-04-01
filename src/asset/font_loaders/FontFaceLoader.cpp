@@ -1,9 +1,9 @@
-#include <asset/font_loaders/FontLoader.hpp>
+#include <asset/font_loaders/FontFaceLoader.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
 
-LoadedAsset FontLoader::LoadAsset(LoaderState &state) const
+LoadedAsset FontFaceLoader::LoadAsset(LoaderState &state) const
 {
     FontEngine &font_engine = FontEngine::GetInstance();
 

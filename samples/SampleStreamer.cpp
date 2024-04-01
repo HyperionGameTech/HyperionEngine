@@ -43,6 +43,7 @@
 #include <ui/UIButton.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/ByteWriter.hpp>
 
 #include <rendering/render_components/ScreenCapture.hpp>
 
@@ -202,6 +203,12 @@ void SampleStreamer::InitGame()
     fr.Render();
     auto font_bitmap = fr.GenerateBitmap();
     font_bitmap.Write("font_bitmap.png");
+    
+    auto font_metadata_json = fr.GenerateMetadataJSON("font_bitmap.png");
+
+    FileByteWriter bw("font_definition.json");
+    bw.WriteString(font_metadata_json.ToString(true));
+    bw.Close();
 
 
     const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();

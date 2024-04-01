@@ -42,9 +42,9 @@ public:
         WriteBytes(reinterpret_cast<const char *>(&value), sizeof(T));
     }
 
-    void WriteString(const String &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_WRITE_SIZE)
+    void WriteString(const String &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_WRITE_NULL_CHAR)
     {
-        const uint32 len = static_cast<uint32>(str.Size());
+        const uint32 len = uint32(str.Size());
 
         if (flags & BYTE_WRITER_FLAGS_WRITE_SIZE) {
             const uint32 len_nt = len + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0);

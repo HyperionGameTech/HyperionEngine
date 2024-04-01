@@ -12,7 +12,7 @@
 #include <asset/texture_loaders/TextureLoader.hpp>
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
 #include <asset/data_loaders/JSONLoader.hpp>
-#include <asset/font_loaders/FontLoader.hpp>
+#include <asset/font_loaders/FontFaceLoader.hpp>
 
 namespace hyperion::v2 {
 
@@ -47,7 +47,7 @@ void AssetManager::RegisterDefaultLoaders()
     // Register<PLYModelLoader, PLYModel>("ply");
     Register<JSONLoader, JSONValue>("json");
     // freetype font loader
-    Register<FontLoader, Face>(
+    Register<FontFaceLoader, Face>(
         "ttf", "otf", "ttc", "dfont"
     );
 }

@@ -1,4 +1,4 @@
-#include "JSONLoader.hpp"
+#include <asset/data_loaders/JSONLoader.hpp>
 #include <Engine.hpp>
 
 #include <algorithm>

@@ -79,6 +79,10 @@ struct JSONSubscriptWrapper<const JSONValue>
 
     ~JSONSubscriptWrapper() = default;
 
+    HYP_FORCE_INLINE
+    explicit operator bool() const
+        { return ToBool(); }
+
     const JSONValue &Get() const;
     
     bool IsString() const;
@@ -154,6 +158,10 @@ struct JSONSubscriptWrapper<JSONValue>
     }
 
     ~JSONSubscriptWrapper() = default;
+
+    HYP_FORCE_INLINE
+    explicit operator bool() const
+        { return ToBool(); }
 
     JSONValue &Get();
     const JSONValue &Get() const;
@@ -269,40 +277,43 @@ public:
 
     ~JSONValue() = default;
 
+    explicit operator bool() const
+        { return ToBool(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsString() const
-    {
-        return m_inner.Is<JSONString>();
-    }
+        { return m_inner.Is<JSONString>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsNumber() const
-    {
-        return m_inner.Is<JSONNumber>();
-    }
+        { return m_inner.Is<JSONNumber>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsBool() const
-    {
-        return m_inner.Is<JSONBool>();
-    }
+        { return m_inner.Is<JSONBool>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsArray() const
-    {
-        return m_inner.Is<JSONArrayRef>();
-    }
+        { return m_inner.Is<JSONArrayRef>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsObject() const
-    {
-        return m_inner.Is<JSONObjectRef>();
-    }
+        { return m_inner.Is<JSONObjectRef>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsNull() const
-    {
-        return m_inner.Is<JSONNull>();
-    }
+        { return m_inner.Is<JSONNull>(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsUndefined() const
-    {
-        return m_inner.Is<JSONUndefined>();
-    }
+        { return m_inner.Is<JSONUndefined>(); }
 
     JSONString &AsString()
     {
@@ -341,7 +352,28 @@ public:
         }
 
         if (IsNumber()) {
-            return String(std::to_string(AsNumber()).c_str());
+            // Format string
+            const JSONNumber number = AsNumber();
+
+            const bool is_integer = MathUtil::Fract(number) < MathUtil::epsilon_d;
+
+            CharArray chars;
+
+            if (is_integer) {
+                int n = std::snprintf(nullptr, 0, "%lld", (long long)number);
+                if (n > 0) {
+                    chars.Resize(SizeType(n) + 1);
+                    std::sprintf(chars.Data(), "%lld", (long long)number);
+                }
+            } else {
+                int n = std::snprintf(nullptr, 0, "%f", number);
+                if (n > 0) {
+                    chars.Resize(SizeType(n) + 1);
+                    std::sprintf(chars.Data(), "%f", number);
+                }
+            }
+
+            return String(chars);
         }
 
         if (IsArray()) {

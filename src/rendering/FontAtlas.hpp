@@ -10,6 +10,8 @@
 #include <core/lib/DynArray.hpp>
 #include <core/lib/Optional.hpp>
 
+#include <util/json/JSON.hpp>
+
 #include <util/img/Bitmap.hpp>
 #include <util/fs/FsUtil.hpp>
 
@@ -20,7 +22,6 @@ namespace hyperion::v2 {
 class FontAtlas
 {
 public:
-
     static constexpr uint symbol_columns = 20;
     static constexpr uint symbol_rows = 5;
 
@@ -28,6 +29,15 @@ public:
 
     using SymbolList = Array<Face::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
+
+    FontAtlas() = default;
+
+    FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics)
+        : m_atlas(std::move(atlas)),
+          m_cell_dimensions(cell_dimensions),
+          m_glyph_metrics(std::move(glyph_metrics))
+    {
+    }
 
     FontAtlas(RC<Face> face);
 
@@ -40,11 +50,11 @@ public:
     [[nodiscard]] GlyphMetricsBuffer GetGlyphMetrics() const
         { return m_glyph_metrics; }
 
-    [[nodiscard]] Handle<Texture> &GetAtlas()
+    [[nodiscard]] const Handle<Texture> &GetAtlas() const
         { return m_atlas; }
 
     [[nodiscard]] Extent2D GetDimensions() const
-        { return m_atlas_dimensions; }
+        { return m_atlas.IsValid() ? Extent2D(m_atlas->GetExtent()) : Extent2D { 0, 0 }; }
 
     [[nodiscard]] Extent2D GetCellDimensions() const
         { return m_cell_dimensions; }
@@ -54,10 +64,10 @@ public:
 private:
     void RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const;
 
-    Handle<Texture>     m_atlas;
     RC<Face>            m_face;
+
+    Handle<Texture>     m_atlas;
     Extent2D            m_cell_dimensions;
-    Extent2D            m_atlas_dimensions;
     GlyphMetricsBuffer  m_glyph_metrics;
 };
 
@@ -77,13 +87,8 @@ public:
         m_atlas.WriteToBuffer(m_bytes);
     }
 
-    Bitmap<1> GenerateBitmap() const
-    {
-        Bitmap<1> bitmap(m_dimensions.width, m_dimensions.height);
-        bitmap.SetPixels(m_bytes);
-        bitmap.FlipVertical();
-        return bitmap;
-    }
+    Bitmap<1> GenerateBitmap() const;
+    json::JSONValue GenerateMetadataJSON(const String &bitmap_filepath) const;
 
     // void WriteTexture(const FilePath &path)
     // {

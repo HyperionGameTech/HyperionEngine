@@ -37,11 +37,9 @@ FontAtlas::FontAtlas(RC<Face> face)
     // Data lines to store information about the symbol (overhang, width, height, etc)
     m_cell_dimensions[1] += data_lines_offset;
 
-    m_atlas_dimensions = { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows };
-    
     m_atlas = CreateObject<Texture>(
         Texture2D(
-            m_atlas_dimensions,
+            { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows },
             /* Grayscale 8-bit texture */
             InternalFormat::R8,
             FilterMode::TEXTURE_FILTER_LINEAR,
@@ -252,7 +250,9 @@ Extent2D FontAtlas::FindMaxDimensions(const RC<Face> &face, SymbolList symbol_li
 
 void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
 {
-    const SizeType buffer_size = m_atlas_dimensions.width * m_atlas_dimensions.height;
+    AssertThrow(m_atlas.IsValid());
+
+    const SizeType buffer_size = m_atlas->GetExtent().width * m_atlas->GetExtent().height;
     buffer.SetSize(buffer_size);
 
     struct RENDER_COMMAND(FontAtlas_WriteToBuffer) : renderer::RenderCommand
@@ -284,7 +284,7 @@ void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
                 return result;
             }
 
-            auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
             AssertThrow(atlas);
             AssertThrow(atlas->GetImage());
@@ -321,7 +321,49 @@ void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
     }
 }
 
+// FontRenderer
 
+Bitmap<1> FontRenderer::GenerateBitmap() const
+{
+    Bitmap<1> bitmap(m_dimensions.width, m_dimensions.height);
+    bitmap.SetPixels(m_bytes);
+    bitmap.FlipVertical();
+    return bitmap;
+}
+
+json::JSONValue FontRenderer::GenerateMetadataJSON(const String &bitmap_filepath) const
+{
+    json::JSONObject value;
+
+    value["bitmap_filepath"] = bitmap_filepath;
+
+    value["cell_dimensions"] = json::JSONObject {
+        { "width", json::JSONNumber(m_atlas.GetCellDimensions().width) },
+        { "height", json::JSONNumber(m_atlas.GetCellDimensions().height) }
+    };
+
+    json::JSONArray metrics_array;
+
+    const FontAtlas::GlyphMetricsBuffer metrics = m_atlas.GetGlyphMetrics();
+
+    for (const Glyph::Metrics &metric : metrics) {
+        metrics_array.PushBack(json::JSONObject {
+            { "width", json::JSONNumber(metric.metrics.width) },
+            { "height", json::JSONNumber(metric.metrics.height) },
+            { "bearing_x", json::JSONNumber(metric.metrics.bearing_x) },
+            { "bearing_y", json::JSONNumber(metric.metrics.bearing_y) },
+            { "advance", json::JSONNumber(metric.metrics.advance) },
+            { "image_position", json::JSONObject {
+                { "x", json::JSONNumber(metric.image_position.x) },
+                { "y", json::JSONNumber(metric.image_position.y) }
+            } }
+        });
+    }
+    
+    value["metrics"] = std::move(metrics_array);
+
+    return value;
+}
 
 }; // namespace hyperion::v2
 

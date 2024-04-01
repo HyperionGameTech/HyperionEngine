@@ -258,7 +258,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
             out->Write<uint8>(FBOM_DEFINE_PROPERTY);
 
             // // write property name
-            out->WriteString(it.first);
+            out->WriteString(it.first, BYTE_WRITER_FLAGS_WRITE_SIZE);
 
             if (auto err = WriteData(out, it.second)) {
                 return err;
@@ -284,7 +284,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
     {
         AssertThrow(external_key.Any());
 
-        out->WriteString(external_key);
+        out->WriteString(external_key, BYTE_WRITER_FLAGS_WRITE_SIZE);
 
         // write object index as u32
         // TODO!
@@ -331,7 +331,7 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
 
         while (!type_chain.empty()) {
             // write string of object type (loader to use)
-            out->WriteString(type_chain.top()->name);
+            out->WriteString(type_chain.top()->name, BYTE_WRITER_FLAGS_WRITE_SIZE);
 
             // write size of the type
             out->Write<uint64>(type_chain.top()->size);
