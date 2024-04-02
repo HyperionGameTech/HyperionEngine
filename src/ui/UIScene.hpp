@@ -31,7 +31,7 @@ class InputManager;
 namespace hyperion::v2 {
 
 class UIButton;
-class FontMap;
+class FontAtlas;
 
 class UIScene : public BasicObject<STUB_CLASS(UIScene)>
 {
@@ -50,11 +50,11 @@ public:
     const Handle<Scene> &GetScene() const
         { return m_scene; }
 
-    const RC<FontMap> &GetDefaultFontMap() const
-        { return m_default_font_map; }
+    const RC<FontAtlas> &GetDefaultFontAtlas() const
+        { return m_default_font_atlas; }
 
-    void SetDefaultFontMap(RC<FontMap> font_map)
-        { m_default_font_map = std::move(font_map); }
+    void SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
+        { m_default_font_atlas = std::move(font_atlas); }
 
     template <class T>
     UIObjectProxy<T> CreateUIObject(
@@ -115,7 +115,7 @@ private:
 
     Handle<Scene>               m_scene;
 
-    RC<FontMap>                 m_default_font_map;
+    RC<FontAtlas>               m_default_font_atlas;
 
     FlatMap<ID<Entity>, float>  m_mouse_held_times;
 };

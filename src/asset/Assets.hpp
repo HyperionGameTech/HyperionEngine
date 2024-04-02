@@ -36,6 +36,39 @@ enum AssetLoadFlagBits : AssetLoadFlags
     ASSET_LOAD_FLAGS_CACHE_WRITE = 0x2
 };
 
+struct AssetLoaderDefinition
+{
+    const StringView            name;
+    TypeID                      loader_type_id;
+    TypeID                      result_type_id;
+    FlatSet<String>             extensions;
+    UniquePtr<AssetLoaderBase>  loader;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HandlesResultType(TypeID type_id) const
+    {
+        return result_type_id == type_id;
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsWildcardExtensionLoader() const
+    {
+        return extensions.Empty() || extensions.Contains("*");
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HandlesExtension(const String &filepath) const
+    {
+        return extensions.ContainerBase::Any([&filepath](const String &extension)
+        {
+            return filepath.EndsWith(extension);
+        });
+    }
+};
+
 class AssetManager
 {
     friend struct AssetBatch;
@@ -71,12 +104,23 @@ public:
             String(formats)...
         };
 
-        for (auto &str : format_strings) {
-            m_loaders[str] = {
-                TypeID::ForType<Loader>(),
-                UniquePtr<Loader>::Construct()
-            };
+        static const auto loader_type_name = TypeName<Loader>();
+
+        DebugLog(LogType::Debug, "Loader %s handles formats: ", loader_type_name.Data());
+
+        for (const auto &format : format_strings) {
+            DebugLog(LogType::Debug, "%s ", format.Data());
         }
+
+        DebugLog(LogType::Debug, "\n");
+
+        m_loaders.PushBack(AssetLoaderDefinition {
+            loader_type_name,
+            TypeID::ForType<Loader>(),
+            TypeID::ForType<ResultType>(),
+            FlatSet<String>(format_strings.Begin(), format_strings.End()),
+            UniquePtr<Loader>::Construct()
+        });
 
         m_functor_factories.Set<Loader>([](const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr) -> UniquePtr<ProcessAssetFunctorBase>
         {
@@ -123,15 +167,16 @@ public:
             return cache_pool->Get(path);
         }
 
-        AssetLoaderBase *loader = GetLoader(path);
+        const AssetLoaderDefinition *loader_definition = GetLoader(path, TypeID::ForType<Normalized>());
 
-        if (!loader) {
-            DebugLog(LogType::Warn, "No registered loader for path: %s\n", path.Data());
-
-            out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the path" };
+        if (!loader_definition) {
+            out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" };
 
             return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
+
+        AssetLoaderBase *loader = loader_definition->loader.Get();
+        AssertThrow(loader != nullptr);
 
         const auto result = AssetLoaderWrapper<Normalized>(*loader)
             .Load(*this, path, out_result);
@@ -149,37 +194,6 @@ public:
         return Load<T>(path);
     }
 
-    /*! \brief Load multple objects of the same type. All assets will be loaded asynchronously
-        from one another, but the method is still synchronous, so there is no need to wait on anything
-        after calling this method. All assets will be returned in the resulting array in the order that their
-        respective filepaths were provided in. */
-    template <class T, class ... Paths>
-    auto LoadMany(const String &first_path, Paths &&... paths) -> FixedArray<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType, sizeof...(paths) + 1>
-    {
-        FixedArray<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType, sizeof...(paths) + 1> results_array;
-        std::vector<String> paths_array { first_path, std::forward<Paths>(paths)... };
-        auto batch = CreateBatch();
-
-        uint path_index = 0;
-
-        for (const auto &path : paths_array) {
-            batch->Add(String::ToString(path_index++), path);
-        }
-
-        batch->LoadAsync();
-
-        auto results = batch->AwaitResults();
-
-        SizeType index = 0u;
-        AssertThrow(results.Size() == results_array.Size());
-
-        for (auto &it : results) {
-            results_array[index++] = it.second.Get<T>();
-        }
-
-        return results_array;
-    }
-
     RC<AssetBatch> CreateBatch()
         { return RC<AssetBatch>::Construct(this); }
 
@@ -189,72 +203,38 @@ public:
     const AssetCache *GetAssetCache() const
         { return m_asset_cache.Get(); }
 
+private:
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr);
+
     template <class Loader>
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
-    {
-        auto it = m_functor_factories.Find<Loader>();
-        AssertThrow(it != m_functor_factories.End());
-
-        return it->second(key, path, callbacks_ptr);
-    }
-
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
-    {
-        auto it = m_functor_factories.Find(loader_type_id);
-        AssertThrow(it != m_functor_factories.End());
-
-        return it->second(key, path, callbacks_ptr);
-    }
+        { return CreateProcessAssetFunctor(TypeID::ForType<Loader>(), key, path, callbacks_ptr); }
 
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
     {
-        const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
+        const AssetLoaderDefinition *loader_definition = GetLoader(path);
 
-        if (extension.Empty()) {
-            DebugLog(LogType::Warn, "No extension found for path: %s\n", path.Data());
-
-            return nullptr;
-        }
-
-        TypeID loader_type_id = TypeID::ForType<void>();
-
-        const auto it = m_loaders.Find(extension);
-
-        if (it != m_loaders.End()) {
-            loader_type_id = it->second.first;
-        } else {
-            for (auto &loader_it : m_loaders) {
-                if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
-                    loader_type_id = loader_it.second.first;
-                    break;
-                }
-            }
-        }
-
-        // no loader found
-        if (loader_type_id == TypeID::ForType<void>()) {
-            DebugLog(LogType::Warn, "No loader found for path: %s\n", path.Data());
+        if (!loader_definition) {
+            DebugLog(LogType::Error, "No registered loader for path: %s\n", path.Data());
 
             return nullptr;
         }
 
-        // use the loader type id to create the functor
-        return CreateProcessAssetFunctor(loader_type_id, key, path, callbacks_ptr);
+        return CreateProcessAssetFunctor(loader_definition->loader_type_id, key, path, callbacks_ptr);
     }
 
-private:
-    AssetLoaderBase *GetLoader(const FilePath &path);
+    const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::void_type_id);
 
     void RegisterDefaultLoaders();
 
     ObjectPool &GetObjectPool();
 
-    UniquePtr<AssetCache>                                       m_asset_cache;
+    UniquePtr<AssetCache>                                           m_asset_cache;
 
-    FilePath                                                    m_base_path;
+    FilePath                                                        m_base_path;
 
-    FlatMap<String, Pair<TypeID, UniquePtr<AssetLoaderBase>>>   m_loaders;
-    TypeMap<ProcessAssetFunctorFactory>                         m_functor_factories;
+    Array<AssetLoaderDefinition>                                    m_loaders;
+    TypeMap<ProcessAssetFunctorFactory>                             m_functor_factories;
 };
 
 } // namespace hyperion::v2

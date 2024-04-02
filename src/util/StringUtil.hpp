@@ -270,7 +270,7 @@ public:
 
     static inline std::string StripExtension(const std::string &filename)
     {
-        auto pos = filename.find_last_of(".");
+        auto pos = filename.find_last_of('.');
 
         if (pos == std::string::npos) {
             return filename;
@@ -290,7 +290,7 @@ public:
             return "";
         }
 
-        return path.substr(pos + 1);
+        return filename.substr(pos + 1);
     }
     
     static inline bool Parse(const String &str, int *out_value)

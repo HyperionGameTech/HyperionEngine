@@ -51,11 +51,11 @@ public:
 
     static const DynString empty;
 
-    static constexpr bool is_utf8   = IsUtf8;
-    static constexpr bool is_ansi   = !is_utf8 && (std::is_same_v<T, char> || std::is_same_v<T, unsigned char>);
-    static constexpr bool is_utf16  = !is_utf8 && std::is_same_v<T, utf::u16char>;
-    static constexpr bool is_utf32  = !is_utf8 && std::is_same_v<T, utf::u32char>;
-    static constexpr bool is_wide   = !is_utf8 && std::is_same_v<T, wchar_t>;
+    static constexpr bool is_utf8 = IsUtf8;
+    static constexpr bool is_ansi = !is_utf8 && (std::is_same_v<T, char> || std::is_same_v<T, unsigned char>);
+    static constexpr bool is_utf16 = !is_utf8 && std::is_same_v<T, utf::u16char>;
+    static constexpr bool is_utf32 = !is_utf8 && std::is_same_v<T, utf::u32char>;
+    static constexpr bool is_wide = !is_utf8 && std::is_same_v<T, wchar_t>;
 
     static constexpr StringType string_type =
         (is_ansi ? STRING_TYPE_ANSI :
@@ -66,8 +66,8 @@ public:
 
     static constexpr SizeType not_found = SizeType(-1);
     
-    using CharType          = T;
-    using WidestCharType    = std::conditional_t<is_utf8, utf::u32char, T>;
+    using CharType = T;
+    using WidestCharType = std::conditional_t<is_utf8, utf::u32char, T>;
 
     DynString();
     DynString(const DynString &other);

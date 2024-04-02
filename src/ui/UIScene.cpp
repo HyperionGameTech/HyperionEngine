@@ -15,6 +15,8 @@
 
 #include <rendering/Texture.hpp>
 
+#include <rendering/font/FontAtlas.hpp>
+
 #include <system/Application.hpp>
 
 #include <input/InputManager.hpp>
@@ -42,14 +44,14 @@ void UIScene::Init()
 
     BasicObject::Init();
 
-    if (!m_default_font_map) {
-        Handle<Texture> font_map_texture = g_asset_manager->Load<Texture>("textures/fontmap.png");
+    if (!m_default_font_atlas) {
+        LoaderResult loader_result;
+        RC<FontAtlas> font_atlas = g_asset_manager->Load<FontAtlas>("fonts/default.json", loader_result);
 
-        if (font_map_texture.IsValid()) {
-            m_default_font_map = RC<FontMap>::Construct(
-                font_map_texture,
-                Extent2D { 128, 128 }
-            );
+        if (font_atlas != nullptr) {
+            m_default_font_atlas = std::move(font_atlas);
+        } else {
+            DebugLog(LogType::Error, "Failed to load default font atlas! Error was: %s\n", loader_result.message.Data());
         }
     }
 

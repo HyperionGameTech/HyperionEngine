@@ -13,6 +13,7 @@
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
 #include <asset/data_loaders/JSONLoader.hpp>
 #include <asset/font_loaders/FontFaceLoader.hpp>
+#include <asset/font_loaders/FontAtlasLoader.hpp>
 
 namespace hyperion::v2 {
 
@@ -50,34 +51,47 @@ void AssetManager::RegisterDefaultLoaders()
     Register<FontFaceLoader, FontFace>(
         "ttf", "otf", "ttc", "dfont"
     );
+    Register<FontAtlasLoader, FontAtlas>();
 }
 
-AssetLoaderBase *AssetManager::GetLoader(const FilePath &path)
+const AssetLoaderDefinition *AssetManager::GetLoader(const FilePath &path, TypeID desired_type_id)
 {
     const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
 
-    if (extension.Empty()) {
-        return nullptr;
-    }
-
     AssetLoaderBase *loader = nullptr;
 
-    { // find loader for the requested type
-        const auto it = m_loaders.Find(extension);
+    SortedArray<KeyValuePair<uint, const AssetLoaderDefinition *>> loader_ptrs;
 
-        if (it != m_loaders.End()) {
-            loader = it->second.second.Get();
-        } else {
-            for (auto &loader_it : m_loaders) {
-                if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
-                    loader = loader_it.second.second.Get();
-                    break;
-                }
+    for (const AssetLoaderDefinition &asset_loader_definition : m_loaders) {
+        uint rank = 0;
+
+        if (desired_type_id != TypeID::void_type_id) {
+            if (!asset_loader_definition.HandlesResultType(desired_type_id)) {
+                continue;
+            }
+
+            // Result type is required to be provided for wildcard loaders to be considered
+            if (asset_loader_definition.IsWildcardExtensionLoader()) {
+                rank += 1;
             }
         }
+
+        if (!extension.Empty() && asset_loader_definition.HandlesExtension(path)) {
+            rank += 2;
+        }
+
+        if (rank == 0) {
+            continue;
+        }
+
+        loader_ptrs.Insert({ rank, &asset_loader_definition });
     }
 
-    return loader;
+    if (!loader_ptrs.Empty()) {
+        return loader_ptrs.Front().second;
+    }
+
+    return nullptr;
 }
 
 } // namespace hyperion::v2

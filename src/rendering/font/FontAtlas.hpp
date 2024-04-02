@@ -30,45 +30,50 @@ public:
     using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
 
+    static SymbolList GetDefaultSymbolList();
+
     FontAtlas() = default;
 
-    FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics)
-        : m_atlas(std::move(atlas)),
-          m_cell_dimensions(cell_dimensions),
-          m_glyph_metrics(std::move(glyph_metrics))
-    {
-    }
+    FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
 
     FontAtlas(RC<FontFace> face);
 
-    SymbolList GetDefaultSymbolList() const;
+    void Render();
 
-    void Render(Optional<SymbolList> symbol_list = { });
-
-    Extent2D FindMaxDimensions(const RC<FontFace> &face, SymbolList symbol_list = { }) const;
-
-    [[nodiscard]] GlyphMetricsBuffer GetGlyphMetrics() const
+    [[nodiscard]]
+    const GlyphMetricsBuffer &GetGlyphMetrics() const
         { return m_glyph_metrics; }
 
-    [[nodiscard]] const Handle<Texture> &GetAtlas() const
+    [[nodiscard]]
+    const Handle<Texture> &GetTexture() const
         { return m_atlas; }
 
-    [[nodiscard]] Extent2D GetDimensions() const
+    [[nodiscard]]
+    Extent2D GetDimensions() const
         { return m_atlas.IsValid() ? Extent2D(m_atlas->GetExtent()) : Extent2D { 0, 0 }; }
 
-    [[nodiscard]] Extent2D GetCellDimensions() const
+    [[nodiscard]]
+    Extent2D GetCellDimensions() const
         { return m_cell_dimensions; }
+
+    [[nodiscard]]
+    const SymbolList &GetSymbolList() const
+        { return m_symbol_list; }
+
+    Optional<Glyph::Metrics> GetGlyphMetrics(FontFace::WChar symbol) const;
 
     void WriteToBuffer(ByteBuffer &buffer) const;
 
 private:
+    Extent2D FindMaxDimensions(const RC<FontFace> &face) const;
     void RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const;
 
-    RC<FontFace>            m_face;
+    RC<FontFace>        m_face;
 
     Handle<Texture>     m_atlas;
     Extent2D            m_cell_dimensions;
     GlyphMetricsBuffer  m_glyph_metrics;
+    SymbolList          m_symbol_list;
 };
 
 class FontRenderer

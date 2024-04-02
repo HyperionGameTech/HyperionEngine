@@ -111,6 +111,18 @@ struct HashCode
         return hc;
     }
 
+    static constexpr inline HashCode GetHashCode(const char *_begin, const char *_end)
+    {
+        HashCode hc;
+
+        while (*_begin && _begin != _end) {
+            hc.HashCombine(*_begin);
+            ++_begin;
+        }
+
+        return hc;
+    }
+
 private:
     ValueType hash;
 

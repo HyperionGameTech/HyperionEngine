@@ -29,6 +29,11 @@ public:
     {
     }
 
+    FlatSet(const T *begin, const T *end)
+        : SortedArray<T>(begin, end)
+    {
+    }
+
     FlatSet(const FlatSet &other);
     FlatSet &operator=(const FlatSet &other);
     FlatSet(FlatSet &&other) noexcept;
@@ -83,14 +88,7 @@ public:
 
     Array<T> ToArray() const
     {
-        Array<T> result;
-        result.Reserve(Size());
-
-        for (const auto &it : *this) {
-            result.PushBack(it);
-        }
-
-        return result;
+        return Array<T>(Begin(), End());
     }
 
     HYP_DEF_STL_BEGIN_END(

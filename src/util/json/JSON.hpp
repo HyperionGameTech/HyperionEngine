@@ -495,7 +495,15 @@ public:
         }
 
         if (IsString()) {
-            return !AsString().Empty() && AsString() != "false";
+            return !AsString().Empty();
+        }
+
+        if (IsObject()) {
+            return JSONBool(true);
+        }
+
+        if (IsArray()) {
+            return JSONBool(true);
         }
 
         return JSONBool(false);

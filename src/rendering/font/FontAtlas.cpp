@@ -29,9 +29,21 @@ struct RENDER_COMMAND(RenderFontAtlas) : renderer::RenderCommand
 
 #pragma endregion
 
-FontAtlas::FontAtlas(RC<FontFace> face)
-    : m_face(std::move(face))
+FontAtlas::FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list)
+    : m_atlas(std::move(atlas)),
+      m_cell_dimensions(cell_dimensions),
+      m_glyph_metrics(std::move(glyph_metrics)),
+      m_symbol_list(std::move(symbol_list))
 {
+    AssertThrow(m_symbol_list.Size() != 0);
+}
+
+FontAtlas::FontAtlas(RC<FontFace> face)
+    : m_face(std::move(face)),
+      m_symbol_list(GetDefaultSymbolList())
+{
+    AssertThrow(m_symbol_list.Size() != 0);
+
     // Each cell will be the same size at the largest symbol
     m_cell_dimensions = FindMaxDimensions(m_face);
     // Data lines to store information about the symbol (overhang, width, height, etc)
@@ -39,7 +51,7 @@ FontAtlas::FontAtlas(RC<FontFace> face)
 
     m_atlas = CreateObject<Texture>(
         Texture2D(
-            { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows },
+            Extent2D { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows },
             /* Grayscale 8-bit texture */
             InternalFormat::R8,
             FilterMode::TEXTURE_FILTER_LINEAR,
@@ -51,7 +63,7 @@ FontAtlas::FontAtlas(RC<FontFace> face)
     InitObject(m_atlas);
 }
 
-FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList() const
+FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
 {
     // highest symbol in the ascii table
     const uint end = uint('~' + 1);
@@ -68,21 +80,17 @@ FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList() const
     return symbol_list;
 }
 
-void FontAtlas::Render(Optional<SymbolList> symbol_list)
+void FontAtlas::Render()
 {
-    if (!symbol_list.HasValue()) {
-        symbol_list = GetDefaultSymbolList();
-    }
-
-    if ((symbol_list->Size() / symbol_columns) > symbol_rows) {
+    if ((m_symbol_list.Size() / symbol_columns) > symbol_rows) {
         DebugLog(LogType::Warn, "Symbol list size is greater than the allocated font atlas!\n");
     }
 
-    m_glyph_metrics.Reserve(symbol_list->Size());
+    m_glyph_metrics.Reserve(m_symbol_list.Size());
 
     uint image_index = 0;
 
-    for (const auto &symbol : *symbol_list) {
+    for (const auto &symbol : m_symbol_list) {
         Glyph glyph(m_face, m_face->GetGlyphIndex(symbol), true);
         // Render the glyph into a temporary texture
         glyph.Render();
@@ -122,38 +130,6 @@ void FontAtlas::Render(Optional<SymbolList> symbol_list)
     // This is the final size of the fontmap, resize to fit to reduce unneeded memory.
     m_glyph_metrics.Refit();
 }
-
-// void FontAtlas::RenderSync(Optional<SymbolList> symbol_list)
-// {
-//     struct RENDER_COMMAND(RenderFontAtlasBlocking) : renderer::RenderCommand
-//     {
-//         FontAtlas   &atlas;
-//         SymbolList  &symbol_list;
-
-//         RENDER_COMMAND(RenderFontAtlasBlocking)(FontAtlas &atlas, SymbolList &symbol_list)
-//             : atlas(atlas),
-//               symbol_list(symbol_list)
-//         {
-//         }
-
-//         virtual ~RENDER_COMMAND(RenderFontAtlasBlocking)() = default;
-
-//         virtual renderer::Result operator()() override
-//         {
-//             atlas.Render(symbol_list);
-            
-//             HYPERION_RETURN_OK;
-//         }
-//     };
-
-//     if (symbol_list.Empty()) {
-//         symbol_list = GetDefaultSymbolList();
-//     }
-
-//     PUSH_RENDER_COMMAND(RenderFontAtlasBlocking, *this, *symbol_list);
-
-//     HYP_SYNC_RENDER();
-// }
 
 void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const
 {
@@ -222,15 +198,11 @@ void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyp
     }
 }
 
-Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face, SymbolList symbol_list) const
+Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face) const
 {
     Extent2D highest_dimensions = { 0, 0 };
 
-    if (symbol_list.Empty()) {
-        symbol_list = GetDefaultSymbolList();
-    }
-
-    for (const auto &symbol : symbol_list) {
+    for (const auto &symbol : m_symbol_list) {
         // Create the glyph but only load in the metadata
         Glyph glyph(face, face->GetGlyphIndex(symbol), false);
         // Get the size of each glyph
@@ -246,6 +218,17 @@ Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face, SymbolList symbo
     }
 
     return highest_dimensions;
+}
+
+Optional<Glyph::Metrics> FontAtlas::GetGlyphMetrics(FontFace::WChar symbol) const
+{
+    const auto it = m_symbol_list.Find(symbol);
+
+    if (it == m_symbol_list.End()) {
+        return { };
+    }
+
+    return m_glyph_metrics[it - m_symbol_list.Begin()];
 }
 
 void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
@@ -361,6 +344,15 @@ json::JSONValue FontRenderer::GenerateMetadataJSON(const String &bitmap_filepath
     }
     
     value["metrics"] = std::move(metrics_array);
+
+    
+    json::JSONArray symbol_list_array;
+
+    for (const auto &symbol : m_atlas.GetSymbolList()) {
+        symbol_list_array.PushBack(json::JSONNumber(symbol));
+    }
+
+    value["symbol_list"] = std::move(symbol_list_array);
 
     return value;
 }

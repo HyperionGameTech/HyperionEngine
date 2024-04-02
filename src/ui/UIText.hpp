@@ -12,6 +12,8 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Texture.hpp>
 
+#include <rendering/font/FontAtlas.hpp>
+
 #include <math/Transform.hpp>
 #include <math/Vector2.hpp>
 
@@ -148,7 +150,7 @@ private:
 
 class UIText : public UIObject
 {
-    static Handle<Mesh> BuildTextMesh(const FontMap &font_map, const String &text);
+    static Handle<Mesh> BuildTextMesh(const FontAtlas &font_atlas, const String &text);
 
 public:
     UIText(ID<Entity> entity, UIScene *ui_scene);
@@ -165,18 +167,18 @@ public:
 
     void SetText(const String &text);
 
-    const RC<FontMap> &GetFontMap() const
-        { return m_font_map; }
+    const RC<FontAtlas> &GetFontAtlas() const
+        { return m_font_atlas; }
 
-    void SetFontMap(RC<FontMap> font_map);
+    void SetFontAtlas(RC<FontAtlas> font_atlas);
 
 protected:
     virtual Handle<Material> GetMaterial() const override;
 
     void UpdateMesh(bool update_material = false);
 
-    String      m_text;
-    RC<FontMap> m_font_map;
+    String          m_text;
+    RC<FontAtlas>   m_font_atlas;
 };
 
 } // namespace hyperion::v2

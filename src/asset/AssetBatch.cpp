@@ -6,6 +6,8 @@
 
 namespace hyperion::v2 {
 
+// AssetBatch
+
 void AssetBatch::LoadAsync(uint num_batches)
 {
     AssertThrowMsg(enqueued_assets != nullptr, "AssetBatch is in invalid state");
@@ -92,9 +94,7 @@ void AssetBatch::Add(const String &key, const String &path)
         "AssetBatch is in invalid state"
     );
 
-    enqueued_assets->Set(key, EnqueuedAsset {
-        .path = path
-    });
+    enqueued_assets->Set(key, EnqueuedAsset { path });
 
     UniquePtr<ProcessAssetFunctorBase> functor_ptr = asset_manager->CreateProcessAssetFunctor(
         key,
@@ -110,9 +110,14 @@ void AssetBatch::Add(const String &key, const String &path)
     procs.PushBack(std::move(functor_ptr));
 }
 
-static RC<AssetBatch> ScriptCreateAssetBatch(void *)
+// AssetManager
+
+UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
 {
-    return g_asset_manager->CreateBatch();
+    auto it = m_functor_factories.Find(loader_type_id);
+    AssertThrow(it != m_functor_factories.End());
+
+    return it->second(key, path, callbacks_ptr);
 }
 
 } // namespace hyperion::v2

@@ -44,6 +44,8 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
 
     Extent2D cell_dimensions;
 
+    DebugLog(LogType::Debug, "JSON cell dimensions:\n\t%s\t%d\n", json_value["cell_dimensions"].ToString().Data(), json_value["cell_dimensions"].ToBool());
+
     if (auto cell_dimensions_value = json_value["cell_dimensions"]) {
         cell_dimensions.width = uint32(cell_dimensions_value["width"].ToNumber());
         cell_dimensions.height = uint32(cell_dimensions_value["height"].ToNumber());
@@ -74,6 +76,24 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
         }
     } else {
         return { { LoaderResult::Status::ERR, "Failed to load glyph metrics" } };
+    }
+
+    FontAtlas::SymbolList symbol_list;
+
+    if (auto symbol_list_value = json_value["symbol_list"]) {
+        if (!symbol_list_value.IsArray()) {
+            return { { LoaderResult::Status::ERR, "Symbol list expected to be an array" } };
+        }
+
+        for (const JSONValue &symbol_value : symbol_list_value.AsArray()) {
+            if (!symbol_value.IsNumber()) {
+                return { { LoaderResult::Status::ERR, "Symbol list expected to be an array of numbers" } };
+            }
+
+            symbol_list.PushBack(FontFace::WChar(symbol_value.AsNumber()));
+        }
+    } else {
+        return { { LoaderResult::Status::ERR, "Failed to load symbol list" } };
     }
 
     UniquePtr<FontAtlas> font_atlas(new FontAtlas(std::move(bitmap_texture), cell_dimensions, std::move(glyph_metrics)));
