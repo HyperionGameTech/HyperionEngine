@@ -28,9 +28,7 @@ public:
         uint16  height;    /* 4 */
         int16   bearing_x;  /* 6 */
         int16   bearing_y;  /* 8 */
-        uint8   advance;    /* 9 */
-
-        uint8   _reserved0;  /* 10 */
+        uint32   advance;    /* 12 */
     } HYP_PACK_END;
 
     struct Metrics

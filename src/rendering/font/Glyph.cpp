@@ -68,11 +68,11 @@ void Glyph::Render()
     FT_Bitmap *ft_bitmap = &glyph->bitmap;
 
     packed_metrics = {
-        .width      = uint16(glyph->metrics.width / 64),
-        .height     = uint16(glyph->metrics.height / 64),
-        .bearing_x  = int16(glyph->metrics.horiBearingX / 64),
-        .bearing_y  = int16(glyph->metrics.horiBearingY / 64),
-        .advance    = uint8(glyph->metrics.horiAdvance / 64)
+        .width      = uint16(glyph->bitmap.width),
+        .height     = uint16(glyph->bitmap.rows),
+        .bearing_x  = int16(glyph->bitmap_left),
+        .bearing_y  = int16(glyph->bitmap_top),
+        .advance    = uint32(glyph->advance.x)
     };
 #endif
 

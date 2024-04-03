@@ -150,8 +150,6 @@ private:
 
 class UIText : public UIObject
 {
-    static Handle<Mesh> BuildTextMesh(const FontAtlas &font_atlas, const String &text);
-
 public:
     UIText(ID<Entity> entity, UIScene *ui_scene);
     UIText(const UIText &other)                 = delete;
@@ -175,6 +173,7 @@ public:
 protected:
     virtual Handle<Material> GetMaterial() const override;
 
+    Handle<Mesh> BuildTextMesh(const FontAtlas &font_atlas, const String &text) const;
     void UpdateMesh(bool update_material = false);
 
     String          m_text;

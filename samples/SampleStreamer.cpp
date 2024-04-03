@@ -744,7 +744,7 @@ void SampleStreamer::InitGame()
     //     }
     // });
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(Vec2i { 25, 25 }, Vec2i { 250, 100 })) {
+    if (auto btn = GetUI().CreateUIObject<UIButton>(Vec2i { 25, 25 }, Vec2i { 5, 5 })) {
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
                 .assembly_name = "csharp/bin/Debug/net8.0/csharp.dll",
@@ -757,14 +757,14 @@ void SampleStreamer::InitGame()
             return true;
         });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(Vec2i { 0, 0 }, Vec2i { 50, 25 });
-        ui_text->SetText("Hello, World!");
+        auto ui_text = GetUI().CreateUIObject<UIText>(Vec2i { 30, 30 }, Vec2i { 50, 50 });
+        ui_text->SetText("Hello");
         ui_text.GetNode().Get()->Remove();
         btn.GetNode().Get()->AddChild(ui_text.GetNode());
 
-        auto new_btn = GetUI().CreateUIObject<UIButton>(Vec2i { 0, 0 }, Vec2i { 100, 50 });
-        new_btn.GetNode().Get()->Remove();
-        btn.GetNode().Get()->AddChild(new_btn.GetNode());
+        // auto new_btn = GetUI().CreateUIObject<UIButton>(Vec2i { 0, 0 }, Vec2i { 100, 50 });
+        // new_btn.GetNode().Get()->Remove();
+        // btn.GetNode().Get()->AddChild(new_btn.GetNode());
     }
 
     m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());

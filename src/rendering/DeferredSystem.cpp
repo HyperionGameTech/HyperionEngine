@@ -224,17 +224,17 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode
     );
 
-    const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
-
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
         AddOwnedAttachment(
-            color_format,
+            InternalFormat::RGBA8_SRGB,
             framebuffer,
             attachments,
             extent
         );
     } else if (BucketIsRenderable(bucket)) {
+        const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
+
         // add gbuffer attachments
         // color attachment is unique for all buckets
         AddOwnedAttachment(

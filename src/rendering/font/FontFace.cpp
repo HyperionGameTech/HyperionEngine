@@ -18,6 +18,8 @@ FontFace::FontFace(FontEngine::Backend backend, const FilePath &path)
         m_face = nullptr;
         return;
     }
+
+    RequestPixelSizes(0, 48);
 #endif
 }
 

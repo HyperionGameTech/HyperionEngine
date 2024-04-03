@@ -1,4 +1,5 @@
 #include <ui/UIText.hpp>
+#include <ui/UIScene.hpp>
 
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -13,11 +14,27 @@
 namespace hyperion::v2 {
 struct UICharMesh
 {
-    Handle<Mesh>    quad_mesh;
-    Transform       transform;
+    RC<StreamedMeshData>    mesh_data;
+    Transform               transform;
 };
 
-static Array<UICharMesh> BuildCharMeshes(const FontAtlas &font_atlas, const String &text)
+class CharMeshBuilder
+{
+public:
+    CharMeshBuilder()
+    {
+        quad_mesh = MeshBuilder::Quad();
+        InitObject(quad_mesh);
+    }
+
+    Array<UICharMesh> BuildCharMeshes(const FontAtlas &font_atlas, const String &text) const;
+    Handle<Mesh> OptimizeCharMeshes(Vec2i screen_size, Array<UICharMesh> &&char_meshes) const;
+
+private:
+    Handle<Mesh> quad_mesh;
+};
+
+Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, const String &text) const
 {
     AssertThrowMsg(font_atlas.GetTexture().IsValid(), "Font atlas texture is invalid");
 
@@ -44,35 +61,32 @@ static Array<UICharMesh> BuildCharMeshes(const FontAtlas &font_atlas, const Stri
             continue;
         }
 
+        const Vec2i char_offset = glyph_metrics->image_position + Vec2i(glyph_metrics->metrics.bearing_x, 0);
+        const Vec2f atlas_pixel_size = Vec2f::one / Vec2f(font_atlas.GetDimensions());
+        const Vec2f glyph_scaling = Vec2f(glyph_metrics->metrics.width, glyph_metrics->metrics.height);
+
+        static const float scale_multiplier = 0.05f;
+
         UICharMesh char_mesh;
         char_mesh.transform.SetTranslation(placement);
-        char_mesh.quad_mesh = MeshBuilder::Quad();
+        // char_mesh.transform.SetScale(Vec3f { glyph_scaling.x * scale_multiplier, glyph_scaling.y * scale_multiplier, 1.0f });
+        char_mesh.mesh_data = quad_mesh->GetStreamedMeshData();
 
-        const Vec2i char_offset = glyph_metrics->image_position;
-        const Vec2f atlas_image_scaling = Vec2f::one / Vec2f(font_atlas.GetDimensions());
-        const Vec2f glyph_scaling = Vec2f::one / Vec2f(glyph_metrics->metrics.width, glyph_metrics->metrics.height);
-
-        auto streamed_mesh_data = char_mesh.quad_mesh->GetStreamedMeshData();
-        AssertThrow(streamed_mesh_data != nullptr);
-
-        auto ref = streamed_mesh_data->AcquireRef();
+        auto ref = char_mesh.mesh_data->AcquireRef();
 
         Array<Vertex> vertices = ref->GetMeshData().vertices;
         const Array<uint32> &indices = ref->GetMeshData().indices;
 
         for (Vertex &vert : vertices) {
-            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * glyph_scaling)) * atlas_image_scaling);
+            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_scaling - 1))) * (atlas_pixel_size));
         }
 
-        Mesh::SetStreamedMeshData(
-            char_mesh.quad_mesh,
-            StreamedMeshData::FromMeshData({
-                std::move(vertices),
-                indices
-            })
-        );
+        char_mesh.mesh_data = StreamedMeshData::FromMeshData({
+            std::move(vertices),
+            indices
+        });
 
-        placement.x += float(glyph_metrics->metrics.advance) * (1.0f / 64.0f);
+        placement.x += 1.0f;//float(uint32(glyph_metrics->metrics.advance) >> 6u);
 
         char_meshes.PushBack(std::move(char_mesh));
     }
@@ -80,21 +94,25 @@ static Array<UICharMesh> BuildCharMeshes(const FontAtlas &font_atlas, const Stri
     return char_meshes;
 }
 
-static Handle<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
+Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UICharMesh> &&char_meshes) const
 {
     if (char_meshes.Empty()) {
         return { };
     }
 
     Transform base_transform;
-    base_transform.SetTranslation(Vector3(1.0f, -1.0f, 0.0f));
+    base_transform.SetTranslation(Vec3f { 1.0f, -1.0f, 0.0f });
+    // base_transform.SetScale(Vec3f { 1.0f / float(screen_size.x), 1.0f / float(screen_size.y), 1.0f });
 
-    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_meshes[0].quad_mesh.Get(), base_transform * char_meshes[0].transform);
+    Handle<Mesh> char_mesh = CreateObject<Mesh>(char_meshes[0].mesh_data);
+    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), base_transform * char_meshes[0].transform);
 
     for (SizeType i = 1; i < char_meshes.Size(); i++) {
+        char_mesh = CreateObject<Mesh>(char_meshes[i].mesh_data);
+
         transformed_mesh = MeshBuilder::Merge(
             transformed_mesh.Get(),
-            char_meshes[i].quad_mesh.Get(),
+            char_mesh.Get(),
             Transform(),
             base_transform * char_meshes[i].transform
         );
@@ -107,9 +125,11 @@ static Handle<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 
 // UIText
 
-Handle<Mesh> UIText::BuildTextMesh(const FontAtlas &font_atlas, const String &text)
+Handle<Mesh> UIText::BuildTextMesh(const FontAtlas &font_atlas, const String &text) const
 {
-    return OptimizeCharMeshes(BuildCharMeshes(font_atlas, text));
+    CharMeshBuilder char_mesh_builder;
+
+    return char_mesh_builder.OptimizeCharMeshes(m_parent->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(font_atlas, text));
 }
 
 UIText::UIText(ID<Entity> entity, UIScene *parent)

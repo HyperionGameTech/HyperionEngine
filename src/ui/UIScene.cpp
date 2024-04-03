@@ -28,7 +28,7 @@ namespace hyperion::v2 {
 
 UIScene::UIScene()
     : BasicObject(),
-      m_surface_size { 1000, 1000 }
+      m_surface_size { 800, 450 }
 {
 }
 
