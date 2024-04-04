@@ -167,6 +167,10 @@ Result Image<Platform::VULKAN>::CreateImage(
     VkImageCreateInfo *out_image_info
 )
 {
+    if (m_extent.Size() == 0) {
+        return Result { Result::RENDERER_ERR, "Invalid image extent - width*height*depth cannot equal zero" };
+    }
+
     VkFormat format = helpers::ToVkFormat(m_format);
     VkImageType image_type = helpers::ToVkType(m_type);
     VkImageCreateFlags image_create_flags = 0;

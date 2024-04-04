@@ -25,8 +25,6 @@ public:
     static constexpr uint symbol_columns = 20;
     static constexpr uint symbol_rows = 5;
 
-    static constexpr uint data_lines_offset = 2;
-
     using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
 
@@ -109,43 +107,6 @@ public:
     //     bitmap.Write(path);
     // }
 private:
-
-    void WriteGlyphMetrics(ByteBuffer &pixels, FontAtlas &atlas)
-    {
-        const Extent2D cell_dimensions = atlas.GetCellDimensions();
-        const FontAtlas::GlyphMetricsBuffer metrics = atlas.GetGlyphMetrics();
-
-        ubyte *dest_buffer = m_bytes.GetInternalArray().Data();
-
-        for (auto &metric : metrics) {
-            SizeType buffer_offset = metric.image_position.y * atlas.GetDimensions().width + metric.image_position.x;
-
-            int metrics_to_write = int(sizeof(metric.metrics));
-            const uint cell_width = atlas.GetCellDimensions().width;
-
-            DebugLog(LogType::RenDebug, "metrics to write: %d\n", metrics_to_write);
-
-            // Check to make sure that we are not going to overwrite glyph data!
-            if (metrics_to_write > cell_width * FontAtlas::data_lines_offset) {
-                DebugLog(LogType::Warn, "Font glyph metrics data is larger than allocated data lines in image! Skipping writing metrics...\n");
-                return;
-            }
-
-            // For line wrap, the simplest method is to just loop over until we run out of data.
-            // Thus, if we later expand our glyph metadata struct, we can just keep wrapping over
-            // to the next available line.
-            do {
-                auto packed_metrics = metric.GetPackedMetrics();
-
-                Memory::MemCpy(dest_buffer + buffer_offset, &packed_metrics, (metrics_to_write > cell_width) ? cell_width : metrics_to_write);
-
-                buffer_offset += atlas.GetDimensions().height;
-                metrics_to_write -= int(cell_width);
-            } while (metrics_to_write > 0);
-
-            //DebugLog(LogType::RenDebug, "Font char metrics: (w:%d,h:%d), (%d,%d), %d\n", metric.width, metric.height, metric.bearing_x, metric.bearing_y, metric.advance);
-        }
-    }
 
     FontAtlas   m_atlas;
 

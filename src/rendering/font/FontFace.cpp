@@ -41,6 +41,11 @@ FontFace &FontFace::operator=(FontFace &&other) noexcept
 
 FontFace::~FontFace()
 {
+#ifdef HYP_FREETYPE
+    if (m_face != nullptr) {
+        FT_Done_Face(m_face);
+    }
+#endif
 }
 
 void FontFace::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height)

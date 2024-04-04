@@ -39,7 +39,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
     AssertThrowMsg(font_atlas.GetTexture().IsValid(), "Font atlas texture is invalid");
 
     Array<UICharMesh> char_meshes;
-    Vec3f placement;
+    Vec2f placement;
 
     const SizeType length = text.Length();
 
@@ -49,7 +49,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         if (ch == '\n') {
             // reset placement, add room for newline
             placement.x = 0.0f;
-            placement.y -= 1.5f;
+            placement.y += 1.0f;
 
             continue;
         }
@@ -62,14 +62,16 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         }
 
         const Vec2i char_offset = glyph_metrics->image_position + Vec2i(glyph_metrics->metrics.bearing_x, 0);
-        const Vec2f atlas_pixel_size = Vec2f::one / Vec2f(font_atlas.GetDimensions());
-        const Vec2f glyph_scaling = Vec2f(glyph_metrics->metrics.width, glyph_metrics->metrics.height);
 
-        static const float scale_multiplier = 0.05f;
+        const Vec2f atlas_pixel_size = Vec2f::one / Vec2f(font_atlas.GetDimensions());
+        const Vec2f glyph_dimensions = Vec2f(glyph_metrics->metrics.width, glyph_metrics->metrics.height);
+        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / Vec2f(font_atlas.GetCellDimensions());
 
         UICharMesh char_mesh;
-        char_mesh.transform.SetTranslation(placement);
-        // char_mesh.transform.SetScale(Vec3f { glyph_scaling.x * scale_multiplier, glyph_scaling.y * scale_multiplier, 1.0f });
+        
+        // char_mesh.transform.SetTranslation(placement);
+        // char_mesh.transform.SetScale(Vec3f { glyph_scaling.x, glyph_scaling.y, 1.0f });
+
         char_mesh.mesh_data = quad_mesh->GetStreamedMeshData();
 
         auto ref = char_mesh.mesh_data->AcquireRef();
@@ -78,7 +80,18 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         const Array<uint32> &indices = ref->GetMeshData().indices;
 
         for (Vertex &vert : vertices) {
-            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_scaling - 1))) * (atlas_pixel_size));
+            const Vec3f current_position = vert.GetPosition();
+
+            Vec2f position = Vec2f { current_position.x, current_position.y } * Vec2f(0.5f, 0.5f) + Vec2f(0.5f, -0.5f);
+            // adjust for bearing
+            position.y += float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / float(glyph_metrics->metrics.height);
+            // scale to glyph size
+            position *= glyph_scaling;
+            // offset from other characters
+            position += placement;
+
+            vert.SetPosition(Vec3f { position.x, position.y, current_position.z });
+            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 1))) * (atlas_pixel_size));
         }
 
         char_mesh.mesh_data = StreamedMeshData::FromMeshData({
@@ -86,7 +99,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
             indices
         });
 
-        placement.x += 1.0f;//float(uint32(glyph_metrics->metrics.advance) >> 6u);
+        placement.x += float(glyph_metrics->metrics.advance >> 6u) / float(font_atlas.GetCellDimensions().width);
 
         char_meshes.PushBack(std::move(char_mesh));
     }
@@ -101,7 +114,7 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
     }
 
     Transform base_transform;
-    base_transform.SetTranslation(Vec3f { 1.0f, -1.0f, 0.0f });
+    // base_transform.SetTranslation(Vec3f { 1.0f, -1.0f, 0.0f });
     // base_transform.SetScale(Vec3f { 1.0f / float(screen_size.x), 1.0f / float(screen_size.y), 1.0f });
 
     Handle<Mesh> char_mesh = CreateObject<Mesh>(char_meshes[0].mesh_data);
@@ -182,7 +195,7 @@ Handle<Material> UIText::GetMaterial() const
 {
     return g_material_system->GetOrCreate(
         MaterialAttributes {
-            .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes) },
+            .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { { "TEXT" } }) },
             .bucket             = Bucket::BUCKET_UI,
             .blend_mode         = BlendMode::NORMAL,
             .cull_faces         = FaceCullMode::NONE,

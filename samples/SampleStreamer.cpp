@@ -191,7 +191,7 @@ void SampleStreamer::InitGame()
     }
 
     // // Test freetype font rendering
-    auto font_face = g_asset_manager->Load<FontFace>("fonts/FreeSerif/FreeSerif.otf");
+    auto font_face = g_asset_manager->Load<FontFace>("fonts/Roboto/Roboto-Regular.ttf");
     FontAtlas atlas(font_face);
 
     // atlas.RenderSync();
@@ -206,7 +206,7 @@ void SampleStreamer::InitGame()
     
     auto font_metadata_json = fr.GenerateMetadataJSON("font_bitmap.png");
 
-    FileByteWriter bw("font_definition.json");
+    FileByteWriter bw("res/fonts/default.json");
     bw.WriteString(font_metadata_json.ToString(true) + '\n');
     bw.Close();
 
@@ -757,8 +757,8 @@ void SampleStreamer::InitGame()
             return true;
         });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(Vec2i { 30, 30 }, Vec2i { 50, 50 });
-        ui_text->SetText("Hello");
+        auto ui_text = GetUI().CreateUIObject<UIText>(Vec2i { 150, 150 }, Vec2i { 20, 20 });
+        ui_text->SetText("Hello, world!\nThis is a test.\ngood luck!\npoggers!");
         ui_text.GetNode().Get()->Remove();
         btn.GetNode().Get()->AddChild(ui_text.GetNode());
 

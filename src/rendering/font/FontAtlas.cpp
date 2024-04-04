@@ -46,15 +46,13 @@ FontAtlas::FontAtlas(RC<FontFace> face)
 
     // Each cell will be the same size at the largest symbol
     m_cell_dimensions = FindMaxDimensions(m_face);
-    // Data lines to store information about the symbol (overhang, width, height, etc)
-    m_cell_dimensions[1] += data_lines_offset;
-
+    
     m_atlas = CreateObject<Texture>(
         Texture2D(
             Extent2D { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows },
             /* Grayscale 8-bit texture */
             InternalFormat::R8,
-            FilterMode::TEXTURE_FILTER_LINEAR,
+            FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         )
@@ -65,15 +63,16 @@ FontAtlas::FontAtlas(RC<FontFace> face)
 
 FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
 {
-    // highest symbol in the ascii table
-    const uint end = uint('~' + 1);
     // first renderable symbol
-    const uint start = uint('!');
+    static constexpr uint char_range_start = 32; // space
+
+    // highest symbol in the ascii table
+    static constexpr uint char_range_end = 126; // ~ + 1
 
     SymbolList symbol_list;
-    symbol_list.Reserve(end - start);
+    symbol_list.Reserve(char_range_end - char_range_start + 1);
 
-    for (uint ch = start; ch < end; ch++) {
+    for (uint ch = char_range_start; ch <= char_range_end; ch++) {
         symbol_list.PushBack(ch);
     }
 
@@ -101,29 +100,28 @@ void FontAtlas::Render()
         if (y_index > symbol_rows)
             break;
 
-        const Vec2i position {
-            int(x_index * m_cell_dimensions.width),
-
-            /* Our cell is offset by data_lines_offset to allow our extra metadata
-                * to be written to the top of each cell. */
-            int(y_index * m_cell_dimensions.height + data_lines_offset)
-        };
-
         Glyph::Metrics metrics = glyph.GetMetrics();
 
         metrics.image_position = Vec2i {
             int(x_index * m_cell_dimensions.width),
-            int(y_index * m_cell_dimensions.height),
+            int(y_index * m_cell_dimensions.height)
         };
+
         m_glyph_metrics.PushBack(metrics);
 
-        image_index++;
+        const Vec2i position {
+            int(x_index * m_cell_dimensions.width),
+            int(y_index * m_cell_dimensions.height)
+        };
 
         // Render our character texture => atlas
         RenderCharacter(position, m_cell_dimensions, glyph);
+
+        image_index++;
     }
 
     if (!Threads::IsOnThread(THREAD_RENDER)) {
+        // Sync render commands if not on render thread (render commands are executed inline if on render thread)
         HYP_SYNC_RENDER();
     }
 

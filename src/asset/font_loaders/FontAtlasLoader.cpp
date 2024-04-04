@@ -44,8 +44,6 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
 
     Extent2D cell_dimensions;
 
-    DebugLog(LogType::Debug, "JSON cell dimensions:\n\t%s\t%d\n", json_value["cell_dimensions"].ToString().Data(), json_value["cell_dimensions"].ToBool());
-
     if (auto cell_dimensions_value = json_value["cell_dimensions"]) {
         cell_dimensions.width = uint32(cell_dimensions_value["width"].ToNumber());
         cell_dimensions.height = uint32(cell_dimensions_value["height"].ToNumber());

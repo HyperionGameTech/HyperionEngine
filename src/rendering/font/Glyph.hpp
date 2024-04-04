@@ -20,16 +20,14 @@ struct GlyphImageData
 class Glyph
 {
 public:
-
-    HYP_PACK_BEGIN
     struct PackedMetrics
     {
-        uint16  width;     /* 2 */
-        uint16  height;    /* 4 */
-        int16   bearing_x;  /* 6 */
-        int16   bearing_y;  /* 8 */
-        uint32   advance;    /* 12 */
-    } HYP_PACK_END;
+        uint16  width;
+        uint16  height;
+        int16   bearing_x;
+        int16   bearing_y;
+        uint32  advance;
+    };
 
     struct Metrics
     {
@@ -41,7 +39,7 @@ public:
             { return metrics; }
     };
 
-    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render);
+    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false);
     void Render();
 
     [[nodiscard]] Metrics GetMetrics() const

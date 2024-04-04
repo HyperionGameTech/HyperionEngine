@@ -28,7 +28,7 @@ Handle<Texture> GlyphImageData::CreateTexture() const
     Handle<Texture> texture = CreateObject<Texture>(Texture2D(
         dimensions,
         InternalFormat::R8,
-        FilterMode::TEXTURE_FILTER_LINEAR,
+        FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         std::move(streamed_texture_data)
     ));
@@ -40,12 +40,14 @@ Handle<Texture> GlyphImageData::CreateTexture() const
 
 // Glyph
 
-Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false)
+Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render)
     : m_face(std::move(face))
 {
 #ifdef HYP_FREETYPE
-    if (FT_Load_Glyph(m_face->GetFace(), index, (render) ? FT_LOAD_RENDER : FT_LOAD_DEFAULT)) {
+    if (FT_Load_Glyph(m_face->GetFace(), index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | (render ? FT_LOAD_RENDER : 0))) {
         DebugLog(LogType::Error, "Error loading glyph from font face!\n");
+
+        return;
     }
 #endif
 }
@@ -58,14 +60,16 @@ void Glyph::Render()
     PackedMetrics packed_metrics { };
 
 #ifdef HYP_FREETYPE
-    int error = FT_Render_Glyph(m_face->GetFace()->glyph, FT_RENDER_MODE_NORMAL);
+    // int error = FT_Render_Glyph(m_face->GetFace()->glyph, FT_RENDER_MODE_NORMAL);
 
-    if (error) {
-        DebugLog(LogType::Error, "Error rendering glyph '%s': %u\n", FT_Error_String(error), error);
-    }
+    // if (error) {
+    //     DebugLog(LogType::Error, "Error rendering glyph '%s': %u\n", FT_Error_String(error), error);
+    // }
 
     glyph = m_face->GetFace()->glyph;
-    FT_Bitmap *ft_bitmap = &glyph->bitmap;
+    FT_Bitmap &ft_bitmap = glyph->bitmap;
+
+    AssertThrow(glyph->format == FT_GLYPH_FORMAT_BITMAP);
 
     packed_metrics = {
         .width      = uint16(glyph->bitmap.width),
@@ -81,12 +85,20 @@ void Glyph::Render()
         .image_position = { 0, 0 }
     };
 
-
 #ifdef HYP_FREETYPE
-    ByteBuffer byte_buffer(ft_bitmap->width * ft_bitmap->rows, ft_bitmap->buffer);
+    Extent2D dimensions = GetMax();
+    dimensions.width = MathUtil::Max(dimensions.width, 1u);
+    dimensions.height = MathUtil::Max(dimensions.height, 1u);
+
+    ByteBuffer byte_buffer;
+    byte_buffer.SetSize(dimensions.Size());
+
+    if (ft_bitmap.buffer != nullptr) {
+        byte_buffer.Write(ft_bitmap.width * ft_bitmap.rows, 0, ft_bitmap.buffer);
+    }
 
     m_glyph_image_data = GlyphImageData {
-        { ft_bitmap->width, ft_bitmap->rows },
+        dimensions,
         std::move(byte_buffer)
     };
 #endif
@@ -97,8 +109,10 @@ Extent2D Glyph::GetMax()
     AssertThrow(m_face != nullptr);
 
 #ifdef HYP_FREETYPE
-    auto &box = m_face->GetFace()->glyph->metrics;
-    return { (uint32)box.width/64, (uint32)box.height/64 };
+
+    return { m_face->GetFace()->glyph->bitmap.width, m_face->GetFace()->glyph->bitmap.rows };
+    // auto &box = m_face->GetFace()->glyph->metrics;
+    // return { (uint32)box.width/64, (uint32)box.height/64 };
 #else
     return { 0, 0 };
 #endif
