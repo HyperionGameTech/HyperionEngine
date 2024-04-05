@@ -65,7 +65,7 @@ Vec2i UIObject_GetSize(ManagedRefCountedPtr obj)
         return { };
     }
 
-    return ui_object->GetSize();
+    return ui_object->GetActualSize();
 }
 
 void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
@@ -79,7 +79,7 @@ void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
     ui_object->SetSize(size);
 }
 
-UIObjectAlignment UIObject_GetAlignment(ManagedRefCountedPtr obj)
+UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -87,10 +87,10 @@ UIObjectAlignment UIObject_GetAlignment(ManagedRefCountedPtr obj)
         return UI_OBJECT_ALIGNMENT_TOP_LEFT;
     }
 
-    return ui_object->GetAlignment();
+    return ui_object->GetOriginAlignment();
 }
 
-void UIObject_SetAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
+void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -98,7 +98,7 @@ void UIObject_SetAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment
         return;
     }
 
-    ui_object->SetAlignment(alignment);
+    ui_object->SetOriginAlignment(alignment);
 }
 
 }

@@ -18,6 +18,9 @@ public:
     UIButton(UIButton &&other) noexcept             = delete;
     UIButton &operator=(UIButton &&other) noexcept  = delete;
     virtual ~UIButton() override = default;
+
+protected:
+    virtual Handle<Material> GetMaterial() const override;
 };
 
 } // namespace hyperion::v2

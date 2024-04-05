@@ -286,6 +286,13 @@ const BoundingBox &NodeProxy::GetLocalAABB() const
     return BoundingBox::empty;
 }
 
+void NodeProxy::SetLocalAABB(const BoundingBox &aabb)
+{
+    if (Get()) {
+        Get()->SetLocalAABB(aabb);
+    }
+}
+
 const BoundingBox &NodeProxy::GetWorldAABB() const
 {
     if (Get()) {
@@ -293,6 +300,13 @@ const BoundingBox &NodeProxy::GetWorldAABB() const
     }
 
     return BoundingBox::empty;
+}
+
+void NodeProxy::SetWorldAABB(const BoundingBox &aabb)
+{
+    if (Get()) {
+        Get()->SetWorldAABB(aabb);
+    }
 }
 
 bool NodeProxy::IsTransformLocked() const
@@ -316,6 +330,15 @@ void NodeProxy::UnlockTransform()
     if (Get()) {
         Get()->UnlockTransform();
     }
+}
+
+uint NodeProxy::CalculateDepth() const
+{
+    if (Get()) {
+        return Get()->CalculateDepth();
+    }
+
+    return 0;
 }
 
 HashCode NodeProxy::GetHashCode() const

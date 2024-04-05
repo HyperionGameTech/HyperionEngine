@@ -174,6 +174,26 @@ public:
     bool operator!=(const NodeProxy &other) const
         { return Get() != other.Get(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(std::nullptr_t) const
+        { return Get() == nullptr; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(std::nullptr_t) const
+        { return Get() != nullptr; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Node *operator->() const
+        { return Get(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Node &operator*() const
+        { return *Get(); }
+
     /*! \brief If the Node is present, returns a child Node at the given index.
         If the index is out of bounds, returns an empty NodeProxy. If no Node is present, returns an empty NodeProxy. */
     [[nodiscard]]
@@ -314,10 +334,16 @@ public:
      */
     const BoundingBox &GetLocalAABB() const;
 
+    /*! \brief Set the local-space aabb of the node. */
+    void SetLocalAABB(const BoundingBox &aabb);
+
     /*! \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
      */
     const BoundingBox &GetWorldAABB() const;
+
+    /*! \brief Set the world-space aabb of the node. */
+    void SetWorldAABB(const BoundingBox &aabb);
 
     /*! \brief If the Node is present, returns true if the Node's transform is locked. */
     bool IsTransformLocked() const;
@@ -327,6 +353,9 @@ public:
 
     /*! \brief Unlock the Node's transform, allowing it to be modified again. */
     void UnlockTransform();
+
+    /*! \brief Calculate the depth of the Node relative to the root Node. */
+    uint CalculateDepth() const;
 
     HashCode GetHashCode() const;
 };

@@ -5,6 +5,7 @@
 #include <core/Name.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/Delegate.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/NodeProxy.hpp>
@@ -41,6 +42,12 @@ class Node : public EnableRefCountedPtrFromThis<Node>
     friend class NodeProxy;
 
 public:
+    struct Delegates
+    {
+        Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeAdded;
+        Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeRemoved;
+    };
+
     using NodeList = Array<NodeProxy>;
 
     enum class Type : uint32
@@ -274,11 +281,17 @@ public:
             return;
         }
 
-        SetLocalTransform(Transform(
-            transform.GetTranslation() - m_parent_node->GetWorldTranslation(),
-            transform.GetScale() / m_parent_node->GetWorldScale(),
-            Quaternion(m_parent_node->GetWorldRotation()).Invert() * transform.GetRotation()
-        ));
+        Transform offset_transform;
+        offset_transform.GetTranslation() = (m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)
+            ? transform.GetTranslation() : transform.GetTranslation() - m_parent_node->GetWorldTranslation();
+        offset_transform.GetScale() = (m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)
+            ? transform.GetScale() : transform.GetScale() / m_parent_node->GetWorldScale();
+        offset_transform.GetRotation() = (m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)
+            ? transform.GetRotation() : Quaternion(m_parent_node->GetWorldRotation()).Invert() * transform.GetRotation();
+
+        offset_transform.UpdateMatrix();
+
+        SetLocalTransform(offset_transform);
     }
     
     /*! \returns The world-space translation of this Node. */
@@ -288,7 +301,7 @@ public:
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
     void SetWorldTranslation(const Vec3f &translation)
     {
-        if (m_parent_node == nullptr) {
+        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)) {
             SetLocalTranslation(translation);
 
             return;
@@ -304,7 +317,7 @@ public:
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
     void SetWorldScale(const Vec3f &scale)
     {
-        if (m_parent_node == nullptr) {
+        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)) {
             SetLocalScale(scale);
 
             return;
@@ -320,7 +333,7 @@ public:
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     void SetWorldRotation(const Quaternion &rotation)
     {
-        if (m_parent_node == nullptr) {
+        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)) {
             SetLocalRotation(rotation);
 
             return;
@@ -337,7 +350,7 @@ public:
 
     /*! \brief Set the local-space AABB of the Node. Used for marshaling data */
     void SetLocalAABB(const BoundingBox &aabb)
-        { m_local_aabb = aabb; }
+        { m_local_aabb = aabb; UpdateWorldTransform();  }
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
@@ -352,6 +365,9 @@ public:
     void UpdateWorldTransform();
 
     void RefreshEntityTransform();
+
+    /*! \brief Calculate the depth of the Node relative to the root Node. */
+    uint CalculateDepth() const;
 
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
@@ -369,6 +385,9 @@ public:
 
     /*! \brief Unlock the Node from being transformed. */
     void UnlockTransform();
+
+    Delegates *GetDelegates() const
+        { return m_delegates.Get(); }
 
     /*! \brief Get a NodeProxy for this Node. Increments the reference count of the Node's underlying reference count. */
     NodeProxy GetProxy()
@@ -402,26 +421,28 @@ protected:
         Scene *scene = nullptr
     );
 
-    void OnNestedNodeAdded(const NodeProxy &node);
-    void OnNestedNodeRemoved(const NodeProxy &node);
+    void OnNestedNodeAdded(const NodeProxy &node, bool direct);
+    void OnNestedNodeRemoved(const NodeProxy &node, bool direct);
 
-    Type                m_type = Type::NODE;
-    NodeFlags           m_flags = NODE_FLAG_NONE;
-    String              m_name;
-    Node                *m_parent_node;
-    NodeList            m_child_nodes;
-    Transform           m_local_transform;
-    Transform           m_world_transform;
-    BoundingBox         m_local_aabb;
-    BoundingBox         m_world_aabb;
+    Type                    m_type = Type::NODE;
+    NodeFlags               m_flags = NODE_FLAG_NONE;
+    String                  m_name;
+    Node                    *m_parent_node;
+    NodeList                m_child_nodes;
+    Transform               m_local_transform;
+    Transform               m_world_transform;
+    BoundingBox             m_local_aabb;
+    BoundingBox             m_world_aabb;
 
-    ID<Entity>          m_entity;
+    ID<Entity>              m_entity;
 
-    Array<NodeProxy>    m_descendents;
+    Array<NodeProxy>        m_descendents;
 
-    Scene               *m_scene;
+    Scene                   *m_scene;
 
-    bool                m_transform_locked;
+    bool                    m_transform_locked;
+
+    UniquePtr<Delegates>    m_delegates;
 };
 
 } // namespace hyperion::v2

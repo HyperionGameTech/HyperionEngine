@@ -361,12 +361,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    T &operator*()
-        { return *Get(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const T &operator*() const
+    T &operator*() const
         { return *Get(); }
 
     [[nodiscard]]

@@ -232,6 +232,12 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             attachments,
             extent
         );
+        AddOwnedAttachment(
+            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+            framebuffer,
+            attachments,
+            extent
+        );
     } else if (BucketIsRenderable(bucket)) {
         const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 

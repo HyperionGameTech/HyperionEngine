@@ -53,8 +53,8 @@ void Transform::UpdateMatrix()
 Transform Transform::operator*(const Transform &other) const
 {
     return {
-        m_translation + other.m_translation,
-        m_scale * other.m_scale,
+        other.m_translation + m_translation,
+        other.m_scale * m_scale,
         other.m_rotation * m_rotation
     };
 }

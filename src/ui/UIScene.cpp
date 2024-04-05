@@ -67,7 +67,7 @@ void UIScene::Init()
     m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
         0.0f, -float(m_surface_size.x),
         0.0f, float(m_surface_size.y),
-        -1.0f, 1.0f
+        float(min_depth), float(max_depth)
     ));
 
     InitObject(m_scene);
@@ -111,8 +111,12 @@ bool UIScene::TestRay(const Vec2f &position, RayHit &out_first_hit)
         //     direction.y,
         //     direction.z
         // );
+
+        BoundingBox aabb(bounding_box_component.world_aabb);
+        aabb.min.z = -1.0f;
+        aabb.max.z = 1.0f;
         
-        if (bounding_box_component.world_aabb.ContainsPoint(direction)) {
+        if (aabb.ContainsPoint(direction)) {
             RayHit hit { };
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = m_scene->GetCamera()->TransformWorldToNDC(transform_component.transform.GetTranslation()).z;
@@ -248,7 +252,7 @@ bool UIScene::OnInputEvent(
             if (TestRay(mouse_screen, hit)) {
                 // trigger click
                 if (auto ui_object = GetUIObject(hit.id)) {
-                    result = ui_object->OnClick(UIMouseEventData {
+                    result |= ui_object->OnClick(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
                         .is_down    = false

@@ -9,7 +9,7 @@ public class TestUIScript : UIEventHandler
     {
         base.Init(entity);
 
-        UIObject.Alignment = UIObjectAlignment.TopLeft;
+        UIObject.OriginAlignment = UIObjectAlignment.TopLeft;
 
         Logger.Log(LogType.Info, "Init UI script");
     }

@@ -62,7 +62,8 @@ Node::Node(
     m_parent_node(nullptr),
     m_local_transform(local_transform),
     m_scene(scene),
-    m_transform_locked(false)
+    m_transform_locked(false),
+    m_delegates(new Delegates)
 {
     SetEntity(entity);
 }
@@ -77,7 +78,8 @@ Node::Node(Node &&other) noexcept
       m_local_aabb(other.m_local_aabb),
       m_world_aabb(other.m_world_aabb),
       m_scene(other.m_scene),
-      m_transform_locked(other.m_transform_locked)
+      m_transform_locked(other.m_transform_locked),
+      m_delegates(std::move(other.m_delegates))
 {
     other.m_type = Type::NODE;
     other.m_flags = NODE_FLAG_NONE;
@@ -100,9 +102,9 @@ Node::Node(Node &&other) noexcept
     other.m_descendents = {};
 
     for (auto &node : m_child_nodes) {
-        AssertThrow(node.Get() != nullptr);
+        AssertThrow(node != nullptr);
 
-        node.Get()->m_parent_node = this;
+        node->m_parent_node = this;
     }
 }
 
@@ -112,6 +114,8 @@ Node &Node::operator=(Node &&other) noexcept
 
     SetEntity(ID<Entity>::invalid);
     SetScene(nullptr);
+
+    m_delegates = std::move(other.m_delegates);
 
     m_type = other.m_type;
     other.m_type = Type::NODE;
@@ -153,9 +157,9 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_descendents = {};
 
     for (auto &node : m_child_nodes) {
-        AssertThrow(node.Get() != nullptr);
+        AssertThrow(node != nullptr);
 
-        node.Get()->m_parent_node = this;
+        node->m_parent_node = this;
     }
 
     return *this;
@@ -207,21 +211,29 @@ void Node::SetScene(Scene *scene)
             continue;
         }
 
-        child.Get()->SetScene(scene);
+        child->SetScene(scene);
     }
 }
 
-void Node::OnNestedNodeAdded(const NodeProxy &node)
+void Node::OnNestedNodeAdded(const NodeProxy &node, bool direct)
 {
+    if (m_delegates) {
+        m_delegates->OnNestedNodeAdded.Broadcast(node, direct);
+    }
+
     m_descendents.PushBack(node);
     
     if (m_parent_node != nullptr) {
-        m_parent_node->OnNestedNodeAdded(node);
+        m_parent_node->OnNestedNodeAdded(node, false);
     }
 }
 
-void Node::OnNestedNodeRemoved(const NodeProxy &node)
+void Node::OnNestedNodeRemoved(const NodeProxy &node, bool direct)
 {
+    if (m_delegates) {
+        m_delegates->OnNestedNodeRemoved.Broadcast(node, direct);
+    }
+
     const auto it = m_descendents.Find(node);
 
     if (it != m_descendents.End()) {
@@ -229,7 +241,7 @@ void Node::OnNestedNodeRemoved(const NodeProxy &node)
     }
 
     if (m_parent_node != nullptr) {
-        m_parent_node->OnNestedNodeRemoved(node);
+        m_parent_node->OnNestedNodeRemoved(node, false);
     }
 }
 
@@ -246,23 +258,23 @@ NodeProxy Node::AddChild(const NodeProxy &node)
     }
 
     AssertThrowMsg(
-        node.Get()->GetParent() == nullptr,
+        node->GetParent() == nullptr,
         "Cannot attach a child node that already has a parent"
     );
 
     m_child_nodes.PushBack(std::move(node));
 
     auto &_node = m_child_nodes.Back();
-    _node.Get()->m_parent_node = this;
-    _node.Get()->SetScene(m_scene);
+    _node->m_parent_node = this;
+    _node->SetScene(m_scene);
 
-    OnNestedNodeAdded(_node);
+    OnNestedNodeAdded(_node, true);
 
-    for (auto &nested : _node.Get()->GetDescendents()) {
-        OnNestedNodeAdded(nested);
+    for (auto &nested : _node->GetDescendents()) {
+        OnNestedNodeAdded(nested, false);
     }
 
-    _node.Get()->UpdateWorldTransform();
+    _node->UpdateWorldTransform();
 
     return _node;
 }
@@ -274,17 +286,17 @@ bool Node::RemoveChild(NodeList::Iterator iter)
     }
 
     if (auto &node = *iter) {
-        AssertThrow(node.Get() != nullptr);
-        AssertThrow(node.Get()->GetParent() == this);
+        AssertThrow(node != nullptr);
+        AssertThrow(node->GetParent() == this);
 
-        for (auto &nested : node.Get()->GetDescendents()) {
-            OnNestedNodeRemoved(nested);
+        for (auto &nested : node->GetDescendents()) {
+            OnNestedNodeRemoved(nested, false);
         }
 
-        OnNestedNodeRemoved(node);
+        OnNestedNodeRemoved(node, true);
 
-        node.Get()->m_parent_node = nullptr;
-        node.Get()->SetScene(nullptr);
+        node->m_parent_node = nullptr;
+        node->SetScene(nullptr);
     }
 
     m_child_nodes.Erase(iter);
@@ -316,17 +328,17 @@ void Node::RemoveAllChildren()
 {
     for (auto it = m_child_nodes.begin(); it != m_child_nodes.end();) {
         if (auto &node = *it) {
-            AssertThrow(node.Get() != nullptr);
-            AssertThrow(node.Get()->GetParent() == this);
+            AssertThrow(node != nullptr);
+            AssertThrow(node->GetParent() == this);
 
-            for (auto &nested : node.Get()->GetDescendents()) {
-                OnNestedNodeRemoved(nested);
+            for (auto &nested : node->GetDescendents()) {
+                OnNestedNodeRemoved(nested, false);
             }
 
-            OnNestedNodeRemoved(node);
+            OnNestedNodeRemoved(node, true);
 
-            node.Get()->m_parent_node = nullptr;
-            node.Get()->SetScene(nullptr);
+            node->m_parent_node = nullptr;
+            node->SetScene(nullptr);
         }
 
         it = m_child_nodes.Erase(it);
@@ -463,7 +475,7 @@ void Node::LockTransform()
             continue;
         }
 
-        child.Get()->LockTransform();
+        child->LockTransform();
     }
 }
 
@@ -476,7 +488,7 @@ void Node::UnlockTransform()
             continue;
         }
 
-        child.Get()->UnlockTransform();
+        child->UnlockTransform();
     }
 }
 
@@ -556,16 +568,18 @@ void Node::UpdateWorldTransform()
         m_world_transform = m_local_transform;
         
         if (!(m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)) {
-            m_world_transform.SetTranslation(m_parent_node->GetWorldTransform().GetTranslation() + m_local_transform.GetTranslation());
+            m_world_transform.GetTranslation() = (m_local_transform.GetTranslation() + m_parent_node->GetWorldTransform().GetTranslation());
         }
 
         if (!(m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)) {
-            m_world_transform.SetRotation(m_parent_node->GetWorldTransform().GetRotation() * m_local_transform.GetRotation());
+            m_world_transform.GetRotation() = (m_local_transform.GetRotation() * m_parent_node->GetWorldTransform().GetRotation());
         }
 
         if (!(m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)) {
-            m_world_transform.SetScale(m_parent_node->GetWorldTransform().GetScale() * m_local_transform.GetScale());
+            m_world_transform.GetScale() = (m_local_transform.GetScale() * m_parent_node->GetWorldTransform().GetScale());
         }
+
+        m_world_transform.UpdateMatrix();
     } else {
         m_world_transform = m_local_transform;
     }
@@ -577,10 +591,10 @@ void Node::UpdateWorldTransform()
     m_world_aabb = m_local_aabb * m_world_transform;
 
     for (auto &node : m_child_nodes) {
-        AssertThrow(node.Get() != nullptr);
-        node.Get()->UpdateWorldTransform();
+        AssertThrow(node != nullptr);
+        node->UpdateWorldTransform();
 
-        m_world_aabb.Extend(node.Get()->GetWorldAABB());
+        m_world_aabb.Extend(node->GetWorldAABB());
     }
 
     if (m_parent_node != nullptr) {
@@ -599,6 +613,20 @@ void Node::UpdateWorldTransform()
             });
         }
     }
+}
+
+uint Node::CalculateDepth() const
+{
+    uint depth = 0;
+
+    Node *parent = m_parent_node;
+
+    while (parent != nullptr) {
+        ++depth;
+        parent = parent->GetParent();
+    }
+
+    return depth;
 }
 
 void Node::RefreshEntityTransform()
@@ -645,7 +673,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
                 continue;
             }
 
-            if (child_node.Get()->TestRay(ray, out_results)) {
+            if (child_node->TestRay(ray, out_results)) {
                 has_entity_hit = true;
             }
         }
@@ -664,7 +692,7 @@ NodeProxy Node::FindChildWithEntity(ID<Entity> entity) const
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child.Get()->GetEntity()) {
+            if (!child || !child->GetEntity().IsValid()) {
                 continue;
             }
 
@@ -689,7 +717,7 @@ NodeProxy Node::FindChildByName(const String &name) const
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child.Get()->GetEntity()) {
+            if (!child || !child->GetEntity().IsValid()) {
                 continue;
             }
 

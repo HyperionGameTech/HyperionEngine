@@ -205,7 +205,12 @@ void DebugDrawer::UpdateDrawCommands()
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
 }
 
-void DebugDrawer::CommitCommands(DebugDrawCommandList &&command_list)
+UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
+{
+    return UniquePtr<DebugDrawCommandList>(new DebugDrawCommandList(this));
+}
+
+void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
 {
     std::lock_guard guard(m_draw_commands_mutex);
 
@@ -281,6 +286,8 @@ void DebugDrawer::Plane(const FixedArray<Vec3f, 4> &points, Color color)
 
 void DebugDrawCommandList::Sphere(const Vec3f &position, float radius, Color color)
 {
+    Mutex::Guard guard(m_draw_commands_mutex);
+    
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
         DebugDrawType::DEFAULT,
@@ -291,6 +298,8 @@ void DebugDrawCommandList::Sphere(const Vec3f &position, float radius, Color col
 
 void DebugDrawCommandList::Box(const Vec3f &position, const Vec3f &size, Color color)
 {
+    Mutex::Guard guard(m_draw_commands_mutex);
+
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::BOX,
         DebugDrawType::DEFAULT,
@@ -301,6 +310,8 @@ void DebugDrawCommandList::Box(const Vec3f &position, const Vec3f &size, Color c
 
 void DebugDrawCommandList::Plane(const Vec3f &position, const Vector2 &size, Color color)
 {
+    Mutex::Guard guard(m_draw_commands_mutex);
+
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::PLANE,
         DebugDrawType::DEFAULT,
@@ -311,7 +322,9 @@ void DebugDrawCommandList::Plane(const Vec3f &position, const Vector2 &size, Col
 
 void DebugDrawCommandList::Commit()
 {
-    m_debug_drawer->CommitCommands(std::move(*this));
+    Mutex::Guard guard(m_draw_commands_mutex);
+    
+    m_debug_drawer->CommitCommands(*this);
 }
 
 } // namespace hyperion::v2

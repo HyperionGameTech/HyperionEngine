@@ -36,6 +36,10 @@ class FontAtlas;
 class UIScene : public BasicObject<STUB_CLASS(UIScene)>
 {
 public:
+    // The minimum and maximum depth values for the UI scene for layering
+    static const int min_depth = -10000;
+    static const int max_depth = 10000;
+
     UIScene();
     UIScene(const UIScene &other) = delete;
     UIScene &operator=(const UIScene &other) = delete;
@@ -58,23 +62,27 @@ public:
 
     template <class T>
     UIObjectProxy<T> CreateUIObject(
+        Name name,
         Vec2i position,
-        Vec2i size
+        UIObjectSize size
     )
     {
         Threads::AssertOnThread(THREAD_GAME);
         AssertReady();
 
-        RC<UIObject> ui_object = CreateUIObjectInternal<T>();
-        ui_object->SetPosition(position);
-        ui_object->SetSize(size);
+        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name);
 
         NodeProxy node_proxy = m_scene->GetRoot().AddChild();
-        node_proxy.SetEntity(ui_object->GetEntity());
-        node_proxy.LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
         node_proxy.Get()->SetFlags(node_proxy.Get()->GetFlags() | NODE_FLAG_IGNORE_PARENT_SCALE);
+
+        node_proxy.SetEntity(ui_object->GetEntity());
+        node_proxy.LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
+
+        ui_object->SetPosition(position);
+        ui_object->SetSize(size);
+        ui_object->Init();
 
         return UIObjectProxy<T>(std::move(node_proxy));
     }
@@ -92,7 +100,7 @@ public:
 
 private:
     template <class T>
-    RC<UIObject> CreateUIObjectInternal()
+    RC<UIObject> CreateUIObjectInternal(Name name, bool init = false)
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
@@ -101,10 +109,13 @@ private:
         const ID<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
         RC<UIObject> ui_object(new T(entity, this));
+        ui_object->SetName(name);
 
         m_scene->GetEntityManager()->AddComponent(entity, UIComponent { ui_object });
 
-        ui_object->Init();
+        if (init) {
+            ui_object->Init();
+        }
 
         return ui_object;
     }

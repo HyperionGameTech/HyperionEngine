@@ -384,6 +384,17 @@ extern "C" {
         return node->GetWorldAABB();
     }
 
+    void Node_SetWorldAABB(ManagedNode managed_node, ManagedBoundingBox aabb)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->SetWorldAABB(aabb);
+    }
+
     ManagedBoundingBox Node_GetLocalAABB(ManagedNode managed_node)
     {
         Node *node = managed_node.GetNode();
@@ -393,5 +404,16 @@ extern "C" {
         }
 
         return node->GetLocalAABB();
+    }
+
+    void Node_SetLocalAABB(ManagedNode managed_node, ManagedBoundingBox aabb)
+    {
+        Node *node = managed_node.GetNode();
+
+        if (node == nullptr) {
+            return;
+        }
+
+        node->SetLocalAABB(aabb);
     }
 }

@@ -67,8 +67,8 @@ class DebugDrawCommandList
 {
     friend class DebugDrawer;
 
-    DebugDrawCommandList(DebugDrawer *immediate_mode)
-        : m_debug_drawer(immediate_mode)
+    DebugDrawCommandList(DebugDrawer *debug_drawer)
+        : m_debug_drawer(debug_drawer)
     {
     }
 
@@ -85,6 +85,7 @@ public:
 private:
     DebugDrawer             *m_debug_drawer;
     Array<DebugDrawCommand> m_draw_commands;
+    Mutex                   m_draw_commands_mutex;
 };
 
 class DebugDrawer
@@ -97,7 +98,8 @@ public:
     void Destroy();
     void Render(Frame *frame);
 
-    void CommitCommands(DebugDrawCommandList &&command_list);
+    UniquePtr<DebugDrawCommandList> CreateCommandList();
+    void CommitCommands(DebugDrawCommandList &command_list);
     
     void Sphere(const Vec3f &position, float radius = 1.0f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void AmbientProbeSphere(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);

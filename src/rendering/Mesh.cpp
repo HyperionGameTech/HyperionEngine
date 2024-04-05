@@ -755,7 +755,8 @@ void Mesh::CalculateAABB()
         return;
     }
 
-    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    const MeshData &mesh_data = ref->GetMeshData();
 
     BoundingBox aabb = BoundingBox::empty;
 

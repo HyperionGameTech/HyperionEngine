@@ -305,11 +305,7 @@ public:
         { return Get(); }
 
     HYP_FORCE_INLINE
-    T &operator*()
-        { return *Get(); }
-
-    HYP_FORCE_INLINE
-    const T &operator*() const
+    T &operator*() const
         { return *Get(); }
     
     HYP_FORCE_INLINE

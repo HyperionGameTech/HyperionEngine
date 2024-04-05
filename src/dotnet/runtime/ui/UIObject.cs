@@ -83,15 +83,15 @@ namespace Hyperion
             }
         }
 
-        public UIObjectAlignment Alignment
+        public UIObjectAlignment OriginAlignment
         {
             get
             {
-                return UIObject_GetAlignment(refCountedPtr);
+                return UIObject_GetOriginAlignment(refCountedPtr);
             }
             set
             {
-                UIObject_SetAlignment(refCountedPtr, value);
+                UIObject_SetOriginAlignment(refCountedPtr, value);
             }
         }
 
@@ -113,10 +113,10 @@ namespace Hyperion
         [DllImport("libhyperion", EntryPoint = "UIObject_SetSize")]
         private static extern void UIObject_SetSize(RefCountedPtr rc, Vec2i size);
 
-        [DllImport("libhyperion", EntryPoint = "UIObject_GetAlignment")]
-        private static extern UIObjectAlignment UIObject_GetAlignment(RefCountedPtr rc);
+        [DllImport("libhyperion", EntryPoint = "UIObject_GetOriginAlignment")]
+        private static extern UIObjectAlignment UIObject_GetOriginAlignment(RefCountedPtr rc);
 
-        [DllImport("libhyperion", EntryPoint = "UIObject_SetAlignment")]
-        private static extern void UIObject_SetAlignment(RefCountedPtr rc, UIObjectAlignment alignment);
+        [DllImport("libhyperion", EntryPoint = "UIObject_SetOriginAlignment")]
+        private static extern void UIObject_SetOriginAlignment(RefCountedPtr rc, UIObjectAlignment alignment);
     }
 }

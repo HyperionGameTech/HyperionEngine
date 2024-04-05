@@ -166,9 +166,9 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
 
                 struct alignas(128)
                 {
-                    ShaderVec4<uint32>  dimensions;
-                    ShaderVec4<uint32>  prev_dimensions;
-                    uint32              mip_level;
+                    Vec4u   dimensions;
+                    Vec4u   prev_dimensions;
+                    uint32  mip_level;
                 } push_constants;
 
                 push_constants.dimensions = { mip_width, mip_height, 0, 0 };

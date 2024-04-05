@@ -192,19 +192,21 @@ void SampleStreamer::InitGame()
 
     // // Test freetype font rendering
     auto font_face = g_asset_manager->Load<FontFace>("fonts/Roboto/Roboto-Regular.ttf");
-    FontAtlas atlas(font_face);
+
+    RC<FontAtlas> atlas(new FontAtlas(font_face));
+    atlas->Render();
 
     // atlas.RenderSync();
 
     // ByteBuffer atlas_byte_buffer;
     // atlas.WriteToBuffer(atlas_byte_buffer);
 
-    FontRenderer fr(atlas);
-    fr.Render();
-    auto font_bitmap = fr.GenerateBitmap();
-    font_bitmap.Write("font_bitmap.png");
+    GetUI().SetDefaultFontAtlas(atlas);
+
+    auto font_bitmap = atlas->GenerateBitmap();
+    font_bitmap.Write("font_bitmap.bmp");
     
-    auto font_metadata_json = fr.GenerateMetadataJSON("font_bitmap.png");
+    auto font_metadata_json = atlas->GenerateMetadataJSON("font_bitmap.bmp");
 
     FileByteWriter bw("res/fonts/default.json");
     bw.WriteString(font_metadata_json.ToString(true) + '\n');
@@ -744,7 +746,14 @@ void SampleStreamer::InitGame()
     //     }
     // });
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(Vec2i { 25, 25 }, Vec2i { 5, 5 })) {
+
+    // auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text2), Vec2i { 25, 25 }, Vec2i { 100, 30 });
+    // ui_text->SetText("Hello, world!");
+    // ui_text->SetDepth(1);
+    // ui_text->UpdatePosition();
+    // ui_text->UpdateSize();
+
+    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(MainButton), Vec2i { 0, 0 }, Vec2i { 100, 30 })) {
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
                 .assembly_name = "csharp/bin/Debug/net8.0/csharp.dll",
@@ -752,22 +761,30 @@ void SampleStreamer::InitGame()
             }
         });
 
-        btn->OnMouseHover.Bind([](const UIMouseEventData &)
-        {
-            return true;
-        });
+        // btn->OnMouseHover.Bind([](const UIMouseEventData &)
+        // {
+        //     return true;
+        // });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(Vec2i { 150, 150 }, Vec2i { 20, 20 });
-        ui_text->SetText("Hello, world!\nThis is a test.\ngood luck!\npoggers!");
-        ui_text.GetNode().Get()->Remove();
-        btn.GetNode().Get()->AddChild(ui_text.GetNode());
+        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::DEFAULT }));//UIObjectSize(UIObjectSize::RELATIVE | UIObjectSize::PERCENT, Vec2i { 100, 100 }));
+        ui_text->SetText("hello!");
+        // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);
+        ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        btn->AddChildUIObject(ui_text);
 
-        // auto new_btn = GetUI().CreateUIObject<UIButton>(Vec2i { 0, 0 }, Vec2i { 100, 50 });
-        // new_btn.GetNode().Get()->Remove();
-        // btn.GetNode().Get()->AddChild(new_btn.GetNode());
+        auto new_btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, Vec2i { 115, 30 });
+        new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        new_btn->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        btn->AddChildUIObject(new_btn);
+
+        DebugLog(LogType::Debug, "ui_text aabb [%f, %f, %f, %f]\n", ui_text->GetLocalAABB().min.x, ui_text->GetLocalAABB().min.y, ui_text->GetLocalAABB().max.x, ui_text->GetLocalAABB().max.y);
+        DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
     }
 
-    m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
+    if (auto ui_renderer = m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene())) {
+        ui_renderer->SetDebugRender(true);
+    }
 
     //RC<LightmapRenderer> lightmap_renderer = m_scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(HYP_NAME(LightmapRenderer0));
 }

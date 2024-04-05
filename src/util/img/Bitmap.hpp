@@ -495,7 +495,7 @@ public:
 
         for (SizeType i = 0, j = 0; i < byte_buffer.Size() && j < m_pixels.Size(); i += num_components, j++) {
             for (uint k = 0; k < num_components; k++) {
-                m_pixels[j].SetComponent(k, byte_buffer.GetInternalArray()[i + k]);
+                m_pixels[j].SetComponent(k, byte_buffer.Data()[i + k]);
             }
         }
     }
