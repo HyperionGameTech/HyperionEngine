@@ -777,7 +777,7 @@ void SampleStreamer::InitGame()
         //     return true;
         // });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 0, UIObjectSize::GROW }));
+        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
         ui_text->SetText("Hello world!");
         ui_text->SetOptions({ .line_height = 1.5f });
         // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);

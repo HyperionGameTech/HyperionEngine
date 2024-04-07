@@ -10,7 +10,7 @@ namespace hyperion::v2 {
 UITab::UITab(ID<Entity> entity, UIScene *parent)
     : UIPanel(entity, parent)
 {
-    auto title_text = m_parent->CreateUIObject<UIText>(HYP_NAME(UITab_Title_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
+    auto title_text = m_parent->CreateUIObject<UIText>(HYP_NAME(UITab_Title_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 100, UIObjectSize::PERCENT }));
     title_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetText(m_title);

@@ -62,10 +62,10 @@ struct AssetLoaderDefinition
     HYP_FORCE_INLINE
     bool HandlesExtension(const String &filepath) const
     {
-        return extensions.ContainerBase::Any([&filepath](const String &extension)
+        return extensions.FindIf([&filepath](const String &extension)
         {
             return filepath.EndsWith(extension);
-        });
+        }) != extensions.End();
     }
 };
 

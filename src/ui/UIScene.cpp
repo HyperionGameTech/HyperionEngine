@@ -227,7 +227,7 @@ bool UIScene::OnInputEvent(
             for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
                 const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RayHit &hit)
                 {
-                    return hit.id == entity;
+                    return hit.id == entity.Value();
                 });
 
                 if (ray_test_results_it == ray_test_results.End()) {
@@ -304,7 +304,7 @@ bool UIScene::OnInputEvent(
         for (auto &it : m_mouse_held_times) {
             const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RayHit &hit)
             {
-                return hit.id == entity;
+                return hit.id == entity.Value();
             });
 
             if (ray_test_results_it != ray_test_results.End()) {

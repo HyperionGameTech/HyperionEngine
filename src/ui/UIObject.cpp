@@ -625,7 +625,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     const UIObject *parent_ui_object = GetParentUIObject();
 
     // if we have a parent ui object, use that as the parent size - otherwise use the actual surface size.
-    const Vec2i parent_size = parent_ui_object != nullptr && (m_size.GetAllFlags() & UIObjectSize::RELATIVE)
+    const Vec2i parent_size = parent_ui_object != nullptr
         ? parent_ui_object->GetActualSize()
         : m_parent->GetSurfaceSize();
 

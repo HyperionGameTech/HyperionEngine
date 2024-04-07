@@ -256,24 +256,39 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
 
     # Run dotnet.sh to build the dotnet runtime
 
+    message(STATUS "Dotnet headers found, building .NET core runtime")
+
     # copy all .so and .a files to lib/<platform name>
 
-    if(UNIX)
-        execute_process(
-            COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.sh
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
-        )
-    elseif(WIN32)
-        execute_process(
-            COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.bat
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
-        )
-    endif()
+    # if(UNIX)
+    #     execute_process(
+    #         COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.sh
+    #         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
+    #         RESULT_VARIABLE BUILD_RESULT
+    #         COMMAND_ECHO STDOUT
+    #     )
+    # 
+    #     if(BUILD_RESULT GREATER 0)
+    #         message(FATAL_ERROR "Failed to build .NET core runtime: ${BUILD_RESULT}")
+    #     endif()
+    # elseif(WIN32)
+    #     execute_process(
+    #         COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.cmd
+    #         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
+    #         RESULT_VARIABLE BUILD_RESULT
+    #         COMMAND_ECHO STDOUT
+    #     )
+    # 
+    #     if(BUILD_RESULT GREATER 0)
+    #         message(FATAL_ERROR "Failed to build .NET core runtime: ${BUILD_RESULT}")
+    #     endif()
+    # endif()
 
 
-    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so"
-        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.a"
-        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net9.0/**/output/*.lib")
+    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.a"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.lib"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.dll")
 
     foreach(DOTNET_LIB ${DOTNET_LIBS})
         message(STATUS "Copying ${DOTNET_LIB} to ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}")
@@ -286,8 +301,13 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
 
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.a")
         add_definitions(-DHYP_DOTNET=1)
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.lib")
+        message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.lib")
+        add_definitions(-DHYP_DOTNET=1)
     else()
-        message(WARNING "Dotnet headers found, but libnethost.a not found.")
+        message(WARNING "Dotnet headers found, but libnethost not found.")
     endif()
 
     # add_custom_command(

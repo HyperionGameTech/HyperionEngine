@@ -11,12 +11,8 @@
 #include <scene/ecs/components/UIComponent.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
-#include <rendering/backend/RendererStructs.hpp>
 #include <rendering/FullScreenPass.hpp>
 
-#include <math/Transform.hpp>
-
-#include <GameCounter.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {
@@ -60,15 +56,12 @@ struct UIObjectSize
 
     enum FlagBits : Flags
     {
-        RELATIVE = 0x01,
-        ABSOLUTE = 0x02,
-
         GROW     = 0x04,
 
         PIXEL    = 0x10,
         PERCENT  = 0x20,
 
-        DEFAULT  = ABSOLUTE | PIXEL
+        DEFAULT  = PIXEL
     };
 
     UIObjectSize()
@@ -150,7 +143,6 @@ private:
     HYP_FORCE_INLINE
     void ApplyDefaultFlags()
     {
-        ApplyDefaultFlagMask<RELATIVE | ABSOLUTE>();
         ApplyDefaultFlagMask<PIXEL | PERCENT>();
     }
 };

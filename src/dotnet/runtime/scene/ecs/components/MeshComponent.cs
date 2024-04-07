@@ -11,7 +11,7 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 96)]
-    public struct MeshComponent : IComponent
+    public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
         private ManagedHandle meshHandle;
