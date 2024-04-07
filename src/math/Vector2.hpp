@@ -30,11 +30,11 @@ struct alignas(alignof(T) * 2) Vec2
 
     constexpr Vec2() : x(0), y(0) { }
     constexpr Vec2(T x, T y) : x(x), y(y) { }
-    constexpr Vec2(const Vec2 &other) = default;
-    constexpr Vec2 &operator=(const Vec2 &other) = default;
-    constexpr Vec2(Vec2 &&other) noexcept = default;
-    constexpr Vec2 &operator=(Vec2 &&other) noexcept = default;
-    ~Vec2() = default;
+    constexpr Vec2(const Vec2 &other)                   = default;
+    constexpr Vec2 &operator=(const Vec2 &other)        = default;
+    constexpr Vec2(Vec2 &&other) noexcept               = default;
+    constexpr Vec2 &operator=(Vec2 &&other) noexcept    = default;
+    ~Vec2()                                             = default;
 
     constexpr T &operator[](SizeType index)
         { return values[index]; }
@@ -210,10 +210,8 @@ public:
     {
     }
 
-    constexpr Vec2(const Vec2 &other)
-        : x(other.x), y(other.y)
-    {
-    }
+    constexpr Vec2(const Vec2 &other)               = default;
+    constexpr Vec2 &operator=(const Vec2 &other)    = default;
 
     float GetX() const      { return x; }
     float &GetX()           { return x; }
@@ -234,9 +232,6 @@ public:
     template <class U>
     explicit operator Vec2<U>() const
         { return Vec2<U>(static_cast<U>(x), static_cast<U>(y)); }
-
-    Vec2 &operator=(const Vec2 &other)
-        { x = other.x; y = other.y; return *this; }
 
     constexpr Vec2 operator+(const Vec2 &other) const
         { return { x + other.x, y + other.y }; }

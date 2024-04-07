@@ -93,7 +93,7 @@ public:
     );
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    bool TestRay(const Vector2 &position, RayHit &out_first_hit);
+    bool TestRay(const Vec2f &position, RayTestResults &out_ray_test_results);
 
     void Init();
     void Update(GameCounter::TickUnit delta);
@@ -128,7 +128,10 @@ private:
 
     RC<FontAtlas>               m_default_font_atlas;
 
-    FlatMap<ID<Entity>, float>  m_mouse_held_times;
+    HashMap<ID<Entity>, float>  m_mouse_held_times;
+    FlatSet<ID<Entity>>         m_hovered_entities;
+
+    DelegateHandler             m_on_current_window_changed_handler;
 };
 
 } // namespace hyperion::v2

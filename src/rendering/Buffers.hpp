@@ -118,7 +118,7 @@ enum EntityGPUDataFlags : uint32
     ENTITY_GPU_FLAG_HAS_SKELETON    = 0x1
 };
 
-struct alignas(256) ObjectShaderData
+struct alignas(256) EntityShaderData
 {
     Matrix4 model_matrix;
     Matrix4 previous_model_matrix;
@@ -138,11 +138,11 @@ struct alignas(256) ObjectShaderData
     uint32  _pad3;
     uint32  _pad4;
 
-    Vec4f   _pad5;
+    Vec4u   user_data;
     Vec4f   _pad6;
 };
 
-static_assert(sizeof(ObjectShaderData) == 256);
+static_assert(sizeof(EntityShaderData) == 256);
 
 struct MaterialShaderData
 {
@@ -391,8 +391,8 @@ static const SizeType max_skeletons_bytes = max_skeletons * sizeof(SkeletonShade
 static const SizeType max_materials = (8ull * 1024ull * 1024ull) / sizeof(MaterialShaderData);
 static const SizeType max_materials_bytes = max_materials * sizeof(MaterialShaderData);
 /* max number of entities, based on size in mb */
-static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(ObjectShaderData);
-static const SizeType max_entities_bytes = max_entities * sizeof(ObjectShaderData);
+static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(EntityShaderData);
+static const SizeType max_entities_bytes = max_entities * sizeof(EntityShaderData);
 /* max number of scenes, based on size in kb */
 static const SizeType max_scenes = (32ull * 1024ull) / sizeof(SceneShaderData);
 static const SizeType max_scenes_bytes = max_scenes * sizeof(SceneShaderData);

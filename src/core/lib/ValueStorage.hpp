@@ -8,10 +8,10 @@
 
 namespace hyperion {
 
-template <class T>
-struct alignas(T) ValueStorage
+template <class T, uint alignment = alignof(T)>
+struct alignas(alignment) ValueStorage
 {
-    alignas(T) ubyte data_buffer[sizeof(T)];
+    alignas(alignment) ubyte data_buffer[sizeof(T)];
 
     ValueStorage()                                          = default;
 

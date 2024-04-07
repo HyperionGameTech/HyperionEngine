@@ -61,10 +61,10 @@ struct TerrainHeightData
     TerrainHeightData &operator=(TerrainHeightData &&other) noexcept    = delete;
     ~TerrainHeightData()                                                = default;
 
-    uint GetHeightIndex(uint x, uint z) const
+    uint GetHeightIndex(int x, int z) const
     {
-        return ((x + patch_info.extent.width) % patch_info.extent.width)
-                + ((z + patch_info.extent.depth) % patch_info.extent.depth) * patch_info.extent.width;
+        return uint(((x + int(patch_info.extent.width)) % int(patch_info.extent.width))
+                + ((z + int(patch_info.extent.depth)) % int(patch_info.extent.depth)) * int(patch_info.extent.width));
     }
 };
 
@@ -98,7 +98,7 @@ void TerrainErosion::Erode(TerrainHeightData &height_data)
     for (uint iteration = 0; iteration < num_iterations; iteration++) {
         for (int z = 1; z < height_data.patch_info.extent.depth - 2; z++) {
             for (int x = 1; x < height_data.patch_info.extent.width - 2; x++) {
-                auto &height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
+                TerrainHeight &height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
                 height_info.displacement = 0.0f;
 
                 for (const auto &offset : offsets) {
@@ -179,10 +179,10 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator &noise_combinator
         m_height_data.patch_info.coord.y
     );
 
-    for (uint z = 0; z < m_height_data.patch_info.extent.depth; z++) {
-        for (uint x = 0; x < m_height_data.patch_info.extent.width; x++) {
-            const float x_offset = float(x + (m_height_data.patch_info.coord.x * (m_height_data.patch_info.extent.width - 1))) / float(m_height_data.patch_info.extent.width);
-            const float z_offset = float(z + (m_height_data.patch_info.coord.y * (m_height_data.patch_info.extent.depth - 1))) / float(m_height_data.patch_info.extent.depth);
+    for (int z = 0; z < int(m_height_data.patch_info.extent.depth); z++) {
+        for (int x = 0; x < int(m_height_data.patch_info.extent.width); x++) {
+            const float x_offset = float(x + (m_height_data.patch_info.coord.x * int(m_height_data.patch_info.extent.width - 1))) / float(m_height_data.patch_info.extent.width);
+            const float z_offset = float(z + (m_height_data.patch_info.coord.y * int(m_height_data.patch_info.extent.depth - 1))) / float(m_height_data.patch_info.extent.depth);
 
             const uint index = m_height_data.GetHeightIndex(x, z);
 
@@ -197,7 +197,7 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator &noise_combinator
         }
     }
 
-    TerrainErosion::Erode(m_height_data);
+    // TerrainErosion::Erode(m_height_data);
 }
 
 Handle<Mesh> TerrainMeshBuilder::BuildMesh() const

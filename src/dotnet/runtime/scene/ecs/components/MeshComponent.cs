@@ -10,7 +10,7 @@ namespace Hyperion
         Dirty = 0x2
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 76)]
+    [StructLayout(LayoutKind.Explicit, Size = 96)]
     public struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -18,9 +18,13 @@ namespace Hyperion
         [FieldOffset(4)]
         private ManagedHandle materialHandle;
         [FieldOffset(8)]
-        private Matrix4 previousModelMatrix;
-        [FieldOffset(72)]
+        private ManagedHandle skeletonHandle;
+        [FieldOffset(12)] // ubyte[16]
+        private fixed byte userData[16];
+        [FieldOffset(28)]
         private MeshComponentFlags meshComponentFlags;
+        [FieldOffset(32)]
+        private Matrix4 previousModelMatrix;
 
         public Mesh Mesh
         {

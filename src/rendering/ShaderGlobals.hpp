@@ -59,7 +59,7 @@ struct ShaderGlobals
     ShaderData<SceneShaderData, GPUBufferType::STORAGE_BUFFER, max_scenes>                      scenes;
     ShaderData<CameraShaderData, GPUBufferType::CONSTANT_BUFFER, max_cameras>                   cameras;
     ShaderData<LightShaderData, GPUBufferType::STORAGE_BUFFER, max_lights>                      lights;
-    ShaderData<ObjectShaderData, GPUBufferType::STORAGE_BUFFER, max_entities>                   objects;
+    ShaderData<EntityShaderData, GPUBufferType::STORAGE_BUFFER, max_entities>                   objects;
     ShaderData<MaterialShaderData, GPUBufferType::STORAGE_BUFFER, max_materials>                materials;
     ShaderData<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER, max_skeletons>                skeletons;
     ShaderData<ShadowShaderData, GPUBufferType::STORAGE_BUFFER, max_shadow_maps>                shadow_map_data;

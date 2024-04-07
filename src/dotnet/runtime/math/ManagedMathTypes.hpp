@@ -12,7 +12,7 @@
 
 namespace hyperion::v2 {
 
-extern "C" struct ManagedVec3f
+extern "C" struct alignas(16) ManagedVec3f
 {
     float x;
     float y;
@@ -32,8 +32,9 @@ extern "C" struct ManagedVec3f
 
 static_assert(std::is_trivial_v<ManagedVec3f>, "ManagedVec3f must be a trivial type to be used in C#");
 static_assert(sizeof(ManagedVec3f) == 16, "ManagedVec3f must be 16 bytes to be used in C#");
+static_assert(alignof(ManagedVec3f) == 16, "ManagedVec3f must be 16-byte aligned to be used in C#");
 
-extern "C" struct ManagedVec3i
+extern "C" struct alignas(16) ManagedVec3i
 {
     int32 x;
     int32 y;
@@ -53,8 +54,9 @@ extern "C" struct ManagedVec3i
 
 static_assert(std::is_trivial_v<ManagedVec3i>, "ManagedVec3i must be a trivial type to be used in C#");
 static_assert(sizeof(ManagedVec3i) == 16, "ManagedVec3i must be 16 bytes to be used in C#");
+static_assert(alignof(ManagedVec3i) == 16, "ManagedVec3i must be 16-byte aligned to be used in C#");
 
-extern "C" struct ManagedVec3u
+extern "C" struct alignas(16) ManagedVec3u
 {
     uint32 x;
     uint32 y;
@@ -74,8 +76,9 @@ extern "C" struct ManagedVec3u
 
 static_assert(std::is_trivial_v<ManagedVec3u>, "ManagedVec3u must be a trivial type to be used in C#");
 static_assert(sizeof(ManagedVec3u) == 16, "ManagedVec3u must be 16 bytes to be used in C#");
+static_assert(alignof(ManagedVec3u) == 16, "ManagedVec3u must be 16-byte aligned to be used in C#");
 
-extern "C" struct ManagedQuaternion
+extern "C" struct alignas(16) ManagedQuaternion
 {
     float x;
     float y;
@@ -95,8 +98,9 @@ extern "C" struct ManagedQuaternion
 
 static_assert(std::is_trivial_v<ManagedQuaternion>, "ManagedQuaternion must be a trivial type to be used in C#");
 static_assert(sizeof(ManagedQuaternion) == 16, "ManagedQuaternion must be 16 bytes to be used in C#");
+static_assert(alignof(ManagedQuaternion) == 16, "ManagedQuaternion must be 16-byte aligned to be used in C#");
 
-extern "C" struct ManagedMatrix4
+extern "C" struct alignas(16) ManagedMatrix4
 {
     float values[16];
 

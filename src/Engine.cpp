@@ -159,6 +159,8 @@ void Engine::FindTextureFormatDefaults()
 
 void Engine::Initialize(RC<Application> application)
 {
+    m_application = application;
+
     Threads::AssertOnThread(THREAD_MAIN);
     Threads::SetCurrentThreadPriority(ThreadPriorityValue::HIGHEST);
 

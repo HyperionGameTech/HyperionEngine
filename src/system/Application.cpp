@@ -1,16 +1,12 @@
-//
-// Created by ethan on 2/5/22.
-//
-
-#include "Application.hpp"
-#include "Debug.hpp"
+#include <system/Application.hpp>
+#include <system/Debug.hpp>
 
 #include <core/lib/Memory.hpp>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
-#include "rendering/backend/RendererInstance.hpp"
+#include <rendering/backend/RendererInstance.hpp>
 
 namespace hyperion {
 
@@ -18,15 +14,14 @@ SDL_Event *SystemEvent::GetInternalEvent() {
     return &(this->sdl_event);
 }
 
-ApplicationWindow::ApplicationWindow(ANSIString title, uint width, uint height)
+ApplicationWindow::ApplicationWindow(ANSIString title, Vec2u size)
     : m_title(std::move(title)),
-      m_width(width),
-      m_height(height)
+      m_size(size)
 {
 }
 
-SDLApplicationWindow::SDLApplicationWindow(ANSIString title, uint width, uint height)
-    : ApplicationWindow(std::move(title), width, height),
+SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2u size)
+    : ApplicationWindow(std::move(title), size),
       window(nullptr)
 {
 }
@@ -63,7 +58,8 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
         m_title.Data(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        int(m_width), int(m_height),
+        int(m_size.x),
+        int(m_size.y),
         sdl_flags
     );
 
@@ -95,12 +91,12 @@ MouseState SDLApplicationWindow::GetMouseState()
     return mouse_state;
 }
 
-Extent2D SDLApplicationWindow::GetExtent() const
+Vec2u SDLApplicationWindow::GetDimensions() const
 {
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
 
-    return Extent2D { uint32(width), uint32(height) };
+    return Vec2u { uint32(width), uint32(height) };
 }
 
 void SDLApplicationWindow::SetMouseLocked(bool locked)
@@ -131,7 +127,7 @@ SDLApplication::~SDLApplication()
 UniquePtr<ApplicationWindow> SDLApplication::CreateSystemWindow(WindowOptions window_options)
 {
     UniquePtr<SDLApplicationWindow> window;
-    window.Reset(new SDLApplicationWindow(window_options.title.Data(), window_options.width, window_options.height));
+    window.Reset(new SDLApplicationWindow(window_options.title.Data(), window_options.size));
     window->Initialize(window_options);
 
     return window;
@@ -186,5 +182,12 @@ Application::Application(ANSIString name, int argc, char **argv)
 }
 
 Application::~Application() = default;
+
+void Application::SetCurrentWindow(UniquePtr<ApplicationWindow> &&window)
+{
+    m_current_window = std::move(window);
+
+    OnCurrentWindowChanged.Broadcast(m_current_window.Get());
+}
 
 } // namespace hyperion

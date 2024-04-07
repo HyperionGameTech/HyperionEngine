@@ -63,14 +63,20 @@ extern "C" {
     // MeshComponent
     struct ManagedMeshComponent
     {
-        ManagedHandle   mesh_handle;
-        ManagedHandle   material_handle;
-        ManagedMatrix4  previous_model_matrix;
-        uint32          mesh_component_flags;
+        ManagedHandle           mesh_handle;
+        ManagedHandle           material_handle;
+        ManagedHandle           skeleton_handle;
+        MeshComponentUserData   user_data;
+        uint32                  mesh_component_flags;
+        ManagedMatrix4          previous_model_matrix;
     };
 
+    constexpr auto x = alignof(ManagedMatrix4);
+
+    static_assert(sizeof(ManagedMeshComponent) == sizeof(MeshComponent), "ManagedMeshComponent should equal MeshComponent size");
+    static_assert(alignof(ManagedMeshComponent) == alignof(MeshComponent), "ManagedMeshComponent should have the same alignment as MeshComponent");
     static_assert(std::is_trivial_v<ManagedMeshComponent> && std::is_standard_layout_v<ManagedMeshComponent>, "ManagedMeshComponent should be a POD type");
-    static_assert(sizeof(ManagedMeshComponent) == 76, "ManagedMeshComponent should equal 84 bytes to match C# struct size");
+    static_assert(sizeof(ManagedMeshComponent) == 96, "ManagedMeshComponent should equal 96 bytes to match C# struct size");
 
     uint32 MeshComponent_GetNativeTypeID()
     {
@@ -86,8 +92,9 @@ extern "C" {
             std::move(mesh),
             std::move(material),
             Handle<Skeleton> { },
-            component->previous_model_matrix,
-            component->mesh_component_flags
+            component->user_data,
+            component->mesh_component_flags,
+            component->previous_model_matrix
         });
     }
 

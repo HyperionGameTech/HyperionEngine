@@ -112,17 +112,6 @@ void UIRenderer::CreateDescriptors()
     );
 }
 
-void UIRenderer::SetDebugRender(bool debug_render)
-{
-    m_debug_render.Set(debug_render, MemoryOrder::RELAXED);
-
-    if (debug_render) {
-        m_debug_commands = g_engine->GetDebugDrawer().CreateCommandList();
-    } else {
-        m_debug_commands.Reset();
-    }
-}
-
 // called from game thread
 void UIRenderer::InitGame() { }
 
@@ -145,21 +134,6 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
     );
 
     m_render_list.UpdateRenderGroups();
-
-#ifdef HYP_DEBUG_MODE
-    if (m_debug_render.Get(MemoryOrder::RELAXED)) {
-        for (auto [entity, ui_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, BoundingBoxComponent>()) {
-            if (!ui_component.ui_object) {
-                continue;
-            }
-
-            m_debug_commands->Box(
-                bounding_box_component.world_aabb.GetCenter(),
-                bounding_box_component.world_aabb.GetExtent()
-            );
-        }
-    }
-#endif
 }
 
 void UIRenderer::OnRender(Frame *frame)
@@ -179,14 +153,6 @@ void UIRenderer::OnRender(Frame *frame)
     );
 
     g_engine->GetRenderState().UnbindScene();
-
-#ifdef HYP_DEBUG_MODE
-    if (m_debug_render.Get(MemoryOrder::RELAXED)) {
-        AssertThrow(m_debug_commands != nullptr);
-        
-        m_debug_commands->Commit();
-    }
-#endif
 }
 
 } // namespace hyperion::v2

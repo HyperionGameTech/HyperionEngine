@@ -350,7 +350,7 @@ public:
 
     /*! \brief Set the local-space AABB of the Node. Used for marshaling data */
     void SetLocalAABB(const BoundingBox &aabb)
-        { m_local_aabb = aabb; UpdateWorldTransform();  }
+        { m_local_aabb = aabb; UpdateWorldTransform(); }
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
@@ -360,7 +360,7 @@ public:
 
     /*! \brief Set the world-space AABB of the Node. Used for marshaling data */
     void SetWorldAABB(const BoundingBox &aabb)
-        { m_world_aabb = aabb; }
+        { m_world_aabb = aabb; UpdateWorldTransform(); }
 
     void UpdateWorldTransform();
 

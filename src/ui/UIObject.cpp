@@ -29,6 +29,16 @@
 
 namespace hyperion::v2 {
 
+struct UIObjectMeshData
+{
+    uint32 focus_state = UI_OBJECT_FOCUS_STATE_NONE;
+    uint32 _pad0;
+    uint32 _pad1;
+    uint32 _pad2;
+};
+
+static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
+
 // UIObject
 
 Handle<Mesh> UIObject::GetQuadMesh()
@@ -70,7 +80,8 @@ UIObject::UIObject(ID<Entity> entity, UIScene *parent)
       m_parent_alignment(UI_OBJECT_ALIGNMENT_TOP_LEFT),
       m_position(0, 0),
       m_size({ 100, 100 }),
-      m_depth(0)
+      m_depth(0),
+      m_focus_state(UI_OBJECT_FOCUS_STATE_NONE)
 {
     AssertThrowMsg(entity.IsValid(), "Invalid Entity provided to UIObject!");
     AssertThrowMsg(parent != nullptr, "Invalid UIScene parent pointer provided to UIObject!");
@@ -143,17 +154,19 @@ void UIObject::Init()
         }
     };
 
-    OnMouseHover.Bind(ScriptedDelegate { this, "OnMouseHover" });
-    OnMouseDrag.Bind(ScriptedDelegate { this, "OnMouseDrag" });
-    OnMouseUp.Bind(ScriptedDelegate { this, "OnMouseUp" });
-    OnMouseDown.Bind(ScriptedDelegate { this, "OnMouseDown" });
-    OnClick.Bind(ScriptedDelegate { this, "OnClick" });
+    OnMouseHover.Bind(ScriptedDelegate { this, "OnMouseHover" }).Detach();
+    OnMouseLeave.Bind(ScriptedDelegate { this, "OnMouseLeave" }).Detach();
+    OnMouseDrag.Bind(ScriptedDelegate { this, "OnMouseDrag" }).Detach();
+    OnMouseUp.Bind(ScriptedDelegate { this, "OnMouseUp" }).Detach();
+    OnMouseDown.Bind(ScriptedDelegate { this, "OnMouseDown" }).Detach();
+    OnClick.Bind(ScriptedDelegate { this, "OnClick" }).Detach();
 
     // set `m_is_init` to true before calling `UpdatePosition` and `UpdateSize` to allow them to run
     m_is_init = true;
 
     UpdateSize();
     UpdatePosition();
+    UpdateMeshData();
 }
 
 Name UIObject::GetName() const
@@ -216,14 +229,16 @@ void UIObject::UpdatePosition()
 
     // where to position the object relative to its parent
     if (const UIObject *parent_ui_object = GetParentUIObject()) {
-        const Vec2i parent_actual_size = parent_ui_object->GetActualSize();
+        const Vec2f parent_padding(parent_ui_object->GetPadding());
+        const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
 
         switch (m_parent_alignment) {
         case UI_OBJECT_ALIGNMENT_TOP_LEFT:
-            // no offset
+            offset_position += parent_padding;
+
             break;
         case UI_OBJECT_ALIGNMENT_TOP_RIGHT:
-            offset_position += Vec2f(float(parent_actual_size.x), 0.0f);
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
 
             break;
         case UI_OBJECT_ALIGNMENT_CENTER:
@@ -231,11 +246,11 @@ void UIObject::UpdatePosition()
 
             break;
         case UI_OBJECT_ALIGNMENT_BOTTOM_LEFT:
-            offset_position += Vec2f(0.0f, float(parent_actual_size.y));
+            offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
 
             break;
         case UI_OBJECT_ALIGNMENT_BOTTOM_RIGHT:
-            offset_position += Vec2f(float(parent_actual_size.x), float(parent_actual_size.y));
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
 
             break;
         }
@@ -322,10 +337,12 @@ void UIObject::UpdateSize()
     BoundingBox aabb = node->GetLocalAABB();
 
     // If we have a mesh, set the AABB to the mesh's AABB
-    if (const Handle<Mesh> &mesh = GetMesh()) {
-        aabb = mesh->GetAABB();
+    if (!aabb.IsValid() || !aabb.IsFinite()) {
+        if (const Handle<Mesh> &mesh = GetMesh()) {
+            aabb = mesh->GetAABB();
 
-        node->SetLocalAABB(aabb);
+            SetLocalAABB(aabb);
+        }
     }
 
     if (!aabb.IsFinite() || !aabb.IsValid()) {
@@ -341,13 +358,6 @@ void UIObject::UpdateSize()
 
     const Vec3f local_aabb_extent = aabb.GetExtent();
 
-    DebugLog(
-        LogType::Debug, "UIObject: %s\tLocal AABB: [%f, %f, %f], [%f, %f, %f]\tExtent: [%f, %f, %f]\n",
-        GetName().LookupString(),
-        aabb.min.x, aabb.min.y, aabb.min.z,
-        aabb.max.x, aabb.max.y, aabb.max.z,
-        local_aabb_extent.x, local_aabb_extent.y, local_aabb_extent.z);
-
     node->SetWorldScale(Vec3f {
         float(m_actual_size.x) / MathUtil::Max(local_aabb_extent.x, MathUtil::epsilon_f),
         float(m_actual_size.y) / MathUtil::Max(local_aabb_extent.y, MathUtil::epsilon_f),
@@ -360,6 +370,13 @@ void UIObject::UpdateSize()
     {
         child->UpdateSize();
     });
+}
+
+void UIObject::SetFocusState(UIObjectFocusState focus_state)
+{
+    m_focus_state = focus_state;
+
+    UpdateMeshData();
 }
 
 int UIObject::GetDepth() const
@@ -406,6 +423,14 @@ void UIObject::SetParentAlignment(UIObjectAlignment alignment)
     UpdatePosition();
 }
 
+void UIObject::SetPadding(Vec2i padding)
+{
+    m_padding = padding;
+
+    UpdateSize();
+    UpdatePosition();
+}
+
 void UIObject::AddChildUIObject(UIObject *ui_object)
 {
     if (!ui_object) {
@@ -442,6 +467,38 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
     ui_object->UpdatePosition();
 }
 
+bool UIObject::RemoveChildUIObject(UIObject *ui_object)
+{
+    if (!ui_object) {
+        return false;
+    }
+
+    if (!m_parent || !m_parent->GetScene().IsValid()) {
+        return false;
+    }
+
+    NodeProxy node = GetNode();
+
+    if (!node) {
+        return false;
+    }
+
+    if (NodeProxy child_node = ui_object->GetNode()) {
+        if (child_node->IsOrHasParent(node.Get())) {
+            bool removed = child_node->Remove();
+
+            if (removed) {
+                ui_object->UpdateSize();
+                ui_object->UpdatePosition();
+
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 NodeProxy UIObject::GetNode() const
 {
     if (!m_entity.IsValid() || !m_parent || !m_parent->GetScene().IsValid()) {
@@ -472,6 +529,20 @@ BoundingBox UIObject::GetLocalAABB() const
     }
 
     return BoundingBox::empty;
+}
+
+void UIObject::SetLocalAABB(const BoundingBox &aabb)
+{
+    if (NodeProxy node = GetNode()) {
+        node->SetLocalAABB(aabb);
+    }
+
+    if (!m_parent || !m_parent->GetScene().IsValid()) {
+        return;
+    }
+
+    BoundingBoxComponent &bounding_box_component = m_parent->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(m_entity);
+    bounding_box_component.local_aabb = aabb;
 }
 
 Handle<Material> UIObject::GetMaterial() const
@@ -558,6 +629,10 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
         ? parent_ui_object->GetActualSize()
         : m_parent->GetSurfaceSize();
 
+    const Vec2i parent_padding = parent_ui_object != nullptr
+        ? parent_ui_object->GetPadding()
+        : Vec2i { 0, 0 };
+
     out_actual_size = in_size.GetValue();
 
     // percentage based size of parent ui object / surface
@@ -593,6 +668,32 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
             out_actual_size.y = dynamic_size.y;
         }
     }
+
+    // Reduce size due to parent object's padding
+    out_actual_size.x -= parent_padding.x * 2;
+    out_actual_size.y -= parent_padding.y * 2;
+
+    // make sure the actual size is at least 0
+    out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
+}
+
+void UIObject::UpdateMeshData()
+{
+    if (!m_parent || !m_parent->GetScene().IsValid()) {
+        return;
+    }
+
+    MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+
+    if (!mesh_component) {
+        return;
+    }
+
+    UIObjectMeshData ui_object_mesh_data { };
+    ui_object_mesh_data.focus_state = m_focus_state;
+
+    mesh_component->user_data.Set(ui_object_mesh_data);
+    mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
 template <class Lambda>

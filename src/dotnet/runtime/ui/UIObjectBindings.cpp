@@ -101,4 +101,26 @@ void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment ali
     ui_object->SetOriginAlignment(alignment);
 }
 
+UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr obj)
+{
+    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+
+    if (!ui_object) {
+        return UI_OBJECT_ALIGNMENT_TOP_LEFT;
+    }
+
+    return ui_object->GetParentAlignment();
+}
+
+void UIObject_SetParentAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
+{
+    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+
+    if (!ui_object) {
+        return;
+    }
+
+    ui_object->SetParentAlignment(alignment);
+}
+
 }

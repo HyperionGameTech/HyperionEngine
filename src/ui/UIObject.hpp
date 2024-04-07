@@ -45,6 +45,15 @@ enum UIObjectAlignment : uint32
     UI_OBJECT_ALIGNMENT_BOTTOM_RIGHT    = 4
 };
 
+using UIObjectFocusState = uint32;
+
+enum UIObjectFocusStateBits : UIObjectFocusState
+{
+    UI_OBJECT_FOCUS_STATE_NONE          = 0x0,
+    UI_OBJECT_FOCUS_STATE_HOVER         = 0x1,
+    UI_OBJECT_FOCUS_STATE_PRESSED       = 0x2
+};
+
 struct UIObjectSize
 {
     using Flags = uint32;
@@ -217,7 +226,27 @@ public:
     UIObjectAlignment GetParentAlignment() const;
     void SetParentAlignment(UIObjectAlignment alignment);
 
+    /*! \brief Get the padding of the UI object
+     *
+     * The padding of the UI object is used to add space around the object's content.
+     *
+     * \return The padding of the UI object
+     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Vec2i GetPadding() const
+        { return m_padding; }
+
+    /*! \brief Set the padding of the UI object
+     *
+     * The padding of the UI object is used to add space around the object's content.
+     *
+     * \param padding The padding of the UI object
+     */
+    void SetPadding(Vec2i padding);
+
     void AddChildUIObject(UIObject *ui_object);
+    bool RemoveChildUIObject(UIObject *ui_object);
 
     NodeProxy GetNode() const;
 
@@ -227,27 +256,39 @@ public:
     void UpdatePosition();
     void UpdateSize();
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    UIObjectFocusState GetFocusState() const
+        { return m_focus_state; }
+
+    void SetFocusState(UIObjectFocusState focus_state);
+
     Delegate<bool, const UIMouseEventData &>    OnMouseDown;
     Delegate<bool, const UIMouseEventData &>    OnMouseUp;
     Delegate<bool, const UIMouseEventData &>    OnMouseDrag;
     Delegate<bool, const UIMouseEventData &>    OnMouseHover;
+    Delegate<bool, const UIMouseEventData &>    OnMouseLeave;
     Delegate<bool, const UIMouseEventData &>    OnClick;
 
 protected:
-    virtual Handle<Material> GetMaterial() const;
-
-    const Handle<Mesh> &GetMesh() const;
-
-    const UIObject *GetParentUIObject() const;
-
     /*! \brief Get the shared quad mesh used for rendering UI objects. Vertices are in range: 0..1, with the origin at the top-left corner.
      *
      * \return The shared quad mesh
      */
     static Handle<Mesh> GetQuadMesh();
 
+    virtual Handle<Material> GetMaterial() const;
+
+    const Handle<Mesh> &GetMesh() const;
+
+    const UIObject *GetParentUIObject() const;
+
+    void SetLocalAABB(const BoundingBox &aabb);
+
     void UpdateActualSizes();
     void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool clamp = false);
+
+    void UpdateMeshData();
 
     ID<Entity>          m_entity;
     UIScene             *m_parent;
@@ -262,6 +303,8 @@ protected:
     UIObjectSize        m_max_size;
     Vec2i               m_actual_max_size;
 
+    Vec2i               m_padding;
+
     int                 m_depth; // manually set depth; otherwise defaults to the node's depth in the scene
 
     UIObjectAlignment   m_origin_alignment;
@@ -269,6 +312,8 @@ protected:
 
 private:
     bool                m_is_init;
+
+    UIObjectFocusState  m_focus_state;
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda);
@@ -305,21 +350,35 @@ public:
         { return m_node_proxy.GetEntity().IsValid(); }
 
     [[nodiscard]]
-    T *Get() const
+    operator RC<T>() const
     {
         if (!IsValid()) {
             return nullptr;
         }
 
+        if (!m_node_proxy->GetEntity().IsValid()) {
+            return nullptr;
+        }
+
         Scene *scene = m_node_proxy.Get()->GetScene();
-        AssertThrow(scene != nullptr);
 
-        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(m_node_proxy.GetEntity());
-        AssertThrow(ui_component != nullptr && ui_component->ui_object != nullptr);
-        AssertThrow(ui_component->ui_object.Is<T>());
+        if (!scene) {
+            return nullptr;
+        }
 
-        return static_cast<T *>(ui_component->ui_object.Get());
+        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(m_node_proxy->GetEntity());
+
+        if (!ui_component || !ui_component->ui_object || !ui_component->ui_object.Is<T>()) {
+            return nullptr;
+        }
+
+        return ui_component->ui_object.CastUnsafe<T>();
     }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    T *Get() const
+        { return static_cast<RC<T>>(*this).Get(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE

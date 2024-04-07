@@ -179,10 +179,10 @@ void Game::OnInputEvent(const SystemEvent &event)
             const int mouse_x = mouse_position.x.load(),
                 mouse_y = mouse_position.y.load();
 
-            const Extent2D extent = m_input_manager->GetWindow()->GetExtent();
+            const Vec2u window_size = m_input_manager->GetWindow()->GetDimensions();
 
-            const float mx = (float(mouse_x) - float(extent.width) * 0.5f) / (float(extent.width));
-            const float my = (float(mouse_y) - float(extent.height) * 0.5f) / (float(extent.height));
+            const float mx = (float(mouse_x) - float(window_size.x) * 0.5f) / (float(window_size.x));
+            const float my = (float(mouse_y) - float(window_size.y) * 0.5f) / (float(window_size.y));
             
             if (m_scene) {
                 if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
@@ -197,7 +197,7 @@ void Game::OnInputEvent(const SystemEvent &event)
                     });
 
                     if (controller->IsMouseLocked()) {
-                        m_input_manager->SetMousePosition(extent.width / 2, extent.height / 2);
+                        m_input_manager->SetMousePosition(window_size.x / 2, window_size.y / 2);
                     }
                 }
             }

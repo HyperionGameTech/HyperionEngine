@@ -41,6 +41,12 @@ namespace Hyperion
         }
 
         [Hyperion.ScriptMethodStub]
+        public virtual bool OnMouseLeave()
+        {
+            return false;
+        }
+
+        [Hyperion.ScriptMethodStub]
         public virtual bool OnMouseDrag()
         {
             return false;

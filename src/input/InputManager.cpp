@@ -84,10 +84,10 @@ void InputManager::UpdateWindowSize()
         return;
     }
 
-    const auto extent = m_window->GetExtent();
+    const Vec2u window_size = m_window->GetDimensions();
 
-    m_window_size.x.store(extent.width, std::memory_order_relaxed);
-    m_window_size.y.store(extent.height, std::memory_order_relaxed);
+    m_window_size.x.store(window_size.x, std::memory_order_relaxed);
+    m_window_size.y.store(window_size.y, std::memory_order_relaxed);
 }
 
 void InputManager::SetKey(int key, bool pressed)

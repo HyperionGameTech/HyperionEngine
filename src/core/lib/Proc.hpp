@@ -157,17 +157,24 @@ public:
     template <class Functor>
     Proc(Functor &&fn)
     {
-        static_assert(!std::is_base_of_v<detail::ProcBase, NormalizedType<Functor>>, "Object should not be ProcBase");
+        using FunctorNormalized = std::remove_cvref_t<Functor>;
 
-        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<Functor>;
+        static_assert(!std::is_base_of_v<detail::ProcBase, FunctorNormalized>, "Object should not be ProcBase");
 
-        if constexpr (sizeof(Functor) <= sizeof(MemoryDataType::bytes) && alignof(Functor) <= alignof(std::max_align_t)) {
+        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FunctorNormalized>;
+
+        if constexpr (sizeof(FunctorNormalized) <= sizeof(MemoryDataType::bytes) && alignof(Functor) <= alignof(std::max_align_t)) {
             functor.memory.template Set<MemoryDataType>({ });
-            Memory::Construct<Functor>(functor.GetPointer(), std::forward<Functor>(fn));
-            functor.delete_fn = &Memory::Destruct<Functor>;
+            Memory::Construct<FunctorNormalized>(functor.GetPointer(), std::forward<Functor>(fn));
+
+            if constexpr (std::is_trivially_destructible_v<FunctorNormalized>) {
+                functor.delete_fn = &Memory::NoOp;
+            } else {
+                functor.delete_fn = &Memory::Destruct<FunctorNormalized>;
+            }
         } else {
-            functor.memory.template Set<void *>(Memory::AllocateAndConstruct<Functor>(std::forward<Functor>(fn)));
-            functor.delete_fn = &Memory::DestructAndFree<Functor>;
+            functor.memory.template Set<void *>(Memory::AllocateAndConstruct<FunctorNormalized>(std::forward<Functor>(fn)));
+            functor.delete_fn = &Memory::DestructAndFree<FunctorNormalized>;
         }
     }
 

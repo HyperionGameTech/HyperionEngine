@@ -2,6 +2,8 @@
 #define HYPERION_V2_ECS_MESH_COMPONENT_HPP
 
 #include <core/Handle.hpp>
+#include <core/lib/UserData.hpp>
+
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -19,16 +21,22 @@ enum MeshComponentFlagBits : MeshComponentFlags
     MESH_COMPONENT_FLAG_DIRTY   = 0x2
 };
 
+using MeshComponentUserData = UserData<sizeof(Vec4u)>;
+
 struct MeshComponent
 {
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Handle<Skeleton>    skeleton;
+    Handle<Mesh>            mesh;
+    Handle<Material>        material;
+    Handle<Skeleton>        skeleton;
 
-    Matrix4             previous_model_matrix;
+    MeshComponentUserData   user_data;
 
-    MeshComponentFlags  flags = MESH_COMPONENT_FLAG_DIRTY;
+    MeshComponentFlags      flags = MESH_COMPONENT_FLAG_DIRTY;
+
+    Matrix4                 previous_model_matrix;
 };
+
+static_assert(sizeof(MeshComponent) == 96, "MeshComponent size must match C# struct size");
 
 } // namespace hyperion::v2
 

@@ -14,6 +14,8 @@ struct NodeLinkComponent
     Weak<Node>  node;
 };
 
+static_assert(sizeof(NodeLinkComponent) == 8, "NodeLinkComponent must be 8 bytes");
+
 } // namespace hyperion::v2
 
 #endif

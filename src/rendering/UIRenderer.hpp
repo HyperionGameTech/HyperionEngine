@@ -19,9 +19,6 @@ namespace hyperion::v2 {
 using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
-
-class DebugDrawCommandList;
-
 class UIRenderer
     : public RenderComponent<UIRenderer>
 {
@@ -38,8 +35,6 @@ public:
     void OnUpdate(GameCounter::TickUnit delta);
     void OnRender(Frame *frame);
 
-    void SetDebugRender(bool debug_render);
-
 private:
     void CreateFramebuffer();
     void CreateDescriptors();
@@ -51,9 +46,6 @@ private:
     Handle<Framebuffer>             m_framebuffer;
     Handle<Shader>                  m_shader;
     RenderList                      m_render_list;
-
-    AtomicVar<bool>                 m_debug_render;
-    UniquePtr<DebugDrawCommandList> m_debug_commands;
 };
 
 

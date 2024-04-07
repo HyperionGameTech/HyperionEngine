@@ -48,7 +48,7 @@ HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
 HYP_DESCRIPTOR_SET(1, Scene);
 HYP_DESCRIPTOR_SSBO(Scene, ScenesBuffer, 1, sizeof(SceneShaderData), true);
 HYP_DESCRIPTOR_SSBO(Scene, LightsBuffer, 1, sizeof(LightShaderData), true);
-HYP_DESCRIPTOR_SSBO(Scene, ObjectsBuffer, 1, sizeof(ObjectShaderData) * max_entities, false);
+HYP_DESCRIPTOR_SSBO(Scene, ObjectsBuffer, 1, sizeof(EntityShaderData) * max_entities, false);
 HYP_DESCRIPTOR_CBUFF(Scene, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Scene, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
 HYP_DESCRIPTOR_SSBO(Scene, EnvProbesBuffer, 1, sizeof(EnvProbeShaderData) * max_env_probes, false);

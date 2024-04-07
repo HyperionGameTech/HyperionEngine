@@ -15,23 +15,27 @@ namespace hyperion::v2 {
 struct UICharMesh
 {
     RC<StreamedMeshData>    mesh_data;
+    BoundingBox             aabb;
     Transform               transform;
 };
 
 class CharMeshBuilder
 {
 public:
-    CharMeshBuilder()
+    CharMeshBuilder(const UITextOptions &options)
+        : m_options(options)
     {
-        quad_mesh = MeshBuilder::Quad();
-        InitObject(quad_mesh);
+        m_quad_mesh = MeshBuilder::Quad();
+        InitObject(m_quad_mesh);
     }
 
     Array<UICharMesh> BuildCharMeshes(const FontAtlas &font_atlas, const String &text) const;
     Handle<Mesh> OptimizeCharMeshes(Vec2i screen_size, Array<UICharMesh> &&char_meshes) const;
 
 private:
-    Handle<Mesh> quad_mesh;
+    Handle<Mesh>    m_quad_mesh;
+
+    UITextOptions   m_options;
 };
 
 Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, const String &text) const
@@ -39,6 +43,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
     AssertThrowMsg(font_atlas.GetTexture().IsValid(), "Font atlas texture is invalid");
 
     Array<UICharMesh> char_meshes;
+    
     Vec2f placement;
 
     const SizeType length = text.Length();
@@ -80,34 +85,46 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / Vec2f(font_atlas.GetCellDimensions());
 
         UICharMesh char_mesh;
-        char_mesh.mesh_data = quad_mesh->GetStreamedMeshData();
+        char_mesh.mesh_data = m_quad_mesh->GetStreamedMeshData();
 
         auto ref = char_mesh.mesh_data->AcquireRef();
 
         Array<Vertex> vertices = ref->GetMeshData().vertices;
         const Array<uint32> &indices = ref->GetMeshData().indices;
 
+        const float bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / float(glyph_metrics->metrics.height);
+        const float char_width = float(glyph_metrics->metrics.advance / 64) / float(font_atlas.GetCellDimensions().width);
+
         for (Vertex &vert : vertices) {
             const Vec3f current_position = vert.GetPosition();
 
-            Vec2f position = Vec2f { current_position.x, current_position.y } * Vec2f(0.5f, 0.5f) + Vec2f(0.5f, -0.5f);
-            // adjust for bearing
-            position.y += float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / float(glyph_metrics->metrics.height);
+            Vec2f position = (Vec2f { current_position.x, current_position.y } + Vec2f { 1.0f, 1.0f }) * 0.5f;
+
             // scale to glyph size
             position *= glyph_scaling;
+
+            // adjust for bearing
+            position.y += (bearing_y * glyph_scaling.y);
+
+            // adjust to fit line height
+            position.y += m_options.line_height - (glyph_scaling.y);
+            
             // offset from other characters
             position += placement;
 
             vert.SetPosition(Vec3f { position.x, position.y, current_position.z });
-            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 1))) * (atlas_pixel_size));
+            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 1))) * atlas_pixel_size);
         }
+
+        char_mesh.aabb.Extend(Vec3f(placement.x, placement.y, 0.0f));
+        char_mesh.aabb.Extend(Vec3f(placement.x + char_width, placement.y + m_options.line_height, 0.0f));
 
         char_mesh.mesh_data = StreamedMeshData::FromMeshData({
             std::move(vertices),
             indices
         });
 
-        placement.x += float(glyph_metrics->metrics.advance / 64) / float(font_atlas.GetCellDimensions().width);
+        placement.x += char_width;
 
         char_meshes.PushBack(std::move(char_mesh));
     }
@@ -121,42 +138,37 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
         return { };
     }
 
-    Transform base_transform;
-    // base_transform.SetTranslation(Vec3f { 0.0f, 1.0f, 0.0f });
-    // base_transform.SetScale(Vec3f { 0.5f, 0.5f, 1.0f });
+    BoundingBox aabb = char_meshes[0].aabb;
 
     Handle<Mesh> char_mesh = CreateObject<Mesh>(char_meshes[0].mesh_data);
-    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), base_transform * char_meshes[0].transform);
+    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), char_meshes[0].transform);
 
     for (SizeType i = 1; i < char_meshes.Size(); i++) {
+        aabb.Extend(char_meshes[i].aabb);
+
         char_mesh = CreateObject<Mesh>(char_meshes[i].mesh_data);
 
         transformed_mesh = MeshBuilder::Merge(
             transformed_mesh.Get(),
             char_mesh.Get(),
             Transform::identity,
-            base_transform * char_meshes[i].transform
+            char_meshes[i].transform
         );
     }
 
     InitObject(transformed_mesh);
+
+    // Override mesh AABB with custom calculated AABB
+    transformed_mesh->SetAABB(aabb);
 
     return transformed_mesh;
 }
 
 // UIText
 
-Handle<Mesh> UIText::BuildTextMesh(const FontAtlas &font_atlas, const String &text) const
-{
-    CharMeshBuilder char_mesh_builder;
-
-    return char_mesh_builder.OptimizeCharMeshes(m_parent->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(font_atlas, text));
-}
-
 UIText::UIText(ID<Entity> entity, UIScene *parent)
     : UIObject(entity, parent),
-      m_text("No text set"),
-      m_font_atlas(parent != nullptr ? parent->GetDefaultFontAtlas() : nullptr)
+      m_text("No text set")
 {
 }
 
@@ -174,6 +186,13 @@ void UIText::SetText(const String &text)
     UpdateMesh();
 }
 
+FontAtlas *UIText::GetFontAtlasOrDefault() const
+{
+    return m_font_atlas != nullptr
+        ? m_font_atlas.Get()
+        : (m_parent != nullptr ? m_parent->GetDefaultFontAtlas().Get() : nullptr);
+}
+
 void UIText::SetFontAtlas(RC<FontAtlas> font_atlas)
 {
     m_font_atlas = std::move(font_atlas);
@@ -185,9 +204,19 @@ void UIText::UpdateMesh(bool update_material)
 {
     MeshComponent &mesh_component = GetParent()->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
 
-    mesh_component.mesh = m_font_atlas != nullptr
-        ? BuildTextMesh(*m_font_atlas, m_text)
-        : Handle<Mesh> { };
+    Handle<Mesh> mesh;
+
+    if (FontAtlas *font_atlas = GetFontAtlasOrDefault()) {
+        CharMeshBuilder char_mesh_builder(m_options);
+
+        mesh = char_mesh_builder.OptimizeCharMeshes(m_parent->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(*font_atlas, m_text));
+    } else {
+        DebugLog(LogType::Warn, "No font atlas for UIText %s", GetName().LookupString());
+
+        mesh = GetQuadMesh();
+    }
+
+    mesh_component.mesh = mesh;
 
     if (update_material || !mesh_component.material.IsValid()) {
         mesh_component.material = GetMaterial();
@@ -195,12 +224,22 @@ void UIText::UpdateMesh(bool update_material)
 
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 
+    if (mesh.IsValid()) {
+        UIObject::SetLocalAABB(mesh->GetAABB());
+    } else {
+        DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
+
+        UIObject::SetLocalAABB(BoundingBox::empty);
+    }
+
     // Update bounding box, size
     UIObject::UpdateSize();
 }
 
 Handle<Material> UIText::GetMaterial() const
 {
+    FontAtlas *font_atlas = GetFontAtlasOrDefault();
+
     return g_material_system->GetOrCreate(
         MaterialAttributes {
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
@@ -212,7 +251,7 @@ Handle<Material> UIText::GetMaterial() const
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 1.0f, 1.0f, 1.0f, 1.0f } }
         },
         {
-            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, m_font_atlas != nullptr ? m_font_atlas->GetTexture() : Handle<Texture> { } }
+            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_atlas != nullptr ? font_atlas->GetTexture() : Handle<Texture> { } }
         }
     );
 }

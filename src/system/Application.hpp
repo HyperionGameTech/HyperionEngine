@@ -9,6 +9,8 @@
 #include <SDL2/SDL.h>
 
 #include <core/Containers.hpp>
+#include <core/lib/Delegate.hpp>
+
 #include <util/fs/FsUtil.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
@@ -69,8 +71,7 @@ enum WindowFlagBits : WindowFlags
 struct WindowOptions
 {
     ANSIString  title;
-    uint        width;
-    uint        height;
+    Vec2u       size;
     WindowFlags flags = WINDOW_FLAGS_NONE;
 };
 
@@ -282,7 +283,7 @@ struct MouseState
 class ApplicationWindow
 {
 public:
-    ApplicationWindow(ANSIString title, uint width, uint height);
+    ApplicationWindow(ANSIString title, Vec2u size);
     ApplicationWindow(const ApplicationWindow &other) = delete;
     ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
     virtual ~ApplicationWindow() = default;
@@ -290,7 +291,7 @@ public:
     virtual void SetMousePosition(int x, int y) = 0;
     virtual MouseState GetMouseState() = 0;
 
-    virtual Extent2D GetExtent() const = 0;
+    virtual Vec2u GetDimensions() const = 0;
 
     virtual void SetMouseLocked(bool locked) = 0;
     virtual bool HasMouseFocus() const = 0;
@@ -300,21 +301,20 @@ public:
 #endif
 
 protected:
-    ANSIString  m_title;
-    uint        m_width;
-    uint        m_height;
+    ANSIString              m_title;
+    Vec2u                   m_size;
 };
 
 class SDLApplicationWindow : public ApplicationWindow
 {
 public:
-    SDLApplicationWindow(ANSIString title, uint width, uint height);
+    SDLApplicationWindow(ANSIString title, Vec2u size);
     virtual ~SDLApplicationWindow() override;
 
     virtual void SetMousePosition(int x, int y) override;
     virtual MouseState GetMouseState() override;
 
-    virtual Extent2D GetExtent() const override;
+    virtual Vec2u GetDimensions() const override;
 
     virtual void SetMouseLocked(bool locked) override;
     virtual bool HasMouseFocus() const override;
@@ -350,8 +350,7 @@ public:
     ApplicationWindow *GetCurrentWindow() const
         { return m_current_window.Get(); }
 
-    void SetCurrentWindow(UniquePtr<ApplicationWindow> &&window)
-        { m_current_window = std::move(window); }
+    void SetCurrentWindow(UniquePtr<ApplicationWindow> &&window);
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent &event) = 0;
@@ -359,11 +358,13 @@ public:
 #ifdef HYP_VULKAN
     virtual bool GetVkExtensions(Array<const char *> &out_extensions) const = 0;
 #endif
+
+    Delegate<void, ApplicationWindow *> OnCurrentWindowChanged;
     
 protected:
-    UniquePtr<ApplicationWindow>    m_current_window;
-    ANSIString                      m_name;
-    CommandLineArguments            m_arguments;
+    UniquePtr<ApplicationWindow>        m_current_window;
+    ANSIString                          m_name;
+    CommandLineArguments                m_arguments;
 };
 
 class SDLApplication : public Application

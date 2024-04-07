@@ -42,7 +42,7 @@ struct alignas(alignof(T) * 4) Vec3
     constexpr Vec3 &operator=(const Vec3 &other)        = default;
     constexpr Vec3(Vec3 &&other) noexcept               = default;
     constexpr Vec3 &operator=(Vec3 &&other) noexcept    = default;
-    ~Vec3() = default;
+    ~Vec3()                                             = default;
 
     Type GetX() const
         { return x; }
@@ -244,7 +244,7 @@ struct alignas(alignof(float) * 4) Vec3<float>
     constexpr Vec3 &operator=(const Vec3 &other)        = default;
     constexpr Vec3(Vec3 &&other) noexcept               = default;
     constexpr Vec3 &operator=(Vec3 &&other) noexcept    = default;
-    ~Vec3() = default;
+    ~Vec3()                                             = default;
 
     Type GetX() const
         { return x; }

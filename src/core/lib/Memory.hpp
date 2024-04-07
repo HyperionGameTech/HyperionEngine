@@ -154,6 +154,9 @@ public:
         std::free(ptr);
     }
 
+    /*! \brief No operation function for deleting a trivially destructible object. */
+    static void NoOp(void *) { /* Do nothing */ }
+
     static void Free(void *ptr)
     {
         std::free(ptr);

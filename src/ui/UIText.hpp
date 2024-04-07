@@ -148,6 +148,11 @@ private:
     FixedArray<Vec2i, 256>  m_char_texture_coords;
 };
 
+struct UITextOptions
+{
+    float line_height = 1.0f;
+};
+
 class UIText : public UIObject
 {
 public:
@@ -170,14 +175,23 @@ public:
 
     void SetFontAtlas(RC<FontAtlas> font_atlas);
 
+    const UITextOptions &GetOptions() const
+        { return m_options; }
+
+    void SetOptions(const UITextOptions &options)
+        { m_options = options; }
+
 protected:
     virtual Handle<Material> GetMaterial() const override;
 
-    Handle<Mesh> BuildTextMesh(const FontAtlas &font_atlas, const String &text) const;
     void UpdateMesh(bool update_material = false);
+
+    FontAtlas *GetFontAtlasOrDefault() const;
 
     String          m_text;
     RC<FontAtlas>   m_font_atlas;
+
+    UITextOptions   m_options;
 };
 
 } // namespace hyperion::v2

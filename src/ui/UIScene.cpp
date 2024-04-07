@@ -28,7 +28,7 @@ namespace hyperion::v2 {
 
 UIScene::UIScene()
     : BasicObject(),
-      m_surface_size { 800, 450 }
+      m_surface_size { 1000, 1000 }
 {
 }
 
@@ -43,6 +43,30 @@ void UIScene::Init()
     }
 
     BasicObject::Init();
+
+    // if (const RC<Application> &application = g_engine->GetApplication()) {
+    //     const auto UpdateWindowSize = [this](ApplicationWindow *window)
+    //     {
+    //         if (window == nullptr) {
+    //             return;
+    //         }
+
+    //         const Vec2i size = Vec2i(window->GetDimensions());
+
+    //         m_surface_size = Vec2i(size);
+
+    //         if (m_scene.IsValid()) {
+    //             m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+    //                 0.0f, -float(m_surface_size.x),
+    //                 0.0f, float(m_surface_size.y),
+    //                 float(min_depth), float(max_depth)
+    //             ));
+    //         }
+    //     };
+
+    //     UpdateWindowSize(application->GetCurrentWindow());
+    //     m_on_current_window_changed_handler = application->OnCurrentWindowChanged.Bind(UpdateWindowSize);
+    // }
 
     if (!m_default_font_atlas) {
         LoaderResult loader_result;
@@ -84,9 +108,11 @@ void UIScene::Update(GameCounter::TickUnit delta)
     }
 }
 
-bool UIScene::TestRay(const Vec2f &position, RayHit &out_first_hit)
+bool UIScene::TestRay(const Vec2f &position, RayTestResults &out_ray_test_results)
 {
     Threads::AssertOnThread(THREAD_GAME);
+
+    out_ray_test_results.Clear();
 
     const Vec4f world_position = m_scene->GetCamera()->TransformScreenToWorld(position);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };
@@ -94,23 +120,11 @@ bool UIScene::TestRay(const Vec2f &position, RayHit &out_first_hit)
     Ray ray;
     ray.position = world_position.GetXYZ() / world_position.w;
     ray.direction = direction;
-    
-    RayTestResults results;
 
     for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
-        // DebugLog(
-        //     LogType::Debug,
-        //     "Testing AABB [%f, %f, %f, %f, %f, %f] against point [%f, %f, %f]\n",
-        //     bounding_box_component.world_aabb.min.x,
-        //     bounding_box_component.world_aabb.min.y,
-        //     bounding_box_component.world_aabb.min.z,
-        //     bounding_box_component.world_aabb.max.x,
-        //     bounding_box_component.world_aabb.max.y,
-        //     bounding_box_component.world_aabb.max.z,
-        //     direction.x,
-        //     direction.y,
-        //     direction.z
-        // );
+        if (!ui_component.ui_object) {
+            continue;
+        }
 
         BoundingBox aabb(bounding_box_component.world_aabb);
         aabb.min.z = -1.0f;
@@ -122,17 +136,11 @@ bool UIScene::TestRay(const Vec2f &position, RayHit &out_first_hit)
             hit.distance = m_scene->GetCamera()->TransformWorldToNDC(transform_component.transform.GetTranslation()).z;
             hit.id = entity_id.value;
 
-            results.AddHit(hit);
+            out_ray_test_results.AddHit(hit);
         }
     }
 
-    if (results.Any()) {
-        out_first_hit = results.Front();
-        
-        return true;
-    }
-
-    return false;
+    return out_ray_test_results.Any();
 }
 
 bool UIScene::OnInputEvent(
@@ -149,6 +157,9 @@ bool UIScene::OnInputEvent(
         return nullptr;
     };
 
+    bool event_handled = false;
+    RayTestResults ray_test_results;
+
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
         // check intersects with objects on mouse movement.
@@ -156,23 +167,21 @@ bool UIScene::OnInputEvent(
         // if the mouse is on them, signal mouse movement
 
         // project a ray into the scene and test if it hits any objects
-        RayHit hit;
 
         const auto &mouse_position = input_manager->GetMousePosition();
         const auto mouse_x = mouse_position.x.load();
         const auto mouse_y = mouse_position.y.load();
         
+        DebugLog(LogType::Debug, "Mouse position: %d, %d\n", mouse_x, mouse_y);
         
         const bool is_mouse_button_down = input_manager->IsButtonDown(event.GetMouseButton());
 
-        const auto extent = input_manager->GetWindow()->GetExtent();
+        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
 
         const Vec2f mouse_screen(
-            float(mouse_x) / float(extent.width),
-            float(mouse_y) / float(extent.height)
+            float(mouse_x) / float(window_size.x),
+            float(mouse_y) / float(window_size.y)
         );
-
-        bool event_handled = false;
 
         if (is_mouse_button_down) { // mouse drag event
             for (auto &it : m_mouse_held_times) {
@@ -184,23 +193,62 @@ bool UIScene::OnInputEvent(
                             .button     = event.GetMouseButton(),
                             .is_down    = true
                         });
+
+                        if (event_handled) {
+                            break;
+                        }
                     }
                 }
             }
         } else {
-            if (TestRay(mouse_screen, hit)) {
-                // signal mouse hover
-                if (auto ui_object = GetUIObject(hit.id)) {
-                    event_handled |= ui_object->OnMouseHover(UIMouseEventData {
-                        .position   = mouse_screen,
-                        .button     = event.GetMouseButton(),
-                        .is_down    = false
-                    });
+            if (TestRay(mouse_screen, ray_test_results)) {
+                for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+                    if (auto ui_object = GetUIObject(it->id)) {
+                        if (!m_hovered_entities.Insert(it->id).second) {
+                            // Already hovered, skip
+                            continue;
+                        }
+
+                        ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_HOVER);
+
+                        event_handled |= ui_object->OnMouseHover(UIMouseEventData {
+                            .position   = mouse_screen,
+                            .button     = event.GetMouseButton(),
+                            .is_down    = false
+                        });
+
+                        if (event_handled) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
+                const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RayHit &hit)
+                {
+                    return hit.id == entity;
+                });
+
+                if (ray_test_results_it == ray_test_results.End()) {
+                    if (auto other_ui_object = GetUIObject(*it)) {
+                        other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_HOVER);
+
+                        other_ui_object->OnMouseLeave(UIMouseEventData {
+                            .position   = mouse_screen,
+                            .button     = event.GetMouseButton(),
+                            .is_down    = false
+                        });
+                    }
+
+                    it = m_hovered_entities.Erase(it);
+                } else {
+                    ++it;
                 }
             }
         }
 
-        return event_handled;
+        break;
     }
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN: {
         // project a ray into the scene and test if it hits any objects
@@ -210,23 +258,30 @@ bool UIScene::OnInputEvent(
         const auto mouse_x = mouse_position.x.load();
         const auto mouse_y = mouse_position.y.load();
 
-        const auto extent = input_manager->GetWindow()->GetExtent();
+        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
 
         const Vec2f mouse_screen(
-            float(mouse_x) / float(extent.width),
-            float(mouse_y) / float(extent.height)
+            float(mouse_x) / float(window_size.x),
+            float(mouse_y) / float(window_size.y)
         );
 
-        if (TestRay(mouse_screen, hit)) {
-            m_mouse_held_times.Insert(hit.id, 0.0f);
+        if (TestRay(mouse_screen, ray_test_results)) {
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+                if (auto ui_object = GetUIObject(it->id)) {
+                    m_mouse_held_times.Insert(it->id, 0.0f);
 
-            // trigger mouse down
-            if (auto ui_object = GetUIObject(hit.id)) {
-                return ui_object->OnMouseDown(UIMouseEventData {
-                    .position   = mouse_screen,
-                    .button     = event.GetMouseButton(),
-                    .is_down    = true
-                });
+                    ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_PRESSED);
+
+                    event_handled |= ui_object->OnMouseDown(UIMouseEventData {
+                        .position   = mouse_screen,
+                        .button     = event.GetMouseButton(),
+                        .is_down    = true
+                    });
+
+                    if (event_handled) {
+                        break;
+                    }
+                }
             }
         }
 
@@ -237,51 +292,63 @@ bool UIScene::OnInputEvent(
         const auto mouse_x = mouse_position.x.load();
         const auto mouse_y = mouse_position.y.load();
 
-        const auto extent = input_manager->GetWindow()->GetExtent();
+        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
 
         const Vec2f mouse_screen(
-            float(mouse_x) / float(extent.width),
-            float(mouse_y) / float(extent.height)
+            float(mouse_x) / float(window_size.x),
+            float(mouse_y) / float(window_size.y)
         );
 
-        bool result = false;
+        TestRay(mouse_screen, ray_test_results);
 
         for (auto &it : m_mouse_held_times) {
-            RayHit hit;
+            const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RayHit &hit)
+            {
+                return hit.id == entity;
+            });
 
-            if (TestRay(mouse_screen, hit)) {
+            if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
-                if (auto ui_object = GetUIObject(hit.id)) {
-                    result |= ui_object->OnClick(UIMouseEventData {
+                if (auto ui_object = GetUIObject(ray_test_results_it->id)) {
+                    event_handled |= ui_object->OnClick(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
                         .is_down    = false
                     });
+
+                    if (event_handled) {
+                        break;
+                    }
                 }
             }
+        }
 
-            // trigger mouse up
-            if (auto ui_object = GetUIObject(it.first)) {
-                result |= ui_object->OnMouseUp(UIMouseEventData {
-                    .position   = mouse_screen,
-                    .button     = event.GetMouseButton(),
-                    .is_down    = false
-                });
-            }
+        if (!event_handled) {
+            for (auto &it : m_mouse_held_times) {
+                // trigger mouse up
+                if (auto ui_object = GetUIObject(it.first)) {
+                    ui_object->SetFocusState(ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_PRESSED);
 
-            if (result) {
-                break;
+                    event_handled |= ui_object->OnMouseUp(UIMouseEventData {
+                        .position   = mouse_screen,
+                        .button     = event.GetMouseButton(),
+                        .is_down    = false
+                    });
+
+                    if (event_handled) {
+                        break;
+                    }
+                }
             }
         }
 
         m_mouse_held_times.Clear();
 
-        return result;
+        break;
     }
     }
 
-    // no handle for it
-    return false;
+    return event_handled;
 }
 
 bool UIScene::Remove(ID<Entity> entity)

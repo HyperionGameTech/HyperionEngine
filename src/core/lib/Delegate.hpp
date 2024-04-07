@@ -14,6 +14,8 @@ namespace hyperion {
 
 using v2::IDCreator;
 
+class DelegateHandler;
+
 namespace functional {
 namespace detail {
 struct DelegateHandlerData
@@ -21,14 +23,16 @@ struct DelegateHandlerData
     uint    id = 0;
     void    *delegate = nullptr;
     void    (*remove_fn)(void *, uint) = nullptr;
+    void    (*detach_fn)(void *, DelegateHandler &&delegate_handler) = nullptr;
 
     ~DelegateHandlerData();
 
-    void Release();
+    void Reset();
+    void Detach(DelegateHandler &&delegate_handler);
 
     HYP_FORCE_INLINE
     bool IsValid() const
-        { return id != 0 && delegate != nullptr && remove_fn != nullptr; }
+        { return id != 0 && delegate != nullptr; }
 };
 } // namespace detail
 } // namespace functional
@@ -73,6 +77,17 @@ public:
     void Reset()
         { m_data.Reset(); }
 
+    /*! \brief Detach the DelegateHandler from the Delegate.
+        This will allow the Delegate handler function to remain attached to the delegate upon destruction of this object.
+        \note This requires proper management to prevent memory leaks and access of invalid objects, as the lifecycle of the handler will now last
+            as long as the Delegate itself. */
+    HYP_FORCE_INLINE void Detach()
+    {
+        if (IsValid()) {
+            m_data->Detach(std::move(*this));
+        }
+    }
+
 private:
     DelegateHandler(RC<functional::detail::DelegateHandlerData>);
 
@@ -93,30 +108,14 @@ class Delegate
     static constexpr bool returns_boolean = std::is_same_v<ReturnType, bool>;
 
 public:
-    /*! \brief Bind a Proc<> to the Delegate as a strong reference.
-     * \note Since the DelegateHandler is bound as a strong reference, the handler will not be removed until Remove() is called or the Delegate is destroyed.
-     *
-     * \param proc The Proc to bind.
-     * \return A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. 
-     */
-    DelegateHandler Bind(ProcType &&proc)
-    {
-        DelegateHandler handler = BindWeak(std::move(proc));
-
-        Mutex::Guard guard(m_strong_handlers_mutex);
-        m_strong_handlers.Insert(handler.m_data->id, handler);
-
-        return handler;
-    }
-
-    /*! \brief Bind a Proc<> to the Delegate as a weak reference. 
-     * \note Since the DelegateHandler is bound as a weak reference, the handler will be removed when the last reference to the DelegateHandler is removed.
+    /*! \brief Bind a Proc<> to the Delegate.
+     * \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
      *
      * \param proc The Proc to bind.
      * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate.
      */
-    DelegateHandler BindWeak(ProcType &&proc)
+    DelegateHandler Bind(ProcType &&proc)
     {
         const uint id = m_id_generator.NextID();
 
@@ -141,7 +140,7 @@ public:
 
         if (remove_result) {
             // now that the handler is removed from the Delegate, invalidate all references to it from the DelegateHandler
-            handler.m_data->Release();
+            handler.m_data->Reset();
 
             return true;
         }
@@ -165,13 +164,6 @@ public:
         m_mutex.Unlock();
 
         m_id_generator.FreeID(id);
-
-        Mutex::Guard strong_guard(m_strong_handlers_mutex);
-        const auto strong_handler_it = m_strong_handlers.Find(id);
-
-        if (strong_handler_it != m_strong_handlers.End()) {
-            m_strong_handlers.Erase(strong_handler_it);
-        }
 
         return true;
     }
@@ -234,20 +226,36 @@ private:
         delegate_casted->m_id_generator.FreeID(id);
     }
 
+    static void DetachDelegateHandlerCallback(void *delegate, DelegateHandler &&handler)
+    {
+        Delegate *delegate_casted = static_cast<Delegate *>(delegate);
+
+        delegate_casted->DetachDelegateHandler(std::move(handler));
+    }
+
+    /*! \brief Add a delegate handler to hang around after its DelegateHandler is destructed */
+    void DetachDelegateHandler(DelegateHandler &&handler)
+    {
+        Mutex::Guard guard(m_detached_handlers_mutex);
+
+        m_detached_handlers.PushBack(std::move(handler));
+    }
+
     DelegateHandler CreateDelegateHandler(uint id)
     {
         return DelegateHandler(RC<functional::detail::DelegateHandlerData>(new functional::detail::DelegateHandlerData {
             id,
             this,
-            RemoveDelegateHandlerCallback
+            RemoveDelegateHandlerCallback,
+            DetachDelegateHandlerCallback
         }));
     }
 
     HashMap<uint, ProcType>         m_procs;
     Mutex                           m_mutex;
 
-    HashMap<uint, DelegateHandler>  m_strong_handlers;
-    Mutex                           m_strong_handlers_mutex;
+    Array<DelegateHandler>          m_detached_handlers;
+    Mutex                           m_detached_handlers_mutex;
 
     IDCreator<>                     m_id_generator;
 };

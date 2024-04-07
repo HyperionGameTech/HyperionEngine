@@ -23,17 +23,18 @@ struct RENDER_COMMAND(UpdateEntityDrawDatas) : renderer::RenderCommand
     virtual Result operator()() override
     {
         for (const EntityDrawData &entity_draw_data : entity_draw_datas) {
-            // @TODO: Change it to use EntityDrawData instead of ObjectShaderData.
-            g_engine->GetRenderData()->objects.Set(entity_draw_data.entity_id.ToIndex(), ObjectShaderData {
-                .model_matrix = entity_draw_data.model_matrix,
-                .previous_model_matrix = entity_draw_data.previous_model_matrix,
-                .world_aabb_max = Vec4f(entity_draw_data.aabb.max, 1.0f),
-                .world_aabb_min = Vec4f(entity_draw_data.aabb.min, 1.0f),
-                .entity_index = entity_draw_data.entity_id.ToIndex(),
-                .material_index = entity_draw_data.material_id.ToIndex(),
-                .skeleton_index = entity_draw_data.skeleton_id.ToIndex(),
-                .bucket = entity_draw_data.bucket,
-                .flags = entity_draw_data.skeleton_id.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE
+            // @TODO: Change it to use EntityDrawData instead of EntityShaderData.
+            g_engine->GetRenderData()->objects.Set(entity_draw_data.entity_id.ToIndex(), EntityShaderData {
+                .model_matrix           = entity_draw_data.model_matrix,
+                .previous_model_matrix  = entity_draw_data.previous_model_matrix,
+                .world_aabb_max         = Vec4f(entity_draw_data.aabb.max, 1.0f),
+                .world_aabb_min         = Vec4f(entity_draw_data.aabb.min, 1.0f),
+                .entity_index           = entity_draw_data.entity_id.ToIndex(),
+                .material_index         = entity_draw_data.material_id.ToIndex(),
+                .skeleton_index         = entity_draw_data.skeleton_id.ToIndex(),
+                .bucket                 = entity_draw_data.bucket,
+                .flags                  = entity_draw_data.skeleton_id.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
+                .user_data              = entity_draw_data.user_data.ReinterpretAs<Vec4u>()
             });
         }
 
@@ -91,7 +92,8 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             bounding_box_component.world_aabb,
             mesh_component.material.IsValid()
                 ? uint32(mesh_component.material->GetBucket())
-                : BUCKET_OPAQUE
+                : BUCKET_OPAQUE,
+            mesh_component.user_data
         });
 
         if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {

@@ -138,6 +138,9 @@ public:
 
     bool InitializeGame(Game *game);
 
+    const RC<Application> &GetApplication() const
+        { return m_application; }
+
     HYP_FORCE_INLINE
     Instance *GetGPUInstance() const
         { return m_instance.Get(); }
@@ -347,6 +350,8 @@ private:
     void FindTextureFormatDefaults();
 
     void AddRenderGroupInternal(Handle<RenderGroup> &, bool cache);
+
+    RC<Application>                                         m_application;
     
     UniquePtr<Instance>                                     m_instance;
 

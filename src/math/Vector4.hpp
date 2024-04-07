@@ -83,13 +83,8 @@ struct alignas(alignof(T) * 4) Vec4
     {
     }
 
-    Vec4(const Vec4 &other)
-        : x(other.x),
-          y(other.y),
-          z(other.z),
-          w(other.w)
-    {
-    }
+    Vec4(const Vec4 &other)             = default;
+    Vec4 &operator=(const Vec4 &other)  = default;
 
     Type GetX() const       { return x; }
     Type &GetX()            { return x; }
@@ -119,16 +114,6 @@ struct alignas(alignof(T) * 4) Vec4
 
     constexpr Type &operator[](SizeType index)
         { return values[index]; }
-
-    Vec4 &operator=(const Vec4 &other)
-    {
-        x = other.x;
-        y = other.y;
-        z = other.z;
-        w = other.w;
-
-        return *this;
-    }
 
     Vec4 operator+(const Vec4 &other) const
     {
@@ -340,13 +325,8 @@ struct alignas(alignof(float) * 4) Vec4<float>
     {
     }
 
-    Vec4(const Vec4 &other)
-        : x(other.x),
-          y(other.y),
-          z(other.z),
-          w(other.w)
-    {
-    }
+    Vec4(const Vec4 &other)             = default;
+    Vec4 &operator=(const Vec4 &other)  = default;
 
     Type GetX() const           { return x; }
     Type &GetX()                { return x; }
@@ -376,16 +356,6 @@ struct alignas(alignof(float) * 4) Vec4<float>
 
     constexpr Type &operator[](SizeType index)
         { return values[index]; }
-
-    Vec4 &operator=(const Vec4 &other)
-    {
-        x = other.x;
-        y = other.y;
-        z = other.z;
-        w = other.w;
-
-        return *this;
-    }
 
     Vec4 operator+(const Vec4 &other) const
     {

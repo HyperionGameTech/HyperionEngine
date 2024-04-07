@@ -41,6 +41,8 @@
 
 #include <ui/UIText.hpp>
 #include <ui/UIButton.hpp>
+#include <ui/UIPanel.hpp>
+#include <ui/UITabView.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
@@ -213,7 +215,7 @@ void SampleStreamer::InitGame()
     bw.Close();
 
 
-    const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
+    const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
 
     m_texture = CreateObject<Texture>(Texture2D(
         window_size,
@@ -753,7 +755,9 @@ void SampleStreamer::InitGame()
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(MainButton), Vec2i { 0, 0 }, Vec2i { 100, 30 })) {
+    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 30 })) {
+        btn->SetPadding(Vec2i { 5, 5 });
+        
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
                 .assembly_name = "csharp/bin/Debug/net8.0/csharp.dll",
@@ -761,29 +765,39 @@ void SampleStreamer::InitGame()
             }
         });
 
+        // auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 0 }, Vec2i { 100, 100 });
+        // tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+        // tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+        // btn->AddChildUIObject(tab_view);
+
         // btn->OnMouseHover.Bind([](const UIMouseEventData &)
         // {
         //     return true;
         // });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::DEFAULT }));//UIObjectSize(UIObjectSize::RELATIVE | UIObjectSize::PERCENT, Vec2i { 100, 100 }));
-        ui_text->SetText("hello!");
+        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 0, UIObjectSize::GROW }));
+        ui_text->SetText("Hello world!");
+        ui_text->SetOptions({ .line_height = 1.5f });
         // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);
         ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+
         btn->AddChildUIObject(ui_text);
 
-        auto new_btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, Vec2i { 115, 30 });
-        new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        new_btn->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        btn->AddChildUIObject(new_btn);
+        // auto new_btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
+        // new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // new_btn->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // btn->AddChildUIObject(new_btn);
+        // new_btn->UpdatePosition();
+        // new_btn->UpdateSize();
 
-        DebugLog(LogType::Debug, "ui_text aabb [%f, %f, %f, %f]\n", ui_text->GetLocalAABB().min.x, ui_text->GetLocalAABB().min.y, ui_text->GetLocalAABB().max.x, ui_text->GetLocalAABB().max.y);
-        DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
+        // DebugLog(LogType::Debug, "ui_text aabb [%f, %f, %f, %f]\n", ui_text->GetLocalAABB().min.x, ui_text->GetLocalAABB().min.y, ui_text->GetLocalAABB().max.x, ui_text->GetLocalAABB().max.y);
+        // DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
     }
 
     if (auto ui_renderer = m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene())) {
-        ui_renderer->SetDebugRender(true);
     }
 
     //RC<LightmapRenderer> lightmap_renderer = m_scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(HYP_NAME(LightmapRenderer0));
@@ -1139,7 +1153,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
 
-    const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
+    const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
 
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
         if (event.GetKeyCode() == KEY_ARROW_LEFT) {
@@ -1263,9 +1277,9 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
             const int mouse_y = mouse_position.GetY();
 
             const auto mouse_world = m_scene->GetCamera()->TransformScreenToWorld(
-                Vector2(
-                    mouse_x / float(GetInputManager()->GetWindow()->GetExtent().width),
-                    mouse_y / float(GetInputManager()->GetWindow()->GetExtent().height)
+                Vec2f(
+                    mouse_x / float(GetInputManager()->GetWindow()->GetDimensions().width),
+                    mouse_y / float(GetInputManager()->GetWindow()->GetDimensions().height)
                 )
             );
 
