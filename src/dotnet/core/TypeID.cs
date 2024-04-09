@@ -32,17 +32,22 @@ namespace Hyperion
         /// <returns>TypeID</returns>
         public static TypeID ForType<T>()
         {
-            TypeID value = TypeID_ForDynamicType(typeof(T).Name);
+            string typeName = typeof(T).Name;
+            IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
+
+            TypeID value = TypeID_ForDynamicType(typeNamePtr);
+
+            Marshal.FreeHGlobal(typeNamePtr);
 
             if (value.Value == 0)
             {
-                throw new InvalidOperationException($"TypeID for {typeof(T).Name} has not been registered from C++ side");
+                throw new InvalidOperationException($"TypeID for {typeName} has not been registered from C++ side");
             }
 
             return value;
         }
 
         [DllImport("libhyperion", EntryPoint = "TypeID_ForDynamicType")]
-        private static extern TypeID TypeID_ForDynamicType(string typeName);
+        private static extern TypeID TypeID_ForDynamicType(IntPtr typeNamePtr);
     }
 }

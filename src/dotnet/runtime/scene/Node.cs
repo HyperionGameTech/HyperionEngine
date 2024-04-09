@@ -56,7 +56,11 @@ namespace Hyperion
             }
             set
             {
-                Node_SetName(managedNode, value);
+                IntPtr valuePtr = Marshal.StringToHGlobalAnsi(value);
+
+                Node_SetName(managedNode, valuePtr);
+
+                Marshal.FreeHGlobal(valuePtr);
             }
         }
 
@@ -79,7 +83,11 @@ namespace Hyperion
 
         public Node? FindChild(string name)
         {
-            ManagedNode child = Node_FindChild(managedNode, name);
+            IntPtr namePtr = Marshal.StringToHGlobalAnsi(name);
+
+            ManagedNode child = Node_FindChild(managedNode, namePtr);
+
+            Marshal.FreeHGlobal(namePtr);
 
             if (child.refPtr == IntPtr.Zero)
             {
@@ -269,13 +277,13 @@ namespace Hyperion
         private static extern IntPtr Node_GetName(ManagedNode managedNode);
 
         [DllImport("libhyperion", EntryPoint = "Node_SetName")]
-        private static extern void Node_SetName(ManagedNode managedNode, string name);
+        private static extern void Node_SetName(ManagedNode managedNode, IntPtr namePtr);
 
         [DllImport("libhyperion", EntryPoint = "Node_AddChild")]
         private static extern ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child);
 
         [DllImport("libhyperion", EntryPoint = "Node_FindChild")]
-        private static extern ManagedNode Node_FindChild(ManagedNode managedNode, string name);
+        private static extern ManagedNode Node_FindChild(ManagedNode managedNode, IntPtr namePtr);
 
         [DllImport("libhyperion", EntryPoint = "Node_FindChildWithEntity")]
         private static extern ManagedNode Node_FindChildWithEntity(ManagedNode managedNode, Entity entity);

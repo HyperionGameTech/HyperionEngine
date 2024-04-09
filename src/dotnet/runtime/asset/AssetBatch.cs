@@ -25,7 +25,13 @@ namespace Hyperion
 
         public void Add(string key, string path)
         {
-            AssetBatch_AddToBatch(ptr, key, path);
+            IntPtr keyPtr = Marshal.StringToHGlobalAnsi(key);
+            IntPtr pathPtr = Marshal.StringToHGlobalAnsi(path);
+
+            AssetBatch_AddToBatch(ptr, keyPtr, pathPtr);
+
+            Marshal.FreeHGlobal(keyPtr);
+            Marshal.FreeHGlobal(pathPtr);
         }
 
         public void LoadAsync()
@@ -45,7 +51,7 @@ namespace Hyperion
         private static extern void AssetBatch_Destroy(IntPtr assetBatchPtr);
 
         [DllImport("libhyperion", EntryPoint = "AssetBatch_AddToBatch")]
-        private static extern void AssetBatch_AddToBatch(IntPtr assetBatchPtr, string key, string path);
+        private static extern void AssetBatch_AddToBatch(IntPtr assetBatchPtr, IntPtr keyPtr, IntPtr pathPtr);
 
         [DllImport("libhyperion", EntryPoint = "AssetBatch_LoadAsync")]
         private static extern void AssetBatch_LoadAsync(IntPtr assetBatchPtr);

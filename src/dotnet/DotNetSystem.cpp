@@ -17,7 +17,7 @@ namespace hyperion::dotnet {
 
 namespace detail {
 
-using InitializeAssemblyDelegate = void (*)(void *, const char *);
+using InitializeAssemblyDelegate = void (*)(void *, const void *);
 
 #ifdef HYP_DOTNET
 class DotNetImpl : public DotNetImplBase
@@ -68,23 +68,34 @@ public:
         }
 
         // // TEMP! Find a better way to do this.
-        const FilePath hyperion_runtime_path = g_asset_manager->GetBasePath() / ".." / "build" / "HyperionInterop.dll";
+        const FilePath interop_assembly_path = "HyperionInterop.dll";
+        const PlatformString interop_assembly_path_platform = interop_assembly_path;
 
         m_root_assembly.Reset(new Assembly());
 
-        const PlatformString runtime_path_wide = hyperion_runtime_path;
-
+        auto test_function = (void (*)(void))GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("TestFunction"),
+            UNMANAGEDCALLERSONLY_METHOD
+        );
+        test_function();
+        
         InitializeAssemblyDelegate initialize_assembly = (InitializeAssemblyDelegate)GetDelegate(
-            runtime_path_wide.Data(),
+            interop_assembly_path_platform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
             HYP_TEXT("InitializeAssembly"),
-            HYP_TEXT("InitializeAssemblyDelegate, HyperionInterop")
+            UNMANAGEDCALLERSONLY_METHOD
         );
         AssertThrow(initialize_assembly != nullptr);
 
+        DebugLog(LogType::Debug, "Initializing NativeInterop class in HyperionInterop.dll assembly\n");
+
         // Call the Initialize method in the NativeInterop class directly,
         // to load all the classes and methods into the class object holder
-        initialize_assembly(&m_root_assembly->GetClassObjectHolder(), hyperion_runtime_path.Data());
+        initialize_assembly(&m_root_assembly->GetClassObjectHolder(), interop_assembly_path.Data());
+
+        DebugLog(LogType::Debug, "Initialized NativeInterop class in HyperionInterop.dll assembly\n");
 
         // AssertThrowMsg(
         //     is_initialized,
@@ -115,8 +126,20 @@ public:
         }
         
         if (!filepath.Exists()) {
+            filepath = g_asset_manager->GetBasePath() / path;
+        }
+        
+        if (!filepath.Exists()) {
+            DebugLog(
+                LogType::Error,
+                "Failed to load .NET assembly: File not found: %s\n",
+                path
+            );
+
             return nullptr;
         }
+
+        AssertThrow(m_root_assembly != nullptr);
 
         Class *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
         AssertThrow(native_interop_class_object != nullptr);
@@ -157,8 +180,6 @@ public:
         const TChar *delegate_type_name
     ) const override
     {
-        DebugLog(LogType::Info, "Loading .NET assembly: %s\n", assembly_path);
-
         if (!m_cxt) {
             HYP_THROW("Failed to get delegate: .NET runtime not initialized");
         }
@@ -172,10 +193,15 @@ public:
             return nullptr;
         }
 
-        auto load_assembly_and_get_function_pointer = (load_assembly_and_get_function_pointer_fn)load_assembly_and_get_function_pointer_fptr;
+#ifdef HYP_WINDOWS
+        DebugLog(LogType::Info, "Loading .NET assembly: %S\tType Name: %S\tMethod Name: %S\n", assembly_path, type_name, method_name);
+#else
+        DebugLog(LogType::Info, "Loading .NET assembly: %s\tType Name: %s\tMethod Name: %s\n", assembly_path, type_name, method_name);
+#endif
 
         void *delegate_ptr = nullptr;
-
+        
+        auto load_assembly_and_get_function_pointer = (load_assembly_and_get_function_pointer_fn)load_assembly_and_get_function_pointer_fptr;
         bool result = load_assembly_and_get_function_pointer(assembly_path, type_name, method_name, delegate_type_name, nullptr, &delegate_ptr) == 0;
 
         if (!result) {
@@ -183,6 +209,8 @@ public:
 
             return nullptr;
         }
+
+        DebugLog(LogType::Info, "Loaded delegate: %p\n", delegate_ptr);
 
         return delegate_ptr;
     }
@@ -195,7 +223,7 @@ private:
         // Write the runtime config file if it doesn't exist
 
         FileByteWriter writer(filepath.Data());
-        writer.Write(runtime_config.Data(), runtime_config.Size() + 1);
+        writer.WriteString(runtime_config);
         writer.Close();
     }
 
@@ -209,6 +237,12 @@ private:
             return false;
         }
 
+#ifdef HYP_WINDOWS
+        DebugLog(LogType::Debug, "Loading hostfxr from: %S\n", &buffer[0]);
+#else
+        DebugLog(LogType::Debug, "Loading hostfxr from: %s\n", &buffer[0]);
+#endif
+
         // Load hostfxr and get desired exports
         m_dll = DynamicLibrary::Load(buffer);
 
@@ -220,6 +254,8 @@ private:
         m_get_delegate_fptr = (hostfxr_get_runtime_delegate_fn)m_dll->GetFunction("hostfxr_get_runtime_delegate");
         m_close_fptr = (hostfxr_close_fn)m_dll->GetFunction("hostfxr_close");
 
+        DebugLog(LogType::Debug, "Loaded hostfxr functions\n");
+
         return m_init_fptr && m_get_delegate_fptr && m_close_fptr;
     }
 
@@ -227,9 +263,15 @@ private:
     {
         AssertThrow(m_cxt == nullptr);
 
+        DebugLog(LogType::Debug, "Initializing .NET runtime\n");
+
         if (m_init_fptr(PlatformString(GetRuntimeConfigPath()).Data(), nullptr, &m_cxt) != 0) {
+            DebugLog(LogType::Error, "Failed to initialize .NET runtime\n");
+
             return false;
         }
+
+        DebugLog(LogType::Debug, "Initialized .NET runtime\n");
 
         return true;
     }
@@ -238,8 +280,12 @@ private:
     {
         AssertThrow(m_cxt != nullptr);
 
+        DebugLog(LogType::Debug, "Shutting down .NET runtime\n");
+
         m_close_fptr(m_cxt);
         m_cxt = nullptr;
+
+        DebugLog(LogType::Debug, "Shut down .NET runtime\n");
 
         return true;
     }
@@ -358,6 +404,7 @@ void DotNetSystem::Initialize()
     AssertThrow(m_impl == nullptr);
 
     m_impl.Reset(new detail::DotNetImpl());
+    m_impl->Initialize();
 
     m_is_initialized = true;
 }

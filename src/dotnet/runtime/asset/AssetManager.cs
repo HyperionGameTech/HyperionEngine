@@ -28,7 +28,12 @@ namespace Hyperion
             }
             set
             {
-                AssetManager_SetBasePath(ptr, value);
+
+                IntPtr valuePtr = Marshal.StringToHGlobalAnsi(value);
+
+                AssetManager_SetBasePath(ptr, valuePtr);
+
+                Marshal.FreeHGlobal(valuePtr);
             }
         }
 
@@ -36,6 +41,6 @@ namespace Hyperion
         private static extern IntPtr AssetManager_GetBasePath(IntPtr assetManagerPtr);
 
         [DllImport("libhyperion", EntryPoint = "AssetManager_SetBasePath")]
-        private static extern void AssetManager_SetBasePath(IntPtr assetManagerPtr, string basePath);
+        private static extern void AssetManager_SetBasePath(IntPtr assetManagerPtr, IntPtr basePathPtr);
     }
 }

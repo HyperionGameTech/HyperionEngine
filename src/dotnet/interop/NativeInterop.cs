@@ -4,19 +4,28 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-public delegate void InitializeAssemblyDelegate(IntPtr classHolderPtr, string assemblyPath);
-
 namespace Hyperion
 {
     public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
 
     public class NativeInterop
     {
-        public static InitializeAssemblyDelegate InitializeAssemblyDelegate = InitializeAssembly;
         public static InvokeMethodDelegate InvokeMethodDelegate = InvokeMethod;
 
-        public static void InitializeAssembly(IntPtr classHolderPtr, string assemblyPath)
+        [UnmanagedCallersOnly]
+        public static void TestFunction()
         {
+            // Console.WriteLine("Hello from C#!");
+
+            Logger.Log(LogType.Info, "Hello from C#!");
+        }
+
+        [UnmanagedCallersOnly]
+        public static void InitializeAssembly(IntPtr classHolderPtr, IntPtr assemblyPathStringPtr)
+        {
+            // Create a managed string from the pointer
+            string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
+
             Assembly assembly = Assembly.LoadFrom(assemblyPath);
 
             if (assembly == null)
@@ -67,7 +76,12 @@ namespace Hyperion
 
         private static ManagedClass InitManagedClass(IntPtr classHolderPtr, Type type)
         {
-            ManagedClass managedClass = ManagedClass_Create(classHolderPtr, type.GetHashCode(), type.Name);
+            string typeName = type.Name;
+            IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
+
+            ManagedClass managedClass = ManagedClass_Create(classHolderPtr, type.GetHashCode(), typeNamePtr);
+
+            Marshal.FreeHGlobal(typeNamePtr);
 
             MethodInfo[] methodInfos = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy);
 
@@ -219,7 +233,7 @@ namespace Hyperion
         }
 
         [DllImport("libhyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern ManagedClass ManagedClass_Create(IntPtr classHolderPtr, int typeHash, string typeName);
+        private static extern ManagedClass ManagedClass_Create(IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr);
 
         [DllImport("libhyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);

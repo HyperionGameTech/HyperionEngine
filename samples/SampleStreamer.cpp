@@ -760,8 +760,8 @@ void SampleStreamer::InitGame()
         
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
-                .assembly_name = "csharp/bin/Debug/net8.0/csharp.dll",
-                .class_name = "TestUIScript"
+                .assembly_name  = "scripts/bin/csharp.dll",
+                .class_name     = "TestUIScript"
             }
         });
 
@@ -779,7 +779,7 @@ void SampleStreamer::InitGame()
 
         auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
         ui_text->SetText("Hello world!");
-        ui_text->SetOptions({ .line_height = 1.5f });
+        ui_text->SetOptions({ .line_height = 0.8f });
         // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);
         ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);

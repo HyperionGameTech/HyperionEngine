@@ -21,7 +21,15 @@ namespace Hyperion
             return hashCode == other.hashCode;
         }
 
+        public static Name FromString(string name)
+        {
+            IntPtr namePtr = Marshal.StringToHGlobalAnsi(name);
+            Name value = Name_FromString(namePtr);
+            Marshal.FreeHGlobal(namePtr);
+            return value;
+        }
+
         [DllImport("libhyperion", EntryPoint = "Name_FromString")]
-        public static extern Name FromString(string name);
+        private static extern Name Name_FromString(IntPtr namePtr);
     }
 }

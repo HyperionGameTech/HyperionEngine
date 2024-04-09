@@ -14,6 +14,7 @@ namespace Hyperion
 
         public void AddMethod(string methodName, Guid guid, string[] attributeNames)
         {
+            IntPtr methodNamePtr = Marshal.StringToHGlobalAnsi(methodName);
             IntPtr[] attributeNamesPtrs = new IntPtr[attributeNames.Length];
 
             for (int i = 0; i < attributeNames.Length; i++)
@@ -21,7 +22,9 @@ namespace Hyperion
                 attributeNamesPtrs[i] = Marshal.StringToHGlobalAnsi(attributeNames[i]);
             }
 
-            ManagedClass_AddMethod(this, methodName, guid, (uint)attributeNames.Length, attributeNamesPtrs);
+            ManagedClass_AddMethod(this, methodNamePtr, guid, (uint)attributeNames.Length, attributeNamesPtrs);
+
+            Marshal.FreeHGlobal(methodNamePtr);
 
             for (int i = 0; i < attributeNames.Length; i++)
             {
@@ -47,7 +50,7 @@ namespace Hyperion
 
         // Add a function pointer to the managed class
         [DllImport("libhyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern void ManagedClass_AddMethod(ManagedClass managedClass, string methodName, Guid guid, uint numAttributes, IntPtr[] attributeNames);
+        private static extern void ManagedClass_AddMethod(ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
 
         [DllImport("libhyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
         private static extern ManagedClass ManagedClass_SetNewObjectFunction(ManagedClass managedClass, IntPtr newObjectFunctionPtr);
