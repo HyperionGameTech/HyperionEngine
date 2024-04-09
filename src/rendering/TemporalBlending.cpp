@@ -126,7 +126,7 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
     static const String feedback_strings[] = { "LOW", "MEDIUM", "HIGH" };
 
     shader_properties.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(uint(m_technique)));
-    shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(uint(m_feedback), std::size(feedback_strings) - 1)]);
+    shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(uint(m_feedback), ArraySize(feedback_strings) - 1)]);
 
     return shader_properties;
 }
@@ -140,7 +140,7 @@ void TemporalBlending::CreateImageOutputs()
             Extent3D(m_extent),
             m_image_format,
             ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+            FilterMode::TEXTURE_FILTER_LINEAR,
             FilterMode::TEXTURE_FILTER_LINEAR,
             nullptr
         ));

@@ -43,15 +43,22 @@ class ObjectContainer : public ObjectContainerBase
 {
     struct ObjectBytes
     {
-        alignas(T) ubyte bytes[sizeof(T)];
-        std::atomic<uint16> ref_count_strong;
-        std::atomic<uint16> ref_count_weak;
+        alignas(T) ubyte    bytes[sizeof(T)];
+        AtomicVar<uint16>   ref_count_strong;
+        AtomicVar<uint16>   ref_count_weak;
+        bool                has_value;
 
         ObjectBytes()
             : ref_count_strong(0),
-              ref_count_weak(0)
+              ref_count_weak(0),
+              has_value(false)
         {
         }
+
+        ObjectBytes(const ObjectBytes &)                = delete;
+        ObjectBytes &operator=(const ObjectBytes &)     = delete;
+        ObjectBytes(ObjectBytes &&) noexcept            = delete;
+        ObjectBytes &operator=(ObjectBytes &&) noexcept = delete;
 
         ~ObjectBytes()
         {
@@ -70,14 +77,14 @@ class ObjectContainer : public ObjectContainerBase
 
         HYP_FORCE_INLINE void IncRefStrong()
         {
-            ref_count_strong.fetch_add(1, std::memory_order_relaxed);
+            AssertThrow(HasValue());
+
+            ref_count_strong.Increment(1, MemoryOrder::RELAXED);
         }
 
         HYP_FORCE_INLINE void IncRefWeak()
         {
-            AssertThrow(HasValue());
-
-            ref_count_strong.fetch_add(1, std::memory_order_relaxed);
+            ref_count_weak.Increment(1, MemoryOrder::RELAXED);
         }
 
         uint DecRefStrong()
@@ -86,7 +93,7 @@ class ObjectContainer : public ObjectContainerBase
 
             uint16 count;
 
-            if ((count = ref_count_strong.fetch_sub(1)) == 1) {
+            if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
                 reinterpret_cast<T *>(bytes)->~T();
             }
 
@@ -95,16 +102,16 @@ class ObjectContainer : public ObjectContainerBase
 
         uint DecRefWeak()
         {
-            uint16 count = ref_count_weak.fetch_sub(1);
+            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
 
             return uint(count) - 1;
         }
 
         HYP_FORCE_INLINE uint GetRefCountStrong() const
-            { return uint(ref_count_strong.load()); }
+            { return uint(ref_count_strong.Get(MemoryOrder::ACQUIRE_RELEASE)); }
 
         HYP_FORCE_INLINE uint GetRefCountWeak() const
-            { return uint(ref_count_weak.load()); }
+            { return uint(ref_count_weak.Get(MemoryOrder::ACQUIRE_RELEASE)); }
 
         HYP_FORCE_INLINE T &Get()
             { return *reinterpret_cast<T *>(bytes); }
@@ -118,7 +125,7 @@ class ObjectContainer : public ObjectContainerBase
     private:
 
         HYP_FORCE_INLINE bool HasValue() const
-            { return ref_count_strong.load() != 0; }
+            { return has_value; }
     };
 
 public:
@@ -151,6 +158,7 @@ public:
 
     virtual void IncRefStrong(uint index) override
     {
+        AssertThrowMsg(m_data[index].has_value, "Object at index %u does not have a value!", index);
         m_data[index].IncRefStrong();
     }
 
@@ -161,8 +169,12 @@ public:
 
     virtual void DecRefStrong(uint index) override
     {
-        if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
-            IDCreator<>::template ForType<T>().FreeID(index + 1);
+        if (m_data[index].DecRefStrong() == 0) {
+            m_data[index].has_value = false;
+
+            if (m_data[index].GetRefCountWeak() == 0) {
+                IDCreator<>::template ForType<T>().FreeID(index + 1);
+            }
         }
     }
 
@@ -183,20 +195,27 @@ public:
 
     HYP_FORCE_INLINE
     T &Get(uint index)
-    {
-        return m_data[index].Get();
-    }
+        { return m_data[index].Get(); }
+
+    HYP_FORCE_INLINE
+    ObjectBytes &GetObjectBytes(uint index)
+        { return m_data[index]; }
+
+    HYP_FORCE_INLINE
+    const ObjectBytes &GetObjectBytes(uint index) const
+        { return m_data[index]; }
     
     template <class ...Args>
     HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
     {
         T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
+        m_data[index].has_value = true;
         ptr->SetID(ID<T> { index + 1 });
     }
 
 private:
-    HeapArray<ObjectBytes, max_size> m_data;
-    SizeType m_size;
+    HeapArray<ObjectBytes, max_size>    m_data;
+    SizeType                            m_size;
 };
 
 class ObjectPool

@@ -32,6 +32,26 @@ public:
           m_get_delegate_fptr(nullptr),
           m_close_fptr(nullptr)
     {
+    }
+
+    virtual ~DotNetImpl() override
+    {
+        if (!ShutdownDotNetRuntime()) {
+            DebugLog(LogType::Error, "Failed to shutdown .NET runtime\n");
+        }
+    }
+
+    FilePath GetDotNetPath() const
+        { return g_asset_manager->GetBasePath() / "data/dotnet"; }
+
+    FilePath GetLibraryPath() const
+        { return GetDotNetPath() / "lib"; }
+
+    FilePath GetRuntimeConfigPath() const
+        { return GetDotNetPath() / "runtimeconfig.json"; }
+
+    virtual void Initialize() override
+    {
         // ensure the mono directories exists
         FileSystem::MkDir(GetDotNetPath().Data());
         FileSystem::MkDir(GetLibraryPath().Data());
@@ -52,11 +72,13 @@ public:
 
         m_root_assembly.Reset(new Assembly());
 
+        const PlatformString runtime_path_wide = hyperion_runtime_path;
+
         InitializeAssemblyDelegate initialize_assembly = (InitializeAssemblyDelegate)GetDelegate(
-            hyperion_runtime_path.Data(),
-            "Hyperion.NativeInterop, HyperionInterop",
-            "InitializeAssembly",
-            "InitializeAssemblyDelegate, HyperionInterop"
+            runtime_path_wide.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("InitializeAssembly"),
+            HYP_TEXT("InitializeAssemblyDelegate, HyperionInterop")
         );
         AssertThrow(initialize_assembly != nullptr);
 
@@ -81,22 +103,6 @@ public:
             "Failed to find InitializeAssembly() method in NativeInterop class in HyperionInterop.dll assembly"
         );
     }
-
-    virtual ~DotNetImpl() override
-    {
-        if (!ShutdownDotNetRuntime()) {
-            DebugLog(LogType::Error, "Failed to shutdown .NET runtime\n");
-        }
-    }
-
-    FilePath GetDotNetPath() const
-        { return g_asset_manager->GetBasePath() / "data/dotnet"; }
-
-    FilePath GetLibraryPath() const
-        { return GetDotNetPath() / "lib"; }
-
-    FilePath GetRuntimeConfigPath() const
-        { return GetDotNetPath() / "runtimeconfig.json"; }
 
     virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
@@ -145,10 +151,10 @@ public:
     }
 
     virtual void *GetDelegate(
-        const char *assembly_path,
-        const char *type_name,
-        const char *method_name,
-        const char *delegate_type_name
+        const TChar *assembly_path,
+        const TChar *type_name,
+        const TChar *method_name,
+        const TChar *delegate_type_name
     ) const override
     {
         DebugLog(LogType::Info, "Loading .NET assembly: %s\n", assembly_path);
@@ -221,7 +227,7 @@ private:
     {
         AssertThrow(m_cxt == nullptr);
 
-        if (m_init_fptr(GetRuntimeConfigPath().Data(), nullptr, &m_cxt) != 0) {
+        if (m_init_fptr(PlatformString(GetRuntimeConfigPath()).Data(), nullptr, &m_cxt) != 0) {
             return false;
         }
 
@@ -268,16 +274,20 @@ public:
     DotNetImpl()                    = default;
     virtual ~DotNetImpl() override  = default;
 
+    virtual void Initialize() override
+    {
+    }
+
     virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
         return nullptr;
     }
 
     virtual void *GetDelegate(
-        const char *assembly_path,
-        const char *type_name,
-        const char *method_name,
-        const char *delegate_type_name
+        const TChar *assembly_path,
+        const TChar *type_name,
+        const TChar *method_name,
+        const TChar *delegate_type_name
     ) const override
     {
         return nullptr;

@@ -73,7 +73,7 @@ void Game::Update(GameCounter::TickUnit delta)
     Logic(delta);
 
     if (m_managed_game_object) {
-        m_managed_game_object->InvokeMethod<void, float>("Update", float(delta));
+        m_managed_game_object->InvokeMethodByName<void, float>("Update", float(delta));
     }
 
     g_engine->GetWorld()->Update(delta);
@@ -86,14 +86,14 @@ void Game::InitGame()
     m_ui.Init();
 
     if (m_managed_game_object) {
-        m_managed_game_object->InvokeMethod<void, ManagedHandle, void *, void *>(
+        m_managed_game_object->InvokeMethodByName<void, ManagedHandle, void *, void *>(
             "BeforeInit",
             CreateManagedHandleFromHandle(m_scene),
             m_input_manager.Get(),
             g_asset_manager
         );
 
-        m_managed_game_object->InvokeMethod<void>("Init");
+        m_managed_game_object->InvokeMethodByName<void>("Init");
     }
 }
 

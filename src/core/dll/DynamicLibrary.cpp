@@ -10,10 +10,10 @@
 
 namespace hyperion {
 
-UniquePtr<DynamicLibrary> DynamicLibrary::Load(const String &path)
+UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString &path)
 {
 #ifdef HYP_WINDOWS
-    HMODULE handle = LoadLibraryA(path.Data());
+    HMODULE handle = LoadLibraryW(path.Data());
 
     if (handle == nullptr) {
         return nullptr;
@@ -31,7 +31,7 @@ UniquePtr<DynamicLibrary> DynamicLibrary::Load(const String &path)
 #endif
 }
 
-DynamicLibrary::DynamicLibrary(const String &path, void *handle)
+DynamicLibrary::DynamicLibrary(const PlatformString &path, void *handle)
     : m_path(path),
       m_handle(handle)
 {

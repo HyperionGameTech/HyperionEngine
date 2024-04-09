@@ -3,6 +3,7 @@
 
 #include <core/Base.hpp>
 #include <core/Name.hpp>
+#include <core/lib/Mutex.hpp>
 
 #include <rendering/Bindless.hpp>
 #include <rendering/backend/RenderObject.hpp>
@@ -85,7 +86,7 @@ public:
 
 private:
     HashMap<ShaderDefinition, WeakHandle<Shader>>   m_map;
-    std::mutex                                      m_mutex;
+    Mutex                                           m_mutex;
 };
 
 } // namespace hyperion::v2

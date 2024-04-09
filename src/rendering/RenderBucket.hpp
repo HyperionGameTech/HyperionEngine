@@ -10,7 +10,7 @@ enum Bucket : uint32
 {
     BUCKET_INVALID = uint32(-1),
     BUCKET_SWAPCHAIN = 0, /* Main swapchain */
-    BUCKET_INTERNAL,      /* Pre-pass / buffer items */
+    BUCKET_RESERVED1,     /* Reserved, unused */
     BUCKET_SHADOW,
     /* === Scene objects === */
     BUCKET_OPAQUE,        /* Opaque items */

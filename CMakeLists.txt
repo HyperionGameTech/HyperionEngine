@@ -9,13 +9,24 @@ set(RENDERING_BACKEND "Vulkan" CACHE STRING "Rendering backend to use")
 
 # set HYP_PLATFORM_NAME
 if(WIN32)
-    set(HYP_PLATFORM_NAME "windows")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(HYP_PLATFORM_NAME "Win64")
+    else()
+        set(HYP_PLATFORM_NAME "Win32")
+    endif()
 elseif(APPLE)
-    set(HYP_PLATFORM_NAME "macos")
+    set(HYP_PLATFORM_NAME "Mac")
 elseif(UNIX)
-    set(HYP_PLATFORM_NAME "linux")
+    set(HYP_PLATFORM_NAME "Linux")
 else()
     message(FATAL_ERROR "Unsupported platform")
+endif()
+
+# set HYP_BUILD_TYPE
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(HYP_BUILD_TYPE "Release")
+else()
+    set(HYP_BUILD_TYPE "Debug")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
@@ -282,46 +293,37 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
     #     if(BUILD_RESULT GREATER 0)
     #         message(FATAL_ERROR "Failed to build .NET core runtime: ${BUILD_RESULT}")
     #     endif()
-    # endif()
-
-
-    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.dylib" "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/Debug/net9.0/**/output/*.so"
-        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.a"
-        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.lib"
-        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/**/net8.0/**/output/*.dll")
+    # endif(
+    
+    file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.dylib"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.so"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.a"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.lib"
+        "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.dll")
 
     foreach(DOTNET_LIB ${DOTNET_LIBS})
-        message(STATUS "Copying ${DOTNET_LIB} to ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}")
+        message(STATUS "Copying ${DOTNET_LIB} to ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}")
 
-        file(COPY ${DOTNET_LIB} DESTINATION ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME})
+        file(COPY ${DOTNET_LIB} DESTINATION "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}")
     endforeach()
 
-    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.a")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
         message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.a")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
         add_definitions(-DHYP_DOTNET=1)
-    elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.lib")
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
         message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/libnethost.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost")
+
+        # copy the dll to the build directory
+        file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
         add_definitions(-DHYP_DOTNET=1)
     else()
         message(WARNING "Dotnet headers found, but libnethost not found.")
     endif()
-
-    # add_custom_command(
-    #     OUTPUT ${CMAKE_SOURCE_DIR}/submodules/dotnet/runtime/src/native/corehost/nethost/libnethost.so
-    #     COMMAND ${CMAKE_SOURCE_DIR}/submodules/dotnet/build.sh
-    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/dotnet
-    # )
-
-    # add_subdirectory(submodules/dotnet/runtime/src/native/corehost/nethost/)
-
-    # Find the nethost library, which is required for .NET core
-    # to find host fxr
-    # find_package(nethost REQUIRED)
-
 endif()
 
 # if Win32, link with DbgHelp
@@ -331,12 +333,12 @@ endif()
 
 # if aftermath lib exists on windows, link to it
 if(WIN32)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} windows/64/GFSDK_Aftermath_Lib.x64)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64")
         add_definitions(-DHYP_AFTERMATH=1)
 
         # copy the dll to the build directory
-        file(COPY "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        file(COPY "${CMAKE_SOURCE_DIR}/lib/${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
     endif()
 endif()
 

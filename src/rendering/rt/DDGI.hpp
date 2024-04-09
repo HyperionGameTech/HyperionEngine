@@ -47,31 +47,39 @@ static_assert(sizeof(ProbeRayData) == 64);
 
 struct DDGIInfo
 {
-    static constexpr uint irradiance_octahedron_size = 8;
-    static constexpr uint depth_octahedron_size = 16;
-    static constexpr Extent3D probe_border = Extent3D(2, 0, 2);
+    static constexpr uint       irradiance_octahedron_size = 8;
+    static constexpr uint       depth_octahedron_size = 16;
+    static constexpr Extent3D   probe_border = Extent3D(2, 0, 2);
 
-    BoundingBox aabb;
-    float probe_distance = 3.2f;
-    uint num_rays_per_probe = 128;
+    BoundingBox                 aabb;
+    float                       probe_distance = 3.2f;
+    uint                        num_rays_per_probe = 64;
 
-    const Vector3 &GetOrigin() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const Vec3f &GetOrigin() const
         { return aabb.min; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Extent3D NumProbesPerDimension() const
     {
-        const Vector3 probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vector3(probe_border));
+        const Vec3f probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vec3f(probe_border));
 
         return Extent3D(probes_per_dimension);
     }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     uint NumProbes() const
     {
         const Extent3D per_dimension = NumProbesPerDimension();
 
         return per_dimension.width * per_dimension.height * per_dimension.depth;
     }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Extent2D GetImageDimensions() const
     {
         return { uint32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
@@ -80,16 +88,16 @@ struct DDGIInfo
 
 struct RotationMatrixGenerator
 {
-    Matrix4 matrix;
-    std::random_device random_device;
-    std::mt19937 mt { random_device() };
-    std::uniform_real_distribution<float> angle { 0.0f, 359.0f };
-    std::uniform_real_distribution<float> axis { -1.0f, 1.0f };
+    Matrix4                                 matrix;
+    std::random_device                      random_device;
+    std::mt19937                            mt { random_device() };
+    std::uniform_real_distribution<float>   angle { 0.0f, 359.0f };
+    std::uniform_real_distribution<float>   axis { -1.0f, 1.0f };
 
     const Matrix4 &Next()
     {
         return matrix = Matrix4::Rotation({
-            Vector3 { axis(mt), axis(mt), axis(mt) }.Normalize(),
+            Vec3f { axis(mt), axis(mt), axis(mt) }.Normalize(),
             MathUtil::DegToRad(angle(mt))
         });
     }

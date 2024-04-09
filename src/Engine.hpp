@@ -276,8 +276,8 @@ public:
 
     UniquePtr<GameThread> game_thread;
 
-    template <class T, class First, class Second, class ...Rest>
-    Handle<T> CreateObject(First &&first, Second &&second, Rest &&... args)
+    template <class T, class ... Args>
+    Handle<T> CreateObject(Args &&... args)
     {
         auto &container = GetObjectPool().GetContainer<T>();
 
@@ -285,33 +285,10 @@ public:
 
         container.ConstructAtIndex(
             index,
-            std::forward<First>(first),
-            std::forward<Second>(second),
-            std::forward<Rest>(args)...
+            std::forward<Args>(args)...
         );
 
-        return Handle<T>(ID<T>(index + 1));
-    }
-
-    template <class T, class First>
-    typename std::enable_if_t<
-        (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
-            && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>
-            && !std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<First>>,
-        Handle<T>
-    >
-    CreateObject(First &&first)
-    {
-        auto &container = GetObjectPool().GetContainer<T>();
-
-        const uint index = container.NextIndex();
-
-        container.ConstructAtIndex(
-            index,
-            std::forward<First>(first)
-        );
-
-        return Handle<T>(ID<T>(index + 1));
+        return Handle<T>(ID<T>::FromIndex(index));
     }
 
     template <class T>
@@ -322,7 +299,7 @@ public:
         const uint index = container.NextIndex();
         container.ConstructAtIndex(index);
 
-        return Handle<T>(ID<T>(index + 1));
+        return Handle<T>(ID<T>::FromIndex(index));
     }
 
     template <class T>

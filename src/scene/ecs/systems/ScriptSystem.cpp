@@ -24,14 +24,14 @@ void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entit
             script_component.object = class_ptr->NewObject();
 
             if (class_ptr->HasMethod("BeforeInit")) {
-                script_component.object->InvokeMethod<void, ManagedHandle>(
+                script_component.object->InvokeMethodByName<void, ManagedHandle>(
                     "BeforeInit",
                     CreateManagedHandleFromID(entity_manager.GetScene()->GetID())
                 );
             }
 
             if (class_ptr->HasMethod("Init")) {
-                script_component.object->InvokeMethod<void, ManagedEntity>(
+                script_component.object->InvokeMethodByName<void, ManagedEntity>(
                     "Init",
                     ManagedEntity { entity.Value() }
                 );
@@ -59,7 +59,7 @@ void ScriptSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> ent
     if (script_component.object != nullptr) {
         if (dotnet::Class *class_ptr = script_component.object->GetClass()) {
             if (class_ptr->HasMethod("Destroy")) {
-                script_component.object->InvokeMethod<void>("Destroy");
+                script_component.object->InvokeMethodByName<void>("Destroy");
             }
         }
     }

@@ -65,7 +65,7 @@ public:
 
     template <class ReturnType, class... Args>
     HYP_FORCE_INLINE
-    ReturnType InvokeMethod(const String &method_name, Args &&... args)
+    ReturnType InvokeMethodByName(const String &method_name, Args &&... args)
     {
         const ManagedMethod *method_ptr = GetMethod(method_name);
         AssertThrowMsg(method_ptr != nullptr, "Method %s not found", method_name.Data());

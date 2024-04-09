@@ -117,16 +117,6 @@ void Engine::FindTextureFormatDefaults()
     );
 
     m_texture_format_defaults.Set(
-        TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_GBUFFER,
-        device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::R10G10B10A2,
-                        InternalFormat::RGBA16F,
-                        InternalFormat::RGBA32F },
-            renderer::ImageSupportType::SRV
-        )
-    );
-
-    m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_NORMALS,
         device->GetFeatures().FindSupportedFormat(
             std::array{ //InternalFormat::RG16,
@@ -134,15 +124,6 @@ void Engine::FindTextureFormatDefaults()
                         InternalFormat::RGBA16F,
                         InternalFormat::RGBA32F,
                         InternalFormat::RGBA8 },
-            renderer::ImageSupportType::SRV
-        )
-    );
-
-    m_texture_format_defaults.Set(
-        TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_UV,
-        device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::RG16F,
-                        InternalFormat::RG32F },
             renderer::ImageSupportType::SRV
         )
     );

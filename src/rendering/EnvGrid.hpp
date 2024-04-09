@@ -122,7 +122,10 @@ public:
     HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
         { return m_options.type; }
 
-    void SetCameraData(const Vec3f &camera_position);
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
+        { return m_aabb; }
+
+    void SetCameraData(const BoundingBox &aabb, const Vec3f &camera_position);
 
     void Init();
     void InitGame(); // init on game thread

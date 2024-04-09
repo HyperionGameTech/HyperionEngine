@@ -12,8 +12,6 @@
 namespace hyperion {
 namespace renderer {
 
-using ::hyperion::non_owning_ptr;
-
 namespace platform {
 
 template <PlatformType PLATFORM>

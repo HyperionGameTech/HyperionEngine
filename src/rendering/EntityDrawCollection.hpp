@@ -48,7 +48,7 @@ constexpr PassType BucketToPassType(Bucket bucket)
 {
     constexpr const PassType pass_type_per_bucket[uint(BUCKET_MAX)] = {
         PASS_TYPE_INVALID,     // BUCKET_SWAPCHAIN
-        PASS_TYPE_INVALID,     // BUCKET_INTERNAL
+        PASS_TYPE_INVALID,     // BUCKET_RESERVED0
         PASS_TYPE_INVALID,     // BUCKET_SHADOW
         PASS_TYPE_OPAQUE,      // BUCKET_OPAQUE
         PASS_TYPE_TRANSLUCENT, // BUCKET_TRANSLUCENT

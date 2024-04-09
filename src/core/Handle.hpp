@@ -98,54 +98,67 @@ struct Handle
         }
     }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *operator->() const
         { return Get(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T &operator*()
         { return *Get(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const T &operator*() const
         { return *Get(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return !IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const Handle &other) const
         { return index == other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const Handle &other) const
         { return index != other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const Handle &other) const
         { return index < other.index; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *Get() const
     {
@@ -167,15 +180,18 @@ struct Handle
 
         index = 0;
     }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -193,6 +209,8 @@ struct WeakHandle
     using IDType = ID<T>;
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+    
+    static ObjectContainer<T> *s_container;
 
     uint index;
 
@@ -272,54 +290,74 @@ struct WeakHandle
         }
     }
 
-    HYP_FORCE_INLINE
+    [[nodiscard]]
     Handle<T> Lock() const
-        { return Handle<T>(IDType { index }); }
+    {
+        if (index == 0) {
+            return Handle<T>();
+        }
+
+        return GetContainer<T>().GetObjectBytes(index - 1).GetRefCountStrong() != 0
+            ? Handle<T>(IDType { index })
+            : Handle<T>();
+    }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return !IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const WeakHandle &other) const
         { return index == other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const WeakHandle &other) const
         { return index == other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const WeakHandle &other) const
         { return index < other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const Handle<T> &other) const
         { return index == other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const Handle<T> &other) const
         { return index == other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const Handle<T> &other) const
         { return index < other.index; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
@@ -334,13 +372,17 @@ struct WeakHandle
 
         index = 0;
     }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
@@ -357,8 +399,11 @@ const Handle<T> Handle<T>::empty = { };
 template <class T>
 ObjectContainer<T> *Handle<T>::s_container = nullptr;
 
+template <class T>
+ObjectContainer<T> *WeakHandle<T>::s_container = nullptr;
+
 template <class T, class Engine, class ...Args>
-static HYP_FORCE_INLINE Handle<T> CreateObjectIntern(Engine *engine, Args &&... args)
+static Handle<T> CreateObjectIntern(Engine *engine, Args &&... args)
 {
     // Struct to set the container for Handle<T> on first call
     static struct Initializer
@@ -366,6 +411,7 @@ static HYP_FORCE_INLINE Handle<T> CreateObjectIntern(Engine *engine, Args &&... 
         Initializer()
         {
             Handle<T>::s_container = &GetContainer<T>();
+            WeakHandle<T>::s_container = &GetContainer<T>();
         }
     } initializer;
 

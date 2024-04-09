@@ -577,11 +577,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
         MaterialAttributes {
-            .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition(),
-            .bucket = BUCKET_INTERNAL,
-            .cull_faces = m_shadow_pass->GetShadowMode() == ShadowMode::VSM
-                ? FaceCullMode::BACK
-                : FaceCullMode::FRONT
+            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition(),
+            .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );
 

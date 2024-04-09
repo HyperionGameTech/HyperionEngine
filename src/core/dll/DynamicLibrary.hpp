@@ -9,23 +9,23 @@ namespace hyperion {
 class DynamicLibrary
 {
 public:
-    static UniquePtr<DynamicLibrary> Load(const String &path);
+    static UniquePtr<DynamicLibrary> Load(const PlatformString &path);
 
-    DynamicLibrary(const String &path, void *handle);
+    DynamicLibrary(const PlatformString &path, void *handle);
     DynamicLibrary(const DynamicLibrary &)                  = delete;
     DynamicLibrary &operator=(const DynamicLibrary &)       = delete;
     DynamicLibrary(DynamicLibrary &&) noexcept              = delete;
     DynamicLibrary &operator=(DynamicLibrary &&) noexcept   = delete;
     ~DynamicLibrary();
 
-    const String &GetPath() const
+    const PlatformString &GetPath() const
         { return m_path; }
 
     void *GetFunction(const char *name) const;
 
 private:
-    String  m_path;
-    void    *m_handle;
+    PlatformString  m_path;
+    void            *m_handle;
 };
 
 } // namespace hyperion

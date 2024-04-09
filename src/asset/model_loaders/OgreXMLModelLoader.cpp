@@ -111,10 +111,10 @@ void BuildVertices(OgreXMLModel &model)
     Array<Vertex> vertices;
     vertices.Resize(model.positions.Size());
 
-    for (SizeType i = 0; i < vertices.Size(); i++) {
-        Vector3 position;
-        Vector3 normal;
-        Vector2 texcoord;
+    for (uint i = 0; i < vertices.Size(); i++) {
+        Vec3f position;
+        Vec3f normal;
+        Vec2f texcoord;
 
         if (i < model.positions.Size()) {
             position = model.positions[i];

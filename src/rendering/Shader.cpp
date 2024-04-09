@@ -271,25 +271,27 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         Threads::CurrentThreadID().name.LookupString()
     );
 
-    std::lock_guard guard(m_mutex);
+    { // check if exists in cache
+        Mutex::Guard guard(m_mutex);
 
-    const auto it = m_map.Find(definition);
+        const auto it = m_map.Find(definition);
 
-    if (it != m_map.End()) {
-        if (Handle<Shader> handle = it->second.Lock()) {
-            if (EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetProperties())) {
-                return handle;
-            } else {
-                DebugLog(
-                    LogType::Error,
-                    "Loaded shader from cache (Name: %s, Properties: %s) does not contain the requested properties!\n\tRequested: %s\n",
-                    definition.GetName().LookupString(),
-                    handle->GetCompiledShader().GetProperties().ToString().Data(),
-                    definition.GetProperties().ToString().Data()
-                );
+        if (it != m_map.End()) {
+            if (Handle<Shader> handle = it->second.Lock()) {
+                if (EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetProperties())) {
+                    return handle;
+                } else {
+                    DebugLog(
+                        LogType::Error,
+                        "Loaded shader from cache (Name: %s, Properties: %s) does not contain the requested properties!\n\tRequested: %s\n",
+                        definition.GetName().LookupString(),
+                        handle->GetCompiledShader().GetProperties().ToString().Data(),
+                        definition.GetProperties().ToString().Data()
+                    );
 
-                // remove bad value from cache
-                m_map.Erase(it);
+                    // remove bad value from cache
+                    m_map.Erase(it);
+                }
             }
         }
     }
@@ -309,9 +311,13 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         definition.GetProperties().GetHashCode().Value()
     );
 
+    DebugLog(LogType::Debug, "Creating shader... %s\n", definition.GetName().LookupString());
+
     Handle<Shader> handle = CreateObject<Shader>();
     handle->SetName(definition.GetName());
     handle->SetCompiledShader(std::move(compiled_shader));
+
+    DebugLog(LogType::Debug, "Shader created.\n");
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetDefinition().GetProperties()));
@@ -319,7 +325,11 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     InitObject(handle);
 
-    m_map.Set(definition, handle);
+    { // Add it to the cache
+        Mutex::Guard guard(m_mutex);
+
+        m_map.Set(definition, handle);
+    }
 
     return handle;
 }

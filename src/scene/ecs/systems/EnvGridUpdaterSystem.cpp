@@ -25,11 +25,21 @@ void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entit
         use_voxel_grid = true;
     }
 
+    BoundingBox world_aabb = bounding_box_component.world_aabb;
+
+    if (!world_aabb.IsFinite()) {
+        world_aabb = BoundingBox::empty;
+    }
+
+    if (!world_aabb.IsValid()) {
+        DebugLog(LogType::Warn, "EnvGridUpdaterSystem::OnEntityAdded: Entity #%u has invalid bounding box\n", entity.Value());
+    }
+
     env_grid_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<EnvGrid>(
         Name::Unique("env_grid_renderer"),
         EnvGridOptions {
             env_grid_component.env_grid_type,
-            bounding_box_component.world_aabb,
+            world_aabb,
             env_grid_component.grid_size,
             use_voxel_grid
         }
@@ -53,8 +63,10 @@ void EnvGridUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::T
     for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>()) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
-        if (env_grid_component.transform_hash_code != transform_hash_code) {
-            env_grid_component.render_component->SetCameraData(transform_component.transform.GetTranslation());
+        const BoundingBox &world_aabb = bounding_box_component.world_aabb;
+
+        if (env_grid_component.transform_hash_code != transform_hash_code || env_grid_component.render_component->GetAABB() != world_aabb) {
+            env_grid_component.render_component->SetCameraData(world_aabb, transform_component.transform.GetTranslation());
 
             env_grid_component.transform_hash_code = transform_hash_code;
         }

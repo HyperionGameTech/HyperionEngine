@@ -14,6 +14,7 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/UIComponent.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>

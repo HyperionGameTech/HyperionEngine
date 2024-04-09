@@ -4,8 +4,6 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
-#include <util/NonOwningPtr.hpp>
-
 #include <vector>
 #include <set>
 #include <algorithm>
@@ -28,8 +26,8 @@ class CommandBuffer;
 
 } // namespace platform
 
-using Device        = platform::Device<Platform::VULKAN>;
-using Instance      = platform::Instance<Platform::VULKAN>;
+using Device = platform::Device<Platform::VULKAN>;
+using Instance = platform::Instance<Platform::VULKAN>;
 using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
 
 class SemaphoreChain;
@@ -58,8 +56,8 @@ private:
 };
 
 struct SemaphoreRef {
-    Semaphore semaphore;
-    mutable uint32_t count;
+    Semaphore           semaphore;
+    mutable uint32_t    count;
 
     SemaphoreRef(VkPipelineStageFlags pipeline_stage)
         : semaphore(pipeline_stage),

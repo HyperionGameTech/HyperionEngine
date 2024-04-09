@@ -307,4 +307,11 @@
     #define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
 #endif
 
+// Helpers
+#ifdef HYP_WINDOWS
+#define HYP_TEXT(x) L##x
+#else
+#define HYP_TEXT(x) x
+#endif
+
 #endif // !HYPERION_DEFINES_H

@@ -81,6 +81,13 @@ public:
         : DynString(other.Data())
     {
     }
+
+    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType>, int> = 0>
+    DynString(const DynString<OtherCharType, OtherIsUtf8> &other)
+        : DynString()
+    {
+        *this = other;
+    }
     
     DynString(DynString &&other) noexcept;
     ~DynString();
@@ -88,6 +95,18 @@ public:
     DynString &operator=(const T *str);
     DynString &operator=(const DynString &other);
     DynString &operator=(DynString &&other) noexcept;
+    
+    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType>, int> = 0>
+    DynString &operator=(const DynString<OtherCharType, OtherIsUtf8> &other)
+    {
+        Clear();
+        Reserve(other.Size());
+        for (SizeType i = 0; i < other.Length(); i++) {
+            Append(other.GetChar(i));
+        }
+
+        return *this;
+    }
 
     DynString operator+(const DynString &other) const;
     DynString operator+(DynString &&other) const;
@@ -166,8 +185,8 @@ public:
     void Append(const T *str);
     void Append(T value);
     
-    template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
-    void Append(U32Char ch)
+    template <class LargeCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<LargeCharType, CharType> && (std::is_same_v<LargeCharType, u32char> || std::is_same_v<LargeCharType, u16char> || std::is_same_v<LargeCharType, wchar_t>), int>>
+    void Append(LargeCharType ch)
     {
         char parts[4] = { '\0' };
         utf::char32to8(ch, parts);
@@ -1320,6 +1339,8 @@ using WideString = containers::detail::DynString<wchar_t, false>;
 
 using UTF32String = containers::detail::DynString<utf::u32char, false>;
 using UTF16String = containers::detail::DynString<utf::u16char, false>;
+
+using PlatformString = containers::detail::DynString<TChar, false>;
 
 inline String operator+(const char *str, const String &other)
     { return String(str) + other; }

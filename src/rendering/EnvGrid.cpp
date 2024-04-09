@@ -160,15 +160,15 @@ EnvGrid::~EnvGrid()
 {
 }
 
-void EnvGrid::SetCameraData(const Vec3f &position)
+void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 {
     Threads::AssertOnThread(THREAD_GAME | THREAD_TASK);
+
+    m_aabb = aabb;
 
     const BoundingBox current_aabb = m_aabb;
     const Vec3f current_aabb_center = current_aabb.GetCenter();
     const Vec3f current_aabb_center_minus_offset = current_aabb_center - m_offset;
-
-    const Vec3f aabb_extent = m_aabb.GetExtent();
 
     const Vec3f size_of_probe = SizeOfProbe();
 
@@ -278,10 +278,10 @@ void EnvGrid::Init()
         // m_ambient_probes.Resize(num_ambient_probes);
         // m_env_probe_draw_proxies.Resize(num_ambient_probes);
 
-        for (SizeType x = 0; x < m_options.density.width; x++) {
-            for (SizeType y = 0; y < m_options.density.height; y++) {
-                for (SizeType z = 0; z < m_options.density.depth; z++) {
-                    const SizeType index = x * m_options.density.width * m_options.density.height
+        for (uint32 x = 0; x < m_options.density.width; x++) {
+            for (uint32 y = 0; y < m_options.density.height; y++) {
+                for (uint32 z = 0; z < m_options.density.depth; z++) {
+                    const uint32 index = x * m_options.density.width * m_options.density.height
                         + y * m_options.density.width
                         + z;
 
@@ -323,7 +323,7 @@ void EnvGrid::Init()
     }
 
     {
-        for (SizeType index = 0; index < std::size(m_shader_data.probe_indices); index++) {
+        for (uint index = 0; index < ArraySize(m_shader_data.probe_indices); index++) {
             m_shader_data.probe_indices[index] = invalid_probe_index.GetProbeIndex();
         }
 
@@ -375,13 +375,6 @@ void EnvGrid::OnRemoved()
         g_engine->GetPlaceholderData()->GetImageView3D1x1x1R8()
     );
 
-    // PUSH_RENDER_COMMAND(
-    //     SetElementInGlobalDescriptorSet,
-    //     HYP_NAME(Scene),
-    //     HYP_NAME(EnvGridProbeDataTexture),
-    //     g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
-    // );
-
     SafeRelease(std::move(m_clear_sh));
     SafeRelease(std::move(m_compute_sh));
     SafeRelease(std::move(m_reduce_sh));
@@ -431,12 +424,14 @@ void EnvGrid::OnRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     const uint num_ambient_probes = m_env_probe_collection.num_probes;
 
-    m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
+    const BoundingBox grid_aabb = m_aabb;
+
+    if (!grid_aabb.IsValid() || !grid_aabb.IsFinite()) {
+        return;
+    }
 
     const EnvGridFlags flags = m_flags.Get(MemoryOrder::ACQUIRE);
     EnvGridFlags new_flags = flags;
-
-    const BoundingBox grid_aabb = m_aabb;
 
     if (m_options.use_voxel_grid) {
         if (flags & ENV_GRID_FLAGS_NEEDS_VOXEL_GRID_OFFSET) {
@@ -456,16 +451,14 @@ void EnvGrid::OnRender(Frame *frame)
         }
     }
 
-    // if (flags & ENV_GRID_FLAGS_RESET_REQUESTED) {
-    //     for (SizeType index = 0; index < std::size(m_shader_data.probe_indices); index++) {
-    //         m_shader_data.probe_indices[index] = invalid_probe_index.GetProbeIndex();
-    //     }
+    m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
 
-    //     new_flags &= ~ENV_GRID_FLAGS_RESET_REQUESTED;
-    // }
+    for (uint index = 0; index < ArraySize(m_shader_data.probe_indices); index++) {
+        const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
 
-    for (SizeType index = 0; index < std::size(m_shader_data.probe_indices); index++) {
-        m_shader_data.probe_indices[index] = m_env_probe_collection.GetEnvProbeOnRenderThread(index).GetID().ToIndex();
+        // @TODO: Set enabled_indices_mask properly
+
+        m_shader_data.probe_indices[index] = probe.GetID().ToIndex();
     }
 
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES)) {
@@ -937,8 +930,6 @@ void EnvGrid::ComputeSH(
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);//GetEnvProbeOnRenderThread(probe_index);
     AssertThrow(probe.IsValid());
 
-    const ID<EnvProbe> id = probe->GetID();
-
     AssertThrow(image != nullptr);
     AssertThrow(image_view != nullptr);
 
@@ -1269,12 +1260,23 @@ void EnvGrid::VoxelizeProbe(
         const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
         Extent3D mip_extent = voxel_image_extent;
 
+        struct alignas(128)
+        {
+            Vec4u   mip_dimensions;
+            Vec4u   prev_mip_dimensions;
+            uint32  mip_level;
+        } push_constant_data;
+
         for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
             const Extent3D prev_mip_extent = mip_extent;
 
             mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
             mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);
             mip_extent.depth = MathUtil::Max(1u, voxel_image_extent.depth >> mip_level);
+
+            push_constant_data.mip_dimensions = Vec4u { mip_extent.width, mip_extent.height, mip_extent.depth, 0 };
+            push_constant_data.prev_mip_dimensions = Vec4u { prev_mip_extent.width, prev_mip_extent.height, prev_mip_extent.depth, 0 };
+            push_constant_data.mip_level = mip_level;
 
             if (mip_level != 0) {
                 // put the mip into writeable state
@@ -1291,16 +1293,9 @@ void EnvGrid::VoxelizeProbe(
                 { }
             );
 
-            m_generate_voxel_grid_mipmaps->Bind(
-                frame->GetCommandBuffer(),
-                Pipeline::PushConstantData {
-                    .voxel_mip_data = {
-                        .mip_dimensions = renderer::ShaderVec4<uint32>(mip_extent.width, mip_extent.height, mip_extent.depth, 0),
-                        .prev_mip_dimensions = renderer::ShaderVec4<uint32>(prev_mip_extent.width, prev_mip_extent.height, prev_mip_extent.depth, 0),
-                        .mip_level = mip_level
-                    }
-                }
-            );
+            m_generate_voxel_grid_mipmaps->SetPushConstants(&push_constant_data, sizeof(push_constant_data));
+
+            m_generate_voxel_grid_mipmaps->Bind(frame->GetCommandBuffer());
 
             // dispatch to generate this mip level
             m_generate_voxel_grid_mipmaps->Dispatch(

@@ -43,8 +43,6 @@ enum SSRRendererOptionBits : SSRRendererOptions
 
 class SSRRenderer
 {
-    static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
-
 public:
     friend struct RenderCommand_CreateSSRImageOutputs;
     friend struct RenderCommand_DestroySSRInstance;

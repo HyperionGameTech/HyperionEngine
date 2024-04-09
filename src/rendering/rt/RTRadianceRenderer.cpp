@@ -84,17 +84,6 @@ struct RENDER_COMMAND(CreateRTRadianceUniformBuffers) : renderer::RenderCommand
 
 #pragma endregion
 
-Result RTRadianceRenderer::ImageOutput::Create(Device *device)
-{
-    AssertThrow(image.IsValid());
-    AssertThrow(image_view.IsValid());
-
-    HYPERION_BUBBLE_ERRORS(image->Create(device));
-    HYPERION_BUBBLE_ERRORS(image_view->Create(device, image));
-
-    HYPERION_RETURN_OK;
-}
-
 RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent, RTRadianceRendererOptions options)
     : m_extent(extent),
       m_options(options),
@@ -190,6 +179,7 @@ void RTRadianceRenderer::Render(Frame *frame)
 
     const Extent3D image_extent = m_texture->GetImage()->GetExtent();
     const SizeType num_pixels = image_extent.Size();
+    
     const SizeType half_num_pixels = num_pixels / 2;
 
     m_raytracing_pipeline->TraceRays(

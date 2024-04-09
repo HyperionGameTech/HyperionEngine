@@ -17,7 +17,9 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : renderer::Rende
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet)() override = default;
+
+    virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
@@ -25,6 +27,27 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : renderer::Rende
         }
 
         HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
+{
+    RENDER_COMMAND(RemoveHBAODescriptors)()
+    {
+    }
+
+    virtual ~RENDER_COMMAND(RemoveHBAODescriptors)() override = default;
+
+    virtual Result operator()() override
+    {
+        auto result = Result::OK;
+
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
+                ->SetElement(HYP_NAME(SSAOResultTexture), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        }
+
+        return result;
     }
 };
 
@@ -56,25 +79,6 @@ void HBAO::Destroy()
     m_temporal_blending->Destroy();
 
     m_hbao_pass->Destroy();
-
-    struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
-    {
-        RENDER_COMMAND(RemoveHBAODescriptors)()
-        {
-        }
-
-        virtual Result operator()()
-        {
-            auto result = Result::OK;
-
-            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                    ->SetElement(HYP_NAME(SSAOResultTexture), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-            }
-
-            return result;
-        }
-    };
 
     PUSH_RENDER_COMMAND(RemoveHBAODescriptors);
 }
@@ -127,8 +131,9 @@ void HBAO::Render(Frame *frame)
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     {
-        struct alignas(128) {
-            ShaderVec2<uint32> dimension;
+        struct alignas(128)
+        {
+            Vec2u   dimension;
         } push_constants;
 
         push_constants.dimension = m_extent;

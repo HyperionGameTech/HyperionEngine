@@ -16,6 +16,8 @@ using renderer::GPUBufferType;
 
 static constexpr bool use_temporal_blending = true;
 
+static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
+
 struct alignas(16) SSRParams
 {
     ShaderVec4<uint32> dimensions;
@@ -185,9 +187,9 @@ void SSRRenderer::Create()
     if (use_temporal_blending) {
         m_temporal_blending.Reset(new TemporalBlending(
             m_extent,
-            ssr_format,
+            InternalFormat::RGBA16F,
             TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::MEDIUM,
+            TemporalBlendFeedback::LOW,
             FixedArray<ImageViewRef, 2> {
                 m_image_outputs[1]->GetImageView(),
                 m_image_outputs[1]->GetImageView()

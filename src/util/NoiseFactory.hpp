@@ -44,10 +44,10 @@ public:
     virtual double GetNoise(double x, double y, double z) const
         { return GetNoise(x, y); }
 
-    double GetNoise(const Vector2 &xy) const
+    double GetNoise(const Vec2f &xy) const
         { return GetNoise(xy.x, xy.y); }
 
-    double GetNoise(const Vector3 &xyz) const
+    double GetNoise(const Vec3f &xyz) const
         { return GetNoise(xyz.x, xyz.y, xyz.z); }
 
     Bitmap<1> CreateBitmap(uint width, uint height, float scale = 1.0f);
@@ -71,39 +71,43 @@ public:
     {
     }
 
-    virtual ~BasicNoiseGenerator() = default;
+    BasicNoiseGenerator(const BasicNoiseGenerator &other)                   = delete;
+    BasicNoiseGenerator &operator=(const BasicNoiseGenerator &other)        = delete;
+    BasicNoiseGenerator(BasicNoiseGenerator &&other) noexcept               = default;
+    BasicNoiseGenerator &operator=(BasicNoiseGenerator &&other) noexcept    = default;
+    virtual ~BasicNoiseGenerator()                                          = default;
 
     virtual T Next()
         { return m_distribution(m_mt); }
 
 protected:
-    Seed m_seed;
+    Seed                                m_seed;
 
-    Range<T> m_range;
+    Range<T>                            m_range;
 
-    std::random_device m_random_device;
-    std::mt19937 m_mt;
-    std::uniform_real_distribution<T> m_distribution;
+    std::random_device                  m_random_device;
+    std::mt19937                        m_mt;
+    std::uniform_real_distribution<T>   m_distribution;
 };
 
 class SimplexNoiseGenerator : public NoiseGenerator
 {
 public:
     SimplexNoiseGenerator(Seed seed);
-    virtual ~SimplexNoiseGenerator();
+    virtual ~SimplexNoiseGenerator() override;
 
     virtual double GetNoise(double x, double z) const override;
     virtual double GetNoise(double x, double y, double z) const override;
 
 private:
-    SimplexNoiseData m_simplex_noise;
+    SimplexNoiseData    m_simplex_noise;
 };
 
 class WorleyNoiseGenerator : public NoiseGenerator
 {
 public:
     WorleyNoiseGenerator(Seed seed);
-    virtual ~WorleyNoiseGenerator();
+    virtual ~WorleyNoiseGenerator() override;
 
     virtual double GetNoise(double x, double z) const override;
     virtual double GetNoise(double x, double y, double z) const override;
@@ -115,7 +119,8 @@ private:
 class NoiseCombinator
 {
 public:
-    enum class Mode {
+    enum class Mode
+    {
         ADDITIVE,
         MULTIPLICATIVE
     };
@@ -157,7 +162,7 @@ public:
         Mode mode = Mode::ADDITIVE,
         float multiplier = 1.0f,
         float bias = 0.0f,
-        const Vector3 &scaling = Vector3::One()
+        const Vec3f &scaling = Vec3f::One()
     )
     {
         static_assert(std::is_base_of_v<NoiseGenerator, NoiseGeneratorType>,
@@ -177,7 +182,7 @@ public:
         return *this;
     }
 
-    float GetNoise(const Vector2 &xy) const
+    float GetNoise(const Vec2f &xy) const
     {
         float result = 0.0f;
 
@@ -186,7 +191,7 @@ public:
         for (auto &it : m_generators) {
             ApplyNoiseValue(
                 it.second.mode,
-                (it.second.generator->GetNoise(xy * Vector2(it.second.scaling.x, it.second.scaling.y)) + it.second.bias) * it.second.multiplier,
+                float(it.second.generator->GetNoise(xy * Vec2f(it.second.scaling.x, it.second.scaling.y)) + it.second.bias) * it.second.multiplier,
                 result,
                 first
             );
@@ -195,7 +200,7 @@ public:
         return result;
     }
 
-    float GetNoise(const Vector3 &xyz) const
+    float GetNoise(const Vec3f &xyz) const
     {
         float result = 0.0f;
 
@@ -204,7 +209,7 @@ public:
         for (auto &it : m_generators) {
             ApplyNoiseValue(
                 it.second.mode,
-                (it.second.generator->GetNoise(xyz * Vector3(it.second.scaling)) + it.second.bias) * it.second.multiplier,
+                float(it.second.generator->GetNoise(xyz * Vec3f(it.second.scaling)) + it.second.bias) * it.second.multiplier,
                 result,
                 first
             );
@@ -234,15 +239,15 @@ protected:
         first = false;
     }
 
-    Seed m_seed;
-    SortedArray<KeyValuePair<int, NoiseGeneratorInstance>> m_generators;
+    Seed                                                    m_seed;
+    SortedArray<KeyValuePair<int, NoiseGeneratorInstance>>  m_generators;
 };
 
 
 struct NoiseGeneratorRefCounter
 {
-    NoiseGenerator *noise;
-    SizeType uses;
+    NoiseGenerator  *noise;
+    SizeType        uses;
 };
 
 class NoiseFactory

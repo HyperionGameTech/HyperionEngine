@@ -152,7 +152,7 @@ void LightmapPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
     const uint32 num_bound_lights = MathUtil::Min(uint32(g_engine->GetRenderState().lights.Size()), 16);
 
     for (uint32 index = 0; index < num_bound_lights; index++) {
-        uniforms.light_indices[index] = (g_engine->GetRenderState().lights.Data() + index)->first.ToIndex();
+        uniforms.light_indices[index] = g_engine->GetRenderState().lights.AtIndex(index).first.ToIndex();
     }
 
     uniforms.num_bound_lights = num_bound_lights;

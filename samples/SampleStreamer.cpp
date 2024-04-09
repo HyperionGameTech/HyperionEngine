@@ -370,7 +370,7 @@ void SampleStreamer::InitGame()
 
     // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
-    if (true) {
+    if (false) {
         auto terrain_node = m_scene->GetRoot().AddChild();
         auto terrain_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -407,7 +407,7 @@ void SampleStreamer::InitGame()
         auto sun = CreateObject<Light>(DirectionalLight(
             Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
             Color(1.0f),
-            1.0f
+            10.0f
         ));
 
         InitObject(sun);
@@ -563,7 +563,7 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add("test_model", "models/sponza/sponza.obj");//pica_pica.obj");////living_room/living_room.obj");//
+        batch->Add("test_model", "models/pica_pica/pica_pica.obj");////living_room/living_room.obj");//
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
         batch->LoadAsync();
@@ -683,14 +683,14 @@ void SampleStreamer::InitGame()
         
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
-            // node.Scale(3.0f);
-            node.Scale(0.0125f);
+            node.Scale(3.0f);
+            //node.Scale(0.0125f);
             node.SetName("test_model");
             node.LockTransform();
 
             GetScene()->GetRoot().AddChild(node);
 
-#if 1
+#if 0
             // Add a reflection probe
             // TEMP: Commented out due to blending issues with multiple reflection probes
             m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(

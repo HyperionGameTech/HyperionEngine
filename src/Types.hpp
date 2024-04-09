@@ -28,6 +28,14 @@ static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
 using SizeType = decltype(sizeof(void *));
 
+using WideChar = wchar_t;
+
+#ifdef HYP_WINDOWS
+using TChar = WideChar;
+#else
+using TChar = char;
+#endif
+
 } // namespace hyperion
 
 #endif

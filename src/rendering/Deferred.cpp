@@ -612,7 +612,7 @@ void EnvGridPass::Render(Frame *frame)
 // ===== Reflection Probe Pass Begin =====
 
 ReflectionProbePass::ReflectionProbePass()
-    : FullScreenPass(InternalFormat::RGBA16F),
+    : FullScreenPass(InternalFormat::RGBA8),
       m_is_first_frame(true)
 {
 }
@@ -720,8 +720,8 @@ void ReflectionProbePass::Create()
     // Create temporal blending pass
     m_temporal_blending.Reset(new TemporalBlending(
         m_framebuffer->GetExtent(),
-        InternalFormat::RGBA16F,
-        TemporalBlendTechnique::TECHNIQUE_3,
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_1,
         TemporalBlendFeedback::LOW,
         m_framebuffer
     ));
@@ -1271,8 +1271,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             has_set_active_env_probe = true;
         }
 
-        RenderSkybox(frame);
-
         // begin translucent with forward rendering
         RenderTranslucentObjects(frame);
 
@@ -1287,6 +1285,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         if (has_set_active_env_probe) {
             g_engine->GetRenderState().UnsetActiveEnvProbe();
         }
+
+        RenderSkybox(frame);
 
         m_translucent_fbo->EndCapture(frame_index, primary);
     }

@@ -56,6 +56,8 @@ public:
 
     ~RTRadianceRenderer();
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsPathTracer() const
         { return m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER; }
     
@@ -75,29 +77,6 @@ private:
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
     void UpdateUniforms(Frame *frame);
-    
-    struct ImageOutput
-    {
-        ImageRef image;
-        ImageViewRef image_view;
-
-        ImageOutput(StorageImage &&image)
-            : image(MakeRenderObject<Image>(std::move(image))),
-              image_view(MakeRenderObject<ImageView>())
-        {
-        }
-
-        ImageOutput(const ImageOutput &other) = delete;
-        ImageOutput(ImageOutput &&other) noexcept
-            : image(std::move(other.image)),
-              image_view(std::move(other.image_view))
-        {
-        }
-
-        ~ImageOutput() = default;
-
-        Result Create(Device *device);
-    };
 
     RTRadianceRendererOptions                           m_options;
 

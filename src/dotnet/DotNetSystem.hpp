@@ -3,6 +3,8 @@
 
 #include <core/lib/RefCountedPtr.hpp>
 
+#include <Types.hpp>
+
 #include <dotnet/Types.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/Class.hpp>
@@ -18,13 +20,14 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
+    virtual void Initialize() = 0;
     virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
 
     virtual void *GetDelegate(
-        const char *assembly_path,
-        const char *type_name,
-        const char *method_name,
-        const char *delegate_type_name
+        const TChar *assembly_path,
+        const TChar *type_name,
+        const TChar *method_name,
+        const TChar *delegate_type_name
     ) const = 0;
 };
 
