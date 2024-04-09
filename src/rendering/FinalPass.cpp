@@ -218,7 +218,7 @@ void FinalPass::Render(Frame *frame)
 
     pipeline->Bind(frame->GetCommandBuffer());
 
-    pipeline->GetDescriptorTable().Get()->Bind(
+    pipeline->GetDescriptorTable()->Bind(
         frame,
         pipeline,
         { }

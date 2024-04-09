@@ -205,16 +205,16 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
         m_rays_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), ray_float_data.ByteSize(), ray_float_data.Data());
 
         if (rays_buffer_resized) {
-            m_raytracing_pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(RTRadianceDescriptorSet), frame->GetFrameIndex())
+            m_raytracing_pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(RTRadianceDescriptorSet), frame->GetFrameIndex())
                 ->SetElement(HYP_NAME(RaysBuffer), m_rays_buffers[frame->GetFrameIndex()]);
 
-            HYPERION_ASSERT_RESULT(m_raytracing_pipeline->GetDescriptorTable().Get()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex()));
+            HYPERION_ASSERT_RESULT(m_raytracing_pipeline->GetDescriptorTable()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex()));
         }
     }
     
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 
-    m_raytracing_pipeline->GetDescriptorTable().Get()->Bind(
+    m_raytracing_pipeline->GetDescriptorTable()->Bind(
         frame,
         m_raytracing_pipeline,
         {

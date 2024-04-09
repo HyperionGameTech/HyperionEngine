@@ -143,7 +143,7 @@ void HBAO::Render(Frame *frame)
 
         Frame temporary_frame = Frame::TemporaryFrame(m_hbao_pass->GetCommandBuffer(frame_index), frame_index);
         
-        m_hbao_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind(
+        m_hbao_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
             &temporary_frame,
             m_hbao_pass->GetRenderGroup()->GetPipeline(),
             {

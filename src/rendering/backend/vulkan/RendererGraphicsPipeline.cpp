@@ -299,7 +299,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
     
-    AssertThrowMsg(m_descriptor_table.HasValue(), "No descriptor table set for pipeline");
+    AssertThrowMsg(m_descriptor_table.IsValid(), "No descriptor table set for pipeline");
     Array<VkDescriptorSetLayout> used_layouts = GetDescriptorSetLayouts();
     
     DebugLog(
@@ -433,10 +433,8 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     m_is_created = false;
-
-    if (m_descriptor_table.HasValue()) {
-        SafeRelease(std::move(m_descriptor_table.Get()));
-    }
+    
+    SafeRelease(std::move(m_descriptor_table));
 
     VkDevice render_device = device->GetDevice();
 

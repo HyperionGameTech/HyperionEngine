@@ -432,7 +432,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     const ID<Scene> scene_id = g_engine->GetRenderState().GetScene().id;
     const uint scene_index = scene_id.ToIndex();
 
-    m_object_visibility->GetDescriptorTable().Get()->Bind(
+    m_object_visibility->GetDescriptorTable()->Bind(
         frame,
         m_object_visibility,
         {
@@ -475,7 +475,7 @@ void IndirectRenderer::RebuildDescriptors(Frame *frame)
 {
     const uint frame_index = frame->GetFrameIndex();
 
-    const DescriptorTableRef &descriptor_table = m_object_visibility->GetDescriptorTable().Get();
+    const DescriptorTableRef &descriptor_table = m_object_visibility->GetDescriptorTable();
 
     const DescriptorSet2Ref &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(ObjectVisibilityDescriptorSet), frame_index);
     AssertThrow(descriptor_set != nullptr);

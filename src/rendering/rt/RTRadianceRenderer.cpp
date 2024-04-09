@@ -143,7 +143,7 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
     m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
 
     if (m_updates[frame->GetFrameIndex()]) {
-        m_raytracing_pipeline->GetDescriptorTable().Get()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex());
+        m_raytracing_pipeline->GetDescriptorTable()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex());
 
         m_updates[frame->GetFrameIndex()] = RT_RADIANCE_UPDATES_NONE;
     }
@@ -155,7 +155,7 @@ void RTRadianceRenderer::Render(Frame *frame)
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 
-    m_raytracing_pipeline->GetDescriptorTable().Get()->Bind(
+    m_raytracing_pipeline->GetDescriptorTable()->Bind(
         frame,
         m_raytracing_pipeline,
         {
@@ -236,7 +236,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
     }
     
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSet2Ref &descriptor_set = m_raytracing_pipeline->GetDescriptorTable().Get()
+        const DescriptorSet2Ref &descriptor_set = m_raytracing_pipeline->GetDescriptorTable()
             ->GetDescriptorSet(HYP_NAME(RTRadianceDescriptorSet), frame_index);
 
         AssertThrow(descriptor_set != nullptr);

@@ -447,7 +447,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
         spawner->GetComputePipeline()->SubmitPushConstants(frame->GetCommandBuffer());
 
-        spawner->GetComputePipeline()->GetDescriptorTable().Get()->Bind(
+        spawner->GetComputePipeline()->GetDescriptorTable()->Bind(
             frame,
             spawner->GetComputePipeline(),
             {
@@ -509,7 +509,7 @@ void ParticleSystem::Render(Frame *frame)
                 {
                     pipeline->Bind(secondary);
 
-                    pipeline->GetDescriptorTable().Get()->Bind(
+                    pipeline->GetDescriptorTable()->Bind(
                         secondary,
                         frame_index,
                         pipeline,

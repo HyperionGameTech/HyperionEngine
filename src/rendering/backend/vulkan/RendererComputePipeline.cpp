@@ -109,7 +109,7 @@ void ComputePipeline<Platform::VULKAN>::DispatchIndirect(
 
 Result ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
-    AssertThrowMsg(m_descriptor_table.HasValue(), "To use this function, you must use a DescriptorTable");
+    AssertThrowMsg(m_descriptor_table.IsValid(), "To use this function, you must use a DescriptorTable");
 
     /* Push constants */
     const VkPushConstantRange push_constant_ranges[] = {
@@ -132,7 +132,7 @@ Result ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
         used_layouts.Size()
     );
 
-    for (const DescriptorSet2Ref<Platform::VULKAN> &descriptor_set : (*m_descriptor_table)->GetSets()[0]) {
+    for (const DescriptorSet2Ref<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
         DebugLog(
             LogType::Debug,
             "\tDescriptor set layout: %s\n",
@@ -206,10 +206,8 @@ Result ComputePipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *devi
     DebugLog(LogType::Debug, "Destroying compute pipeline\n");
 
     m_is_created = false;
-
-    if (m_descriptor_table.HasValue()) {
-        SafeRelease(std::move(m_descriptor_table.Get()));
-    }
+    
+    SafeRelease(std::move(m_descriptor_table));
 
     vkDestroyPipeline(device->GetDevice(), this->pipeline, nullptr);
     this->pipeline = nullptr;

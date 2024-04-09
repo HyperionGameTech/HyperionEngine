@@ -181,7 +181,7 @@ void TemporalAA::Render(Frame *frame)
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->Bind(command_buffer);
 
-    m_compute_taa->GetDescriptorTable().Get()->Bind(frame, m_compute_taa, { });
+    m_compute_taa->GetDescriptorTable()->Bind(frame, m_compute_taa, { });
 
     m_compute_taa->Dispatch(
         command_buffer,

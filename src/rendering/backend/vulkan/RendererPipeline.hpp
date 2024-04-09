@@ -154,7 +154,7 @@ public:
     bool IsCreated() const
         { return m_is_created; }
 
-    const Optional<DescriptorTableRef<Platform::VULKAN>> &GetDescriptorTable() const
+    const DescriptorTableRef<Platform::VULKAN> &GetDescriptorTable() const
         { return m_descriptor_table; }
 
     void SetDescriptorTable(DescriptorTableRef<Platform::VULKAN> descriptor_table);
@@ -174,11 +174,11 @@ public:
 protected:
     Array<VkDescriptorSetLayout> GetDescriptorSetLayouts() const;
 
-    ShaderProgramRef<Platform::VULKAN>                      m_shader_program;
-    Optional<DescriptorTableRef<Platform::VULKAN>>          m_descriptor_table { };
-    bool                                                    m_is_created { false };      
+    ShaderProgramRef<Platform::VULKAN>      m_shader_program;
+    DescriptorTableRef<Platform::VULKAN>    m_descriptor_table;
+    bool                                    m_is_created { false };      
 
-    VkPipeline                                              pipeline;
+    VkPipeline                              pipeline;
 };
 
 } // namespace platform

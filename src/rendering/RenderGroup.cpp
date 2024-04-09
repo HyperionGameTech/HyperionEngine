@@ -43,12 +43,12 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
     {
         DebugLog(LogType::Debug, "Create GraphicsPipeline %s\n", pipeline.GetName().LookupString());
 
-        AssertThrow(pipeline->GetDescriptorTable().HasValue());
+        AssertThrow(pipeline->GetDescriptorTable().IsValid());
 
-        DebugLog(LogType::Debug, "Descriptor table has %u sets:\n", pipeline->GetDescriptorTable().Get()->GetSets().Size());
+        DebugLog(LogType::Debug, "Descriptor table has %u sets:\n", pipeline->GetDescriptorTable()->GetSets().Size());
 
-        for (const auto &set : pipeline->GetDescriptorTable().Get()->GetSets()[0]) {
-            DebugLog(LogType::Debug, "\t%s %u\n", set->GetLayout().GetName().LookupString(), pipeline->GetDescriptorTable().Get()->GetDescriptorSetIndex(set->GetLayout().GetName()));
+        for (const auto &set : pipeline->GetDescriptorTable()->GetSets()[0]) {
+            DebugLog(LogType::Debug, "\t%s %u\n", set->GetLayout().GetName().LookupString(), pipeline->GetDescriptorTable()->GetDescriptorSetIndex(set->GetLayout().GetName()));
 
             for (const auto &it : set->GetLayout().GetElements()) {
                 DebugLog(LogType::Debug, "\t\t%s %u %u\n", it.first.LookupString(), it.second.type, it.second.binding);
@@ -218,7 +218,7 @@ void RenderGroup::Init()
 
     m_pipeline->SetShaderProgram(m_shader->GetShaderProgram());
 
-    if (!m_pipeline->GetDescriptorTable().HasValue()) {
+    if (!m_pipeline->GetDescriptorTable().IsValid()) {
         renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
@@ -228,8 +228,7 @@ void RenderGroup::Init()
         m_pipeline->SetDescriptorTable(std::move(descriptor_table));
     }
 
-    AssertThrow(m_pipeline->GetDescriptorTable().HasValue());
-    AssertThrow(m_pipeline->GetDescriptorTable().Get() != nullptr);
+    AssertThrow(m_pipeline->GetDescriptorTable().IsValid());
 
     m_pipeline.SetName(CreateNameFromDynamicString(ANSIString("GraphicsPipeline_") + m_shader->GetCompiledShader().GetName().LookupString()));
 
@@ -380,19 +379,19 @@ RenderAll(
     // because otherwise we'd need to use an atomic integer
     FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
 
-    const uint global_descriptor_set_index = pipeline->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Global));
-    const DescriptorSet2Ref &global_descriptor_set = pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Global), frame_index);
+    const uint global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Global));
+    const DescriptorSet2Ref &global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index);
 
-    const uint scene_descriptor_set_index = pipeline->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Scene));
-    const DescriptorSet2Ref &scene_descriptor_set = pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Scene), frame_index);
+    const uint scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Scene));
+    const DescriptorSet2Ref &scene_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index);
     
-    const uint material_descriptor_set_index = pipeline->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Material));
+    const uint material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Material));
     const DescriptorSet2Ref &material_descriptor_set = use_bindless_textures
-        ? pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Material), frame_index)
+        ? pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Material), frame_index)
         : DescriptorSet2Ref::unset;
     
-    const uint entity_descriptor_set_index = pipeline->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Object));
-    const DescriptorSet2Ref &entity_descriptor_set = pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Object), frame_index);
+    const uint entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Object));
+    const DescriptorSet2Ref &entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Object), frame_index);
 
     // AtomicVar<uint32> num_rendered_objects { 0u };
 

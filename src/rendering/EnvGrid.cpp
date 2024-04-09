@@ -1131,7 +1131,7 @@ void EnvGrid::OffsetVoxelGrid(
 
     m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    m_offset_voxel_grid->GetDescriptorTable().Get()->Bind(
+    m_offset_voxel_grid->GetDescriptorTable()->Bind(
         frame,
         m_offset_voxel_grid,
         {
@@ -1201,7 +1201,7 @@ void EnvGrid::VoxelizeProbe(
     if (false) {   // Clear our voxel grid at the start of each probe
         m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-        m_clear_voxels->GetDescriptorTable().Get()->Bind(
+        m_clear_voxels->GetDescriptorTable()->Bind(
             frame,
             m_clear_voxels,
             {
@@ -1228,7 +1228,7 @@ void EnvGrid::VoxelizeProbe(
     { // Voxelize probe
         m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-        m_voxelize_probe->GetDescriptorTable().Get()->Bind(
+        m_voxelize_probe->GetDescriptorTable()->Bind(
             frame,
             m_voxelize_probe,
             {

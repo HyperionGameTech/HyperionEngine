@@ -511,7 +511,7 @@ void ShadowPass::Render(Frame *frame)
         );
 
         // bind descriptor set containing info needed to blur
-        m_blur_shadow_map_pipeline->GetDescriptorTable().Get()->Bind(frame, m_blur_shadow_map_pipeline, { });
+        m_blur_shadow_map_pipeline->GetDescriptorTable()->Bind(frame, m_blur_shadow_map_pipeline, { });
 
         // put our shadow map in a state for writing
         m_shadow_map_all->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);

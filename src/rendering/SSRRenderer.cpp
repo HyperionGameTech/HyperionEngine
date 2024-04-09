@@ -344,7 +344,7 @@ void SSRRenderer::Render(Frame *frame)
 
     m_write_uvs->Bind(command_buffer);
 
-    m_write_uvs->GetDescriptorTable().Get()->Bind(
+    m_write_uvs->GetDescriptorTable()->Bind(
         frame,
         m_write_uvs,
         {
@@ -377,7 +377,7 @@ void SSRRenderer::Render(Frame *frame)
 
     m_sample->Bind(command_buffer);
 
-    m_sample->GetDescriptorTable().Get()->Bind(
+    m_sample->GetDescriptorTable()->Bind(
         frame,
         m_sample,
         {

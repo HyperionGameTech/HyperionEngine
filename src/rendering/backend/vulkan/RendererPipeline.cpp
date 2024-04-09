@@ -34,11 +34,7 @@ Pipeline<Platform::VULKAN>::~Pipeline()
 
 void Pipeline<Platform::VULKAN>::SetDescriptorTable(DescriptorTableRef<Platform::VULKAN> descriptor_table)
 {
-    if (descriptor_table) {
-        m_descriptor_table.Set(std::move(descriptor_table));
-    } else {
-        m_descriptor_table.Unset();
-    }
+    m_descriptor_table = std::move(descriptor_table);
 }
 
 void Pipeline<Platform::VULKAN>::SetShaderProgram(ShaderProgramRef<Platform::VULKAN> shader_program)
@@ -48,16 +44,12 @@ void Pipeline<Platform::VULKAN>::SetShaderProgram(ShaderProgramRef<Platform::VUL
 
 Array<VkDescriptorSetLayout> Pipeline<Platform::VULKAN>::GetDescriptorSetLayouts() const
 {
-    if (!m_descriptor_table.HasValue()) {
-        return { };
-    }
-
-    AssertThrowMsg(m_descriptor_table->IsValid(), "Invalid DescriptorTable provided to Pipeline");
+    AssertThrowMsg(m_descriptor_table.IsValid(), "Invalid DescriptorTable provided to Pipeline");
 
     Array<VkDescriptorSetLayout> used_layouts;
-    used_layouts.Reserve((*m_descriptor_table)->GetSets()[0].Size());
+    used_layouts.Reserve(m_descriptor_table->GetSets()[0].Size());
 
-    for (const DescriptorSet2Ref<Platform::VULKAN> &descriptor_set : (*m_descriptor_table)->GetSets()[0]) {
+    for (const DescriptorSet2Ref<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
         AssertThrow(descriptor_set != nullptr);
 
         used_layouts.PushBack(descriptor_set->GetVkDescriptorSetLayout());

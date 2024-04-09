@@ -424,7 +424,7 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
     }
     
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSet2Ref &descriptor_set = m_pipeline->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(DDGIDescriptorSet), frame_index);
+        const DescriptorSet2Ref &descriptor_set = m_pipeline->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(DDGIDescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
@@ -497,7 +497,7 @@ void DDGI::RenderProbes(Frame *frame)
     
     SubmitPushConstants(frame->GetCommandBuffer());
 
-    m_pipeline->GetDescriptorTable().Get()->Bind(
+    m_pipeline->GetDescriptorTable()->Bind(
         frame,
         m_pipeline,
         {
@@ -545,7 +545,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     
     m_update_irradiance->Bind(frame->GetCommandBuffer());
 
-    m_update_irradiance->GetDescriptorTable().Get()->Bind(
+    m_update_irradiance->GetDescriptorTable()->Bind(
         frame,
         m_update_irradiance,
         {
@@ -573,7 +573,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     m_update_depth->Bind(frame->GetCommandBuffer());
 
-    m_update_depth->GetDescriptorTable().Get()->Bind(
+    m_update_depth->GetDescriptorTable()->Bind(
         frame,
         m_update_depth,
         {
@@ -612,7 +612,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     // now copy border texels
     m_copy_border_texels_irradiance->Bind(frame->GetCommandBuffer());
 
-    m_copy_border_texels_irradiance->GetDescriptorTable().Get()->Bind(
+    m_copy_border_texels_irradiance->GetDescriptorTable()->Bind(
         frame,
         m_copy_border_texels_irradiance,
         {
@@ -640,7 +640,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     
     m_copy_border_texels_depth->Bind(frame->GetCommandBuffer());
 
-    m_copy_border_texels_depth->GetDescriptorTable().Get()->Bind(
+    m_copy_border_texels_depth->GetDescriptorTable()->Bind(
         frame,
         m_copy_border_texels_depth,
         {

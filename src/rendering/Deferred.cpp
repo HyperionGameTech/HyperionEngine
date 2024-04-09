@@ -312,15 +312,15 @@ void DeferredPass::Record(uint frame_index)
 
                 const Handle<RenderGroup> &render_group = m_direct_light_render_groups[light_type_index];
 
-                const uint global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Global));
-                const uint scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Scene));
-                const uint material_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Material));
-                const uint deferred_direct_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(DeferredDirectDescriptorSet));
+                const uint global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Global));
+                const uint scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Scene));
+                const uint material_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Material));
+                const uint deferred_direct_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(DeferredDirectDescriptorSet));
 
                 render_group->GetPipeline()->push_constants = m_push_constant_data;
                 render_group->GetPipeline()->Bind(cmd);
 
-                render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Global), frame_index)
+                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
                     ->Bind(
                         cmd,
                         render_group->GetPipeline(),
@@ -329,7 +329,7 @@ void DeferredPass::Record(uint frame_index)
 
                 // Bind textures globally (bindless)
                 if (material_descriptor_set_index != ~0u && use_bindless_textures) {
-                    render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Material), frame_index)
+                    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Material), frame_index)
                         ->Bind(
                             cmd,
                             render_group->GetPipeline(),
@@ -338,7 +338,7 @@ void DeferredPass::Record(uint frame_index)
                 }
 
                 if (deferred_direct_descriptor_set_index != ~0u) {
-                    render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(DeferredDirectDescriptorSet), frame_index)
+                    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(DeferredDirectDescriptorSet), frame_index)
                         ->Bind(
                             cmd,
                             render_group->GetPipeline(),
@@ -361,7 +361,7 @@ void DeferredPass::Record(uint frame_index)
                         shadow_probe_index = light.shadow_map_index;
                     }
 
-                    render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
+                    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
                         ->Bind(
                             cmd,
                             render_group->GetPipeline(),
@@ -530,7 +530,7 @@ void EnvGridPass::Render(Frame *frame)
             {
                 // render previous frame's result to screen
                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind<GraphicsPipelineRef>(
+                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
                     cmd,
                     frame_index,
                     m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
@@ -565,13 +565,13 @@ void EnvGridPass::Render(Frame *frame)
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index, scene_index, camera_index, env_grid_index](CommandBuffer *cmd)
         {
-            const uint global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Global));
-            const uint scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Scene));
+            const uint global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Global));
+            const uint scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Scene));
 
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            m_render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Global), frame_index)
+            m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
                 ->Bind(
                     cmd,
                     m_render_group->GetPipeline(),
@@ -579,7 +579,7 @@ void EnvGridPass::Render(Frame *frame)
                     global_descriptor_set_index
                 );
 
-            m_render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
+            m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
                 ->Bind(
                     cmd,
                     m_render_group->GetPipeline(),
@@ -806,7 +806,7 @@ void ReflectionProbePass::Render(Frame *frame)
             {
                 // render previous frame's result to screen
                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind<GraphicsPipelineRef>(
+                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
                     cmd,
                     frame_index,
                     m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
@@ -860,10 +860,10 @@ void ReflectionProbePass::Render(Frame *frame)
                 render_group->GetPipeline()->push_constants = m_push_constant_data;
                 render_group->GetPipeline()->Bind(cmd);
 
-                const uint global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Global));
-                const uint scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSetIndex(HYP_NAME(Scene));
+                const uint global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Global));
+                const uint scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(Scene));
 
-                render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Global), frame_index)
+                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
                     ->Bind(
                         cmd,
                         render_group->GetPipeline(),
@@ -883,7 +883,7 @@ void ReflectionProbePass::Render(Frame *frame)
 
                     // TODO: Add visibility check so we skip probes that don't have any impact on the current view
 
-                    render_group->GetPipeline()->GetDescriptorTable().Get()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
+                    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
                         ->Bind(
                             cmd,
                             render_group->GetPipeline(),
@@ -1265,8 +1265,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         bool has_set_active_env_probe = false;
 
-        if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
-            g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
+        // Set sky environment map as definition
+        if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
+            g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
 
             has_set_active_env_probe = true;
         }
@@ -1292,10 +1293,11 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     {
-        struct alignas(128) {
-            ShaderVec2<uint32>  image_dimensions;
-            uint32              _pad0, _pad1;
-            uint32              deferred_flags;
+        struct alignas(128)
+        {
+            Vec2u   image_dimensions;
+            uint32  _pad0, _pad1;
+            uint32  deferred_flags;
         } deferred_combine_constants;
 
         deferred_combine_constants.image_dimensions = {
@@ -1308,7 +1310,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
         m_combine_pass->Begin(frame);
 
-        m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind(
+        m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
             m_combine_pass->GetCommandBuffer(frame_index),
             frame_index,
             m_combine_pass->GetRenderGroup()->GetPipeline(),

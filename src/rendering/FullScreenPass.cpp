@@ -218,7 +218,7 @@ void FullScreenPass::Record(uint frame_index)
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            m_render_group->GetPipeline()->GetDescriptorTable().Get()->Bind<GraphicsPipelineRef>(
+            m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
                 cmd,
                 frame_index,
                 m_render_group->GetPipeline(),

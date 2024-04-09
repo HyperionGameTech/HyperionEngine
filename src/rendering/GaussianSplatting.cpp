@@ -272,7 +272,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         m_update_splat_distances->SubmitPushConstants(frame->GetCommandBuffer());
 
-        m_update_splat_distances->GetDescriptorTable().Get()->Bind(
+        m_update_splat_distances->GetDescriptorTable()->Bind(
             frame,
             m_update_splat_distances,
             {
@@ -438,7 +438,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         m_update_splats->SubmitPushConstants(frame->GetCommandBuffer());
 
-        m_update_splats->GetDescriptorTable().Get()->Bind(
+        m_update_splats->GetDescriptorTable()->Bind(
             frame,
             m_update_splats,
             {
@@ -789,7 +789,7 @@ void GaussianSplatting::Render(Frame *frame)
         {
             pipeline->Bind(secondary);
 
-            m_gaussian_splatting_instance->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind(
+            m_gaussian_splatting_instance->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
                 secondary,
                 frame_index,
                 pipeline,

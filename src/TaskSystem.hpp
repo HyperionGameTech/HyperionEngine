@@ -199,7 +199,7 @@ public:
         const uint items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
-            batch.AddTask([batch_index, items_per_batch, num_items, lambda](...)
+            batch.AddTask([batch_index, items_per_batch, num_items, &lambda](...)
             {
                 const uint offset_index = batch_index * items_per_batch;
                 const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
@@ -276,7 +276,7 @@ public:
         auto *data_ptr = items.Data();
 
         for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
-            batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, lambda](...)
+            batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, &lambda](...)
             {
                 const uint offset_index = batch_index * items_per_batch;
                 const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);

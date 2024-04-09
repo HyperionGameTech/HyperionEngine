@@ -181,7 +181,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
                     pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
                     pass->Begin(&temp_frame);
 
-                    pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable().Get()->Bind(
+                    pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
                         &temp_frame,
                         pass->GetRenderGroup()->GetPipeline(),
                         { }

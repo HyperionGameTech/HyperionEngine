@@ -148,9 +148,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *d
 
     m_is_created = false;
 
-    if (m_descriptor_table.HasValue()) {
-        SafeRelease(std::move(m_descriptor_table.Get()));
-    }
+    SafeRelease(std::move(m_descriptor_table));
 
     auto result = Result::OK;
 
