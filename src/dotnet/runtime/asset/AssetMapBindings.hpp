@@ -10,10 +10,10 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    struct ManagedAssetMap
-    {
-        AssetMap *map;
-    };
-}
+struct ManagedAssetMap
+{
+    AssetMap *map;
+};
+} // extern "C"
 
 #endif

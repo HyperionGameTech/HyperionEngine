@@ -18,7 +18,7 @@ struct ManagedObject
 
 static_assert(sizeof(ManagedObject) == 24, "ManagedObject size mismatch with C#");
 
-}
+} // extern "C"
 
 } // namespace hyperion::dotnet
 

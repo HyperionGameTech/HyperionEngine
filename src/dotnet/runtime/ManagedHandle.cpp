@@ -30,13 +30,13 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    void ManagedHandle_IncRef(uint32 type_id, ManagedHandle handle)
-    {
-        handle.IncRef(type_id);
-    }
-
-    void ManagedHandle_DecRef(uint32 type_id, ManagedHandle handle)
-    {
-        handle.DecRef(type_id);
-    }
+HYP_EXPORT void ManagedHandle_IncRef(uint32 type_id, ManagedHandle handle)
+{
+    handle.IncRef(type_id);
 }
+
+HYP_EXPORT void ManagedHandle_DecRef(uint32 type_id, ManagedHandle handle)
+{
+    handle.DecRef(type_id);
+}
+} // extern "C"

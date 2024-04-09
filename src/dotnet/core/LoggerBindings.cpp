@@ -11,4 +11,4 @@ HYP_EXPORT void Logger_Log(int log_level, const char *func_name, uint32 line, co
 {
     DebugLog_(static_cast<LogType>(log_level), func_name != nullptr ? func_name : "", line, message);
 }
-}
+} // extern "C"

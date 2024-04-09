@@ -6,7 +6,7 @@
 namespace hyperion::v2 {
 
 extern "C" {
-}
+} // extern "C"
 
 } // namespace hyperion::v2
 

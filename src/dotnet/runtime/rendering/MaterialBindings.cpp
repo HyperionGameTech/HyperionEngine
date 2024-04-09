@@ -15,76 +15,76 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    struct ManagedMaterialParameter
+struct ManagedMaterialParameter
+{
+    float   value[4];
+    uint32  type;
+
+    ManagedMaterialParameter() = default;
+
+    ManagedMaterialParameter(const Material::Parameter &param)
+        : type(uint32(param.type))
     {
-        float   value[4];
-        uint32  type;
-
-        ManagedMaterialParameter() = default;
-
-        ManagedMaterialParameter(const Material::Parameter &param)
-            : type(uint32(param.type))
-        {
-            // hacky way to copy the data
-            param.Copy(reinterpret_cast<uint8 *>(value));
-        }
-
-        operator Material::Parameter() const
-        {
-            Material::Parameter param;
-            param.type = Material::Parameter::Type(type);
-
-            // hacky way to copy the data
-            Memory::MemCpy(&param.values, value, sizeof(value));
-
-            return param;
-        }
-    };
-
-    static_assert(std::is_trivial_v<ManagedMaterialParameter>, "ManagedMaterialParameter must be a trivial type to be used in C#");
-    static_assert(sizeof(ManagedMaterialParameter) == 20, "ManagedMaterialParameter must be 20 bytes to be used in C#");
-    static_assert(sizeof(ManagedMaterialParameter) == sizeof(Material::Parameter), "ManagedMaterialParameter must be the same size as Material::Parameter to maintain consistency");
-
-    uint32 Material_GetTypeID()
-    {
-        return TypeID::ForType<Material>().Value();
+        // hacky way to copy the data
+        param.Copy(reinterpret_cast<uint8 *>(value));
     }
 
-    ManagedHandle Material_Create()
+    operator Material::Parameter() const
     {
-        return CreateManagedHandleFromHandle(CreateObject<Material>());
+        Material::Parameter param;
+        param.type = Material::Parameter::Type(type);
+
+        // hacky way to copy the data
+        Memory::MemCpy(&param.values, value, sizeof(value));
+
+        return param;
     }
+};
 
-    void Material_Init(ManagedHandle material_handle)
-    {
-        Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
+static_assert(std::is_trivial_v<ManagedMaterialParameter>, "ManagedMaterialParameter must be a trivial type to be used in C#");
+static_assert(sizeof(ManagedMaterialParameter) == 20, "ManagedMaterialParameter must be 20 bytes to be used in C#");
+static_assert(sizeof(ManagedMaterialParameter) == sizeof(Material::Parameter), "ManagedMaterialParameter must be the same size as Material::Parameter to maintain consistency");
 
-        if (!material) {
-            return;
-        }
-
-        InitObject(material);
-    }
-
-    ManagedMaterialParameter Material_GetParameter(ManagedHandle material_handle, uint64 key)
-    {
-        Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
-
-        if (!material) {
-            return { };
-        }
-
-        return ManagedMaterialParameter(material->GetParameter(Material::MaterialKey(key)));
-    }
-
-    void Material_SetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter param)
-    {
-        Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
-
-        if (!material) {
-            return;
-        }
-
-        material->SetParameter(Material::MaterialKey(key), Material::Parameter(param));
-    }
+HYP_EXPORT uint32 Material_GetTypeID()
+{
+    return TypeID::ForType<Material>().Value();
 }
+
+HYP_EXPORT ManagedHandle Material_Create()
+{
+    return CreateManagedHandleFromHandle(CreateObject<Material>());
+}
+
+HYP_EXPORT void Material_Init(ManagedHandle material_handle)
+{
+    Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
+
+    if (!material) {
+        return;
+    }
+
+    InitObject(material);
+}
+
+HYP_EXPORT ManagedMaterialParameter Material_GetParameter(ManagedHandle material_handle, uint64 key)
+{
+    Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
+
+    if (!material) {
+        return { };
+    }
+
+    return ManagedMaterialParameter(material->GetParameter(Material::MaterialKey(key)));
+}
+
+HYP_EXPORT void Material_SetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter param)
+{
+    Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
+
+    if (!material) {
+        return;
+    }
+
+    material->SetParameter(Material::MaterialKey(key), Material::Parameter(param));
+}
+} // extern "C"

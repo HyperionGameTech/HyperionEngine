@@ -42,8 +42,8 @@ const Node *ManagedNode::GetNode() const
 } // namespace hyperion::v2
 
 extern "C" {
-    void ManagedNode_Dispose(hyperion::v2::ManagedNode managed_node)
-    {
-        managed_node.Dispose();
-    }
+HYP_EXPORT void ManagedNode_Dispose(hyperion::v2::ManagedNode managed_node)
+{
+    managed_node.Dispose();
 }
+} // extern "C"

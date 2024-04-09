@@ -23,12 +23,12 @@ struct ManagedWeakRefCountedPtr
 
 static_assert(sizeof(ManagedWeakRefCountedPtr) == sizeof(Weak<void>), "ManagedWeakRefCountedPtr size mismatch");
 
-void RefCountedPtr_IncRef(ManagedRefCountedPtr);
-void RefCountedPtr_DecRef(ManagedRefCountedPtr);
+extern HYP_EXPORT void RefCountedPtr_IncRef(ManagedRefCountedPtr);
+extern HYP_EXPORT void RefCountedPtr_DecRef(ManagedRefCountedPtr);
 
-void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr);
-void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
-}
+extern HYP_EXPORT void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr);
+extern HYP_EXPORT void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
+} // extern "C"
 
 template <class T>
 static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref_counted_ptr)

@@ -10,11 +10,15 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-    static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
-    static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
+static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
+static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
 
-    uint64 Name_FromString(const char *str)
-    {
-        return CreateNameFromDynamicString(str).hash_code;
+HYP_EXPORT uint64 Name_FromString(const char *str)
+{
+    if (str == nullptr) {
+        return 0;
     }
+
+    return CreateNameFromDynamicString(str).hash_code;
 }
+} // extern "C"

@@ -6,16 +6,16 @@
 using namespace hyperion::v2;
 
 extern "C" {
-    Engine *Engine_GetInstance()
-    {
-        return g_engine;
-    }
-
-    World *Engine_GetWorld(Engine *engine)
-    {
-        const Handle<World> &world = engine->GetWorld();
-        AssertThrow(world.IsValid());
-
-        return world.Get();
-    }
+HYP_EXPORT Engine *Engine_GetInstance()
+{
+    return g_engine;
 }
+
+HYP_EXPORT World *Engine_GetWorld(Engine *engine)
+{
+    const Handle<World> &world = engine->GetWorld();
+    AssertThrow(world.IsValid());
+
+    return world.Get();
+}
+} // extern "C"
