@@ -2,15 +2,12 @@
 
 namespace hyperion {
 
-TypeIDNameMap TypeIDGeneratorBase::name_map = { };
-
-const TypeID TypeID::void_type_id = { };
+HYP_API TypeIDNameMap TypeIDGeneratorBase::name_map = { };
+HYP_API const TypeID TypeID::void_type_id = { };
 
 TypeID TypeID::ForName(struct Name name)
 {
-    const TypeIDValue id = TypeIDGeneratorBase::name_map.ReverseLookup(name);
-
-    return TypeID(id);
+    HYP_THROW("This function has been removed");
 }
 
 } // namespace hyperion

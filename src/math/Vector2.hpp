@@ -17,7 +17,7 @@ namespace math {
 namespace detail {
 
 template <class T>
-struct alignas(alignof(T) * 2) Vec2
+struct alignas(alignof(T) * 2) HYP_API Vec2
 {
     static constexpr uint size = 2;
 
@@ -179,7 +179,7 @@ struct alignas(alignof(T) * 2) Vec2
 };
 
 template <>
-struct alignas(alignof(float) * 2) Vec2<float>
+struct alignas(alignof(float) * 2) HYP_API Vec2<float>
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec2<float> &vec);
 public:

@@ -29,7 +29,7 @@ using renderer::Device;
 using renderer::GPUBufferType;
 
 class Engine;
-class PlaceholderData
+class HYP_API PlaceholderData
 {
 public:
     PlaceholderData();

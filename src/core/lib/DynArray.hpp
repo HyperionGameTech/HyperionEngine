@@ -365,8 +365,8 @@ protected:
 
     void ResetOffsets();
 
-    Iterator RealBegin() const { return ToValueTypePtr(GetStorage()[0]); }
-    Iterator RealEnd() const { return ToValueTypePtr(GetStorage()[m_size]); }
+    auto RealBegin() const { return ToValueTypePtr(GetStorage()[0]); }
+    auto RealEnd() const { return ToValueTypePtr(GetStorage()[m_size]); }
 
     static SizeType GetCapacity(SizeType size)
     {

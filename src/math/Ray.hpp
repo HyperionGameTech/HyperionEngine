@@ -23,7 +23,7 @@ struct RayHit;
 
 using RayHitID = uint;
 
-struct Ray
+struct HYP_API Ray
 {
     Vec3f   position;
     Vec3f   direction;
@@ -172,7 +172,8 @@ struct RayHit
 class RayTestResults : public FlatSet<RayHit>
 {
 public:
-    bool AddHit(const RayHit &hit);
+    bool AddHit(const RayHit &hit)
+        { return Insert(hit).second; }
 };
 
 } // namespace hyperion

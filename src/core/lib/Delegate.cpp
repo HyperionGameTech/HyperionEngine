@@ -34,9 +34,4 @@ void DelegateHandlerData::Detach(DelegateHandler &&delegate_handler)
 } // namespace detail
 } // namespace functional
 
-DelegateHandler::DelegateHandler(RC<functional::detail::DelegateHandlerData> data)
-    : m_data(std::move(data))
-{
-}
-
 } // namespace hyperion

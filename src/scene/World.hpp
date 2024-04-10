@@ -14,9 +14,9 @@ using renderer::Frame;
 
 struct RenderListNode
 {
-    RenderList *render_list = nullptr;
-    RenderListNode *prev = nullptr;
-    RenderListNode *next = nullptr;
+    RenderList      *render_list = nullptr;
+    RenderListNode  *prev = nullptr;
+    RenderListNode  *next = nullptr;
 };
 
 class RenderListContainer
@@ -27,11 +27,11 @@ public:
     {
     }
 
-    RenderListContainer(const RenderListContainer &other) = delete;
-    RenderListContainer &operator=(RenderListContainer &other) = delete;
-    RenderListContainer(RenderListContainer &&other) noexcept = delete;
-    RenderListContainer &operator=(RenderListContainer &&other) noexcept = delete;
-    ~RenderListContainer() = default;
+    RenderListContainer(const RenderListContainer &other)                   = delete;
+    RenderListContainer &operator=(RenderListContainer &other)              = delete;
+    RenderListContainer(RenderListContainer &&other) noexcept               = delete;
+    RenderListContainer &operator=(RenderListContainer &&other) noexcept    = delete;
+    ~RenderListContainer()                                                  = default;
 
     uint NumRenderLists() const
         { return m_num_render_lists.Get(MemoryOrder::ACQUIRE); }
@@ -75,12 +75,12 @@ private:
     AtomicVar<uint32>                       m_num_render_lists;
 };
 
-class World : public BasicObject<STUB_CLASS(World)>
+class HYP_API World : public BasicObject<STUB_CLASS(World)>
 {
 public:
     World();
-    World(const World &other) = delete;
-    World &operator=(const World &other) = delete;
+    World(const World &other)               = delete;
+    World &operator=(const World &other)    = delete;
     ~World();
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene. */

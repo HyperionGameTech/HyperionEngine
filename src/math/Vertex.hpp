@@ -47,7 +47,7 @@ struct VertexAttribute
     bool operator<(const VertexAttribute &other) const
         { return location < other.location; }
 
-        HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

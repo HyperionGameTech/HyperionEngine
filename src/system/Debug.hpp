@@ -37,13 +37,13 @@ enum class LogType : int
 #define DebugLog(type, ...) \
     DebugLog_(type, __VA_ARGS__)
 
-void DebugLog_(LogType type, const char *fmt, ...);
+extern HYP_API void DebugLog_(LogType type, const char *fmt, ...);
 #else
 //#define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
 #define DebugLog(type, ...) \
     DebugLog_(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
-void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt, ...);
+extern HYP_API void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt, ...);
 #endif
 
 #define DebugLogAssertion(level, cond) \
@@ -157,8 +157,5 @@ struct EnsureValidPointerWrapper
 #define EnsureValidPointer(ptr) ptr
 
 #endif
-
-/* Deprecated */
-#define unexpected_value_msg(value, msg) AssertExitMsg(0, "%s", #value ": " #msg)
 
 #endif //HYPERION_DEBUG_H

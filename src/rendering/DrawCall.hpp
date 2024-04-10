@@ -24,7 +24,7 @@ class Mesh;
 class Material;
 class Skeleton;
 
-extern SafeDeleter *g_safe_deleter;
+extern HYP_API SafeDeleter *g_safe_deleter;
 
 struct DrawCommandData;
 class IndirectDrawState;

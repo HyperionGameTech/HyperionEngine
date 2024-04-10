@@ -5,6 +5,7 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/UniqueID.hpp>
 #include <util/fs/FsUtil.hpp>
+#include <util/Defines.hpp>
 
 namespace hyperion::v2 {
 
@@ -20,7 +21,7 @@ class StreamedData;
     data object is decremented. When the use count reaches zero, the data is
     unpaged from memory.
  */
-class StreamedDataRefBase
+class HYP_API StreamedDataRefBase
 {
 protected:
     RC<StreamedData>    m_owner { nullptr };
@@ -79,7 +80,7 @@ public:
         { return static_cast<const T *>(m_owner.Get()); }
 };
 
-class StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
+class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
 {
 public:
     friend class StreamedDataRefBase; // allow it to access m_use_count
@@ -131,7 +132,7 @@ private:
     AtomicVar<uint> m_use_count { 0u };
 };
 
-class NullStreamedData : public StreamedData
+class HYP_API NullStreamedData : public StreamedData
 {
 public:
     NullStreamedData()                                          = default;
@@ -153,7 +154,7 @@ private:
     ByteBuffer  m_byte_buffer;
 };
 
-class MemoryStreamedData : public StreamedData
+class HYP_API MemoryStreamedData : public StreamedData
 {
 public:
     MemoryStreamedData(const ByteBuffer &byte_buffer);
@@ -165,7 +166,7 @@ public:
     MemoryStreamedData(MemoryStreamedData &&other) noexcept;
     MemoryStreamedData &operator=(MemoryStreamedData &&other) noexcept;
 
-    virtual ~MemoryStreamedData() override  = default;
+    virtual ~MemoryStreamedData() override                          = default;
 
     StreamedDataRef<MemoryStreamedData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<MemoryStreamedData>() }; }
@@ -181,7 +182,7 @@ protected:
     mutable ByteBuffer  m_byte_buffer;
 };
 
-class FileStreamedData : public StreamedData
+class HYP_API FileStreamedData : public StreamedData
 {
 public:
     FileStreamedData(const FilePath &filepath);
@@ -189,7 +190,7 @@ public:
     FileStreamedData &operator=(const FileStreamedData &other)  = delete;
     FileStreamedData(FileStreamedData &&other) noexcept;
     FileStreamedData &operator=(FileStreamedData &&other) noexcept;
-    virtual ~FileStreamedData() override = default;
+    virtual ~FileStreamedData() override                        = default;
 
     const FilePath &GetFilePath() const
         { return m_filepath; }

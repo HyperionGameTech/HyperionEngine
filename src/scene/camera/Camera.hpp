@@ -70,7 +70,7 @@ struct RenderCommand_UpdateCameraDrawProxy;
 
 class Camera;
 
-class CameraController
+class HYP_API CameraController
 {
     friend class Camera;
 public:
@@ -115,7 +115,7 @@ class OrthoCameraController;
 class FirstPersonCameraController;
 class FollowCameraController;
 
-class Camera :
+class HYP_API Camera :
     public BasicObject<STUB_CLASS(Camera)>,
     public HasDrawProxy<STUB_CLASS(Camera)>
 {
@@ -208,22 +208,32 @@ public:
     float GetTop() const { return m_top; }
     void SetTop(float top) { m_top = top; }
 
-    const Vector3 &GetTranslation() const { return m_translation; }
-    void SetTranslation(const Vector3 &translation);
-    void SetNextTranslation(const Vector3 &translation);
+    const Vec3f &GetTranslation() const
+        { return m_translation; }
 
-    const Vector3 &GetDirection() const { return m_direction; }
-    void SetDirection(const Vector3 &direction);
+    void SetTranslation(const Vec3f &translation);
+    void SetNextTranslation(const Vec3f &translation);
 
-    const Vector3 &GetUpVector() const { return m_up; }
-    void SetUpVector(const Vector3 &up);
+    const Vec3f &GetDirection() const
+        { return m_direction; }
 
-    Vector3 GetSideVector() const { return m_up.Cross(m_direction); }
+    void SetDirection(const Vec3f &direction);
 
-    Vector3 GetTarget() const { return m_translation + m_direction; }
-    void SetTarget(const Vector3 &target) { SetDirection(target - m_translation); }
+    const Vec3f &GetUpVector() const
+        { return m_up; }
 
-    void Rotate(const Vector3 &axis, float radians);
+    void SetUpVector(const Vec3f &up);
+
+    Vec3f GetSideVector() const
+        { return m_up.Cross(m_direction); }
+
+    Vec3f GetTarget() const
+        { return m_translation + m_direction; }
+
+    void SetTarget(const Vec3f &target)
+        { SetDirection(target - m_translation); }
+
+    void Rotate(const Vec3f &axis, float radians);
 
     /*! \brief For deserialization, allow modification of the object. */
     Frustum &GetFrustum() { return m_frustum; }
@@ -247,24 +257,24 @@ public:
     const Matrix4 &GetPreviousViewMatrix() const { return m_previous_view_matrix; }
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into ndc coordinates */
-    Vector3 TransformScreenToNDC(const Vector2 &screen) const;
+    Vec3f TransformScreenToNDC(const Vec2f &screen) const;
 
     /*! \brief Transform a 3D vector in NDC space into world coordinates */
-    Vector4 TransformNDCToWorld(const Vector3 &ndc) const;
+    Vec4f TransformNDCToWorld(const Vec3f &ndc) const;
 
     /*! \brief Transform a 3D vector in world space into NDC space */
-    Vector3 TransformWorldToNDC(const Vector3 &world) const;
+    Vec3f TransformWorldToNDC(const Vec3f &world) const;
 
     /*! \brief Transform a 3D vector in world space into screen space */
-    Vector2 TransformWorldToScreen(const Vector3 &world) const;
+    Vec2f TransformWorldToScreen(const Vec3f &world) const;
 
     /*! \brief Transform a 3D vector in NDC into screen space */
-    Vector2 TransformNDCToScreen(const Vector3 &ndc) const;
+    Vec2f TransformNDCToScreen(const Vec3f &ndc) const;
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into world coordinates */
-    Vector4 TransformScreenToWorld(const Vector2 &screen) const;
+    Vec4f TransformScreenToWorld(const Vec2f &screen) const;
 
-    Vector2 GetPixelSize() const;
+    Vec2f GetPixelSize() const;
 
     void Update(GameCounter::TickUnit dt);
 
@@ -281,7 +291,7 @@ protected:
 
     Handle<Framebuffer>     m_framebuffer;
 
-    Vector3                 m_translation, m_next_translation, m_direction, m_up;
+    Vec3f                   m_translation, m_next_translation, m_direction, m_up;
     Matrix4                 m_view_mat, m_proj_mat;
     Frustum                 m_frustum;
 

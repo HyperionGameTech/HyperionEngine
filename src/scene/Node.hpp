@@ -35,7 +35,7 @@ enum NodeFlagBits : NodeFlags
     NODE_FLAG_IGNORE_PARENT_TRANSFORM   = NODE_FLAG_IGNORE_PARENT_TRANSLATION | NODE_FLAG_IGNORE_PARENT_SCALE | NODE_FLAG_IGNORE_PARENT_ROTATION,
 };
 
-class Node : public EnableRefCountedPtrFromThis<Node>
+class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
 {
     friend class Scene;
     friend class Entity;
@@ -78,8 +78,8 @@ public:
         Scene *scene
     );
 
-    Node(const Node &other) = delete;
-    Node &operator=(const Node &other) = delete;
+    Node(const Node &other)             = delete;
+    Node &operator=(const Node &other)  = delete;
     Node(Node &&other) noexcept;
     Node &operator=(Node &&other) noexcept;
     ~Node();

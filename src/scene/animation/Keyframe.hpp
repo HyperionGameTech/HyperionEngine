@@ -6,7 +6,7 @@
 
 namespace hyperion::v2 {
 
-class Keyframe
+class HYP_API Keyframe
 {
 public:
     Keyframe();
@@ -29,8 +29,8 @@ public:
     Keyframe Blend(const Keyframe &to, float blend) const;
 
 private:
-    float m_time;
-    Transform m_transform;
+    float       m_time;
+    Transform   m_transform;
 };
 
 } // namespace hyperion::v2

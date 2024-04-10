@@ -30,12 +30,12 @@ class AssetCachePool : public AssetCachePoolBase
     using RefType = typename AssetLoaderWrapper<T>::CastedType;
 
 public:
-    AssetCachePool() = default;
-    AssetCachePool(const AssetCachePool &other) = delete;
-    AssetCachePool &operator=(const AssetCachePool &other) = delete;
-    AssetCachePool(AssetCachePool &&other) = delete;
-    AssetCachePool &operator=(AssetCachePool &&other) = delete;
-    virtual ~AssetCachePool() = default;
+    AssetCachePool()                                        = default;
+    AssetCachePool(const AssetCachePool &other)             = delete;
+    AssetCachePool &operator=(const AssetCachePool &other)  = delete;
+    AssetCachePool(AssetCachePool &&other)                  = delete;
+    AssetCachePool &operator=(AssetCachePool &&other)       = delete;
+    virtual ~AssetCachePool()                               = default;
 
     virtual bool Has(const String &key) const override
     {
@@ -72,19 +72,19 @@ public:
     }
 
 private:
-    HashMap<String, RefType> m_handles;
-    mutable std::mutex m_mutex;
+    HashMap<String, RefType>    m_handles;
+    mutable std::mutex          m_mutex;
 };
 
 class AssetCache
 {
 public:
-    AssetCache() = default;
-    AssetCache(const AssetCache &other) = delete;
-    AssetCache &operator=(const AssetCache &other) = delete;
-    AssetCache(AssetCache &&other) = delete;
-    AssetCache &operator=(AssetCache &&other) = delete;
-    ~AssetCache() = default;
+    AssetCache()                                    = default;
+    AssetCache(const AssetCache &other)             = delete;
+    AssetCache &operator=(const AssetCache &other)  = delete;
+    AssetCache(AssetCache &&other)                  = delete;
+    AssetCache &operator=(AssetCache &&other)       = delete;
+    ~AssetCache()                                   = default;
 
     template <class T>
     AssetCachePool<T> *GetPool()
@@ -101,8 +101,8 @@ public:
     }
 
 private:
-    TypeMap<UniquePtr<AssetCachePoolBase>> m_pools;
-    mutable std::mutex m_mutex;
+    TypeMap<UniquePtr<AssetCachePoolBase>>  m_pools;
+    mutable std::mutex                      m_mutex;
 };
 
 } // namespace hyperion::v2

@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-class BoundingBox
+class HYP_API BoundingBox
 {
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 public:
@@ -19,8 +19,16 @@ public:
 
     BoundingBox();
     BoundingBox(const Vec3f &min, const Vec3f &max);
-    BoundingBox(const BoundingBox &other);
 
+    BoundingBox(const BoundingBox &other)                   = default;
+    BoundingBox &operator=(const BoundingBox &other)        = default;
+
+    BoundingBox(BoundingBox &&other) noexcept               = default;
+    BoundingBox &operator=(BoundingBox &&other) noexcept    = default;
+
+    ~BoundingBox()                                          = default;
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const Vec3f &GetMin() const
         { return min; }
@@ -28,7 +36,8 @@ public:
     HYP_FORCE_INLINE
     void SetMin(const Vec3f &min)
         { this->min = min; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const Vec3f &GetMax() const
         { return max; }
@@ -36,10 +45,14 @@ public:
     HYP_FORCE_INLINE
     void SetMax(const Vec3f &max)
         { this->max = max; }
-
+    
+    [[nodiscard]]
     FixedArray<Vec3f, 8> GetCorners() const;
+
+    [[nodiscard]]
     Vec3f GetCorner(uint index) const;
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     Vec3f GetCenter() const
         { return (max + min) * 0.5f; }
@@ -47,7 +60,8 @@ public:
     void SetCorners(const FixedArray<Vec3f, 8> &corners);
 
     void SetCenter(const Vec3f &center);
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     Vec3f GetExtent() const
         { return max - min; }
@@ -71,17 +85,20 @@ public:
     BoundingBox &operator*=(const Vec3f &scale);
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
     BoundingBox &Clear();
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool Empty() const
         { return Memory::MemCmp(this, &empty, sizeof(BoundingBox)) == 0; }
@@ -90,18 +107,30 @@ public:
     BoundingBox &Extend(const BoundingBox &bb);
     
     // do the AABB's intersect at all?
+    [[nodiscard]]
     bool Intersects(const BoundingBox &other) const;
-    // does this AABB completely contain other?
-    bool Contains(const BoundingBox &other) const;
-    bool ContainsPoint(const Vec3f &vec) const;
-    float Area() const;
 
+    // does this AABB completely contain other?
+    [[nodiscard]]
+    bool Contains(const BoundingBox &other) const;
+
+    [[nodiscard]]
+    bool ContainsPoint(const Vec3f &vec) const;
+    
+    [[nodiscard]]
+    float Area() const;
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsFinite() const
         { return MathUtil::IsFinite(min) && MathUtil::IsFinite(max); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsValid() const
         { return min.x <= max.x && min.y <= max.y && min.z <= max.z; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -113,8 +142,8 @@ public:
         return hc;
     }
 
-    Vec3f min;
-    Vec3f max;
+    Vec3f   min;
+    Vec3f   max;
 };
 
 } // namespace hyperion

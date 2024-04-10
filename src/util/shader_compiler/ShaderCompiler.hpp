@@ -993,12 +993,12 @@ class ShaderCompiler
         Array<VertexAttributeDefinition>    optional_attributes;
         Array<DescriptorUsage>              descriptor_usages;
 
-        ProcessResult() = default;
-        ProcessResult(const ProcessResult &other) = default;
-        ProcessResult &operator=(const ProcessResult &other) = default;
-        ProcessResult(ProcessResult &&other) noexcept = default;
-        ProcessResult &operator=(ProcessResult &&other) noexcept = default;
-        ~ProcessResult() = default;
+        ProcessResult()                                             = default;
+        ProcessResult(const ProcessResult &other)                   = default;
+        ProcessResult &operator=(const ProcessResult &other)        = default;
+        ProcessResult(ProcessResult &&other) noexcept               = default;
+        ProcessResult &operator=(ProcessResult &&other) noexcept    = default;
+        ~ProcessResult()                                            = default;
     };
 
 public:
@@ -1053,14 +1053,13 @@ public:
     ShaderCompiler &operator=(const ShaderCompiler &other) = delete;
     ~ShaderCompiler();
 
-    bool CanCompileShaders() const;
+    HYP_API bool CanCompileShaders() const;
+    HYP_API bool LoadShaderDefinitions(bool precompile_shaders = false);
 
-    bool LoadShaderDefinitions(bool precompile_shaders = false);
+    HYP_API CompiledShader GetCompiledShader(Name name);
+    HYP_API CompiledShader GetCompiledShader(Name name, const ShaderProperties &properties);
 
-    CompiledShader GetCompiledShader(Name name);
-    CompiledShader GetCompiledShader(Name name, const ShaderProperties &properties);
-
-    bool GetCompiledShader(
+    HYP_API bool GetCompiledShader(
         Name name,
         const ShaderProperties &properties,
         CompiledShader &out

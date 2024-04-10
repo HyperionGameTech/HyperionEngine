@@ -8,11 +8,11 @@
 
 namespace hyperion::v2 {
 
-const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
+HYP_API const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 
 // 0x80 For index bit because we reserve the highest bit for invalid octants
 // 0xff for depth because +1 (used for child octant id) will cause it to overflow to 0
-const OctantID OctantID::invalid = OctantID(OctantID::invalid_bits, 0xff);
+HYP_API const OctantID OctantID::invalid = OctantID(OctantID::invalid_bits, 0xff);
 
 void OctreeState::MarkOctantDirty(OctantID octant_id)
 {

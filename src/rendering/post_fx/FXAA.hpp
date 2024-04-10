@@ -6,7 +6,7 @@
 
 namespace hyperion::v2 {
 
-class FXAAEffect : public PostProcessingEffect
+class HYP_API FXAAEffect : public PostProcessingEffect
 {
 public:
     static constexpr PostProcessingStage stage = POST_PROCESSING_STAGE_POST_SHADING;

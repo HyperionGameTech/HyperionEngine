@@ -37,10 +37,10 @@ enum ProbeSystemFlags : uint32
 
 struct ProbeRayData
 {
-    Vector4 direction_depth;
-    Vector4 origin;
-    Vector4 normal;
-    Vector4 color;
+    Vec4f   direction_depth;
+    Vec4f   origin;
+    Vec4f   normal;
+    Vec4f   color;
 };
 
 static_assert(sizeof(ProbeRayData) == 64);
@@ -105,16 +105,16 @@ struct RotationMatrixGenerator
 
 struct Probe
 {
-    Vector3 position;
+    Vec3f   position;
 };
 
 class DDGI
 {
 public:
-    DDGI(DDGIInfo &&grid_info);
-    DDGI(const DDGI &other) = delete;
-    DDGI &operator=(const DDGI &other) = delete;
-    ~DDGI();
+    HYP_API DDGI(DDGIInfo &&grid_info);
+    DDGI(const DDGI &other)             = delete;
+    DDGI &operator=(const DDGI &other)  = delete;
+    HYP_API ~DDGI();
 
     const Array<Probe> &GetProbes() const
         { return m_probes; }
@@ -122,7 +122,7 @@ public:
     void SetTLAS(Handle<TLAS> tlas)
         { m_tlas = std::move(tlas); }
 
-    void ApplyTLASUpdates(RTUpdateStateFlags flags);
+    HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
     const GPUBufferRef &GetRadianceBuffer() const
         { return m_radiance_buffer; }
@@ -133,11 +133,11 @@ public:
     const ImageViewRef &GetIrradianceImageView() const
         { return m_irradiance_image_view; }
 
-    void Init();
-    void Destroy();
+    HYP_API void Init();
+    HYP_API void Destroy();
 
-    void RenderProbes(Frame *frame);
-    void ComputeIrradiance(Frame *frame);
+    HYP_API void RenderProbes(Frame *frame);
+    HYP_API void ComputeIrradiance(Frame *frame);
 
 private:
     void CreatePipelines();

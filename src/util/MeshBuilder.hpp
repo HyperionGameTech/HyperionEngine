@@ -97,7 +97,7 @@ struct VoxelGrid
     }
 };
 
-class MeshBuilder
+class HYP_API MeshBuilder
 {
     static const Array<Vertex>      quad_vertices;
     static const Array<Mesh::Index> quad_indices;

@@ -9,8 +9,8 @@ namespace hyperion {
 
 using namespace v2;
 
-HYP_EXPORT void InitializeApplication(RC<Application> application);
-HYP_EXPORT void ShutdownApplication();
+HYP_API void InitializeApplication(RC<Application> application);
+HYP_API void ShutdownApplication();
 
 } // namespace hyperion
 

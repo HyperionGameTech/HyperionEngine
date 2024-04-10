@@ -18,7 +18,7 @@ struct MeshData
     Array<uint32> indices;
 };
 
-class StreamedMeshData : public StreamedData
+class HYP_API StreamedMeshData : public StreamedData
 {
 public:
     static RC<StreamedMeshData> FromMeshData(const MeshData &);

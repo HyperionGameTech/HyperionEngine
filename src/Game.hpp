@@ -19,6 +19,8 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/Object.hpp>
 
+#include <util/Defines.hpp>
+
 namespace hyperion::v2 {
 
 using renderer::Frame;
@@ -30,8 +32,8 @@ class Engine;
 
 struct ManagedGameInfo
 {
-    String assembly_name;
-    String class_name;
+    String  assembly_name;
+    String  class_name;
 };
 
 class Game
@@ -39,9 +41,9 @@ class Game
     friend class GameThread;
 
 public:
-    Game(RC<Application> application);
-    Game(RC<Application> application, Optional<ManagedGameInfo> managed_game_info);
-    virtual ~Game();
+    HYP_API Game(RC<Application> application);
+    HYP_API Game(RC<Application> application, Optional<ManagedGameInfo> managed_game_info);
+    HYP_API virtual ~Game();
 
     const Handle<Scene> &GetScene() const
         { return m_scene; }
@@ -49,18 +51,18 @@ public:
     const RC<Application> &GetApplication() const
         { return m_application; }
 
-    virtual void Init() final;
-    virtual void Update(GameCounter::TickUnit delta) final;
-    virtual void Teardown();
+    HYP_API virtual void Init() final;
+    HYP_API virtual void Update(GameCounter::TickUnit delta) final;
+    HYP_API virtual void Teardown();
 
-    virtual void InitGame();
-    virtual void InitRender();
+    HYP_API virtual void InitGame();
+    HYP_API virtual void InitRender();
 
-    virtual void OnFrameBegin(Frame *frame);
-    virtual void OnFrameEnd(Frame *frame);
+    HYP_API virtual void OnFrameBegin(Frame *frame);
+    HYP_API virtual void OnFrameEnd(Frame *frame);
 
-    virtual void HandleEvent(SystemEvent &&event) final;
-    virtual void OnInputEvent(const SystemEvent &event);
+    HYP_API virtual void HandleEvent(SystemEvent &&event) final;
+    HYP_API virtual void OnInputEvent(const SystemEvent &event);
 
 protected:
     virtual void Logic(GameCounter::TickUnit delta) = 0;

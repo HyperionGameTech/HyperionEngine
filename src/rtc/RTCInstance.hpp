@@ -12,15 +12,15 @@
 
 namespace hyperion::v2 {
 
-class RTCInstance
+class HYP_API RTCInstance
 {
 public:
     RTCInstance(RTCServerParams server_params);
-    RTCInstance(const RTCInstance &other) = delete;
-    RTCInstance &operator=(const RTCInstance &other) = delete;
-    RTCInstance(RTCInstance &&other) = delete;
-    RTCInstance &operator=(RTCInstance &&other) = delete;
-    ~RTCInstance() = default;
+    RTCInstance(const RTCInstance &other)               = delete;
+    RTCInstance &operator=(const RTCInstance &other)    = delete;
+    RTCInstance(RTCInstance &&other)                    = delete;
+    RTCInstance &operator=(RTCInstance &&other)         = delete;
+    ~RTCInstance()                                      = default;
 
     const RC<RTCServer> &GetServer() const
         { return m_server; }

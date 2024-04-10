@@ -68,6 +68,7 @@ struct alignas(alignment) UserData
     ~UserData()                                 = default;
 
     template <class T>
+    HYP_FORCE_INLINE
     void Set(const T &value)
     {
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
@@ -81,6 +82,7 @@ struct alignas(alignment) UserData
 
     template <class T>
     [[nodiscard]]
+    HYP_FORCE_INLINE
     T &ReinterpretAs()
     {
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
@@ -97,6 +99,7 @@ struct alignas(alignment) UserData
 
     template <class T>
     [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &ReinterpretAs() const
         { return const_cast<UserData *>(this)->ReinterpretAs<T>(); } 
 };

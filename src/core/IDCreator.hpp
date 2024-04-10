@@ -38,14 +38,6 @@ struct IDCreator
 
         free_indices.Push(index);
     }
-
-    template <class T>
-    static IDCreator &ForType()
-    {
-        static IDCreator id_creator { TypeID::ForType<T>() };
-
-        return id_creator;
-    }
 };
 
 } // namespace hyperion::v2

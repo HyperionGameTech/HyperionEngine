@@ -12,7 +12,7 @@ namespace hyperion::v2 {
 
 class Skeleton;
 
-class Bone : public Node
+class HYP_API Bone : public Node
 {
     friend class Skeleton;
 

@@ -378,13 +378,16 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-if(WIN32)
-    # DLL is currently not working on Win32 as it is not exporting the symbols.
-    # When this is fixed, make it also shared.
-    add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
-else()
+# set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
+add_definitions(-DHYP_BUILD_LIBRARY=1)
+
+# if(WIN32)
+#     # DLL is currently not working on Win32 as it is not exporting the symbols.
+#     # When this is fixed, make it also shared.
+#     add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
+# else()
     add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
-endif()
+# endif()
 
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}
@@ -470,5 +473,7 @@ if(CSHARP_INTEROP_SOURCES)
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+
+remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(samples)

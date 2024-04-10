@@ -77,7 +77,7 @@ static inline Vector4 Vector(const Vector3 &xyz, float w)
 template <class T>
 constexpr bool is_math_vector_v = is_vec2<T> || is_vec3<T> || is_vec4<T>;
 
-class MathUtil
+class HYP_API MathUtil
 {
     static uint64 g_seed;
 

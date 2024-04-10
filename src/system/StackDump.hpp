@@ -9,13 +9,8 @@ namespace hyperion {
 
 class StackDump
 {
-    static Array<String> CreateStackTrace(uint depth = 20);
-
 public:
-    StackDump(uint depth = 20)
-        : m_trace(CreateStackTrace(depth))
-    {
-    }
+    HYP_API StackDump(uint depth = 20);
 
     StackDump(const StackDump &other)                   = default;
     StackDump &operator=(const StackDump &other)        = default;
@@ -30,7 +25,7 @@ public:
         { return String::Join(m_trace, "\n"); }
 
 private:
-    Array<String> m_trace;
+    Array<String>   m_trace;
 };
 
 } // namespace hyperion

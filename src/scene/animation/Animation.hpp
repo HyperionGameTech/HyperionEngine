@@ -18,19 +18,19 @@ struct AnimationTrack
     float GetLength() const
         { return keyframes.Empty() ? 0.0f : keyframes.Back().GetTime(); }
 
-    Keyframe GetKeyframe(float time) const;
+    HYP_API Keyframe GetKeyframe(float time) const;
 };
 
 class Animation
 {
 public:
-    Animation();
-    Animation(const String &name);
-    Animation(const Animation &other) = default;
-    Animation &operator=(const Animation &other) = default;
-    Animation(Animation &&other) noexcept = default;
-    Animation &operator=(Animation &&other) noexcept = default;
-    ~Animation() = default;
+    HYP_API Animation();
+    HYP_API Animation(const String &name);
+    Animation(const Animation &other)                   = default;
+    Animation &operator=(const Animation &other)        = default;
+    Animation(Animation &&other) noexcept               = default;
+    Animation &operator=(Animation &&other) noexcept    = default;
+    ~Animation()                                        = default;
 
     const String &GetName() const
         { return m_name; }
@@ -59,8 +59,8 @@ public:
     SizeType NumTracks() const
         { return m_tracks.Size(); }
 
-    void Apply(float time);
-    void ApplyBlended(float time, float blend);
+    HYP_API void Apply(float time);
+    HYP_API void ApplyBlended(float time, float blend);
 
 private:
     String                  m_name;

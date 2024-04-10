@@ -26,7 +26,7 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
-class ReflectionProbeRenderer : public RenderComponent<ReflectionProbeRenderer>
+class HYP_API ReflectionProbeRenderer : public RenderComponent<ReflectionProbeRenderer>
 {
 public:
     ReflectionProbeRenderer(

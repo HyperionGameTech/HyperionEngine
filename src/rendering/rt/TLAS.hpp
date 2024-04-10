@@ -14,12 +14,12 @@ namespace hyperion::v2 {
 using renderer::TopLevelAccelerationStructure;
 using renderer::RTUpdateStateFlags;
 
-class TLAS : public BasicObject<STUB_CLASS(TLAS)>
+class HYP_API TLAS : public BasicObject<STUB_CLASS(TLAS)>
 {
 public:
     TLAS();
-    TLAS(const TLAS &other) = delete;
-    TLAS &operator=(const TLAS &other) = delete;
+    TLAS(const TLAS &other)             = delete;
+    TLAS &operator=(const TLAS &other)  = delete;
     ~TLAS();
     
     const TLASRef &GetInternalTLAS() const
@@ -34,7 +34,6 @@ public:
      * updates to the structure. This is also called for each BLAS underneath this.
      */
     void UpdateRender(
-        
         Frame *frame,
         RTUpdateStateFlags &out_flags
     );

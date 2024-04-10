@@ -15,7 +15,7 @@ const ArgParse::ArgumentValue &ArgParse::Result::operator[](const String &key) c
     return it->second;
 }
 
-void ArgParse::Add(
+HYP_API void ArgParse::Add(
     String name,
     String shorthand,
     ArgFlags flags,

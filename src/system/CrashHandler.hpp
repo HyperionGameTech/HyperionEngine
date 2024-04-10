@@ -1,13 +1,15 @@
 #ifndef HYPERION_V2_CRASH_HANDLER_HPP
 #define HYPERION_V2_CRASH_HANDLER_HPP
 
+#include <util/Defines.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 
 namespace hyperion::v2 {
 
 using renderer::Result;
 
-class CrashHandler
+class HYP_API CrashHandler
 {
 public:
     void Initialize();

@@ -114,10 +114,10 @@ class EnvGrid : public RenderComponent<EnvGrid>
 public:
     friend struct RenderCommand_UpdateEnvProbeAABBsInGrid;
 
-    EnvGrid(Name name, EnvGridOptions options);
-    EnvGrid(const EnvGrid &other) = delete;
-    EnvGrid &operator=(const EnvGrid &other) = delete;
-    virtual ~EnvGrid();
+    HYP_API EnvGrid(Name name, EnvGridOptions options);
+    HYP_API EnvGrid(const EnvGrid &other) = delete;
+    HYP_API EnvGrid &operator=(const EnvGrid &other) = delete;
+    HYP_API virtual ~EnvGrid();
 
     HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
         { return m_options.type; }
@@ -125,14 +125,14 @@ public:
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
-    void SetCameraData(const BoundingBox &aabb, const Vec3f &camera_position);
+    HYP_API void SetCameraData(const BoundingBox &aabb, const Vec3f &camera_position);
 
-    void Init();
-    void InitGame(); // init on game thread
-    void OnRemoved();
+    HYP_API void Init();
+    HYP_API void InitGame(); // init on game thread
+    HYP_API void OnRemoved();
 
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
+    HYP_API void OnUpdate(GameCounter::TickUnit delta);
+    HYP_API void OnRender(Frame *frame);
 
 private:
     Vec3f SizeOfProbe() const
@@ -148,7 +148,7 @@ private:
         }
     }
 
-    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
+    HYP_API virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     void CreateShader();
     void CreateFramebuffer();

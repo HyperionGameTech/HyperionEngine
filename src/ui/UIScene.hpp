@@ -33,7 +33,7 @@ namespace hyperion::v2 {
 class UIButton;
 class FontAtlas;
 
-class UIScene : public BasicObject<STUB_CLASS(UIScene)>
+class HYP_API UIScene : public BasicObject<STUB_CLASS(UIScene)>
 {
 public:
     // The minimum and maximum depth values for the UI scene for layering
@@ -41,8 +41,8 @@ public:
     static const int max_depth = 10000;
 
     UIScene();
-    UIScene(const UIScene &other) = delete;
-    UIScene &operator=(const UIScene &other) = delete;
+    UIScene(const UIScene &other)               = delete;
+    UIScene &operator=(const UIScene &other)    = delete;
     ~UIScene();
 
     Vec2i GetSurfaceSize() const

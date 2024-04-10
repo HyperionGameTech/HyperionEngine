@@ -8,7 +8,7 @@ namespace hyperion::v2 {
 
 class RTCServer;
 
-class RTCServerThread final : public Thread<Scheduler<Task<void>>, RTCServer *>
+class HYP_API RTCServerThread final : public Thread<Scheduler<Task<void>>, RTCServer *>
 {
 public:
     RTCServerThread();

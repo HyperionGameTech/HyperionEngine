@@ -82,8 +82,6 @@ public:
     HashCode CalculateCombinedAttributesHashCode() const;
 
 private:
-    static ThreadType GetThreadType();
-
     FixedArray<FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, THREAD_TYPE_MAX>    m_lists;
     FixedArray<ArrayMap<RenderableAttributeSet, RenderResourceManager>, PASS_TYPE_MAX>                      m_render_side_resources;
 };

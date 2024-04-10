@@ -19,7 +19,8 @@ namespace hyperion::v2 {
 using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
-class UIRenderer
+
+class HYP_API UIRenderer
     : public RenderComponent<UIRenderer>
 {
 public:
@@ -47,7 +48,6 @@ private:
     Handle<Shader>                  m_shader;
     RenderList                      m_render_list;
 };
-
 
 } // namespace hyperion::v2
 

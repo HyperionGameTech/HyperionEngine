@@ -5,7 +5,7 @@
 
 namespace hyperion::v2 {
 
-class Entity : public BasicObject<STUB_CLASS(Entity)>
+class HYP_API Entity : public BasicObject<STUB_CLASS(Entity)>
 {
 public:
     Entity();

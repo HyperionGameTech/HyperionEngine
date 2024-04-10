@@ -10,6 +10,7 @@
 #include <physics/PhysicsMaterial.hpp>
 
 #include <Types.hpp>
+#include <util/Defines.hpp>
 
 #include <type_traits>
 
@@ -143,7 +144,7 @@ protected:
     Array<float> m_vertices;
 };
 
-class RigidBody : public BasicObject<STUB_CLASS(RigidBody)>
+class HYP_API RigidBody : public BasicObject<STUB_CLASS(RigidBody)>
 {
 public:
     RigidBody(const PhysicsMaterial &physics_material)

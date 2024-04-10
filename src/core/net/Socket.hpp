@@ -55,7 +55,7 @@ protected:
 
 };
 
-class SocketServerThread final : public Thread<Scheduler<Task<void>>, SocketServer *>
+class HYP_API SocketServerThread final : public Thread<Scheduler<Task<void>>, SocketServer *>
 {
 public:
     SocketServerThread(const String &socket_name);
@@ -72,7 +72,7 @@ private:
     AtomicVar<bool> m_is_running;
 };
 
-class SocketClient : public SocketConnection
+class HYP_API SocketClient : public SocketConnection
 {
 public:
     SocketClient(Name name, SocketID internal_id);
@@ -95,7 +95,7 @@ private:
     SocketID    m_internal_id;
 };
 
-class SocketServer : public SocketConnection
+class HYP_API SocketServer : public SocketConnection
 {
 public:
     friend class SocketServerThread;

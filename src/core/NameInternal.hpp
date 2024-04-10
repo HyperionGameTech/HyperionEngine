@@ -17,7 +17,7 @@ class NameRegistry;
 
 using NameID = uint64;
 
-struct Name
+struct HYP_API Name
 {
     static const Name invalid;
 
@@ -70,10 +70,10 @@ struct Name
     constexpr bool operator>=(const Name &other) const
         { return hash_code >= other.hash_code; }
 
-    const char *LookupString() const;
-
     constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
+
+    const char *LookupString() const;
 
     static Name Unique();
     static Name Unique(const char *prefix);

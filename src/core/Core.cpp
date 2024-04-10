@@ -6,17 +6,17 @@ namespace hyperion::v2 {
 
 using namespace renderer;
 
-Engine *GetEngine()
+HYP_API Engine *GetEngine()
 {
     return g_engine;
 }
 
-Device *GetEngineDevice()
+HYP_API Device *GetEngineDevice()
 {
     return g_engine->GetGPUInstance()->GetDevice();
 }
 
-ObjectPool &GetObjectPool()
+HYP_API ObjectPool &GetObjectPool()
 {
     return g_engine->GetObjectPool();
 }

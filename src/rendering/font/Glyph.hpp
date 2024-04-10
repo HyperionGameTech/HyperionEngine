@@ -14,7 +14,7 @@ struct GlyphImageData
     Extent2D   dimensions;
     ByteBuffer byte_buffer;
 
-    Handle<Texture> CreateTexture() const;
+    HYP_API Handle<Texture> CreateTexture() const;
 };
 
 class Glyph
@@ -39,24 +39,36 @@ public:
             { return metrics; }
     };
 
-    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false);
-    void Render();
+    HYP_API Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false);
 
-    [[nodiscard]] Metrics GetMetrics() const
+    Glyph(const Glyph &other)                   = default;
+    Glyph &operator=(const Glyph &other)        = default;
+    Glyph(Glyph &&other) noexcept               = default;
+    Glyph &operator=(Glyph &&other) noexcept    = default;
+
+    ~Glyph()                                    = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Metrics GetMetrics() const
         { return m_metrics; }
 
-    Extent2D GetMax();
-    Extent2D GetMin();
-
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const GlyphImageData &GetImageData() const
         { return m_glyph_image_data; }
 
-private:
-    RC<FontFace>                    m_face;
+    HYP_API void Render();
 
-    FontEngine::Glyph           m_glyph;
-    GlyphImageData              m_glyph_image_data;
-    Metrics                     m_metrics { 0 };
+    HYP_API Extent2D GetMax();
+    HYP_API Extent2D GetMin();
+
+private:
+    RC<FontFace>        m_face;
+
+    FontEngine::Glyph   m_glyph;
+    GlyphImageData      m_glyph_image_data;
+    Metrics             m_metrics { 0 };
 };
 
 }; // namespace hyperion::v2

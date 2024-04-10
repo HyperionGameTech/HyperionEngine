@@ -46,7 +46,7 @@ struct SubShader
     }
 };
 
-class Shader
+class HYP_API Shader
     : public BasicObject<STUB_CLASS(Shader)>
 {
 public:
@@ -72,7 +72,7 @@ private:
     ShaderProgramRef    m_shader_program;
 };
 
-class ShaderManagerSystem
+class HYP_API ShaderManagerSystem
 {
 public:
     Handle<Shader> GetOrCreate(

@@ -41,16 +41,16 @@ class Engine;
 struct ParticleSpawnerParams
 {
     Handle<Texture> texture;
-    SizeType max_particles  = 256u;
-    Vec3f origin            = Vec3f::zero;
-    float start_size        = 0.035f;
-    float radius            = 1.0f;
-    float randomness        = 0.5f;
-    float lifespan          = 1.0f;
-    bool has_physics        = false;
+    SizeType        max_particles = 256u;
+    Vec3f           origin = Vec3f::zero;
+    float           start_size = 0.035f;
+    float           radius = 1.0f;
+    float           randomness = 0.5f;
+    float           lifespan = 1.0f;
+    bool            has_physics = false;
 };
 
-class ParticleSpawner
+class HYP_API ParticleSpawner
     : public BasicObject<STUB_CLASS(ParticleSpawner)>
 {
 public:
@@ -97,7 +97,7 @@ private:
     Bitmap<1>               m_noise_map;
 };
 
-class ParticleSystem
+class HYP_API ParticleSystem
     : public BasicObject<STUB_CLASS(ParticleSystem)>
 {
 public:

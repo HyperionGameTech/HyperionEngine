@@ -474,26 +474,6 @@ public:
     bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
-    void Set(const T &value)
-    {
-        Base::DropRefCount();
-
-        Base::m_ref = new typename Base::RefCountDataType;
-        Base::m_ref->template Construct<T>(value);
-        Base::m_ref->strong_count = 1u;
-        Base::m_ref->weak_count = 0u;
-    }
-
-    void Set(T &&value)
-    {
-        Base::DropRefCount();
-
-        Base::m_ref = new typename Base::RefCountDataType;
-        Base::m_ref->template Construct<T>(std::move(value));
-        Base::m_ref->strong_count = 1u;
-        Base::m_ref->weak_count = 0u;
-    }
-
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */

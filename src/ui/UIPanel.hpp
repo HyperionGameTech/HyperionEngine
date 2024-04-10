@@ -9,7 +9,7 @@ class UIScene;
 
 // UIPanel
 
-class UIPanel : public UIObject
+class HYP_API UIPanel : public UIObject
 {
 public:
     UIPanel(ID<Entity> entity, UIScene *ui_scene);

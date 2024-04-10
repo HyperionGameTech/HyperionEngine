@@ -26,7 +26,7 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
-class ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptureRenderComponent>
+class HYP_API ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptureRenderComponent>
 {
     Extent2D        m_window_size;
     Handle<Texture> m_texture;

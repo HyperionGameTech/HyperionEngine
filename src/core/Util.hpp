@@ -45,7 +45,7 @@ constexpr auto StripNamespace()
  *
  *  \return The name of the type T as a StaticString.
  */
-template <class T>
+template <class T, bool strip_namespace = true>
 constexpr auto TypeName()
 {
 #ifdef HYP_CLANG_OR_GCC
@@ -69,7 +69,11 @@ constexpr auto TypeName()
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    return detail::StripNamespace<substr>();
+    if constexpr (strip_namespace) {
+        return detail::StripNamespace<substr>();
+    } else {
+        return substr;
+    }
 }
 
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */

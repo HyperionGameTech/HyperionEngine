@@ -36,7 +36,7 @@ struct RTCStreamParams
     }
 };
 
-class RTCStream
+class HYP_API RTCStream
 {
 public:
     RTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder, RTCStreamParams params = { })
@@ -74,7 +74,7 @@ protected:
     uint64                      m_timestamp;
 };
 
-class NullRTCStream : public RTCStream
+class HYP_API NullRTCStream : public RTCStream
 {
 public:
     NullRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
@@ -91,7 +91,7 @@ public:
 
 #ifdef HYP_LIBDATACHANNEL
 
-class LibDataChannelRTCStream : public RTCStream
+class HYP_API LibDataChannelRTCStream : public RTCStream
 {
 public:
     LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder);

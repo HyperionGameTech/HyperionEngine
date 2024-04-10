@@ -22,7 +22,7 @@ using renderer::ImageView;
 
 class Light;
 
-class PointLightShadowRenderer : public RenderComponent<PointLightShadowRenderer>
+class HYP_API PointLightShadowRenderer : public RenderComponent<PointLightShadowRenderer>
 {
 public:
     PointLightShadowRenderer(Name name, Handle<Light> light, const Extent2D &extent);

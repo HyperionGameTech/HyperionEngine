@@ -21,7 +21,7 @@
 
 namespace hyperion {
 
-class SchedulerBase
+class HYP_API SchedulerBase
 {
 public:
     SchedulerBase()                                             = delete;
@@ -134,11 +134,11 @@ public:
     {
     }
 
-    Scheduler(const Scheduler &other) = delete;
-    Scheduler &operator=(const Scheduler &other) = delete;
-    Scheduler(Scheduler &&other) = default;
-    Scheduler &operator=(Scheduler &&other) = default;
-    ~Scheduler() = default;
+    Scheduler(const Scheduler &other)                   = delete;
+    Scheduler &operator=(const Scheduler &other)        = delete;
+    Scheduler(Scheduler &&other) noexcept               = default;
+    Scheduler &operator=(Scheduler &&other) noexcept    = default;
+    ~Scheduler()                                        = default;
 
     HYP_FORCE_INLINE
     uint NumEnqueued() const

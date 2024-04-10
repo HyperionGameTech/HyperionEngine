@@ -97,7 +97,7 @@ class TaskSystem
     static const FlatMap<TaskThreadPoolName, TaskThreadPoolInfo>    s_thread_pool_infos;
 
 public:
-    static TaskSystem &GetInstance();
+    HYP_API static TaskSystem &GetInstance();
 
     TaskSystem()
     {
@@ -139,8 +139,8 @@ public:
     bool IsRunning() const
         { return m_running.Get(MemoryOrder::RELAXED); }
 
-    void Start();
-    void Stop();
+    HYP_API void Start();
+    HYP_API void Stop();
 
     TaskThreadPool &GetPool(TaskThreadPoolName pool_name)
         { return m_pools[uint(pool_name)]; }
@@ -171,7 +171,7 @@ public:
     /*! \brief Enqueue a batch of multiple Tasks. Each Task will be enqueued to run in parallel.
      * You will need to call AwaitCompletion() before the underlying TaskBatch is destroyed.
      */
-    TaskBatch *EnqueueBatch(TaskBatch *batch);
+    HYP_API TaskBatch *EnqueueBatch(TaskBatch *batch);
 
     /*! \brief Dequeue each task in a TaskBatch. A potentially expensive operation,
      * as each task will have to individually be dequeued, performing a lock operation.
@@ -179,7 +179,7 @@ public:
      * @returns A Array<bool> containing for each Task that has been enqueued, whether or not
      * it was successfully dequeued.
      */
-    Array<bool> DequeueBatch(TaskBatch *batch);
+    HYP_API Array<bool> DequeueBatch(TaskBatch *batch);
 
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
      *  The tasks will be split evenly into \ref{num_batches} batches.

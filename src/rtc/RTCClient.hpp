@@ -61,7 +61,7 @@ struct RTCClientCallbackData
 
 using RTCClientCallbacks = Callbacks<RTCClientCallbackMessages, RTCClientCallbackData>;
 
-class RTCClient
+class HYP_API RTCClient
 {
 public:
     RTCClient(String id, RTCServer *server)

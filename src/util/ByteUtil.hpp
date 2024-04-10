@@ -6,6 +6,8 @@
 
 #include <Types.hpp>
 
+#include <util/Defines.hpp>
+
 namespace hyperion {
 
 struct alignas(2) float16
@@ -209,7 +211,7 @@ struct alignas(2) float16
 
 static_assert(sizeof(float16) == 2, "float16 must be 2 bytes in size");
 
-class ByteUtil
+class HYP_API ByteUtil
 {
 public:
     static inline uint32 PackFloat(float value)

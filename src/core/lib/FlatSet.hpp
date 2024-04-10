@@ -55,7 +55,7 @@ public:
 
     [[nodiscard]] SizeType Size() const                 { return Base::Size(); }
     [[nodiscard]] T *Data()                             { return Base::Data(); }
-    [[nodiscard]] T * const Data() const                { return Base::Data(); }
+    [[nodiscard]] const T *Data() const                 { return Base::Data(); }
     [[nodiscard]] bool Any() const                      { return Base::Any(); }
     [[nodiscard]] bool Empty() const                    { return Base::Empty(); }
     [[nodiscard]] bool Contains(const T &value) const   { return Find(value) != End(); }

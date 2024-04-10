@@ -43,7 +43,7 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
     RENDER_ENVIRONMENT_UPDATES_TLAS = 0x4
 };
 
-class RenderEnvironment
+class HYP_API RenderEnvironment
     : public BasicObject<STUB_CLASS(RenderEnvironment)>
 {
     using RenderComponentPendingRemovalEntry = Pair<TypeID, Name>;

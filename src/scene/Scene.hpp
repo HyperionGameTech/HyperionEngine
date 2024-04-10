@@ -34,9 +34,9 @@ class EntityManager;
 
 struct FogParams
 {
-    Color color = Color(0xF2F8F7FF);
-    float start_distance = 250.0f;
-    float end_distance = 1000.0f;
+    Color   color = Color(0xF2F8F7FF);
+    float   start_distance = 250.0f;
+    float   end_distance = 1000.0f;
 };
 
 template<>
@@ -53,7 +53,7 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
     ComponentFlags  flags = SCENE_FLAGS_NONE;
 };
 
-class Scene
+class HYP_API Scene
     : public BasicObject<STUB_CLASS(Scene)>,
       public HasDrawProxy<STUB_CLASS(Scene)>
 {

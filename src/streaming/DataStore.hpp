@@ -24,7 +24,7 @@ struct DataStoreOptions
     uint64          max_size = 5ull * 1024ull * 1024ull * 1024ull /* 5GB */;
 };
 
-class DataStoreBase
+class HYP_API DataStoreBase
 {
 public:
     DataStoreBase(const String &prefix, DataStoreOptions options);

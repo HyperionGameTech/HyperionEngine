@@ -15,6 +15,7 @@
 #include <util/img/Bitmap.hpp>
 #include <util/fs/FsUtil.hpp>
 
+#include <util/Defines.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
@@ -28,15 +29,20 @@ public:
     using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
 
-    static SymbolList GetDefaultSymbolList();
+    HYP_API static SymbolList GetDefaultSymbolList();
 
     FontAtlas() = default;
 
-    FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
+    HYP_API FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
+    HYP_API FontAtlas(RC<FontFace> face);
 
-    FontAtlas(RC<FontFace> face);
+    FontAtlas(const FontAtlas &other)                   = delete;
+    FontAtlas &operator=(const FontAtlas &other)        = delete;
+    FontAtlas(FontAtlas &&other) noexcept               = default;
+    FontAtlas &operator=(FontAtlas &&other) noexcept    = default;
+    ~FontAtlas()                                        = default;
 
-    void Render();
+    HYP_API void Render();
 
     [[nodiscard]]
     const GlyphMetricsBuffer &GetGlyphMetrics() const
@@ -58,12 +64,12 @@ public:
     const SymbolList &GetSymbolList() const
         { return m_symbol_list; }
 
-    Optional<Glyph::Metrics> GetGlyphMetrics(FontFace::WChar symbol) const;
+    HYP_API Optional<Glyph::Metrics> GetGlyphMetrics(FontFace::WChar symbol) const;
 
-    void WriteToBuffer(ByteBuffer &buffer) const;
+    HYP_API void WriteToBuffer(ByteBuffer &buffer) const;
 
-    Bitmap<1> GenerateBitmap() const;
-    json::JSONValue GenerateMetadataJSON(const String &bitmap_filepath) const;
+    HYP_API Bitmap<1> GenerateBitmap() const;
+    HYP_API json::JSONValue GenerateMetadataJSON(const String &bitmap_filepath) const;
 
 private:
     Extent2D FindMaxDimensions(const RC<FontFace> &face) const;

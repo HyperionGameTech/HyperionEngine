@@ -11,7 +11,7 @@
 #include <Types.hpp>
 
 namespace hyperion {
-class Frustum
+class HYP_API Frustum
 {
 public:
     Frustum();

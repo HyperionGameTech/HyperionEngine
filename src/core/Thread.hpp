@@ -24,10 +24,10 @@ enum class ThreadPriorityValue
 
 struct ThreadID
 {
-    static const ThreadID invalid;
+    HYP_API static const ThreadID invalid;
 
-    static ThreadID Current();
-    static ThreadID CreateDynamicThreadID(Name name);
+    HYP_API static ThreadID Current();
+    HYP_API static ThreadID CreateDynamicThreadID(Name name);
 
     uint32  value;
     Name    name;
@@ -53,14 +53,14 @@ struct ThreadID
     operator uint32() const
         { return value; }
     
-    bool IsDynamic() const;
+    HYP_API bool IsDynamic() const;
 };
 
 static_assert(std::is_trivially_destructible_v<ThreadID>,
     "ThreadID must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
 
-void SetCurrentThreadID(const ThreadID &thread_id);
-void SetCurrentThreadPriority(ThreadPriorityValue priority);
+extern HYP_API void SetCurrentThreadID(const ThreadID &thread_id);
+extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class SchedulerType, class ...Args>
 class Thread
@@ -74,7 +74,7 @@ public:
     Thread(const ThreadID &id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
     Thread(const Thread &other)                 = delete;
     Thread &operator=(const Thread &other)      = delete;
-    Thread(Thread &&other) noexcept;
+    Thread(Thread &&other) noexcept             = delete;
     Thread &operator=(Thread &&other) noexcept  = delete;
     virtual ~Thread();
 
@@ -152,16 +152,6 @@ Thread<SchedulerType, Args...>::Thread(const ThreadID &id, ThreadPriorityValue p
       m_priority(priority),
       m_thread(nullptr)
 {
-}
-
-template <class SchedulerType, class ...Args>
-Thread<SchedulerType, Args...>::Thread(Thread &&other) noexcept
-    : m_id(std::move(other.m_id)),
-      m_priority(other.m_priority),
-      m_thread(other.m_thread),
-      m_scheduler(std::move(other.m_scheduler))
-{
-    other.m_thread = nullptr;
 }
 
 template <class SchedulerType, class ...Args>

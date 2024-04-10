@@ -8,17 +8,17 @@
 namespace hyperion {
 
 template<>
-const Vec3<int> math::detail::Vec3<int>::zero = { 0, 0, 0 };
+HYP_API const Vec3<int> math::detail::Vec3<int>::zero = { 0, 0, 0 };
 template<>
-const Vec3<int> math::detail::Vec3<int>::one = { 1, 1, 1 };
+HYP_API const Vec3<int> math::detail::Vec3<int>::one = { 1, 1, 1 };
 
 template<>
-const Vec3<uint> math::detail::Vec3<uint>::zero = { 0, 0, 0 };
+HYP_API const Vec3<uint> math::detail::Vec3<uint>::zero = { 0, 0, 0 };
 template<>
-const Vec3<uint> math::detail::Vec3<uint>::one = { 1, 1, 1 };
+HYP_API const Vec3<uint> math::detail::Vec3<uint>::one = { 1, 1, 1 };
 
-const Vec3<float> math::detail::Vec3<float>::zero = { 0, 0, 0 };
-const Vec3<float> math::detail::Vec3<float>::one = { 1, 1, 1 };
+HYP_API const Vec3<float> math::detail::Vec3<float>::zero = { 0, 0, 0 };
+HYP_API const Vec3<float> math::detail::Vec3<float>::one = { 1, 1, 1 };
 
 Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const
 {

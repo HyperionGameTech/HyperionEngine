@@ -8,6 +8,8 @@
 
 #include <Types.hpp>
 
+#include <util/Defines.hpp>
+
 namespace hyperion {
 
 using ThreadMask = uint32;
@@ -54,23 +56,23 @@ enum ThreadType : uint32
 class Threads
 {
 public:
-    static const FlatMap<ThreadName, ThreadID> thread_ids;
+    HYP_API static const FlatMap<ThreadName, ThreadID> thread_ids;
 
-    static void AssertOnThread(ThreadMask mask, const char *message = nullptr);
-    static void AssertOnThread(const ThreadID &thread_id, const char *message = nullptr);
-    static bool IsThreadInMask(const ThreadID &thread_id, ThreadMask mask);
-    static bool IsOnThread(ThreadMask mask);
-    static bool IsOnThread(const ThreadID &thread_id);
-    static const ThreadID &GetThreadID(ThreadName thread_name);
-    static const ThreadID &CurrentThreadID();
-    static void SetCurrentThreadID(ThreadID id);
-    static void SetCurrentThreadPriority(ThreadPriorityValue priority);
+    HYP_API static void AssertOnThread(ThreadMask mask, const char *message = nullptr);
+    HYP_API static void AssertOnThread(const ThreadID &thread_id, const char *message = nullptr);
+    HYP_API static bool IsThreadInMask(const ThreadID &thread_id, ThreadMask mask);
+    HYP_API static bool IsOnThread(ThreadMask mask);
+    HYP_API static bool IsOnThread(const ThreadID &thread_id);
+    HYP_API static const ThreadID &GetThreadID(ThreadName thread_name);
+    HYP_API static const ThreadID &CurrentThreadID();
+    HYP_API static void SetCurrentThreadID(ThreadID id);
+    HYP_API static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-    static ThreadType GetThreadType();
+    HYP_API static ThreadType GetThreadType();
 
-    static SizeType NumCores();
+    HYP_API static SizeType NumCores();
 
-    static void Sleep(uint32 milliseconds);
+    HYP_API static void Sleep(uint32 milliseconds);
 };
 
 } // namespace hyperion

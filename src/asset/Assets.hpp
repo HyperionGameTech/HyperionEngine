@@ -79,7 +79,7 @@ public:
 
     static const bool asset_cache_enabled;
 
-    AssetManager();
+    HYP_API AssetManager();
     AssetManager(const AssetManager &other)                 = delete;
     AssetManager &operator=(const AssetManager &other)      = delete;
     AssetManager(AssetManager &&other) noexcept             = delete;
@@ -204,7 +204,7 @@ public:
         { return m_asset_cache.Get(); }
 
 private:
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr);
+    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr);
 
     template <class Loader>
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr)
@@ -223,11 +223,9 @@ private:
         return CreateProcessAssetFunctor(loader_definition->loader_type_id, key, path, callbacks_ptr);
     }
 
-    const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::void_type_id);
+    HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::void_type_id);
 
     void RegisterDefaultLoaders();
-
-    ObjectPool &GetObjectPool();
 
     UniquePtr<AssetCache>                                           m_asset_cache;
 

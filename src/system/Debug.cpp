@@ -39,7 +39,7 @@ static const char *log_colour_table[] = {
 };
 
 #ifndef HYP_DEBUG_MODE
-HYP_EXPORT void DebugLog_(LogType type, const char *fmt, ...) {
+HYP_API void DebugLog_(LogType type, const char *fmt, ...) {
     /* Coloured files are less that ideal */
     const int type_n = static_cast<std::underlying_type<LogType>::type>(type);
     fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", log_type_table[type_n]);
@@ -50,7 +50,7 @@ HYP_EXPORT void DebugLog_(LogType type, const char *fmt, ...) {
     va_end(args);
 }
 #else
-HYP_EXPORT void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt, ...) {
+HYP_API void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt, ...) {
     const int type_n = static_cast<std::underlying_type<LogType>::type>(type);
     /* Coloured files are less than ideal */
     if (HYP_DEBUG_OUTPUT_STREAM == stdout)

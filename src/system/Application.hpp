@@ -188,7 +188,7 @@ enum MouseButton
 
 using MouseButtonMask = uint32;
 
-class SystemEvent
+class HYP_API SystemEvent
 {
 public:
     using EventData = Variant<FilePath, void *>;
@@ -276,11 +276,11 @@ private:
 struct MouseState
 {
     MouseButtonMask mask;
-    int x;
-    int y;
+    int             x;
+    int             y;
 };
 
-class ApplicationWindow
+class HYP_API ApplicationWindow
 {
 public:
     ApplicationWindow(ANSIString title, Vec2u size);
@@ -305,7 +305,7 @@ protected:
     Vec2u                   m_size;
 };
 
-class SDLApplicationWindow : public ApplicationWindow
+class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
 public:
     SDLApplicationWindow(ANSIString title, Vec2u size);
@@ -335,7 +335,7 @@ private:
     SDL_Window *window = nullptr;
 };
 
-class Application
+class HYP_API Application
 {
 public:
     Application(ANSIString name, int argc, char **argv);
@@ -367,7 +367,7 @@ protected:
     CommandLineArguments                m_arguments;
 };
 
-class SDLApplication : public Application
+class HYP_API SDLApplication : public Application
 {
 public:
     SDLApplication(ANSIString name, int argc, char **argv);

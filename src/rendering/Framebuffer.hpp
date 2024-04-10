@@ -27,7 +27,7 @@ struct AttachmentDef
     StoreOperation      store_op;
 };
 
-struct AttachmentMap
+struct HYP_API AttachmentMap
 {
     using Iterator      = typename FlatMap<uint, AttachmentDef>::Iterator;
     using ConstIterator = typename FlatMap<uint, AttachmentDef>::ConstIterator;
@@ -73,7 +73,7 @@ struct AttachmentMap
     )
 };
 
-class Framebuffer
+class HYP_API Framebuffer
     : public BasicObject<STUB_CLASS(Framebuffer)>
 {
 public:

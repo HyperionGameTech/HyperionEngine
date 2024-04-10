@@ -28,7 +28,7 @@ static ANSIString GenerateUUID()
     return uuid;
 }
 
-const Name Name::invalid = Name(0);
+HYP_API const Name Name::invalid = Name(0);
 
 NameRegistry *Name::GetRegistry()
 {
@@ -81,13 +81,13 @@ Name NameRegistry::RegisterName(NameID id, const ANSIString &str, bool lock)
     Name name(id);
 
     if (lock) {
-        m_mutex.lock();
+        m_mutex.Lock();
     }
 
     m_name_map.Set(id, str);
 
     if (lock) {
-        m_mutex.unlock();
+        m_mutex.Unlock();
     }
 
     return name;
@@ -99,7 +99,7 @@ const ANSIString &NameRegistry::LookupStringForName(Name name) const
         return ANSIString::empty;
     }
 
-    std::lock_guard guard(m_mutex);
+    Mutex::Guard guard(m_mutex);
 
     const auto it = m_name_map.Find(name.hash_code);
 

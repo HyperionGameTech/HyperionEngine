@@ -1,9 +1,11 @@
 #ifndef NOISE_FACTORY_H
 #define NOISE_FACTORY_H
 
-#include "random/Simplex.hpp"
-#include "random/WorleyNoise.hpp"
+#include <util/random/Simplex.hpp>
+#include <util/random/WorleyNoise.hpp>
 #include <util/img/Bitmap.hpp>
+
+#include <util/Defines.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
@@ -31,7 +33,7 @@ enum NoiseGenerationType
     WORLEY_NOISE
 };
 
-class NoiseGenerator
+class HYP_API NoiseGenerator
 {
     friend class NoiseFactory;
 public:
@@ -90,7 +92,7 @@ protected:
     std::uniform_real_distribution<T>   m_distribution;
 };
 
-class SimplexNoiseGenerator : public NoiseGenerator
+class HYP_API SimplexNoiseGenerator : public NoiseGenerator
 {
 public:
     SimplexNoiseGenerator(Seed seed);
@@ -103,7 +105,7 @@ private:
     SimplexNoiseData    m_simplex_noise;
 };
 
-class WorleyNoiseGenerator : public NoiseGenerator
+class HYP_API WorleyNoiseGenerator : public NoiseGenerator
 {
 public:
     WorleyNoiseGenerator(Seed seed);
@@ -116,7 +118,7 @@ private:
     WorleyNoise *m_worley_noise;
 };
 
-class NoiseCombinator
+class HYP_API NoiseCombinator
 {
 public:
     enum class Mode
@@ -250,7 +252,7 @@ struct NoiseGeneratorRefCounter
     SizeType        uses;
 };
 
-class NoiseFactory
+class HYP_API NoiseFactory
 {
 public:
     static NoiseFactory *instance;

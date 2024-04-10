@@ -49,12 +49,12 @@ public:
     friend struct RenderCommand_DestroyRTRadianceRenderer;
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
  
-    RTRadianceRenderer(
+    HYP_API RTRadianceRenderer(
         const Extent2D &extent,
         RTRadianceRendererOptions options = RT_RADIANCE_RENDERER_OPTION_NONE
     );
 
-    ~RTRadianceRenderer();
+    HYP_API ~RTRadianceRenderer();
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -64,12 +64,12 @@ public:
     void SetTLAS(Handle<TLAS> tlas)
         { m_tlas = std::move(tlas); }
 
-    void ApplyTLASUpdates(RTUpdateStateFlags flags);
+    HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
-    void Create();
-    void Destroy();
+    HYP_API void Create();
+    HYP_API void Destroy();
 
-    void Render(Frame *frame);
+    HYP_API void Render(Frame *frame);
 
 private:
     void CreateImages();

@@ -50,25 +50,35 @@ struct alignas(alignment) ValueStorage
     ~ValueStorage()                                         = default;
 
     template <class ...Args>
+    HYP_FORCE_INLINE
     T *Construct(Args &&... args)
     {
         Memory::Construct<T>(data_buffer, std::forward<Args>(args)...);
 
         return &Get();
     }
-
+    
+    HYP_FORCE_INLINE
     void Destruct()
         { Memory::Destruct<T>(static_cast<void *>(data_buffer)); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T &Get()
         { return *reinterpret_cast<T *>(&data_buffer); }
 
-    [[nodiscard]] const T &Get() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const T &Get() const
         { return *reinterpret_cast<const T *>(&data_buffer); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     void *GetPointer()
         { return &data_buffer[0]; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const void *GetPointer() const
         { return &data_buffer[0]; }
 };
@@ -81,28 +91,44 @@ template <class T, SizeType Sz>
 struct ValueStorageArray
 {
     ValueStorage<T> data[Sz];
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ValueStorage<T> &operator[](SizeType index)
         { return data[index]; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ValueStorage<T> &operator[](SizeType index) const
         { return data[index]; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T *GetPointer()
         { return static_cast<T *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T *GetPointer() const
         { return static_cast<T *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     void *GetRawPointer()
         { return static_cast<void *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const void *GetRawPointer() const
         { return static_cast<const void *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     constexpr SizeType Size() const
         { return Sz; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     constexpr SizeType TotalSize() const
         { return Sz * sizeof(T); }
 };
@@ -111,16 +137,24 @@ template <class T>
 struct ValueStorageArray<T, 0>
 {
     ValueStorage<char> data[1];
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     void *GetRawPointer()
         { return static_cast<void *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const void *GetRawPointer() const
         { return static_cast<const void *>(&data[0]); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     constexpr SizeType Size() const
         { return 0; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     constexpr SizeType TotalSize() const
         { return 0; }
 };

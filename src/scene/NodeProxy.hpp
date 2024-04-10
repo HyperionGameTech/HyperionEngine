@@ -17,9 +17,9 @@ class Entity;
 
 class NodeProxy;
 
-struct NodeProxyChildren
+struct HYP_API NodeProxyChildren
 {
-    struct IteratorBase
+    struct HYP_API IteratorBase
     {
         const Node *node;
         SizeType index;
@@ -32,7 +32,7 @@ struct NodeProxyChildren
         }
     };
 
-    struct Iterator : IteratorBase
+    struct HYP_API Iterator : IteratorBase
     {
         using Base = IteratorBase;
 
@@ -53,7 +53,7 @@ struct NodeProxyChildren
         }
     };
 
-    struct ConstIterator : IteratorBase
+    struct HYP_API ConstIterator : IteratorBase
     {
         using Base = IteratorBase;
 
@@ -91,8 +91,8 @@ struct NodeProxyChildren
 
 
 /*! \brief The NodeProxy class is a reference-counted wrapper around a Node pointer, allowing
-    for safe access to Node data and lessening the likelyhood of a missing Node asset causing a full game crash. */
-class NodeProxy : RC<Node>
+    for safe access to Node data and lessening the likelihood of a missing Node asset causing a full game crash. */
+class HYP_API NodeProxy : RC<Node>
 {
 protected:
     using Base = RC<Node>;

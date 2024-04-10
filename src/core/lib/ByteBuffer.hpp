@@ -16,7 +16,6 @@ using ByteArray = Array<ubyte>;
 using ByteView = Span<ubyte>;
 using ConstByteView = Span<const ubyte>;
 
-/*! \brief An immutable array of bytes, which for large buffers, shares the memory with any copied objects */
 class ByteBuffer
 {
     using InternalArray = Array<ubyte, 1024u>;
@@ -51,6 +50,10 @@ public:
 
     ByteBuffer &operator=(const ByteBuffer &other)
     {
+        if (&other == this) {
+            return *this;
+        }
+
         m_internal = other.m_internal;
 
         return *this;
@@ -63,13 +66,19 @@ public:
 
     ByteBuffer &operator=(ByteBuffer &&other) noexcept
     {
+        if (&other == this) {
+            return *this;
+        }
+
         m_internal = std::move(other.m_internal);
 
         return *this;
     }
 
     ~ByteBuffer() = default;
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     explicit operator bool() const
         { return true; }
 
@@ -85,30 +94,18 @@ public:
     }
 
     /**
-     * \brief Updates the ByteBuffer's data with the given data.
+     * \brief Returns a reference to the ByteBuffer's internal array.
      */
-    void SetData(SizeType count, const void *data)
-    {
-        m_internal.Resize(count);
-
-        if (count == 0) {
-            return;
-        }
-
-        Memory::MemCpy(m_internal.Data(), data, count);
-    }
-
-    /**
-     * \brief Returns a reference to the ByteBuffer's internal array
-     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     InternalArray &GetInternalArray()
-    {
-        return m_internal;
-    }
+        { return m_internal; }
 
     /**
-     * \brief Returns a const reference to the ByteBuffer's internal array. The reference is only valid as long as the ByteBuffer is not modified.
+     * \brief Returns a const reference to the ByteBuffer's internal array.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const InternalArray &GetInternalArray() const
         { return const_cast<ByteBuffer *>(this)->GetInternalArray(); }
 
@@ -128,7 +125,7 @@ public:
     }
 
     /**
-     * \brief Returns a ByteView of the ByteBuffer's data. The ByteView is only valid as long as the ByteBuffer is not modified.
+     * \brief Returns a ByteView of the ByteBuffer's data.
      */
     ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
     {
@@ -140,7 +137,7 @@ public:
     }
 
     /**
-     * \brief Returns a ConstByteView of the ByteBuffer's data. The ConstByteView is only valid as long as the ByteBuffer is not modified.
+     * \brief Returns a ConstByteView of the ByteBuffer's data.
      */
     ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
     {
@@ -150,14 +147,46 @@ public:
 
         return ConstByteView(Data() + offset, size);
     }
-
-    /*! \brief Be aware that modifying the ByteBuffer's data could have unintentional consequences if
-        it is sharing memory with other ByteBuffers. */
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ubyte *Data()
         { return GetInternalArray().Data(); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ubyte *Data() const
         { return GetInternalArray().Data(); }
+
+    /**
+     * \brief Updates the ByteBuffer's data with the given data.
+     */
+    void SetData(SizeType count, const void *data)
+    {
+        m_internal.Resize(count);
+
+        if (count == 0) {
+            return;
+        }
+
+        Memory::MemCpy(m_internal.Data(), data, count);
+    }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType Size() const
+        { return GetInternalArray().Size(); }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    void SetSize(SizeType count)
+    {
+        if (count == Size()) {
+            return;
+        }
+
+        m_internal.Resize(count);
+    }
 
     /**
      * \brief Reads a value from the ByteBuffer at the given offset.
@@ -209,50 +238,54 @@ public:
         Memory::MemCpy(out, bytes, sizeof(T));
 
         return true;
-
-    }
-
-    SizeType Size() const
-        { return GetInternalArray().Size(); }
-    
-    void SetSize(SizeType count)
-    {
-        if (count == Size()) {
-            return;
-        }
-
-        m_internal.Resize(count);
     }
 
     /**
      * \brief Returns true if the ByteBuffer has any elements.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool Any() const
         { return Size() != 0; }
 
     /**
      * \brief Returns true if the ByteBuffer has no elements.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool Empty() const
         { return Size() == 0; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ubyte &operator[](SizeType index)
+        { return GetInternalArray()[index]; }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ubyte &operator[](SizeType index) const
         { return GetInternalArray()[index]; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator==(const ByteBuffer &other) const
         { return m_internal == other.m_internal; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator!=(const ByteBuffer &other) const
         { return m_internal != other.m_internal; }
 
     /**
-     * \brief Returns a copy of the ByteBuffer, which is guaranteed to not share memory with the original.
+     * \brief Returns a copy of the ByteBuffer.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ByteBuffer Copy() const
-    {
-        return ByteBuffer(Size(), Data());
-    }
+        { return ByteBuffer(Size(), Data()); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
         { return GetInternalArray().GetHashCode(); }
 

@@ -19,7 +19,7 @@ namespace math {
 namespace detail {
 
 template <class T>
-struct alignas(alignof(T) * 4) Vec3
+struct alignas(alignof(T) * 4) HYP_API Vec3
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
 
@@ -221,7 +221,7 @@ struct alignas(alignof(T) * 4) Vec3
 };
 
 template <>
-struct alignas(alignof(float) * 4) Vec3<float>
+struct alignas(alignof(float) * 4) HYP_API Vec3<float>
 {
     friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
 

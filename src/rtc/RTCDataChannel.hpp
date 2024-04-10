@@ -18,7 +18,7 @@ class LibDataChannelRTCClient;
 
 namespace hyperion::v2 {
 
-class RTCDataChannel
+class HYP_API RTCDataChannel
 {
 public:
     RTCDataChannel()                                            = default;
@@ -32,7 +32,7 @@ public:
     void Send(const String &);
 };
 
-class NullRTCDataChannel : public RTCDataChannel
+class HYP_API NullRTCDataChannel : public RTCDataChannel
 {
 public:
     using RTCDataChannel::Send;
@@ -42,14 +42,14 @@ public:
     NullRTCDataChannel &operator=(const NullRTCDataChannel &other)      = delete;
     NullRTCDataChannel(NullRTCDataChannel &&other) noexcept             = delete;
     NullRTCDataChannel &operator=(NullRTCDataChannel &&other) noexcept  = delete;
-    virtual ~NullRTCDataChannel()                                       = default;
+    virtual ~NullRTCDataChannel() override                              = default;
 
     virtual void Send(const ByteBuffer &) override;
 };
 
 #ifdef HYP_LIBDATACHANNEL
 
-class LibDataChannelRTCDataChannel : public RTCDataChannel
+class HYP_API LibDataChannelRTCDataChannel : public RTCDataChannel
 {
 public:
     friend class LibDataChannelRTCClient;

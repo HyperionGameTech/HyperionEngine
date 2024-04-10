@@ -183,15 +183,19 @@ public:
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
-    void Add(const String &key, const String &path);
+    HYP_API void Add(const String &key, const String &path);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */
-    void LoadAsync(uint num_batches = MathUtil::MaxSafeValue<uint>());
-    [[nodiscard]] AssetMap AwaitResults();
-    [[nodiscard]] AssetMap ForceLoad();
+    HYP_API void LoadAsync(uint num_batches = MathUtil::MaxSafeValue<uint>());
 
-    AssetManager *asset_manager;
+    [[nodiscard]]
+    HYP_API AssetMap AwaitResults();
+
+    [[nodiscard]]
+    HYP_API AssetMap ForceLoad();
+
+    AssetManager                                *asset_manager;
 
 private:
     Array<UniquePtr<ProcessAssetFunctorBase>>   procs;

@@ -14,7 +14,7 @@ namespace hyperion::v2 {
 
 class RTCTrack;
 
-class RTCStreamEncoder
+class HYP_API RTCStreamEncoder
 {
 public:
     RTCStreamEncoder()                                                = default;
@@ -31,7 +31,7 @@ public:
     virtual void Stop() = 0;
 };
 
-class RTCStreamVideoEncoder : public RTCStreamEncoder
+class HYP_API RTCStreamVideoEncoder : public RTCStreamEncoder
 {
 public:
     RTCStreamVideoEncoder()                                                     = default;
@@ -48,7 +48,7 @@ public:
     virtual void Stop() override = 0;
 };
 
-class NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+class HYP_API NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
     NullRTCStreamVideoEncoder()                                                         = default;
@@ -69,7 +69,7 @@ public:
 
 class GStreamerThread;
 
-class GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
+class HYP_API GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
     GStreamerRTCStreamVideoEncoder();

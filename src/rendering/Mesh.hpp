@@ -33,7 +33,7 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-class Mesh
+class HYP_API Mesh
     : public BasicObject<STUB_CLASS(Mesh)>
 {
 public:

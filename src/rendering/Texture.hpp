@@ -34,7 +34,7 @@ using renderer::Sampler;
 ;
 using renderer::CommandBuffer;
 
-class Texture
+class HYP_API Texture
     : public BasicObject<STUB_CLASS(Texture)>
 {
 public:
@@ -109,7 +109,7 @@ protected:
     ImageViewRef    m_image_view;
 };
 
-class Texture2D : public Texture
+class HYP_API Texture2D : public Texture
 {
 public:
     Texture2D(
@@ -145,7 +145,7 @@ public:
     }
 };
 
-class Texture3D : public Texture
+class HYP_API Texture3D : public Texture
 {
 public:
     Texture3D(
@@ -181,7 +181,7 @@ public:
     }
 };
 
-class TextureArray : public Texture
+class HYP_API TextureArray : public Texture
 {
 public:
     TextureArray(
@@ -235,7 +235,7 @@ public:
     }    */
 };
 
-class TextureCube : public Texture
+class HYP_API TextureCube : public Texture
 {
 public:
     TextureCube(

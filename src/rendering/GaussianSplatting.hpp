@@ -38,7 +38,8 @@ using renderer::Result;
 
 class Engine;
 
-struct alignas(16) GaussianSplattingPoint {
+struct alignas(16) GaussianSplattingPoint
+{
     alignas(16) Vector4     position;
     alignas(16) Quaternion  rotation;
     alignas(16) Vector4     scale;
@@ -47,12 +48,13 @@ struct alignas(16) GaussianSplattingPoint {
 
 static_assert(sizeof(GaussianSplattingPoint) == 64);
 
-struct GaussianSplattingModelData {
+struct GaussianSplattingModelData
+{
     Array<GaussianSplattingPoint>   points;
     Transform                       transform;
 };
 
-class GaussianSplattingInstance
+class HYP_API GaussianSplattingInstance
     : public BasicObject<STUB_CLASS(GaussianSplattingInstance)>
 {
 public:
@@ -113,7 +115,7 @@ private:
     Array<float32>                  m_cpu_distances;
 };
 
-class GaussianSplatting
+class HYP_API GaussianSplatting
     : public BasicObject<STUB_CLASS(GaussianSplatting)>
 {
 public:

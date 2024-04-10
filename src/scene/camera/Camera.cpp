@@ -1,4 +1,4 @@
-#include "Camera.hpp"
+#include <scene/camera/Camera.hpp>
 #include <math/Halton.hpp>
 
 #include <Engine.hpp>
@@ -8,6 +8,8 @@ namespace hyperion::v2 {
 using renderer::Result;
 
 class Camera;
+
+#pragma region Render Commands
 
 struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
 {
@@ -29,8 +31,8 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
             .projection = draw_proxy.projection,
             .previous_view = draw_proxy.previous_view,
             .dimensions = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 1 },
-            .camera_position = Vector4(draw_proxy.position, 1.0f),
-            .camera_direction = Vector4(draw_proxy.position, 1.0f),
+            .camera_position = Vec4f(draw_proxy.position, 1.0f),
+            .camera_direction = Vec4f(draw_proxy.position, 1.0f),
             .camera_near = draw_proxy.clip_near,
             .camera_far = draw_proxy.clip_far,
             .camera_fov = draw_proxy.fov
@@ -40,6 +42,8 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
     }
 };
 
+#pragma endregion
+
 static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
 {
     if (camera.GetWidth() == 0 || camera.GetHeight() == 0) {
@@ -48,10 +52,10 @@ static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
 
     static const HaltonSequence halton;
 
-    const Vector2 pixel_size = Vector2::one / Vector2(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
+    const Vec2f pixel_size = Vec2f::one / Vec2f(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
     const uint index = frame_counter % HaltonSequence::size;
 
-    const Vector2 jitter = halton.sequence[index] * 2.0f - 1.0f;
+    const Vec2f jitter = halton.sequence[index] * 2.0f - 1.0f;
 
     Matrix4 jitter_matrix = camera.GetProjectionMatrix();
     jitter_matrix[0][2] += jitter.x * pixel_size.x;
@@ -110,9 +114,9 @@ Camera::Camera(int width, int height)
       m_right(0.0f),
       m_bottom(0.0f),
       m_top(0.0f),
-      m_translation(Vector3::Zero()),
-      m_direction(Vector3::UnitZ()),
-      m_up(Vector3::UnitY())
+      m_translation(Vec3f::Zero()),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY())
 {
 }
 
@@ -122,9 +126,9 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_fov(fov),
       m_width(width),
       m_height(height),
-      m_translation(Vector3::Zero()),
-      m_direction(Vector3::UnitZ()),
-      m_up(Vector3::UnitY())
+      m_translation(Vec3f::Zero()),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY())
 {
     SetToPerspectiveProjection(fov, _near, _far);
 }
@@ -135,9 +139,9 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_fov(0.0f),
       m_width(width),
       m_height(height),
-      m_translation(Vector3::Zero()),
-      m_direction(Vector3::UnitZ()),
-      m_up(Vector3::UnitY())
+      m_translation(Vec3f::Zero()),
+      m_direction(Vec3f::UnitZ()),
+      m_up(Vec3f::UnitY())
 {
     SetToOrthographicProjection(left, right, bottom, top, _near, _far);
 }
@@ -186,7 +190,7 @@ void Camera::SetFramebuffer(const Handle<Framebuffer> &framebuffer)
     }
 }
 
-void Camera::SetTranslation(const Vector3 &translation)
+void Camera::SetTranslation(const Vec3f &translation)
 {
     m_translation = translation;
     m_next_translation = translation;
@@ -201,7 +205,7 @@ void Camera::SetTranslation(const Vector3 &translation)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::SetNextTranslation(const Vector3 &translation)
+void Camera::SetNextTranslation(const Vec3f &translation)
 {
     m_next_translation = translation;
 
@@ -210,7 +214,7 @@ void Camera::SetNextTranslation(const Vector3 &translation)
     }
 }
 
-void Camera::SetDirection(const Vector3 &direction)
+void Camera::SetDirection(const Vec3f &direction)
 {
     m_direction = direction;
     
@@ -224,7 +228,7 @@ void Camera::SetDirection(const Vector3 &direction)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::SetUpVector(const Vector3 &up)
+void Camera::SetUpVector(const Vec3f &up)
 {
     m_up = up;
     
@@ -238,7 +242,7 @@ void Camera::SetUpVector(const Vector3 &up)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::Rotate(const Vector3 &axis, float radians)
+void Camera::Rotate(const Vec3f &axis, float radians)
 {
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
@@ -281,7 +285,7 @@ void Camera::UpdateViewProjectionMatrix()
     m_frustum.SetFromViewProjectionMatrix(m_view_proj_mat);
 }
 
-Vector3 Camera::TransformScreenToNDC(const Vector2 &screen) const
+Vec3f Camera::TransformScreenToNDC(const Vec2f &screen) const
 {
     // [0, 1] -> [-1, 1]
 
@@ -292,28 +296,28 @@ Vector3 Camera::TransformScreenToNDC(const Vector2 &screen) const
     };
 }
 
-Vector4 Camera::TransformNDCToWorld(const Vector3 &ndc) const
+Vec4f Camera::TransformNDCToWorld(const Vec3f &ndc) const
 {
-    const Vector4 clip(ndc, 1.0f);
+    const Vec4f clip(ndc, 1.0f);
 
-    Vector4 eye = m_proj_mat.Inverted() * clip;
+    Vec4f eye = m_proj_mat.Inverted() * clip;
     eye /= eye.w;
-    // eye = Vector4(eye.x, eye.y, -1.0f, 0.0f);
+    // eye = Vec4f(eye.x, eye.y, -1.0f, 0.0f);
 
     return m_view_mat.Inverted() * eye;
 }
 
-Vector3 Camera::TransformWorldToNDC(const Vector3 &world) const
+Vec3f Camera::TransformWorldToNDC(const Vec3f &world) const
 {
     return m_view_proj_mat * world;
 }
 
-Vector2 Camera::TransformWorldToScreen(const Vector3 &world) const
+Vec2f Camera::TransformWorldToScreen(const Vec3f &world) const
 {
     return TransformNDCToScreen(m_view_proj_mat * world);
 }
 
-Vector2 Camera::TransformNDCToScreen(const Vector3 &ndc) const
+Vec2f Camera::TransformNDCToScreen(const Vec3f &ndc) const
 {
     return {
         (0.5f * ndc.x) + 0.5f,
@@ -321,14 +325,14 @@ Vector2 Camera::TransformNDCToScreen(const Vector3 &ndc) const
     };
 }
 
-Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
+Vec4f Camera::TransformScreenToWorld(const Vec2f &screen) const
 {
     return TransformNDCToWorld(TransformScreenToNDC(screen));
 }
 
-Vector2 Camera::GetPixelSize() const
+Vec2f Camera::GetPixelSize() const
 {
-    return Vector2::one / Vector2 { float(GetWidth()), float(GetHeight()) };
+    return Vec2f::one / Vec2f { float(GetWidth()), float(GetHeight()) };
 }
 
 void Camera::Update(GameCounter::TickUnit dt)

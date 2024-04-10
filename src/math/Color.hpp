@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-class alignas(uint32) Color
+class alignas(uint32) HYP_API Color
 {
 public:
     static constexpr uint size = 4;

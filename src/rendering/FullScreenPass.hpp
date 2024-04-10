@@ -31,7 +31,7 @@ using renderer::Pipeline;
 
 class Engine;
 
-class FullScreenPass
+class HYP_API FullScreenPass
 {
     using PushConstantData = Pipeline::PushConstantData;
 

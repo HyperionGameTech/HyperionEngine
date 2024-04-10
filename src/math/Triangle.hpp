@@ -10,7 +10,7 @@
 #include <Types.hpp>
 
 namespace hyperion {
-class Triangle
+class HYP_API Triangle
 {
 public:
     Triangle();

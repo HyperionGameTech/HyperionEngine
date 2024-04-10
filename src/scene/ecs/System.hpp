@@ -6,6 +6,7 @@
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <GameCounter.hpp>
+#include <util/Defines.hpp>
 
 #include <tuple>
 
@@ -13,7 +14,7 @@ namespace hyperion::v2 {
 
 class EntityManager;
 
-class SystemBase
+class HYP_API SystemBase
 {
 public:
     virtual ~SystemBase() = default;

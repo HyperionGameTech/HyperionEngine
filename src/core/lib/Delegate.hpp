@@ -8,6 +8,8 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/IDCreator.hpp>
 
+#include <util/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -25,10 +27,10 @@ struct DelegateHandlerData
     void    (*remove_fn)(void *, uint) = nullptr;
     void    (*detach_fn)(void *, DelegateHandler &&delegate_handler) = nullptr;
 
-    ~DelegateHandlerData();
+    HYP_API ~DelegateHandlerData();
 
-    void Reset();
-    void Detach(DelegateHandler &&delegate_handler);
+    HYP_API void Reset();
+    HYP_API void Detach(DelegateHandler &&delegate_handler);
 
     HYP_FORCE_INLINE
     bool IsValid() const
@@ -89,7 +91,10 @@ public:
     }
 
 private:
-    DelegateHandler(RC<functional::detail::DelegateHandlerData>);
+    DelegateHandler(RC<functional::detail::DelegateHandlerData> data)
+        : m_data(std::move(data))
+    {
+    }
 
     RC<functional::detail::DelegateHandlerData> m_data;
 };

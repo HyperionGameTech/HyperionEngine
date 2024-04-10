@@ -8,6 +8,8 @@
 #include <core/lib/Optional.hpp>
 #include <core/lib/Variant.hpp>
 
+#include <util/Defines.hpp>
+
 namespace hyperion {
 
 class ArgParse
@@ -53,11 +55,11 @@ public:
         explicit operator bool() const
             { return ok; }
 
-        const ArgumentValue &operator[](const String &key) const;
+        HYP_API const ArgumentValue &operator[](const String &key) const;
     };
 
     // Add an argument - may be a string, int, float, bool.
-    void Add(
+    HYP_API void Add(
         String name,
         String shorthand = String::empty,
         ArgFlags flags = ARG_FLAGS_NONE,
@@ -66,7 +68,7 @@ public:
     );
 
     // Add an enum argument
-    void Add(
+    HYP_API void Add(
         String name,
         String shorthand = String::empty,
         ArgFlags flags = ARG_FLAGS_NONE,
@@ -74,11 +76,11 @@ public:
         ArgumentValue = { }
     );
 
-    Result Parse(int argc, char **argv) const;
-    Result Parse(const Array<String> &args) const;
+    HYP_API Result Parse(int argc, char **argv) const;
+    HYP_API Result Parse(const Array<String> &args) const;
 
 private:
-    Array<ArgumentDefinition> m_definitions;
+    Array<ArgumentDefinition>   m_definitions;
 };
 
 } // namespace hyperion

@@ -53,7 +53,7 @@ struct RTCServerParams
     RTCServerAddress address;
 };
 
-class RTCServer
+class HYP_API RTCServer
 {
 public:
     RTCServer(RTCServerParams params);
@@ -95,7 +95,7 @@ protected:
     UniquePtr<RTCServerThread>  m_thread;
 };
 
-class NullRTCServer : public RTCServer
+class HYP_API NullRTCServer : public RTCServer
 {
 public:
     NullRTCServer(RTCServerParams params);
@@ -116,7 +116,7 @@ public:
 
 #ifdef HYP_LIBDATACHANNEL
 
-class LibDataChannelRTCServer : public RTCServer
+class HYP_API LibDataChannelRTCServer : public RTCServer
 {
 public:
     LibDataChannelRTCServer(RTCServerParams params);

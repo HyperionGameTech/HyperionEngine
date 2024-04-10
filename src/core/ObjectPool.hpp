@@ -144,7 +144,7 @@ public:
 
     HYP_FORCE_INLINE uint NextIndex()
     {
-        const uint index = IDCreator<>::template ForType<T>().NextID() - 1;
+        const uint index = m_id_generator.NextID() - 1;
 
         AssertThrowMsg(
             index < HandleDefinition<T>::max_size,
@@ -173,7 +173,7 @@ public:
             m_data[index].has_value = false;
 
             if (m_data[index].GetRefCountWeak() == 0) {
-                IDCreator<>::template ForType<T>().FreeID(index + 1);
+                m_id_generator.FreeID(index + 1);
             }
         }
     }
@@ -181,7 +181,7 @@ public:
     virtual void DecRefWeak(uint index) override
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
-            IDCreator<>::template ForType<T>().FreeID(index + 1);
+            m_id_generator.FreeID(index + 1);
         }
     }
 
@@ -216,11 +216,12 @@ public:
 private:
     HeapArray<ObjectBytes, max_size>    m_data;
     SizeType                            m_size;
+    IDCreator<>                         m_id_generator;
 };
 
-class ObjectPool
+class HYP_API ObjectPool
 {
-    static struct ObjectContainerHolder
+    static struct HYP_API ObjectContainerHolder
     {
         struct ObjectContainerMap
         {

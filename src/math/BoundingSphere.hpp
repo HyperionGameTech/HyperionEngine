@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-struct BoundingSphere
+struct HYP_API BoundingSphere
 {
 public:
     static const BoundingSphere empty;

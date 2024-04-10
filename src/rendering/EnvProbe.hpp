@@ -87,12 +87,11 @@ struct EnvProbeIndex
     {
     }
 
-    EnvProbeIndex(const EnvProbeIndex &other) = default;
-    EnvProbeIndex &operator=(const EnvProbeIndex &other) = default;
-    EnvProbeIndex(EnvProbeIndex &&other) noexcept = default;
-    EnvProbeIndex &operator=(EnvProbeIndex &&other) noexcept = default;
-
-    ~EnvProbeIndex() = default;
+    EnvProbeIndex(const EnvProbeIndex &other)                   = default;
+    EnvProbeIndex &operator=(const EnvProbeIndex &other)        = default;
+    EnvProbeIndex(EnvProbeIndex &&other) noexcept               = default;
+    EnvProbeIndex &operator=(EnvProbeIndex &&other) noexcept    = default;
+    ~EnvProbeIndex()                                            = default;
 
     uint GetProbeIndex() const
     {
@@ -135,21 +134,15 @@ class EnvProbe
 public:
     friend struct RenderCommand_UpdateEnvProbeDrawProxy;
     friend struct RenderCommand_DestroyCubemapRenderPass;
-
-    void UpdateRenderData(
-        uint32 texture_slot,
-        uint32 grid_slot,
-        Extent3D grid_size
-    );
     
-    EnvProbe(
+    HYP_API EnvProbe(
         const Handle<Scene> &parent_scene,
         const BoundingBox &aabb,
         const Extent2D &dimensions,
         EnvProbeType env_probe_type
     );
     
-    EnvProbe(
+    HYP_API EnvProbe(
         const Handle<Scene> &parent_scene,
         const BoundingBox &aabb,
         const Extent2D &dimensions,
@@ -157,9 +150,9 @@ public:
         Handle<Shader> custom_shader
     );
 
-    EnvProbe(const EnvProbe &other) = delete;
-    EnvProbe &operator=(const EnvProbe &other) = delete;
-    ~EnvProbe();
+    EnvProbe(const EnvProbe &other)             = delete;
+    EnvProbe &operator=(const EnvProbe &other)  = delete;
+    HYP_API ~EnvProbe();
 
     HYP_FORCE_INLINE EnvProbeType GetEnvProbeType() const
         { return m_env_probe_type; }
@@ -242,17 +235,24 @@ public:
         return counter > 0;
     }
 
-    bool IsVisible(ID<Camera> camera_id) const;
-    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
+    HYP_API bool IsVisible(ID<Camera> camera_id) const;
+    HYP_API void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
-    void Init();
-    void EnqueueBind() const;
-    void EnqueueUnbind() const;
-    void Update(GameCounter::TickUnit delta);
+    HYP_API void Init();
+    HYP_API void EnqueueBind() const;
+    HYP_API void EnqueueUnbind() const;
+    HYP_API void Update(GameCounter::TickUnit delta);
 
-    void Render(Frame *frame);
+    HYP_API void Render(Frame *frame);
 
     void UpdateRenderData(bool set_texture = false);
+
+    void UpdateRenderData(
+        uint32 texture_slot,
+        uint32 grid_slot,
+        Extent3D grid_size
+    );
+
     void BindToIndex(const EnvProbeIndex &probe_index);
 
     uint32 m_grid_slot = ~0u; // temp

@@ -2,12 +2,13 @@
 #define HYPERION_JSON_HPP
 
 #include <asset/ByteReader.hpp>
-#include <util/json/parser/Lexer.hpp> // Reuse scripting language lexer
+#include <util/json/parser/Lexer.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/Variant.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/HashMap.hpp>
 #include <util/StringUtil.hpp>
+#include <util/Defines.hpp>
 
 namespace hyperion {
 namespace json {
@@ -33,7 +34,7 @@ struct JSONSubscriptWrapper
 };
 
 template <>
-struct JSONSubscriptWrapper<const JSONValue>
+struct HYP_API JSONSubscriptWrapper<const JSONValue>
 {
     const JSONValue *value = nullptr;
 
@@ -113,7 +114,7 @@ struct JSONSubscriptWrapper<const JSONValue>
 };
 
 template <>
-struct JSONSubscriptWrapper<JSONValue>
+struct HYP_API JSONSubscriptWrapper<JSONValue>
 {
     JSONValue *value = nullptr;
 
@@ -200,7 +201,7 @@ struct JSONSubscriptWrapper<JSONValue>
     JSONSubscriptWrapper<const JSONValue> operator[](const JSONString &key) const;
 };
 
-class JSONValue
+class HYP_API JSONValue
 {
 private:
     using InnerType = Variant<JSONString, JSONNumber, JSONBool, JSONArrayRef, JSONObjectRef, JSONNull, JSONUndefined>;
@@ -586,7 +587,7 @@ struct ParseResult
     JSONValue value;
 };
 
-class JSON
+class HYP_API JSON
 {
 public:
     static ParseResult Parse(const String &json_string);

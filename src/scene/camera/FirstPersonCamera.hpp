@@ -12,7 +12,7 @@ enum FirstPersonCameraControllerMode
     FPC_MODE_MOUSE_FREE
 };
 
-class FirstPersonCameraController : public PerspectiveCameraController
+class HYP_API FirstPersonCameraController : public PerspectiveCameraController
 {
 public:
     FirstPersonCameraController(FirstPersonCameraControllerMode mode = FPC_MODE_MOUSE_FREE);

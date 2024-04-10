@@ -33,7 +33,7 @@ namespace hyperion::v2 {
 
 using renderer::BlendMode;
 
-class Material
+class HYP_API Material
     : public BasicObject<STUB_CLASS(Material)>
 {
 public:
@@ -530,7 +530,7 @@ private:
     HashMap<String, Handle<Material>> m_materials;
 };
 
-class MaterialCache
+class HYP_API MaterialCache
 {
 public:
     void Add(const Handle<Material> &material);
@@ -552,7 +552,7 @@ private:
     std::mutex m_mutex;
 };
 
-class MaterialDescriptorSetManager
+class HYP_API MaterialDescriptorSetManager
 {
 public:
     MaterialDescriptorSetManager();

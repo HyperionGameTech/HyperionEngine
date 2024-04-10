@@ -297,6 +297,14 @@
     #define HYP_IMPORT
 #endif
 
+#ifdef HYP_BUILD_LIBRARY
+#define HYP_API HYP_EXPORT
+#define HYP_C_API extern "C" HYP_EXPORT
+#else
+#define HYP_API HYP_IMPORT
+#define HYP_C_API extern "C" HYP_IMPORT
+#endif
+
 // Optimization
 
 #ifdef HYP_MSVC
@@ -312,6 +320,12 @@
 #define HYP_TEXT(x) L##x
 #else
 #define HYP_TEXT(x) x
+#endif
+
+// Warning disabling
+
+#ifdef HYP_MSVC
+//#pragma warning(disable: C4251) // class needs to have dll-interface to be used by clients of class
 #endif
 
 #endif // !HYPERION_DEFINES_H

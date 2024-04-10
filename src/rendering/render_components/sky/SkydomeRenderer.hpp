@@ -18,7 +18,7 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
-class SkydomeRenderer : public RenderComponent<SkydomeRenderer>
+class HYP_API SkydomeRenderer : public RenderComponent<SkydomeRenderer>
 {
 public:
     SkydomeRenderer(Name name, Extent2D dimensions = { 1024, 1024 });

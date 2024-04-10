@@ -4,7 +4,7 @@
 #include <mutex>
 namespace hyperion {
 
-class Mutex;
+// @TODO: Implement without using STL mutex, so we can avoid ABI breakage
 
 class Mutex
 {
@@ -35,7 +35,7 @@ public:
     Mutex &operator=(const Mutex &other)        = delete;
     Mutex(Mutex &&other) noexcept               = delete;
     Mutex &operator=(Mutex &&other) noexcept    = delete;
-    ~Mutex() = default;
+    ~Mutex()                                    = default;
 
     void Lock()
         { m_mutex.lock(); }

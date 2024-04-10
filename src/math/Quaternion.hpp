@@ -11,7 +11,7 @@ namespace hyperion {
 
 class Matrix4;
 
-struct alignas(16) Quaternion
+struct alignas(16) HYP_API Quaternion
 {
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
 

@@ -37,7 +37,7 @@ struct OctantID
     static constexpr uint64 invalid_bits = 1ull << 63;
     static constexpr SizeType max_depth = 64 / 3;
 
-    static const OctantID invalid;  // special value for invalid octant
+    static HYP_API const OctantID invalid;  // special value for invalid octant
 
     uint64  index_bits { 0 };
     uint8   depth { 0 };
@@ -53,54 +53,58 @@ struct OctantID
             : child_index),
           depth(parent_id.GetDepth() + uint8(1)) {}
 
-    OctantID(const OctantID &other) = default;
-    OctantID &operator=(const OctantID &other) = default;
-    OctantID(OctantID &&other) noexcept = default;
-    OctantID &operator=(OctantID &&other) noexcept = default;
-    ~OctantID() = default;
-
+    OctantID(const OctantID &other)                 = default;
+    OctantID &operator=(const OctantID &other)      = default;
+    OctantID(OctantID &&other) noexcept             = default;
+    OctantID &operator=(OctantID &&other) noexcept  = default;
+    ~OctantID()                                     = default;
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsInvalid() const // This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
         { return index_bits & invalid_bits; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const OctantID &other) const
         { return index_bits == other.index_bits && depth == other.depth; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const OctantID &other) const
         { return !(*this == other); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint8 GetIndex(uint8 depth) const
         { return (index_bits >> (uint64(depth) * 3ull)) & 0x7; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint8 GetIndex() const
         { return GetIndex(depth); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint8 GetDepth() const
         { return depth; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsSiblingOf(OctantID other) const
-    {
-        return depth == other.depth && (index_bits & ~(~0ull << (uint64(depth) * 3ull))) == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull)));
-    }
-
+        { return depth == other.depth && (index_bits & ~(~0ull << (uint64(depth) * 3ull))) == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull))); }
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsChildOf(OctantID other) const
-    {
-        return depth > other.depth && (index_bits & ~(~0ull << (uint64(other.depth) * 3ull))) == other.index_bits;
-    }
-
+        { return depth > other.depth && (index_bits & ~(~0ull << (uint64(other.depth) * 3ull))) == other.index_bits; }
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsParentOf(OctantID other) const
-    {
-        return depth < other.depth && index_bits == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull)));
-    }
+        { return depth < other.depth && index_bits == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull))); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     OctantID GetParent() const
     {
@@ -110,7 +114,8 @@ struct OctantID
 
         return OctantID(index_bits & ~(~0ull << (uint64(depth) * 3ull)), depth - 1);
     }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -136,7 +141,7 @@ struct OctreeState
     void MarkOctantDirty(OctantID octant_id);
 };
 
-class Octree
+class HYP_API Octree
 {
     friend class Entity;
 

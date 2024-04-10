@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-class Lightmap
+class HYP_API Lightmap
     : public BasicObject<STUB_CLASS(Lightmap)>
 {
 public:

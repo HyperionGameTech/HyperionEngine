@@ -36,7 +36,7 @@ enum PostProcessingStage
     POST_PROCESSING_STAGE_POST_SHADING
 };
 
-class PostFXPass : public FullScreenPass
+class HYP_API PostFXPass : public FullScreenPass
 {
 public:
     PostFXPass(
@@ -69,7 +69,7 @@ protected:
     uint                m_effect_index;
 };
 
-class PostProcessingEffect : public BasicObject<STUB_CLASS(PostProcessingEffect)>
+class HYP_API PostProcessingEffect : public BasicObject<STUB_CLASS(PostProcessingEffect)>
 {
 public:
     PostProcessingEffect(
@@ -110,7 +110,7 @@ private:
     bool            m_is_enabled;
 };
 
-class PostProcessing
+class HYP_API PostProcessing
 {
 public:
     static constexpr uint max_effects_per_stage = sizeof(uint32) * CHAR_BIT;

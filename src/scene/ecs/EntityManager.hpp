@@ -27,7 +27,7 @@ class Scene;
 
 /*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
  */
-class SystemExecutionGroup
+class HYP_API SystemExecutionGroup
 {
 public:
     SystemExecutionGroup()                                              = default;
@@ -182,7 +182,7 @@ class EntityManager;
 
 using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter::TickUnit /* delta */>;
 
-class EntityManagerCommandQueue
+class HYP_API EntityManagerCommandQueue
 {
 public:
     EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy);
@@ -213,7 +213,7 @@ private:
     AtomicVar<uint>                             m_count { 0 };
 };
 
-class EntityManager
+class HYP_API EntityManager
 {
 public:
     EntityManager(ThreadMask owner_thread_mask, Scene *scene)

@@ -3,8 +3,11 @@
 
 #include <core/lib/HashMap.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/Mutex.hpp>
 
 #include <core/NameInternal.hpp>
+
+#include <util/Defines.hpp>
 
 namespace hyperion {
 
@@ -18,12 +21,12 @@ public:
     NameRegistry &operator=(NameRegistry &&other) noexcept  = delete;
     ~NameRegistry()                                         = default;
 
-    Name RegisterName(NameID id, const ANSIString &str, bool lock);
-    const ANSIString &LookupStringForName(Name name) const;
+    HYP_API Name RegisterName(NameID id, const ANSIString &str, bool lock);
+    HYP_API const ANSIString &LookupStringForName(Name name) const;
 
 private:
     HashMap<NameID, ANSIString> m_name_map;
-    mutable std::mutex          m_mutex;
+    mutable Mutex              m_mutex;
 };
 
 
@@ -42,7 +45,7 @@ struct NameRegistration
         return id;
     }
     
-    static NameID GenerateID(const ANSIString &str);
+    HYP_API static NameID GenerateID(const ANSIString &str);
 
     template <class HashedName>
     static NameRegistration FromHashedName(HashedName &&hashed_name, bool lock = true)
@@ -54,7 +57,7 @@ struct NameRegistration
         return NameRegistration { name_id };
     }
     
-    static NameRegistration FromDynamicString(const ANSIString &str);
+    HYP_API static NameRegistration FromDynamicString(const ANSIString &str);
 };
 
 /**
@@ -84,7 +87,7 @@ static inline Name CreateNameFromStaticString_NoLock(HashedName &&hashed_name)
 /**
  * \brief Creates a Name from a dynamic string.
  */
-Name CreateNameFromDynamicString(const ANSIString &str);
+extern HYP_API Name CreateNameFromDynamicString(const ANSIString &str);
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
 #define HYP_HASHED_NAME(name)   ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()

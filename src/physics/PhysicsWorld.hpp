@@ -11,20 +11,20 @@
 
 namespace hyperion::v2::physics {
 
-class PhysicsWorldBase
+class HYP_API PhysicsWorldBase
 {
 public:
-    static const Vector3 earth_gravity;
+    static const Vec3f earth_gravity;
 
-    PhysicsWorldBase() = default;
-    PhysicsWorldBase(const PhysicsWorldBase &other) = delete;
-    PhysicsWorldBase &operator=(const PhysicsWorldBase &other) = delete;
-    ~PhysicsWorldBase() = default;
+    PhysicsWorldBase()                                          = default;
+    PhysicsWorldBase(const PhysicsWorldBase &other)             = delete;
+    PhysicsWorldBase &operator=(const PhysicsWorldBase &other)  = delete;
+    ~PhysicsWorldBase()                                         = default;
 
-    const Vector3 &GetGravity() const
+    const Vec3f &GetGravity() const
         { return m_gravity; }
 
-    void SetGravity(const Vector3 &gravity)
+    void SetGravity(const Vec3f &gravity)
         { m_gravity = gravity; }
 
     Array<Handle<RigidBody>> &GetRigidBodies()
@@ -34,13 +34,13 @@ public:
         { return m_rigid_bodies; }
 
 protected:
-    Vector3 m_gravity = earth_gravity;
+    Vec3f                       m_gravity = earth_gravity;
 
-    FlatSet<Handle<RigidBody>> m_rigid_bodies;
+    FlatSet<Handle<RigidBody>>  m_rigid_bodies;
 };
 
 template <class Adapter>
-class PhysicsWorld : public PhysicsWorldBase
+class HYP_API PhysicsWorld : public PhysicsWorldBase
 {
 public:
     PhysicsWorld()

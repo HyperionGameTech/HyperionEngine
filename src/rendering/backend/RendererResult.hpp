@@ -9,16 +9,17 @@ namespace renderer {
 
 struct Result
 {
-    static const Result OK;
+    static HYP_API const Result OK;
 
-    enum {
+    enum
+    {
         RENDERER_OK                     = 0,
         RENDERER_ERR                    = 1,
         RENDERER_ERR_NEEDS_REALLOCATION = 2
     } result;
 
-    const char *message;
-    int error_code = 0;
+    const char  *message;
+    int         error_code = 0;
 
     Result()
         : result(RENDERER_OK), message(""), error_code(0)
@@ -35,7 +36,9 @@ struct Result
     {
     }
 
-    HYP_FORCE_INLINE operator bool() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    operator bool() const
         { return result == RENDERER_OK; }
 };
 

@@ -147,7 +147,7 @@ private:
     }
 };
 
-class UIObject : public EnableRefCountedPtrFromThis<UIObject>
+class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
 public:
     UIObject(ID<Entity> entity, UIScene *parent);

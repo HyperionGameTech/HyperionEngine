@@ -45,7 +45,7 @@ class RenderList;
 /*! \brief Represents a handle to a graphics pipeline,
     which can be used for doing standalone drawing without requiring
     all objects to be Entities or have them attached to the RenderGroup */
-class RendererProxy
+class HYP_API RendererProxy
 {
     friend class RenderGroup;
 
@@ -78,7 +78,7 @@ private:
     RenderGroup *m_render_group;
 };
 
-class RenderGroup
+class HYP_API RenderGroup
     : public BasicObject<STUB_CLASS(RenderGroup)>
 {
     friend class Engine;

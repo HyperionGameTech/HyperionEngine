@@ -10,7 +10,9 @@
 #include <string.h>
 
 namespace hyperion {
-class Matrix3 {
+
+class HYP_API Matrix3
+{
     friend std::ostream &operator<<(std::ostream &os, const Matrix3 &mat);
 public:
     union {
@@ -63,6 +65,6 @@ public:
 
 static_assert(sizeof(Matrix3) == sizeof(float) * 12, "sizeof(Matrix3) must be equal to sizeof(float) * 12");
 
-}
+} // namespace hyperion
 
 #endif

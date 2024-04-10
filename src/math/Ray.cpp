@@ -309,10 +309,4 @@ bool Ray::TestTriangleList(
     return false;
 }
 
-bool RayTestResults::AddHit(const RayHit &hit)
-{
-    return Insert(hit).second;
-}
-
-
 } // namespace hyperion

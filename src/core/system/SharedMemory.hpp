@@ -3,11 +3,13 @@
 
 #include <core/lib/String.hpp>
 
+#include <util/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
-class SharedMemory
+class HYP_API SharedMemory
 {
     using Address = void *;
 

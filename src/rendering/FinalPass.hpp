@@ -20,15 +20,15 @@ namespace hyperion::v2 {
 
 class ShaderManagerSystem;
 
-extern ShaderManagerSystem *g_shader_manager;
+extern HYP_API ShaderManagerSystem *g_shader_manager;
 
 // Performs tonemapping, samples last postfx in chain
 class CompositePass : public FullScreenPass
 {
 public:
     CompositePass();
-    CompositePass(const CompositePass &other) = delete;
-    CompositePass &operator=(const CompositePass &other) = delete;
+    CompositePass(const CompositePass &other)               = delete;
+    CompositePass &operator=(const CompositePass &other)    = delete;
     virtual ~CompositePass() override;
 
     void CreateShader();
@@ -39,8 +39,8 @@ class FinalPass
 {
 public:
     FinalPass();
-    FinalPass(const FinalPass &other) = delete;
-    FinalPass &operator=(const FinalPass &other) = delete;
+    FinalPass(const FinalPass &other)               = delete;
+    FinalPass &operator=(const FinalPass &other)    = delete;
     ~FinalPass();
 
     const ImageRef &GetLastFrameImage() const

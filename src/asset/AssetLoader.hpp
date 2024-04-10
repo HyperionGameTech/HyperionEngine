@@ -44,11 +44,11 @@ struct LoadedAsset
     {
     }
 
-    LoadedAsset(const LoadedAsset &other) = delete;
-    LoadedAsset &operator=(const LoadedAsset &other) = delete;
-    LoadedAsset(LoadedAsset &&other) noexcept = default;
-    LoadedAsset &operator=(LoadedAsset &&other) = default;
-    ~LoadedAsset() = default;
+    LoadedAsset(const LoadedAsset &other)               = delete;
+    LoadedAsset &operator=(const LoadedAsset &other)    = delete;
+    LoadedAsset(LoadedAsset &&other) noexcept           = default;
+    LoadedAsset &operator=(LoadedAsset &&other)         = default;
+    ~LoadedAsset()                                      = default;
 };
 
 
@@ -283,7 +283,7 @@ protected:
 public:
     virtual ~AssetLoader() = default;
 
-    virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final;
+    HYP_API virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final;
 
 protected:
     virtual LoadedAsset LoadAsset(LoaderState &state) const = 0;

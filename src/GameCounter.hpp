@@ -8,7 +8,8 @@
 
 namespace hyperion::v2 {
 
-struct GameCounter {
+struct GameCounter
+{
     using Clock = std::chrono::high_resolution_clock;
 
     using TickUnit = float32;
@@ -18,9 +19,16 @@ struct GameCounter {
     TimePoint last_time_point = Now();
     TickUnit delta { };
 
-    void NextTick();
+    HYP_FORCE_INLINE static TimePoint Now()
+        { return Clock::now(); }
 
-    HYP_FORCE_INLINE static TimePoint Now() { return Clock::now(); }
+    void NextTick()
+    {
+        const TimePoint current = Now();
+
+        delta = Interval(current);
+        last_time_point = current;
+    }
 
     TickUnit Interval(TimePoint end_time_point) const
     {

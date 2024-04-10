@@ -38,7 +38,7 @@ struct UITextOptions
     float line_height = 1.0f;
 };
 
-class UIText : public UIObject
+class HYP_API UIText : public UIObject
 {
 public:
     UIText(ID<Entity> entity, UIScene *ui_scene);

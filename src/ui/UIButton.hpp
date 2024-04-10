@@ -9,7 +9,7 @@ class UIScene;
 
 // UIButton
 
-class UIButton : public UIObject
+class HYP_API UIButton : public UIObject
 {
 public:
     UIButton(ID<Entity> entity, UIScene *ui_scene);

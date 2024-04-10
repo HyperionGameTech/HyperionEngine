@@ -5,6 +5,7 @@
 
 #include <core/Base.hpp>
 
+#include <util/Defines.hpp>
 #include <util/fs/FsUtil.hpp>
 
 #include <Constants.hpp>
@@ -20,20 +21,23 @@ public:
     using WChar = uint32;
     using GlyphIndex = uint;
 
-    FontFace()                                  = default;
-    FontFace(FontEngine::Backend backend, const FilePath &file_path);
-    FontFace(const FontFace &other)                 = delete;
-    FontFace &operator=(const FontFace &other)      = delete;
-    FontFace(FontFace &&other) noexcept;
-    FontFace &operator=(FontFace &&other) noexcept;
-    ~FontFace();
+    FontFace()                                                          = default;
 
-    void Init();
+    HYP_API FontFace(FontEngine::Backend backend, const FilePath &file_path);
 
-    void RequestPixelSizes(int width, int height);
-    void SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height);
-    GlyphIndex GetGlyphIndex(WChar to_find);
-    FontEngine::Font GetFace();
+    FontFace(const FontFace &other)                                     = delete;
+    FontFace &operator=(const FontFace &other)                          = delete;
+
+    HYP_API FontFace(FontFace &&other) noexcept;
+    HYP_API FontFace &operator=(FontFace &&other) noexcept;
+    HYP_API ~FontFace();
+
+    HYP_API void Init();
+
+    HYP_API void RequestPixelSizes(int width, int height);
+    HYP_API void SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_height);
+    HYP_API GlyphIndex GetGlyphIndex(WChar to_find);
+    HYP_API FontEngine::Font GetFace();
 
 private:
     FontEngine::Font m_face;

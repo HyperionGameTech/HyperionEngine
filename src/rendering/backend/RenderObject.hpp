@@ -163,7 +163,7 @@ public:
     {
         using RenderObjectDefinitionType = RenderObjectDefinition<T, PLATFORM>;
 
-        const uint index = IDCreatorType::template ForType<T>().NextID() - 1;
+        const uint index = m_id_generator.NextID() - 1;
 
         AssertThrowMsg(
             index < RenderObjectDefinitionType::max_size,
@@ -182,7 +182,7 @@ public:
     void DecRefStrong(uint index)
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
-            IDCreatorType::template ForType<T>().FreeID(index + 1);
+            m_id_generator.FreeID(index + 1);
         }
     }
 
@@ -194,7 +194,7 @@ public:
     void DecRefWeak(uint index)
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
-            IDCreatorType::template ForType<T>().FreeID(index + 1);
+            m_id_generator.FreeID(index + 1);
         }
     }
 
@@ -239,6 +239,7 @@ private:
     HeapArray<Name, max_size>       m_debug_names;
 #endif
     SizeType                        m_size;
+    IDCreatorType                   m_id_generator;
 };
 
 template <class T, PlatformType PLATFORM>

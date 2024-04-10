@@ -3,6 +3,8 @@
 
 #include <core/lib/RefCountedPtr.hpp>
 
+#include <util/Defines.hpp>
+
 #include <Types.hpp>
 
 using namespace hyperion;
@@ -23,11 +25,11 @@ struct ManagedWeakRefCountedPtr
 
 static_assert(sizeof(ManagedWeakRefCountedPtr) == sizeof(Weak<void>), "ManagedWeakRefCountedPtr size mismatch");
 
-extern HYP_EXPORT void RefCountedPtr_IncRef(ManagedRefCountedPtr);
-extern HYP_EXPORT void RefCountedPtr_DecRef(ManagedRefCountedPtr);
+extern HYP_API void RefCountedPtr_IncRef(ManagedRefCountedPtr);
+extern HYP_API void RefCountedPtr_DecRef(ManagedRefCountedPtr);
 
-extern HYP_EXPORT void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr);
-extern HYP_EXPORT void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
+extern HYP_API void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr);
+extern HYP_API void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
 } // extern "C"
 
 template <class T>

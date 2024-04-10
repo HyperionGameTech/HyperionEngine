@@ -18,7 +18,7 @@ using renderer::Frame;
 
 class Entity;
 
-class BLAS : public BasicObject<STUB_CLASS(BLAS)>
+class HYP_API BLAS : public BasicObject<STUB_CLASS(BLAS)>
 {
 public:
     BLAS(
@@ -27,21 +27,26 @@ public:
         Handle<Material> material,
         const Transform &transform
     );
-    BLAS(const BLAS &other) = delete;
-    BLAS &operator=(const BLAS &other) = delete;
+    BLAS(const BLAS &other)             = delete;
+    BLAS &operator=(const BLAS &other)  = delete;
     ~BLAS();
     
-    const BLASRef &GetInternalBLAS() const { return m_blas; }
+    const BLASRef &GetInternalBLAS() const
+        { return m_blas; }
     
-    Handle<Mesh> &GetMesh() { return m_mesh; }
-    const Handle<Mesh> &GetMesh() const { return m_mesh; }
-    void SetMesh(Handle<Mesh> mesh);
+    const Handle<Mesh> &GetMesh() const
+        { return m_mesh; }
 
-    Handle<Material> &GetMaterial() { return m_material; }
-    const Handle<Material> &GetMaterial() const { return m_material; }
+    void SetMesh(Handle<Mesh> mesh);
+    
+    const Handle<Material> &GetMaterial() const
+        { return m_material; }
+
     void SetMaterial(Handle<Material> material);
 
-    const Transform &GetTransform() const { return m_transform; }
+    const Transform &GetTransform() const
+        { return m_transform; }
+
     void SetTransform(const Transform &transform);
 
     void Init();

@@ -25,11 +25,6 @@ AssetManager::AssetManager()
     RegisterDefaultLoaders();
 }
 
-ObjectPool &AssetManager::GetObjectPool()
-{
-    return g_engine->GetObjectPool();
-}
-
 void AssetManager::RegisterDefaultLoaders()
 {
     SetBasePath(FilePath::Join(HYP_ROOT_DIR, "res"));

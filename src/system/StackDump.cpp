@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-Array<String> StackDump::CreateStackTrace(uint depth)
+static Array<String> CreatePlatformStackTrace(uint depth)
 {
     Array<String> stack_trace;
     stack_trace.Reserve(depth);
@@ -93,6 +93,11 @@ Array<String> StackDump::CreateStackTrace(uint depth)
 #endif
 
     return stack_trace;
+}
+
+HYP_API StackDump::StackDump(uint depth)
+    : m_trace(CreatePlatformStackTrace(depth))
+{
 }
 
 } // namespace hyperion

@@ -3,7 +3,7 @@
 
 namespace hyperion {
 
-void InitializeApplication(RC<Application> application)
+HYP_API void InitializeApplication(RC<Application> application)
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
@@ -23,7 +23,7 @@ void InitializeApplication(RC<Application> application)
     dotnet::DotNetSystem::GetInstance().Initialize();
 }
 
-void ShutdownApplication()
+HYP_API void ShutdownApplication()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 

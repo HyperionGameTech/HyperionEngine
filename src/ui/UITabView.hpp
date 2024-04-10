@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 
 class UIText;
 
-class UITab : public UIPanel
+class HYP_API UITab : public UIPanel
 {
 public:
     UITab(ID<Entity> entity, UIScene *ui_scene);
@@ -35,7 +35,7 @@ private:
 
 // UITabView
 
-class UITabView : public UIPanel
+class HYP_API UITabView : public UIPanel
 {
 public:
     UITabView(ID<Entity> entity, UIScene *ui_scene);

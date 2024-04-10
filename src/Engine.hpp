@@ -55,11 +55,11 @@ class Framebuffer;
 class Game;
 class GameThread;
 
-extern Engine               *g_engine;
-extern AssetManager         *g_asset_manager;
-extern ShaderManagerSystem  *g_shader_manager;
-extern MaterialCache        *g_material_system;
-extern SafeDeleter          *g_safe_deleter;
+HYP_API extern Engine               *g_engine;
+HYP_API extern AssetManager         *g_asset_manager;
+HYP_API extern ShaderManagerSystem  *g_shader_manager;
+HYP_API extern MaterialCache        *g_material_system;
+HYP_API extern SafeDeleter          *g_safe_deleter;
 
 struct DebugMarker
 {
@@ -130,13 +130,12 @@ class Engine
 #endif
 
 public:
-    HYP_FORCE_INLINE static Engine *Get()
+    HYP_FORCE_INLINE HYP_API
+    static Engine *Get()
         { return g_engine; }
 
     Engine();
     ~Engine();
-
-    bool InitializeGame(Game *game);
 
     const RC<Application> &GetApplication() const
         { return m_application; }
@@ -259,14 +258,10 @@ public:
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
-    void Initialize(RC<Application> application);
-    void Compile();
-    void RequestStop();
-
-    void PreFrameUpdate(Frame *frame);
-    void RenderDeferred(Frame *frame);
-
-    void RenderNextFrame(Game *game);
+    HYP_API void Initialize(RC<Application> application);
+    HYP_API bool InitializeGame(Game *game);
+    HYP_API void RenderNextFrame(Game *game);
+    HYP_API void RequestStop();
 
     ShaderCompiler m_shader_compiler;
 
@@ -321,8 +316,12 @@ public:
     void FinalizeStop();
 
 private:
+    void Compile();
     void ResetRenderState(RenderStateMask mask);
     void UpdateBuffersAndDescriptors(Frame *frame);
+
+    void PreFrameUpdate(Frame *frame);
+    void RenderDeferred(Frame *frame);
 
     void FindTextureFormatDefaults();
 

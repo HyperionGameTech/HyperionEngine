@@ -69,7 +69,7 @@ struct TypeIDNameMapDefinition
 
 struct TypeIDGeneratorBase
 {
-    static TypeIDNameMap name_map;
+    static HYP_API TypeIDNameMap name_map;
 
     static inline std::atomic<uint> counter { 0u };
 };
@@ -89,7 +89,7 @@ private:
     ValueType value;
 
 public:
-    static const TypeID void_type_id;
+    static HYP_API const TypeID void_type_id;
 
     template <class T>
     static TypeID ForType()
@@ -99,17 +99,9 @@ public:
 
     constexpr TypeID() : value { } { }
     constexpr TypeID(ValueType id) : value(id) {}
-    constexpr TypeID(const TypeID &other)
-        : value(other.value)
-    {
-    }
 
-    TypeID &operator=(const TypeID &other)
-    {
-        value = other.value;
-
-        return *this;
-    }
+    constexpr TypeID(const TypeID &other)   = default;
+    TypeID &operator=(const TypeID &other)  = default;
 
     constexpr TypeID(TypeID &&other) noexcept
         : value(other.value)

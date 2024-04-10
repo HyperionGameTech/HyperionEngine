@@ -42,12 +42,12 @@ bool ThreadID::IsDynamic() const
     return THREAD_DYNAMIC & value;
 }
 
-void SetCurrentThreadID(const ThreadID &thread_id)
+HYP_API void SetCurrentThreadID(const ThreadID &thread_id)
 {
     Threads::SetCurrentThreadID(thread_id);
 }
 
-void SetCurrentThreadPriority(ThreadPriorityValue priority)
+HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
 {
     Threads::SetCurrentThreadPriority(priority);
 }

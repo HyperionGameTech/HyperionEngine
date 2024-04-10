@@ -28,11 +28,9 @@ class ObjectPool;
 template <class T>
 struct Handle;
 
-Engine *GetEngine();
-
-renderer::Device *GetEngineDevice();
-
-ObjectPool &GetObjectPool();
+HYP_API Engine *GetEngine();
+HYP_API renderer::Device *GetEngineDevice();
+HYP_API ObjectPool &GetObjectPool();
 
 template <class T, class EngineImpl>
 static HYP_FORCE_INLINE bool InitObjectIntern(EngineImpl *engine, Handle<T> &handle)

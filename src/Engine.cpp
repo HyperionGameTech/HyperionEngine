@@ -31,11 +31,11 @@ using renderer::GPUBuffer;
 using renderer::UniformBuffer;
 using renderer::StorageBuffer;
 
-Engine              *g_engine = nullptr;
-AssetManager        *g_asset_manager = nullptr;
-ShaderManagerSystem *g_shader_manager = nullptr;
-MaterialCache       *g_material_system = nullptr;
-SafeDeleter         *g_safe_deleter = nullptr;
+HYP_API Engine              *g_engine = nullptr;
+HYP_API AssetManager        *g_asset_manager = nullptr;
+HYP_API ShaderManagerSystem *g_shader_manager = nullptr;
+HYP_API MaterialCache       *g_material_system = nullptr;
+HYP_API SafeDeleter         *g_safe_deleter = nullptr;
 
 #pragma region Render commands
 
@@ -50,7 +50,9 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(CopyBackbufferToCPU)() override = default;
+
+    virtual Result operator()() override
     {
         AssertThrow(image.IsValid());
         AssertThrow(buffer.IsValid());
@@ -61,7 +63,6 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 };
 
 #pragma endregion
-
 
 Engine::Engine()
     : m_placeholder_data(new PlaceholderData()),
@@ -74,7 +75,7 @@ Engine::~Engine()
     AssertThrowMsg(m_instance == nullptr, "Engine instance must be destroyed before Engine object is destroyed");
 }
 
-bool Engine::InitializeGame(Game *game)
+HYP_API bool Engine::InitializeGame(Game *game)
 {
     AssertThrow(game != nullptr);
     AssertThrowMsg(game_thread == nullptr || !game_thread->IsRunning(), "Game thread already running; cannot initialize game instance");
@@ -137,8 +138,7 @@ void Engine::FindTextureFormatDefaults()
     );
 }
 
-
-void Engine::Initialize(RC<Application> application)
+HYP_API void Engine::Initialize(RC<Application> application)
 {
     m_application = application;
 
@@ -414,11 +414,7 @@ void Engine::FinalizeStop()
         g_safe_deleter->ForceReleaseAll();
 
         // delete all render objects
-        // TEMP Hack: deletion of render objects may cause other render objects to be enqueued
-        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
-        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
-        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
-        RenderObjectDeleter<renderer::Platform::CURRENT>::ForceDeleteAll();
+        // @FIXME: Need to delete objects until all enqueued are deleted, deletign some objects may cause others to be enqueued for deletion
     }
 
     m_render_group_mapping.Clear();
@@ -427,7 +423,7 @@ void Engine::FinalizeStop()
     m_instance->Destroy();
 }
 
-void Engine::RenderNextFrame(Game *game)
+HYP_API void Engine::RenderNextFrame(Game *game)
 {
     // if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
     //     FinalizeStop();

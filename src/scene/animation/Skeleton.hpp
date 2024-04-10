@@ -28,11 +28,11 @@ struct SkeletonBoneData
     {
     }
 
-    SkeletonBoneData(const SkeletonBoneData &other) = default;
-    SkeletonBoneData &operator=(const SkeletonBoneData &other) = default;
-    SkeletonBoneData(SkeletonBoneData &&other) noexcept = default;
-    SkeletonBoneData &operator=(SkeletonBoneData &&other) noexcept = default;
-    ~SkeletonBoneData() = default;
+    SkeletonBoneData(const SkeletonBoneData &other)                 = default;
+    SkeletonBoneData &operator=(const SkeletonBoneData &other)      = default;
+    SkeletonBoneData(SkeletonBoneData &&other) noexcept             = default;
+    SkeletonBoneData &operator=(SkeletonBoneData &&other) noexcept  = default;
+    ~SkeletonBoneData()                                             = default;
 
     void SetMatrix(uint index, const Matrix4 &matrix)
     {
@@ -49,7 +49,7 @@ struct SkeletonBoneData
     }
 };
 
-class Skeleton
+class HYP_API Skeleton
     : public BasicObject<STUB_CLASS(Skeleton)>
 {
 public:

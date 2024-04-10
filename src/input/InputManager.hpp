@@ -84,10 +84,14 @@ struct InputState
 class InputManager
 {
 public:
-    InputManager();
-    ~InputManager();
+    HYP_API InputManager();
+    InputManager(const InputManager &other)                 = delete;
+    InputManager &operator=(const InputManager &other)      = delete;
+    InputManager(InputManager &&other) noexcept             = delete;
+    InputManager &operator=(InputManager &&other) noexcept  = delete;
+    HYP_API ~InputManager();
 
-    void CheckEvent(SystemEvent *event);
+    HYP_API void CheckEvent(SystemEvent *event);
 
     const Scalar2D<true> &GetMousePosition() const
         { return m_mouse_position; }
@@ -98,7 +102,7 @@ public:
     const Scalar2D<true> &GetWindowSize() const
         { return m_window_size; }
 
-    void SetMousePosition(int x, int y);
+    HYP_API void SetMousePosition(int x, int y);
 
     void KeyDown(int key)
         { SetKey(key, true); }
@@ -112,13 +116,14 @@ public:
     void MouseButtonUp(int btn)
         { SetMouseButton(btn, false); }
 
-    void UpdateMousePosition();
-    void UpdateWindowSize();
+    HYP_API void UpdateMousePosition();
+    HYP_API void UpdateWindowSize();
 
-    bool IsKeyDown(int key) const;
+    HYP_API bool IsKeyStateChanged(int key, bool *previous_key_state);
+    HYP_API bool IsKeyDown(int key) const;
     bool IsKeyUp(int key) const { return !IsKeyDown(key); }
-    bool IsKeyStateChanged(int key, bool *previous_key_state);
-    bool IsButtonDown(int btn) const;  
+
+    HYP_API bool IsButtonDown(int btn) const;  
     bool IsButtonUp(int btn) const { return !IsButtonDown(btn); }
 
     ApplicationWindow *GetWindow() const
@@ -134,8 +139,8 @@ private:
 
     ApplicationWindow   *m_window;
 
-    void SetKey(int key, bool pressed);
-    void SetMouseButton(int btn, bool pressed);
+    HYP_API void SetKey(int key, bool pressed);
+    HYP_API void SetMouseButton(int btn, bool pressed);
 };
 
 } // namespace hyperion

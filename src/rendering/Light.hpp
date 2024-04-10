@@ -20,7 +20,7 @@ class Camera;
 
 struct RenderCommand_UpdateLightShaderData;
 
-class Light
+class HYP_API Light
     : public BasicObject<STUB_CLASS(Light)>,
       public HasDrawProxy<STUB_CLASS(Light)>
 {
@@ -337,7 +337,7 @@ private:
     Bitset                  m_visibility_bits;
 };
 
-class DirectionalLight : public Light
+class HYP_API DirectionalLight : public Light
 {
 public:
     static constexpr float default_intensity = 10.0f;
@@ -363,7 +363,7 @@ public:
         { SetPosition(direction); }
 };
 
-class PointLight : public Light
+class HYP_API PointLight : public Light
 {
 public:
     static constexpr float default_intensity = 5.0f;
@@ -385,7 +385,7 @@ public:
     }
 };
 
-class SpotLight : public Light
+class HYP_API SpotLight : public Light
 {
 public:
     static constexpr float default_intensity = 5.0f;
@@ -420,7 +420,7 @@ public:
         { SetNormal(direction); }
 };
 
-class RectangleLight : public Light
+class HYP_API RectangleLight : public Light
 {
 public:
     RectangleLight(

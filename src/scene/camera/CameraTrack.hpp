@@ -17,15 +17,15 @@ struct CameraTrackPivot
         { return fraction < other.fraction; }
 };
 
-class CameraTrack
+class HYP_API CameraTrack
 {
 public:
     CameraTrack(double duration = 10.0);
-    CameraTrack(const CameraTrack &other) = default;
-    CameraTrack &operator=(const CameraTrack &other) = default;
-    CameraTrack(CameraTrack &&other) noexcept = default;
-    CameraTrack &operator=(CameraTrack &&other) noexcept = default;
-    ~CameraTrack() = default;
+    CameraTrack(const CameraTrack &other)                   = default;
+    CameraTrack &operator=(const CameraTrack &other)        = default;
+    CameraTrack(CameraTrack &&other) noexcept               = default;
+    CameraTrack &operator=(CameraTrack &&other) noexcept    = default;
+    ~CameraTrack()                                          = default;
 
     double GetDuration() const
         { return m_duration; }

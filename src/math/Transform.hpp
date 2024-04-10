@@ -7,7 +7,7 @@
 #include "Matrix4.hpp"
 
 namespace hyperion {
-class Transform
+class HYP_API Transform
 {
 public:
     static const Transform identity;

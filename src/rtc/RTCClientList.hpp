@@ -12,18 +12,18 @@ namespace hyperion::v2 {
 
 class RTCClient;
 
-class RTCClientList
+class HYP_API RTCClientList
 {
 public:
     using Iterator = typename FlatMap<String, RC<RTCClient>>::Iterator;
     using ConstIterator = typename FlatMap<String, RC<RTCClient>>::ConstIterator;
 
-    RTCClientList() = default;
-    RTCClientList(const RTCClientList &other) = delete;
-    RTCClientList &operator=(const RTCClientList &other) = delete;
-    RTCClientList(RTCClientList &&other) noexcept = delete;
-    RTCClientList &operator=(RTCClientList &&other) noexcept = delete;
-    ~RTCClientList() = default;
+    RTCClientList()                                             = default;
+    RTCClientList(const RTCClientList &other)                   = delete;
+    RTCClientList &operator=(const RTCClientList &other)        = delete;
+    RTCClientList(RTCClientList &&other) noexcept               = delete;
+    RTCClientList &operator=(RTCClientList &&other) noexcept    = delete;
+    ~RTCClientList()                                            = default;
 
     void Add(const String &id, RC<RTCClient> client);
     void Remove(String id);

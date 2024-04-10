@@ -5,7 +5,7 @@
 
 namespace hyperion::v2::physics {
 
-class NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
+class HYP_API NullPhysicsAdapter : public PhysicsAdapter<NullPhysicsAdapter>
 {
 public:
     NullPhysicsAdapter();
