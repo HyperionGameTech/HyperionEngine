@@ -28,8 +28,6 @@ static ANSIString GenerateUUID()
     return uuid;
 }
 
-HYP_API const Name Name::invalid = Name(0);
-
 NameRegistry *Name::GetRegistry()
 {
     static NameRegistry registry;

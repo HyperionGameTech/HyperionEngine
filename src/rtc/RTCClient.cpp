@@ -167,7 +167,7 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
 {
     AssertThrow(m_peer_connection != nullptr);
 
-    if (name == Name::invalid) {
+    if (name == Name::Invalid()) {
         name = CreateNameFromDynamicString(ANSIString("dc_") + ANSIString::ToString(m_data_channels.Size()));
     }
 

@@ -125,7 +125,7 @@ public:
 
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    T *GetRenderComponent(Name name = Name::invalid)
+    T *GetRenderComponent(Name name = Name::Invalid())
     {
         Threads::AssertOnThread(THREAD_RENDER);
 
@@ -185,10 +185,10 @@ public:
     }
 
     /*! \brief Remove a RenderComponent of the given type T and the given name value.
-     *  If the name value is Name::invalid, then all items of the type T are removed.
+     *  If the name value is Name::Invalid(), then all items of the type T are removed.
      */
     template <class T>
-    void RemoveRenderComponent(Name name = Name::invalid)
+    void RemoveRenderComponent(Name name = Name::Invalid())
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");

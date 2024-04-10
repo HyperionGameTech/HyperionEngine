@@ -135,7 +135,7 @@ struct DescriptorDeclaration
 struct DescriptorSetDeclaration
 {
     uint                                                            set_index = ~0u;
-    Name                                                            name = Name::invalid;
+    Name                                                            name = Name::Invalid();
     FixedArray<Array<DescriptorDeclaration>, DESCRIPTOR_SLOT_MAX>   slots = { };
 
     // is this a reference to a global descriptor set declaration?

@@ -81,7 +81,7 @@ public:
     }
 
     BasicObject(const InitInfo &init_info)
-        : BasicObject(Name::invalid, init_info)
+        : BasicObject(Name::Invalid(), init_info)
     {
     }
 

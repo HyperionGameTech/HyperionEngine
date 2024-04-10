@@ -32,19 +32,6 @@ void OctreeState::MarkOctantDirty(OctantID octant_id)
         rebuild_state = rebuild_state.GetParent();
     }
 
-    // DebugLog(
-    //     LogType::Debug,
-    //     "Mark octant dirty: (%llu, %u)\tPrev: (%llu, %u)\tNow: (%llu, %u)\n",
-    //     octant_id.GetIndex(),
-    //     octant_id.GetDepth(),
-
-    //     prev_state.GetIndex(),
-    //     prev_state.GetDepth(),
-
-    //     rebuild_state.GetIndex(),
-    //     rebuild_state.GetDepth()
-    // );
-
     // should always end up at root if it doesnt match any
     AssertThrow(rebuild_state != OctantID::invalid);
 }

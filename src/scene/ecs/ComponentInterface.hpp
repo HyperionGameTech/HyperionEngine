@@ -36,7 +36,7 @@ public:
     using Setter = std::add_pointer_t<void (void *component, Value &&value)>;
 
     ComponentProperty()
-        : m_name(Name::invalid),
+        : m_name(Name::Invalid()),
           m_flags(COMPONENT_PROPERTY_FLAG_NONE),
           m_getter(nullptr),
           m_setter(nullptr)

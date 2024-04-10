@@ -92,7 +92,7 @@ public:
     const RTCClientCallbacks &GetCallbacks() const
         { return m_callbacks; }
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) = 0;
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) = 0;
     Optional<RC<RTCDataChannel>> GetDataChannel(Name name) const;
 
     virtual void Connect() = 0;
@@ -126,7 +126,7 @@ public:
     virtual void Connect() override;
     virtual void Disconnect() override;
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) override;
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
 
     virtual void SetRemoteDescription(const String &type, const String &sdp) override;
 };
@@ -145,7 +145,7 @@ public:
     LibDataChannelRTCClient &operator=(LibDataChannelRTCClient &&other) noexcept = delete;
     virtual ~LibDataChannelRTCClient() override = default;
 
-    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) override;
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::Invalid()) override;
 
     virtual void Connect() override;
     virtual void Disconnect() override;

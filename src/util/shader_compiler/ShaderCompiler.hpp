@@ -598,7 +598,7 @@ struct DescriptorUsage
 
     DescriptorUsage()
         : slot(renderer::DESCRIPTOR_SLOT_NONE),
-          set_name(Name::invalid),
+          set_name(Name::Invalid()),
           flags(DESCRIPTOR_USAGE_FLAG_NONE)
     {
     }

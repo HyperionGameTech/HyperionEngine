@@ -77,7 +77,7 @@ class AssetManager
 public:
     using ProcessAssetFunctorFactory = std::add_pointer_t<UniquePtr<ProcessAssetFunctorBase>(const String & /* key */, const String & /* path */, AssetBatchCallbacks * /* callbacks */)>;
 
-    static const bool asset_cache_enabled;
+    static constexpr bool asset_cache_enabled = false;
 
     HYP_API AssetManager();
     AssetManager(const AssetManager &other)                 = delete;

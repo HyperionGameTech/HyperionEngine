@@ -17,12 +17,8 @@ class NameRegistry;
 
 using NameID = uint64;
 
-struct HYP_API Name
+struct Name
 {
-    static const Name invalid;
-
-    static NameRegistry *GetRegistry();
-
     NameID hash_code;
     
     constexpr Name()
@@ -73,10 +69,17 @@ struct HYP_API Name
     constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
 
-    const char *LookupString() const;
+    HYP_API const char *LookupString() const;
 
-    static Name Unique();
-    static Name Unique(const char *prefix);
+    HYP_API static NameRegistry *GetRegistry();
+
+    HYP_API static Name Unique();
+    HYP_API static Name Unique(const char *prefix);
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static constexpr Name Invalid()
+        { return Name { 0 }; };
 };
 
 template <auto StaticStringType>

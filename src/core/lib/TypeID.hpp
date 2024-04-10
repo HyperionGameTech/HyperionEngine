@@ -192,7 +192,6 @@ struct TypeIDGenerator<void> : TypeIDGeneratorBase
     static const TypeID &GetID()
     {
         static const TypeID id = TypeID { 0u };
-        // static const TypeIDNameMapDefinition def(TypeIDGeneratorBase::name_map, id.Value(), Name::invalid);
 
         return id;
     }
