@@ -267,7 +267,7 @@ Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
 BoundingBox Light::GetAABB() const
 {
     if (m_type == LightType::DIRECTIONAL) {
-        return BoundingBox::infinity;
+        return BoundingBox::Infinity();
     }
 
     if (m_type == LightType::AREA_RECT) {
@@ -285,7 +285,7 @@ BoundingBox Light::GetAABB() const
         return BoundingBox(GetBoundingSphere());
     }
 
-    return BoundingBox::empty;
+    return BoundingBox::Empty();
 }
 
 BoundingSphere Light::GetBoundingSphere() const

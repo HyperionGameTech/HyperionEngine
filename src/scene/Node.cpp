@@ -86,8 +86,8 @@ Node::Node(Node &&other) noexcept
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
-    other.m_local_aabb = BoundingBox::empty;
-    other.m_world_aabb = BoundingBox::empty;
+    other.m_local_aabb = BoundingBox::Empty();
+    other.m_world_aabb = BoundingBox::Empty();
     other.m_scene = nullptr;
     other.m_transform_locked = false;
 
@@ -136,10 +136,10 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_world_transform = Transform::identity;
 
     m_local_aabb = other.m_local_aabb;
-    other.m_local_aabb = BoundingBox::empty;
+    other.m_local_aabb = BoundingBox::Empty();
 
     m_world_aabb = other.m_world_aabb;
-    other.m_world_aabb = BoundingBox::empty;
+    other.m_world_aabb = BoundingBox::Empty();
 
     m_scene = other.m_scene;
     other.m_scene = nullptr;
@@ -524,7 +524,7 @@ void Node::SetEntity(ID<Entity> entity)
         if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
             m_local_aabb = bounding_box_component->local_aabb;
         } else {
-            m_local_aabb = BoundingBox::empty;
+            m_local_aabb = BoundingBox::Empty();
         }
 
         RefreshEntityTransform();
@@ -542,7 +542,7 @@ void Node::SetEntity(ID<Entity> entity)
             });
         }
     } else {
-        m_local_aabb = BoundingBox::empty;
+        m_local_aabb = BoundingBox::Empty();
 
         m_entity = ID<Entity>::invalid;
 
@@ -631,13 +631,13 @@ uint Node::CalculateDepth() const
 
 void Node::RefreshEntityTransform()
 {
-    m_local_aabb = BoundingBox::empty;
+    m_local_aabb = BoundingBox::Empty();
 
     if (m_entity.IsValid()) {
         if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
             m_local_aabb = bounding_box_component->local_aabb;
         } else {
-            m_local_aabb = BoundingBox::empty;
+            m_local_aabb = BoundingBox::Empty();
         }
 
         if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {

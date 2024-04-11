@@ -80,7 +80,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto result = Result::OK;
+        Result result;
 
         // empty
 
@@ -495,7 +495,7 @@ void EnvProbe::Render(Frame *frame)
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 
-    auto result = renderer::Result::OK;
+    auto result = renderer::Result { };
 
     EnvProbeIndex probe_index;
 
@@ -685,7 +685,7 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
                 {
                     env_probe.UpdateRenderData(set_texture);
 
-                    return Result::OK;
+                    return Result { };
                 }
             };
 

@@ -107,7 +107,7 @@ struct RENDER_COMMAND(DestroyParticleSystem) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto result = Result::OK;
+        Result result;
 
         if (spawners->HasUpdatesPending()) {
             spawners->UpdateItems();

@@ -332,7 +332,7 @@ Result Image<Platform::VULKAN>::Create(UniquePtr<GPUImageMemory<Platform::VULKAN
 
     m_image = std::move(gpu_image_memory);
 
-    return Result::OK;
+    return Result { };
 }
 
 Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
@@ -344,7 +344,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
 Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance, ResourceState state)
 {
-    auto result = Result::OK;
+    Result result;
 
     VkImageCreateInfo image_info;
 
@@ -484,7 +484,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
 
 Result Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     if (m_image != nullptr) {
         HYPERION_PASS_ERRORS(m_image->Destroy(device), result);
@@ -861,7 +861,7 @@ ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, I
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     auto commands = instance->GetSingleTimeCommands();
-    Result result = Result::OK;
+    Result result = Result { };
 
     if (HasAssignedImageData()) {
         HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);

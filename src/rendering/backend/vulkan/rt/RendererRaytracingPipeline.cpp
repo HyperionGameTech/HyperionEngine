@@ -38,7 +38,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
 
     AssertThrow(m_shader_program != nullptr);
 
-    auto result = Result::OK;
+    Result result;
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -150,7 +150,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *d
 
     SafeRelease(std::move(m_descriptor_table));
 
-    auto result = Result::OK;
+    Result result;
 
     for (auto &it : m_shader_binding_table_buffers) {
         HYPERION_PASS_ERRORS(it.second.buffer->Destroy(device), result);
@@ -228,7 +228,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
         shader_handle_storage.Data()
     ));
 
-    auto result = Result::OK;
+    Result result;
 
     uint32 offset = 0;
 
@@ -311,7 +311,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
         return { Result::RENDERER_ERR, "Creating shader binding table entry with zero shader count" };
     }
 
-    auto result = Result::OK;
+    Result result;
 
     out.buffer.reset(new ShaderBindingTableBuffer<Platform::VULKAN>());
 

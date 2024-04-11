@@ -20,7 +20,7 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 
     virtual Result operator()()
     {
-        auto result = Result::OK;
+        Result result;
 
         for (auto &it : render_components) {
             for (auto &component_tag_pair : it.second) {

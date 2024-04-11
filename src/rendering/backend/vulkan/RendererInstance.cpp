@@ -291,7 +291,7 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 
 Result Instance<Platform::VULKAN>::Destroy()
 {
-    auto result = Result::OK;
+    Result result;
 
     /* Wait for the GPU to finish, we need to be in an idle state. */
     HYPERION_PASS_ERRORS(m_device->Wait(), result);

@@ -193,7 +193,7 @@ void SampleStreamer::InitGame()
     }
 
     // // Test freetype font rendering
-    auto font_face = g_asset_manager->Load<FontFace>("fonts/Roboto/Roboto-Regular.ttf");
+    auto font_face = AssetManager::GetInstance()->Load<FontFace>("fonts/Roboto/Roboto-Regular.ttf");
 
     RC<FontAtlas> atlas(new FontAtlas(font_face));
     atlas->Render();
@@ -233,7 +233,7 @@ void SampleStreamer::InitGame()
     ));
 
     /*auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-        .texture = g_asset_manager->Load<Texture>("textures/spark.png"),
+        .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png"),
         .max_particles = 1000,
         .origin = Vector3(0.0f, 0.0f, 0.0f),
         .start_size = 0.05f,
@@ -253,7 +253,7 @@ void SampleStreamer::InitGame()
     m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
     if (true) {
-        auto gun = g_asset_manager->Load<Node>("models/gun/AK47NoSubdiv.obj");
+        auto gun = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
 
         if (gun) {
             auto gun_parent = m_scene->GetRoot().AddChild();
@@ -268,13 +268,13 @@ void SampleStreamer::InitGame()
     }
 
     if (false) {
-        auto box = g_asset_manager->Load<Node>("models/cube.obj");
+        auto box = AssetManager::GetInstance()->Load<Node>("models/cube.obj");
 
         if (box) {
             m_scene->GetRoot().AddChild(box);
 
             MeshComponent &mesh_component = m_scene->GetEntityManager()->GetComponent<MeshComponent>(box[0].GetEntity());
-            mesh_component.material = g_material_system->GetOrCreate({
+            mesh_component.material = MaterialCache::GetInstance()->GetOrCreate({
                .shader_definition = ShaderDefinition {
                    HYP_NAME(Forward),
                    ShaderProperties(static_mesh_vertex_attributes)
@@ -296,7 +296,7 @@ void SampleStreamer::InitGame()
         auto cube = MeshBuilder::Cube();
         InitObject(cube);
 
-        auto material = g_material_system->GetOrCreate(
+        auto material = MaterialCache::GetInstance()->GetOrCreate(
             {
                 .shader_definition = ShaderDefinition {
                     HYP_NAME(Forward),
@@ -347,7 +347,7 @@ void SampleStreamer::InitGame()
 
         m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
             cube,
-            g_material_system->GetOrCreate(
+            MaterialCache::GetInstance()->GetOrCreate(
                 {
                     .shader_definition = ShaderDefinition {
                         HYP_NAME(Forward),
@@ -377,7 +377,7 @@ void SampleStreamer::InitGame()
         // MeshComponent
         m_scene->GetEntityManager()->AddComponent(terrain_entity, MeshComponent {
             Handle<Mesh> { },
-            g_material_system->GetOrCreate({
+            MaterialCache::GetInstance()->GetOrCreate({
                 .shader_definition = ShaderDefinition {
                     HYP_NAME(Terrain),
                     ShaderProperties(static_mesh_vertex_attributes)
@@ -493,7 +493,7 @@ void SampleStreamer::InitGame()
             1.0f
         ));
 
-        light->SetMaterial(g_material_system->GetOrCreate(
+        light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
             {
                .shader_definition = ShaderDefinition {
                     HYP_NAME(Forward),
@@ -506,7 +506,7 @@ void SampleStreamer::InitGame()
             {
                 {
                     Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
-                    g_asset_manager->Load<Texture>("textures/dummy.jpg")
+                    AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
                 }
             }
         ));
@@ -553,7 +553,7 @@ void SampleStreamer::InitGame()
 
     // add sample model
     {
-        auto batch = g_asset_manager->CreateBatch();
+        auto batch = AssetManager::GetInstance()->CreateBatch();
         batch->Add("test_model", "models/pica_pica/pica_pica.obj");////living_room/living_room.obj");//
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
@@ -574,7 +574,7 @@ void SampleStreamer::InitGame()
 
             m_scene->GetEntityManager()->AddComponent(plane_entity, MeshComponent {
                 mesh,
-                g_material_system->GetOrCreate(
+                MaterialCache::GetInstance()->GetOrCreate(
                     {
                         .shader_definition = ShaderDefinition {
                             HYP_NAME(Forward),
@@ -591,7 +591,7 @@ void SampleStreamer::InitGame()
                     {
                         {
                             Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
-                            g_asset_manager->Load<Texture>("textures/dummy.jpg")
+                            AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
                         }
                     }
                 )
@@ -630,7 +630,7 @@ void SampleStreamer::InitGame()
                 }
 
                 m_scene->GetEntityManager()->AddComponent(zombie_entity, AudioComponent {
-                    g_asset_manager->Load<AudioSource>("sounds/cartoon001.wav"),
+                    AssetManager::GetInstance()->Load<AudioSource>("sounds/cartoon001.wav"),
                     {
                         .status = AUDIO_PLAYBACK_STATUS_PLAYING,
                         .loop_mode = AUDIO_LOOP_MODE_REPEAT,
@@ -1240,7 +1240,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 
             m_scene->GetEntityManager()->AddComponent(bullet_entity, MeshComponent {
                 MeshBuilder::NormalizedCubeSphere(4),
-                g_material_system->GetOrCreate({
+                MaterialCache::GetInstance()->GetOrCreate({
                     .shader_definition = ShaderDefinition {
                         HYP_NAME(Forward),
                         ShaderProperties(static_mesh_vertex_attributes)
@@ -1404,7 +1404,7 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
                     m_screen_buffer.SetSize(gpu_buffer_ref->size);
                 }
 
-                gpu_buffer_ref->Read(g_engine->GetGPUDevice(), m_screen_buffer.Size(), m_screen_buffer.Data());
+                gpu_buffer_ref->Read(Engine::GetInstance()->GetGPUDevice(), m_screen_buffer.Size(), m_screen_buffer.Data());
             }
 
             m_rtc_stream->GetEncoder()->PushData(std::move(m_screen_buffer));

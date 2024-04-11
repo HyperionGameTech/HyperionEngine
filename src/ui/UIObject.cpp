@@ -521,7 +521,7 @@ BoundingBox UIObject::GetWorldAABB() const
         return node->GetWorldAABB();
     }
 
-    return BoundingBox::empty;
+    return BoundingBox::Empty();
 }
 
 BoundingBox UIObject::GetLocalAABB() const
@@ -530,7 +530,7 @@ BoundingBox UIObject::GetLocalAABB() const
         return node->GetLocalAABB();
     }
 
-    return BoundingBox::empty;
+    return BoundingBox::Empty();
 }
 
 void UIObject::SetLocalAABB(const BoundingBox &aabb)

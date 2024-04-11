@@ -28,7 +28,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entit
     BoundingBox world_aabb = bounding_box_component.world_aabb;
 
     if (!world_aabb.IsFinite()) {
-        world_aabb = BoundingBox::empty;
+        world_aabb = BoundingBox::Empty();
     }
 
     if (!world_aabb.IsValid()) {

@@ -103,7 +103,7 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
     {
         indirect_renderer->Create();
 
-        return renderer::Result::OK;
+        return renderer::Result { };
     }
 };
 

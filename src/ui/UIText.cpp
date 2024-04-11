@@ -236,7 +236,7 @@ void UIText::UpdateMesh(bool update_material)
     } else {
         DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
 
-        UIObject::SetLocalAABB(BoundingBox::empty);
+        UIObject::SetLocalAABB(BoundingBox::Empty());
     }
 
     // Update bounding box, size

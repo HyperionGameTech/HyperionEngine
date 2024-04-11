@@ -57,7 +57,7 @@ Result FramebufferObject<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
 
 Result FramebufferObject<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     vkDestroyFramebuffer(device->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;

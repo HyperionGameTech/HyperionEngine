@@ -14,7 +14,7 @@ namespace hyperion::v2::physics {
 class HYP_API PhysicsWorldBase
 {
 public:
-    static const Vec3f earth_gravity;
+    static constexpr Vec3f earth_gravity = Vec3f { 0.0f, -9.81f, 0.0f };
 
     PhysicsWorldBase()                                          = default;
     PhysicsWorldBase(const PhysicsWorldBase &other)             = delete;

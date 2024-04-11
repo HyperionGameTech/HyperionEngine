@@ -11,9 +11,9 @@ void WorldAABBUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
     BoundingBoxComponent &bounding_box_component = entity_manager.GetComponent<BoundingBoxComponent>(entity);
     TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
 
-    bounding_box_component.world_aabb = BoundingBox::empty;
+    bounding_box_component.world_aabb = BoundingBox::Empty();
 
-    if (!bounding_box_component.local_aabb.Empty()) {
+    if (bounding_box_component.local_aabb.IsValid()) {
         for (const Vec3f &corner : bounding_box_component.local_aabb.GetCorners()) {
             bounding_box_component.world_aabb.Extend(transform_component.transform.GetMatrix() * corner);
         }
@@ -39,9 +39,9 @@ void WorldAABBUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (transform_hash_code != bounding_box_component.transform_hash_code) {
-            world_aabb = BoundingBox::empty;
+            world_aabb = BoundingBox::Empty();
 
-            if (!local_aabb.Empty()) {
+            if (local_aabb.IsValid()) {
                 for (const Vec3f &corner : local_aabb.GetCorners()) {
                     world_aabb.Extend(transform_component.transform.GetMatrix() * corner);
                 }

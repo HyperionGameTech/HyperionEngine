@@ -93,7 +93,7 @@ StagingBuffer *StagingBufferPool::FindStagingBuffer(SizeType size)
 
 Result StagingBufferPool::Use(Device *device, UseFunction &&fn)
 {
-    auto result = Result::OK;
+    Result result;
 
     Context context(this, device);
 
@@ -125,7 +125,7 @@ Result StagingBufferPool::GC(Device *device)
 
     DebugLog(LogType::Debug, "Clean up staging buffers from pool\n");
     
-    auto result = Result::OK;
+    Result result;
     SizeType num_destroyed = 0;
 
     for (auto it = m_staging_buffers.begin(); it != m_staging_buffers.end();) {
@@ -149,7 +149,7 @@ Result StagingBufferPool::GC(Device *device)
 
 Result StagingBufferPool::Destroy(Device *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     for (auto &record : m_staging_buffers) {
         HYPERION_PASS_ERRORS(record.buffer->Destroy(device), result);

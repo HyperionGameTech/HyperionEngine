@@ -69,9 +69,11 @@ struct TypeIDNameMapDefinition
 
 struct TypeIDGeneratorBase
 {
-    static HYP_API TypeIDNameMap name_map;
+    static TypeIDNameMap name_map;
 
     static inline std::atomic<uint> counter { 0u };
+
+    HYP_API static TypeIDNameMap &GetNameMap();
 };
 
 template <class T>
@@ -86,10 +88,10 @@ private:
         Note, do not rely on using this directly! This could easily
         change between implementations, or depending on the order of which
         TypeIDs are instantiated. */
-    ValueType value;
+    ValueType   value;
 
 public:
-    static HYP_API const TypeID void_type_id;
+    static const TypeID void_type_id;
 
     template <class T>
     static TypeID ForType()
@@ -162,7 +164,7 @@ public:
 
     HYP_FORCE_INLINE
     Name Name() const
-        { return TypeIDGeneratorBase::name_map.Get(value); }
+        { return TypeIDGeneratorBase::GetNameMap().Get(value); }
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
@@ -172,6 +174,8 @@ public:
 
         return hc;
     }
+
+    HYP_API static TypeID Void();
 };
 
 template <class T>
@@ -180,7 +184,7 @@ struct TypeIDGenerator : TypeIDGeneratorBase
     static const TypeID &GetID()
     {
         static const TypeID id = TypeID { ++TypeIDGeneratorBase::counter };
-        static const TypeIDNameMapDefinition def(TypeIDGeneratorBase::name_map, id.Value(), CreateNameFromStaticString_WithLock(HashedName<TypeName<T>()>()));
+        static const TypeIDNameMapDefinition def(GetNameMap(), id.Value(), CreateNameFromStaticString_WithLock(HashedName<TypeName<T>()>()));
 
         return id;
     }

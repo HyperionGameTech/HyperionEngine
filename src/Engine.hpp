@@ -55,11 +55,11 @@ class Framebuffer;
 class Game;
 class GameThread;
 
-HYP_API extern Engine               *g_engine;
-HYP_API extern AssetManager         *g_asset_manager;
-HYP_API extern ShaderManagerSystem  *g_shader_manager;
-HYP_API extern MaterialCache        *g_material_system;
-HYP_API extern SafeDeleter          *g_safe_deleter;
+extern Engine               *g_engine;
+extern AssetManager         *g_asset_manager;
+extern ShaderManagerSystem  *g_shader_manager;
+extern MaterialCache        *g_material_system;
+extern SafeDeleter          *g_safe_deleter;
 
 struct DebugMarker
 {
@@ -130,9 +130,7 @@ class Engine
 #endif
 
 public:
-    HYP_FORCE_INLINE HYP_API
-    static Engine *Get()
-        { return g_engine; }
+    HYP_API static Engine *GetInstance();
 
     Engine();
     ~Engine();

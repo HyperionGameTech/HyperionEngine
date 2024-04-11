@@ -7,7 +7,6 @@
 #include <Engine.hpp>
 #include <Types.hpp>
 
-
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
@@ -412,6 +411,8 @@ Handle<Material> Material::Clone() const
     return handle;
 }
 
+// MaterialGroup
+
 MaterialGroup::MaterialGroup()
     : BasicObject()
 {
@@ -454,6 +455,13 @@ bool MaterialGroup::Remove(const String &name)
     }
 
     return false;
+}
+
+// MaterialCache
+
+MaterialCache *MaterialCache::GetInstance()
+{
+    return g_material_system;
 }
 
 void MaterialCache::Add(const Handle<Material> &material)

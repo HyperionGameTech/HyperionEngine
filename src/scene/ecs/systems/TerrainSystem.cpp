@@ -402,7 +402,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                         patch_bounding_box_component->local_aabb = mesh->GetAABB();
 
                         if (patch_transform_component) {
-                            patch_bounding_box_component->world_aabb = BoundingBox::empty;
+                            patch_bounding_box_component->world_aabb = BoundingBox::Empty();
 
                             for (const Vec3f &corner : patch_bounding_box_component->local_aabb.GetCorners()) {
                                 patch_bounding_box_component->world_aabb.Extend(patch_transform_component->transform.GetMatrix() * corner);

@@ -318,7 +318,7 @@ Result Device<Platform::VULKAN>::DestroyAllocator()
 
 Result Device<Platform::VULKAN>::Wait() const
 {
-    Result result = Result::OK;
+    Result result = Result { };
 
     if (m_queue_graphics.queue != VK_NULL_HANDLE) {
         HYPERION_VK_PASS_ERRORS(vkQueueWaitIdle(m_queue_graphics.queue), result);

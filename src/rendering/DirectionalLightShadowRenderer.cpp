@@ -108,7 +108,7 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto result = Result::OK;
+        Result result;
 
         HYPERION_PASS_ERRORS(shadow_map_image->Destroy(g_engine->GetGPUDevice()), result);
         HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(g_engine->GetGPUDevice()), result);

@@ -40,7 +40,7 @@ struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto result = Result::OK;
+        Result result;
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)

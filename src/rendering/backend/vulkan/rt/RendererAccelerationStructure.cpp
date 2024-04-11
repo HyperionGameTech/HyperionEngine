@@ -105,7 +105,7 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
         AssertThrow(m_packed_indices[i] < m_packed_vertices.Size());
     }
 
-    Result result = Result::OK;
+    Result result = Result { };
 
     const SizeType packed_vertices_size = m_packed_vertices.Size() * sizeof(PackedVertex);
     const SizeType packed_indices_size = m_packed_indices.Size() * sizeof(PackedIndex);
@@ -198,7 +198,7 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
 template <>
 Result AccelerationGeometry<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     SafeRelease(std::move(m_packed_vertex_buffer));
     SafeRelease(std::move(m_packed_index_buffer));
@@ -273,7 +273,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
         return { Result::RENDERER_ERR, "Geometries empty" };
     }
 
-    auto result = Result::OK;
+    Result result;
     Device<Platform::VULKAN> *device = instance->GetDevice();
     
     if (m_buffer == nullptr) {
@@ -447,7 +447,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
 template <>
 Result AccelerationStructure<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     for (auto &geometry : m_geometries) {
         SafeRelease(std::move(geometry));
@@ -575,7 +575,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::Create(
 
     RTUpdateStateFlags update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    Result result = Result::OK;
+    Result result = Result { };
     
     HYPERION_PASS_ERRORS(
         CreateAccelerationStructure(
@@ -612,7 +612,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::Create(
 template <>
 Result TopLevelAccelerationStructure<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     SafeRelease(std::move(m_mesh_descriptions_buffer));
     SafeRelease(std::move(m_scratch_buffer));
@@ -817,7 +817,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescriptionsBu
 
     if (last <= first) {
         // nothing to update
-        return Result::OK;
+        return Result { };
     }
 
     Device<Platform::VULKAN> *device = instance->GetDevice();
@@ -856,7 +856,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescriptionsBu
         mesh_descriptions.Data()
     );
 
-    return Result::OK;
+    return Result { };
 }
 
 template <>
@@ -933,7 +933,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::Rebuild(Instance<Platfor
 {
     AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
 
-    auto result = Result::OK;
+    Result result;
 
     Device<Platform::VULKAN> *device = instance->GetDevice();
 
@@ -994,7 +994,7 @@ BottomLevelAccelerationStructure<Platform::VULKAN>::~BottomLevelAccelerationStru
 template <>
 Result BottomLevelAccelerationStructure<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance)
 {
-    auto result = Result::OK;
+    Result result;
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());
     std::vector<uint32> primitive_counts(m_geometries.Size());
@@ -1074,7 +1074,7 @@ Result BottomLevelAccelerationStructure<Platform::VULKAN>::UpdateStructure(Insta
 template <>
 Result BottomLevelAccelerationStructure<Platform::VULKAN>::Rebuild(Instance<Platform::VULKAN> *instance, RTUpdateStateFlags &out_update_state_flags)
 {
-    auto result = Result::OK;
+    Result result;
     Device<Platform::VULKAN> *device = instance->GetDevice();
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());

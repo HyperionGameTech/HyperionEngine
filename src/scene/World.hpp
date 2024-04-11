@@ -130,8 +130,8 @@ private:
     FlatSet<Handle<Scene>>              m_scenes_pending_addition;
     FlatSet<Handle<Scene>>              m_scenes_pending_removal;
 
-    std::atomic_bool                    m_has_scene_updates { false };
-    std::mutex                          m_scene_update_mutex;
+    AtomicVar<bool>                     m_has_scene_updates { false };
+    Mutex                               m_scene_update_mutex;
 };
 
 } // namespace hyperion::v2

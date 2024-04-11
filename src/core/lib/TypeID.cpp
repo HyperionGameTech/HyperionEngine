@@ -2,8 +2,22 @@
 
 namespace hyperion {
 
-HYP_API TypeIDNameMap TypeIDGeneratorBase::name_map = { };
-HYP_API const TypeID TypeID::void_type_id = { };
+// TypeIDGeneratorBase
+
+TypeIDNameMap TypeIDGeneratorBase::name_map = { };
+
+TypeIDNameMap &TypeIDGeneratorBase::GetNameMap()
+{
+    return name_map;
+}
+
+// TypeID
+const TypeID TypeID::void_type_id = { };
+
+TypeID TypeID::Void()
+{
+    return void_type_id;
+}
 
 TypeID TypeID::ForName(struct Name name)
 {

@@ -31,11 +31,11 @@ using renderer::GPUBuffer;
 using renderer::UniformBuffer;
 using renderer::StorageBuffer;
 
-HYP_API Engine              *g_engine = nullptr;
-HYP_API AssetManager        *g_asset_manager = nullptr;
-HYP_API ShaderManagerSystem *g_shader_manager = nullptr;
-HYP_API MaterialCache       *g_material_system = nullptr;
-HYP_API SafeDeleter         *g_safe_deleter = nullptr;
+Engine              *g_engine = nullptr;
+AssetManager        *g_asset_manager = nullptr;
+ShaderManagerSystem *g_shader_manager = nullptr;
+MaterialCache       *g_material_system = nullptr;
+SafeDeleter         *g_safe_deleter = nullptr;
 
 #pragma region Render commands
 
@@ -63,6 +63,11 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 };
 
 #pragma endregion
+
+Engine *Engine::GetInstance()
+{
+    return g_engine;
+}
 
 Engine::Engine()
     : m_placeholder_data(new PlaceholderData()),

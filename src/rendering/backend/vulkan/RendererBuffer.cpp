@@ -432,7 +432,7 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
 {
     const Features &features = device->GetFeatures();
 
-    auto result = Result::OK;
+    Result result;
 
     uint memory_type_index = UINT32_MAX;
 
@@ -720,7 +720,7 @@ Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     bool *out_size_changed
 )
 {
-    auto result = Result::OK;
+    Result result;
 
     if (minimum_size <= size) {
         if (out_size_changed != nullptr) {

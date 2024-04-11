@@ -107,7 +107,7 @@ Result RenderCommands::Flush()
     flushed_cv.notify_all();
 #endif
 
-    return Result::OK;
+    return Result { };
 }
 
 Result RenderCommands::FlushOrWait()

@@ -44,7 +44,7 @@ public:
     {
         HYPERION_BUBBLE_ERRORS(Begin(device));
 
-        auto result = Result::OK;
+        Result result;
 
         for (auto &fn : m_functions) {
             HYPERION_PASS_ERRORS(fn(command_buffer), result);
@@ -81,7 +81,7 @@ private:
 
     Result End(Device *device)
     {
-        auto result = Result::OK;
+        Result result;
 
         HYPERION_PASS_ERRORS(command_buffer->End(device), result);
 

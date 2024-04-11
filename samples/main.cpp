@@ -18,7 +18,7 @@ void HandleSignal(int signum)
 
     DebugLog(LogType::Debug, "%s\n", StackDump().ToString().Data());
 
-    if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    if (Engine::GetInstance()->m_stop_requested.Get(MemoryOrder::RELAXED)) {
         DebugLog(
             LogType::Warn,
             "Forcing stop\n"
@@ -31,10 +31,10 @@ void HandleSignal(int signum)
         return;
     }
 
-    g_engine->RequestStop();
+    Engine::GetInstance()->RequestStop();
 
     // Wait for the render loop to stop
-    while (g_engine->IsRenderLoopActive());
+    while (Engine::GetInstance()->IsRenderLoopActive());
 
     exit(signum);
 }
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
             if (*mode_str == "precompile_shaders") {
                 window_flags |= WINDOW_FLAGS_NO_GFX;
 
-                if (!g_engine->GetShaderCompiler().LoadShaderDefinitions(true)) {
+                if (!Engine::GetInstance()->GetShaderCompiler().LoadShaderDefinitions(true)) {
                     DebugLog(LogType::Error, "Shader precompilation failed!\n");
 
                     std::exit(1);
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     hyperion::InitializeApplication(application);
 
     auto my_game = SampleStreamer(application);
-    g_engine->InitializeGame(&my_game);
+    Engine::GetInstance()->InitializeGame(&my_game);
 
     SystemEvent event;
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
     // AssertThrow(server.Start());
 
-    while (g_engine->IsRenderLoopActive()) {
+    while (Engine::GetInstance()->IsRenderLoopActive()) {
         // input manager stuff
         while (application->PollEvent(event)) {
             my_game.HandleEvent(std::move(event));
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
             num_frames = 0;
         }
 
-        g_engine->RenderNextFrame(&my_game);
+        Engine::GetInstance()->RenderNextFrame(&my_game);
     }
 
     hyperion::ShutdownApplication();

@@ -315,7 +315,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
     elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
         message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
 
         # copy the dll to the build directory
         file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

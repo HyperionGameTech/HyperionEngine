@@ -75,6 +75,8 @@ private:
 class HYP_API ShaderManagerSystem
 {
 public:
+    static ShaderManagerSystem *GetInstance();
+
     Handle<Shader> GetOrCreate(
         const ShaderDefinition &definition
     );

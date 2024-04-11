@@ -179,7 +179,7 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
 Result RenderPass<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     vkDestroyRenderPass(device->GetDevice(), m_handle, nullptr);
     m_handle = nullptr;

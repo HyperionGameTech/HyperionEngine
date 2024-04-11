@@ -283,7 +283,7 @@ const BoundingBox &NodeProxy::GetLocalAABB() const
         return Get()->GetLocalAABB();
     }
 
-    return BoundingBox::empty;
+    return BoundingBox::Empty();
 }
 
 void NodeProxy::SetLocalAABB(const BoundingBox &aabb)
@@ -299,7 +299,7 @@ const BoundingBox &NodeProxy::GetWorldAABB() const
         return Get()->GetWorldAABB();
     }
 
-    return BoundingBox::empty;
+    return BoundingBox::Empty();
 }
 
 void NodeProxy::SetWorldAABB(const BoundingBox &aabb)

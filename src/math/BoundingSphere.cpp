@@ -57,7 +57,7 @@ BoundingSphere &BoundingSphere::operator=(BoundingSphere &&other) noexcept
 BoundingSphere::BoundingSphere(const BoundingBox &box)
     : BoundingSphere()
 {
-    if (!box.Empty()) {
+    if (box.IsValid()) {
         center = box.GetCenter();
         radius = box.GetRadius();
     }

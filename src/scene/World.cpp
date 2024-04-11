@@ -25,10 +25,9 @@ World::~World()
     
     m_scenes.Clear();
     
-    m_scene_update_mutex.lock();
+    Mutex::Guard guard(m_scene_update_mutex);
     m_scenes_pending_addition.Clear();
     m_scenes_pending_removal.Clear();
-    m_scene_update_mutex.unlock();
 
     m_physics_world.Teardown();
 }
@@ -39,7 +38,7 @@ void World::Init()
         return;
     }
 
-    if (m_has_scene_updates.load()) {
+    if (m_has_scene_updates.Get(MemoryOrder::RELAXED)) {
         PerformSceneUpdates();
     }
 
@@ -56,7 +55,7 @@ void World::Init()
 
 void World::PerformSceneUpdates()
 {
-    std::lock_guard guard(m_scene_update_mutex);
+    Mutex::Guard guard(m_scene_update_mutex);
 
     for (Handle<Scene> &scene : m_scenes_pending_removal) {
         if (!scene) {
@@ -92,7 +91,7 @@ void World::PerformSceneUpdates()
 
     m_scenes_pending_addition.Clear();
 
-    m_has_scene_updates.store(false);
+    m_has_scene_updates.Set(false, MemoryOrder::RELAXED);
 }
 
 void World::Update(GameCounter::TickUnit delta)
@@ -103,7 +102,7 @@ void World::Update(GameCounter::TickUnit delta)
 
     m_physics_world.Tick(delta);
 
-    if (m_has_scene_updates.load()) {
+    if (m_has_scene_updates.Get(MemoryOrder::RELAXED)) {
         PerformSceneUpdates();
     }
 
@@ -153,11 +152,11 @@ void World::AddScene(Handle<Scene> &&scene)
 
     InitObject(scene);
 
-    std::lock_guard guard(m_scene_update_mutex);
+    Mutex::Guard guard(m_scene_update_mutex);
 
     m_scenes_pending_addition.Insert(std::move(scene));
 
-    m_has_scene_updates.store(true);
+    m_has_scene_updates.Set(true, MemoryOrder::RELAXED);
 }
 
 void World::RemoveScene(ID<Scene> id)
@@ -166,11 +165,11 @@ void World::RemoveScene(ID<Scene> id)
         return;
     }
 
-    std::lock_guard guard(m_scene_update_mutex);
+    Mutex::Guard guard(m_scene_update_mutex);
 
     m_scenes_pending_removal.Insert(Handle<Scene>(id));
 
-    m_has_scene_updates.store(true);
+    m_has_scene_updates.Set(true, MemoryOrder::RELAXED);
 }
 
 const Handle<Scene> &World::GetDetachedScene()

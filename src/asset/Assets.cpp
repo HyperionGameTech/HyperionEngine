@@ -1,7 +1,4 @@
 #include <asset/Assets.hpp>
-#include <Engine.hpp>
-#include <util/fs/FsUtil.hpp>
-
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
@@ -15,7 +12,15 @@
 #include <asset/font_loaders/FontFaceLoader.hpp>
 #include <asset/font_loaders/FontAtlasLoader.hpp>
 
+#include <Engine.hpp>
+#include <util/fs/FsUtil.hpp>
+
 namespace hyperion::v2 {
+
+AssetManager *AssetManager::GetInstance()
+{
+    return g_asset_manager;
+}
 
 AssetManager::AssetManager()
     : m_asset_cache(new AssetCache())
@@ -58,7 +63,7 @@ const AssetLoaderDefinition *AssetManager::GetLoader(const FilePath &path, TypeI
     for (const AssetLoaderDefinition &asset_loader_definition : m_loaders) {
         uint rank = 0;
 
-        if (desired_type_id != TypeID::void_type_id) {
+        if (desired_type_id != TypeID::Void()) {
             if (!asset_loader_definition.HandlesResultType(desired_type_id)) {
                 continue;
             }

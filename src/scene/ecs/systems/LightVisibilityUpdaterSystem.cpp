@@ -27,6 +27,8 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
     transform_component.transform = initial_transform;
 
+    const Transform transform = transform_component.transform;
+
     { // Add a bounding box component to the entity or update if it already exists
         BoundingBoxComponent *bounding_box_component = entity_manager.TryGetComponent<BoundingBoxComponent>(entity);
 
@@ -38,13 +40,13 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
 
         switch (light->GetType()) {
         case LightType::DIRECTIONAL:
-            bounding_box_component->local_aabb = BoundingBox::infinity;
-            bounding_box_component->world_aabb = BoundingBox::infinity;
+            bounding_box_component->local_aabb = BoundingBox::Infinity();
+            bounding_box_component->world_aabb = BoundingBox::Infinity();
             break;
         case LightType::POINT: // fallthrough
         case LightType::AREA_RECT:
             bounding_box_component->local_aabb = light->GetAABB();
-            bounding_box_component->world_aabb = bounding_box_component->local_aabb * transform_component.transform;
+            bounding_box_component->world_aabb = bounding_box_component->local_aabb * transform;
             break;
         default:
             break;

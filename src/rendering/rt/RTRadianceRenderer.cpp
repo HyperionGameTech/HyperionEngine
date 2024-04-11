@@ -46,7 +46,7 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet) : renderer::Ren
 
     virtual Result operator()() override
     {
-        auto result = Result::OK;
+        Result result;
 
         // remove result image from global descriptor set
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {

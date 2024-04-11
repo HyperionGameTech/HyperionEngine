@@ -24,7 +24,7 @@ bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, RayTestResults &out
 
 bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const
 {
-    if (aabb.Empty()) { // drop out early
+    if (!aabb.IsValid()) { // drop out early
         return RayHit::no_hit;
     }
 

@@ -601,7 +601,7 @@ public:
         \return The result of the operation */
     Result Create(Device<PLATFORM> *device)
     {
-        Result result = Result::OK;
+        Result result = Result { };
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (const DescriptorSet2Ref<PLATFORM> &set : m_sets[frame_index]) {
@@ -639,7 +639,7 @@ public:
         
         m_sets = { };
 
-        return Result::OK;
+        return Result { };
     }
 
     /*! \brief Apply updates to all descriptor sets in the table
@@ -666,7 +666,7 @@ public:
             }
         }
 
-        return Result::OK;
+        return Result { };
     }
 
     HYP_FORCE_INLINE

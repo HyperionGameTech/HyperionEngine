@@ -247,6 +247,13 @@ void Shader::SetCompiledShader(CompiledShader &&compiled_shader)
     m_compiled_shader = std::move(compiled_shader);
 }
 
+// ShaderManagerSystem
+
+ShaderManagerSystem *ShaderManagerSystem::GetInstance()
+{
+    return g_shader_manager;
+}
+
 Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 {
     const auto EnsureContainsProperties = [](const ShaderProperties &expected, const ShaderProperties &received) -> bool

@@ -9,8 +9,6 @@ namespace renderer {
 
 struct Result
 {
-    static HYP_API const Result OK;
-
     enum
     {
         RENDERER_OK                     = 0,
@@ -35,6 +33,11 @@ struct Result
         : result(other.result), message(other.message), error_code(other.error_code)
     {
     }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static Result OK()
+        { return Result(RENDERER_OK); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -44,7 +47,7 @@ struct Result
 
 #define HYPERION_RETURN_OK \
     do { \
-        return ::hyperion::renderer::Result::OK; \
+        return ::hyperion::renderer::Result { }; \
     } while (0)
 
 #define HYPERION_PASS_ERRORS(result, out_result) \
@@ -68,7 +71,7 @@ struct Result
 #define HYPERION_ASSERT_RESULT(result) \
     do { \
         auto _result = (result); \
-        AssertThrowMsg(_result == ::hyperion::renderer::Result::OK, "[Error Code: %d]  %s", _result.error_code, _result.message); \
+        AssertThrowMsg(_result == ::hyperion::renderer::Result { }, "[Error Code: %d]  %s", _result.error_code, _result.message); \
     } while (0)
 
 } // namespace renderer

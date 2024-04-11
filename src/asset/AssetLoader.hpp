@@ -281,7 +281,7 @@ protected:
     }
 
 public:
-    virtual ~AssetLoader() = default;
+    virtual ~AssetLoader() override = default;
 
     HYP_API virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final;
 

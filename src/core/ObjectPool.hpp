@@ -221,24 +221,24 @@ private:
 
 class HYP_API ObjectPool
 {
-    static struct HYP_API ObjectContainerHolder
+    struct ObjectContainerMap
     {
-        struct ObjectContainerMap
-        {
-            // Mutex for accessing the map
-            Mutex                                   mutex;
+        // Mutex for accessing the map
+        Mutex                                   mutex;
 
-            // Maps component type ID to object container
-            HashMap<TypeID, ObjectContainerBase *>  map;
+        // Maps component type ID to object container
+        HashMap<TypeID, ObjectContainerBase *>  map;
 
-            ObjectContainerMap()                                            = default;
-            ObjectContainerMap(const ObjectContainerMap &)                  = delete;
-            ObjectContainerMap &operator=(const ObjectContainerMap &)       = delete;
-            ObjectContainerMap(ObjectContainerMap &&) noexcept              = delete;
-            ObjectContainerMap &operator=(ObjectContainerMap &&) noexcept   = delete;
-            ~ObjectContainerMap()                                           = default;
-        };
+        ObjectContainerMap()                                            = default;
+        ObjectContainerMap(const ObjectContainerMap &)                  = delete;
+        ObjectContainerMap &operator=(const ObjectContainerMap &)       = delete;
+        ObjectContainerMap(ObjectContainerMap &&) noexcept              = delete;
+        ObjectContainerMap &operator=(ObjectContainerMap &&) noexcept   = delete;
+        ~ObjectContainerMap()                                           = default;
+    };
 
+    static struct ObjectContainerHolder
+    {
         template <class T>
         struct ObjectContainerDeclaration
         {
@@ -259,39 +259,29 @@ class HYP_API ObjectPool
         };
 
         static ObjectContainerMap s_object_container_map;
+        HYP_API static ObjectContainerMap &GetObjectContainerMap();
 
         template <class T>
         static ObjectContainer<T> &GetObjectContainer()
         {
-            static ObjectContainerDeclaration<T> object_container_declaration(TypeID::ForType<T>(), s_object_container_map);
+            static ObjectContainerDeclaration<T> object_container_declaration(TypeID::ForType<T>(), GetObjectContainerMap());
 
             return object_container_declaration.container;
         }
 
-        static ObjectContainerBase *TryGetObjectContainer(TypeID type_id)
-        {
-            Mutex::Guard guard(s_object_container_map.mutex);
-
-            auto it = s_object_container_map.map.Find(type_id);
-
-            if (it == s_object_container_map.map.End()) {
-                return nullptr;
-            }
-
-            return it->second;
-        }
+        HYP_API static ObjectContainerBase *TryGetObjectContainer(TypeID type_id);
     } s_object_container_holder;
 
 public:
     template <class T>
-    ObjectContainer<T> &GetContainer()
+    HYP_FORCE_INLINE ObjectContainer<T> &GetContainer()
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 
         return s_object_container_holder.GetObjectContainer<T>();
     }
 
-    ObjectContainerBase *TryGetContainer(TypeID type_id)
+    HYP_FORCE_INLINE ObjectContainerBase *TryGetContainer(TypeID type_id)
     {
         return s_object_container_holder.TryGetObjectContainer(type_id);
     }

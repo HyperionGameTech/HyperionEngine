@@ -224,7 +224,7 @@ public:
               aabb(other.aabb)
         {
             other.id = ID<Entity>::invalid;
-            other.aabb = BoundingBox::empty;
+            other.aabb = BoundingBox::Empty();
         }
 
         Node &operator=(Node &&other) noexcept
@@ -233,7 +233,7 @@ public:
             aabb = other.aabb;
 
             other.id = ID<Entity>::invalid;
-            other.aabb = BoundingBox::empty;
+            other.aabb = BoundingBox::Empty();
 
             return *this;
         }
@@ -264,10 +264,10 @@ public:
 
     Octree(RC<EntityManager> entity_manager);
     Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb);
-    Octree(const Octree &other) = delete;
-    Octree &operator=(const Octree &other) = delete;
-    Octree(Octree &&other) noexcept = delete;
-    Octree &operator=(Octree &&other) noexcept = delete;
+    Octree(const Octree &other)                 = delete;
+    Octree &operator=(const Octree &other)      = delete;
+    Octree(Octree &&other) noexcept             = delete;
+    Octree &operator=(Octree &&other) noexcept  = delete;
     ~Octree();
 
     const RC<VisibilityState> &GetVisibilityState() const

@@ -61,7 +61,7 @@ Result CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
     AssertThrow(m_command_buffer != VK_NULL_HANDLE);
     AssertThrow(m_command_pool != VK_NULL_HANDLE);
 
-    auto result = Result::OK;
+    Result result;
 
     vkFreeCommandBuffers(device->GetDevice(), m_command_pool, 1, &m_command_buffer);
     m_command_buffer = VK_NULL_HANDLE;

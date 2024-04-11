@@ -822,7 +822,7 @@ Octree::InsertResult Octree::Rebuild()
     BoundingBox prev_aabb = m_aabb;
 
     if (IsRoot()) {
-        m_aabb = BoundingBox::empty;
+        m_aabb = BoundingBox::Empty();
     }
 
     for (auto &it : new_nodes) {

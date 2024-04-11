@@ -79,6 +79,8 @@ public:
 
     static constexpr bool asset_cache_enabled = false;
 
+    HYP_API static AssetManager *GetInstance();
+
     HYP_API AssetManager();
     AssetManager(const AssetManager &other)                 = delete;
     AssetManager &operator=(const AssetManager &other)      = delete;
@@ -204,6 +206,8 @@ public:
         { return m_asset_cache.Get(); }
 
 private:
+    HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::Void());
+
     HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr);
 
     template <class Loader>
@@ -223,16 +227,14 @@ private:
         return CreateProcessAssetFunctor(loader_definition->loader_type_id, key, path, callbacks_ptr);
     }
 
-    HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::void_type_id);
-
     void RegisterDefaultLoaders();
 
-    UniquePtr<AssetCache>                                           m_asset_cache;
+    UniquePtr<AssetCache>               m_asset_cache;
 
-    FilePath                                                        m_base_path;
+    FilePath                            m_base_path;
 
-    Array<AssetLoaderDefinition>                                    m_loaders;
-    TypeMap<ProcessAssetFunctorFactory>                             m_functor_factories;
+    Array<AssetLoaderDefinition>        m_loaders;
+    TypeMap<ProcessAssetFunctorFactory> m_functor_factories;
 };
 
 } // namespace hyperion::v2

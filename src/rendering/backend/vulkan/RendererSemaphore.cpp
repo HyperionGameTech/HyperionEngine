@@ -112,7 +112,7 @@ Result SemaphoreChain::Create(Device *device)
 
 Result SemaphoreChain::Destroy(Device *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     const auto dec_ref = [this, &result, device](auto &semaphore) {
         auto *ref = semaphore.ref;

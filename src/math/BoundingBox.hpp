@@ -14,9 +14,6 @@ class HYP_API BoundingBox
 {
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 public:
-    static const BoundingBox empty;
-    static const BoundingBox infinity;
-
     BoundingBox();
     BoundingBox(const Vec3f &min, const Vec3f &max);
 
@@ -97,11 +94,6 @@ public:
         { return !operator==(other); }
 
     BoundingBox &Clear();
-    
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
-        { return Memory::MemCmp(this, &empty, sizeof(BoundingBox)) == 0; }
 
     BoundingBox &Extend(const Vec3f &vec);
     BoundingBox &Extend(const BoundingBox &bb);
@@ -140,6 +132,20 @@ public:
         hc.Add(max.GetHashCode());
 
         return hc;
+    }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static BoundingBox Empty()
+    {
+        return BoundingBox(MathUtil::MaxSafeValue<Vec3f>(), MathUtil::MinSafeValue<Vec3f>());
+    }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static BoundingBox Infinity()
+    {
+        return BoundingBox(-MathUtil::Infinity<Vec3f>(), +MathUtil::Infinity<Vec3f>());
     }
 
     Vec3f   min;

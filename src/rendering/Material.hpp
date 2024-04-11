@@ -533,6 +533,8 @@ private:
 class HYP_API MaterialCache
 {
 public:
+    static MaterialCache *GetInstance();
+
     void Add(const Handle<Material> &material);
 
     Handle<Material> CreateMaterial(

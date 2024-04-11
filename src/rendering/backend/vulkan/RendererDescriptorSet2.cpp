@@ -106,7 +106,7 @@ struct VulkanDescriptorSetLayoutWrapper
             &vk_layout
         ));
 
-        return Result::OK;
+        return Result { };
     }
 
     Result Destroy(Device<Platform::VULKAN> *device)
@@ -121,7 +121,7 @@ struct VulkanDescriptorSetLayoutWrapper
 
         vk_layout = VK_NULL_HANDLE;
 
-        return Result::OK;
+        return Result { };
     }
 };
 
@@ -283,7 +283,7 @@ Result DescriptorSet2<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device
 
     m_vk_layout_wrapper = device->GetDescriptorSetManager()->GetOrCreateVkDescriptorSetLayout(device, m_layout);
 
-    Result result = Result::OK;
+    Result result = Result { };
 
     HYPERION_PASS_ERRORS(
         device->GetDescriptorSetManager()->CreateDescriptorSet(device, m_vk_layout_wrapper, m_vk_descriptor_set),
@@ -312,7 +312,7 @@ Result DescriptorSet2<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *devic
     // Release reference to layout
     m_vk_layout_wrapper.Reset();
 
-    return Result::OK;
+    return Result { };
 }
 
 Result DescriptorSet2<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
@@ -445,7 +445,7 @@ Result DescriptorSet2<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device
         element.dirty_range = { };
     }
     
-    return Result::OK;
+    return Result { };
 }
 
 bool DescriptorSet2<Platform::VULKAN>::HasElement(Name name) const
@@ -681,12 +681,12 @@ Result DescriptorSetManager<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
         &m_vk_descriptor_pool
     ));
 
-    return Result::OK;
+    return Result { };
 }
 
 Result DescriptorSetManager<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    Result result = Result::OK;
+    Result result = Result { };
 
     for (auto &it : m_vk_descriptor_set_layouts) {
         if (auto rc = it.second.Lock()) {
@@ -734,7 +734,7 @@ Result DescriptorSetManager<Platform::VULKAN>::CreateDescriptorSet(Device<Platfo
         return { Result::RENDERER_ERR, "Failed to allocate descriptor set", int(vk_result) };
     }
 
-    return Result::OK;
+    return Result { };
 }
 
 Result DescriptorSetManager<Platform::VULKAN>::DestroyDescriptorSet(Device<Platform::VULKAN> *device, VkDescriptorSet vk_descriptor_set)
@@ -750,7 +750,7 @@ Result DescriptorSetManager<Platform::VULKAN>::DestroyDescriptorSet(Device<Platf
         &vk_descriptor_set
     );
 
-    return Result::OK;
+    return Result { };
 }
 
 RC<VulkanDescriptorSetLayoutWrapper> DescriptorSetManager<Platform::VULKAN>::GetOrCreateVkDescriptorSetLayout(Device<Platform::VULKAN> *device, const DescriptorSetLayout<Platform::VULKAN> &layout)

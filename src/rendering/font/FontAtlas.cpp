@@ -256,7 +256,7 @@ void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
 
         virtual renderer::Result operator()() override
         {
-            renderer::Result result = renderer::Result::OK;
+            renderer::Result result = renderer::Result { };
 
             buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
             HYPERION_ASSERT_RESULT(buffer->Create(g_engine->GetGPUDevice(), buffer_size));

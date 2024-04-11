@@ -63,7 +63,7 @@ Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Command
 template <>
 Result Frame<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    auto result = Result::OK;
+    Result result;
 
     HYPERION_PASS_ERRORS(m_present_semaphores.Destroy(device), result);
 

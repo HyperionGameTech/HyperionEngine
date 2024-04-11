@@ -110,7 +110,7 @@ Result FrameHandler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     SafeRelease(std::move(m_frames));
 
-    return Result::OK;
+    return Result { };
 }
 
 } // namespace platform

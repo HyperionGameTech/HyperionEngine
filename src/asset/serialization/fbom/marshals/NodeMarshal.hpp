@@ -128,8 +128,8 @@ public:
         }
 
         { // bounding box
-            BoundingBox local_aabb = BoundingBox::empty;
-            BoundingBox world_aabb = BoundingBox::empty;
+            BoundingBox local_aabb = BoundingBox::Empty();
+            BoundingBox world_aabb = BoundingBox::Empty();
 
             if (auto err = in.GetProperty("local_aabb").ReadStruct(sizeof(BoundingBox), &local_aabb)) {
                 return err;

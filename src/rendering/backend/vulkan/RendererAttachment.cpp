@@ -200,7 +200,7 @@ Result Attachment<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_image != nullptr);
 
-    auto result = Result::OK;
+    Result result;
 
     HYPERION_BUBBLE_ERRORS(m_image->Create(device));
 
@@ -212,7 +212,7 @@ Result Attachment<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_image != nullptr);
 
-    auto result = Result::OK;
+    Result result;
 
     SafeRelease(std::move(m_image));
 

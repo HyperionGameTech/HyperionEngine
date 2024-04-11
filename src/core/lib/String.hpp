@@ -536,7 +536,7 @@ DynString<T, IsUtf8>::DynString(const T *str)
     }
     
     int count;
-    int len = utf::utf_strlen<T, IsUtf8>(str, &count);
+    const int len = utf::utf_strlen<T, IsUtf8>(str, &count);
 
     if (len == -1) {
         // invalid utf8 string
@@ -546,14 +546,12 @@ DynString<T, IsUtf8>::DynString(const T *str)
         return;
     }
 
-    m_length = static_cast<SizeType>(len);
-
-    const auto size = static_cast<SizeType>(count);
+    m_length = len;
     
     // reserves + 1 for null char
-    Reserve(size);
+    Reserve(count);
 
-    for (SizeType i = 0; i < size; ++i) {
+    for (int i = 0; i < count; ++i) {
         Base::PushBack(str[i]);
     }
     
@@ -571,7 +569,7 @@ DynString<T, IsUtf8>::DynString(const T *str, int max_len)
     }
 
     int count;
-    int len = MathUtil::Min(utf::utf_strlen<T, IsUtf8>(str, &count), max_len);
+    const int len = MathUtil::Min(utf::utf_strlen<T, IsUtf8>(str, &count), max_len);
 
     if (len == -1) {
         // invalid utf8 string
@@ -581,14 +579,12 @@ DynString<T, IsUtf8>::DynString(const T *str, int max_len)
         return;
     }
 
-    m_length = static_cast<SizeType>(len);
-
-    const auto size = static_cast<SizeType>(count);
+    m_length = len;
     
     // reserves + 1 for null char
-    Reserve(size);
+    Reserve(count);
 
-    for (SizeType i = 0; i < size; ++i) {
+    for (int i = 0; i < count; ++i) {
         Base::PushBack(str[i]);
     }
     

@@ -160,7 +160,7 @@ Mesh::Mesh()
           .vertex_attributes = static_mesh_vertex_attributes,
           .topology = Topology::TRIANGLES
       },
-      m_aabb(BoundingBox::empty)
+      m_aabb(BoundingBox::Empty())
 {
 }
 
@@ -176,7 +176,7 @@ Mesh::Mesh(
         .topology = topology
     },
     m_streamed_mesh_data(std::move(streamed_mesh_data)),
-    m_aabb(BoundingBox::empty)
+    m_aabb(BoundingBox::Empty())
 {
     CalculateAABB();
 }
@@ -221,7 +221,7 @@ Mesh::Mesh(
         std::move(vertices),
         std::move(indices)
     })),
-    m_aabb(BoundingBox::empty)
+    m_aabb(BoundingBox::Empty())
 {
     m_indices_count = m_streamed_mesh_data->GetMeshData().indices.Size();
 
@@ -236,7 +236,7 @@ Mesh::Mesh(Mesh &&other) noexcept
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_aabb(other.m_aabb)
 {
-    other.m_aabb = BoundingBox::empty;
+    other.m_aabb = BoundingBox::Empty();
     other.m_indices_count = 0;
 }
 
@@ -253,7 +253,7 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
     m_aabb = other.m_aabb;
     m_indices_count = other.m_indices_count;
 
-    other.m_aabb = BoundingBox::empty;
+    other.m_aabb = BoundingBox::Empty();
     other.m_indices_count = 0;
 
     return *this;
@@ -758,7 +758,7 @@ void Mesh::CalculateAABB()
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
 
-    BoundingBox aabb = BoundingBox::empty;
+    BoundingBox aabb = BoundingBox::Empty();
 
     for (const Vertex &vertex : mesh_data.vertices) {
         aabb.Extend(vertex.GetPosition());
