@@ -37,8 +37,6 @@ struct OctantID
     static constexpr uint64 invalid_bits = 1ull << 63;
     static constexpr SizeType max_depth = 64 / 3;
 
-    static HYP_API const OctantID invalid;  // special value for invalid octant
-
     uint64  index_bits { 0 };
     uint8   depth { 0 };
 
@@ -109,7 +107,7 @@ struct OctantID
     OctantID GetParent() const
     {
         if (depth == 0) {
-            return OctantID::invalid;
+            return OctantID::Invalid();
         }
 
         return OctantID(index_bits & ~(~0ull << (uint64(depth) * 3ull)), depth - 1);
@@ -125,6 +123,9 @@ struct OctantID
 
         return hc;
     }
+
+    /*! \brief Get the special invalid OctantID. */
+    HYP_API static OctantID Invalid();
 };
 
 class Octree;
@@ -135,7 +136,7 @@ struct OctreeState
     uint8                           visibility_cursor { 0u };
 
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
-    OctantID                        rebuild_state = OctantID::invalid;
+    OctantID                        rebuild_state = OctantID::Invalid();
 
     /*! \brief Mark the octant as dirty, meaning it needs to be rebuilt */
     void MarkOctantDirty(OctantID octant_id);
@@ -261,7 +262,8 @@ public:
         }
     };
 
-    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb = default_bounds);
+    Octree(RC<EntityManager> entity_manager);
+    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb);
     Octree(const Octree &other) = delete;
     Octree &operator=(const Octree &other) = delete;
     Octree(Octree &&other) noexcept = delete;

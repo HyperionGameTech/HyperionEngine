@@ -27,9 +27,6 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
 
     static constexpr uint size = 4;
 
-    static const Vec4 zero;
-    static const Vec4 one;
-
     union {
         struct { Type x, y, z, w; };
         Type values[4];
@@ -268,9 +265,6 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     using Type = float;
 
     static constexpr uint size = 4;
-
-    static const Vec4 zero;
-    static const Vec4 one;
 
     union {
         struct { Type x, y, z, w; };

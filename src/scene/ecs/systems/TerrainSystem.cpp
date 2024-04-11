@@ -26,7 +26,7 @@ static const FixedArray<TerrainPatchNeighbor, 8> GetPatchNeighbors(const Terrain
 static TerrainPatchCoord WorldSpaceToPatchCoord(const Vec3f &world_position, const TerrainComponent &terrain_component, const TransformComponent &transform_component)
 {
     Vec3f scaled = world_position - transform_component.transform.GetTranslation();
-    scaled *= Vec3f::one / (terrain_component.scale * (Vec3f(terrain_component.patch_size) - 1.0f));
+    scaled *= Vec3f::One() / (terrain_component.scale * (Vec3f(terrain_component.patch_size) - 1.0f));
     scaled = MathUtil::Floor(scaled);
 
     return TerrainPatchCoord { int(scaled.x), int(scaled.z) };

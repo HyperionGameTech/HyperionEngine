@@ -19,6 +19,31 @@ namespace detail {
 
 using InitializeAssemblyDelegate = void (*)(void *, const void *);
 
+static Optional<FilePath> FindAssemblyFilePath(const char *path)
+{
+    FilePath filepath(path);
+    
+    if (!filepath.Exists()) {
+        filepath = FilePath::Current() / path;
+    }
+    
+    if (!filepath.Exists()) {
+        filepath = g_asset_manager->GetBasePath() / path;
+    }
+    
+    if (!filepath.Exists()) {
+        DebugLog(
+            LogType::Error,
+            "Failed to load .NET assembly: File not found: %s\n",
+            path
+        );
+
+        return { };
+    }
+
+    return filepath;
+}
+
 #ifdef HYP_DOTNET
 class DotNetImpl : public DotNetImplBase
 {
@@ -27,6 +52,7 @@ class DotNetImpl : public DotNetImplBase
 public:
     DotNetImpl()
         : m_dll(nullptr),
+          m_initialize_assembly_fptr(nullptr),
           m_cxt(nullptr),
           m_init_fptr(nullptr),
           m_get_delegate_fptr(nullptr),
@@ -67,108 +93,46 @@ public:
             HYP_THROW("Could not initialize .NET runtime: Failed to initialize runtime");
         }
 
-        // // TEMP! Find a better way to do this.
-        const FilePath interop_assembly_path = "HyperionInterop.dll";
-        const PlatformString interop_assembly_path_platform = interop_assembly_path;
+        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath("bin/HyperionInterop.dll");
+
+        if (!interop_assembly_path.HasValue()) {
+            HYP_THROW("Could not initialize .NET runtime: Could not locate HyperionInterop.dll!");
+        }
+
+        const PlatformString interop_assembly_path_platform = *interop_assembly_path;
 
         m_root_assembly.Reset(new Assembly());
 
-        auto test_function = (void (*)(void))GetDelegate(
-            interop_assembly_path_platform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
-            HYP_TEXT("TestFunction"),
-            UNMANAGEDCALLERSONLY_METHOD
-        );
-        test_function();
-        
-        InitializeAssemblyDelegate initialize_assembly = (InitializeAssemblyDelegate)GetDelegate(
+       m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
             interop_assembly_path_platform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
             HYP_TEXT("InitializeAssembly"),
             UNMANAGEDCALLERSONLY_METHOD
         );
-        AssertThrow(initialize_assembly != nullptr);
 
-        DebugLog(LogType::Debug, "Initializing NativeInterop class in HyperionInterop.dll assembly\n");
+        AssertThrowMsg(
+            m_initialize_assembly_fptr != nullptr,
+            "InitializeAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
+        );
 
         // Call the Initialize method in the NativeInterop class directly,
         // to load all the classes and methods into the class object holder
-        initialize_assembly(&m_root_assembly->GetClassObjectHolder(), interop_assembly_path.Data());
-
-        DebugLog(LogType::Debug, "Initialized NativeInterop class in HyperionInterop.dll assembly\n");
-
-        // AssertThrowMsg(
-        //     is_initialized,
-        //     "Failed to initialize NativeInterop class in HyperionInterop.dll assembly"
-        // );
-
-        Class *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
-
-        AssertThrowMsg(
-            native_interop_class_object != nullptr,
-            "Failed to find NativeInterop class in HyperionInterop.dll assembly"
-        );
-
-        AssertThrowMsg(
-            native_interop_class_object->HasMethod("InitializeAssembly"),
-            "Failed to find InitializeAssembly() method in NativeInterop class in HyperionInterop.dll assembly"
-        );
+        m_initialize_assembly_fptr(&m_root_assembly->GetClassObjectHolder(), interop_assembly_path->Data());
     }
 
     virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
         RC<Assembly> assembly(new Assembly());
 
-        FilePath filepath(path);
-        
-        if (!filepath.Exists()) {
-            filepath = FilePath::Current() / path;
-        }
-        
-        if (!filepath.Exists()) {
-            filepath = g_asset_manager->GetBasePath() / path;
-        }
-        
-        if (!filepath.Exists()) {
-            DebugLog(
-                LogType::Error,
-                "Failed to load .NET assembly: File not found: %s\n",
-                path
-            );
+        Optional<FilePath> filepath = FindAssemblyFilePath(path);
 
+        if (!filepath.HasValue()) {
             return nullptr;
         }
 
         AssertThrow(m_root_assembly != nullptr);
 
-        Class *native_interop_class_object = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop");
-        AssertThrow(native_interop_class_object != nullptr);
-
-        // Call our InitializeAssembly method to load all the classes and methods into the class object holder for the assembly
-        DebugLog(
-            LogType::Debug,
-            "Calling InitializeAssembly for assembly: %s\n",
-            filepath.Data()
-        );
-
-        // static constexpr uint32 major_minor_mask = (0xffu << 16u) | (0xffu << 8u);
-        // const uint32 engine_version_major_minor = engine_version & major_minor_mask;
-        // const uint32 assembly_engine_version = native_interop_class_object->InvokeStaticMethod<uint32>("GetEngineVersion");
-
-        // if ((assembly_engine_version & major_minor_mask) != engine_version_major_minor) {
-        //     DebugLog(
-        //         LogType::Error,
-        //         "Assembly engine version mismatch: Assembly version: %u.%u, Engine version: %u.%u\n",
-        //         (assembly_engine_version >> 16u) & 0xffu,
-        //         (assembly_engine_version >> 8u) & 0xffu,
-        //         (engine_version >> 16u) & 0xffu,
-        //         (engine_version >> 8u) & 0xffu
-        //     );
-
-        //     return nullptr;
-        // }
-
-        native_interop_class_object->InvokeStaticMethod<void, void *, char *>("InitializeAssembly", reinterpret_cast<void *>(&assembly->GetClassObjectHolder()), filepath.Data());
+        m_initialize_assembly_fptr(&assembly->GetClassObjectHolder(), filepath->Data());
 
         return assembly;
     }
@@ -294,6 +258,8 @@ private:
 
     RC<Assembly>                                m_root_assembly;
 
+    InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
+
     hostfxr_handle                              m_cxt;
     hostfxr_initialize_for_runtime_config_fn    m_init_fptr;
     hostfxr_get_runtime_delegate_fn             m_get_delegate_fptr;
@@ -361,12 +327,12 @@ DotNetSystem::~DotNetSystem() = default;
 RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
 {
     if (!IsEnabled()) {
-        DebugLog(LogType::Warn, "DotNetSystem not enabled, call Initialize() before attempting to load assemblies\n");
+        DebugLog(LogType::Warn, "DotNetSystem not enabled, cannot load assemblies\n");
 
         return nullptr;
     }
 
-    if (!IsEnabled()) {
+    if (!IsInitialized()) {
         DebugLog(LogType::Warn, "DotNetSystem not initialized, call Initialize() before attempting to load assemblies\n");
 
         return nullptr;
@@ -397,7 +363,7 @@ void DotNetSystem::Initialize()
         return;
     }
 
-    if (m_is_initialized) {
+    if (IsInitialized()) {
         return;
     }
 
@@ -415,7 +381,7 @@ void DotNetSystem::Shutdown()
         return;
     }
 
-    if (!m_is_initialized) {
+    if (!IsInitialized()) {
         return;
     }
 

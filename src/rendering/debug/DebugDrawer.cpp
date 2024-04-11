@@ -223,7 +223,7 @@ void DebugDrawer::Sphere(const Vec3f &position, float radius, Color color)
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
         DebugDrawType::DEFAULT,
-        Transform(position, radius, Quaternion::identity).GetMatrix(),
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         color
     });
 }
@@ -233,7 +233,7 @@ void DebugDrawer::AmbientProbeSphere(const Vec3f &position, float radius, ID<Env
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
         DebugDrawType::AMBIENT_PROBE,
-        Transform(position, radius, Quaternion::identity).GetMatrix(),
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         Color { },
         env_probe_id
     });
@@ -244,7 +244,7 @@ void DebugDrawer::ReflectionProbeSphere(const Vec3f &position, float radius, ID<
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
         DebugDrawType::REFLECTION_PROBE,
-        Transform(position, radius, Quaternion::identity).GetMatrix(),
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         Color { },
         env_probe_id
     });
@@ -255,7 +255,7 @@ void DebugDrawer::Box(const Vec3f &position, const Vec3f &size, Color color)
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::BOX,
         DebugDrawType::DEFAULT,
-        Transform(position, size, Quaternion::identity).GetMatrix(),
+        Transform(position, size, Quaternion::Identity()).GetMatrix(),
         color
     });
 }
@@ -291,7 +291,7 @@ void DebugDrawCommandList::Sphere(const Vec3f &position, float radius, Color col
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::SPHERE,
         DebugDrawType::DEFAULT,
-        Transform(position, radius, Quaternion::identity).GetMatrix(),
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         color
     });
 }
@@ -303,7 +303,7 @@ void DebugDrawCommandList::Box(const Vec3f &position, const Vec3f &size, Color c
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::BOX,
         DebugDrawType::DEFAULT,
-        Transform(position, size, Quaternion::identity).GetMatrix(),
+        Transform(position, size, Quaternion::Identity()).GetMatrix(),
         color
     });
 }
@@ -315,7 +315,7 @@ void DebugDrawCommandList::Plane(const Vec3f &position, const Vector2 &size, Col
     m_draw_commands.PushBack(DebugDrawCommand {
         DebugDrawShape::PLANE,
         DebugDrawType::DEFAULT,
-        Transform(position, Vec3f(size.x, size.y, 1.0f), Quaternion::identity).GetMatrix(),
+        Transform(position, Vec3f(size.x, size.y, 1.0f), Quaternion::Identity()).GetMatrix(),
         color
     });
 }

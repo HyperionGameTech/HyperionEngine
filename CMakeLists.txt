@@ -59,7 +59,7 @@ set(HYP_VERSION_PATCH 15)
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
+link_directories(${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE} /usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
 find_package(PkgConfig)
 pkg_check_modules(GST gstreamer-1.0>=1.4
@@ -451,8 +451,8 @@ function(create_csharp_library output_name csharp_sources)
     file(GLOB CSHARP_DLLS "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll")
 
     foreach(CSHARP_DLL ${CSHARP_DLLS})
-        message(STATUS "Copying ${CSHARP_DLL} to ${CMAKE_CURRENT_BINARY_DIR}")
-        file(COPY ${CSHARP_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        message(STATUS "Copying ${CSHARP_DLL} to ${CMAKE_SOURCE_DIR}/res/bin/")
+        file(COPY ${CSHARP_DLL} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
     endforeach()
 endfunction()
 

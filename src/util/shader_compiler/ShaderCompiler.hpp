@@ -54,21 +54,6 @@ struct VertexAttributeDefinition
 
 struct ShaderProperty;
 
-static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
-{
-    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-        const auto it = VertexAttribute::mapping.KeyValueAt(i);
-
-        if (name == it.second.name) {
-            out_type = it.first;
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 struct ShaderProperty
 {
     using Value = Variant<String, int, float>;
@@ -331,69 +316,10 @@ public:
         return true;
     }
 
-    ShaderProperties &Set(const ShaderProperty &property, bool enabled = true)
-    {
-        if (property.IsVertexAttribute()) {
-            VertexAttribute::Type type;
-
-            if (!FindVertexAttributeForDefinition(property.GetValueString(), type)) {
-                DebugLog(
-                    LogType::Error,
-                    "Invalid vertex attribute name for shader: %s\n",
-                    property.GetValueString().Data()
-                );
-
-                return *this;
-            }
-
-            if (property.IsOptionalVertexAttribute()) {
-                if (enabled) {
-                    m_optional_vertex_attributes |= type;
-                    m_optional_vertex_attributes &= ~m_required_vertex_attributes;
-                } else {
-                    m_optional_vertex_attributes &= ~type;
-                }
-            } else {
-                if (enabled) {
-                    m_required_vertex_attributes |= type;
-                    m_optional_vertex_attributes &= ~type;
-                } else {
-                    m_required_vertex_attributes &= ~type;
-                }
-
-                m_needs_hash_code_recalculation = true;
-            }
-        } else {
-            const auto it = m_props.Find(property);
-
-            if (enabled) {
-                if (it == m_props.End()) {
-                    m_props.Insert(property);
-
-                    m_needs_hash_code_recalculation = true;
-                } else {
-                    if (*it != property) {
-                        *it = property;
-
-                        m_needs_hash_code_recalculation = true;
-                    }
-                }
-            } else {
-                if (it != m_props.End()) {
-                    m_props.Erase(it);
-
-                    m_needs_hash_code_recalculation = true;
-                }
-            }
-        }
-
-        return *this;
-    }
+    HYP_API ShaderProperties &Set(const ShaderProperty &property, bool enabled = true);
 
     ShaderProperties &Set(const String &name, bool enabled = true)
-    {
-        return Set(ShaderProperty(name, true), enabled);
-    }
+        { return Set(ShaderProperty(name, true), enabled); }
 
     /*! \brief Applies \ref{other} properties onto this set */
     void Merge(const ShaderProperties &other)

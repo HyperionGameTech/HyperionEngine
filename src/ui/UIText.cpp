@@ -47,6 +47,9 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
     Vec2f placement;
 
     const SizeType length = text.Length();
+    
+    const Extent2D cell_dimensions = font_atlas.GetCellDimensions();
+    AssertThrowMsg(cell_dimensions.width != 0 && cell_dimensions.height != 0, "Cell dimensions are invalid");
 
     for (SizeType i = 0; i < length; i++) {
         const utf::u32char ch = text.GetChar(i);
@@ -80,9 +83,13 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
         const Vec2i char_offset = glyph_metrics->image_position;
 
-        const Vec2f atlas_pixel_size = Vec2f::one / Vec2f(font_atlas.GetDimensions());
-        const Vec2f glyph_dimensions = Vec2f(glyph_metrics->metrics.width, glyph_metrics->metrics.height);
-        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / Vec2f(font_atlas.GetCellDimensions());
+        const float cell_dimensions_ratio = float(cell_dimensions.width) / float(cell_dimensions.height);
+
+        const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(font_atlas.GetDimensions());
+        const Vec2f glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) };
+        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) / Vec2f(cell_dimensions_ratio, 1.0f));
+
+        DebugLog(LogType::Debug, "Cell dimensions: %u, %u\n", cell_dimensions.width, cell_dimensions.height);
 
         UICharMesh char_mesh;
         char_mesh.mesh_data = m_quad_mesh->GetStreamedMeshData();
@@ -93,7 +100,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         const Array<uint32> &indices = ref->GetMeshData().indices;
 
         const float bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / float(glyph_metrics->metrics.height);
-        const float char_width = float(glyph_metrics->metrics.advance / 64) / float(font_atlas.GetCellDimensions().width);
+        const float char_width = float(glyph_metrics->metrics.advance / 64) / float(glyph_metrics->metrics.width) * glyph_scaling.x;
 
         for (Vertex &vert : vertices) {
             const Vec3f current_position = vert.GetPosition();
@@ -245,7 +252,9 @@ Handle<Material> UIText::GetMaterial() const
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
             .bucket             = Bucket::BUCKET_UI,
             .blend_mode         = BlendMode::NORMAL,
-            .cull_faces         = FaceCullMode::NONE
+            .cull_faces         = FaceCullMode::BACK,
+            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .z_layer            = GetDepth()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 1.0f, 1.0f, 1.0f, 1.0f } }

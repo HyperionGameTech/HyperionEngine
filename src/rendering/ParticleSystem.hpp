@@ -42,7 +42,7 @@ struct ParticleSpawnerParams
 {
     Handle<Texture> texture;
     SizeType        max_particles = 256u;
-    Vec3f           origin = Vec3f::zero;
+    Vec3f           origin = Vec3f::Zero();
     float           start_size = 0.035f;
     float           radius = 1.0f;
     float           randomness = 0.5f;

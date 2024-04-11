@@ -24,56 +24,6 @@
 
 namespace hyperion {
 
-static inline Vector2 Vector(float x, float y)
-{
-    return { x, y };
-}
-
-static inline Vector2 Vector(const Vector2 &vec)
-{
-    return Vector2(vec);
-}
-
-static inline Vector3 Vector(float x, float y, float z)
-{
-    return { x, y, z };
-}
-
-static inline Vector3 Vector(const Vector3 &vec)
-{
-    return Vector3(vec);
-}
-
-static inline Vector3 Vector(const Vector2 &xy, float z)
-{
-    return Vector3(xy.x, xy.y, z);
-}
-
-static inline Vector4 Vector(float x, float y, float z, float w)
-{
-    return { x, y, z, w };
-}
-
-static inline Vector4 Vector(const Vector4 &vec)
-{
-    return Vector4(vec);
-}
-
-static inline Vector4 Vector(const Vector2 &xy, const Vector2 &zw)
-{
-    return Vector4(xy.x, xy.y, zw.x, zw.y);
-}
-
-static inline Vector4 Vector(const Vector2 &xy, float z, float w)
-{
-    return Vector4(xy.x, xy.y, z, w);
-}
-
-static inline Vector4 Vector(const Vector3 &xyz, float w)
-{
-    return Vector4(xyz.x, xyz.y, xyz.z, w);
-}
-
 template <class T>
 constexpr bool is_math_vector_v = is_vec2<T> || is_vec3<T> || is_vec4<T>;
 

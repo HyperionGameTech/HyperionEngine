@@ -123,14 +123,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     m_scene->CollectEntities(
         m_render_list,
-        m_scene->GetCamera(),
-        RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .bucket     = BUCKET_UI,
-                .cull_faces = FaceCullMode::NONE
-            }
-        )
+        m_scene->GetCamera()
     );
 
     m_render_list.UpdateRenderGroups();
@@ -143,13 +136,14 @@ void UIRenderer::OnRender(Frame *frame)
     m_render_list.CollectDrawCalls(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr
+        nullptr,    /* cull_data */
+        true        /* sort_z_layer */
     );
 
     m_render_list.ExecuteDrawCalls(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr
+        nullptr     /* cull_data */
     );
 
     g_engine->GetRenderState().UnbindScene();

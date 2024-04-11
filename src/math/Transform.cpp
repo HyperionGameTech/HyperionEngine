@@ -5,9 +5,9 @@ namespace hyperion {
 const Transform Transform::identity{};
 
 Transform::Transform()
-    : m_translation(Vector3::zero),
-      m_scale(Vector3::one),
-      m_rotation(Quaternion::identity)
+    : m_translation(Vector3::Zero()),
+      m_scale(Vector3::One()),
+      m_rotation(Quaternion::Identity())
 {
     UpdateMatrix();
 }
@@ -15,7 +15,7 @@ Transform::Transform()
 Transform::Transform(const Vector3 &translation, const Vector3 &scale)
     : m_translation(translation),
       m_scale(scale),
-      m_rotation(Quaternion::identity)
+      m_rotation(Quaternion::Identity())
 {
     UpdateMatrix();
 }
@@ -29,7 +29,7 @@ Transform::Transform(const Vector3 &translation, const Vector3 &scale, const Qua
 }
 
 Transform::Transform(const Vector3 &translation)
-    : Transform(translation, Vector3::one, Quaternion::identity)
+    : Transform(translation, Vector3::One(), Quaternion::Identity())
 {
 }
 

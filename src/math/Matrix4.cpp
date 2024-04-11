@@ -10,7 +10,7 @@ const Matrix4 Matrix4::identity = Matrix4::Identity();
 const Matrix4 Matrix4::zeros = Matrix4::Zeros();
 const Matrix4 Matrix4::ones = Matrix4::Ones();
 
-Matrix4 Matrix4::Translation(const Vector3 &translation)
+Matrix4 Matrix4::Translation(const Vec3f &translation)
 {
     Matrix4 mat;
 
@@ -27,9 +27,9 @@ Matrix4 Matrix4::Rotation(const Matrix4 &t)
     Matrix4 mat;
     Matrix4 transform = t;
 
-    const float scale_x = 1.0f / Vector3(transform.GetColumn(0)).Length();
-    const float scale_y = 1.0f / Vector3(transform.GetColumn(1)).Length();
-    const float scale_z = 1.0f / Vector3(transform.GetColumn(2)).Length();
+    const float scale_x = 1.0f / Vec3f(transform.GetColumn(0)).Length();
+    const float scale_y = 1.0f / Vec3f(transform.GetColumn(1)).Length();
+    const float scale_z = 1.0f / Vec3f(transform.GetColumn(2)).Length();
 
     mat[0] = {
         transform[0][0] * scale_x,
@@ -95,12 +95,12 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Vector3 &axis, float radians)
+Matrix4 Matrix4::Rotation(const Vec3f &axis, float radians)
 {
     return Rotation(Quaternion(axis, radians));
 }
 
-Matrix4 Matrix4::Scaling(const Vector3 &scale)
+Matrix4 Matrix4::Scaling(const Vec3f &scale)
 {
     Matrix4 mat;
 
@@ -151,7 +151,7 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     return mat;
 }
 
-Matrix4 Matrix4::Jitter(uint index, uint width, uint height, Vector4 &out_jitter)
+Matrix4 Matrix4::Jitter(uint index, uint width, uint height, Vec4f &out_jitter)
 {
     static const HaltonSequence halton;
 
@@ -160,14 +160,14 @@ Matrix4 Matrix4::Jitter(uint index, uint width, uint height, Vector4 &out_jitter
     const uint frame_counter = index;
     const uint halton_index = frame_counter % HaltonSequence::size;
 
-    Vector2 jitter = halton.sequence[halton_index];
-    Vector2 previous_jitter;
+    Vec2f jitter = halton.sequence[halton_index];
+    Vec2f previous_jitter;
 
     if (frame_counter != 0) {
         previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
     }
 
-    const Vector2 pixel_size = Vector2::one / Vector2(float(width), float(height));
+    const Vec2f pixel_size = Vec2f::One() / Vec2f { float(width), float(height) };
 
     jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
     previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
@@ -175,27 +175,27 @@ Matrix4 Matrix4::Jitter(uint index, uint width, uint height, Vector4 &out_jitter
     offset_matrix[0][3] += jitter.x;
     offset_matrix[1][3] += jitter.y;
 
-    out_jitter = Vector4(jitter, previous_jitter);
+    out_jitter = Vec4f(jitter, previous_jitter);
 
     return offset_matrix;
 }
 
-Matrix4 Matrix4::LookAt(const Vector3 &direction, const Vector3 &up)
+Matrix4 Matrix4::LookAt(const Vec3f &direction, const Vec3f &up)
 {
     auto mat = Identity();
 
-    const Vector3 z = direction.Normalized();
-    const Vector3 x = direction.Cross(up).Normalize();
-    const Vector3 y = x.Cross(z).Normalize();
+    const Vec3f z = direction.Normalized();
+    const Vec3f x = direction.Cross(up).Normalize();
+    const Vec3f y = x.Cross(z).Normalize();
 
-    mat[0] = Vector4(x, 0.0f);
-    mat[1] = Vector4(y, 0.0f);
-    mat[2] = Vector4(z, 0.0f);
+    mat[0] = Vec4f(x, 0.0f);
+    mat[1] = Vec4f(y, 0.0f);
+    mat[2] = Vec4f(z, 0.0f);
 
     return mat;
 }
 
-Matrix4 Matrix4::LookAt(const Vector3 &pos, const Vector3 &target, const Vector3 &up)
+Matrix4 Matrix4::LookAt(const Vec3f &pos, const Vec3f &target, const Vec3f &up)
 {
     return LookAt(target - pos, up) * Translation(pos * -1);
 }
@@ -220,7 +220,7 @@ Matrix4::Matrix4(const Matrix3 &matrix3)
 {
 }
 
-Matrix4::Matrix4(const Vector4 *rows)
+Matrix4::Matrix4(const Vec4f *rows)
     : rows {
           rows[0],
           rows[1],
@@ -483,9 +483,9 @@ Matrix4 &Matrix4::operator*=(float scalar)
     return *this;
 }
 
-Vector3 Matrix4::operator*(const Vector3 &vec) const
+Vec3f Matrix4::operator*(const Vec3f &vec) const
 {
-    const Vector4 product {
+    const Vec4f product {
         vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + values[3],
         vec.x * values[4]  + vec.y * values[5]  + vec.z * values[6]  + values[7],
         vec.x * values[8]  + vec.y * values[9]  + vec.z * values[10] + values[11],
@@ -495,7 +495,7 @@ Vector3 Matrix4::operator*(const Vector3 &vec) const
     return product.GetXYZ() / product.w;
 }
 
-Vector4 Matrix4::operator*(const Vector4 &vec) const
+Vec4f Matrix4::operator*(const Vec4f &vec) const
 {
     return {
         vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + vec.w * values[3],
@@ -505,9 +505,9 @@ Vector4 Matrix4::operator*(const Vector4 &vec) const
     };
 }
 
-Vector3 Matrix4::ExtractTransformScale() const
+Vec3f Matrix4::ExtractTransformScale() const
 {
-    Vector3 scale;
+    Vec3f scale;
 
     scale.x = GetColumn(0).GetXYZ().Length();
     scale.y = GetColumn(1).GetXYZ().Length();
@@ -521,7 +521,7 @@ Quaternion Matrix4::ExtractRotation() const
     return Quaternion(*this);
 }
 
-Vector4 Matrix4::GetColumn(uint index) const
+Vec4f Matrix4::GetColumn(uint index) const
 {
     return {
         rows[0][index],

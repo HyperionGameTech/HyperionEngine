@@ -15,8 +15,6 @@ struct alignas(16) HYP_API Quaternion
 {
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
 
-    static const Quaternion identity;
-
     float x, y, z, w;
 
     Quaternion();

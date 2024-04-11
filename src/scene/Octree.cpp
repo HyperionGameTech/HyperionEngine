@@ -8,11 +8,14 @@
 
 namespace hyperion::v2 {
 
-HYP_API const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
+const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 
 // 0x80 For index bit because we reserve the highest bit for invalid octants
 // 0xff for depth because +1 (used for child octant id) will cause it to overflow to 0
-HYP_API const OctantID OctantID::invalid = OctantID(OctantID::invalid_bits, 0xff);
+OctantID OctantID::Invalid()
+{
+    return OctantID(OctantID::invalid_bits, 0xff);
+}
 
 void OctreeState::MarkOctantDirty(OctantID octant_id)
 {
@@ -33,7 +36,12 @@ void OctreeState::MarkOctantDirty(OctantID octant_id)
     }
 
     // should always end up at root if it doesnt match any
-    AssertThrow(rebuild_state != OctantID::invalid);
+    AssertThrow(rebuild_state != OctantID::Invalid());
+}
+
+Octree::Octree(RC<EntityManager> entity_manager)
+    : Octree(std::move(entity_manager), default_bounds)
+{
 }
 
 Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb)
@@ -49,7 +57,7 @@ Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree
       m_is_divided(false),
       m_state(nullptr),
       m_visibility_state(new VisibilityState { }),
-      m_octant_id(index, OctantID::invalid),
+      m_octant_id(index, OctantID::Invalid()),
       m_invalidation_marker(0)
 {
     if (parent != nullptr) {
@@ -80,7 +88,7 @@ void Octree::SetParent(Octree *parent)
         m_state = nullptr;
     }
 
-    m_octant_id = OctantID(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantID::invalid);
+    m_octant_id = OctantID(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantID::Invalid());
 
     if (IsDivided()) {
         for (Octant &octant : m_octants) {
@@ -137,7 +145,7 @@ void Octree::InitOctants()
 
 Octree *Octree::GetChildOctant(OctantID octant_id)
 {
-    if (octant_id == OctantID::invalid) {
+    if (octant_id == OctantID::Invalid()) {
 #if HYP_OCTREE_DEBUG
         DebugLog(
             LogType::Warn,
@@ -313,7 +321,7 @@ void Octree::ClearInternal(Array<Node> &out_nodes)
             for (auto &node : nodes) {
                 if (mgr.HasEntity(node.id)) {
                     VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(node.id);
-                    visibility_state_component.octant_id = OctantID::invalid;
+                    visibility_state_component.octant_id = OctantID::Invalid();
                     visibility_state_component.visibility_state = nullptr;
                 }
             }
@@ -350,7 +358,7 @@ Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool
     if (!aabb.IsValid()) {
         return {
             { Octree::Result::OCTREE_ERR, "AABB is in invalid state" },
-            OctantID::invalid
+            OctantID::Invalid()
         };
     }
 
@@ -503,7 +511,7 @@ Octree::Result Octree::RemoveInternal(ID<Entity> id, bool allow_rebuild)
         {
             if (mgr.HasEntity(id)) {
                 VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(id);
-                visibility_state_component.octant_id = OctantID::invalid;
+                visibility_state_component.octant_id = OctantID::Invalid();
                 visibility_state_component.visibility_state = nullptr;
             }
         });
@@ -727,7 +735,7 @@ Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool
         if (it == m_state->node_to_octree.End()) {
             return {
                 { Result::OCTREE_ERR, "Object not found in node map!" },
-                OctantID::invalid
+                OctantID::Invalid()
             };
         }
 
@@ -737,7 +745,7 @@ Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool
 
         return {
             { Result::OCTREE_ERR, "Object has no octree in node map!" },
-            OctantID::invalid
+            OctantID::Invalid()
         };
     }
 
@@ -763,7 +771,7 @@ Octree::InsertResult Octree::UpdateInternal(ID<Entity> id, const BoundingBox &aa
 
         return {
             { Result::OCTREE_ERR, "Could not update in any sub octants" },
-            OctantID::invalid
+            OctantID::Invalid()
         };
     }
 
@@ -865,14 +873,14 @@ Octree::InsertResult Octree::RebuildExtendInternal(const BoundingBox &extend_inc
     if (!extend_include_aabb.IsValid()) {
         return {
             { Octree::Result::OCTREE_ERR, "AABB is in invalid state" },
-            OctantID::invalid
+            OctantID::Invalid()
         };
     }
 
     if (!extend_include_aabb.IsFinite()) {
         return {
             { Octree::Result::OCTREE_ERR, "AABB is not finite" },
-            OctantID::invalid
+            OctantID::Invalid()
         };
     }
 
@@ -891,7 +899,7 @@ void Octree::PerformUpdates()
 {
     AssertThrow(m_state != nullptr);
 
-    if (m_state->rebuild_state == OctantID::invalid) {
+    if (m_state->rebuild_state == OctantID::Invalid()) {
         return;
     }
 
@@ -910,7 +918,7 @@ void Octree::PerformUpdates()
         );
     } else {
         // set rebuild state to invalid if rebuild was successful
-        m_state->rebuild_state = OctantID::invalid;
+        m_state->rebuild_state = OctantID::Invalid();
     }
 }
 

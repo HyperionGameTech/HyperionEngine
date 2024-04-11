@@ -69,6 +69,8 @@ public:
     using CharType = T;
     using WidestCharType = std::conditional_t<is_utf8, utf::u32char, T>;
 
+    static_assert(!is_utf8 || std::is_same_v<CharType, char>, "UTF-8 Strings must have CharType equal to char");
+
     DynString();
     DynString(const DynString &other);
     DynString(const T *str);
@@ -82,7 +84,7 @@ public:
     {
     }
 
-    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType>, int> = 0>
+    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || OtherIsUtf8 != is_utf8, int> = 0>
     DynString(const DynString<OtherCharType, OtherIsUtf8> &other)
         : DynString()
     {
@@ -96,7 +98,7 @@ public:
     DynString &operator=(const DynString &other);
     DynString &operator=(DynString &&other) noexcept;
     
-    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType>, int> = 0>
+    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || OtherIsUtf8 != IsUtf8, int> = 0>
     DynString &operator=(const DynString<OtherCharType, OtherIsUtf8> &other)
     {
         Clear();
@@ -145,7 +147,7 @@ public:
      *
      * \ref{index} must be less than \ref{Length()}.
      */
-    [[nodiscard]] std::conditional_t<IsUtf8, u32char, T> GetChar(SizeType index) const;
+    [[nodiscard]] WidestCharType GetChar(SizeType index) const;
 
     /*! \brief Return the data size in characters. Note, utf-8 strings can have a shorter length than size. */
     [[nodiscard]] SizeType Size() const { return Base::Size() - 1; /* for NT char */ }
@@ -803,7 +805,7 @@ auto DynString<T, IsUtf8>::operator[](SizeType index) const -> const T
 }
 
 template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::GetChar(SizeType index) const -> std::conditional_t<IsUtf8, u32char, T>
+auto DynString<T, IsUtf8>::GetChar(SizeType index) const -> WidestCharType
 {
     if constexpr (IsUtf8) {
         const SizeType size = Size();

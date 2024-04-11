@@ -390,15 +390,6 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(terrain_entity, TerrainComponent {
         });
 
-        // // TransformComponent
-        // m_scene->GetEntityManager()->AddComponent(terrain_entity, TransformComponent {
-        //     Transform(
-        //         Vec3f::zero,
-        //         Vec3f::one,
-        //         Quaternion::Identity()
-        //     )
-        // });
-
         terrain_node.SetEntity(terrain_entity);
         terrain_node.SetName("TerrainNode");
     }
@@ -544,7 +535,7 @@ void SampleStreamer::InitGame()
 
         m_scene->GetEntityManager()->AddComponent(skybox_entity, TransformComponent {
             Transform(
-                Vec3f::zero,
+                Vec3f::Zero(),
                 Vec3f(1000.0f),
                 Quaternion::Identity()
             )
@@ -755,7 +746,7 @@ void SampleStreamer::InitGame()
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 30 })) {
+    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 200, 80 })) {
         btn->SetPadding(Vec2i { 5, 5 });
         
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
@@ -779,7 +770,7 @@ void SampleStreamer::InitGame()
 
         auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
         ui_text->SetText("Hello world!");
-        ui_text->SetOptions({ .line_height = 0.8f });
+        ui_text->SetOptions({ .line_height = 1.0f });
         // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);
         ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
@@ -908,8 +899,6 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
         DebugLog(LogType::Debug, "Up direction = %f, %f, %f\n", up_direction.x, up_direction.y, up_direction.z);
 
-        //const auto camera_rotation = camera_definitions.Any() ? Quaternion(Matrix4(camera_definitions[0].rotation)).Invert() : Quaternion::identity;
-
         auto ply_model = loaded_assets["ply model"].Get<PLYModelLoader::PLYModel>();
 
         const SizeType num_points = ply_model->vertices.Size();
@@ -952,7 +941,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
             }
 
             if (has_scales) {
-                Vector3 scale = Vector3::one;
+                Vector3 scale = Vector3::One();
 
                 ply_model->custom_data["scale_0"].Read(index * sizeof(float), &scale.x);
                 ply_model->custom_data["scale_1"].Read(index * sizeof(float), &scale.y);

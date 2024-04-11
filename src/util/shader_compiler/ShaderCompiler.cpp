@@ -39,6 +39,8 @@ enum class ShaderLanguage
     HLSL
 };
 
+#pragma region SPRIV Compilation
+
 #if defined(HYP_VULKAN) && defined(HYP_GLSLANG)
 
 static TBuiltInResource DefaultResources()
@@ -412,7 +414,6 @@ static ByteBuffer CompileToSPIRV(
 
 #else
 
-
 static ByteBuffer CompileToSPIRV(
     ShaderModuleType type,
     ShaderLanguage language,
@@ -428,6 +429,39 @@ static ByteBuffer CompileToSPIRV(
 
 #endif
 
+#pragma endregion
+
+struct LoadedSourceFile
+{
+    ShaderModuleType            type;
+    ShaderLanguage              language;
+    ShaderCompiler::SourceFile  file;
+    uint64                      last_modified_timestamp;
+    String                      source;
+
+    FilePath GetOutputFilepath(const FilePath &base_path, const CompiledShader &compiled_shader) const
+    {
+        HashCode hc;
+        hc.Add(file.path);
+        hc.Add(compiled_shader.GetDefinition().GetHashCode());
+        hc.Add(compiled_shader.GetDescriptorUsages().GetHashCode());
+
+        return base_path / "data/compiled_shaders/tmp" / FilePath(file.path).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(type);
+        hc.Add(language);
+        hc.Add(file);
+        hc.Add(last_modified_timestamp);
+        hc.Add(source);
+
+        return hc;
+    }
+};
+
 static const FlatMap<String, ShaderModuleType> shader_type_names = {
     { "vert", ShaderModuleType::VERTEX },
     { "frag", ShaderModuleType::FRAGMENT },
@@ -442,6 +476,21 @@ static const FlatMap<String, ShaderModuleType> shader_type_names = {
     { "mesh", ShaderModuleType::MESH },
     { "task", ShaderModuleType::TASK }
 };
+
+static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
+{
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+        const auto it = VertexAttribute::mapping.KeyValueAt(i);
+
+        if (name == it.second.name) {
+            out_type = it.first;
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 static void ForEachPermutation(
     const ShaderProperties &versions,
@@ -543,6 +592,69 @@ static void ForEachPermutation(
     }
 }
 
+// ShaderProperties
+
+ShaderProperties &ShaderProperties::Set(const ShaderProperty &property, bool enabled)
+{
+    if (property.IsVertexAttribute()) {
+        VertexAttribute::Type type;
+
+        if (!FindVertexAttributeForDefinition(property.GetValueString(), type)) {
+            DebugLog(
+                LogType::Error,
+                "Invalid vertex attribute name for shader: %s\n",
+                property.GetValueString().Data()
+            );
+
+            return *this;
+        }
+
+        if (property.IsOptionalVertexAttribute()) {
+            if (enabled) {
+                m_optional_vertex_attributes |= type;
+                m_optional_vertex_attributes &= ~m_required_vertex_attributes;
+            } else {
+                m_optional_vertex_attributes &= ~type;
+            }
+        } else {
+            if (enabled) {
+                m_required_vertex_attributes |= type;
+                m_optional_vertex_attributes &= ~type;
+            } else {
+                m_required_vertex_attributes &= ~type;
+            }
+
+            m_needs_hash_code_recalculation = true;
+        }
+    } else {
+        const auto it = m_props.Find(property);
+
+        if (enabled) {
+            if (it == m_props.End()) {
+                m_props.Insert(property);
+
+                m_needs_hash_code_recalculation = true;
+            } else {
+                if (*it != property) {
+                    *it = property;
+
+                    m_needs_hash_code_recalculation = true;
+                }
+            }
+        } else {
+            if (it != m_props.End()) {
+                m_props.Erase(it);
+
+                m_needs_hash_code_recalculation = true;
+            }
+        }
+    }
+
+    return *this;
+}
+
+// DescriptorUsageSet
+
 DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
 {
     DescriptorTableDeclaration table;
@@ -597,6 +709,8 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
 
     return table;
 }
+
+// ShaderCompiler
 
 ShaderCompiler::ShaderCompiler()
     : m_definitions(nullptr)
@@ -1015,37 +1129,6 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         return it.second;
     });
 }
-
-struct LoadedSourceFile
-{
-    ShaderModuleType            type;
-    ShaderLanguage              language;
-    ShaderCompiler::SourceFile  file;
-    uint64                      last_modified_timestamp;
-    String                      source;
-
-    FilePath GetOutputFilepath(const FilePath &base_path, const CompiledShader &compiled_shader) const
-    {
-        HashCode hc;
-        hc.Add(file.path);
-        hc.Add(compiled_shader.GetDefinition().GetHashCode());
-        hc.Add(compiled_shader.GetDescriptorUsages().GetHashCode());
-
-        return base_path / "data/compiled_shaders/tmp" / FilePath(file.path).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
-    }
-
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(type);
-        hc.Add(language);
-        hc.Add(file);
-        hc.Add(last_modified_timestamp);
-        hc.Add(source);
-
-        return hc;
-    }
-};
 
 bool ShaderCompiler::CanCompileShaders() const
 {

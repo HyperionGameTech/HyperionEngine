@@ -172,8 +172,6 @@ bool UIScene::OnInputEvent(
         const auto mouse_x = mouse_position.x.load();
         const auto mouse_y = mouse_position.y.load();
         
-        DebugLog(LogType::Debug, "Mouse position: %d, %d\n", mouse_x, mouse_y);
-        
         const bool is_mouse_button_down = input_manager->IsButtonDown(event.GetMouseButton());
 
         const Vec2u window_size = input_manager->GetWindow()->GetDimensions();

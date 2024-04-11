@@ -21,7 +21,7 @@ struct VisibilityStateComponent
 {
     VisibilityStateFlags    flags = VISIBILITY_STATE_FLAG_NONE;
 
-    OctantID                octant_id = OctantID::invalid;
+    OctantID                octant_id = OctantID::Invalid();
     VisibilityState         *visibility_state = nullptr;
 
     HashCode                last_aabb_hash;

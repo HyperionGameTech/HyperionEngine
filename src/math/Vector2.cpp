@@ -6,9 +6,6 @@ namespace hyperion {
 namespace math {
 namespace detail {
 
-const Vec2<float> Vec2<float>::zero = Vec2<float>(0.0f);
-const Vec2<float> Vec2<float>::one = Vec2<float>(1.0f);
-
 float Vec2<float>::Min() const
 {
     return MathUtil::Min(x, y);

@@ -398,6 +398,7 @@ void UIObject::SetDepth(int depth)
     m_depth = MathUtil::Clamp(depth, UIScene::min_depth, UIScene::max_depth);
 
     UpdatePosition();
+    UpdateMaterial(); // Update material to change z-layer
 }
 
 UIObjectAlignment UIObject::GetOriginAlignment() const
@@ -553,7 +554,9 @@ Handle<Material> UIObject::GetMaterial() const
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes) },
             .bucket             = Bucket::BUCKET_UI,
             .blend_mode         = BlendMode::NORMAL,
-            .cull_faces         = FaceCullMode::NONE
+            .cull_faces         = FaceCullMode::NONE,
+            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .z_layer            = GetDepth()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.0f, 0.005f, 0.015f, 0.95f } }
@@ -694,6 +697,22 @@ void UIObject::UpdateMeshData()
     ui_object_mesh_data.focus_state = m_focus_state;
 
     mesh_component->user_data.Set(ui_object_mesh_data);
+    mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+}
+
+void UIObject::UpdateMaterial()
+{
+    if (!m_parent || !m_parent->GetScene().IsValid()) {
+        return;
+    }
+
+    MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+
+    if (!mesh_component) {
+        return;
+    }
+
+    mesh_component->material = GetMaterial();
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 

@@ -22,6 +22,7 @@ public:
         out.SetProperty("attributes.flags", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags));
         out.SetProperty("attributes.cull_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces));
         out.SetProperty("attributes.fill_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode));
+        out.SetProperty("attributes.z_layer", FBOMInt(), in_object.GetRenderAttributes().z_layer);
 
         out.SetProperty("params.size", FBOMUnsignedInt(), uint32(in_object.GetParameters().Size()));
 
@@ -101,6 +102,7 @@ public:
         in.GetProperty("attributes.flags").ReadUnsignedInt(&attributes.flags);
         in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&attributes.cull_faces);
         in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&attributes.fill_mode);
+        in.GetProperty("attributes.z_layer").ReadInt(&attributes.z_layer);
 
         uint32 num_parameters;
 

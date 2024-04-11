@@ -187,9 +187,6 @@ public:
 
     static constexpr uint size = 2;
 
-    static const Vec2 zero;
-    static const Vec2 one;
-
     union {
         struct { float x, y; };
         float values[2];

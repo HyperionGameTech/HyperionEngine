@@ -11,8 +11,8 @@ namespace hyperion::v2 {
 
 struct GlyphImageData
 {
-    Extent2D   dimensions;
-    ByteBuffer byte_buffer;
+    Extent2D    dimensions;
+    ByteBuffer  byte_buffer;
 
     HYP_API Handle<Texture> CreateTexture() const;
 };

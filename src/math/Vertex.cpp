@@ -2,6 +2,41 @@
 
 namespace hyperion {
 
+// VertexAttributeSet
+
+Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
+{
+    Array<VertexAttribute::Type> attributes;
+    attributes.Reserve(VertexAttribute::mapping.Size());
+
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+        const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+
+        if (flag_mask & iter_flag_mask) {
+            attributes.PushBack(VertexAttribute::Type(iter_flag_mask));
+        }
+    }
+
+    return attributes;
+}
+
+SizeType VertexAttributeSet::CalculateVertexSize() const
+{
+    SizeType size = 0;
+
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+        const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+
+        if (flag_mask & iter_flag_mask) {
+            size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
+        }
+    }
+
+    return size;
+}
+
+// VertexAttribute
+
 const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
     { MESH_INPUT_ATTRIBUTE_POSITION,     VertexAttribute { .name = "a_position",     .location = 0, .binding = 0, .size = 3 * sizeof(float) } },
     { MESH_INPUT_ATTRIBUTE_NORMAL,       VertexAttribute { .name = "a_normal",       .location = 1, .binding = 0, .size = 3 * sizeof(float) } },
@@ -12,6 +47,8 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
     { MESH_INPUT_ATTRIBUTE_BONE_INDICES, VertexAttribute { .name = "a_bone_weights", .location = 6, .binding = 0, .size = 4 * sizeof(float) } },
     { MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS, VertexAttribute { .name = "a_bone_indices", .location = 7, .binding = 0, .size = 4 * sizeof(float) } }
 });
+
+// Vertex
 
 bool Vertex::operator==(const Vertex &other) const
 {

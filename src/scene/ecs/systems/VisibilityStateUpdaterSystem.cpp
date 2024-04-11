@@ -13,9 +13,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
 
     VisibilityStateComponent &visibility_state_component = entity_manager.GetComponent<VisibilityStateComponent>(entity);
 
-    DebugLog(LogType:: Debug, "VisibilityStateUpdaterSystem::OnEntityAdded(%u)\n", entity.Value());
-
-    if (visibility_state_component.octant_id != OctantID::invalid) {
+    if (visibility_state_component.octant_id != OctantID::Invalid()) {
         return;
     }
 
@@ -31,7 +29,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
         const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
         if (insert_result.first) {
-            AssertThrowMsg(insert_result.second != OctantID::invalid, "Invalid octant ID returned from Insert()");
+            AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
 
             visibility_state_component.octant_id = insert_result.second;
 
@@ -57,7 +55,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager
     VisibilityStateComponent &visibility_state_component = entity_manager.GetComponent<VisibilityStateComponent>(entity);
     visibility_state_component.visibility_state = nullptr;
 
-    if (visibility_state_component.octant_id != OctantID::invalid) {
+    if (visibility_state_component.octant_id != OctantID::Invalid()) {
         Octree &octree = entity_manager.GetScene()->GetOctree();
 
         const Octree::Result remove_result = octree.Remove(entity, false);
@@ -66,7 +64,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager
             DebugLog(LogType::Warn, "Failed to remove entity %u from octree: %s\n", entity.Value(), remove_result.message);
         }
 
-        visibility_state_component.octant_id = OctantID::invalid;
+        visibility_state_component.octant_id = OctantID::Invalid();
     }
 }
 
@@ -86,7 +84,7 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
 
         visibility_state_component.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
 
-        if (visibility_state_component.octant_id == OctantID::invalid) {
+        if (visibility_state_component.octant_id == OctantID::Invalid()) {
             // entity was not in the octree, try to insert it
             if (!bounding_box_component.world_aabb.IsValid()) {
                 continue;
@@ -95,7 +93,7 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             const Octree::InsertResult insert_result = octree.Insert(entity_id, bounding_box_component.world_aabb);
 
             if (insert_result.first) {
-                AssertThrowMsg(insert_result.second != OctantID::invalid, "Invalid octant ID returned from Insert()");
+                AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
 
                 visibility_state_component.octant_id = insert_result.second;
                 visibility_state_component.last_aabb_hash = aabb_hash_code;
@@ -123,13 +121,13 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
                 continue;
             }
 
-            AssertThrowMsg(update_result.second != OctantID::invalid, "Invalid octant ID returned from Update()");
+            AssertThrowMsg(update_result.second != OctantID::Invalid(), "Invalid octant ID returned from Update()");
 
             visibility_state_component.octant_id = update_result.second;
             visibility_state_component.last_aabb_hash = aabb_hash_code;
         }
 
-        if (visibility_state_component.octant_id != OctantID::invalid) {
+        if (visibility_state_component.octant_id != OctantID::Invalid()) {
             Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id);
 
             if (octant) {

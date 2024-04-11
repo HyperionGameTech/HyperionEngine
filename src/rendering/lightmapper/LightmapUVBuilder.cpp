@@ -1,7 +1,5 @@
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
-#define HYP_XATLAS
-
 #ifdef HYP_XATLAS
 #include <xatlas.h>
 #endif

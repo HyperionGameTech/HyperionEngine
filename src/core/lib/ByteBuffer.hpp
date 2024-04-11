@@ -177,7 +177,6 @@ public:
     SizeType Size() const
         { return GetInternalArray().Size(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     void SetSize(SizeType count)
     {

@@ -454,13 +454,13 @@ void Texture::GenerateMipmaps()
 Vec4f Texture::Sample(Vec2f uv) const
 {
     if (!IsReady()) {
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 
     const StreamedData *streamed_data = m_image->GetStreamedData();
 
     if (!streamed_data) {
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 
     // @FIXME: Create StreamedTextureData class like StreamedMeshData
@@ -469,7 +469,7 @@ Vec4f Texture::Sample(Vec2f uv) const
     const ByteBuffer &byte_buffer = streamed_data->Load();
 
     if (byte_buffer.Size() == 0) {
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 
     const Vec2u coord = {
@@ -486,7 +486,7 @@ Vec4f Texture::Sample(Vec2f uv) const
             bytes_per_pixel
         );
 
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 
     const uint num_components = renderer::NumComponents(m_image->GetTextureFormat());
@@ -494,7 +494,7 @@ Vec4f Texture::Sample(Vec2f uv) const
     const uint32 index = coord.y * m_image->GetExtent().width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
 
     if (index >= byte_buffer.Size()) {
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 
     const uint8 *data = byte_buffer.Data() + index;
@@ -509,7 +509,7 @@ Vec4f Texture::Sample(Vec2f uv) const
     case 4:
         return Vec4f(data[0] / 255.0f, data[1] / 255.0f, data[2] / 255.0f, data[3] / 255.0f);
     default: // should never happen
-        return Vec4f::zero;
+        return Vec4f::Zero();
     }
 }
 

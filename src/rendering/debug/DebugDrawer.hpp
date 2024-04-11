@@ -77,8 +77,8 @@ class DebugDrawCommandList
 
 public:
     void Sphere(const Vec3f &position, float radius = 0.15f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
-    void Box(const Vec3f &position, const Vec3f &size = Vec3f::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
-    void Plane(const Vec3f &position, const Vec2f &size = Vec2f::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Box(const Vec3f &position, const Vec3f &size = Vec3f::One(), Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Plane(const Vec3f &position, const Vec2f &size = Vec2f::One(), Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
 
     void Commit();
 
@@ -104,7 +104,7 @@ public:
     void Sphere(const Vec3f &position, float radius = 1.0f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void AmbientProbeSphere(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);
     void ReflectionProbeSphere(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);
-    void Box(const Vec3f &position, const Vec3f &size = Vec3f::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Box(const Vec3f &position, const Vec3f &size = Vec3f::One(), Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Plane(const FixedArray<Vec3f, 4> &points, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
 
 private:

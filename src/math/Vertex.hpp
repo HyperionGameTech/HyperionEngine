@@ -25,15 +25,15 @@ struct VertexAttribute
 {
     enum Type : uint64
     {
-        MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0x0,
-        MESH_INPUT_ATTRIBUTE_POSITION     = 0x1,
-        MESH_INPUT_ATTRIBUTE_NORMAL       = 0x2,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD0    = 0x4,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD1    = 0x8,
-        MESH_INPUT_ATTRIBUTE_TANGENT      = 0x10,
-        MESH_INPUT_ATTRIBUTE_BITANGENT    = 0x20,
-        MESH_INPUT_ATTRIBUTE_BONE_INDICES = 0x40,
-        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80,
+        MESH_INPUT_ATTRIBUTE_UNDEFINED      = 0x0,
+        MESH_INPUT_ATTRIBUTE_POSITION       = 0x1,
+        MESH_INPUT_ATTRIBUTE_NORMAL         = 0x2,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD0      = 0x4,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD1      = 0x8,
+        MESH_INPUT_ATTRIBUTE_TANGENT        = 0x10,
+        MESH_INPUT_ATTRIBUTE_BITANGENT      = 0x20,
+        MESH_INPUT_ATTRIBUTE_BONE_INDICES   = 0x40,
+        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS   = 0x80,
     };
 
     static const EnumOptions<Type, VertexAttribute, 16> mapping;
@@ -168,36 +168,8 @@ struct VertexAttributeSet
     uint Size() const
         { return uint(MathUtil::BitCount(flag_mask)); }
 
-    Array<VertexAttribute::Type> BuildAttributes() const
-    {
-        Array<VertexAttribute::Type> attributes;
-        attributes.Reserve(VertexAttribute::mapping.Size());
-
-        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
-
-            if (flag_mask & iter_flag_mask) {
-                attributes.PushBack(VertexAttribute::Type(iter_flag_mask));
-            }
-        }
-
-        return attributes;
-    }
-
-    SizeType CalculateVertexSize() const
-    {
-        SizeType size = 0;
-
-        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const uint64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
-
-            if (flag_mask & iter_flag_mask) {
-                size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
-            }
-        }
-
-        return size;
-    }
+    HYP_API Array<VertexAttribute::Type> BuildAttributes() const;
+    HYP_API SizeType CalculateVertexSize() const;
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const

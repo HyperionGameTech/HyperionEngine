@@ -375,7 +375,8 @@ void RenderList::PushEntityToRender(
 void RenderList::CollectDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
-    const CullData *cull_data
+    const CullData *cull_data,
+    bool sort_z_layer
 )
 {
     Threads::AssertOnThread(THREAD_RENDER);
@@ -396,6 +397,14 @@ void RenderList::CollectDrawCalls(
 
             iterators.PushBack(&it);
         }
+    }
+
+    if (sort_z_layer) {
+        std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
+        {
+            // sort by z layer
+            return lhs->first.GetMaterialAttributes().z_layer > rhs->first.GetMaterialAttributes().z_layer;
+        });
     }
 
     if constexpr (do_parallel_collection) {

@@ -52,7 +52,7 @@ static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
 
     static const HaltonSequence halton;
 
-    const Vec2f pixel_size = Vec2f::one / Vec2f(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
+    const Vec2f pixel_size = Vec2f::One() / Vec2f(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
     const uint index = frame_counter % HaltonSequence::size;
 
     const Vec2f jitter = halton.sequence[index] * 2.0f - 1.0f;
@@ -332,7 +332,7 @@ Vec4f Camera::TransformScreenToWorld(const Vec2f &screen) const
 
 Vec2f Camera::GetPixelSize() const
 {
-    return Vec2f::one / Vec2f { float(GetWidth()), float(GetHeight()) };
+    return Vec2f::One() / Vec2f { float(GetWidth()), float(GetHeight()) };
 }
 
 void Camera::Update(GameCounter::TickUnit dt)

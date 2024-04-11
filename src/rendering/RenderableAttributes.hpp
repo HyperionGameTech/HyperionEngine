@@ -36,6 +36,7 @@ struct MaterialAttributes
     BlendMode           blend_mode = BlendMode::NONE;
     FaceCullMode        cull_faces = FaceCullMode::BACK;
     MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
+    int                 z_layer = 0;
 
     HYP_FORCE_INLINE
     bool operator==(const MaterialAttributes &other) const
@@ -45,7 +46,8 @@ struct MaterialAttributes
             && fill_mode == other.fill_mode
             && blend_mode == other.blend_mode
             && cull_faces == other.cull_faces
-            && flags == other.flags;
+            && flags == other.flags
+            && z_layer == other.z_layer;
     }
 
     HYP_FORCE_INLINE
@@ -61,6 +63,7 @@ struct MaterialAttributes
         hc.Add(blend_mode);
         hc.Add(cull_faces);
         hc.Add(flags);
+        hc.Add(z_layer);
 
         return hc;
     }
@@ -97,8 +100,8 @@ class RenderableAttributeSet
     StencilState        m_stencil_state { };
     uint32              m_override_flags;
 
-    mutable HashCode m_cached_hash_code;
-    mutable bool m_needs_hash_code_recalculation = true;
+    mutable HashCode    m_cached_hash_code;
+    mutable bool        m_needs_hash_code_recalculation = true;
 
 public:
     RenderableAttributeSet(
@@ -117,18 +120,22 @@ public:
     RenderableAttributeSet &operator=(RenderableAttributeSet &&other) noexcept  = default;
     ~RenderableAttributeSet()                                                   = default;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const RenderableAttributeSet &other) const
         { return GetHashCode() == other.GetHashCode(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const RenderableAttributeSet &other) const
         { return GetHashCode() != other.GetHashCode(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const RenderableAttributeSet &other) const
         { return GetHashCode().Value() < other.GetHashCode().Value(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const ShaderDefinition &GetShaderDefinition() const
         { return m_material_attributes.shader_definition; }
@@ -137,6 +144,7 @@ public:
     void SetShaderDefinition(const ShaderDefinition &shader_definition)
         { m_material_attributes.shader_definition = shader_definition; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     ID<Framebuffer> GetFramebufferID() const
         { return m_framebuffer_id; }
@@ -145,6 +153,7 @@ public:
     void SetFramebufferID(ID<Framebuffer> framebuffer_id)
         { m_framebuffer_id = framebuffer_id; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const MeshAttributes &GetMeshAttributes() const
         { return m_mesh_attributes; }
@@ -153,6 +162,7 @@ public:
     void SetMeshAttributes(const MeshAttributes &mesh_attributes)
         { m_mesh_attributes = mesh_attributes; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const MaterialAttributes &GetMaterialAttributes() const
         { return m_material_attributes; }
@@ -161,6 +171,7 @@ public:
     void SetMaterialAttributes(const MaterialAttributes &material_attributes)
         { m_material_attributes = material_attributes; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const StencilState &GetStencilState() const
         { return m_stencil_state; }
@@ -169,6 +180,7 @@ public:
     void SetStencilState(const StencilState &stencil_state)
         { m_stencil_state = stencil_state; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint32 GetOverrideFlags() const
         { return m_override_flags; }

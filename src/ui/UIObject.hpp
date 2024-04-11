@@ -281,6 +281,7 @@ protected:
     void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool clamp = false);
 
     void UpdateMeshData();
+    void UpdateMaterial();
 
     ID<Entity>          m_entity;
     UIScene             *m_parent;

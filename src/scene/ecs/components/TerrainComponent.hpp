@@ -55,8 +55,8 @@ struct TerrainComponent
 {
     uint32                  seed = 0;
     Extent3D                patch_size = { 32, 32, 32 };
-    Vec3f                   camera_position = Vec3f::zero;
-    Vec3f                   scale = Vec3f::one;
+    Vec3f                   camera_position = Vec3f::Zero();
+    Vec3f                   scale = Vec3f::One();
     float                   max_distance = 2.0f;
 
     TerrainComponentFlags   flags = TERRAIN_COMPONENT_FLAG_NONE;

@@ -16,7 +16,9 @@ Handle<Material> UIButton::GetMaterial() const
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_BUTTON" }) },
             .bucket             = Bucket::BUCKET_UI,
             .blend_mode         = BlendMode::NORMAL,
-            .cull_faces         = FaceCullMode::NONE
+            .cull_faces         = FaceCullMode::NONE,
+            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .z_layer            = GetDepth()
         }
     );
 }

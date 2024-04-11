@@ -165,7 +165,8 @@ public:
     void CollectDrawCalls(
         Frame *frame,
         const Bitset &bucket_bits,
-        const CullData *cull_data
+        const CullData *cull_data,
+        bool sort_z_layer = false
     );
 
     void ExecuteDrawCalls(

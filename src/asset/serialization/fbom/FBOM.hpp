@@ -255,8 +255,9 @@ struct FBOMStaticData
     }
 };
 
-class FBOM {
-    FlatMap<String, std::unique_ptr<FBOMMarshalerBase>> marshalers;
+class FBOM
+{
+    FlatMap<String, UniquePtr<FBOMMarshalerBase>>   marshalers;
 
 public:
     static constexpr SizeType header_size = 32;
@@ -274,23 +275,23 @@ public:
         static_assert(std::is_base_of_v<FBOMMarshalerBase, Marshaler>,
             "Marshaler class must be a derived class of FBOMMarshalBase");
 
-        auto loader = std::make_unique<Marshaler>();
+        auto loader = UniquePtr<Marshaler>::Construct();
         const auto name = loader->GetObjectType().name;
+
+        DebugLog(LogType::Debug, "Registered FBOM loader %s\n", name.Data());
 
         marshalers.Set(name, std::move(loader));
     }
 
-    FBOMMarshalerBase *GetLoader(const String &type_name)
+    FBOMMarshalerBase *GetLoader(const String &type_name) const
     {
-        auto it = marshalers.Find(type_name);
+        const auto it = marshalers.Find(type_name);
 
-        AssertThrowMsg(
-            it != marshalers.End(),
-            "%s is not a registered type!",
-            type_name.Data()
-        );
+        if (it == marshalers.End()) {
+            return nullptr;
+        }
 
-        return it->second.get();
+        return it->second.Get();
     }
 
     static FBOM &GetInstance()

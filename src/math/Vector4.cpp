@@ -6,21 +6,6 @@
 
 namespace hyperion {
 
-template <>
-const Vec4<int> math::detail::Vec4<int>::zero = Vec4<int>(0);
-template <>
-const Vec4<int> math::detail::Vec4<int>::one = Vec4<int>(1);
-
-template <>
-const Vec4<uint> math::detail::Vec4<uint>::zero = Vec4<uint>(0);
-template <>
-const Vec4<uint> math::detail::Vec4<uint>::one = Vec4<uint>(1);
-
-const Vec4<float> math::detail::Vec4<float>::zero = Vec4<float>(0.0f);
-const Vec4<float> math::detail::Vec4<float>::one = Vec4<float>(1.0f);
-
-
-
 template<>
 int math::detail::Vec4<int>::Max() const
 {

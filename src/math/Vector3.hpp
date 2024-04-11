@@ -25,9 +25,6 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
 
     static constexpr uint size = 3;
     
-    static const Vec3 one;
-    static const Vec3 zero;
-    
     using Type = T;
 
     union {
@@ -226,9 +223,6 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
     friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
 
     static constexpr uint size = 3;
-    
-    static const Vec3 one;
-    static const Vec3 zero;
     
     using Type = float;
 
