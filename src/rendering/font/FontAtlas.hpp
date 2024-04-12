@@ -20,6 +20,22 @@
 
 namespace hyperion::v2 {
 
+struct HYP_API FontAtlasTextureSet
+{
+    Handle<Texture>                 main_atlas;
+    FlatMap<uint, Handle<Texture>>  atlases;
+
+    ~FontAtlasTextureSet();
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const Handle<Texture> &GetMainAtlas() const
+        { return main_atlas; }
+
+    void AddAtlas(uint pixel_size, Handle<Texture> texture, bool is_main_atlas = false);
+    Handle<Texture> GetAtlasForPixelSize(uint pixel_size) const;
+};
+
 class FontAtlas
 {
 public:
@@ -33,7 +49,7 @@ public:
 
     FontAtlas() = default;
 
-    HYP_API FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
+    HYP_API FontAtlas(RC<FontAtlasTextureSet> atlases, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
     HYP_API FontAtlas(RC<FontFace> face);
 
     FontAtlas(const FontAtlas &other)                   = delete;
@@ -49,12 +65,8 @@ public:
         { return m_glyph_metrics; }
 
     [[nodiscard]]
-    const Handle<Texture> &GetTexture() const
-        { return m_atlas; }
-
-    [[nodiscard]]
-    Extent2D GetDimensions() const
-        { return m_atlas.IsValid() ? Extent2D(m_atlas->GetExtent()) : Extent2D { 0, 0 }; }
+    const RC<FontAtlasTextureSet> &GetAtlases() const
+        { return m_atlases; }
 
     [[nodiscard]]
     Extent2D GetCellDimensions() const
@@ -66,21 +78,20 @@ public:
 
     HYP_API Optional<Glyph::Metrics> GetGlyphMetrics(FontFace::WChar symbol) const;
 
-    HYP_API void WriteToBuffer(ByteBuffer &buffer) const;
-
-    HYP_API Bitmap<1> GenerateBitmap() const;
+    HYP_API void WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const;
+    HYP_API Bitmap<1> GenerateBitmap(uint pixel_size) const;
     HYP_API json::JSONValue GenerateMetadataJSON(const String &bitmap_filepath) const;
 
 private:
     Extent2D FindMaxDimensions(const RC<FontFace> &face) const;
-    void RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const;
+    void RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D dimensions, Glyph &glyph) const;
 
-    RC<FontFace>        m_face;
+    RC<FontFace>            m_face;
 
-    Handle<Texture>     m_atlas;
-    Extent2D            m_cell_dimensions;
-    GlyphMetricsBuffer  m_glyph_metrics;
-    SymbolList          m_symbol_list;
+    RC<FontAtlasTextureSet> m_atlases;
+    Extent2D                m_cell_dimensions;
+    GlyphMetricsBuffer      m_glyph_metrics;
+    SymbolList              m_symbol_list;
 };
 
 } // namespace hyperion::v2

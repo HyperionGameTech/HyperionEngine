@@ -70,16 +70,14 @@ public:
         Threads::AssertOnThread(THREAD_GAME);
         AssertReady();
 
-        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name);
-
         NodeProxy node_proxy = m_scene->GetRoot().AddChild();
-
+        
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        node_proxy.Get()->SetFlags(node_proxy.Get()->GetFlags() | NODE_FLAG_IGNORE_PARENT_SCALE);
+        node_proxy->SetFlags(node_proxy->GetFlags() | NODE_FLAG_IGNORE_PARENT_SCALE);
 
-        node_proxy.SetEntity(ui_object->GetEntity());
-        node_proxy.LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
+        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node_proxy, false /* init */);
 
+        node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
         ui_object->SetPosition(position);
         ui_object->SetSize(size);
         ui_object->Init();
@@ -100,13 +98,16 @@ public:
 
 private:
     template <class T>
-    RC<UIObject> CreateUIObjectInternal(Name name, bool init = false)
+    RC<UIObject> CreateUIObjectInternal(Name name, NodeProxy &node_proxy, bool init = false)
     {
+        AssertThrow(node_proxy.IsValid());
+
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
         AssertReady();
 
         const ID<Entity> entity = m_scene->GetEntityManager()->AddEntity();
+        node_proxy.SetEntity(entity);
 
         RC<UIObject> ui_object(new T(entity, this));
         ui_object->SetName(name);

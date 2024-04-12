@@ -260,8 +260,10 @@ void DeferredPass::Create()
             .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .fill_mode  = FillMode::FILL,
-            .blend_mode = m_is_indirect_pass ? BlendMode::NONE : BlendMode::ADDITIVE
+            .fill_mode      = FillMode::FILL,
+            .blend_function = m_is_indirect_pass
+                ? BlendFunction::None()
+                : BlendFunction::Additive()
         }
     );
 
@@ -460,8 +462,8 @@ void EnvGridPass::Create()
             .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .fill_mode  = FillMode::FILL,
-            .blend_mode = BlendMode::NORMAL
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction::AlphaBlending()
         }
     );
 
@@ -612,7 +614,7 @@ void EnvGridPass::Render(Frame *frame)
 // ===== Reflection Probe Pass Begin =====
 
 ReflectionProbePass::ReflectionProbePass()
-    : FullScreenPass(InternalFormat::RGBA8),
+    : FullScreenPass(InternalFormat::RGBA16F),
       m_is_first_frame(true)
 {
 }
@@ -702,8 +704,8 @@ void ReflectionProbePass::Create()
             .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .fill_mode  = FillMode::FILL,
-            .blend_mode = BlendMode::NORMAL
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction::Default()
         }
     );
 
@@ -720,7 +722,7 @@ void ReflectionProbePass::Create()
     // Create temporal blending pass
     m_temporal_blending.Reset(new TemporalBlending(
         m_framebuffer->GetExtent(),
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         TemporalBlendTechnique::TECHNIQUE_1,
         TemporalBlendFeedback::LOW,
         m_framebuffer

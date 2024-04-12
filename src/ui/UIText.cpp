@@ -40,8 +40,6 @@ private:
 
 Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, const String &text) const
 {
-    AssertThrowMsg(font_atlas.GetTexture().IsValid(), "Font atlas texture is invalid");
-
     Array<UICharMesh> char_meshes;
     
     Vec2f placement;
@@ -50,6 +48,11 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
     
     const Extent2D cell_dimensions = font_atlas.GetCellDimensions();
     AssertThrowMsg(cell_dimensions.width != 0 && cell_dimensions.height != 0, "Cell dimensions are invalid");
+
+    AssertThrowMsg(font_atlas.GetAtlases() != nullptr, "Font atlas invalid");
+
+    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlases()->GetMainAtlas();
+    AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
     for (SizeType i = 0; i < length; i++) {
         const utf::u32char ch = text.GetChar(i);
@@ -85,9 +88,9 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
         const float cell_dimensions_ratio = float(cell_dimensions.width) / float(cell_dimensions.height);
 
-        const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(font_atlas.GetDimensions());
+        const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(Extent2D(main_texture_atlas->GetExtent()));
         const Vec2f glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) };
-        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) * Vec2f(cell_dimensions_ratio, 1.0f));
+        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) / Vec2f(cell_dimensions_ratio, 1.0f));
 
         UICharMesh char_mesh;
         char_mesh.mesh_data = m_quad_mesh->GetStreamedMeshData();
@@ -173,7 +176,8 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
 
 UIText::UIText(ID<Entity> entity, UIScene *parent)
     : UIObject(entity, parent),
-      m_text("No text set")
+      m_text("No text set"),
+      m_text_color(Vec4f { 0.0f, 0.0f, 0.0f, 1.0f })
 {
 }
 
@@ -202,10 +206,17 @@ void UIText::SetFontAtlas(RC<FontAtlas> font_atlas)
 {
     m_font_atlas = std::move(font_atlas);
 
-    UpdateMesh(true);
+    UpdateMesh();
 }
 
-void UIText::UpdateMesh(bool update_material)
+void UIText::SetTextColor(const Vec4f &color)
+{
+    m_text_color = color;
+
+    UpdateMaterial();
+}
+
+void UIText::UpdateMesh()
 {
     MeshComponent &mesh_component = GetParent()->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
 
@@ -221,46 +232,61 @@ void UIText::UpdateMesh(bool update_material)
         mesh = GetQuadMesh();
     }
 
+    g_safe_deleter->SafeReleaseHandle(std::move(mesh_component.mesh));
+
     mesh_component.mesh = mesh;
-
-    if (update_material || !mesh_component.material.IsValid()) {
-        mesh_component.material = GetMaterial();
-    }
-
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 
     if (mesh.IsValid()) {
-        UIObject::SetLocalAABB(mesh->GetAABB());
+        SetLocalAABB(mesh->GetAABB());
     } else {
         DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
 
-        UIObject::SetLocalAABB(BoundingBox::Empty());
+        SetLocalAABB(BoundingBox::Empty());
     }
 
     // Update bounding box, size
-    UIObject::UpdateSize();
+    UpdateSize();
 }
 
 Handle<Material> UIText::GetMaterial() const
 {
+    const Vec2i actual_size = GetActualSize();
+    const uint pixel_size = MathUtil::Max(actual_size.y, 1);
+
+    Handle<Texture> font_atlas_texture;
+
     FontAtlas *font_atlas = GetFontAtlasOrDefault();
+
+    if (font_atlas != nullptr && font_atlas->GetAtlases() != nullptr) {
+        font_atlas_texture = font_atlas->GetAtlases()->GetAtlasForPixelSize(pixel_size);
+    }
 
     return g_material_system->GetOrCreate(
         MaterialAttributes {
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
             .bucket             = Bucket::BUCKET_UI,
-            .blend_mode         = BlendMode::NORMAL,
+            .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
             .z_layer            = GetDepth()
         },
         {
-            { Material::MATERIAL_KEY_ALBEDO, Vec4f { 1.0f, 1.0f, 1.0f, 1.0f } }
+            { Material::MATERIAL_KEY_ALBEDO, m_text_color }
         },
         {
-            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_atlas != nullptr ? font_atlas->GetTexture() : Handle<Texture> { } }
+            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_atlas_texture }
         }
     );
+}
+
+void UIText::UpdateSize()
+{
+    UIObject::UpdateSize();
+
+    // Update material to get new font size if necessary
+    UpdateMaterial();
 }
 
 } // namespace hyperion::v2

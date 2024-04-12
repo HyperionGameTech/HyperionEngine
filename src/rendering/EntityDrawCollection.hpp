@@ -165,8 +165,7 @@ public:
     void CollectDrawCalls(
         Frame *frame,
         const Bitset &bucket_bits,
-        const CullData *cull_data,
-        bool sort_z_layer = false
+        const CullData *cull_data
     );
 
     void ExecuteDrawCalls(
@@ -193,6 +192,38 @@ public:
     ) const;
 
     void ExecuteDrawCalls(
+        Frame *frame,
+        const Handle<Camera> &camera,
+        const Handle<Framebuffer> &framebuffer,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCallsInLayers(
+        Frame *frame,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCallsInLayers(
+        Frame *frame,
+        const Handle<Framebuffer> &framebuffer,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCallsInLayers(
+        Frame *frame,
+        const Handle<Camera> &camera,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCallsInLayers(
         Frame *frame,
         const Handle<Camera> &camera,
         const Handle<Framebuffer> &framebuffer,

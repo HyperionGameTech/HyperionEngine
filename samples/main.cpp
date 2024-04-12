@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    WindowFlags window_flags = WINDOW_FLAGS_NONE;//WINDOW_FLAGS_HIGH_DPI;
+    WindowFlags window_flags = WINDOW_FLAGS_HIGH_DPI;
 
     ArgParse arg_parse;
     arg_parse.Add("headless", String::empty, ArgParse::ARG_FLAGS_NONE, ArgParse::ARGUMENT_TYPE_BOOL, false);    

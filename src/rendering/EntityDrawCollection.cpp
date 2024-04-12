@@ -375,8 +375,7 @@ void RenderList::PushEntityToRender(
 void RenderList::CollectDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
-    const CullData *cull_data,
-    bool sort_z_layer
+    const CullData *cull_data
 )
 {
     Threads::AssertOnThread(THREAD_RENDER);
@@ -397,14 +396,6 @@ void RenderList::CollectDrawCalls(
 
             iterators.PushBack(&it);
         }
-    }
-
-    if (sort_z_layer) {
-        std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
-        {
-            // sort by z layer
-            return lhs->first.GetMaterialAttributes().z_layer > rhs->first.GetMaterialAttributes().z_layer;
-        });
     }
 
     if constexpr (do_parallel_collection) {
@@ -534,6 +525,123 @@ void RenderList::ExecuteDrawCalls(
             } else {
                 entity_list.render_group->PerformRendering(frame);
             }
+        }
+    }
+
+    g_engine->GetRenderState().UnbindCamera();
+
+    if (framebuffer) {
+        framebuffer->EndCapture(frame_index, command_buffer);
+    }
+}
+
+void RenderList::ExecuteDrawCallsInLayers(
+    Frame *frame,
+    const Bitset &bucket_bits,
+    const CullData *cull_data,
+    PushConstantData push_constant
+) const
+{
+    AssertThrow(m_camera.IsValid());
+    AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer attached");
+
+    ExecuteDrawCallsInLayers(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
+}
+
+void RenderList::ExecuteDrawCallsInLayers(
+    Frame *frame,
+    const Handle<Framebuffer> &framebuffer,
+    const Bitset &bucket_bits,
+    const CullData *cull_data,
+    PushConstantData push_constant
+) const
+{
+    AssertThrow(m_camera.IsValid());
+
+    ExecuteDrawCallsInLayers(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
+}
+
+void RenderList::ExecuteDrawCallsInLayers(
+    Frame *frame,
+    const Handle<Camera> &camera,
+    const Bitset &bucket_bits,
+    const CullData *cull_data,
+    PushConstantData push_constant
+) const
+{
+    AssertThrow(camera.IsValid());
+    AssertThrowMsg(camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer is attached");
+
+    ExecuteDrawCallsInLayers(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
+}
+
+void RenderList::ExecuteDrawCallsInLayers(
+    Frame *frame,
+    const Handle<Camera> &camera,
+    const Handle<Framebuffer> &framebuffer,
+    const Bitset &bucket_bits,
+    const CullData *cull_data,
+    PushConstantData push_constant
+) const
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    
+    AssertThrow(m_draw_collection != nullptr);
+    AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
+
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
+    const uint frame_index = frame->GetFrameIndex();
+
+    if (framebuffer) {
+        framebuffer->BeginCapture(frame_index, command_buffer);
+    }
+
+    g_engine->GetRenderState().BindCamera(camera.Get());
+
+    using IteratorType = ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>::ConstIterator;
+    Array<IteratorType> iterators;
+
+    for (const auto &collection_per_pass_type : m_draw_collection->GetEntityList(THREAD_TYPE_RENDER)) {
+        for (const auto &it : collection_per_pass_type) {
+            iterators.PushBack(&it);
+        }
+    }
+
+    std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
+    {
+        // sort by z layer
+        return lhs->first.GetMaterialAttributes().z_layer < rhs->first.GetMaterialAttributes().z_layer;
+    });
+
+    for (SizeType index = 0; index < iterators.Size(); index++) {
+        const auto &it = *iterators[index];
+
+        const RenderableAttributeSet &attributes = it.first;
+        const EntityDrawCollection::EntityList &entity_list = it.second;
+
+        const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+
+        if (!bucket_bits.Test(uint(bucket))) {
+            continue;
+        }
+
+        AssertThrow(entity_list.render_group.IsValid());
+
+        if (framebuffer) {
+            AssertThrowMsg(
+                attributes.GetFramebufferID() == framebuffer->GetID(),
+                "Given Framebuffer's ID does not match RenderList item's framebuffer ID -- invalid data passed?"
+            );
+        }
+
+        if (push_constant) {
+            entity_list.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
+        }
+
+        if (use_draw_indirect && cull_data != nullptr) {
+            entity_list.render_group->PerformRenderingIndirect(frame);
+        } else {
+            entity_list.render_group->PerformRendering(frame);
         }
     }
 

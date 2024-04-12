@@ -29,8 +29,55 @@ struct RENDER_COMMAND(RenderFontAtlas) : renderer::RenderCommand
 
 #pragma endregion
 
-FontAtlas::FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list)
-    : m_atlas(std::move(atlas)),
+#pragma region FontAtlasTextureSet
+
+FontAtlasTextureSet::~FontAtlasTextureSet()
+{
+    for (auto &atlas : atlases) {
+        g_safe_deleter->SafeReleaseHandle(std::move(atlas.second));
+    }
+}
+
+void FontAtlasTextureSet::AddAtlas(uint pixel_size, Handle<Texture> texture, bool is_main_atlas)
+{
+    if (is_main_atlas) {
+        AssertThrowMsg(!main_atlas.IsValid(), "Main atlas already set");
+    }
+
+    if (!texture.IsValid()) {
+        return;
+    }
+
+    atlases[pixel_size] = texture;
+
+    if (is_main_atlas) {
+        main_atlas = texture;
+    }
+}
+
+Handle<Texture> FontAtlasTextureSet::GetAtlasForPixelSize(uint pixel_size) const
+{
+    auto it = atlases.Find(pixel_size);
+
+    if (it != atlases.End()) {
+        return it->second;
+    }
+
+    it = atlases.UpperBound(pixel_size);
+
+    if (it != atlases.End()) {
+        return it->second;
+    }
+
+    return Handle<Texture> { };
+}
+
+#pragma endregion
+
+#pragma region FontAtlas
+
+FontAtlas::FontAtlas(RC<FontAtlasTextureSet> atlases, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list)
+    : m_atlases(std::move(atlases)),
       m_cell_dimensions(cell_dimensions),
       m_glyph_metrics(std::move(glyph_metrics)),
       m_symbol_list(std::move(symbol_list))
@@ -40,25 +87,13 @@ FontAtlas::FontAtlas(Handle<Texture> atlas, Extent2D cell_dimensions, GlyphMetri
 
 FontAtlas::FontAtlas(RC<FontFace> face)
     : m_face(std::move(face)),
+      m_atlases(new FontAtlasTextureSet),
       m_symbol_list(GetDefaultSymbolList())
 {
     AssertThrow(m_symbol_list.Size() != 0);
 
     // Each cell will be the same size at the largest symbol
     m_cell_dimensions = FindMaxDimensions(m_face);
-    
-    m_atlas = CreateObject<Texture>(
-        Texture2D(
-            Extent2D { m_cell_dimensions.width * symbol_columns, m_cell_dimensions.height * symbol_rows },
-            /* Grayscale 8-bit texture */
-            InternalFormat::R8,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        )
-    );
-
-    InitObject(m_atlas);
 }
 
 FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
@@ -90,30 +125,68 @@ void FontAtlas::Render()
     m_glyph_metrics.Clear();
     m_glyph_metrics.Resize(m_symbol_list.Size());
 
-    for (uint i = 0; i < m_symbol_list.Size(); i++) {
-        const auto &symbol = m_symbol_list[i];
-
-        const uint x_index = i % symbol_columns;
-        const uint y_index = i / symbol_columns;
-
-        const Vec2i position {
-            int(x_index * m_cell_dimensions.width),
-            int(y_index * m_cell_dimensions.height)
+    const auto RenderGlyphs = [&](float scale, bool is_main_atlas)
+    {
+        const Extent2D scaled_extent {
+            MathUtil::Ceil<float, uint32>(float(m_cell_dimensions.width) * scale),
+            MathUtil::Ceil<float, uint32>(float(m_cell_dimensions.height) * scale)
         };
 
-        Glyph glyph(m_face, m_face->GetGlyphIndex(symbol), true);
-        // Render the glyph into a temporary texture
-        glyph.Render();
+        Handle<Texture> atlas = CreateObject<Texture>(
+            Texture2D(
+                Extent2D { scaled_extent.width * symbol_columns, scaled_extent.height * symbol_rows },
+                /* Grayscale 8-bit texture */
+                InternalFormat::R8,
+                FilterMode::TEXTURE_FILTER_NEAREST,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                nullptr
+            )
+        );
 
-        m_glyph_metrics[i] = glyph.GetMetrics();
-        m_glyph_metrics[i].image_position = position;
+        InitObject(atlas);
 
-        if (y_index > symbol_rows) {
-            break;
+        for (uint i = 0; i < m_symbol_list.Size(); i++) {
+            const auto &symbol = m_symbol_list[i];
+
+            const uint x_index = i % symbol_columns;
+            const uint y_index = i / symbol_columns;
+
+            const Vec2i position {
+                int(x_index * scaled_extent.width),
+                int(y_index * scaled_extent.height)
+            };
+
+            Glyph glyph(m_face, m_face->GetGlyphIndex(symbol), scale);
+            // Render the glyph into a temporary texture
+            glyph.Render();
+
+            if (is_main_atlas) {
+                m_glyph_metrics[i] = glyph.GetMetrics();
+                m_glyph_metrics[i].image_position = position;
+            }
+
+            if (y_index > symbol_rows) {
+                break;
+            }
+
+            // Render our character texture => atlas
+            RenderCharacter(atlas, position, scaled_extent, glyph);
         }
 
-        // Render our character texture => atlas
-        RenderCharacter(position, m_cell_dimensions, glyph);
+        DebugLog(LogType::Debug, "Rendered font atlas for pixel size %u\n", scaled_extent.height);
+
+        // Add initial atlas
+        m_atlases->AddAtlas(scaled_extent.height, std::move(atlas), is_main_atlas);
+    };
+
+    RenderGlyphs(1.0f, true);
+
+    for (float i = 0.1f; i <= 0.9f; i += 0.1f) {
+        RenderGlyphs(i, false);
+    }
+
+    for (float i = 1.1f; i <= 2.0f; i += 0.1f) {
+        RenderGlyphs(i, false);
     }
 
     if (!Threads::IsOnThread(THREAD_RENDER)) {
@@ -122,7 +195,7 @@ void FontAtlas::Render()
     }
 }
 
-void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyph) const
+void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D dimensions, Glyph &glyph) const
 {
     Handle<Texture> glyph_texture = glyph.GetImageData().CreateTexture();
     InitObject(glyph_texture);
@@ -154,18 +227,23 @@ void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyp
 
             const ImageRef &image = glyph_texture->GetImage();
 
+            const Extent2D extent(glyph_texture->GetExtent());
+
             Rect src_rect {
                 0, 0,
-                glyph_texture->GetExtent().width,
-                glyph_texture->GetExtent().height
+                extent.width,
+                extent.height
             };
 
             Rect dest_rect {
                 uint32(location.x),
                 uint32(location.y),
-                uint32(location.x + glyph_texture->GetExtent().width),
-                uint32(location.y + glyph_texture->GetExtent().height)
+                uint32(location.x + extent.width),
+                uint32(location.y + extent.height)
             };
+
+            AssertThrowMsg(cell_dimensions.width >= extent.width, "Cell width (%u) is less than glyph width (%u)", cell_dimensions.width, extent.width);
+            AssertThrowMsg(cell_dimensions.height >= extent.height, "Cell height (%u) is less than glyph height (%u)", cell_dimensions.height, extent.height);
 
             commands.Push([&](CommandBuffer *command_buffer)
             {
@@ -185,9 +263,9 @@ void FontAtlas::RenderCharacter(Vec2i location, Extent2D dimensions, Glyph &glyp
     };
 
     if (Threads::IsOnThread(THREAD_RENDER)) {
-        EXEC_RENDER_COMMAND_INLINE(FontAtlas_RenderCharacter, m_atlas, glyph_texture, location, m_cell_dimensions);
+        EXEC_RENDER_COMMAND_INLINE(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
     } else {
-        PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, m_atlas, glyph_texture, location, m_cell_dimensions);
+        PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
     }
 }
 
@@ -197,7 +275,9 @@ Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face) const
 
     for (const auto &symbol : m_symbol_list) {
         // Create the glyph but only load in the metadata
-        Glyph glyph(face, face->GetGlyphIndex(symbol), false);
+        Glyph glyph(face, face->GetGlyphIndex(symbol), 1.0f);
+        glyph.LoadMetrics();
+
         // Get the size of each glyph
         Extent2D size = glyph.GetMax();
 
@@ -227,11 +307,18 @@ Optional<Glyph::Metrics> FontAtlas::GetGlyphMetrics(FontFace::WChar symbol) cons
     return m_glyph_metrics[index];
 }
 
-void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
+void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
 {
-    AssertThrow(m_atlas.IsValid());
+    AssertThrow(m_atlases != nullptr);
 
-    const SizeType buffer_size = m_atlas->GetImage()->GetByteSize();
+    Handle<Texture> atlas = m_atlases->GetAtlasForPixelSize(pixel_size);
+
+    if (!atlas.IsValid()) {
+        DebugLog(LogType::Error, "Failed to get atlas for pixel size %u\n", pixel_size);
+        return;
+    }
+
+    const SizeType buffer_size = atlas->GetImage()->GetByteSize();
     buffer.SetSize(buffer_size);
 
     struct RENDER_COMMAND(FontAtlas_WriteToBuffer) : renderer::RenderCommand
@@ -251,6 +338,8 @@ void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
 
         virtual ~RENDER_COMMAND(FontAtlas_WriteToBuffer)() override
         {
+            g_safe_deleter->SafeReleaseHandle(std::move(atlas));
+
             SafeRelease(std::move(buffer));
         }
 
@@ -297,19 +386,26 @@ void FontAtlas::WriteToBuffer(ByteBuffer &buffer) const
     };
 
     if (Threads::IsOnThread(THREAD_RENDER)) {
-        EXEC_RENDER_COMMAND_INLINE(FontAtlas_WriteToBuffer, m_atlas, buffer, buffer_size);
+        EXEC_RENDER_COMMAND_INLINE(FontAtlas_WriteToBuffer, atlas, buffer, buffer_size);
     } else {
-        PUSH_RENDER_COMMAND(FontAtlas_WriteToBuffer, m_atlas, buffer, buffer_size);
+        PUSH_RENDER_COMMAND(FontAtlas_WriteToBuffer, atlas, buffer, buffer_size);
         HYP_SYNC_RENDER();
     }
 }
 
-Bitmap<1> FontAtlas::GenerateBitmap() const
+Bitmap<1> FontAtlas::GenerateBitmap(uint pixel_size) const
 {
-    ByteBuffer byte_buffer;
-    WriteToBuffer(byte_buffer);
+    Handle<Texture> atlas = m_atlases->GetAtlasForPixelSize(pixel_size);
 
-    Bitmap<1> bitmap(m_atlas->GetExtent().width, m_atlas->GetExtent().height);
+    if (!atlas.IsValid()) {
+        DebugLog(LogType::Error, "Failed to get atlas for pixel size %u\n", pixel_size);
+        return { };
+    }
+
+    ByteBuffer byte_buffer;
+    WriteToBuffer(pixel_size, byte_buffer);
+
+    Bitmap<1> bitmap(atlas->GetExtent().width, atlas->GetExtent().height);
     bitmap.SetPixels(byte_buffer);
     bitmap.FlipVertical();
 
@@ -355,6 +451,8 @@ json::JSONValue FontAtlas::GenerateMetadataJSON(const String &bitmap_filepath) c
 
     return value;
 }
+
+#pragma endregion
 
 }; // namespace hyperion::v2
 

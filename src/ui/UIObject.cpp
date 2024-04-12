@@ -33,9 +33,9 @@ namespace hyperion::v2 {
 struct UIObjectMeshData
 {
     uint32 focus_state = UI_OBJECT_FOCUS_STATE_NONE;
-    uint32 _pad0;
-    uint32 _pad1;
-    uint32 _pad2;
+    uint32 width = 0u;
+    uint32 height = 0u;
+    uint32 additional_data = 0u;
 };
 
 static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
@@ -82,6 +82,7 @@ UIObject::UIObject(ID<Entity> entity, UIScene *parent)
       m_position(0, 0),
       m_size({ 100, 100 }),
       m_depth(0),
+      m_border_radius(0),
       m_focus_state(UI_OBJECT_FOCUS_STATE_NONE)
 {
     AssertThrowMsg(entity.IsValid(), "Invalid Entity provided to UIObject!");
@@ -387,7 +388,7 @@ int UIObject::GetDepth() const
     }
 
     if (NodeProxy node = GetNode()) {
-        return MathUtil::Clamp(int(node->CalculateDepth()), UIScene::min_depth, UIScene::max_depth);
+        return MathUtil::Clamp(int(node->CalculateDepth()), UIScene::min_depth, UIScene::max_depth + 1);
     }
 
     return 0;
@@ -395,10 +396,17 @@ int UIObject::GetDepth() const
 
 void UIObject::SetDepth(int depth)
 {
-    m_depth = MathUtil::Clamp(depth, UIScene::min_depth, UIScene::max_depth);
+    m_depth = MathUtil::Clamp(depth, UIScene::min_depth, UIScene::max_depth + 1);
 
     UpdatePosition();
     UpdateMaterial(); // Update material to change z-layer
+}
+
+void UIObject::SetBorderRadius(uint32 border_radius)
+{
+    m_border_radius = border_radius;
+
+    UpdateMeshData();
 }
 
 UIObjectAlignment UIObject::GetOriginAlignment() const
@@ -467,6 +475,7 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
 
     ui_object->UpdateSize();
     ui_object->UpdatePosition();
+    ui_object->UpdateMaterial(); // for z-layer
 }
 
 bool UIObject::RemoveChildUIObject(UIObject *ui_object)
@@ -492,6 +501,7 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             if (removed) {
                 ui_object->UpdateSize();
                 ui_object->UpdatePosition();
+                ui_object->UpdateMaterial(); // for z-layer
 
                 return true;
             }
@@ -553,8 +563,8 @@ Handle<Material> UIObject::GetMaterial() const
         MaterialAttributes {
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes) },
             .bucket             = Bucket::BUCKET_UI,
-            .blend_mode         = BlendMode::NORMAL,
-            .cull_faces         = FaceCullMode::NONE,
+            .blend_function     = BlendFunction::AlphaBlending(),
+            .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
             .z_layer            = GetDepth()
         },
@@ -642,10 +652,16 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     // percentage based size of parent ui object / surface
     if (in_size.GetFlagsX() & UIObjectSize::PERCENT) {
         out_actual_size.x = MathUtil::Floor(float(out_actual_size.x) * 0.01f * float(parent_size.x));
+
+        // Reduce size due to parent object's padding
+        out_actual_size.x -= parent_padding.x * 2;
     }
 
     if (in_size.GetFlagsY() & UIObjectSize::PERCENT) {
         out_actual_size.y = MathUtil::Floor(float(out_actual_size.y) * 0.01f * float(parent_size.y));
+
+        // Reduce size due to parent object's padding
+        out_actual_size.y -= parent_padding.y * 2;
     }
 
     if (in_size.GetAllFlags() & UIObjectSize::GROW) {
@@ -673,10 +689,6 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
         }
     }
 
-    // Reduce size due to parent object's padding
-    out_actual_size.x -= parent_padding.x * 2;
-    out_actual_size.y -= parent_padding.y * 2;
-
     // make sure the actual size is at least 0
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
 }
@@ -695,6 +707,9 @@ void UIObject::UpdateMeshData()
 
     UIObjectMeshData ui_object_mesh_data { };
     ui_object_mesh_data.focus_state = m_focus_state;
+    ui_object_mesh_data.width = m_actual_size.x;
+    ui_object_mesh_data.height = m_actual_size.y;
+    ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu);
 
     mesh_component->user_data.Set(ui_object_mesh_data);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
@@ -706,13 +721,24 @@ void UIObject::UpdateMaterial()
         return;
     }
 
+    ForEachChildUIObject([](UIObject *child)
+    {
+        child->UpdateMaterial();
+    });
+
     MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
 
     if (!mesh_component) {
         return;
     }
 
-    mesh_component->material = GetMaterial();
+    Handle<Material> material = GetMaterial();
+
+    if (mesh_component->material == material) {
+        return;
+    }
+
+    mesh_component->material = std::move(material);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 

@@ -19,7 +19,7 @@ FontFace::FontFace(FontEngine::Backend backend, const FilePath &path)
         return;
     }
 
-    RequestPixelSizes(0, 48);
+    RequestPixelSizes(0, 20);
 #endif
 }
 

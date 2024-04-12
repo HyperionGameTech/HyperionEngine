@@ -328,15 +328,23 @@ public:
 
     void Render()
     {
-        PUSH_RENDER_COMMAND(
-            RenderTextureMipmapLevels,
-            m_image,
-            m_image_view,
-            m_mip_image_views,
-            m_passes
-        );
-
-        HYP_SYNC_RENDER();
+        if (Threads::IsOnThread(THREAD_RENDER)) {
+            EXEC_RENDER_COMMAND_INLINE(
+                RenderTextureMipmapLevels,
+                m_image,
+                m_image_view,
+                m_mip_image_views,
+                m_passes
+            );
+        } else {
+            PUSH_RENDER_COMMAND(
+                RenderTextureMipmapLevels,
+                m_image,
+                m_image_view,
+                m_mip_image_views,
+                m_passes
+            );
+        }
     }
 
 private:

@@ -28,7 +28,8 @@ public:
     AttachmentUsage(
         AttachmentRef<Platform::VULKAN> attachment,
         LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
     );
 
     AttachmentUsage(
@@ -36,7 +37,8 @@ public:
         ImageViewRef<Platform::VULKAN> image_view,
         SamplerRef<Platform::VULKAN> sampler,
         LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
     );
 
     AttachmentUsage(const AttachmentUsage &other)               = delete;
@@ -52,12 +54,26 @@ public:
     const SamplerRef<Platform::VULKAN> &GetSampler() const
         { return m_sampler; }
 
-    LoadOperation GetLoadOperation() const { return m_load_operation; }
-    StoreOperation GetStoreOperation() const { return m_store_operation; }
+    LoadOperation GetLoadOperation() const
+        { return m_load_operation; }
 
-    uint GetBinding() const { return m_binding; }
-    void SetBinding(uint binding) { m_binding = binding; }
-    bool HasBinding() const { return m_binding != UINT_MAX; }
+    StoreOperation GetStoreOperation() const
+        { return m_store_operation; }
+
+    const BlendFunction &GetBlendFunction() const
+        { return m_blend_function; }
+
+    void SetBlendFunction(const BlendFunction &blend_function)
+        { m_blend_function = blend_function; }
+
+    uint GetBinding() const
+        { return m_binding; }
+    
+    void SetBinding(uint binding)
+        { m_binding = binding; }
+
+    bool HasBinding() const 
+        { return m_binding != MathUtil::MaxSafeValue<uint>(); }
 
     InternalFormat GetFormat() const;
     bool IsDepthAttachment() const;
@@ -81,6 +97,9 @@ private:
     
     LoadOperation                   m_load_operation;
     StoreOperation                  m_store_operation;
+
+    BlendFunction                   m_blend_function;
+
     uint                            m_binding = MathUtil::MaxSafeValue<uint>();
 
     bool                            m_image_view_owned = false;

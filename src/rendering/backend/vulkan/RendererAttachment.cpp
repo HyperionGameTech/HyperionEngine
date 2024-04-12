@@ -70,13 +70,15 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
 AttachmentUsage<Platform::VULKAN>::AttachmentUsage(
     AttachmentRef<Platform::VULKAN> attachment,
     LoadOperation load_operation,
-    StoreOperation store_operation
+    StoreOperation store_operation,
+    BlendFunction blend_function
 ) : AttachmentUsage(
         std::move(attachment),
         MakeRenderObject<ImageView<Platform::VULKAN>>(),
         MakeRenderObject<Sampler<Platform::VULKAN>>(),
         load_operation,
-        store_operation
+        store_operation,
+        blend_function
     )
 {
     m_image_view_owned = true;
@@ -88,10 +90,12 @@ AttachmentUsage<Platform::VULKAN>::AttachmentUsage(
     ImageViewRef<Platform::VULKAN> image_view,
     SamplerRef<Platform::VULKAN> sampler,
     LoadOperation load_operation,
-    StoreOperation store_operation
+    StoreOperation store_operation,
+    BlendFunction blend_function
 ) : m_attachment(std::move(attachment)),
     m_load_operation(load_operation),
     m_store_operation(store_operation),
+    m_blend_function(blend_function),
     m_image_view(std::move(image_view)),
     m_sampler(std::move(sampler)),
     m_image_view_owned(false),

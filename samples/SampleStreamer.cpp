@@ -205,8 +205,8 @@ void SampleStreamer::InitGame()
 
     GetUI().SetDefaultFontAtlas(atlas);
 
-    auto font_bitmap = atlas->GenerateBitmap();
-    font_bitmap.Write("font_bitmap.bmp");
+    // auto font_bitmap = atlas->GenerateBitmap();
+    // font_bitmap.Write("font_bitmap.bmp");
     
     auto font_metadata_json = atlas->GenerateMetadataJSON("font_bitmap.bmp");
 
@@ -460,12 +460,10 @@ void SampleStreamer::InitGame()
             Vec3f(0.0f, 0.1f, 0.0f),
             Vec3f(-1.0f, 0.0f, 0.0f).Normalize(),
             Color(0.0f, 1.0f, 0.0f),
-            50.0f,
+            2.0f,
             15.0f,
             Vec2f { MathUtil::Cos(MathUtil::DegToRad(50.0f)), MathUtil::Cos(MathUtil::DegToRad(10.0f)) }
         ));
-
-        DebugLog(LogType::Debug, "Spot angles: %f, %f\n", spotlight->GetSpotAngles().x, spotlight->GetSpotAngles().y);
 
         InitObject(spotlight);
 
@@ -747,7 +745,7 @@ void SampleStreamer::InitGame()
     // ui_text->UpdateSize();
 
     if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 })) {
-        btn->SetPadding(Vec2i { 5, 5 });
+        // btn->SetPadding(Vec2i { 5, 5 });
         
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
@@ -756,26 +754,25 @@ void SampleStreamer::InitGame()
             }
         });
 
-        // auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 0 }, Vec2i { 100, 100 });
-        // tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        // tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        // tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
-        // tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
-        // btn->AddChildUIObject(tab_view);
+        auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 100, 100 });
+        tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+        tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+        btn->AddChildUIObject(tab_view);
 
         // btn->OnMouseHover.Bind([](const UIMouseEventData &)
         // {
         //     return true;
         // });
 
-        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
-        ui_text->SetText("Hello world!");
-        ui_text->SetOptions({ .line_height = 1.0f });
-        // ui_text->SetMaxWidth(100, UIObjectSize::DEFAULT);
+        auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
+        ui_text->SetText("Hello");
         ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-
         btn->AddChildUIObject(ui_text);
+        
+        ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
         // auto new_btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
         // new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);

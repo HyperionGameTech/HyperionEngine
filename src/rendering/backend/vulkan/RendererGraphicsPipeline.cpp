@@ -19,6 +19,34 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
+static VkBlendFactor ToVkBlendFactor(BlendModeFactor blend_mode)
+{
+    switch (blend_mode) {
+    case BlendModeFactor::ONE:
+        return VK_BLEND_FACTOR_ONE;
+    case BlendModeFactor::ZERO:
+        return VK_BLEND_FACTOR_ZERO;
+    case BlendModeFactor::SRC_COLOR:
+        return VK_BLEND_FACTOR_SRC_COLOR;
+    case BlendModeFactor::SRC_ALPHA:
+        return VK_BLEND_FACTOR_SRC_ALPHA;
+    case BlendModeFactor::DST_COLOR:
+        return VK_BLEND_FACTOR_DST_COLOR;
+    case BlendModeFactor::DST_ALPHA:
+        return VK_BLEND_FACTOR_DST_ALPHA;
+    case BlendModeFactor::ONE_MINUS_SRC_COLOR:
+        return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    case BlendModeFactor::ONE_MINUS_SRC_ALPHA:
+        return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    case BlendModeFactor::ONE_MINUS_DST_COLOR:
+        return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+    case BlendModeFactor::ONE_MINUS_DST_ALPHA:
+        return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+    default:
+        return VK_BLEND_FACTOR_ONE;
+    }
+}
+
 GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline()
     : Pipeline<Platform::VULKAN>(),
       viewport { },
@@ -240,35 +268,41 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     Array<VkPipelineColorBlendAttachmentState> color_blend_attachments;
     color_blend_attachments.Reserve(m_construction_info.render_pass->GetAttachmentUsages().Size());
 
+    const BlendFunction blend_function = m_construction_info.blend_function;
+
     for (const AttachmentUsageRef<Platform::VULKAN> &attachment_usage : m_construction_info.render_pass->GetAttachmentUsages()) {
         if (attachment_usage->IsDepthAttachment()) {
             continue;
         }
 
-        const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE
-            && attachment_usage->AllowBlending();
+        const bool blend_enabled = attachment_usage->AllowBlending() && blend_function != BlendFunction::None();
 
         // static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
-        // static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE };
         // static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE };
         // static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE };
 
-        static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
-        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
-        static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
-        static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
+        // static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+
+        // static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
+        // static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE };
+        // static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
 
         static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         color_blend_attachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable            = blend_enabled,
-            .srcColorBlendFactor    = src_blend_factors_rgb[uint(m_construction_info.blend_mode)],
-            .dstColorBlendFactor    = dst_blend_factors_rgb[uint(m_construction_info.blend_mode)],
-            .colorBlendOp           = color_blend_ops[uint(m_construction_info.blend_mode)],
-            .srcAlphaBlendFactor    = src_blend_factors_alpha[uint(m_construction_info.blend_mode)],
-            .dstAlphaBlendFactor    = dst_blend_factors_alpha[uint(m_construction_info.blend_mode)],
-            .alphaBlendOp           = alpha_blend_ops[uint(m_construction_info.blend_mode)],
+            .srcColorBlendFactor    = ToVkBlendFactor(blend_function.GetSrcColor()),
+            .dstColorBlendFactor    = ToVkBlendFactor(blend_function.GetDstColor()),
+            .colorBlendOp           = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor    = ToVkBlendFactor(blend_function.GetSrcAlpha()),
+            .dstAlphaBlendFactor    = ToVkBlendFactor(blend_function.GetDstAlpha()),
+            .alphaBlendOp           = VK_BLEND_OP_ADD,
             .colorWriteMask         = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
         });
     }

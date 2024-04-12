@@ -39,7 +39,7 @@ public:
             { return metrics; }
     };
 
-    HYP_API Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render = false);
+    HYP_API Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale);
 
     Glyph(const Glyph &other)                   = default;
     Glyph &operator=(const Glyph &other)        = default;
@@ -58,17 +58,20 @@ public:
     const GlyphImageData &GetImageData() const
         { return m_glyph_image_data; }
 
+    HYP_API void LoadMetrics();
     HYP_API void Render();
 
     HYP_API Extent2D GetMax();
     HYP_API Extent2D GetMin();
 
 private:
-    RC<FontFace>        m_face;
+    RC<FontFace>            m_face;
+    FontFace::GlyphIndex    m_index;
+    float                   m_scale;
 
-    FontEngine::Glyph   m_glyph;
-    GlyphImageData      m_glyph_image_data;
-    Metrics             m_metrics { 0 };
+    FontEngine::Glyph       m_glyph;
+    GlyphImageData          m_glyph_image_data;
+    Metrics                 m_metrics { 0 };
 };
 
 }; // namespace hyperion::v2

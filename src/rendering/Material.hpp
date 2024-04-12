@@ -31,8 +31,6 @@ class DescriptorSet;
 
 namespace hyperion::v2 {
 
-using renderer::BlendMode;
-
 class HYP_API Material
     : public BasicObject<STUB_CLASS(Material)>
 {
@@ -410,22 +408,22 @@ public:
         { m_render_attributes.bucket = bucket; }
 
     bool IsAlphaBlended() const
-        { return m_render_attributes.blend_mode != BlendMode::NONE; }
+        { return m_render_attributes.blend_function != BlendFunction::None(); }
 
-    void SetIsAlphaBlended(bool is_alpha_blended, BlendMode blend_mode = BlendMode::NORMAL)
+    void SetIsAlphaBlended(bool is_alpha_blended, BlendFunction blend_function = BlendFunction::AlphaBlending())
     {
         if (is_alpha_blended) {
-            m_render_attributes.blend_mode = blend_mode;
+            m_render_attributes.blend_function = blend_function;
         } else {
-            m_render_attributes.blend_mode = BlendMode::NONE;
+            m_render_attributes.blend_function = BlendFunction::None();
         }
     }
 
-    BlendMode GetBlendMode() const
-        { return m_render_attributes.blend_mode; }
+    BlendFunction GetBlendFunction() const
+        { return m_render_attributes.blend_function; }
 
-    void SetBlendMode(BlendMode blend_mode)
-        { m_render_attributes.blend_mode = blend_mode; }
+    void SetBlendMode(BlendFunction blend_function)
+        { m_render_attributes.blend_function = blend_function; }
 
     bool IsDepthWriteEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE); }

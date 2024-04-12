@@ -15,7 +15,8 @@ using renderer::FaceCullMode;
 using renderer::Topology;
 using renderer::FillMode;
 using renderer::StencilState;
-using renderer::BlendMode;
+using renderer::BlendFunction;
+using renderer::BlendModeFactor;
 
 class Framebuffer;
 
@@ -25,15 +26,15 @@ struct MaterialAttributes
 
     enum MaterialFlagBits : MaterialFlags
     {
-        RENDERABLE_ATTRIBUTE_FLAGS_NONE = 0x0,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE = 0x1,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST = 0x2
+        RENDERABLE_ATTRIBUTE_FLAGS_NONE         = 0x0,
+        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE  = 0x1,
+        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST   = 0x2
     };
 
     ShaderDefinition    shader_definition;
     Bucket              bucket = Bucket::BUCKET_OPAQUE;
     FillMode            fill_mode = FillMode::FILL;
-    BlendMode           blend_mode = BlendMode::NONE;
+    BlendFunction       blend_function = BlendFunction::None();
     FaceCullMode        cull_faces = FaceCullMode::BACK;
     MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
     int                 z_layer = 0;
@@ -44,7 +45,7 @@ struct MaterialAttributes
         return shader_definition == other.shader_definition
             && bucket == other.bucket
             && fill_mode == other.fill_mode
-            && blend_mode == other.blend_mode
+            && blend_function == other.blend_function
             && cull_faces == other.cull_faces
             && flags == other.flags
             && z_layer == other.z_layer;
@@ -60,7 +61,7 @@ struct MaterialAttributes
         hc.Add(shader_definition.GetHashCode());
         hc.Add(bucket);
         hc.Add(fill_mode);
-        hc.Add(blend_mode);
+        hc.Add(blend_function);
         hc.Add(cull_faces);
         hc.Add(flags);
         hc.Add(z_layer);

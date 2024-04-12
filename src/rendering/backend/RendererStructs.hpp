@@ -70,16 +70,99 @@ enum class StencilMode : uint32
     OUTLINE
 };
 
-enum class BlendMode : uint32
+enum class BlendModeFactor : uint32
 {
     NONE,
-    NORMAL,
-    ADDITIVE
+
+    ONE,
+    ZERO,
+    SRC_COLOR,
+    SRC_ALPHA,
+    DST_COLOR,
+    DST_ALPHA,
+    ONE_MINUS_SRC_COLOR,
+    ONE_MINUS_SRC_ALPHA,
+    ONE_MINUS_DST_COLOR,
+    ONE_MINUS_DST_ALPHA,
+
+    MAX
+};
+
+static_assert(uint32(BlendModeFactor::MAX) <= 15, "BlendModeFactor enum too large to fit in 4 bits");
+
+struct BlendFunction
+{
+    uint32  value;
+
+    BlendFunction()
+        : BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO)
+    {
+    }
+
+    BlendFunction(BlendModeFactor src, BlendModeFactor dst)
+        : value((uint32(src) << 0) | (uint32(dst) << 4) | (uint32(src) << 8) | (uint32(dst) << 12))
+    {
+    }
+
+    BlendFunction(BlendModeFactor src_color, BlendModeFactor dst_color, BlendModeFactor src_alpha, BlendModeFactor dst_alpha)
+        : value((uint32(src_color) << 0) | (uint32(dst_color) << 4) | (uint32(src_alpha) << 8) | (uint32(dst_alpha) << 12))
+    {
+    }
+
+    BlendModeFactor GetSrcColor() const
+        { return BlendModeFactor(value & 0xF); }
+
+    void SetSrcColor(BlendModeFactor src)
+        { value |= uint32(src); }
+
+    BlendModeFactor GetDstColor() const
+        { return BlendModeFactor((value >> 4) & 0xF); }
+
+    void SetDstColor(BlendModeFactor dst)
+        { value |= uint32(dst) << 4; }
+
+    BlendModeFactor GetSrcAlpha() const
+        { return BlendModeFactor((value >> 8) & 0xF); }
+
+    void SetSrcAlpha(BlendModeFactor src)
+        { value |= uint32(src) << 8; }
+
+    BlendModeFactor GetDstAlpha() const
+        { return BlendModeFactor((value >> 12) & 0xF); }
+
+    void SetDstAlpha(BlendModeFactor dst)
+        { value |= uint32(dst) << 12; }
+
+    bool operator==(const BlendFunction &other) const
+        { return value == other.value; }
+
+    bool operator!=(const BlendFunction &other) const
+        { return value != other.value; }
+
+    bool operator<(const BlendFunction &other) const
+        { return value < other.value; }
+
+    HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(value);
+    }
+
+    static BlendFunction None()
+        { return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE); }
+
+    static BlendFunction Default()
+        { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO); }
+
+    static BlendFunction AlphaBlending()
+        { return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO); }
+
+    static BlendFunction Additive()
+        { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE); }
 };
 
 struct StencilState
 {
-    uint id = 0;
+    uint        id = 0;
     StencilMode mode = StencilMode::NONE;
 
     HYP_DEF_STRUCT_COMPARE_EQL(StencilState);

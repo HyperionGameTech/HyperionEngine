@@ -55,10 +55,10 @@ void DebugDrawer::Create()
                 .vertex_attributes = static_mesh_vertex_attributes
             },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_OPAQUE,
-                .fill_mode = FillMode::FILL,
-                .blend_mode = BlendMode::NONE,
-                .cull_faces = FaceCullMode::NONE
+                .bucket         = Bucket::BUCKET_OPAQUE,
+                .fill_mode      = FillMode::FILL,
+                .blend_function = BlendFunction::None(),
+                .cull_faces     = FaceCullMode::NONE
             }
         ),
         std::move(descriptor_table)

@@ -279,8 +279,9 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 it.second.values.Size()
             ));
 
-            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; })) {
-                attributes.blend_mode = BlendMode::NORMAL;
+            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; }))
+            {
+                attributes.blend_function = BlendFunction::AlphaBlending();
                 attributes.bucket = BUCKET_TRANSLUCENT;
             }
         }

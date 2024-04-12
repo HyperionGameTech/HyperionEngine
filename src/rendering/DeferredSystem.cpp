@@ -216,7 +216,11 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 
-    const Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+
+    if (bucket == BUCKET_UI) {
+        extent = {2000, 2000};//tmp
+    }
 
     framebuffer = CreateObject<Framebuffer>(
         extent,
@@ -230,12 +234,6 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         // ui only has this attachment.
         AddOwnedAttachment(
             InternalFormat::RGBA8,
-            framebuffer,
-            attachments,
-            extent
-        );
-        AddOwnedAttachment(
-            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             framebuffer,
             attachments,
             extent

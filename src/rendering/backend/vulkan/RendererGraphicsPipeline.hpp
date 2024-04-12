@@ -40,7 +40,7 @@ public:
         Topology                                        topology = Topology::TRIANGLES;
         FaceCullMode                                    cull_mode = FaceCullMode::BACK;
         FillMode                                        fill_mode = FillMode::FILL;
-        BlendMode                                       blend_mode = BlendMode::NONE;
+        BlendFunction                                   blend_function = BlendFunction::None();
 
         bool                                            depth_test = true;
         bool                                            depth_write = true;

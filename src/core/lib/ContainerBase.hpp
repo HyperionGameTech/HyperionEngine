@@ -136,6 +136,32 @@ public:
             key
         );
     }
+    
+    template <class T>
+    [[nodiscard]] auto UpperBound(const T &key)
+    {
+        const auto _begin = static_cast<Container *>(this)->Begin();
+        const auto _end = static_cast<Container *>(this)->End();
+
+        return std::upper_bound(
+            _begin,
+            _end,
+            key
+        );
+    }
+    
+    template <class T>
+    [[nodiscard]] auto UpperBound(const T &key) const
+    {
+        const auto _begin = static_cast<const Container *>(this)->Begin();
+        const auto _end = static_cast<const Container *>(this)->End();
+
+        return std::upper_bound(
+            _begin,
+            _end,
+            key
+        );
+    }
 
     template <class T>
     [[nodiscard]] bool Contains(const T &value) const

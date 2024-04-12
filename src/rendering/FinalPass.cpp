@@ -58,8 +58,8 @@ void CompositePass::Create()
             .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .fill_mode  = FillMode::FILL,
-            .blend_mode = BlendMode::NORMAL
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction::AlphaBlending()
         }
     );
 

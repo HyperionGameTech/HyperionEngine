@@ -520,10 +520,10 @@ void GaussianSplattingInstance::CreateRenderGroup()
                 .vertex_attributes = static_mesh_vertex_attributes//VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
             },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_TRANSLUCENT,
-                .blend_mode = BlendMode::ADDITIVE,
-                .cull_faces = FaceCullMode::NONE,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+                .bucket         = Bucket::BUCKET_TRANSLUCENT,
+                .blend_function = BlendFunction::Additive(),
+                .cull_faces     = FaceCullMode::NONE,
+                .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             }
         ),
         std::move(descriptor_table)

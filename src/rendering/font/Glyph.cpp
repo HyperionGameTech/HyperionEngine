@@ -40,11 +40,25 @@ Handle<Texture> GlyphImageData::CreateTexture() const
 
 // Glyph
 
-Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, bool render)
-    : m_face(std::move(face))
+Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale)
+    : m_face(std::move(face)),
+      m_index(index),
+      m_scale(scale)
 {
+}
+
+void Glyph::LoadMetrics()
+{
+    AssertThrow(m_face != nullptr);
+
 #ifdef HYP_FREETYPE
-    if (FT_Load_Glyph(m_face->GetFace(), index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | (render ? FT_LOAD_RENDER : 0))) {
+    if (FT_Set_Pixel_Sizes(m_face->GetFace(), 0, MathUtil::Floor<float, uint32>(64.0f * m_scale))) {
+        DebugLog(LogType::Error, "Error setting pixel size for font face!\n");
+
+        return;
+    }
+
+    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR)) {
         DebugLog(LogType::Error, "Error loading glyph from font face!\n");
 
         return;
@@ -65,6 +79,18 @@ void Glyph::Render()
     // if (error) {
     //     DebugLog(LogType::Error, "Error rendering glyph '%s': %u\n", FT_Error_String(error), error);
     // }
+
+    if (FT_Set_Pixel_Sizes(m_face->GetFace(), 0, MathUtil::Floor<float, uint32>(64.0f * m_scale))) {
+        DebugLog(LogType::Error, "Error setting pixel size for font face!\n");
+
+        return;
+    }
+
+    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | FT_LOAD_RENDER)) {
+        DebugLog(LogType::Error, "Error loading glyph from font face!\n");
+
+        return;
+    }
 
     glyph = m_face->GetFace()->glyph;
     FT_Bitmap &ft_bitmap = glyph->bitmap;

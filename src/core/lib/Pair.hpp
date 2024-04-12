@@ -744,6 +744,31 @@ bool operator>(const Pair<K, V> &lhs, const KeyValuePair<K, V> &rhs) { return lh
 template <class K, class V>
 bool operator>=(const Pair<K, V> &lhs, const KeyValuePair<K, V> &rhs) { return lhs.first >= rhs.first; }
 
+template <class K, class V>
+bool operator<(const K &lhs, const KeyValuePair<K, V> &rhs) { return lhs < rhs.first; }
+
+template <class K, class V>
+bool operator<=(const K &lhs, const KeyValuePair<K, V> &rhs) { return lhs <= rhs.first; }
+
+template <class K, class V>
+bool operator>(const K &lhs, const KeyValuePair<K, V> &rhs) { return lhs > rhs.first; }
+
+template <class K, class V>
+bool operator>=(const K &lhs, const KeyValuePair<K, V> &rhs) { return lhs >= rhs.first; }
+
+template <class K, class V>
+bool operator<(const KeyValuePair<K, V> &lhs, const K &rhs) { return lhs.first < rhs; }
+
+template <class K, class V>
+bool operator<=(const KeyValuePair<K, V> &lhs, const K &rhs) { return lhs.first <= rhs; }
+
+template <class K, class V>
+bool operator>(const KeyValuePair<K, V> &lhs, const K &rhs) { return lhs.first > rhs; }
+
+template <class K, class V>
+bool operator>=(const KeyValuePair<K, V> &lhs, const K &rhs) { return lhs.first >= rhs; }
+
+
 } // namespace hyperion
 
 #endif

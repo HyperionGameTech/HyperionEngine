@@ -60,7 +60,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
             .topology          = attributes.GetMeshAttributes().topology,
             .cull_mode         = attributes.GetMaterialAttributes().cull_faces,
             .fill_mode         = attributes.GetMaterialAttributes().fill_mode,
-            .blend_mode        = attributes.GetMaterialAttributes().blend_mode,
+            .blend_function    = attributes.GetMaterialAttributes().blend_function,
             .depth_test        = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
             .depth_write       = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
             .render_pass       = render_pass,

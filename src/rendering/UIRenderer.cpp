@@ -136,14 +136,13 @@ void UIRenderer::OnRender(Frame *frame)
     m_render_list.CollectDrawCalls(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr,    /* cull_data */
-        true        /* sort_z_layer */
+        nullptr     /* cull_data */
     );
 
-    m_render_list.ExecuteDrawCalls(
+    m_render_list.ExecuteDrawCallsInLayers(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr     /* cull_data */
+        nullptr      /* cull_data */
     );
 
     g_engine->GetRenderState().UnbindScene();

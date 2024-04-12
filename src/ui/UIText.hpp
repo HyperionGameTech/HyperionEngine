@@ -60,6 +60,11 @@ public:
 
     void SetFontAtlas(RC<FontAtlas> font_atlas);
 
+    const Vec4f &GetTextColor() const
+        { return m_text_color; }
+
+    void SetTextColor(const Vec4f &color);
+
     const UITextOptions &GetOptions() const
         { return m_options; }
 
@@ -69,12 +74,16 @@ public:
 protected:
     virtual Handle<Material> GetMaterial() const override;
 
-    void UpdateMesh(bool update_material = false);
+    virtual void UpdateSize() override;
+
+    void UpdateMesh();
 
     FontAtlas *GetFontAtlasOrDefault() const;
 
     String          m_text;
     RC<FontAtlas>   m_font_atlas;
+
+    Vec4f           m_text_color;
 
     UITextOptions   m_options;
 };

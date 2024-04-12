@@ -212,6 +212,13 @@ public:
      */
     void SetDepth(int depth);
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetBorderRadius() const
+        { return m_border_radius; }
+
+    void SetBorderRadius(uint32 border_radius);
+
     UIObjectAlignment GetOriginAlignment() const;
     void SetOriginAlignment(UIObjectAlignment alignment);
 
@@ -245,8 +252,8 @@ public:
     BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;
 
-    void UpdatePosition();
-    void UpdateSize();
+    virtual void UpdatePosition();
+    virtual void UpdateSize();
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -277,9 +284,6 @@ protected:
 
     void SetLocalAABB(const BoundingBox &aabb);
 
-    void UpdateActualSizes();
-    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool clamp = false);
-
     void UpdateMeshData();
     void UpdateMaterial();
 
@@ -300,16 +304,21 @@ protected:
 
     int                 m_depth; // manually set depth; otherwise defaults to the node's depth in the scene
 
+    uint32              m_border_radius;
+
     UIObjectAlignment   m_origin_alignment;
     UIObjectAlignment   m_parent_alignment;
 
 private:
-    bool                m_is_init;
-
-    UIObjectFocusState  m_focus_state;
+    void UpdateActualSizes();
+    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool clamp = false);
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda);
+
+    bool                m_is_init;
+
+    UIObjectFocusState  m_focus_state;
 };
 
 // UIObjectProxy<T>

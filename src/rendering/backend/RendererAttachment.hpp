@@ -78,7 +78,8 @@ public:
     AttachmentUsage(
         AttachmentRef<PLATFORM> attachment,
         LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
     );
 
     AttachmentUsage(
@@ -86,7 +87,8 @@ public:
         ImageViewRef<PLATFORM> image_view,
         SamplerRef<PLATFORM> sampler,
         LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
     );
 
     AttachmentUsage(const AttachmentUsage &other)               = delete;
@@ -102,12 +104,26 @@ public:
     const SamplerRef<PLATFORM> &GetSampler() const
         { return m_sampler; }
 
-    LoadOperation GetLoadOperation() const { return m_load_operation; }
-    StoreOperation GetStoreOperation() const { return m_store_operation; }
+    LoadOperation GetLoadOperation() const
+        { return m_load_operation; }
 
-    uint GetBinding() const { return m_binding; }
-    void SetBinding(uint binding) { m_binding = binding; }
-    bool HasBinding() const { return m_binding != UINT_MAX; }
+    StoreOperation GetStoreOperation() const
+        { return m_store_operation; }
+
+    const BlendFunction &GetBlendFunction() const
+        { return m_blend_function; }
+
+    void SetBlendFunction(const BlendFunction &blend_function)
+        { m_blend_function = blend_function; }
+
+    uint GetBinding() const
+        { return m_binding; }
+    
+    void SetBinding(uint binding)
+        { m_binding = binding; }
+
+    bool HasBinding() const 
+        { return m_binding != MathUtil::MaxSafeValue<uint>(); }
 
     InternalFormat GetFormat() const;
     bool IsDepthAttachment() const;
@@ -120,6 +136,7 @@ public:
     
     Result Create(Device<PLATFORM> *device);
     Result Destroy(Device<PLATFORM> *device);
+
 private:
     AttachmentRef<PLATFORM> m_attachment;
     ImageViewRef<PLATFORM>  m_image_view;
@@ -127,6 +144,9 @@ private:
     
     LoadOperation           m_load_operation;
     StoreOperation          m_store_operation;
+
+    BlendFunction           m_blend_function;
+
     uint                    m_binding = MathUtil::MaxSafeValue<uint>();
 
     bool                    m_image_view_owned = false;

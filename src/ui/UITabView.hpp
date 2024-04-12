@@ -28,6 +28,9 @@ public:
 
     virtual void Init() override;
 
+protected:
+    virtual Handle<Material> GetMaterial() const override;
+
 private:
     String      m_title;
     RC<UIText>  m_title_text;
