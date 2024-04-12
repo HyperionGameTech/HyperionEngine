@@ -746,7 +746,7 @@ void SampleStreamer::InitGame()
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 200, 80 })) {
+    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 })) {
         btn->SetPadding(Vec2i { 5, 5 });
         
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {

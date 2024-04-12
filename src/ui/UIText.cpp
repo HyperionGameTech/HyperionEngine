@@ -87,9 +87,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
         const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(font_atlas.GetDimensions());
         const Vec2f glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) };
-        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) / Vec2f(cell_dimensions_ratio, 1.0f));
-
-        DebugLog(LogType::Debug, "Cell dimensions: %u, %u\n", cell_dimensions.width, cell_dimensions.height);
+        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) * Vec2f(cell_dimensions_ratio, 1.0f));
 
         UICharMesh char_mesh;
         char_mesh.mesh_data = m_quad_mesh->GetStreamedMeshData();
