@@ -28,7 +28,7 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "NodeLinkComponent_LockReference")]
+        [DllImport("hyperion", EntryPoint = "NodeLinkComponent_LockReference")]
         private static extern ManagedNode NodeLinkComponent_LockReference(IntPtr ctrlBlockPtr);
     }
 }

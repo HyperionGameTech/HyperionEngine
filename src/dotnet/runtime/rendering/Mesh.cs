@@ -55,16 +55,16 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "Mesh_GetTypeID")]
+        [DllImport("hyperion", EntryPoint = "Mesh_GetTypeID")]
         private static extern TypeID Mesh_GetTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "Mesh_Create")]
+        [DllImport("hyperion", EntryPoint = "Mesh_Create")]
         private static extern ManagedHandle Mesh_Create(Vertex[] vertices, uint vertexCount, uint[] indices, uint indexCount);
 
-        [DllImport("libhyperion", EntryPoint = "Mesh_Init")]
+        [DllImport("hyperion", EntryPoint = "Mesh_Init")]
         private static extern void Mesh_Init(ManagedHandle mesh);
 
-        [DllImport("libhyperion", EntryPoint = "Mesh_GetAABB")]
+        [DllImport("hyperion", EntryPoint = "Mesh_GetAABB")]
         private static extern BoundingBox Mesh_GetAABB(ManagedHandle mesh);
     }
 }

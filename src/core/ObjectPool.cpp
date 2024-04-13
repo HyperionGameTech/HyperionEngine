@@ -5,22 +5,49 @@ namespace hyperion::v2 {
 ObjectPool::ObjectContainerMap ObjectPool::ObjectContainerHolder::s_object_container_map = { };
 ObjectPool::ObjectContainerHolder ObjectPool::s_object_container_holder = { };
 
-auto ObjectPool::ObjectContainerHolder::GetObjectContainerMap() -> ObjectContainerMap &
+ObjectPool::ObjectContainerHolder &ObjectPool::GetObjectContainerHolder()
 {
-    return s_object_container_map;
+    return s_object_container_holder;
+}
+
+UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
+{
+    Mutex::Guard guard(s_object_container_map.mutex);
+
+    auto it = s_object_container_map.map.FindIf([type_id](const auto &element)
+    {
+        return element.first == type_id;
+    });
+
+    DebugLog(LogType::Debug, "Allot object container for type %u. Exists? %d\n", type_id.Value(), it != s_object_container_map.map.End());
+
+    // Already allocated
+    if (it != s_object_container_map.map.End()) {
+        return &it->second;
+    }
+
+    s_object_container_map.map.PushBack({
+        type_id,
+        nullptr
+    });
+
+    return &s_object_container_map.map.Back().second;
 }
 
 ObjectContainerBase *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
 {
     Mutex::Guard guard(s_object_container_map.mutex);
 
-    const auto it = s_object_container_map.map.Find(type_id);
+    const auto it = s_object_container_map.map.FindIf([type_id](const auto &element)
+    {
+        return element.first == type_id;
+    });
 
     if (it == s_object_container_map.map.End()) {
         return nullptr;
     }
 
-    return it->second;
+    return it->second.Get();
 }
 
 } // namespace hyperion::v2

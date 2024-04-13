@@ -93,10 +93,7 @@
 
 
 SampleStreamer::SampleStreamer(RC<Application> application)
-    : Game(application, ManagedGameInfo {
-          "csharp/bin/Debug/net8.0/csharp.dll",
-          "TestGame"
-      })
+    : Game(application)
 {
 }
 
@@ -227,6 +224,10 @@ void SampleStreamer::InitGame()
     ));
     InitObject(m_texture);
 
+    constexpr auto hc = TypeName<int>().GetHashCode();
+    constexpr auto hc1 = HashCode::GetHashCode("testing testing");
+    
+    DebugLog(LogType::Debug, "SampleStreamer::InitGame : Scene ID = %u\n", m_scene.GetID().Value());
     m_scene->SetCamera(CreateObject<Camera>(
         70.0f,
         window_size.width, window_size.height,
@@ -714,13 +715,6 @@ void SampleStreamer::InitGame()
                     EnvGridType::ENV_GRID_TYPE_SH
                 });
 
-                m_scene->GetEntityManager()->AddComponent(env_grid_entity, ScriptComponent {
-                    {
-                        .assembly_name = "csharp/bin/Debug/net8.0/csharp.dll",
-                        .class_name = "TestScript"
-                    }
-                });
-
                 auto env_grid_node = m_scene->GetRoot().AddChild();
                 env_grid_node.SetEntity(env_grid_entity);
                 env_grid_node.SetName("EnvGrid");
@@ -748,12 +742,12 @@ void SampleStreamer::InitGame()
     if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 }, true)) {
         // btn->SetPadding(Vec2i { 5, 5 });
         
-        GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
+        /*GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
                 .assembly_name  = "scripts/bin/csharp.dll",
                 .class_name     = "TestUIScript"
             }
-        });
+        });*/
 
         auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 400, 300 });
         tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);

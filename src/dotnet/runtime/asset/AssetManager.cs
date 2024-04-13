@@ -37,10 +37,10 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "AssetManager_GetBasePath")]
+        [DllImport("hyperion", EntryPoint = "AssetManager_GetBasePath")]
         private static extern IntPtr AssetManager_GetBasePath(IntPtr assetManagerPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetManager_SetBasePath")]
+        [DllImport("hyperion", EntryPoint = "AssetManager_SetBasePath")]
         private static extern void AssetManager_SetBasePath(IntPtr assetManagerPtr, IntPtr basePathPtr);
     }
 }

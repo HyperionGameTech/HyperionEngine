@@ -15,7 +15,7 @@ namespace Hyperion
         [UnmanagedCallersOnly]
         public static void TestFunction()
         {
-            // Console.WriteLine("Hello from C#!");
+            Console.WriteLine("Hello from C#!");
 
             Logger.Log(LogType.Info, "Hello from C#!");
         }
@@ -232,16 +232,16 @@ namespace Hyperion
             ManagedObjectCache.Instance.RemoveObject(obj.guid);
         }
 
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_Create")]
+        [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
         private static extern ManagedClass ManagedClass_Create(IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr);
 
-        [DllImport("libhyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
+        [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
 
-        [DllImport("libhyperion", EntryPoint = "NativeInterop_Initialize")]
+        [DllImport("hyperion", EntryPoint = "NativeInterop_Initialize")]
         private static extern void NativeInterop_Initialize(IntPtr invokeMethodPtr);
 
-        [DllImport("libhyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
         private static extern void NativeInterop_SetInvokeMethodFunction(IntPtr classHolderPtr, IntPtr invokeMethodPtr);
     }
 }

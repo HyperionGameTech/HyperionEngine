@@ -20,18 +20,18 @@ template <>
 class ImageView<Platform::VULKAN>
 {
 public:
-    ImageView();
-    ImageView(const ImageView &other) = delete;
-    ImageView &operator=(const ImageView &other) = delete;
-    ImageView(ImageView &&other) noexcept;
-    ImageView &operator=(ImageView &&other) noexcept;
-    ~ImageView();
+    HYP_API ImageView();
+    ImageView(const ImageView &other)               = delete;
+    ImageView &operator=(const ImageView &other)    = delete;
+    HYP_API ImageView(ImageView &&other) noexcept;
+    HYP_API ImageView &operator=(ImageView &&other) noexcept;
+    HYP_API ~ImageView();
 
     VkImageView GetImageView() const
         { return m_image_view; }
 
     /* Create imageview independent of an Image */
-    Result Create(
+    HYP_API Result Create(
         Device<Platform::VULKAN> *device,
         VkImage image,
         VkFormat format,
@@ -43,10 +43,11 @@ public:
         uint num_faces
     );
 
-    uint NumFaces() const { return m_num_faces; }
+    uint NumFaces() const
+        { return m_num_faces; }
 
     /* Create imageview referencing an Image */
-    Result Create(
+    HYP_API Result Create(
         Device<Platform::VULKAN> *device,
         const Image<Platform::VULKAN> *image,
         uint mipmap_layer,
@@ -56,12 +57,12 @@ public:
     );
 
     /* Create imageview referencing an Image */
-    Result Create(
+    HYP_API Result Create(
         Device<Platform::VULKAN> *device,
         const Image<Platform::VULKAN> *image
     );
 
-    Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
 
 private:
     VkImageView m_image_view;

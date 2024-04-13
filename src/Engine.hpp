@@ -179,14 +179,6 @@ public:
         { return m_placeholder_data.Get(); }
     
     HYP_FORCE_INLINE
-    ObjectPool &GetObjectPool()
-        { return m_object_pool; }
-    
-    HYP_FORCE_INLINE
-    const ObjectPool &GetObjectPool() const
-        { return m_object_pool; }
-    
-    HYP_FORCE_INLINE
     const Handle<World> &GetWorld() const
         { return m_world; }
     
@@ -272,7 +264,7 @@ public:
     template <class T, class ... Args>
     Handle<T> CreateObject(Args &&... args)
     {
-        auto &container = GetObjectPool().GetContainer<T>();
+        auto &container = Handle<T>::GetContainer();
 
         const uint index = container.NextIndex();
 
@@ -287,7 +279,7 @@ public:
     template <class T>
     Handle<T> CreateObject()
     {
-        auto &container = GetObjectPool().GetContainer<T>();
+        auto &container = Handle<T>::GetContainer();
 
         const uint index = container.NextIndex();
         container.ConstructAtIndex(index);

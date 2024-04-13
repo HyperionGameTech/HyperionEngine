@@ -103,7 +103,29 @@ public:
 
         m_root_assembly.Reset(new Assembly());
 
-       m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
+
+        auto test_function_fptr = (void(*)(void))GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("TestFunction"),
+            UNMANAGEDCALLERSONLY_METHOD
+        );
+
+        AssertThrowMsg(
+            test_function_fptr != nullptr,
+            "TestFunction could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
+        );
+
+        DebugLog(LogType::Debug, "Calling TestFunction from HyperionInterop.dll\n");
+
+        // Call the Initialize method in the NativeInterop class directly,
+        // to load all the classes and methods into the class object holder
+        test_function_fptr();
+
+        DebugLog(LogType::Debug, "TestFunction called successfully\n");
+
+
+        m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
             interop_assembly_path_platform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
             HYP_TEXT("InitializeAssembly"),

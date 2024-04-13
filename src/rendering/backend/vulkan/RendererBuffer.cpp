@@ -17,6 +17,8 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
+#pragma region Helpers
+
 uint GPUMemory<Platform::VULKAN>::FindMemoryType(Device<Platform::VULKAN> *device, uint vk_type_filter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
@@ -167,6 +169,88 @@ VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceSta
     }
 }
 
+static VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
+{
+    switch (type) {
+    case GPUBufferType::MESH_VERTEX_BUFFER:
+        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    case GPUBufferType::MESH_INDEX_BUFFER:
+        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    case GPUBufferType::CONSTANT_BUFFER:
+        return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    case GPUBufferType::STORAGE_BUFFER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GPUBufferType::ATOMIC_COUNTER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+          | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+          | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    case GPUBufferType::STAGING_BUFFER:
+        return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+          | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+          | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    case GPUBufferType::SHADER_BINDING_TABLE:
+        return VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
+            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
+            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GPUBufferType::SCRATCH_BUFFER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    default:
+        return 0;
+    }
+}
+
+static VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
+{
+    switch (type) {
+    case GPUBufferType::MESH_VERTEX_BUFFER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::MESH_INDEX_BUFFER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::CONSTANT_BUFFER:
+        return VMA_MEMORY_USAGE_AUTO;
+    case GPUBufferType::STORAGE_BUFFER:
+        return VMA_MEMORY_USAGE_AUTO;
+    case GPUBufferType::ATOMIC_COUNTER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::STAGING_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_ONLY;
+    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::SHADER_BINDING_TABLE:
+        return VMA_MEMORY_USAGE_AUTO;
+    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return VMA_MEMORY_USAGE_AUTO;
+    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return VMA_MEMORY_USAGE_AUTO;
+    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GPUBufferType::SCRATCH_BUFFER:
+        return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    default:
+        return VMA_MEMORY_USAGE_UNKNOWN;
+    }
+}
+
+#pragma endregion Helpers
+
+#pragma region GPUMemory
+
 GPUMemory<Platform::VULKAN>::Stats GPUMemory<Platform::VULKAN>::stats{};
 
 GPUMemory<Platform::VULKAN>::GPUMemory()
@@ -266,83 +350,9 @@ void GPUMemory<Platform::VULKAN>::Destroy()
     m_is_created = false;
 }
 
-static VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
-{
-    switch (type) {
-    case GPUBufferType::MESH_VERTEX_BUFFER:
-        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    case GPUBufferType::MESH_INDEX_BUFFER:
-        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    case GPUBufferType::CONSTANT_BUFFER:
-        return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    case GPUBufferType::STORAGE_BUFFER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::ATOMIC_COUNTER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-          | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-          | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    case GPUBufferType::STAGING_BUFFER:
-        return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    case GPUBufferType::INDIRECT_ARGS_BUFFER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-          | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
-          | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    case GPUBufferType::SHADER_BINDING_TABLE:
-        return VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
-        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
-        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
-        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
-            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
-            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::RT_MESH_INDEX_BUFFER:
-        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
-            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
-            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::SCRATCH_BUFFER:
-        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    default:
-        return 0;
-    }
-}
+#pragma endregion GPUMemory
 
-static VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
-{
-    switch (type) {
-    case GPUBufferType::MESH_VERTEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::MESH_INDEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::CONSTANT_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::STORAGE_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ATOMIC_COUNTER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::STAGING_BUFFER:
-        return VMA_MEMORY_USAGE_CPU_ONLY;
-    case GPUBufferType::INDIRECT_ARGS_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::SHADER_BINDING_TABLE:
-        return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::RT_MESH_INDEX_BUFFER:
-        return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::SCRATCH_BUFFER:
-        return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-    default:
-        return VMA_MEMORY_USAGE_UNKNOWN;
-    }
-}
+#pragma region GPUBuffer
 
 GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
     : GPUMemory<Platform::VULKAN>(),
@@ -751,40 +761,9 @@ Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     return result;
 }
 
-#ifdef HYP_DEBUG_MODE
+#pragma endregion GPUBuffer
 
-void GPUBuffer<Platform::VULKAN>::DebugLogBuffer(Instance<Platform::VULKAN> *instance) const
-{
-    Device<Platform::VULKAN> *device = instance->GetDevice();
-
-    if (size % sizeof(uint32) == 0) {
-        const auto data = DebugReadBytes<uint32>(instance, device);
-
-        for (SizeType i = 0; i < data.size();) {
-            const auto dist = MathUtil::Min(data.size() - i, SizeType(4));
-
-            if (dist == 4) {
-                DebugLog(LogType::Debug, "%lu\t%lu\t%lu\t%lu\n", data[i], data[i + 1], data[i + 2], data[i + 3]);
-            } else if (dist == 3) {
-                DebugLog(LogType::Debug, "%lu\t%lu\t%lu\n", data[i], data[i + 1], data[i + 2]);
-            } else if (dist == 2) {
-                DebugLog(LogType::Debug, "%lu\t%lu\n", data[i], data[i + 1]);
-            } else {
-                DebugLog(LogType::Debug, "%lu\n", data[i]);
-            }
-
-            i += dist;
-        }
-    } else {
-        const auto data = DebugReadBytes(instance, device);
-
-        for (const auto byte : data) {
-            DebugLog(LogType::Debug, "0x%.12\n", byte);
-        }
-    }
-}
-
-#endif
+#pragma region IndirectBuffer
 
 template <>
 void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer<Platform::VULKAN> *command_buffer, SizeType offset) const
@@ -796,17 +775,35 @@ void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer<Platform::
     );
 }
 
+#pragma endregion IndirectBuffer
+
+#pragma region ShaderBindingTableBuffer
+
 ShaderBindingTableBuffer<Platform::VULKAN>::ShaderBindingTableBuffer()
     : GPUBuffer<Platform::VULKAN>(GPUBufferType::SHADER_BINDING_TABLE),
       region { }
 {
 }
 
+#pragma endregion ShaderBindingTableBuffer
+
+#pragma region GPUImageMemory
+
 GPUImageMemory<Platform::VULKAN>::GPUImageMemory()
     : GPUMemory<Platform::VULKAN>(),
       image(VK_NULL_HANDLE),
       is_image_owned(false)
 {
+}
+
+GPUImageMemory<Platform::VULKAN>::GPUImageMemory(GPUImageMemory &&other) noexcept
+    : GPUMemory<Platform::VULKAN>(static_cast<GPUMemory<Platform::VULKAN> &&>(std::move(other))),
+      sub_resources(std::move(other.sub_resources)),
+      image(other.image),
+      is_image_owned(other.is_image_owned)
+{
+    other.image = VK_NULL_HANDLE;
+    other.is_image_owned = false;
 }
 
 GPUImageMemory<Platform::VULKAN>::~GPUImageMemory()
@@ -1057,6 +1054,8 @@ Result GPUImageMemory<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *devic
 
     HYPERION_RETURN_OK;
 }
+
+#pragma endregion GPUImageMemory
 
 } // namespace platform
 } // namespace renderer

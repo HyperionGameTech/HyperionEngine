@@ -15,8 +15,6 @@ namespace hyperion {
 class ArgParse
 {
 public:
-    struct NullArgument { };
-
     using ArgumentValue = Variant<String, int, float, bool>;
 
     enum ArgumentType

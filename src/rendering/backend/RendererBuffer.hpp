@@ -128,7 +128,7 @@ public:
     {
     }
 
-    void DispatchIndirect(CommandBuffer<PLATFORM> *command_buffer, SizeType offset = 0) const;
+    HYP_API void DispatchIndirect(CommandBuffer<PLATFORM> *command_buffer, SizeType offset = 0) const;
 };
 
 template <PlatformType PLATFORM>
@@ -204,27 +204,25 @@ public:
 namespace hyperion {
 namespace renderer {
 
-using GPUMemory                             = platform::GPUMemory<Platform::CURRENT>;
-
-using GPUImageMemory                        = platform::GPUImageMemory<Platform::CURRENT>;
-
-using GPUBuffer                             = platform::GPUBuffer<Platform::CURRENT>;
-using UniformBuffer                         = platform::UniformBuffer<Platform::CURRENT>;
-using StorageBuffer                         = platform::StorageBuffer<Platform::CURRENT>;
-using StagingBuffer                         = platform::StagingBuffer<Platform::CURRENT>;
-using IndirectBuffer                        = platform::IndirectBuffer<Platform::CURRENT>;
-using ShaderBindingTableBuffer              = platform::ShaderBindingTableBuffer<Platform::CURRENT>;
+using GPUMemory = platform::GPUMemory<Platform::CURRENT>;
+using GPUImageMemory = platform::GPUImageMemory<Platform::CURRENT>;
+using GPUBuffer = platform::GPUBuffer<Platform::CURRENT>;
+using UniformBuffer = platform::UniformBuffer<Platform::CURRENT>;
+using StorageBuffer = platform::StorageBuffer<Platform::CURRENT>;
+using StagingBuffer = platform::StagingBuffer<Platform::CURRENT>;
+using IndirectBuffer = platform::IndirectBuffer<Platform::CURRENT>;
+using ShaderBindingTableBuffer = platform::ShaderBindingTableBuffer<Platform::CURRENT>;
 
 // Forward declared
-using Device                                = platform::Device<Platform::CURRENT>;
+using Device = platform::Device<Platform::CURRENT>;
 
 class StagingBufferPool
 {
     struct StagingBufferRecord
     {
-        SizeType size;
-        std::unique_ptr<StagingBuffer> buffer;
-        std::time_t last_used;
+        SizeType                        size;
+        std::unique_ptr<StagingBuffer>  buffer;
+        std::time_t                     last_used;
     };
 
 public:
@@ -233,11 +231,11 @@ public:
         friend class StagingBufferPool;
 
         StagingBufferPool                   *m_pool;
-        renderer::Device                    *m_device;
+        Device                              *m_device;
         std::vector<StagingBufferRecord>    m_staging_buffers;
         std::unordered_set<StagingBuffer *> m_used;
 
-        Context(StagingBufferPool *pool, renderer::Device *device)
+        Context(StagingBufferPool *pool, Device *device)
             : m_pool(pool),
               m_device(device)
         {
@@ -251,7 +249,7 @@ public:
         StagingBuffer *Acquire(SizeType required_size);
     };
 
-    using UseFunction = std::function<renderer::Result(Context &context)>;
+    using UseFunction = std::function<Result(Context &context)>;
 
     static constexpr time_t hold_time = 1000;
     static constexpr uint gc_threshold = 5; /* run every 5 Use() calls */
@@ -261,12 +259,12 @@ public:
      * This will allow the staging buffer(s) acquired by this to be used in sequence
      * in a single time command buffer
      */
-    renderer::Result Use(renderer::Device *device, UseFunction &&fn);
+    Result Use(Device *device, UseFunction &&fn);
 
-    renderer::Result GC(renderer::Device *device);
+    Result GC(Device *device);
 
     /* \brief Destroy all remaining staging buffers in the pool */
-    renderer::Result Destroy(renderer::Device *device);
+    Result Destroy(Device *device);
 
 private:
     StagingBuffer *FindStagingBuffer(SizeType size);

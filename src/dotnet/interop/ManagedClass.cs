@@ -49,13 +49,13 @@ namespace Hyperion
         }
 
         // Add a function pointer to the managed class
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_AddMethod")]
+        [DllImport("hyperion", EntryPoint = "ManagedClass_AddMethod")]
         private static extern void ManagedClass_AddMethod(ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
 
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
+        [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
         private static extern ManagedClass ManagedClass_SetNewObjectFunction(ManagedClass managedClass, IntPtr newObjectFunctionPtr);
 
-        [DllImport("libhyperion", EntryPoint = "ManagedClass_SetFreeObjectFunction")]
+        [DllImport("hyperion", EntryPoint = "ManagedClass_SetFreeObjectFunction")]
         private static extern ManagedClass ManagedClass_SetFreeObjectFunction(ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
     }
 }

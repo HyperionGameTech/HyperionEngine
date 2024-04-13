@@ -14,71 +14,6 @@ namespace hyperion {
 
 using TypeIDValue = uint32;
 
-struct TypeIDNameMap
-{
-    static constexpr SizeType max_size = 8192;
-
-    Name                        names[max_size];
-    HashMap<Name, TypeIDValue>  name_to_id;
-
-    mutable Mutex               mutex;
-
-    HYP_FORCE_INLINE
-    void Set(uint index, Name name)
-    {
-        AssertThrowMsg(index < max_size, "TypeID out of range");
-
-        Mutex::Guard guard(mutex);
-
-        names[index] = name;
-        name_to_id[name] = index;
-    }
-
-    HYP_FORCE_INLINE
-    Name Get(uint index) const
-    {
-        AssertThrowMsg(index < max_size, "TypeID out of range");
-
-        Mutex::Guard guard(mutex);
-
-        return names[index];
-    }
-
-    HYP_FORCE_INLINE
-    TypeIDValue ReverseLookup(Name name) const
-    {
-        Mutex::Guard guard(mutex);
-
-        auto it = name_to_id.Find(name);
-
-        if (it != name_to_id.End()) {
-            return it->second;
-        }
-
-        return 0u;
-    }
-};
-
-struct TypeIDNameMapDefinition
-{
-    TypeIDNameMapDefinition(TypeIDNameMap &name_map, uint index, Name name)
-    {
-        name_map.Set(index, name);
-    }
-};
-
-struct TypeIDGeneratorBase
-{
-    static TypeIDNameMap name_map;
-
-    static inline std::atomic<uint> counter { 0u };
-
-    HYP_API static TypeIDNameMap &GetNameMap();
-};
-
-template <class T>
-struct TypeIDGenerator;
-
 struct TypeID
 {
     using ValueType = TypeIDValue;
@@ -90,17 +25,34 @@ private:
         TypeIDs are instantiated. */
     ValueType   value;
 
+    static constexpr ValueType void_value = ValueType(0);
+
 public:
     static const TypeID void_type_id;
 
     template <class T>
-    static TypeID ForType()
-        { return TypeIDGenerator<T>::GetID(); }
+    static constexpr TypeID ForType()
+    {
+        if constexpr (std::is_same_v<void, T>) {
+            return Void();
+        } else {
+            return TypeID {
+                ValueType(TypeName<T>().GetHashCode().Value() % HashCode::ValueType(MathUtil::MaxSafeValue<ValueType>()))
+            };
+        }
+    }
 
     static TypeID ForName(struct Name name);
 
-    constexpr TypeID() : value { } { }
-    constexpr TypeID(ValueType id) : value(id) {}
+    constexpr TypeID()
+        : value { }
+    {
+    }
+
+    constexpr TypeID(ValueType id)
+        : value(id)
+    {
+    }
 
     constexpr TypeID(const TypeID &other)   = default;
     TypeID &operator=(const TypeID &other)  = default;
@@ -111,7 +63,7 @@ public:
         other.value = 0;
     }
     
-    TypeID &operator=(TypeID &&other) noexcept
+    constexpr TypeID &operator=(TypeID &&other) noexcept
     {
         value = other.value;
         other.value = 0;
@@ -119,86 +71,67 @@ public:
         return *this;
     }
 
-    TypeID &operator=(ValueType id)
+    constexpr TypeID &operator=(ValueType id)
     {
         value = id;
 
         return *this;
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return value != ForType<void>().value; }
-
+    constexpr explicit operator bool() const
+        { return value != void_value; }
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator!() const
-        { return value == ForType<void>().value; }
-
+    constexpr bool operator!() const
+        { return value == void_value; }
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator==(const TypeID &other) const
+    constexpr bool operator==(const TypeID &other) const
         { return value == other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator!=(const TypeID &other) const
+    constexpr bool operator!=(const TypeID &other) const
         { return value != other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator<(const TypeID &other) const
+    constexpr bool operator<(const TypeID &other) const
         { return value < other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator<=(const TypeID &other) const
+    constexpr bool operator<=(const TypeID &other) const
         { return value <= other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator>(const TypeID &other) const
+    constexpr bool operator>(const TypeID &other) const
         { return value > other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator>=(const TypeID &other) const
+    constexpr bool operator>=(const TypeID &other) const
         { return value >= other.value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    ValueType Value() const
+    constexpr ValueType Value() const
         { return value; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    Name Name() const
-        { return TypeIDGeneratorBase::GetNameMap().Get(value); }
-
+    constexpr HashCode GetHashCode() const
+        { return HashCode::GetHashCode(value); }
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(value);
-
-        return hc;
-    }
-
-    HYP_API static TypeID Void();
-};
-
-template <class T>
-struct TypeIDGenerator : TypeIDGeneratorBase
-{
-    static const TypeID &GetID()
-    {
-        static const TypeID id = TypeID { ++TypeIDGeneratorBase::counter };
-        static const TypeIDNameMapDefinition def(GetNameMap(), id.Value(), CreateNameFromStaticString_WithLock(HashedName<TypeName<T>()>()));
-
-        return id;
-    }
-};
-
-template <>
-struct TypeIDGenerator<void> : TypeIDGeneratorBase
-{
-    static const TypeID &GetID()
-    {
-        static const TypeID id = TypeID { 0u };
-
-        return id;
-    }
+    static constexpr TypeID Void()
+        { return TypeID { void_value }; }
 };
 
 } // namespace hyperion

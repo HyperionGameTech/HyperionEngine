@@ -130,76 +130,76 @@ namespace Hyperion
             return Marshal.PtrToStructure<T>(componentPtr);
         }
 
-        [DllImport("libhyperion", EntryPoint = "EntityManager_AddEntity")]
+        [DllImport("hyperion", EntryPoint = "EntityManager_AddEntity")]
         private static extern Entity EntityManager_AddEntity(IntPtr entityManagerPtr);
 
-        [DllImport("libhyperion", EntryPoint = "EntityManager_RemoveEntity")]
+        [DllImport("hyperion", EntryPoint = "EntityManager_RemoveEntity")]
         private static extern void EntityManager_RemoveEntity(IntPtr entityManagerPtr, Entity entity);
 
-        [DllImport("libhyperion", EntryPoint = "EntityManager_HasEntity")]
+        [DllImport("hyperion", EntryPoint = "EntityManager_HasEntity")]
         private static extern bool EntityManager_HasEntity(IntPtr entityManagerPtr, Entity entity);
 
-        [DllImport("libhyperion", EntryPoint = "EntityManager_HasComponent")]
+        [DllImport("hyperion", EntryPoint = "EntityManager_HasComponent")]
         private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID typeID, Entity entity);
 
-        [DllImport("libhyperion", EntryPoint = "EntityManager_GetComponent")]
+        [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
         private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID typeID, Entity entity);
 
         // Components
         // TransformComponent
-        [DllImport("libhyperion", EntryPoint = "TransformComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "TransformComponent_GetNativeTypeID")]
         private static extern TypeID TransformComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "TransformComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "TransformComponent_AddComponent")]
         private static extern ComponentID TransformComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // MeshComponent
-        [DllImport("libhyperion", EntryPoint = "MeshComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "MeshComponent_GetNativeTypeID")]
         private static extern TypeID MeshComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "MeshComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "MeshComponent_AddComponent")]
         private static extern ComponentID MeshComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // BoundingBoxComponent
-        [DllImport("libhyperion", EntryPoint = "BoundingBoxComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "BoundingBoxComponent_GetNativeTypeID")]
         private static extern TypeID BoundingBoxComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "BoundingBoxComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "BoundingBoxComponent_AddComponent")]
         private static extern ComponentID BoundingBoxComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // VisibilityStateComponent
-        [DllImport("libhyperion", EntryPoint = "VisibilityStateComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "VisibilityStateComponent_GetNativeTypeID")]
         private static extern TypeID VisibilityStateComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "VisibilityStateComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "VisibilityStateComponent_AddComponent")]
         private static extern ComponentID VisibilityStateComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // LightComponent
-        [DllImport("libhyperion", EntryPoint = "LightComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "LightComponent_GetNativeTypeID")]
         private static extern TypeID LightComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "LightComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "LightComponent_AddComponent")]
         private static extern ComponentID LightComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // ShadowMapComponent
-        [DllImport("libhyperion", EntryPoint = "ShadowMapComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "ShadowMapComponent_GetNativeTypeID")]
         private static extern TypeID ShadowMapComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "ShadowMapComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "ShadowMapComponent_AddComponent")]
         private static extern ComponentID ShadowMapComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // UIComponent
-        [DllImport("libhyperion", EntryPoint = "UIComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "UIComponent_GetNativeTypeID")]
         private static extern TypeID UIComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "UIComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "UIComponent_AddComponent")]
         private static extern ComponentID UIComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // NodeLinkComponent
-        [DllImport("libhyperion", EntryPoint = "NodeLinkComponent_GetNativeTypeID")]
+        [DllImport("hyperion", EntryPoint = "NodeLinkComponent_GetNativeTypeID")]
         private static extern TypeID NodeLinkComponent_GetNativeTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "NodeLinkComponent_AddComponent")]
+        [DllImport("hyperion", EntryPoint = "NodeLinkComponent_AddComponent")]
         private static extern ComponentID NodeLinkComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
     }
 }

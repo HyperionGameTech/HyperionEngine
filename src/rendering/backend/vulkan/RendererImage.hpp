@@ -40,7 +40,7 @@ public:
         VkImageUsageFlags usage_flags;
     };
 
-    Image(
+    HYP_API Image(
         Extent3D extent,
         InternalFormat format,
         ImageType type,
@@ -50,7 +50,7 @@ public:
         ImageFlags flags = IMAGE_FLAGS_NONE
     );
 
-    Image(
+    HYP_API Image(
         Extent3D extent,
         InternalFormat format,
         ImageType type,
@@ -61,41 +61,41 @@ public:
         ImageFlags flags = IMAGE_FLAGS_NONE
     );
 
-    Image(const Image &other) = delete;
-    Image &operator=(const Image &other) = delete;
-    Image(Image &&other) noexcept;
-    Image &operator=(Image &&other) noexcept;
-    ~Image();
+    Image(const Image &other)               = delete;
+    Image &operator=(const Image &other)    = delete;
+    HYP_API Image(Image &&other) noexcept;
+    HYP_API Image &operator=(Image &&other) noexcept;
+    HYP_API ~Image();
 
     /*
         Init the image using provided GPUImageMemory UnqiuePtr.
     */
-    Result Create(UniquePtr<GPUImageMemory<Platform::VULKAN>> &&gpu_image_memory);
+    HYP_API Result Create(UniquePtr<GPUImageMemory<Platform::VULKAN>> &&gpu_image_memory);
 
     /*
      * Create the image. No texture data will be copied.
      */
-    Result Create(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device);
 
     /* Create the image and transfer the provided texture data into it if given.
      * The image is transitioned into the given state.
      */
-    Result Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance, ResourceState state);
-    Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance, ResourceState state);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
 
-    Result Blit(
+    HYP_API Result Blit(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src
     );
 
-    Result Blit(
+    HYP_API Result Blit(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src,
         Rect src_rect,
         Rect dst_rect
     );
 
-    Result Blit(
+    HYP_API Result Blit(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src,
         Rect src_rect,
@@ -104,22 +104,22 @@ public:
         uint dst_mip
     );
 
-    Result GenerateMipmaps(
+    HYP_API Result GenerateMipmaps(
         Device<Platform::VULKAN> *device,
         CommandBuffer<Platform::VULKAN> *command_buffer
     );
 
-    void CopyFromBuffer(
+    HYP_API void CopyFromBuffer(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const GPUBuffer<Platform::VULKAN> *src_buffer
     ) const;
 
-    void CopyToBuffer(
+    HYP_API void CopyToBuffer(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         GPUBuffer<Platform::VULKAN> *dst_buffer
     ) const;
 
-    ByteBuffer ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const;
+    HYP_API ByteBuffer ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const;
 
     bool IsRWTexture() const
         { return m_is_rw_texture; }
@@ -140,38 +140,11 @@ public:
         { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
 
     void CopyImageData(const ByteBuffer &byte_buffer)
-    {
-        m_streamed_data.Reset(new MemoryStreamedData(byte_buffer));
-    }
+        { m_streamed_data.Reset(new MemoryStreamedData(byte_buffer)); }
 
-    // void CopyImageData(const ubyte *data, SizeType count, SizeType offset = 0)
-    // {
-    //     const SizeType min_size = offset + count;
-
-    //     // Copy current data to a new buffer.
-    //     if (HasAssignedImageData()) { 
-    //         ByteBuffer copy_bytebuffer = m_streamed_data->Load().Copy();
-
-    //         if (copy_bytebuffer.Size() < min_size) {
-    //             copy_bytebuffer.SetSize(min_size);
-    //         }
-
-    //         // Copy new data into the buffer, at the given offset.
-    //         Memory::MemCpy(copy_bytebuffer.Data() + offset, data, count);
-
-    //         m_streamed_data.Reset(new MemoryStreamedData(std::move(copy_bytebuffer)));
-    //     } else {
-    //         ByteBuffer new_bytebuffer(min_size);
-
-    //         Memory::MemCpy(new_bytebuffer.Data() + offset, data, count);
-
-    //         m_streamed_data.Reset(new MemoryStreamedData(std::move(new_bytebuffer)));
-    //     }
-    // }
-
-    bool IsDepthStencil() const;
-    bool IsSRGB() const;
-    void SetIsSRGB(bool srgb);
+    HYP_API bool IsDepthStencil() const;
+    HYP_API bool IsSRGB() const;
+    HYP_API void SetIsSRGB(bool srgb);
 
     bool IsBlended() const
         { return m_is_blended; }
@@ -353,8 +326,8 @@ public:
         SetIsRWTexture(true);
     }
 
-    StorageImage(const StorageImage &other) = delete;
-    StorageImage &operator=(const StorageImage &other) = delete;
+    StorageImage(const StorageImage &other)             = delete;
+    StorageImage &operator=(const StorageImage &other)  = delete;
 
     StorageImage(StorageImage &&other) noexcept
         : Image(std::move(other))
@@ -368,7 +341,7 @@ public:
         return *this;
     }
 
-    ~StorageImage() = default;
+    ~StorageImage()                                     = default;
 };
 
 template <>
@@ -388,8 +361,8 @@ public:
     {
     }
     
-    StorageImage2D(const StorageImage2D &other) = delete;
-    StorageImage2D &operator=(const StorageImage2D &other) = delete;
+    StorageImage2D(const StorageImage2D &other)             = delete;
+    StorageImage2D &operator=(const StorageImage2D &other)  = delete;
 
     StorageImage2D(StorageImage2D &&other) noexcept
         : StorageImage(std::move(other))
@@ -403,7 +376,7 @@ public:
         return *this;
     }
 
-    ~StorageImage2D() = default;
+    ~StorageImage2D()                                       = default;
 };
 
 template <>
@@ -423,8 +396,8 @@ public:
     {
     }
 
-    StorageImage3D(const StorageImage3D &other) = delete;
-    StorageImage3D &operator=(const StorageImage3D &other) = delete;
+    StorageImage3D(const StorageImage3D &other)             = delete;
+    StorageImage3D &operator=(const StorageImage3D &other)  = delete;
 
     StorageImage3D(StorageImage3D &&other) noexcept
         : StorageImage(std::move(other))
@@ -438,7 +411,7 @@ public:
         return *this;
     }
 
-    ~StorageImage3D() = default;
+    ~StorageImage3D()                                       = default;
 };
 
 template <>
@@ -463,8 +436,8 @@ public:
     {
     }
 
-    TextureImage(const TextureImage &other) = delete;
-    TextureImage &operator=(const TextureImage &other) = delete;
+    TextureImage(const TextureImage &other)             = delete;
+    TextureImage &operator=(const TextureImage &other)  = delete;
 
     TextureImage(TextureImage &&other) noexcept
         : Image<Platform::VULKAN>(std::move(other))
@@ -478,7 +451,7 @@ public:
         return *this;
     }
 
-    ~TextureImage() = default;
+    ~TextureImage()                                     = default;
 };
 
 template <>
@@ -502,8 +475,8 @@ public:
     {
     }
 
-    TextureImage2D(const TextureImage2D &other) = delete;
-    TextureImage2D &operator=(const TextureImage2D &other) = delete;
+    TextureImage2D(const TextureImage2D &other)             = delete;
+    TextureImage2D &operator=(const TextureImage2D &other)  = delete;
 
     TextureImage2D(TextureImage2D &&other) noexcept
         : TextureImage(std::move(other))
@@ -517,7 +490,7 @@ public:
         return *this;
     }
 
-    ~TextureImage2D() = default;
+    ~TextureImage2D()                                       = default;
 };
 
 template <>
@@ -541,8 +514,8 @@ public:
     {
     }
 
-    TextureImage3D(const TextureImage3D &other) = delete;
-    TextureImage3D &operator=(const TextureImage3D &other) = delete;
+    TextureImage3D(const TextureImage3D &other)             = delete;
+    TextureImage3D &operator=(const TextureImage3D &other)  = delete;
 
     TextureImage3D(TextureImage3D &&other) noexcept
         : TextureImage(std::move(other))
@@ -556,7 +529,7 @@ public:
         return *this;
     }
 
-    ~TextureImage3D() = default;
+    ~TextureImage3D()                                       = default;
 };
 
 template <>
@@ -580,8 +553,8 @@ public:
     {
     }
 
-    TextureImageCube(const TextureImageCube &other) = delete;
-    TextureImageCube &operator=(const TextureImageCube &other) = delete;
+    TextureImageCube(const TextureImageCube &other)             = delete;
+    TextureImageCube &operator=(const TextureImageCube &other)  = delete;
 
     TextureImageCube(TextureImageCube &&other) noexcept
         : TextureImage(std::move(other))
@@ -595,7 +568,7 @@ public:
         return *this;
     }
 
-    ~TextureImageCube() = default;
+    ~TextureImageCube()                                         = default;
 };
 
 template <>

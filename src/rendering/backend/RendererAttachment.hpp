@@ -46,10 +46,10 @@ template <PlatformType PLATFORM>
 class Attachment
 {
 public:
-    Attachment(ImageRef<PLATFORM> image, RenderPassStage stage);
+    HYP_API Attachment(ImageRef<PLATFORM> image, RenderPassStage stage);
     Attachment(const Attachment &other)             = delete;
     Attachment &operator=(const Attachment &other)  = delete;
-    ~Attachment();
+    HYP_API ~Attachment();
 
     const ImageRef<PLATFORM> &GetImage() const
         { return m_image; }
@@ -63,8 +63,8 @@ public:
     bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
 
-    Result Create(Device<PLATFORM> *device);
-    Result Destroy(Device<PLATFORM> *device);
+    HYP_API Result Create(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
 
 private:
     ImageRef<PLATFORM>  m_image;
@@ -75,14 +75,14 @@ template <PlatformType PLATFORM>
 class AttachmentUsage
 {
 public:
-    AttachmentUsage(
+    HYP_API AttachmentUsage(
         AttachmentRef<PLATFORM> attachment,
         LoadOperation load_operation = LoadOperation::CLEAR,
         StoreOperation store_operation = StoreOperation::STORE,
         BlendFunction blend_function = BlendFunction::None()
     );
 
-    AttachmentUsage(
+    HYP_API AttachmentUsage(
         AttachmentRef<PLATFORM> attachment,
         ImageViewRef<PLATFORM> image_view,
         SamplerRef<PLATFORM> sampler,
@@ -93,7 +93,7 @@ public:
 
     AttachmentUsage(const AttachmentUsage &other)               = delete;
     AttachmentUsage &operator=(const AttachmentUsage &other)    = delete;
-    ~AttachmentUsage();
+    HYP_API ~AttachmentUsage();
 
     const AttachmentRef<PLATFORM> &GetAttachment() const
         { return m_attachment; }
@@ -134,8 +134,8 @@ public:
     void SetAllowBlending(bool allow_blending)
         { m_allow_blending = allow_blending; }
     
-    Result Create(Device<PLATFORM> *device);
-    Result Destroy(Device<PLATFORM> *device);
+    HYP_API Result Create(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
 
 private:
     AttachmentRef<PLATFORM> m_attachment;

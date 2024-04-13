@@ -90,7 +90,7 @@ namespace Hyperion
             return InputManager_IsKeyDown(ptr, (ushort)key);
         }
 
-        [DllImport("libhyperion", EntryPoint = "InputManager_IsKeyDown")]
+        [DllImport("hyperion", EntryPoint = "InputManager_IsKeyDown")]
         private static extern bool InputManager_IsKeyDown(IntPtr inputManagerPtr, ushort key);
     }
 }

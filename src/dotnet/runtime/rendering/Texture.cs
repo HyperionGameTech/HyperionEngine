@@ -142,22 +142,22 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "Texture_GetTypeID")]
+        [DllImport("hyperion", EntryPoint = "Texture_GetTypeID")]
         private static extern TypeID Texture_GetTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "Texture_Create")]
+        [DllImport("hyperion", EntryPoint = "Texture_Create")]
         private static extern ManagedHandle Texture_Create();
 
-        [DllImport("libhyperion", EntryPoint = "Texture_Init")]
+        [DllImport("hyperion", EntryPoint = "Texture_Init")]
         private static extern void Texture_Init(ManagedHandle texture);
 
-        [DllImport("libhyperion", EntryPoint = "Texture_GetInternalFormat")]
+        [DllImport("hyperion", EntryPoint = "Texture_GetInternalFormat")]
         private static extern InternalFormat Texture_GetInternalFormat(ManagedHandle texture);
 
-        [DllImport("libhyperion", EntryPoint = "Texture_GetFilterMode")]
+        [DllImport("hyperion", EntryPoint = "Texture_GetFilterMode")]
         private static extern FilterMode Texture_GetFilterMode(ManagedHandle texture);
 
-        [DllImport("libhyperion", EntryPoint = "Texture_GetImageType")]
+        [DllImport("hyperion", EntryPoint = "Texture_GetImageType")]
         private static extern ImageType Texture_GetImageType(ManagedHandle texture);
     }
 }

@@ -259,7 +259,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
         m_draw_commands.Resize(SizeType(m_num_draw_commands));
     }
 
-    GetContainer<Mesh>().Get(draw_call.mesh_id.ToIndex())
+    Handle<Mesh>::GetContainer().Get(draw_call.mesh_id.ToIndex())
         .PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
     
     m_dirty_bits |= 0x3;

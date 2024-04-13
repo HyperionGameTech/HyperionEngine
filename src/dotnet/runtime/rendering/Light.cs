@@ -117,10 +117,10 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetTypeID")]
+        [DllImport("hyperion", EntryPoint = "Light_GetTypeID")]
         private static extern TypeID Light_GetTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "Light_Create")]
+        [DllImport("hyperion", EntryPoint = "Light_Create")]
         private static extern ManagedHandle Light_Create(
             LightType type,
             Vec3f position,
@@ -129,37 +129,37 @@ namespace Hyperion
             float radius
         );
 
-        [DllImport("libhyperion", EntryPoint = "Light_Init")]
+        [DllImport("hyperion", EntryPoint = "Light_Init")]
         private static extern void Light_Init(ManagedHandle texture);
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetPosition")]
+        [DllImport("hyperion", EntryPoint = "Light_GetPosition")]
         private static extern Vec3f Light_GetPosition(ManagedHandle light);
 
-        [DllImport("libhyperion", EntryPoint = "Light_SetPosition")]
+        [DllImport("hyperion", EntryPoint = "Light_SetPosition")]
         private static extern void Light_SetPosition(ManagedHandle light, Vec3f position);
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetColor")]
+        [DllImport("hyperion", EntryPoint = "Light_GetColor")]
         private static extern Color Light_GetColor(ManagedHandle light);
 
-        [DllImport("libhyperion", EntryPoint = "Light_SetColor")]
+        [DllImport("hyperion", EntryPoint = "Light_SetColor")]
         private static extern void Light_SetColor(ManagedHandle light, Color color);
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetIntensity")]
+        [DllImport("hyperion", EntryPoint = "Light_GetIntensity")]
         private static extern float Light_GetIntensity(ManagedHandle light);
 
-        [DllImport("libhyperion", EntryPoint = "Light_SetIntensity")]
+        [DllImport("hyperion", EntryPoint = "Light_SetIntensity")]
         private static extern void Light_SetIntensity(ManagedHandle light, float intensity);
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetRadius")]
+        [DllImport("hyperion", EntryPoint = "Light_GetRadius")]
         private static extern float Light_GetRadius(ManagedHandle light);
 
-        [DllImport("libhyperion", EntryPoint = "Light_SetRadius")]
+        [DllImport("hyperion", EntryPoint = "Light_SetRadius")]
         private static extern void Light_SetRadius(ManagedHandle light, float radius);
 
-        [DllImport("libhyperion", EntryPoint = "Light_GetFalloff")]
+        [DllImport("hyperion", EntryPoint = "Light_GetFalloff")]
         private static extern float Light_GetFalloff(ManagedHandle light);
 
-        [DllImport("libhyperion", EntryPoint = "Light_SetFalloff")]
+        [DllImport("hyperion", EntryPoint = "Light_SetFalloff")]
         private static extern void Light_SetFalloff(ManagedHandle light, float falloff);
     }
 }

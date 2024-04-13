@@ -47,7 +47,7 @@ namespace Hyperion
             return value;
         }
 
-        [DllImport("libhyperion", EntryPoint = "TypeID_ForDynamicType")]
+        [DllImport("hyperion", EntryPoint = "TypeID_ForDynamicType")]
         private static extern TypeID TypeID_ForDynamicType(IntPtr typeNamePtr);
     }
 }

@@ -29,10 +29,10 @@ namespace Hyperion
             id = 0;
         }
 
-        [DllImport("libhyperion", EntryPoint = "ManagedHandle_IncRef")]
+        [DllImport("hyperion", EntryPoint = "ManagedHandle_IncRef")]
         private static extern void ManagedHandle_IncRef(TypeID type_id, ManagedHandle handle);
 
-        [DllImport("libhyperion", EntryPoint = "ManagedHandle_DecRef")]
+        [DllImport("hyperion", EntryPoint = "ManagedHandle_DecRef")]
         private static extern void ManagedHandle_DecRef(TypeID type_id, ManagedHandle handle);
     }
 }

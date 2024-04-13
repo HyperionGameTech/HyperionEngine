@@ -107,13 +107,13 @@ namespace Hyperion
             return BoundingBox_ContainsPoint(this, point);
         }
 
-        [DllImport("libhyperion", EntryPoint = "BoundingBox_GetRadius")]
+        [DllImport("hyperion", EntryPoint = "BoundingBox_GetRadius")]
         private static extern float BoundingBox_GetRadius(BoundingBox box);
 
-        [DllImport("libhyperion", EntryPoint = "BoundingBox_Contains")]
+        [DllImport("hyperion", EntryPoint = "BoundingBox_Contains")]
         public static extern bool BoundingBox_Contains(BoundingBox box, BoundingBox other);
 
-        [DllImport("libhyperion", EntryPoint = "BoundingBox_ContainsPoint")]
+        [DllImport("hyperion", EntryPoint = "BoundingBox_ContainsPoint")]
         public static extern bool BoundingBox_ContainsPoint(BoundingBox box, Vec3f point);
     }
 }

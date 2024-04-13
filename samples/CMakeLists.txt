@@ -3,6 +3,9 @@ cmake_policy(SET CMP0091 NEW)
 
 set(BUILD_NAME hyperion-sample)
 
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 project(${BUILD_NAME} CXX C)
 
 if(MSVC)
@@ -47,6 +50,13 @@ endif()
 # link with shared library hyperion
 add_dependencies(${BUILD_NAME} hyperion)
 target_link_libraries(${BUILD_NAME} hyperion)
+
+# copy the hyperion dll to the executable directory
+# add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#     $<TARGET_FILE:hyperion>
+#     $<TARGET_FILE_DIR:${BUILD_NAME}>
+# )
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 

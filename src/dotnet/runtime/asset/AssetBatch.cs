@@ -44,19 +44,19 @@ namespace Hyperion
             return new AssetMap(AssetBatch_AwaitResults(ptr));
         }
 
-        [DllImport("libhyperion", EntryPoint = "AssetBatch_Create")]
+        [DllImport("hyperion", EntryPoint = "AssetBatch_Create")]
         private static extern IntPtr AssetBatch_Create(IntPtr assetManagerPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetBatch_Destroy")]
+        [DllImport("hyperion", EntryPoint = "AssetBatch_Destroy")]
         private static extern void AssetBatch_Destroy(IntPtr assetBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetBatch_AddToBatch")]
+        [DllImport("hyperion", EntryPoint = "AssetBatch_AddToBatch")]
         private static extern void AssetBatch_AddToBatch(IntPtr assetBatchPtr, IntPtr keyPtr, IntPtr pathPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetBatch_LoadAsync")]
+        [DllImport("hyperion", EntryPoint = "AssetBatch_LoadAsync")]
         private static extern void AssetBatch_LoadAsync(IntPtr assetBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetBatch_AwaitResults")]
+        [DllImport("hyperion", EntryPoint = "AssetBatch_AwaitResults")]
         private static extern IntPtr AssetBatch_AwaitResults(IntPtr assetBatchPtr);
     }
 }

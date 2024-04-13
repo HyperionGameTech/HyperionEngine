@@ -2,26 +2,15 @@
 
 namespace hyperion {
 
-// TypeIDGeneratorBase
+#pragma region TypeID
 
-TypeIDNameMap TypeIDGeneratorBase::name_map = { };
-
-TypeIDNameMap &TypeIDGeneratorBase::GetNameMap()
-{
-    return name_map;
-}
-
-// TypeID
-const TypeID TypeID::void_type_id = { };
-
-TypeID TypeID::Void()
-{
-    return void_type_id;
-}
+const TypeID TypeID::void_type_id = TypeID { void_value };
 
 TypeID TypeID::ForName(struct Name name)
 {
     HYP_THROW("This function has been removed");
 }
+
+#pragma endregion TypeID
 
 } // namespace hyperion

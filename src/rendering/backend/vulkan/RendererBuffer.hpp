@@ -84,15 +84,15 @@ public:
         ShaderModuleType shader_type = ShaderModuleType::UNSET
     );
 
-    GPUMemory();
+    HYP_API GPUMemory();
 
-    GPUMemory(const GPUMemory &other) = delete;
-    GPUMemory &operator=(const GPUMemory &other) = delete;
+    GPUMemory(const GPUMemory &other)               = delete;
+    GPUMemory &operator=(const GPUMemory &other)    = delete;
 
-    GPUMemory(GPUMemory &&other) noexcept;
-    GPUMemory &operator=(GPUMemory &&other) = delete;
+    HYP_API GPUMemory(GPUMemory &&other) noexcept;
+    GPUMemory &operator=(GPUMemory &&other)         = delete;
 
-    ~GPUMemory();
+    HYP_API ~GPUMemory();
 
     ResourceState GetResourceState() const
         { return resource_state; }
@@ -118,12 +118,12 @@ public:
         return map;
     }
 
-    void Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value);
+    HYP_API void Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value);
 
-    void Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr);
-    void Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr);
+    HYP_API void Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr);
+    HYP_API void Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr);
 
-    void Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const;
+    HYP_API void Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const;
     
     VmaAllocation allocation;
     VkDeviceSize size;
@@ -131,17 +131,17 @@ public:
     static Stats stats;
 
 protected:
-    void Map(Device<Platform::VULKAN> *device, void **ptr) const;
-    void Unmap(Device<Platform::VULKAN> *device) const;
-    void Create();
-    void Destroy();
+    HYP_API void Map(Device<Platform::VULKAN> *device, void **ptr) const;
+    HYP_API void Unmap(Device<Platform::VULKAN> *device) const;
+    HYP_API void Create();
+    HYP_API void Destroy();
 
-    uint m_id;
-    bool m_is_created;
+    uint                    m_id;
+    bool                    m_is_created;
 
-    uint sharing_mode;
-    mutable void *map;
-    mutable ResourceState resource_state;
+    uint                    sharing_mode;
+    mutable void            *map;
+    mutable ResourceState   resource_state;
 };
 
 /* buffers */
@@ -150,15 +150,15 @@ template <>
 class GPUBuffer<Platform::VULKAN> : public GPUMemory<Platform::VULKAN>
 {
 public:
-    GPUBuffer(GPUBufferType type);
+    HYP_API GPUBuffer(GPUBufferType type);
 
-    GPUBuffer(const GPUBuffer &other) = delete;
-    GPUBuffer &operator=(const GPUBuffer &other) = delete;
+    GPUBuffer(const GPUBuffer &other)                   = delete;
+    GPUBuffer &operator=(const GPUBuffer &other)        = delete;
 
     GPUBuffer(GPUBuffer &&other) noexcept;
-    GPUBuffer &operator=(GPUBuffer &&other) = delete;
+    GPUBuffer &operator=(GPUBuffer &&other) noexcept    = delete;
 
-    ~GPUBuffer();
+    HYP_API ~GPUBuffer();
 
     GPUBufferType GetBufferType() const
         { return type; }
@@ -166,30 +166,30 @@ public:
     bool IsCPUAccessible() const
         { return vma_usage != VMA_MEMORY_USAGE_GPU_ONLY; }
 
-    void InsertBarrier(
+    HYP_API void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state
     ) const;
 
-    void InsertBarrier(
+    HYP_API void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state,
         ShaderModuleType shader_type
     ) const;
 
-    void CopyFrom(
+    HYP_API void CopyFrom(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const GPUBuffer *src_buffer,
         SizeType count
     );
 
-    [[nodiscard]] Result CopyStaged(
+    HYP_API Result CopyStaged(
         Instance<Platform::VULKAN> *instance,
         const void *ptr,
         SizeType count
     );
 
-    [[nodiscard]] Result ReadStaged(
+    HYP_API Result ReadStaged(
         Instance<Platform::VULKAN> *instance,
         SizeType count,
         void *out_ptr
@@ -200,48 +200,25 @@ public:
     /* \brief Calls vkGetBufferDeviceAddressKHR. Only use this if the extension is enabled */
     uint64_t GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const;
 
-    [[nodiscard]] Result Create(
+    HYP_API Result Create(
         Device<Platform::VULKAN> *device,
         SizeType buffer_size,
         SizeType buffer_alignment = 0
     );
-    [[nodiscard]] Result Destroy(Device<Platform::VULKAN> *device);
-    [[nodiscard]] Result EnsureCapacity(
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result EnsureCapacity(
         Device<Platform::VULKAN> *device,
         SizeType minimum_size,
         bool *out_size_changed = nullptr
     );
-    [[nodiscard]] Result EnsureCapacity(
+    HYP_API Result EnsureCapacity(
         Device<Platform::VULKAN> *device,
         SizeType minimum_size,
         SizeType alignment,
         bool *out_size_changed = nullptr
     );
 
-#ifdef HYP_DEBUG_MODE
-    void DebugLogBuffer(Instance<Platform::VULKAN> *instance) const;
-
-    template <class T = ubyte>
-    std::vector<T> DebugReadBytes(
-        Instance<Platform::VULKAN> *instance,
-        Device<Platform::VULKAN> *device,
-        bool staged = false
-    ) const
-    {
-        std::vector<T> data;
-        data.resize(size / sizeof(T));
-
-        if (staged) {
-            HYPERION_ASSERT_RESULT(ReadStaged(instance, size, &data[0]));
-        } else {
-            Read(device, size, &data[0]);
-        }
-
-        return data;
-    }
-#endif
-
-    VkBuffer buffer;
+    VkBuffer                    buffer;
     
 private:
     Result CheckCanAllocate(
@@ -254,11 +231,11 @@ private:
     VmaAllocationCreateInfo GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const;
     VkBufferCreateInfo GetBufferCreateInfo(Device<Platform::VULKAN> *device) const;
 
-    GPUBufferType type;
+    GPUBufferType               type;
 
-    VkBufferUsageFlags usage_flags;
-    VmaMemoryUsage vma_usage;
-    VmaAllocationCreateFlags vma_allocation_create_flags;
+    VkBufferUsageFlags          usage_flags;
+    VmaMemoryUsage              vma_usage;
+    VmaAllocationCreateFlags    vma_allocation_create_flags;
 };
 
 template <>
@@ -282,38 +259,40 @@ public:
         DEPTH
     };
 
-    GPUImageMemory();
-    GPUImageMemory(const GPUImageMemory &other) = delete;
-    GPUImageMemory &operator=(const GPUImageMemory &other) = delete;
-    ~GPUImageMemory();
+    HYP_API GPUImageMemory();
+    GPUImageMemory(const GPUImageMemory &other)             = delete;
+    GPUImageMemory &operator=(const GPUImageMemory &other)  = delete;
+    HYP_API GPUImageMemory(GPUImageMemory &&other) noexcept;
+    GPUImageMemory &operator=(GPUImageMemory &&other)       = delete;
+    HYP_API ~GPUImageMemory();
 
     ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
     void SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state);
 
     void SetResourceState(ResourceState new_state);
 
-    void InsertBarrier(
+    HYP_API void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state,
         ImageSubResourceFlagBits flags = ImageSubResourceFlags::IMAGE_SUB_RESOURCE_FLAGS_COLOR
     );
 
-    void InsertBarrier(
+    HYP_API void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
         ResourceState new_state
     );
 
-    void InsertSubResourceBarrier(
+    HYP_API void InsertSubResourceBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
         ResourceState new_state
     );
 
-    [[nodiscard]] Result Create(Device<Platform::VULKAN> *device, PlatformImage image);
+    HYP_API Result Create(Device<Platform::VULKAN> *device, PlatformImage image);
 
-    [[nodiscard]] Result Create(Device<Platform::VULKAN> *device, SizeType size, VkImageCreateInfo *image_info);
-    [[nodiscard]] Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device, SizeType size, VkImageCreateInfo *image_info);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
 
     PlatformImage image;
 

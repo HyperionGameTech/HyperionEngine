@@ -25,7 +25,7 @@ namespace Hyperion
             refPtr = IntPtr.Zero;
         }
 
-        [DllImport("libhyperion", EntryPoint = "ManagedNode_Dispose")]
+        [DllImport("hyperion", EntryPoint = "ManagedNode_Dispose")]
         private static extern void ManagedNode_Dispose(ManagedNode managed_node);
     }
 
@@ -270,109 +270,109 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "Node_Create")]
+        [DllImport("hyperion", EntryPoint = "Node_Create")]
         private static extern ManagedNode Node_Create();
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetName")]
+        [DllImport("hyperion", EntryPoint = "Node_GetName")]
         private static extern IntPtr Node_GetName(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetName")]
+        [DllImport("hyperion", EntryPoint = "Node_SetName")]
         private static extern void Node_SetName(ManagedNode managedNode, IntPtr namePtr);
 
-        [DllImport("libhyperion", EntryPoint = "Node_AddChild")]
+        [DllImport("hyperion", EntryPoint = "Node_AddChild")]
         private static extern ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child);
 
-        [DllImport("libhyperion", EntryPoint = "Node_FindChild")]
+        [DllImport("hyperion", EntryPoint = "Node_FindChild")]
         private static extern ManagedNode Node_FindChild(ManagedNode managedNode, IntPtr namePtr);
 
-        [DllImport("libhyperion", EntryPoint = "Node_FindChildWithEntity")]
+        [DllImport("hyperion", EntryPoint = "Node_FindChildWithEntity")]
         private static extern ManagedNode Node_FindChildWithEntity(ManagedNode managedNode, Entity entity);
 
-        [DllImport("libhyperion", EntryPoint = "Node_RemoveChild")]
+        [DllImport("hyperion", EntryPoint = "Node_RemoveChild")]
         private static extern bool Node_RemoveChild(ManagedNode parent, ManagedNode child);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetWorldTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_GetWorldTransform")]
         private static extern Transform Node_GetWorldTransform(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetWorldTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_SetWorldTransform")]
         private static extern void Node_SetWorldTransform(ManagedNode managedNode, Transform transform);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetLocalTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_GetLocalTransform")]
         private static extern Transform Node_GetLocalTransform(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetLocalTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_SetLocalTransform")]
         private static extern void Node_SetLocalTransform(ManagedNode managedNode, Transform transform);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetWorldTranslation")]
+        [DllImport("hyperion", EntryPoint = "Node_GetWorldTranslation")]
         private static extern Vec3f Node_GetWorldTranslation(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetWorldTranslation")]
+        [DllImport("hyperion", EntryPoint = "Node_SetWorldTranslation")]
         private static extern void Node_SetWorldTranslation(ManagedNode managedNode, Vec3f translation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetLocalTranslation")]
+        [DllImport("hyperion", EntryPoint = "Node_GetLocalTranslation")]
         private static extern Vec3f Node_GetLocalTranslation(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetLocalTranslation")]
+        [DllImport("hyperion", EntryPoint = "Node_SetLocalTranslation")]
         private static extern void Node_SetLocalTranslation(ManagedNode managedNode, Vec3f translation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_Translate")]
+        [DllImport("hyperion", EntryPoint = "Node_Translate")]
         private static extern void Node_Translate(ManagedNode managedNode, Vec3f translation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetWorldRotation")]
+        [DllImport("hyperion", EntryPoint = "Node_GetWorldRotation")]
         private static extern Quaternion Node_GetWorldRotation(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetWorldRotation")]
+        [DllImport("hyperion", EntryPoint = "Node_SetWorldRotation")]
         private static extern void Node_SetWorldRotation(ManagedNode managedNode, Quaternion rotation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetLocalRotation")]
+        [DllImport("hyperion", EntryPoint = "Node_GetLocalRotation")]
         private static extern Quaternion Node_GetLocalRotation(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetLocalRotation")]
+        [DllImport("hyperion", EntryPoint = "Node_SetLocalRotation")]
         private static extern void Node_SetLocalRotation(ManagedNode managedNode, Quaternion rotation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_Rotate")]
+        [DllImport("hyperion", EntryPoint = "Node_Rotate")]
         private static extern void Node_Rotate(ManagedNode managedNode, Quaternion rotation);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetWorldScale")]
+        [DllImport("hyperion", EntryPoint = "Node_GetWorldScale")]
         private static extern Vec3f Node_GetWorldScale(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetWorldScale")]
+        [DllImport("hyperion", EntryPoint = "Node_SetWorldScale")]
         private static extern void Node_SetWorldScale(ManagedNode managedNode, Vec3f scale);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetLocalScale")]
+        [DllImport("hyperion", EntryPoint = "Node_GetLocalScale")]
         private static extern Vec3f Node_GetLocalScale(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetLocalScale")]
+        [DllImport("hyperion", EntryPoint = "Node_SetLocalScale")]
         private static extern void Node_SetLocalScale(ManagedNode managedNode, Vec3f scale);
 
-        [DllImport("libhyperion", EntryPoint = "Node_Scale")]
+        [DllImport("hyperion", EntryPoint = "Node_Scale")]
         private static extern void Node_Scale(ManagedNode managedNode, Vec3f scale);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetEntity")]
+        [DllImport("hyperion", EntryPoint = "Node_GetEntity")]
         private static extern Entity Node_GetEntity(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetEntity")]
+        [DllImport("hyperion", EntryPoint = "Node_SetEntity")]
         private static extern void Node_SetEntity(ManagedNode managedNode, Entity entity);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetWorldAABB")]
+        [DllImport("hyperion", EntryPoint = "Node_GetWorldAABB")]
         private static extern BoundingBox Node_GetWorldAABB(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetWorldAABB")]
+        [DllImport("hyperion", EntryPoint = "Node_SetWorldAABB")]
         private static extern void Node_SetWorldAABB(ManagedNode managedNode, BoundingBox aabb);
 
-        [DllImport("libhyperion", EntryPoint = "Node_GetLocalAABB")]
+        [DllImport("hyperion", EntryPoint = "Node_GetLocalAABB")]
         private static extern BoundingBox Node_GetLocalAABB(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_SetLocalAABB")]
+        [DllImport("hyperion", EntryPoint = "Node_SetLocalAABB")]
         private static extern void Node_SetLocalAABB(ManagedNode managedNode, BoundingBox aabb);
 
-        [DllImport("libhyperion", EntryPoint = "Node_IsTransformLocked")]
+        [DllImport("hyperion", EntryPoint = "Node_IsTransformLocked")]
         private static extern bool Node_IsTransformLocked(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_LockTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_LockTransform")]
         private static extern void Node_LockTransform(ManagedNode managedNode);
 
-        [DllImport("libhyperion", EntryPoint = "Node_UnlockTransform")]
+        [DllImport("hyperion", EntryPoint = "Node_UnlockTransform")]
         private static extern void Node_UnlockTransform(ManagedNode managedNode);
     }
 }

@@ -65,7 +65,7 @@ namespace Hyperion
             Marshal.FreeHGlobal(formattedMessagePtr);
         }
 
-        [DllImport("libhyperion", EntryPoint = "Logger_Log")]
+        [DllImport("hyperion", EntryPoint = "Logger_Log")]
         private static extern void Logger_Log(int logLevel, IntPtr funcNamePtr, uint line, IntPtr messagePtr);
     }
 }

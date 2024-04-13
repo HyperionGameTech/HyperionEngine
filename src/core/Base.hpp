@@ -193,15 +193,6 @@ protected:
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
     InitInfo m_init_info;
-
-private:
-
-    // void RemoveFromObjectSystem()
-    // {
-    //     if (IsInitCalled()) {
-    //         GetObjectPool().template Release<InnerType>(GetID());
-    //     }
-    // }
 };
 
 } // namespace hyperion::v2

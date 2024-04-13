@@ -34,13 +34,13 @@ using RenderEnvironmentUpdates = uint8;
 
 enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 {
-    RENDER_ENVIRONMENT_UPDATES_NONE = 0x0,
-    RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS = 0x1,
-    RENDER_ENVIRONMENT_UPDATES_PLACEHOLDER = 0x2,
+    RENDER_ENVIRONMENT_UPDATES_NONE                 = 0x0,
+    RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS    = 0x1,
+    RENDER_ENVIRONMENT_UPDATES_PLACEHOLDER          = 0x2,
 
-    RENDER_ENVIRONMENT_UPDATES_CONTAINERS = RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS,
+    RENDER_ENVIRONMENT_UPDATES_CONTAINERS           = RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS,
 
-    RENDER_ENVIRONMENT_UPDATES_TLAS = 0x4
+    RENDER_ENVIRONMENT_UPDATES_TLAS                 = 0x4
 };
 
 class HYP_API RenderEnvironment
@@ -54,22 +54,13 @@ public:
     RenderEnvironment &operator=(const RenderEnvironment &other) = delete;
     ~RenderEnvironment();
 
-    void SetTLAS(Handle<TLAS> &&tlas);
-    void SetTLAS(const Handle<TLAS> &tlas);
+    void SetTLAS(Handle<TLAS> tlas);
 
     Scene *GetScene() const
         { return m_scene; }
 
-    ID<Scene> GetSceneID() const;
-
-    Handle<ParticleSystem> &GetParticleSystem()
-        { return m_particle_system; }
-
     const Handle<ParticleSystem> &GetParticleSystem() const
         { return m_particle_system; }
-
-    Handle<GaussianSplatting> &GetGaussianSplatting()
-        { return m_gaussian_splatting; }
 
     const Handle<GaussianSplatting> &GetGaussianSplatting() const
         { return m_gaussian_splatting; }

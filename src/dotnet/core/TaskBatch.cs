@@ -84,28 +84,28 @@ namespace Hyperion
             TaskBatch_AwaitCompletion(ptr);
         }
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_Create")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_Create")]
         private static extern IntPtr TaskBatch_Create();
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_Destroy")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_Destroy")]
         private static extern void TaskBatch_Destroy(IntPtr taskBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_IsCompleted")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_IsCompleted")]
         private static extern bool TaskBatch_IsCompleted(IntPtr taskBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_NumCompleted")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_NumCompleted")]
         private static extern uint TaskBatch_NumCompleted(IntPtr taskBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_NumEnqueued")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_NumEnqueued")]
         private static extern uint TaskBatch_NumEnqueued(IntPtr taskBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_AddTask")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_AddTask")]
         private static extern void TaskBatch_AddTask(IntPtr taskBatchPtr, TaskDelegate fn);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_AwaitCompletion")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_AwaitCompletion")]
         private static extern void TaskBatch_AwaitCompletion(IntPtr taskBatchPtr);
 
-        [DllImport("libhyperion", EntryPoint = "TaskBatch_Launch")]
+        [DllImport("hyperion", EntryPoint = "TaskBatch_Launch")]
         private static extern void TaskBatch_Launch(IntPtr taskBatchPtr);
     }
 }

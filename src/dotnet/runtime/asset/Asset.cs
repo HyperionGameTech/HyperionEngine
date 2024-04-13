@@ -49,10 +49,10 @@ namespace Hyperion
             return new Texture(handle);
         }
 
-        [DllImport("libhyperion", EntryPoint = "Asset_GetNode")]
+        [DllImport("hyperion", EntryPoint = "Asset_GetNode")]
         private static extern ManagedNode Asset_GetNode(IntPtr assetPtr);
 
-        [DllImport("libhyperion", EntryPoint = "Asset_GetTexture")]
+        [DllImport("hyperion", EntryPoint = "Asset_GetTexture")]
         private static extern ManagedHandle Asset_GetTexture(IntPtr assetPtr);
     }
 }

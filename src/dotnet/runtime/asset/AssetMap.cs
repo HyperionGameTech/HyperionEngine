@@ -43,10 +43,10 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "AssetMap_Destroy")]
+        [DllImport("hyperion", EntryPoint = "AssetMap_Destroy")]
         private static extern void AssetMap_Destroy(IntPtr assetMapPtr);
 
-        [DllImport("libhyperion", EntryPoint = "AssetMap_GetAsset")]
+        [DllImport("hyperion", EntryPoint = "AssetMap_GetAsset")]
         private static extern IntPtr AssetMap_GetAsset(IntPtr assetMapPtr, IntPtr keyPtr);
     }
 }

@@ -1,13 +1,10 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_ATTACHMENT_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_ATTACHMENT_HPP
 
-#include <core/Containers.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/Platform.hpp>
 
 #include <math/MathUtil.hpp>
@@ -25,14 +22,14 @@ template <>
 class AttachmentUsage<Platform::VULKAN>
 {
 public:
-    AttachmentUsage(
+    HYP_API AttachmentUsage(
         AttachmentRef<Platform::VULKAN> attachment,
         LoadOperation load_operation = LoadOperation::CLEAR,
         StoreOperation store_operation = StoreOperation::STORE,
         BlendFunction blend_function = BlendFunction::None()
     );
 
-    AttachmentUsage(
+    HYP_API AttachmentUsage(
         AttachmentRef<Platform::VULKAN> attachment,
         ImageViewRef<Platform::VULKAN> image_view,
         SamplerRef<Platform::VULKAN> sampler,
@@ -43,7 +40,7 @@ public:
 
     AttachmentUsage(const AttachmentUsage &other)               = delete;
     AttachmentUsage &operator=(const AttachmentUsage &other)    = delete;
-    ~AttachmentUsage();
+    HYP_API ~AttachmentUsage();
 
     const AttachmentRef<Platform::VULKAN> &GetAttachment() const
         { return m_attachment; }
@@ -87,8 +84,8 @@ public:
     VkAttachmentDescription GetAttachmentDescription() const;
     VkAttachmentReference GetHandle() const;
     
-    Result Create(Device<Platform::VULKAN> *device);
-    Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
 
 private:
     AttachmentRef<Platform::VULKAN> m_attachment;

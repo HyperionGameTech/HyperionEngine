@@ -23,16 +23,16 @@ void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entit
         if (dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName(script_component.script_info.class_name.Data())) {
             script_component.object = class_ptr->NewObject();
 
-            if (class_ptr->HasMethod("BeforeInit")) {
-                script_component.object->InvokeMethodByName<void, ManagedHandle>(
-                    "BeforeInit",
+            if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
+                script_component.object->InvokeMethod<void, ManagedHandle>(
+                    before_init_method_ptr,
                     CreateManagedHandleFromID(entity_manager.GetScene()->GetID())
                 );
             }
 
-            if (class_ptr->HasMethod("Init")) {
-                script_component.object->InvokeMethodByName<void, ManagedEntity>(
-                    "Init",
+            if (auto *init_method_ptr = class_ptr->GetMethod("Init")) {
+                script_component.object->InvokeMethod<void, ManagedEntity>(
+                    init_method_ptr,
                     ManagedEntity { entity.Value() }
                 );
             }

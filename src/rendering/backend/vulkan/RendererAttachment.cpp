@@ -5,7 +5,7 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-// Helpers
+#pragma region Helpers
 
 static VkImageLayout GetInitialLayout()
 {
@@ -65,7 +65,9 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-// AttachmentUsage
+#pragma endregion Helpers
+
+#pragma region AttachmentUsage
 
 AttachmentUsage<Platform::VULKAN>::AttachmentUsage(
     AttachmentRef<Platform::VULKAN> attachment,
@@ -185,7 +187,9 @@ Result AttachmentUsage<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *devi
     HYPERION_RETURN_OK;
 }
 
-// Attachment
+#pragma endregion AttachmentUsage
+
+#pragma region Attachment
 
 template <>
 Attachment<Platform::VULKAN>::Attachment(ImageRef<Platform::VULKAN> image, RenderPassStage stage)
@@ -222,6 +226,8 @@ Result Attachment<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 
     return result;
 }
+
+#pragma endregion Attachment
 
 } // namespace platform
 } // namespace renderer

@@ -92,16 +92,7 @@ RenderEnvironment::~RenderEnvironment()
     HYP_SYNC_RENDER();
 }
 
-void RenderEnvironment::SetTLAS(const Handle<TLAS> &tlas)
-{
-    m_tlas = tlas;
-
-    InitObject(m_tlas);
-
-    m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_TLAS, MemoryOrder::RELEASE);
-}
-
-void RenderEnvironment::SetTLAS(Handle<TLAS> &&tlas)
+void RenderEnvironment::SetTLAS(Handle<TLAS> tlas)
 {
     m_tlas = std::move(tlas);
 
@@ -360,15 +351,6 @@ void RenderEnvironment::RenderComponents(Frame *frame)
     }
 
     ++m_frame_counter;
-}
-
-ID<Scene> RenderEnvironment::GetSceneID() const
-{
-    if (!m_scene) {
-        return ID<Scene> { };
-    }
-
-    return m_scene->GetID();
 }
 
 } // namespace hyperion::v2

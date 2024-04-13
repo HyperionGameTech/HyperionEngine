@@ -219,15 +219,16 @@ private:
     IDCreator<>                         m_id_generator;
 };
 
-class HYP_API ObjectPool
+class ObjectPool
 {
     struct ObjectContainerMap
     {
         // Mutex for accessing the map
-        Mutex                                   mutex;
+        Mutex                                                       mutex;
 
         // Maps component type ID to object container
-        HashMap<TypeID, ObjectContainerBase *>  map;
+        // Use a linked list so that iterators are never invalidated.
+        LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>>    map;
 
         ObjectContainerMap()                                            = default;
         ObjectContainerMap(const ObjectContainerMap &)                  = delete;
@@ -242,13 +243,16 @@ class HYP_API ObjectPool
         template <class T>
         struct ObjectContainerDeclaration
         {
-            ObjectContainer<T>  container;
-
-            ObjectContainerDeclaration(TypeID type_id, ObjectContainerMap &object_container_map)
+            ObjectContainerDeclaration(UniquePtr<ObjectContainerBase> *allotted_container)
             {
-                Mutex::Guard guard(object_container_map.mutex);
+                AssertThrowMsg(allotted_container != nullptr, "Allotted container pointer was null!");
 
-                object_container_map.map.Set(type_id, &container);
+                if (*allotted_container != nullptr) {
+                    // Already allocated
+                    return;
+                }
+
+                (*allotted_container).Reset(new ObjectContainer<T>());
             }
 
             ObjectContainerDeclaration(const ObjectContainerDeclaration &)                  = delete;
@@ -259,108 +263,47 @@ class HYP_API ObjectPool
         };
 
         static ObjectContainerMap s_object_container_map;
-        HYP_API static ObjectContainerMap &GetObjectContainerMap();
 
         template <class T>
-        static ObjectContainer<T> &GetObjectContainer()
+        static ObjectContainer<T> &GetObjectContainer(UniquePtr<ObjectContainerBase> *allotted_container)
         {
-            static ObjectContainerDeclaration<T> object_container_declaration(TypeID::ForType<T>(), GetObjectContainerMap());
+            static ObjectContainerDeclaration<T> object_container_declaration(allotted_container);
 
-            return object_container_declaration.container;
+            return *static_cast<ObjectContainer<T> *>((*allotted_container).Get());
         }
+        
+        HYP_API static UniquePtr<ObjectContainerBase> *AllotObjectContainer(TypeID type_id);
 
         HYP_API static ObjectContainerBase *TryGetObjectContainer(TypeID type_id);
     } s_object_container_holder;
 
+    HYP_API static ObjectContainerHolder &GetObjectContainerHolder();
+
 public:
     template <class T>
-    HYP_FORCE_INLINE ObjectContainer<T> &GetContainer()
+    HYP_FORCE_INLINE
+    static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> *allotted_container)
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 
-        return s_object_container_holder.GetObjectContainer<T>();
+        return GetObjectContainerHolder().GetObjectContainer<T>(allotted_container);
     }
 
-    HYP_FORCE_INLINE ObjectContainerBase *TryGetContainer(TypeID type_id)
+    template <class T>
+    HYP_FORCE_INLINE
+    static UniquePtr<ObjectContainerBase> *AllotContainer()
     {
-        return s_object_container_holder.TryGetObjectContainer(type_id);
+        static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
+
+        return GetObjectContainerHolder().AllotObjectContainer(TypeID::ForType<T>());
+    }
+
+    HYP_FORCE_INLINE
+    static ObjectContainerBase *TryGetContainer(TypeID type_id)
+    {
+        return GetObjectContainerHolder().TryGetObjectContainer(type_id);
     }
 };
-
-#define DEF_HANDLE(T, _max_size) \
-    class T; \
-    template <> \
-    struct HandleDefinition< T > \
-    { \
-        static constexpr const char *class_name = HYP_STR(T); \
-        static constexpr SizeType max_size = (_max_size); \
-        \
-        static constexpr const char *GetClassNameString() \
-        { \
-            return class_name; \
-        } \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = HYP_NAME(T); \
-            return name; \
-        } \
-    }
-
-
-#define DEF_HANDLE_NS(ns, T, _max_size) \
-    namespace ns { \
-    class T; \
-    } \
-    \
-    template <> \
-    struct HandleDefinition< ns::T > \
-    { \
-        static constexpr const char *class_name = HYP_STR(ns) "::" HYP_STR(T); \
-        static constexpr SizeType max_size = (_max_size); \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = HYP_NAME(ns::T); \
-            return name; \
-        } \
-    }
-
-DEF_HANDLE(Texture,                      32768);
-DEF_HANDLE(Lightmap,                     32768);
-DEF_HANDLE(Camera,                       64);
-DEF_HANDLE(Entity,                       32768);
-DEF_HANDLE(Node,                         65536);
-DEF_HANDLE(Bone,                         65536);
-DEF_HANDLE(Mesh,                         65536);
-DEF_HANDLE(Framebuffer,                  256);
-DEF_HANDLE(Shader,                       16384);
-DEF_HANDLE(RenderGroup,                  256);
-DEF_HANDLE(Skeleton,                     512);
-DEF_HANDLE(Scene,                        64);
-DEF_HANDLE(RenderEnvironment,            64);
-DEF_HANDLE(Light,                        256);
-DEF_HANDLE(TLAS,                         32);
-DEF_HANDLE(BLAS,                         16384);
-DEF_HANDLE(Material,                     32768);
-DEF_HANDLE(MaterialGroup,                256);
-DEF_HANDLE(World,                        8);
-DEF_HANDLE(AudioSource,                  8192);
-DEF_HANDLE(EnvProbe,                     2048);
-DEF_HANDLE(UIScene,                      8);
-DEF_HANDLE(ParticleSystem,               8);
-DEF_HANDLE(ComputePipeline,              16384);
-DEF_HANDLE(ParticleSpawner,              512);
-DEF_HANDLE_NS(physics, RigidBody,        8192);
-
-DEF_HANDLE(PostProcessingEffect,         512);
-DEF_HANDLE(UIRenderer,                   1);
-
-DEF_HANDLE(GaussianSplattingInstance,    16);
-DEF_HANDLE(GaussianSplatting,            16);
-
-#undef DEF_HANDLE
-#undef DEF_HANDLE_NS
 
 } // namespace hyperion::v2
 

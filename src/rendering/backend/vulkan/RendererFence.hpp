@@ -22,18 +22,18 @@ template <>
 class Fence<Platform::VULKAN>
 {
 public:
-    Fence();
+    HYP_API Fence();
     Fence(const Fence &other)               = delete;
     Fence &operator=(const Fence &other)    = delete;
-    ~Fence();
+    HYP_API ~Fence();
 
-    VkFence &GetHandle() { return m_handle; }
-    const VkFence &GetHandle() const { return m_handle; }
+    VkFence GetHandle() const
+        { return m_handle; }
 
-    Result Create(Device<Platform::VULKAN> *device);
-    Result Destroy(Device<Platform::VULKAN> *device);
-    Result WaitForGPU(Device<Platform::VULKAN> *device, bool timeout_loop = false, VkResult *out_result = nullptr);
-    Result Reset(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result WaitForGPU(Device<Platform::VULKAN> *device, bool timeout_loop = false, VkResult *out_result = nullptr);
+    HYP_API Result Reset(Device<Platform::VULKAN> *device);
 
 private:
     VkFence m_handle;

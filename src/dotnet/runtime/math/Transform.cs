@@ -91,7 +91,7 @@ namespace Hyperion
             return $"Translation: {translation}, Scale: {scale}, Rotation: {rotation}";
         }
 
-        [DllImport("libhyperion", EntryPoint = "Transform_UpdateMatrix")]
+        [DllImport("hyperion", EntryPoint = "Transform_UpdateMatrix")]
         private static extern Matrix4 Transform_UpdateMatrix(Transform transform);
     }
 }

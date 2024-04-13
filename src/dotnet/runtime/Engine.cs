@@ -39,10 +39,10 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "Engine_GetInstance")]
+        [DllImport("hyperion", EntryPoint = "Engine_GetInstance")]
         private static extern IntPtr Engine_GetInstance();
 
-        [DllImport("libhyperion", EntryPoint = "Engine_GetWorld")]
+        [DllImport("hyperion", EntryPoint = "Engine_GetWorld")]
         private static extern IntPtr Engine_GetWorld(IntPtr enginePtr);
     }
 }

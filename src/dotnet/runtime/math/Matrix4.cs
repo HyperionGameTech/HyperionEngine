@@ -105,16 +105,16 @@ namespace Hyperion
                    $"{m30}, {m31}, {m32}, {m33}]";
         }
 
-        [DllImport("libhyperion", EntryPoint = "Matrix4_Identity")]
+        [DllImport("hyperion", EntryPoint = "Matrix4_Identity")]
         private static extern Matrix4 Matrix4_Identity();
 
-        [DllImport("libhyperion", EntryPoint = "Matrix4_Multiply")]
+        [DllImport("hyperion", EntryPoint = "Matrix4_Multiply")]
         private static extern Matrix4 Matrix4_Multiply(Matrix4 a, Matrix4 b);
 
-        [DllImport("libhyperion", EntryPoint = "Matrix4_Transposed")]
+        [DllImport("hyperion", EntryPoint = "Matrix4_Transposed")]
         private static extern Matrix4 Matrix4_Transposed(Matrix4 matrix);
 
-        [DllImport("libhyperion", EntryPoint = "Matrix4_Inverted")]
+        [DllImport("hyperion", EntryPoint = "Matrix4_Inverted")]
         private static extern Matrix4 Matrix4_Inverted(Matrix4 matrix);
     }
 }

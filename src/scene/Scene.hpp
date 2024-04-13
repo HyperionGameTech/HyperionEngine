@@ -53,7 +53,7 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
     ComponentFlags  flags = SCENE_FLAGS_NONE;
 };
 
-class HYP_API Scene
+class Scene
     : public BasicObject<STUB_CLASS(Scene)>,
       public HasDrawProxy<STUB_CLASS(Scene)>
 {
@@ -62,17 +62,17 @@ class HYP_API Scene
     friend class UIScene;
 
 public:
-    Scene();
-    Scene(Handle<Camera> camera);
+    HYP_API Scene();
+    HYP_API Scene(Handle<Camera> camera);
 
-    Scene(
+    HYP_API Scene(
         Handle<Camera> camera,
         const InitInfo &info
     );
 
-    Scene(const Scene &other) = delete;
-    Scene &operator=(const Scene &other) = delete;
-    ~Scene();
+    Scene(const Scene &other)               = delete;
+    Scene &operator=(const Scene &other)    = delete;
+    HYP_API ~Scene();
 
     Handle<Camera> &GetCamera()
         { return m_camera; }
@@ -80,7 +80,7 @@ public:
     const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
-    void SetCamera(Handle<Camera> camera);
+    HYP_API void SetCamera(Handle<Camera> camera);
 
     RenderList &GetRenderList()
         { return m_render_list; }
@@ -88,8 +88,8 @@ public:
     const RenderList &GetRenderList() const
         { return m_render_list; }
 
-    NodeProxy FindNodeWithEntity(ID<Entity>) const;
-    NodeProxy FindNodeByName(const String &) const;
+    HYP_API NodeProxy FindNodeWithEntity(ID<Entity>) const;
+    HYP_API NodeProxy FindNodeByName(const String &) const;
 
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
     Handle<TLAS> &GetTLAS()
@@ -103,7 +103,7 @@ public:
      *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
      *  The Scene must have had Init() called on it before calling this.
      */
-    bool CreateTLAS();
+    HYP_API bool CreateTLAS();
 
     NodeProxy &GetRoot()
         { return m_root_node_proxy; }
@@ -115,13 +115,13 @@ public:
     void SetRoot(NodeProxy &&root)
     {
         if (m_root_node_proxy) {
-            m_root_node_proxy.Get()->SetScene(nullptr);
+            m_root_node_proxy->SetScene(nullptr);
         }
 
         m_root_node_proxy = std::move(root);
 
         if (m_root_node_proxy) {
-            m_root_node_proxy.Get()->SetScene(this);
+            m_root_node_proxy->SetScene(this);
         }
     }
 
@@ -140,7 +140,7 @@ public:
     World *GetWorld() const
         { return m_world; }
 
-    void SetWorld(World *world);
+    HYP_API void SetWorld(World *world);
 
     /*! \brief A scene is a non-world scene if it exists not as an owner of entities,
         but rather a simple container that has items based on another Scene. For example,
@@ -155,7 +155,7 @@ public:
     void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
     
-    void Init();
+    HYP_API void Init();
 
     /*! \brief Update the scene, including all entities, lights, etc.
         This is to be called from the GAME thread.
@@ -163,23 +163,23 @@ public:
         by the World, unless you are using a Scene as a non-world scene.
         * @param delta The delta time since the last update.
     */
-    void Update(GameCounter::TickUnit delta);
+    HYP_API void Update(GameCounter::TickUnit delta);
 
-    void CollectEntities(
+    HYP_API void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    void CollectDynamicEntities(
+    HYP_API void CollectDynamicEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    void CollectStaticEntities(
+    HYP_API void CollectStaticEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },

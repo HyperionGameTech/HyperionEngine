@@ -37,10 +37,10 @@ template <>
 class CommandBuffer<Platform::VULKAN>
 {
 public:
-    CommandBuffer(CommandBufferType type);
-    CommandBuffer(const CommandBuffer &other) = delete;
-    CommandBuffer &operator=(const CommandBuffer &other) = delete;
-    ~CommandBuffer();
+    HYP_API CommandBuffer(CommandBufferType type);
+    CommandBuffer(const CommandBuffer &other)               = delete;
+    CommandBuffer &operator=(const CommandBuffer &other)    = delete;
+    HYP_API ~CommandBuffer();
 
     CommandBufferType GetType() const
         { return m_type; }
@@ -48,35 +48,35 @@ public:
     VkCommandBuffer GetCommandBuffer() const
         { return m_command_buffer; }
 
-    Result Create(Device<Platform::VULKAN> *device, VkCommandPool command_pool);
-    Result Destroy(Device<Platform::VULKAN> *device);
-    Result Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass = nullptr);
-    Result End(Device<Platform::VULKAN> *device);
-    Result Reset(Device<Platform::VULKAN> *device);
-    Result SubmitPrimary(
+    HYP_API Result Create(Device<Platform::VULKAN> *device, VkCommandPool command_pool);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass = nullptr);
+    HYP_API Result End(Device<Platform::VULKAN> *device);
+    HYP_API Result Reset(Device<Platform::VULKAN> *device);
+    HYP_API Result SubmitPrimary(
         VkQueue queue,
         Fence<Platform::VULKAN> *fence,
         SemaphoreChain *semaphore_chain
     );
 
-    Result SubmitSecondary(CommandBuffer *primary);
+    HYP_API Result SubmitSecondary(CommandBuffer *primary);
 
-    void BindVertexBuffer(const GPUBuffer<Platform::VULKAN> *buffer);
-    void BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type = DatumType::UNSIGNED_INT);
+    HYP_API void BindVertexBuffer(const GPUBuffer<Platform::VULKAN> *buffer);
+    HYP_API void BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type = DatumType::UNSIGNED_INT);
 
-    void DrawIndexed(
+    HYP_API void DrawIndexed(
         uint32 num_indices,
         uint32 num_instances  = 1,
         uint32 instance_index = 0
     ) const;
 
-    void DrawIndexedIndirect(
+    HYP_API void DrawIndexedIndirect(
         const GPUBuffer<Platform::VULKAN> *buffer,
         uint32 buffer_offset
     ) const;
 
-    void DebugMarkerBegin(const char *marker_name) const;
-    void DebugMarkerEnd() const;
+    HYP_API void DebugMarkerBegin(const char *marker_name) const;
+    HYP_API void DebugMarkerEnd() const;
 
     template <class LambdaFunction>
     Result Record(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass, const LambdaFunction &fn)

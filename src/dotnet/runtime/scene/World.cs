@@ -25,10 +25,10 @@ namespace Hyperion
             }
         }
 
-        [DllImport("libhyperion", EntryPoint = "World_AddScene")]
+        [DllImport("hyperion", EntryPoint = "World_AddScene")]
         private static extern void World_AddScene(IntPtr worldPtr, ManagedHandle scene);
 
-        [DllImport("libhyperion", EntryPoint = "World_GetID")]
+        [DllImport("hyperion", EntryPoint = "World_GetID")]
         private static extern uint World_GetID(IntPtr worldPtr);
     }
 }

@@ -33,17 +33,17 @@ namespace hyperion::v2 {
 class UIButton;
 class FontAtlas;
 
-class HYP_API UIScene : public BasicObject<STUB_CLASS(UIScene)>
+class UIScene : public BasicObject<STUB_CLASS(UIScene)>
 {
 public:
     // The minimum and maximum depth values for the UI scene for layering
     static const int min_depth = -10000;
     static const int max_depth = 10000;
 
-    UIScene();
+    HYP_API UIScene();
     UIScene(const UIScene &other)               = delete;
     UIScene &operator=(const UIScene &other)    = delete;
-    ~UIScene();
+    HYP_API ~UIScene();
 
     Vec2i GetSurfaceSize() const
         { return m_surface_size; }
@@ -89,16 +89,16 @@ public:
         return ui_object.Cast<T>();
     }
 
-    bool OnInputEvent(
+    HYP_API bool OnInputEvent(
         InputManager *input_manager,
         const SystemEvent &event
     );
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    bool TestRay(const Vec2f &position, RayTestResults &out_ray_test_results);
+    HYP_API bool TestRay(const Vec2f &position, RayTestResults &out_ray_test_results);
 
-    void Init();
-    void Update(GameCounter::TickUnit delta);
+    HYP_API void Init();
+    HYP_API void Update(GameCounter::TickUnit delta);
 
 private:
     template <class T>

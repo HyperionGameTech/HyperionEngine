@@ -6,7 +6,7 @@ namespace hyperion::v2 {
 
 void ManagedHandle::IncRef(uint32 type_id)
 {
-    ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
+    ObjectContainerBase *container = ObjectPool::TryGetContainer(TypeID { type_id });
 
     if (container != nullptr) {
         container->IncRefStrong(IDBase { id }.ToIndex());
@@ -15,7 +15,7 @@ void ManagedHandle::IncRef(uint32 type_id)
 
 void ManagedHandle::DecRef(uint32 type_id)
 {
-    ObjectContainerBase *container = g_engine->GetObjectPool().TryGetContainer(TypeID { type_id });
+    ObjectContainerBase *container = ObjectPool::TryGetContainer(TypeID { type_id });
 
     if (container != nullptr) {
         container->DecRefStrong(IDBase { id }.ToIndex());

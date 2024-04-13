@@ -406,7 +406,7 @@ RenderAll(
                 return;
             }
 
-            auto &mesh_container = GetContainer<Mesh>();
+            auto &mesh_container = Handle<Mesh>::GetContainer();
 
             command_buffers[frame_index][index]->Record(
                 g_engine->GetGPUDevice(),

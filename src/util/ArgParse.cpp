@@ -15,7 +15,7 @@ const ArgParse::ArgumentValue &ArgParse::Result::operator[](const String &key) c
     return it->second;
 }
 
-HYP_API void ArgParse::Add(
+void ArgParse::Add(
     String name,
     String shorthand,
     ArgFlags flags,
@@ -98,6 +98,7 @@ ArgParse::Result ArgParse::Parse(int argc, char **argv) const
 
 ArgParse::Result ArgParse::Parse(const Array<String> &args) const
 {
+    DebugLog(LogType::Debug, "TypeID<String> = %u\n", TypeID::ForType<String>().Value());
     Result result;
     result.ok = true;
 

@@ -29,7 +29,7 @@ namespace Hyperion
             return value;
         }
 
-        [DllImport("libhyperion", EntryPoint = "Name_FromString")]
+        [DllImport("hyperion", EntryPoint = "Name_FromString")]
         private static extern Name Name_FromString(IntPtr namePtr);
     }
 }

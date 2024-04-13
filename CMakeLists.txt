@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.5)
 
 set(BUILD_NAME hyperion)
 
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 set(vcpkg_path "$ENV{VCPKG_INSTALLED_DIR}/../scripts/buildsystems/vcpkg.cmake")
 project(${BUILD_NAME} CXX C)
 
@@ -439,7 +442,30 @@ function(create_csharp_library output_name csharp_sources)
     endif()
 
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  </ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  <ItemGroup>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <None Include=\"${CSHARP_PROJECT_DIR}/${output_name}.xml\">\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    </None>\n")
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  </ItemGroup>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "</Project>\n")
+
+
+    # generate .xml file for DLL map
+
+    file(WRITE ${CSHARP_PROJECT_DIR}/${output_name}.xml "<configuration>\n")
+
+    if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+    elseif(${HYP_PLATFORM_NAME} STREQUAL "Win64")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+    elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
+    elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
+    endif()
+
+    file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "</configuration>\n")
+
 
     # build it
     execute_process(
@@ -448,11 +474,17 @@ function(create_csharp_library output_name csharp_sources)
     )
 
     # move the dll up to the build directory
-    file(GLOB CSHARP_DLLS "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll")
+    file(GLOB CSHARP_DLL_FILES "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll")
+    file(GLOB CSHARP_XML_FILES "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml")
 
-    foreach(CSHARP_DLL ${CSHARP_DLLS})
-        message(STATUS "Copying ${CSHARP_DLL} to ${CMAKE_SOURCE_DIR}/res/bin/")
-        file(COPY ${CSHARP_DLL} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
+    foreach(FILE_PATH ${CSHARP_DLL_FILES})
+        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_SOURCE_DIR}/res/bin/")
+        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
+    endforeach()
+
+    foreach(FILE_PATH ${CSHARP_XML_FILES})
+        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_SOURCE_DIR}/res/bin/")
+        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
     endforeach()
 endfunction()
 

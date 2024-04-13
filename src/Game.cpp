@@ -60,6 +60,8 @@ void Game::Init()
 
     m_scene->SetIsAudioListener(true);
 
+    DebugLog(LogType::Debug, "Init game scene #%u\n", m_scene.GetID().Value());
+
     InitObject(m_scene);
     g_engine->GetWorld()->AddScene(m_scene);
 

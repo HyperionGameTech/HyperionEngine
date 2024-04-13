@@ -152,7 +152,7 @@ struct StaticString
 
     constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(&data[0]);
+        return HashCode::GetHashCode<Sz>(data);
     }
 };
 

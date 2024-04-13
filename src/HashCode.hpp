@@ -92,10 +92,22 @@ struct HashCode
     constexpr ValueType Value() const { return hash; }
 
     template <class T>
-    static inline HashCode GetHashCode(const T &value)
+    static constexpr inline HashCode GetHashCode(const T &value)
     {
         HashCode hc;
         hc.Add(value);
+        return hc;
+    }
+
+    template <SizeType size>
+    static constexpr inline HashCode GetHashCode(const char (&str)[size])
+    {
+        HashCode hc;
+
+        for (SizeType i = 0; i < size; ++i) {
+            hc.HashCombine(str[i]);
+        }
+
         return hc;
     }
 

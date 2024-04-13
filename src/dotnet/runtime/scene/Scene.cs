@@ -64,16 +64,16 @@ namespace Hyperion
             }
         }
         
-        [DllImport("libhyperion", EntryPoint = "Scene_GetTypeID")]
+        [DllImport("hyperion", EntryPoint = "Scene_GetTypeID")]
         private static extern TypeID Scene_GetTypeID();
 
-        [DllImport("libhyperion", EntryPoint = "Scene_Create")]
+        [DllImport("hyperion", EntryPoint = "Scene_Create")]
         private static extern ManagedHandle Scene_Create();
 
-        [DllImport("libhyperion", EntryPoint = "Scene_GetRoot")]
+        [DllImport("hyperion", EntryPoint = "Scene_GetRoot")]
         private static extern ManagedNode Scene_GetRoot(ManagedHandle scene);
 
-        [DllImport("libhyperion", EntryPoint = "Scene_GetEntityManager")]
+        [DllImport("hyperion", EntryPoint = "Scene_GetEntityManager")]
         private static extern IntPtr Scene_GetEntityManager(ManagedHandle scene);
     }
 }
