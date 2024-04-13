@@ -244,7 +244,7 @@ public:
         { return m_command_queue; }
 
     ID<Entity> AddEntity();
-    void RemoveEntity(ID<Entity> id);
+    bool RemoveEntity(ID<Entity> id);
 
     /*! \brief Moves an entity from one EntityManager to another.
      *  This is useful for moving entities between scenes.
@@ -487,9 +487,12 @@ public:
         removed_component_ids.Set(component_type_id, component_id);
         NotifySystemsOfEntityRemoved(entity, removed_component_ids);
 
-        GetContainer<Component>().RemoveComponent(component_id);
+        AssertThrow(GetContainer<Component>().RemoveComponent(component_id));
 
         it->second.components.Erase(component_it);
+
+        // Lock the entity sets mutex
+        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
         auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 

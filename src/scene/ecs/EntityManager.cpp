@@ -83,14 +83,14 @@ ID<Entity> EntityManager::AddEntity()
     return m_entities.AddEntity(std::move(handle));
 }
 
-void EntityManager::RemoveEntity(ID<Entity> id)
+bool EntityManager::RemoveEntity(ID<Entity> id)
 {
     Threads::AssertOnThread(m_owner_thread_mask);
 
     auto it = m_entities.Find(id);
 
     if (it == m_entities.End()) {
-        return;
+        return false;
     }
 
     // Notify systems of the entity being removed from this EntityManager
@@ -103,19 +103,14 @@ void EntityManager::RemoveEntity(ID<Entity> id)
         const TypeID component_type_id = component_info_pair_it->first;
         const ComponentID component_id = component_info_pair_it->second;
 
-        // Erase the component from the entity's component map
-        component_info_pair_it = it->second.components.Erase(component_info_pair_it);
-
-        // Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
-        // AssertThrowMsg(component_set_mutex, "Failed to get mutex for component type %s", component_type_id.Name().LookupString());
-
-        // // Lock the mutex for the component type
-        // Mutex::Guard component_set_guard(*component_set_mutex);
-
         auto component_container_it = m_containers.Find(component_type_id);
 
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
-        component_container_it->second->RemoveComponent(component_id);
+        AssertThrow(component_container_it->second->RemoveComponent(component_id));
+
+        // Erase the component from the entity's component map,
+        // advance the iterator
+        component_info_pair_it = it->second.components.Erase(component_info_pair_it);
 
         auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 
@@ -131,6 +126,8 @@ void EntityManager::RemoveEntity(ID<Entity> id)
     }
 
     m_entities.Erase(it);
+
+    return true;
 }
 
 void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
@@ -160,18 +157,13 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
     AssertThrow(other_entity_it != other.m_entities.End());
 
     Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+    Mutex::Guard other_entity_sets_guard(other.m_entity_sets_mutex);
 
     TypeMap<ComponentID> new_component_ids;
 
-    for (const auto &pair : entity_data.components) {
-        const TypeID component_type_id = pair.first;
-        const ComponentID component_id = pair.second;
-
-        // Mutex *component_set_mutex = s_component_set_mutex_holder.TryGetMutex(component_type_id);
-        // AssertThrowMsg(component_set_mutex, "Failed to get mutex for component type %s", component_type_id.Name().LookupString());
-
-        // // Lock the mutex for the component type
-        // Mutex::Guard component_set_guard(*component_set_mutex);
+    for (auto component_info_pair_it = entity_it->second.components.Begin(); component_info_pair_it != entity_it->second.components.End();) {
+        const TypeID component_type_id = component_info_pair_it->first;
+        const ComponentID component_id = component_info_pair_it->second;
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -189,9 +181,9 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
         Optional<ComponentID> new_component_id = component_container_it->second->MoveComponent(component_id, *other_component_container_it->second);
         AssertThrowMsg(new_component_id.HasValue(), "Failed to move component");
 
-        new_component_ids.Set(component_type_id, new_component_id.Get());
+        new_component_ids.Set(component_type_id, *new_component_id);
 
-        other_entity_it->second.components.Set(component_type_id, new_component_id.Get());
+        other_entity_it->second.components.Set(component_type_id, *new_component_id);
 
         // Update our entity sets to reflect the change
         auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
@@ -216,6 +208,8 @@ void EntityManager::MoveEntity(ID<Entity> id, EntityManager &other)
                 entity_set_it->second->OnEntityUpdated(id);
             }
         }
+
+        component_info_pair_it = entity_it->second.components.Erase(component_info_pair_it);
     }
 
     m_entities.Erase(entity_it);

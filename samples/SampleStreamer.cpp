@@ -43,6 +43,7 @@
 #include <ui/UIButton.hpp>
 #include <ui/UIPanel.hpp>
 #include <ui/UITabView.hpp>
+#include <ui/UIGrid.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
@@ -744,7 +745,7 @@ void SampleStreamer::InitGame()
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 })) {
+    if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 }, true)) {
         // btn->SetPadding(Vec2i { 5, 5 });
         
         GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
@@ -754,17 +755,29 @@ void SampleStreamer::InitGame()
             }
         });
 
-        auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 100, 100 });
+        auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 400, 300 });
         tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+        tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
+
+        auto scene_tab_content_grid = GetUI().CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        scene_tab_content_grid->SetNumColumns(5);
+        // scene_tab_content_grid->SetNumRows(5);
+
+        auto scene_tab_content_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
+        scene_tab_content_text->SetText("Scene tab content");
+
+        auto scene_tab_content_button = GetUI().CreateUIObject<UIButton>(HYP_NAME(Scene_Tab_Button), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+        scene_tab_content_button->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        scene_tab_content_button->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+
+        auto scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+        scene_tab->GetContents()->AddChildUIObject(scene_tab_content_grid);
+
+        scene_tab_content_grid->AddChildUIObject(scene_tab_content_text);
+        scene_tab_content_grid->AddChildUIObject(scene_tab_content_button);
+
         tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
         btn->AddChildUIObject(tab_view);
-
-        // btn->OnMouseHover.Bind([](const UIMouseEventData &)
-        // {
-        //     return true;
-        // });
 
         auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
         ui_text->SetText("Hello");

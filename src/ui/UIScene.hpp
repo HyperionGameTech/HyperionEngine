@@ -61,28 +61,32 @@ public:
         { m_default_font_atlas = std::move(font_atlas); }
 
     template <class T>
-    UIObjectProxy<T> CreateUIObject(
+    RC<T> CreateUIObject(
         Name name,
         Vec2i position,
-        UIObjectSize size
+        UIObjectSize size,
+        bool attach_to_root = false
     )
     {
         Threads::AssertOnThread(THREAD_GAME);
         AssertReady();
 
-        NodeProxy node_proxy = m_scene->GetRoot().AddChild();
+        NodeProxy node_proxy(new Node(name.LookupString()));
+        
+        if (attach_to_root) {
+            node_proxy = m_scene->GetRoot().AddChild(node_proxy);
+        }
         
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
         node_proxy->SetFlags(node_proxy->GetFlags() | NODE_FLAG_IGNORE_PARENT_SCALE);
 
         RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node_proxy, false /* init */);
 
-        node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
         ui_object->SetPosition(position);
         ui_object->SetSize(size);
         ui_object->Init();
 
-        return UIObjectProxy<T>(std::move(node_proxy));
+        return ui_object.Cast<T>();
     }
 
     bool OnInputEvent(
@@ -106,13 +110,14 @@ private:
 
         AssertReady();
 
-        const ID<Entity> entity = m_scene->GetEntityManager()->AddEntity();
-        node_proxy.SetEntity(entity);
+        const ID<Entity> entity = node_proxy->GetScene()->GetEntityManager()->AddEntity();
+        node_proxy->SetEntity(entity);
+        node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
 
-        RC<UIObject> ui_object(new T(entity, this));
+        RC<UIObject> ui_object(new T(entity, this, node_proxy));
         ui_object->SetName(name);
 
-        m_scene->GetEntityManager()->AddComponent(entity, UIComponent { ui_object });
+        node_proxy->GetScene()->GetEntityManager()->AddComponent(entity, UIComponent { ui_object });
 
         if (init) {
             ui_object->Init();

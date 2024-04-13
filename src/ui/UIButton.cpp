@@ -4,10 +4,11 @@
 
 namespace hyperion::v2 {
 
-UIButton::UIButton(ID<Entity> entity, UIScene *parent)
-    : UIObject(entity, parent)
+UIButton::UIButton(ID<Entity> entity, UIScene *parent, NodeProxy node_proxy)
+    : UIObject(entity, parent, std::move(node_proxy))
 {
     SetBorderRadius(5);
+    SetBorderFlags(UI_OBJECT_BORDER_ALL);
 }
 
 Handle<Material> UIButton::GetMaterial() const
@@ -16,7 +17,8 @@ Handle<Material> UIButton::GetMaterial() const
         MaterialAttributes {
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_BUTTON" }) },
             .bucket             = Bucket::BUCKET_UI,
-            .blend_function     = BlendFunction::AlphaBlending(),
+            .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
             .z_layer            = GetDepth()

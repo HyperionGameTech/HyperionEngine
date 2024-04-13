@@ -109,53 +109,85 @@ struct BlendFunction
     {
     }
 
+    BlendFunction(const BlendFunction &other)                   = default;
+    BlendFunction &operator=(const BlendFunction &other)        = default;
+    BlendFunction(BlendFunction &&other) noexcept               = default;
+    BlendFunction &operator=(BlendFunction &&other) noexcept    = default;
+    ~BlendFunction()                                            = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     BlendModeFactor GetSrcColor() const
         { return BlendModeFactor(value & 0xF); }
 
+    HYP_FORCE_INLINE
     void SetSrcColor(BlendModeFactor src)
         { value |= uint32(src); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     BlendModeFactor GetDstColor() const
         { return BlendModeFactor((value >> 4) & 0xF); }
 
+    HYP_FORCE_INLINE
     void SetDstColor(BlendModeFactor dst)
         { value |= uint32(dst) << 4; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     BlendModeFactor GetSrcAlpha() const
         { return BlendModeFactor((value >> 8) & 0xF); }
 
+    HYP_FORCE_INLINE
     void SetSrcAlpha(BlendModeFactor src)
         { value |= uint32(src) << 8; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     BlendModeFactor GetDstAlpha() const
         { return BlendModeFactor((value >> 12) & 0xF); }
 
+    HYP_FORCE_INLINE
     void SetDstAlpha(BlendModeFactor dst)
         { value |= uint32(dst) << 12; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator==(const BlendFunction &other) const
         { return value == other.value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator!=(const BlendFunction &other) const
         { return value != other.value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator<(const BlendFunction &other) const
         { return value < other.value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(value);
-    }
+        { return HashCode::GetHashCode(value); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static BlendFunction None()
         { return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static BlendFunction Default()
         { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static BlendFunction AlphaBlending()
         { return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static BlendFunction Additive()
         { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE); }
 };

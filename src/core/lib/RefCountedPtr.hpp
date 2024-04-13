@@ -439,6 +439,10 @@ public:
     ~RefCountedPtr() = default;
 
     HYP_FORCE_INLINE
+    operator T *() const
+        { return Get(); }
+
+    HYP_FORCE_INLINE
     T *Get() const
         { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
 
@@ -564,6 +568,10 @@ public:
     }
 
     ~RefCountedPtr() = default;
+
+    HYP_FORCE_INLINE
+    operator void *() const
+        { return Base::Get(); }
 
     HYP_FORCE_INLINE
     void *Get() const

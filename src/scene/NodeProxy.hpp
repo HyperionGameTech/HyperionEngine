@@ -357,6 +357,12 @@ public:
     /*! \brief Calculate the depth of the Node relative to the root Node. */
     uint CalculateDepth() const;
 
+    /*! \brief Conversion operator to Weak<Node>. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    operator Weak<Node>() const
+        { return Weak<Node>(static_cast<const RC<Node> &>(*this)); }
+
     HashCode GetHashCode() const;
 };
 

@@ -7,12 +7,12 @@ namespace hyperion::v2 {
 
 class UIScene;
 
-// UIPanel
+#pragma region UIPanel
 
 class HYP_API UIPanel : public UIObject
 {
 public:
-    UIPanel(ID<Entity> entity, UIScene *ui_scene);
+    UIPanel(ID<Entity> entity, UIScene *ui_scene, NodeProxy node_proxy);
     UIPanel(const UIPanel &other)                   = delete;
     UIPanel &operator=(const UIPanel &other)        = delete;
     UIPanel(UIPanel &&other) noexcept               = delete;
@@ -22,6 +22,8 @@ public:
 protected:
     virtual Handle<Material> GetMaterial() const override;
 };
+
+#pragma endregion UIPanel
 
 } // namespace hyperion::v2
 

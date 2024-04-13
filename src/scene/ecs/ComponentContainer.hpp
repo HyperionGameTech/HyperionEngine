@@ -173,7 +173,7 @@ public:
     HYP_FORCE_INLINE
     Component &GetComponent(ComponentID id)
     {
-        AssertThrowMsg(HasComponent(id), "Component of type `%s` does not exist", TypeName<Component>().Data());
+        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeName<Component>().Data(), id);
         
         return m_components.At(id);
     }
@@ -181,7 +181,7 @@ public:
     HYP_FORCE_INLINE
     const Component &GetComponent(ComponentID id) const
     {
-        AssertThrowMsg(HasComponent(id), "Component of type `%s` does not exist", TypeName<Component>().Data());
+        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeName<Component>().Data(), id);
         
         return m_components.At(id);
     }

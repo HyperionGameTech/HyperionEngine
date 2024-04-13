@@ -30,6 +30,15 @@
 
 namespace hyperion::v2 {
 
+enum UIObjectFlags : uint32
+{
+    UI_OBJECT_FLAG_NONE                 = 0x0,
+    UI_OBJECT_FLAG_BORDER_TOP_LEFT      = 0x1,
+    UI_OBJECT_FLAG_BORDER_TOP_RIGHT     = 0x2,
+    UI_OBJECT_FLAG_BORDER_BOTTOM_LEFT   = 0x4,
+    UI_OBJECT_FLAG_BORDER_BOTTOM_RIGHT  = 0x8
+};
+
 struct UIObjectMeshData
 {
     uint32 focus_state = UI_OBJECT_FOCUS_STATE_NONE;
@@ -73,20 +82,23 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return quad_mesh_initializer.mesh;
 }
 
-UIObject::UIObject(ID<Entity> entity, UIScene *parent)
+UIObject::UIObject(ID<Entity> entity, UIScene *parent, NodeProxy node_proxy)
     : m_entity(entity),
       m_parent(parent),
+      m_node_proxy(std::move(node_proxy)),
       m_is_init(false),
       m_origin_alignment(UI_OBJECT_ALIGNMENT_TOP_LEFT),
       m_parent_alignment(UI_OBJECT_ALIGNMENT_TOP_LEFT),
       m_position(0, 0),
       m_size({ 100, 100 }),
       m_depth(0),
-      m_border_radius(0),
+      m_border_radius(5),
+      m_border_flags(UI_OBJECT_BORDER_NONE),
       m_focus_state(UI_OBJECT_FOCUS_STATE_NONE)
 {
     AssertThrowMsg(entity.IsValid(), "Invalid Entity provided to UIObject!");
     AssertThrowMsg(parent != nullptr, "Invalid UIScene parent pointer provided to UIObject!");
+    AssertThrowMsg(m_node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
 }
 
 UIObject::~UIObject()
@@ -98,10 +110,10 @@ void UIObject::Init()
     AssertThrow(m_entity.IsValid());
     AssertThrow(m_parent != nullptr);
 
-    const Handle<Scene> &scene = m_parent->GetScene();
-    AssertThrow(scene.IsValid());
-
     Handle<Mesh> mesh = GetQuadMesh();
+
+    Scene *scene = GetScene();
+    AssertThrow(scene != nullptr);
 
     scene->GetEntityManager()->AddComponent(m_entity, MeshComponent {
         mesh,
@@ -119,23 +131,23 @@ void UIObject::Init()
     struct ScriptedDelegate
     {
         ID<Entity>  entity;
-        UIScene     *parent;
+        Scene       *scene;
         String      method_name;
 
         ScriptedDelegate(UIObject *ui_object, const String &method_name)
             : entity(ui_object->GetEntity()),
-              parent(ui_object->GetParent()),
+              scene(ui_object->GetScene()),
               method_name(method_name)
         {
         }
 
         bool operator()(const UIMouseEventData &)
         {
-            if (!entity.IsValid() || !parent) {
+            if (!entity.IsValid() || !scene) {
                 return false;
             }
 
-            ScriptComponent *script_component = parent->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(entity);
+            ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity);
 
             if (!script_component || !script_component->object) {
                 return false;
@@ -199,7 +211,7 @@ void UIObject::UpdatePosition()
         return;
     }
 
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         return;
@@ -328,7 +340,7 @@ void UIObject::UpdateSize()
 
     UpdateActualSizes();
 
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         return;
@@ -387,7 +399,7 @@ int UIObject::GetDepth() const
         return m_depth;
     }
 
-    if (NodeProxy node = GetNode()) {
+    if (const NodeProxy &node = GetNode()) {
         return MathUtil::Clamp(int(node->CalculateDepth()), UIScene::min_depth, UIScene::max_depth + 1);
     }
 
@@ -405,6 +417,13 @@ void UIObject::SetDepth(int depth)
 void UIObject::SetBorderRadius(uint32 border_radius)
 {
     m_border_radius = border_radius;
+
+    UpdateMeshData();
+}
+
+void UIObject::SetBorderFlags(uint32 border_flags)
+{
+    m_border_flags = border_flags;
 
     UpdateMeshData();
 }
@@ -447,11 +466,7 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
-        return;
-    }
-
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         DebugLog(LogType::Error, "Parent UI object has no attachable node: %s\n", GetName().LookupString());
@@ -460,8 +475,8 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
     }
 
     if (NodeProxy child_node = ui_object->GetNode()) {
-        if (!child_node->Remove()) {
-            DebugLog(LogType::Error, "Failed to remove child node '%s' from parent: '%s'\n", ui_object->GetName().LookupString(), GetName().LookupString());
+        if (child_node->GetParent() != nullptr && !child_node->Remove()) {
+            DebugLog(LogType::Error, "Failed to remove child node '%s' from current parent\n", child_node->GetName().Data(), child_node->GetParent()->GetName().Data());
 
             return;
         }
@@ -484,11 +499,13 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return false;
     }
 
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         return false;
@@ -511,23 +528,14 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
     return false;
 }
 
-NodeProxy UIObject::GetNode() const
+const NodeProxy &UIObject::GetNode() const
 {
-    if (!m_entity.IsValid() || !m_parent || !m_parent->GetScene().IsValid()) {
-        // Invalid entity or parent
-        return NodeProxy::empty;
-    }
-
-    if (NodeLinkComponent *node_link_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
-        return NodeProxy(node_link_component->node.Lock());
-    }
-
-    return NodeProxy::empty;
+    return m_node_proxy;
 }
 
 BoundingBox UIObject::GetWorldAABB() const
 {
-    if (NodeProxy node = GetNode()) {
+    if (const NodeProxy &node = GetNode()) {
         return node->GetWorldAABB();
     }
 
@@ -536,7 +544,7 @@ BoundingBox UIObject::GetWorldAABB() const
 
 BoundingBox UIObject::GetLocalAABB() const
 {
-    if (NodeProxy node = GetNode()) {
+    if (const NodeProxy &node = GetNode()) {
         return node->GetLocalAABB();
     }
 
@@ -545,15 +553,17 @@ BoundingBox UIObject::GetLocalAABB() const
 
 void UIObject::SetLocalAABB(const BoundingBox &aabb)
 {
-    if (NodeProxy node = GetNode()) {
+    if (const NodeProxy &node = GetNode()) {
         node->SetLocalAABB(aabb);
     }
 
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return;
     }
 
-    BoundingBoxComponent &bounding_box_component = m_parent->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(m_entity);
+    BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(m_entity);
     bounding_box_component.local_aabb = aabb;
 }
 
@@ -579,11 +589,13 @@ Handle<Material> UIObject::GetMaterial() const
 
 const Handle<Mesh> &UIObject::GetMesh() const
 {
-    if (!m_entity.IsValid() || !m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!m_entity.IsValid() || !scene) {
         return Handle<Mesh>::empty;
     }
 
-    if (const MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity)) {
+    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity)) {
         return mesh_component->mesh;
     }
 
@@ -592,11 +604,13 @@ const Handle<Mesh> &UIObject::GetMesh() const
 
 const UIObject *UIObject::GetParentUIObject() const
 {
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return nullptr;
     }
 
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         return nullptr;
@@ -606,7 +620,7 @@ const UIObject *UIObject::GetParentUIObject() const
 
     while (parent_node) {
         if (parent_node->GetEntity().IsValid()) {
-            if (UIComponent *ui_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
+            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
                     return ui_component->ui_object.Get();
                 }
@@ -614,6 +628,15 @@ const UIObject *UIObject::GetParentUIObject() const
         }
 
         parent_node = parent_node->GetParent();
+    }
+
+    return nullptr;
+}
+
+Scene *UIObject::GetScene() const
+{
+    if (const NodeProxy &node = GetNode()) {
+        return node->GetScene();
     }
 
     return nullptr;
@@ -667,7 +690,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     if (in_size.GetAllFlags() & UIObjectSize::GROW) {
         Vec2i dynamic_size;
 
-        if (NodeProxy node = GetNode(); node->GetLocalAABB().IsFinite() && node->GetLocalAABB().IsValid()) {
+        if (const NodeProxy &node = GetNode(); node->GetLocalAABB().IsFinite() && node->GetLocalAABB().IsValid()) {
             const Vec3f extent = node->GetLocalAABB().GetExtent();
 
             Vec2f ratios;
@@ -695,11 +718,13 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
 void UIObject::UpdateMeshData()
 {
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return;
     }
 
-    MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
 
     if (!mesh_component) {
         return;
@@ -709,7 +734,8 @@ void UIObject::UpdateMeshData()
     ui_object_mesh_data.focus_state = m_focus_state;
     ui_object_mesh_data.width = m_actual_size.x;
     ui_object_mesh_data.height = m_actual_size.y;
-    ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu);
+    ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
+        | ((m_border_flags & 0xFu) << 8u);
 
     mesh_component->user_data.Set(ui_object_mesh_data);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
@@ -717,7 +743,9 @@ void UIObject::UpdateMeshData()
 
 void UIObject::UpdateMaterial()
 {
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return;
     }
 
@@ -726,7 +754,7 @@ void UIObject::UpdateMaterial()
         child->UpdateMaterial();
     });
 
-    MeshComponent *mesh_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
 
     if (!mesh_component) {
         return;
@@ -742,14 +770,45 @@ void UIObject::UpdateMaterial()
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
+bool UIObject::HasChildUIObjects() const
+{
+    Scene *scene = GetScene();
+
+    if (!scene) {
+        return false;
+    }
+
+    const NodeProxy &node = GetNode();
+
+    if (!node) {
+        return false;
+    }
+
+    for (const NodeProxy &descendent : node->GetDescendents()) {
+        if (!descendent || !descendent->GetEntity()) {
+            continue;
+        }
+
+        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(descendent->GetEntity())) {
+            if (ui_component->ui_object != nullptr) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 template <class Lambda>
 void UIObject::ForEachChildUIObject(Lambda &&lambda)
 {
-    if (!m_parent || !m_parent->GetScene().IsValid()) {
+    Scene *scene = GetScene();
+
+    if (!scene) {
         return;
     }
 
-    NodeProxy node = GetNode();
+    const NodeProxy &node = GetNode();
 
     if (!node) {
         return;
@@ -763,11 +822,11 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda)
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child.Get()->GetEntity()) {
+            if (!child || !child->GetEntity()) {
                 continue;
             }
 
-            if (UIComponent *ui_component = m_parent->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(child.GetEntity())) {
+            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(child->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
                     lambda(ui_component->ui_object.Get());
                 }

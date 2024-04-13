@@ -47,7 +47,20 @@ enum UIObjectFocusStateBits : UIObjectFocusState
 {
     UI_OBJECT_FOCUS_STATE_NONE          = 0x0,
     UI_OBJECT_FOCUS_STATE_HOVER         = 0x1,
-    UI_OBJECT_FOCUS_STATE_PRESSED       = 0x2
+    UI_OBJECT_FOCUS_STATE_PRESSED       = 0x2,
+    UI_OBJECT_FOCUS_STATE_TOGGLED       = 0x4
+};
+
+using UIObjectBorderFlags = uint32;
+
+enum UIObjectBorderFlagBits : UIObjectBorderFlags
+{
+    UI_OBJECT_BORDER_NONE   = 0x00,
+    UI_OBJECT_BORDER_TOP    = 0x01,
+    UI_OBJECT_BORDER_LEFT   = 0x02,
+    UI_OBJECT_BORDER_BOTTOM = 0x04,
+    UI_OBJECT_BORDER_RIGHT  = 0x08,
+    UI_OBJECT_BORDER_ALL    = UI_OBJECT_BORDER_TOP | UI_OBJECT_BORDER_LEFT | UI_OBJECT_BORDER_BOTTOM | UI_OBJECT_BORDER_RIGHT
 };
 
 struct UIObjectSize
@@ -150,7 +163,7 @@ private:
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
 public:
-    UIObject(ID<Entity> entity, UIScene *parent);
+    UIObject(ID<Entity> entity, UIScene *parent, NodeProxy node_proxy);
     UIObject(const UIObject &other)                 = delete;
     UIObject &operator=(const UIObject &other)      = delete;
     UIObject(UIObject &&other) noexcept             = delete;
@@ -219,6 +232,13 @@ public:
 
     void SetBorderRadius(uint32 border_radius);
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    UIObjectBorderFlags GetBorderFlags() const
+        { return m_border_flags; }
+
+    void SetBorderFlags(UIObjectBorderFlags border_flags);
+
     UIObjectAlignment GetOriginAlignment() const;
     void SetOriginAlignment(UIObjectAlignment alignment);
 
@@ -244,10 +264,12 @@ public:
      */
     void SetPadding(Vec2i padding);
 
-    void AddChildUIObject(UIObject *ui_object);
-    bool RemoveChildUIObject(UIObject *ui_object);
+    virtual void AddChildUIObject(UIObject *ui_object);
+    virtual bool RemoveChildUIObject(UIObject *ui_object);
 
-    NodeProxy GetNode() const;
+    bool HasChildUIObjects() const;
+
+    const NodeProxy &GetNode() const;
 
     BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;
@@ -282,6 +304,8 @@ protected:
 
     const UIObject *GetParentUIObject() const;
 
+    Scene *GetScene() const;
+
     void SetLocalAABB(const BoundingBox &aabb);
 
     void UpdateMeshData();
@@ -305,6 +329,7 @@ protected:
     int                 m_depth; // manually set depth; otherwise defaults to the node's depth in the scene
 
     uint32              m_border_radius;
+    UIObjectBorderFlags m_border_flags;
 
     UIObjectAlignment   m_origin_alignment;
     UIObjectAlignment   m_parent_alignment;
@@ -319,86 +344,8 @@ private:
     bool                m_is_init;
 
     UIObjectFocusState  m_focus_state;
-};
 
-// UIObjectProxy<T>
-
-template <class T>
-class UIObjectProxy
-{
-public:
-    UIObjectProxy(NodeProxy node_proxy)
-        : m_node_proxy(std::move(node_proxy))
-    {
-    }
-
-    UIObjectProxy(const UIObjectProxy &other)                   = default;
-    UIObjectProxy &operator=(const UIObjectProxy &other)        = default;
-    UIObjectProxy(UIObjectProxy &&other) noexcept               = default;
-    UIObjectProxy &operator=(UIObjectProxy &&other) noexcept    = default;
-    ~UIObjectProxy()                                            = default;
-
-    const NodeProxy &GetNode() const
-        { return m_node_proxy; }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return m_node_proxy.GetEntity().IsValid(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsValid() const
-        { return m_node_proxy.GetEntity().IsValid(); }
-
-    [[nodiscard]]
-    operator RC<T>() const
-    {
-        if (!IsValid()) {
-            return nullptr;
-        }
-
-        if (!m_node_proxy->GetEntity().IsValid()) {
-            return nullptr;
-        }
-
-        Scene *scene = m_node_proxy.Get()->GetScene();
-
-        if (!scene) {
-            return nullptr;
-        }
-
-        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(m_node_proxy->GetEntity());
-
-        if (!ui_component || !ui_component->ui_object || !ui_component->ui_object.Is<T>()) {
-            return nullptr;
-        }
-
-        return ui_component->ui_object.CastUnsafe<T>();
-    }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T *Get() const
-        { return static_cast<RC<T>>(*this).Get(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    operator T*() const
-        { return Get(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T *operator->() const
-        { return EnsureValidPointer(Get()); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T &operator*() const
-        { return *EnsureValidPointer(Get()); }
-
-private:
-    NodeProxy   m_node_proxy;
+    NodeProxy           m_node_proxy;
 };
 
 } // namespace hyperion::v2

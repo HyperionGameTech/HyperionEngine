@@ -326,22 +326,16 @@ bool UIScene::OnInputEvent(
             }
         }
 
-        if (!event_handled) {
-            for (auto &it : m_mouse_held_times) {
-                // trigger mouse up
-                if (auto ui_object = GetUIObject(it.first)) {
-                    ui_object->SetFocusState(ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_PRESSED);
+        for (auto &it : m_mouse_held_times) {
+            // trigger mouse up
+            if (auto ui_object = GetUIObject(it.first)) {
+                ui_object->SetFocusState(ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_PRESSED);
 
-                    event_handled |= ui_object->OnMouseUp(UIMouseEventData {
-                        .position   = mouse_screen,
-                        .button     = event.GetMouseButton(),
-                        .is_down    = false
-                    });
-
-                    if (event_handled) {
-                        break;
-                    }
-                }
+                event_handled |= ui_object->OnMouseUp(UIMouseEventData {
+                    .position   = mouse_screen,
+                    .button     = event.GetMouseButton(),
+                    .is_down    = false
+                });
             }
         }
 
