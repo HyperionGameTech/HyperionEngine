@@ -13,7 +13,7 @@ namespace Hyperion
         {
             get
             {
-                return scene;
+                return scene!;
             }
         }
 
@@ -21,7 +21,7 @@ namespace Hyperion
         {
             get
             {
-                return inputManager;
+                return inputManager!;
             }
         }
 
@@ -29,7 +29,7 @@ namespace Hyperion
         {
             get
             {
-                return assetManager;
+                return assetManager!;
             }
         }
 

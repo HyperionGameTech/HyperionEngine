@@ -5,7 +5,7 @@ namespace Hyperion
 {
     public abstract class UIEventHandler : Script
     {
-        private UIObject uiObject;
+        private UIObject? uiObject;
 
         public override void Init(Entity entity)
         {
@@ -18,7 +18,7 @@ namespace Hyperion
         {
             get
             {
-                return uiObject;
+                return uiObject!;
             }
         }
 

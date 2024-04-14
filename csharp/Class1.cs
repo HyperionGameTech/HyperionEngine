@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using Hyperion;
@@ -14,6 +15,8 @@ public class TestUIScript : UIEventHandler
         Console.WriteLine("Init TestUIScript object with entity : " + entity.ID);
 
         Logger.Log(LogType.Info, "Init UI script");
+
+        Debug.Assert(TypeID.ForType<Light>() == Light.Light_GetTypeID(), "Testing typeids");
     }
 
     public override void Destroy()

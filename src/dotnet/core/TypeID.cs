@@ -10,7 +10,14 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct TypeID
     {
+        private static readonly TypeID Void = new TypeID(0);
+
         private uint value;
+
+        public TypeID()
+        {
+            value = 0;
+        }
 
         public TypeID(uint value)
         {
@@ -25,30 +32,47 @@ namespace Hyperion
             }
         }
 
+        public static bool operator==(TypeID a, TypeID b)
+        {
+            return a.value == b.value;
+        }
+
+        public static bool operator!=(TypeID a, TypeID b)
+        {
+            return a.value != b.value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is TypeID)
+            {
+                return this == (TypeID)obj;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)value;
+        }
+
         /// <summary>
-        /// Returns the native TypeID for the given type, if it has been registered from C++ side
+        /// Returns the native TypeID for the given type using the type's name. If the type is intended to match a native type, the name of the C# type must match the native type's name.
         /// </summary>
         /// <typeparam name="T">The C# type to lookup the TypeID of</typeparam>
         /// <returns>TypeID</returns>
         public static TypeID ForType<T>()
         {
             string typeName = typeof(T).Name;
-            IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
-            TypeID value = TypeID_ForDynamicType(typeNamePtr);
-
-            Marshal.FreeHGlobal(typeNamePtr);
-
-            if (value.Value == 0)
-            {
-                throw new InvalidOperationException($"TypeID for {typeName} has not been registered from C++ side");
-            }
+            TypeID value = new TypeID(0);
+            TypeID_FromString(typeName, out value);
 
             return value;
         }
 
-        [DllImport("hyperion", EntryPoint = "TypeID_ForDynamicType")]
-        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
-        private static extern TypeID TypeID_ForDynamicType(IntPtr typeNamePtr);
+        [DllImport("hyperion", EntryPoint = "TypeID_FromString")]
+        private static extern TypeID TypeID_FromString([MarshalAs(UnmanagedType.LPStr)] string typeName, [Out] out TypeID result);
     }
 }

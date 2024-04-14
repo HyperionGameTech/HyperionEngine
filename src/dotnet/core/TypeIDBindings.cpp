@@ -7,8 +7,8 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT uint32 TypeID_ForDynamicType(const char *type_name)
+HYP_EXPORT void TypeID_FromString(const char *type_name, TypeID *out_type_id)
 {
-    HYP_THROW("This function has been removed");
+    *out_type_id = TypeID::FromString(type_name);
 }
 } // extern "C"

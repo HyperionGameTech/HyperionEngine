@@ -7,8 +7,9 @@ namespace Hyperion
     {
         private ManagedHandle handle;
 
-        private Node root = null;
-        private EntityManager entityManager = null;
+
+        private Node? root;
+        private EntityManager? entityManager;
 
         public Scene()
         {
@@ -57,7 +58,7 @@ namespace Hyperion
         {
             get
             {
-                return root;
+                return root!;
             }
         }
 
@@ -65,7 +66,7 @@ namespace Hyperion
         {
             get
             {
-                return entityManager;
+                return entityManager!;
             }
         }
         

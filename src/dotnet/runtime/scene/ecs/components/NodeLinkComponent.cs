@@ -22,7 +22,7 @@ namespace Hyperion
 
                 if (!managedNode.Valid)
                 {
-                    return null;
+                    throw new Exception("NodeLinkComponent is not valid");
                 }
 
                 return new Node(managedNode);

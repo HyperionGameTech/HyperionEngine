@@ -202,7 +202,7 @@ namespace Hyperion
                 thisObject = storedObject.obj;
             }
 
-            object returnValue = methodInfo.Invoke(thisObject, parameters);
+            object? returnValue = methodInfo.Invoke(thisObject, parameters);
 
             if (returnType == typeof(void))
             {

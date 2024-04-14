@@ -125,7 +125,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Light_GetTypeID")]
         [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
-        private static extern TypeID Light_GetTypeID();
+        public static extern TypeID Light_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Light_Create")]
         private static extern void Light_Create(

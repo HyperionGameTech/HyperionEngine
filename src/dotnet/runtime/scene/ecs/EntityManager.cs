@@ -91,14 +91,14 @@ namespace Hyperion
             return EntityManager_HasEntity(ptr, entity);
         }
 
-        public bool HasComponent<T>(Entity entity) where T : IComponent
+        public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
             TypeID typeId = componentNativeTypeIDs[typeof(T)].nativeTypeId;
 
             return EntityManager_HasComponent(ptr, typeId, entity);
         }
 
-        public ComponentID AddComponent<T>(Entity entity, T component) where T : IComponent
+        public ComponentID AddComponent<T>(Entity entity, T component) where T : struct, IComponent
         {
             ComponentDefinition typeId = componentNativeTypeIDs[typeof(T)];
 
@@ -115,7 +115,7 @@ namespace Hyperion
             return result;
         }
 
-        public T GetComponent<T>(Entity entity) where T : IComponent
+        public T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
             ComponentDefinition typeId = componentNativeTypeIDs[typeof(T)];
 

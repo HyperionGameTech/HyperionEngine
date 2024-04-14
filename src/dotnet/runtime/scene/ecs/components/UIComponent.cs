@@ -19,7 +19,7 @@ namespace Hyperion
             {
                 if (!uiObjectPtr.Valid)
                 {
-                    return null;
+                    throw new Exception("UIComponent is not valid");
                 }
 
                 return new UIObject(uiObjectPtr);

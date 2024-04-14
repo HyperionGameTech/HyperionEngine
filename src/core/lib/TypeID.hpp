@@ -39,7 +39,20 @@ public:
         }
     }
 
-    static TypeID ForName(struct Name name);
+    template <SizeType size>
+    static constexpr TypeID FromString(const char (&str)[size])
+    {
+        return TypeID {
+            ValueType(HashCode::GetHashCode(str).Value() % HashCode::ValueType(MathUtil::MaxSafeValue<ValueType>()))
+        };
+    }
+
+    static TypeID FromString(const char *str)
+    {
+        return TypeID {
+            ValueType(HashCode::GetHashCode(str).Value() % HashCode::ValueType(MathUtil::MaxSafeValue<ValueType>()))
+        };
+    }
 
     constexpr TypeID()
         : value { void_value }

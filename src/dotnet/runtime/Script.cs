@@ -5,14 +5,14 @@ namespace Hyperion
 {
     public abstract class Script
     {
-        private Scene scene;
+        private Scene? scene;
         private Entity entity;
 
         protected Scene Scene
         {
             get
             {
-                return scene;
+                return scene!;
             }
         }
 

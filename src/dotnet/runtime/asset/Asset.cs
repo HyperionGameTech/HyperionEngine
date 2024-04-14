@@ -19,7 +19,7 @@ namespace Hyperion
         {
             if (!Valid)
             {
-                return null;
+                throw new Exception("Asset is not valid");
             }
 
             ManagedNode node = new ManagedNode();
@@ -27,7 +27,7 @@ namespace Hyperion
 
             if (!node.Valid)
             {
-                return null;
+                throw new Exception("Failed to get node from asset");
             }
 
             return new Node(node);
@@ -37,7 +37,7 @@ namespace Hyperion
         {
             if (!Valid)
             {
-                return null;
+                throw new Exception("Asset is not valid");
             }
 
             ManagedHandle handle = new ManagedHandle();
@@ -45,7 +45,7 @@ namespace Hyperion
 
             if (!handle.Valid)
             {
-                return null;
+                throw new Exception("Failed to get texture from asset");
             }
 
             return new Texture(handle);

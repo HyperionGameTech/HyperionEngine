@@ -428,21 +428,27 @@ function(create_csharp_library output_name csharp_sources)
     endif()
 
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "</configuration>\n")
+    
+    # add_custom_target(${output_name} ALL
+    #     COMMAND dotnet build
+    #     WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
+    # )
 
-    # add task to build the csharp project and copy the dll to the build directory
+    # add_custom_command(TARGET ${output_name}
+    #     POST_BUILD
+    #     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll ${CMAKE_CURRENT_BINARY_DIR}/
+    # )
+
+    # add_custom_command(TARGET ${output_name}
+    #     POST_BUILD
+    #     COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml ${CMAKE_CURRENT_BINARY_DIR}/
+    # )
+
     add_custom_target(${output_name} ALL
-        COMMAND dotnet build
-        WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
-    )
-
-    add_custom_command(TARGET ${output_name}
-        POST_BUILD
+        COMMAND dotnet build --disable-build-servers --no-restore
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll ${CMAKE_CURRENT_BINARY_DIR}/
-    )
-
-    add_custom_command(TARGET ${output_name}
-        POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml ${CMAKE_CURRENT_BINARY_DIR}/
+        WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
 endfunction()
 
