@@ -58,6 +58,8 @@ private:
     Matrix4     m_matrix;
 };
 
+static_assert(sizeof(Transform) == 112, "Expected sizeof(Transform) to equal 112 bytes to match C# size");
+
 } // namespace hyperion
 
 #endif

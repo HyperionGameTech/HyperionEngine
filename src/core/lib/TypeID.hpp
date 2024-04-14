@@ -14,15 +14,12 @@ namespace hyperion {
 
 using TypeIDValue = uint32;
 
+/*! \brief Simple 32-bit identifier for a given type. Stable across DLLs as the type hash is based on the name of the type. */
 struct TypeID
 {
     using ValueType = TypeIDValue;
 
 private:
-    /*! \brief The underlying value of the TypeID object.
-        Note, do not rely on using this directly! This could easily
-        change between implementations, or depending on the order of which
-        TypeIDs are instantiated. */
     ValueType   value;
 
     static constexpr ValueType void_value = ValueType(0);
@@ -45,7 +42,7 @@ public:
     static TypeID ForName(struct Name name);
 
     constexpr TypeID()
-        : value { }
+        : value { void_value }
     {
     }
 

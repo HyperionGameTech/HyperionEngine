@@ -12,9 +12,12 @@ namespace Hyperion
 
         public Scene()
         {
-            this.handle = Scene_Create();
+            this.handle = new ManagedHandle();
+            Scene_Create(out this.handle);
 
-            this.root = new Node(Scene_GetRoot(this.handle));
+            ManagedNode rootNode = new ManagedNode();
+            Scene_GetRoot(this.handle, out rootNode);
+            this.root = new Node(rootNode);
             this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
@@ -23,7 +26,9 @@ namespace Hyperion
             this.handle = handle;
             this.handle.IncRef(Scene_GetTypeID());
 
-            this.root = new Node(Scene_GetRoot(this.handle));
+            ManagedNode rootNode = new ManagedNode();
+            Scene_GetRoot(this.handle, out rootNode);
+            this.root = new Node(rootNode);
             this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
@@ -68,10 +73,10 @@ namespace Hyperion
         private static extern TypeID Scene_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Scene_Create")]
-        private static extern ManagedHandle Scene_Create();
+        private static extern void Scene_Create([Out] out ManagedHandle scene);
 
         [DllImport("hyperion", EntryPoint = "Scene_GetRoot")]
-        private static extern ManagedNode Scene_GetRoot(ManagedHandle scene);
+        private static extern void Scene_GetRoot(ManagedHandle scene, [Out] out ManagedNode root);
 
         [DllImport("hyperion", EntryPoint = "Scene_GetEntityManager")]
         private static extern IntPtr Scene_GetEntityManager(ManagedHandle scene);

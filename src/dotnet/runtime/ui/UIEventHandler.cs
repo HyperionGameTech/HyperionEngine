@@ -13,7 +13,7 @@ namespace Hyperion
 
             uiObject = Scene.EntityManager.GetComponent<UIComponent>(Entity).UIObject;
         }
-
+        
         public UIObject UIObject
         {
             get

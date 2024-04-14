@@ -478,13 +478,13 @@ function(create_csharp_library output_name csharp_sources)
     file(GLOB CSHARP_XML_FILES "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml")
 
     foreach(FILE_PATH ${CSHARP_DLL_FILES})
-        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_SOURCE_DIR}/res/bin/")
-        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
+        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_CURRENT_BINARY_DIR}/")
+        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
     endforeach()
 
     foreach(FILE_PATH ${CSHARP_XML_FILES})
-        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_SOURCE_DIR}/res/bin/")
-        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_SOURCE_DIR}/res/bin/)
+        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_CURRENT_BINARY_DIR}/")
+        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
     endforeach()
 endfunction()
 

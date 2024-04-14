@@ -63,7 +63,9 @@ namespace Hyperion
         {
             get
             {
-                return UIObject_GetPosition(refCountedPtr);
+                Vec2i position = new Vec2i();
+                UIObject_GetPosition(refCountedPtr, out position);
+                return position;
             }
             set
             {
@@ -75,7 +77,9 @@ namespace Hyperion
         {
             get
             {
-                return UIObject_GetSize(refCountedPtr);
+                Vec2i size = new Vec2i();
+                UIObject_GetSize(refCountedPtr, out size);
+                return size;
             }
             set
             {
@@ -114,13 +118,13 @@ namespace Hyperion
         private static extern void UIObject_SetName(RefCountedPtr rc, Name name);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetPosition")]
-        private static extern Vec2i UIObject_GetPosition(RefCountedPtr rc);
+        private static extern void UIObject_GetPosition(RefCountedPtr rc, [Out] out Vec2i position);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetPosition")]
         private static extern void UIObject_SetPosition(RefCountedPtr rc, Vec2i position);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetSize")]
-        private static extern Vec2i UIObject_GetSize(RefCountedPtr rc);
+        private static extern void UIObject_GetSize(RefCountedPtr rc, [Out] out Vec2i size);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetSize")]
         private static extern void UIObject_SetSize(RefCountedPtr rc, Vec2i size);

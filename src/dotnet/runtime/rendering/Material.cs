@@ -235,7 +235,9 @@ namespace Hyperion
         {
             get
             {
-                return new Texture(Material_GetTexture(material.Handle, key));
+                ManagedHandle textureHandle = new ManagedHandle();
+                Material_GetTexture(material.Handle, key, out textureHandle);
+                return new Texture(textureHandle);
             }
             set
             {
@@ -244,7 +246,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Material_GetTexture")]
-        private static extern ManagedHandle Material_GetTexture(ManagedHandle material, TextureKey key);
+        private static extern void Material_GetTexture(ManagedHandle material, TextureKey key, [Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Material_SetTexture")]
         private static extern void Material_SetTexture(ManagedHandle material, TextureKey key, ManagedHandle texture);
@@ -256,7 +258,9 @@ namespace Hyperion
 
         public Material()
         {
-            handle = Material_Create();
+            handle = new ManagedHandle();
+
+            Material_Create(out handle);
         }
 
         public Material(ManagedHandle handle)
@@ -290,11 +294,13 @@ namespace Hyperion
         {
             get
             {
-                return Material_GetParameter(handle, key);
+                MaterialParameter materialParameter = new MaterialParameter();
+                Material_GetParameter(handle, key, out materialParameter);
+                return materialParameter;
             }
             set
             {
-                Material_SetParameter(handle, key, value);
+                Material_SetParameter(handle, key, ref value);
             }
         }
 
@@ -310,12 +316,12 @@ namespace Hyperion
         private static extern TypeID Material_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Material_Create")]
-        private static extern ManagedHandle Material_Create();
+        private static extern void Material_Create([Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Material_GetParameter")]
-        private static extern MaterialParameter Material_GetParameter(ManagedHandle material, MaterialKey key);
+        private static extern void Material_GetParameter(ManagedHandle material, MaterialKey key, [Out] out MaterialParameter materialParameter);
 
         [DllImport("hyperion", EntryPoint = "Material_SetParameter")]
-        private static extern void Material_SetParameter(ManagedHandle material, MaterialKey key, MaterialParameter parameter);
+        private static extern void Material_SetParameter(ManagedHandle material, MaterialKey key, [In] ref MaterialParameter parameter);
     }
 }

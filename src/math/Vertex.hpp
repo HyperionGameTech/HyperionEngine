@@ -366,6 +366,7 @@ Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
 Vertex operator*(const Transform &transform, const Vertex &vertex);
 
 static_assert(sizeof(Vertex) == 128, "Vertex size is not 128 bytes, ensure size matches C# Vertex struct size");
+static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");
 
 } // namespace hyperion
 

@@ -10,30 +10,30 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT ManagedNode Asset_GetNode(EnqueuedAsset *asset)
+HYP_EXPORT void Asset_GetNode(EnqueuedAsset *asset, ManagedNode *node)
 {
     AssertThrow(asset != nullptr);
 
     if (!asset->result) {
-        return { };
+        return;
     }
     
     auto value = asset->ExtractAs<Node>();
 
-    return CreateManagedNodeFromNodeProxy(std::move(value));
+    *node = CreateManagedNodeFromNodeProxy(std::move(value));
 }
 
-HYP_EXPORT ManagedHandle Asset_GetTexture(EnqueuedAsset *asset)
+HYP_EXPORT void Asset_GetTexture(EnqueuedAsset *asset, ManagedHandle *handle)
 {
     AssertThrow(asset != nullptr);
 
     if (!asset->result) {
-        return { };
+        return;
     }
 
     auto value = asset->ExtractAs<Texture>();
 
-    return CreateManagedHandleFromHandle(std::move(value));
+    *handle = CreateManagedHandleFromHandle(std::move(value));
 }
 
 } // extern "C"

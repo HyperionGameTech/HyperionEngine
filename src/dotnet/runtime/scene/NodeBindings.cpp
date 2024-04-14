@@ -12,9 +12,9 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT ManagedNode Node_Create()
+HYP_EXPORT void Node_Create(ManagedNode *out_managed_node)
 {
-    return CreateManagedNodeFromNodeProxy(NodeProxy(new Node()));
+    *out_managed_node = CreateManagedNodeFromNodeProxy(NodeProxy(new Node()));
 }
 
 HYP_EXPORT const char *Node_GetName(ManagedNode managed_node)
@@ -61,57 +61,57 @@ HYP_EXPORT void Node_SetEntity(ManagedNode managed_node, ManagedEntity managed_e
     node->SetEntity(managed_entity);
 }
 
-HYP_EXPORT ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child)
+HYP_EXPORT void Node_AddChild(ManagedNode parent, ManagedNode child, ManagedNode *out_child_managed_node)
 {
     NodeProxy parent_node_proxy = CreateNodeProxyFromManagedNode(parent);
 
     if (!parent_node_proxy) {
-        return ManagedNode { nullptr };
+        return;
     }
 
     NodeProxy child_node = CreateNodeProxyFromManagedNode(child);
 
     if (!child_node) {
-        return ManagedNode { nullptr };
+        return;
     }
 
     parent_node_proxy.AddChild(child_node);
 
-    return CreateManagedNodeFromNodeProxy(std::move(child_node));
+    *out_child_managed_node = CreateManagedNodeFromNodeProxy(std::move(child_node));
 }
 
-HYP_EXPORT ManagedNode Node_FindChild(ManagedNode managed_node, const char *name)
+HYP_EXPORT void Node_FindChild(ManagedNode managed_node, const char *name, ManagedNode *out_result)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return ManagedNode();
+        return;
     }
 
     NodeProxy child_node = node->FindChildByName(name);
 
     if (!child_node) {
-        return ManagedNode { nullptr };
+        return;
     }
 
-    return CreateManagedNodeFromNodeProxy(std::move(child_node));
+    *out_result = CreateManagedNodeFromNodeProxy(std::move(child_node));
 }
 
-HYP_EXPORT ManagedNode Node_FindChildWithEntity(ManagedNode managed_node, ManagedEntity entity)
+HYP_EXPORT void Node_FindChildWithEntity(ManagedNode managed_node, ManagedEntity entity, ManagedNode *out_result)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return ManagedNode();
+        return;
     }
 
     NodeProxy child_node = node->FindChildWithEntity(entity);
 
     if (!child_node) {
-        return ManagedNode { nullptr };
+        return;
     }
 
-    return CreateManagedNodeFromNodeProxy(std::move(child_node));
+    *out_result = CreateManagedNodeFromNodeProxy(std::move(child_node));
 }
 
 HYP_EXPORT bool Node_RemoveChild(ManagedNode managed_node, ManagedNode managed_child)
@@ -131,18 +131,18 @@ HYP_EXPORT bool Node_RemoveChild(ManagedNode managed_node, ManagedNode managed_c
     return node->RemoveChild(&child);
 }
 
-HYP_EXPORT ManagedTransform Node_GetWorldTransform(ManagedNode managed_node)
+HYP_EXPORT void Node_GetWorldTransform(ManagedNode managed_node, Transform *out_transform)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetWorldTransform();
+    *out_transform = node->GetWorldTransform();
 }
 
-HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, ManagedTransform transform)
+HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, Transform transform)
 {
     Node *node = managed_node.GetNode();
 
@@ -153,18 +153,18 @@ HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, ManagedTransfor
     node->SetWorldTransform(transform);
 }
 
-HYP_EXPORT ManagedTransform Node_GetLocalTransform(ManagedNode managed_node)
+HYP_EXPORT void Node_GetLocalTransform(ManagedNode managed_node, Transform *out_transform)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetLocalTransform();
+    *out_transform = node->GetLocalTransform();
 }
 
-HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, ManagedTransform transform)
+HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, Transform transform)
 {
     Node *node = managed_node.GetNode();
 
@@ -175,15 +175,15 @@ HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, ManagedTransfor
     node->SetLocalTransform(transform);
 }
 
-HYP_EXPORT ManagedVec3f Node_GetWorldTranslation(ManagedNode managed_node)
+HYP_EXPORT void Node_GetWorldTranslation(ManagedNode managed_node, Vec3f *out_translation)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetWorldTranslation();
+    *out_translation = node->GetWorldTranslation();
 }
 
 HYP_EXPORT void Node_SetWorldTranslation(ManagedNode managed_node, ManagedVec3f translation)
@@ -197,15 +197,15 @@ HYP_EXPORT void Node_SetWorldTranslation(ManagedNode managed_node, ManagedVec3f 
     node->SetWorldTranslation(translation);
 }
 
-HYP_EXPORT ManagedVec3f Node_GetLocalTranslation(ManagedNode managed_node)
+HYP_EXPORT void Node_GetLocalTranslation(ManagedNode managed_node, Vec3f *out_translation)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetLocalTranslation();
+    *out_translation = node->GetLocalTranslation();
 }
 
 HYP_EXPORT void Node_SetLocalTranslation(ManagedNode managed_node, ManagedVec3f translation)
@@ -230,18 +230,18 @@ HYP_EXPORT void Node_Translate(ManagedNode managed_node, ManagedVec3f translatio
     node->Translate(translation);
 }
 
-HYP_EXPORT ManagedQuaternion Node_GetWorldRotation(ManagedNode managed_node)
+HYP_EXPORT void Node_GetWorldRotation(ManagedNode managed_node, Quaternion *out_rotation)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetWorldRotation();
+    *out_rotation = node->GetWorldRotation();
 }
 
-HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, ManagedQuaternion rotation)
+HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, Quaternion rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -252,18 +252,18 @@ HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, ManagedQuaternio
     node->SetWorldRotation(rotation);
 }
 
-HYP_EXPORT ManagedQuaternion Node_GetLocalRotation(ManagedNode managed_node)
+HYP_EXPORT void Node_GetLocalRotation(ManagedNode managed_node, Quaternion *out_rotation)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetLocalRotation();
+    *out_rotation = node->GetLocalRotation();
 }
 
-HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, ManagedQuaternion rotation)
+HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, Quaternion rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -274,7 +274,7 @@ HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, ManagedQuaternio
     node->SetLocalRotation(rotation);
 }
 
-HYP_EXPORT void Node_Rotate(ManagedNode managed_node, ManagedQuaternion rotation)
+HYP_EXPORT void Node_Rotate(ManagedNode managed_node, Quaternion rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -285,15 +285,15 @@ HYP_EXPORT void Node_Rotate(ManagedNode managed_node, ManagedQuaternion rotation
     node->Rotate(rotation);
 }
 
-HYP_EXPORT ManagedVec3f Node_GetWorldScale(ManagedNode managed_node)
+HYP_EXPORT void Node_GetWorldScale(ManagedNode managed_node, Vec3f *out_scale)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetWorldScale();
+    *out_scale = node->GetWorldScale();
 }
 
 HYP_EXPORT void Node_SetWorldScale(ManagedNode managed_node, ManagedVec3f scale)
@@ -307,15 +307,15 @@ HYP_EXPORT void Node_SetWorldScale(ManagedNode managed_node, ManagedVec3f scale)
     node->SetWorldScale(scale);
 }
 
-HYP_EXPORT ManagedVec3f Node_GetLocalScale(ManagedNode managed_node)
+HYP_EXPORT void Node_GetLocalScale(ManagedNode managed_node, Vec3f *out_scale)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetLocalScale();
+    *out_scale = node->GetLocalScale();
 }
 
 HYP_EXPORT void Node_SetLocalScale(ManagedNode managed_node, ManagedVec3f scale)
@@ -373,15 +373,15 @@ HYP_EXPORT void Node_Scale(ManagedNode managed_node, ManagedVec3f scale)
     node->Scale(scale);
 }
 
-HYP_EXPORT ManagedBoundingBox Node_GetWorldAABB(ManagedNode managed_node)
+HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, ManagedBoundingBox *out_aabb)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetWorldAABB();
+    *out_aabb = node->GetWorldAABB();
 }
 
 HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, ManagedBoundingBox aabb)
@@ -395,15 +395,15 @@ HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, ManagedBoundingBox a
     node->SetWorldAABB(aabb);
 }
 
-HYP_EXPORT ManagedBoundingBox Node_GetLocalAABB(ManagedNode managed_node)
+HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, ManagedBoundingBox *out_aabb)
 {
     Node *node = managed_node.GetNode();
 
     if (node == nullptr) {
-        return { };
+        return;
     }
 
-    return node->GetLocalAABB();
+    *out_aabb = node->GetLocalAABB();
 }
 
 HYP_EXPORT void Node_SetLocalAABB(ManagedNode managed_node, ManagedBoundingBox aabb)

@@ -13,16 +13,18 @@ using namespace hyperion::v2;
 extern "C" {
 struct ManagedRefCountedPtr
 {
-    void *data_ptr;
+    uintptr_t   address;
 };
 
+static_assert(sizeof(ManagedRefCountedPtr) == 8, "sizeof(ManagedRefCountedPtr) must be 8 bytes to match C#");
 static_assert(sizeof(ManagedRefCountedPtr) == sizeof(RefCountedPtr<void>), "ManagedRefCountedPtr size mismatch");
 
 struct ManagedWeakRefCountedPtr
 {
-    void *data_ptr;
+    uintptr_t   address;
 };
 
+static_assert(sizeof(ManagedWeakRefCountedPtr) == 8, "sizeof(ManagedWeakRefCountedPtr) must be 8 bytes to match C#");
 static_assert(sizeof(ManagedWeakRefCountedPtr) == sizeof(Weak<void>), "ManagedWeakRefCountedPtr size mismatch");
 
 extern HYP_API void RefCountedPtr_IncRef(ManagedRefCountedPtr);
@@ -35,7 +37,7 @@ extern HYP_API void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
 template <class T>
 static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;
@@ -49,7 +51,7 @@ static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref
 template <class T>
 static inline Weak<T> GetWeakRefCountedPtrFromManaged(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;

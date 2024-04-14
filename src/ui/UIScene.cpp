@@ -210,9 +210,11 @@ bool UIScene::OnInputEvent(
                         ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_HOVER);
 
                         DebugLog(LogType::Debug,
-                            "Hover object %s\t%d\n",
+                            "Hover object %s\t%d\tref count: %u\t%p\n",
                             ui_object->GetName().LookupString(),
-                            ui_object->GetDepth());
+                            ui_object->GetDepth(),
+                            ui_object.GetRefCountData()->strong_count.load(),
+                            ui_object.GetRefCountData());
 
                         event_handled |= ui_object->OnMouseHover(UIMouseEventData {
                             .position   = mouse_screen,

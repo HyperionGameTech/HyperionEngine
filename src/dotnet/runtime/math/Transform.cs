@@ -83,7 +83,7 @@ namespace Hyperion
 
         public void UpdateMatrix()
         {
-            matrix = Transform_UpdateMatrix(this);
+            Transform_UpdateMatrix(ref this);
         }
 
         public override string ToString()
@@ -92,6 +92,6 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Transform_UpdateMatrix")]
-        private static extern Matrix4 Transform_UpdateMatrix(Transform transform);
+        private static extern void Transform_UpdateMatrix([In] ref Transform transform);
     }
 }

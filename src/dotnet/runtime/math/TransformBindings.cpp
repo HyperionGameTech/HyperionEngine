@@ -8,10 +8,8 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT ManagedMatrix4 Transform_UpdateMatrix(ManagedTransform transform)
+HYP_EXPORT void Transform_UpdateMatrix(Transform *transform)
 {
-    Transform t(transform);
-    t.UpdateMatrix();
-    return t.GetMatrix();
+    transform->UpdateMatrix();
 }
 } // extern "C"

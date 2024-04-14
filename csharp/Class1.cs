@@ -11,6 +11,8 @@ public class TestUIScript : UIEventHandler
 
         UIObject.OriginAlignment = UIObjectAlignment.TopLeft;
 
+        Console.WriteLine("Init TestUIScript object with entity : " + entity.ID);
+
         Logger.Log(LogType.Info, "Init UI script");
     }
 
@@ -21,9 +23,14 @@ public class TestUIScript : UIEventHandler
 
     public override bool OnClick()
     {
-        Logger.Log(LogType.Info, "OnClick for custom UI component");
+        Logger.Log(LogType.Info, "Object RefCountedPtr address: {0}", UIObject.RefCountedPtr.Address);
+        Logger.Log(LogType.Info, "Object name: {0}", UIObject.Name.HashCode);
+        Vec2i offset = new Vec2i(10, 10);
+        Logger.Log(LogType.Info, "OnClick for custom UI component {0} {1}", offset.X, offset.Y);
 
-        UIObject.Position += new Vec2i(10, 10);
+        Logger.Log(LogType.Info, "Current position: {0}, {1}", UIObject.Position.X, UIObject.Position.Y);
+
+        UIObject.Position += offset;
 
         return true;
     }

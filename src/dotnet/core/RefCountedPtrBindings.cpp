@@ -12,7 +12,7 @@ extern "C" {
 
 HYP_EXPORT void RefCountedPtr_IncRef(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return;
@@ -25,7 +25,7 @@ HYP_EXPORT void RefCountedPtr_IncRef(ManagedRefCountedPtr managed_ref_counted_pt
 
 HYP_EXPORT void RefCountedPtr_DecRef(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return;
@@ -38,7 +38,7 @@ HYP_EXPORT void RefCountedPtr_DecRef(ManagedRefCountedPtr managed_ref_counted_pt
 
 HYP_EXPORT void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return;
@@ -51,7 +51,7 @@ HYP_EXPORT void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr managed_weak_r
 
 HYP_EXPORT void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
-    auto *ref_count_data = static_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.data_ptr);
+    auto *ref_count_data = reinterpret_cast<typename detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return;

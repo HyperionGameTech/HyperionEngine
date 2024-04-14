@@ -17,7 +17,8 @@ namespace Hyperion
         {
             get
             {
-                ManagedNode managedNode = NodeLinkComponent_LockReference(node.Address);
+                ManagedNode managedNode = new ManagedNode();
+                NodeLinkComponent_LockReference(node.Address, out managedNode);
 
                 if (!managedNode.Valid)
                 {
@@ -29,6 +30,6 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "NodeLinkComponent_LockReference")]
-        private static extern ManagedNode NodeLinkComponent_LockReference(IntPtr ctrlBlockPtr);
+        private static extern void NodeLinkComponent_LockReference(IntPtr ctrlBlockPtr, [Out] out ManagedNode node);
     }
 }

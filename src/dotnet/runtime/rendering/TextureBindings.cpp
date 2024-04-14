@@ -19,9 +19,9 @@ HYP_EXPORT uint32 Texture_GetTypeID()
     return TypeID::ForType<Texture>().Value();
 }
 
-HYP_EXPORT ManagedHandle Texture_Create()
+HYP_EXPORT void Texture_Create(ManagedHandle *handle)
 {
-    return CreateManagedHandleFromHandle(CreateObject<Texture>());
+    *handle = CreateManagedHandleFromHandle(CreateObject<Texture>());
 }
 
 HYP_EXPORT void Texture_Init(ManagedHandle texture_handle)
@@ -68,15 +68,15 @@ HYP_EXPORT uint32 Texture_GetImageType(ManagedHandle texture_handle)
     return uint32(texture->GetType());
 }
 
-HYP_EXPORT ManagedHandle Material_GetTexture(ManagedHandle material_handle, uint64 texture_key)
+HYP_EXPORT void Material_GetTexture(ManagedHandle material_handle, uint64 texture_key, ManagedHandle *out_texture_handle)
 {
     Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 
     if (!material) {
-        return { };
+        return;
     }
 
-    return CreateManagedHandleFromHandle<Texture>(material->GetTexture(Material::TextureKey(texture_key)));
+    *out_texture_handle = CreateManagedHandleFromHandle<Texture>(material->GetTexture(Material::TextureKey(texture_key)));
 }
 
 HYP_EXPORT void Material_SetTexture(ManagedHandle material_handle, uint64 texture_key, ManagedHandle texture_handle)

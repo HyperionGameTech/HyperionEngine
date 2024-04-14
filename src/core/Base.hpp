@@ -174,7 +174,7 @@ protected:
             "Object of type `%s` is not in ready state; maybe Init() has not been called on it, "
             "or the component requires an event to be sent from the Engine instance to determine that "
             "it is ready to be constructed, and this event has not yet been sent.\n",
-            TypeName<InnerType>().Data()
+            TypeNameWithoutNamespace<InnerType>().Data()
         );
     }
 
@@ -184,7 +184,7 @@ protected:
         AssertThrowMsg(
             IsInitCalled(),
             "Object of type `%s` has not had Init() called on it!\n",
-            TypeName<InnerType>().Data()
+            TypeNameWithoutNamespace<InnerType>().Data()
         );
     }
     

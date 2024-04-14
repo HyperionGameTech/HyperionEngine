@@ -68,14 +68,12 @@ struct ManagedMeshComponent
     ManagedHandle           skeleton_handle;
     MeshComponentUserData   user_data;
     uint32                  mesh_component_flags;
-    ManagedMatrix4          previous_model_matrix;
+    Matrix4                 previous_model_matrix;
 };
-
-constexpr auto x = alignof(ManagedMatrix4);
 
 static_assert(sizeof(ManagedMeshComponent) == sizeof(MeshComponent), "ManagedMeshComponent should equal MeshComponent size");
 static_assert(alignof(ManagedMeshComponent) == alignof(MeshComponent), "ManagedMeshComponent should have the same alignment as MeshComponent");
-static_assert(std::is_trivial_v<ManagedMeshComponent> && std::is_standard_layout_v<ManagedMeshComponent>, "ManagedMeshComponent should be a POD type");
+static_assert(std::is_trivially_copyable_v<ManagedMeshComponent> && std::is_standard_layout_v<ManagedMeshComponent>, "ManagedMeshComponent should be trivially copyable and standard layout");
 static_assert(sizeof(ManagedMeshComponent) == 96, "ManagedMeshComponent should equal 96 bytes to match C# struct size");
 
 HYP_EXPORT uint32 MeshComponent_GetNativeTypeID()
@@ -164,11 +162,11 @@ HYP_EXPORT ComponentID NodeLinkComponent_AddComponent(EntityManager *manager, Ma
     return manager->AddComponent(entity, std::move(*component));
 }
 
-HYP_EXPORT ManagedNode NodeLinkComponent_LockReference(void *ref_count_data)
+HYP_EXPORT void NodeLinkComponent_LockReference(void *ref_count_data, ManagedNode *out_node)
 {
     Weak<Node> weak_ptr;
     weak_ptr.SetRefCountData(static_cast<Weak<Node>::WeakRefCountedPtrBase::RefCountDataType *>(ref_count_data), false /* inc_ref */);
 
-    return CreateManagedNodeFromWeakPtr(weak_ptr);
+    *out_node = CreateManagedNodeFromWeakPtr(weak_ptr);
 }
 } // extern "C"

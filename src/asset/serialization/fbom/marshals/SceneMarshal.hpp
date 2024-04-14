@@ -48,7 +48,7 @@ public:
             if (node.GetType().IsOrExtends("Node")) {
                 (*scene_handle)->GetRoot().AddChild(node.deserialized.Get<Node>());
                 // out_object->SetRoot(node.deserialized.Get<Node>());
-            } else if (node.GetType().IsOrExtends(TypeName<Camera>().Data())) {
+            } else if (node.GetType().IsOrExtends("Camera")) {
                 (*scene_handle)->SetCamera(node.deserialized.Get<Camera>());
             }
         }

@@ -20,15 +20,16 @@ HYP_EXPORT uint32 Light_GetTypeID()
     return TypeID::ForType<Light>().Value();
 }
 
-HYP_EXPORT ManagedHandle Light_Create(
+HYP_EXPORT void Light_Create(
     uint32 type,
     ManagedVec3f position,
     uint32 color,
     float intensity,
-    float radius
+    float radius,
+    ManagedHandle *out_handle
 )
 {
-    return CreateManagedHandleFromHandle(CreateObject<Light>(
+    *out_handle = CreateManagedHandleFromHandle(CreateObject<Light>(
         LightType(type),
         position,
         Color(color),
@@ -48,15 +49,15 @@ HYP_EXPORT void Light_Init(ManagedHandle light_handle)
     InitObject(light);
 }
 
-HYP_EXPORT ManagedVec3f Light_GetPosition(ManagedHandle light_handle)
+HYP_EXPORT void Light_GetPosition(ManagedHandle light_handle, Vec3f *out_position)
 {
     Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
 
     if (!light) {
-        return { };
+        return;
     }
 
-    return light->GetPosition();
+    *out_position = light->GetPosition();
 }
 
 HYP_EXPORT void Light_SetPosition(ManagedHandle light_handle, ManagedVec3f position)

@@ -23,13 +23,18 @@ namespace Hyperion
 
         public static Name FromString(string name)
         {
-            IntPtr namePtr = Marshal.StringToHGlobalAnsi(name);
-            Name value = Name_FromString(namePtr);
-            Marshal.FreeHGlobal(namePtr);
-            return value;
+            return Name_FromString(name);
+        }
+
+        public ulong HashCode
+        {
+            get
+            {
+                return hashCode;
+            }
         }
 
         [DllImport("hyperion", EntryPoint = "Name_FromString")]
-        private static extern Name Name_FromString(IntPtr namePtr);
+        private static extern Name Name_FromString([MarshalAs(UnmanagedType.LPStr)] string namePtr);
     }
 }

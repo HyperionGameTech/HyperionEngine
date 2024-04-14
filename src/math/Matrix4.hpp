@@ -44,7 +44,8 @@ public:
     explicit Matrix4(const Matrix3 &matrix3);
     explicit Matrix4(const Vec4f *rows);
     explicit Matrix4(const float *v);
-    Matrix4(const Matrix4 &other);
+    Matrix4(const Matrix4 &other) = default;
+    Matrix4 &operator=(const Matrix4 &other) = default;
 
     float Determinant() const;
     Matrix4 &Transpose();
@@ -58,7 +59,6 @@ public:
     float GetPitch() const;
     float GetRoll() const;
     
-    Matrix4 &operator=(const Matrix4 &other);
     Matrix4 operator+(const Matrix4 &other) const;
     Matrix4 &operator+=(const Matrix4 &other);
     Matrix4 operator*(const Matrix4 &other) const;

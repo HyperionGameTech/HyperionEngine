@@ -50,9 +50,9 @@ HYP_EXPORT uint32 Material_GetTypeID()
     return TypeID::ForType<Material>().Value();
 }
 
-HYP_EXPORT ManagedHandle Material_Create()
+HYP_EXPORT void Material_Create(ManagedHandle *out_handle)
 {
-    return CreateManagedHandleFromHandle(CreateObject<Material>());
+    *out_handle = CreateManagedHandleFromHandle(CreateObject<Material>());
 }
 
 HYP_EXPORT void Material_Init(ManagedHandle material_handle)
@@ -66,18 +66,7 @@ HYP_EXPORT void Material_Init(ManagedHandle material_handle)
     InitObject(material);
 }
 
-HYP_EXPORT ManagedMaterialParameter Material_GetParameter(ManagedHandle material_handle, uint64 key)
-{
-    Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
-
-    if (!material) {
-        return { };
-    }
-
-    return ManagedMaterialParameter(material->GetParameter(Material::MaterialKey(key)));
-}
-
-HYP_EXPORT void Material_SetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter param)
+HYP_EXPORT void Material_GetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter *out_material_parameter)
 {
     Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
 
@@ -85,6 +74,17 @@ HYP_EXPORT void Material_SetParameter(ManagedHandle material_handle, uint64 key,
         return;
     }
 
-    material->SetParameter(Material::MaterialKey(key), Material::Parameter(param));
+    *out_material_parameter = ManagedMaterialParameter(material->GetParameter(Material::MaterialKey(key)));
+}
+
+HYP_EXPORT void Material_SetParameter(ManagedHandle material_handle, uint64 key, ManagedMaterialParameter *param)
+{
+    Handle<Material> material = CreateHandleFromManagedHandle<Material>(material_handle);
+
+    if (!material) {
+        return;
+    }
+
+    material->SetParameter(Material::MaterialKey(key), Material::Parameter(*param));
 }
 } // extern "C"

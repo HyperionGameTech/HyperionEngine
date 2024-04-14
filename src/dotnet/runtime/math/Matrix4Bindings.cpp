@@ -8,27 +8,23 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT ManagedMatrix4 Matrix4_Identity()
+HYP_EXPORT void Matrix4_Identity(Matrix4 *matrix)
 {
-    return Matrix4::Identity();
+    *matrix = Matrix4::Identity();
 }
 
-HYP_EXPORT ManagedMatrix4 Matrix4_Multiply(ManagedMatrix4 left, ManagedMatrix4 right)
+HYP_EXPORT void Matrix4_Multiply(Matrix4 *left, Matrix4 *right, Matrix4 *result)
 {
-    Matrix4 l(left);
-    Matrix4 r(right);
-    return l * r;
+    *result = *left * *right;
 }
 
-HYP_EXPORT ManagedMatrix4 Matrix4_Inverted(ManagedMatrix4 matrix)
+HYP_EXPORT void Matrix4_Inverted(Matrix4 *in, Matrix4 *result)
 {
-    Matrix4 m(matrix);
-    return m.Inverted();
+    *result = (*in).Inverted();
 }
 
-HYP_EXPORT ManagedMatrix4 Matrix4_Transposed(ManagedMatrix4 matrix)
+HYP_EXPORT void Matrix4_Transposed(Matrix4 *in, Matrix4 *result)
 {
-    Matrix4 m(matrix);
-    return m.Transposed();
+    *result = (*in).Transposed();
 }
 } // extern "C"

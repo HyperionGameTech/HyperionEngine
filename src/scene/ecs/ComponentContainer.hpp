@@ -13,8 +13,8 @@ namespace hyperion::v2 {
 
 class Entity;
 
-using ComponentID = uint;
-using ComponentRWFlags = uint;
+using ComponentID = uint32;
+using ComponentRWFlags = uint32;
 
 enum ComponentRWFlagBits : ComponentRWFlags
 {
@@ -173,7 +173,7 @@ public:
     HYP_FORCE_INLINE
     Component &GetComponent(ComponentID id)
     {
-        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeName<Component>().Data(), id);
+        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
         
         return m_components.At(id);
     }
@@ -181,7 +181,7 @@ public:
     HYP_FORCE_INLINE
     const Component &GetComponent(ComponentID id) const
     {
-        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeName<Component>().Data(), id);
+        AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
         
         return m_components.At(id);
     }

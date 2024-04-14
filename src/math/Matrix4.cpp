@@ -238,11 +238,6 @@ Matrix4::Matrix4(const float *v)
     rows[3] = { v[12], v[13], v[14], v[15] };
 }
 
-Matrix4::Matrix4(const Matrix4 &other)
-{
-    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
-}
-
 float Matrix4::Determinant() const
 {
     return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1]
@@ -408,13 +403,6 @@ float Matrix4::GetPitch() const
 float Matrix4::GetRoll() const
 {
     return Quaternion(*this).Roll();
-}
-
-Matrix4 &Matrix4::operator=(const Matrix4 &other)
-{
-    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
-
-    return *this;
 }
 
 Matrix4 Matrix4::operator+(const Matrix4 &other) const

@@ -16,7 +16,7 @@ namespace Hyperion
         BoneWeights = 0x80
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 128)]
+    [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
     public struct Vertex
     {
         [FieldOffset(0)]

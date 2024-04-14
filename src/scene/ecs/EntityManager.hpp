@@ -443,7 +443,7 @@ public:
 
         auto component_it = it->second.components.Find<Component>();
         // @TODO: Replace the component if it already exists
-        AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component of type %s", TypeName<Component>().Data());
+        AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
         const TypeID component_type_id = TypeID::ForType<Component>();
         const ComponentID component_id = GetContainer<Component>().AddComponent(std::move(component));

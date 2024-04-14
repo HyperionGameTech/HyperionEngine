@@ -13,8 +13,9 @@ using namespace hyperion::v2;
 
 extern "C" {
 
-uint64 UIObject_GetName(ManagedRefCountedPtr obj)
+HYP_EXPORT uint64 UIObject_GetName(ManagedRefCountedPtr obj)
 {
+    DebugLog(LogType::Debug, "GetName called with address: %llu\n", obj.address);
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
@@ -24,7 +25,7 @@ uint64 UIObject_GetName(ManagedRefCountedPtr obj)
     return ui_object->GetName().GetID();
 }
 
-void UIObject_SetName(ManagedRefCountedPtr obj, uint64 name)
+HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, uint64 name)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -35,18 +36,19 @@ void UIObject_SetName(ManagedRefCountedPtr obj, uint64 name)
     ui_object->SetName(Name(name));
 }
 
-Vec2i UIObject_GetPosition(ManagedRefCountedPtr obj)
+HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    DebugLog(LogType::Debug, "SetPosition called with ref count: %u\n", ui_object.GetRefCountData()->strong_count.load());
 
     if (!ui_object) {
-        return { };
+        return;
     }
 
-    return ui_object->GetPosition();
+    *position = ui_object->GetPosition();
 }
 
-void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i position)
+HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i position)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -57,18 +59,18 @@ void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i position)
     ui_object->SetPosition(position);
 }
 
-Vec2i UIObject_GetSize(ManagedRefCountedPtr obj)
+HYP_EXPORT void UIObject_GetSize(ManagedRefCountedPtr obj, Vec2i *size)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
-        return { };
+        return;
     }
 
-    return ui_object->GetActualSize();
+    *size = ui_object->GetActualSize();
 }
 
-void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
+HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -79,7 +81,7 @@ void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
     ui_object->SetSize(size);
 }
 
-UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)
+HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -90,7 +92,7 @@ UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)
     return ui_object->GetOriginAlignment();
 }
 
-void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
+HYP_EXPORT void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -101,7 +103,7 @@ void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment ali
     ui_object->SetOriginAlignment(alignment);
 }
 
-UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr obj)
+HYP_EXPORT UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr obj)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -112,7 +114,7 @@ UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr obj)
     return ui_object->GetParentAlignment();
 }
 
-void UIObject_SetParentAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
+HYP_EXPORT void UIObject_SetParentAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -123,4 +125,4 @@ void UIObject_SetParentAlignment(ManagedRefCountedPtr obj, UIObjectAlignment ali
     ui_object->SetParentAlignment(alignment);
 }
 
-}
+} // extern "C"

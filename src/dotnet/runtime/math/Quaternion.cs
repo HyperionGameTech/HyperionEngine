@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Quaternion
     {
         [FieldOffset(0)]

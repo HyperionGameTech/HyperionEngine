@@ -53,9 +53,9 @@ namespace Hyperion
         private static extern void ManagedClass_AddMethod(ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
-        private static extern ManagedClass ManagedClass_SetNewObjectFunction(ManagedClass managedClass, IntPtr newObjectFunctionPtr);
+        private static extern void ManagedClass_SetNewObjectFunction(ManagedClass managedClass, IntPtr newObjectFunctionPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetFreeObjectFunction")]
-        private static extern ManagedClass ManagedClass_SetFreeObjectFunction(ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
+        private static extern void ManagedClass_SetFreeObjectFunction(ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
     }
 }

@@ -106,15 +106,7 @@ public:
             String(formats)...
         };
 
-        static const auto loader_type_name = TypeName<Loader>();
-
-        DebugLog(LogType::Debug, "Loader %s handles formats: ", loader_type_name.Data());
-
-        for (const auto &format : format_strings) {
-            DebugLog(LogType::Debug, "%s ", format.Data());
-        }
-
-        DebugLog(LogType::Debug, "\n");
+        static const auto loader_type_name = TypeNameWithoutNamespace<Loader>();
 
         m_loaders.PushBack(AssetLoaderDefinition {
             loader_type_name,

@@ -48,18 +48,6 @@ HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version
     return true;
 }
 
-HYP_EXPORT void NativeInterop_Initialize(void *invoke_method_fptr)
-{
-    // g_invoke_method_fptr = reinterpret_cast<void *(*)(ManagedMethod *, void **)>(invoke_method_fptr);
-
-    // // test
-    // Class *logger_class_object = s_class_object_holder.FindClassByName("Logger");
-
-    // if (logger_class_object) {
-    //     void *return_value = logger_class_object->InvokeMethod<void *, int32, char *>("TestMethod", 9, "hello hello world!!!");
-    // }
-}
-
 HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_method_fptr)
 {
     AssertThrow(class_holder != nullptr);
@@ -67,15 +55,13 @@ HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ClassHolder *class_holder,
     class_holder->SetInvokeMethodFunction(invoke_method_fptr);
 }
 
-HYP_EXPORT ManagedClass ManagedClass_Create(ClassHolder *class_holder, int32 type_hash, const char *type_name)
+HYP_EXPORT void ManagedClass_Create(ClassHolder *class_holder, int32 type_hash, const char *type_name, ManagedClass *out_managed_class)
 {
     AssertThrow(class_holder != nullptr);
 
-    DebugLog(LogType::Debug, "(C++) Creating managed class: %s\t%p\n", type_name, class_holder);
-
     Class *class_object = class_holder->GetOrCreateClassObject(type_hash, type_name);
 
-    return ManagedClass { type_hash, class_object };
+    *out_managed_class = ManagedClass { type_hash, class_object };
 }
 
 HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)
@@ -83,8 +69,6 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *m
     if (!managed_class.class_object || !method_name) {
         return;
     }
-
-    DebugLog(LogType::Debug, "(C++) Adding method: %s to class: %s\n", method_name, managed_class.class_object->GetName().Data());
 
     ManagedMethod method_object;
     method_object.guid = guid;
@@ -121,12 +105,4 @@ HYP_EXPORT void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, C
     managed_class.class_object->SetFreeObjectFunction(free_object_fptr);
 }
 
-// const char *ManagedClass_GetName(ManagedClass *managed_class)
-// {
-//     if (!managed_class || !managed_class->class_object) {
-//         return nullptr;
-//     }
-
-//     return managed_class->class_object->name.Data();
-// }
 } // extern "C"

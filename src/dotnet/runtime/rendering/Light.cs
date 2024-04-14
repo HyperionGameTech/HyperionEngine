@@ -16,12 +16,14 @@ namespace Hyperion
 
         public Light(LightType type, Vec3f position, Color color, float intensity, float radius)
         {
-            handle = Light_Create(
+            handle = new ManagedHandle();
+            Light_Create(
                 type,
                 position,
                 color,
                 intensity,
-                radius
+                radius,
+                out handle
             );
         }
 
@@ -61,7 +63,9 @@ namespace Hyperion
         {
             get
             {
-                return Light_GetPosition(handle);
+                Vec3f lightPosition = new Vec3f();
+                Light_GetPosition(handle, out lightPosition);
+                return lightPosition;
             }
             set
             {
@@ -121,19 +125,20 @@ namespace Hyperion
         private static extern TypeID Light_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Light_Create")]
-        private static extern ManagedHandle Light_Create(
+        private static extern void Light_Create(
             LightType type,
             Vec3f position,
             Color color,
             float intensity,
-            float radius
+            float radius,
+            out ManagedHandle handle
         );
 
         [DllImport("hyperion", EntryPoint = "Light_Init")]
         private static extern void Light_Init(ManagedHandle texture);
 
         [DllImport("hyperion", EntryPoint = "Light_GetPosition")]
-        private static extern Vec3f Light_GetPosition(ManagedHandle light);
+        private static extern void Light_GetPosition(ManagedHandle light, [Out] out Vec3f lightPosition);
 
         [DllImport("hyperion", EntryPoint = "Light_SetPosition")]
         private static extern void Light_SetPosition(ManagedHandle light, Vec3f position);

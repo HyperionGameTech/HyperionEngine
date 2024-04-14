@@ -17,7 +17,7 @@ HYP_EXPORT uint32 Mesh_GetTypeID()
     return TypeID::ForType<Mesh>().Value();
 }
 
-HYP_EXPORT ManagedHandle Mesh_Create(Vertex *vertices, uint32 num_vertices, uint32 *indices, uint32 num_indices)
+HYP_EXPORT void Mesh_Create(Vertex *vertices, uint32 num_vertices, uint32 *indices, uint32 num_indices, ManagedHandle *out_handle)
 {
     Array<Vertex> vertices_array;
     vertices_array.Resize(num_vertices);
@@ -27,7 +27,7 @@ HYP_EXPORT ManagedHandle Mesh_Create(Vertex *vertices, uint32 num_vertices, uint
     indices_array.Resize(num_indices);
     Memory::MemCpy(indices_array.Data(), indices, num_indices * sizeof(uint32));
 
-    return CreateManagedHandleFromHandle(CreateObject<Mesh>(std::move(vertices_array), std::move(indices_array)));
+    *out_handle = CreateManagedHandleFromHandle(CreateObject<Mesh>(std::move(vertices_array), std::move(indices_array)));
 }
 
 HYP_EXPORT void Mesh_Init(ManagedHandle mesh_handle)

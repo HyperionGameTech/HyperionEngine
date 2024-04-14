@@ -83,7 +83,8 @@ namespace Hyperion
 
         public Texture()
         {
-            handle = Texture_Create();
+            handle = new ManagedHandle();
+            Texture_Create(out handle);
         }
 
         public Texture(ManagedHandle handle)
@@ -146,7 +147,7 @@ namespace Hyperion
         private static extern TypeID Texture_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Texture_Create")]
-        private static extern ManagedHandle Texture_Create();
+        private static extern void Texture_Create([Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Texture_Init")]
         private static extern void Texture_Init(ManagedHandle texture);

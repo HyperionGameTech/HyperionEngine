@@ -11,8 +11,10 @@ namespace Hyperion
         {
             var verticesArray = vertices.ToArray();
             var indicesArray = indices.ToArray();
+
+            handle = new ManagedHandle();
             
-            handle = Mesh_Create(verticesArray, (uint)vertices.Count, indicesArray, (uint)indices.Count);
+            Mesh_Create(verticesArray, (uint)vertices.Count, indicesArray, (uint)indices.Count, out handle);
         }
 
         public Mesh(ManagedHandle handle)
@@ -59,7 +61,7 @@ namespace Hyperion
         private static extern TypeID Mesh_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Mesh_Create")]
-        private static extern ManagedHandle Mesh_Create(Vertex[] vertices, uint vertexCount, uint[] indices, uint indexCount);
+        private static extern void Mesh_Create(Vertex[] vertices, uint vertexCount, uint[] indices, uint indexCount, [Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Mesh_Init")]
         private static extern void Mesh_Init(ManagedHandle mesh);

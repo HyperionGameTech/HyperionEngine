@@ -30,13 +30,9 @@ namespace Hyperion
                 // Do nothing, just log as is
             }
 
-            IntPtr formattedMessagePtr = Marshal.StringToHGlobalAnsi(formattedMessage);
-
             if (frame == null)
             {
-                Logger_Log((int)logLevel, IntPtr.Zero, 0, formattedMessagePtr);
-
-                Marshal.FreeHGlobal(formattedMessagePtr);
+                Logger_Log((int)logLevel, "", 0, formattedMessage);
 
                 return;
             }
@@ -57,15 +53,10 @@ namespace Hyperion
             
             uint line = (uint)frame.GetFileLineNumber();
 
-            IntPtr funcNamePtr = Marshal.StringToHGlobalAnsi(fileName + ":" + funcName);
-
-            Logger_Log((int)logLevel, funcNamePtr, line, formattedMessagePtr);
-
-            Marshal.FreeHGlobal(funcNamePtr);
-            Marshal.FreeHGlobal(formattedMessagePtr);
+            Logger_Log((int)logLevel, fileName + ":" + funcName, line, formattedMessage);
         }
 
         [DllImport("hyperion", EntryPoint = "Logger_Log")]
-        private static extern void Logger_Log(int logLevel, IntPtr funcNamePtr, uint line, IntPtr messagePtr);
+        private static extern void Logger_Log(int logLevel, [MarshalAs(UnmanagedType.LPStr)] string funcName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
     }
 }

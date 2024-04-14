@@ -22,14 +22,15 @@ namespace Hyperion
                 return null;
             }
 
-            ManagedNode handle = Asset_GetNode(ptr);
+            ManagedNode node = new ManagedNode();
+            Asset_GetNode(ptr, out node);
 
-            if (!handle.Valid)
+            if (!node.Valid)
             {
                 return null;
             }
 
-            return new Node(handle);
+            return new Node(node);
         }
 
         public Texture GetTexture()
@@ -39,7 +40,8 @@ namespace Hyperion
                 return null;
             }
 
-            ManagedHandle handle = Asset_GetTexture(ptr);
+            ManagedHandle handle = new ManagedHandle();
+            Asset_GetTexture(ptr, out handle);
 
             if (!handle.Valid)
             {
@@ -50,9 +52,9 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Asset_GetNode")]
-        private static extern ManagedNode Asset_GetNode(IntPtr assetPtr);
+        private static extern void Asset_GetNode(IntPtr assetPtr, [Out] out ManagedNode node);
 
         [DllImport("hyperion", EntryPoint = "Asset_GetTexture")]
-        private static extern ManagedHandle Asset_GetTexture(IntPtr assetPtr);
+        private static extern void Asset_GetTexture(IntPtr assetPtr, [Out] out ManagedHandle handle);
     }
 }

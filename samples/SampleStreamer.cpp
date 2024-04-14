@@ -742,12 +742,12 @@ void SampleStreamer::InitGame()
     if (auto btn = GetUI().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 }, true)) {
         // btn->SetPadding(Vec2i { 5, 5 });
         
-        /*GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
+        GetUI().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
             {
-                .assembly_name  = "scripts/bin/csharp.dll",
+                .assembly_name  = "csharp.dll",
                 .class_name     = "TestUIScript"
             }
-        });*/
+        });
 
         auto tab_view = GetUI().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 400, 300 });
         tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);

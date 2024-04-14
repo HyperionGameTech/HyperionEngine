@@ -93,7 +93,7 @@ public:
             HYP_THROW("Could not initialize .NET runtime: Failed to initialize runtime");
         }
 
-        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath("bin/HyperionInterop.dll");
+        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath("HyperionInterop.dll");
 
         if (!interop_assembly_path.HasValue()) {
             HYP_THROW("Could not initialize .NET runtime: Could not locate HyperionInterop.dll!");

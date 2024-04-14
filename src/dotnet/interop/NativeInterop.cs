@@ -77,9 +77,13 @@ namespace Hyperion
         private static ManagedClass InitManagedClass(IntPtr classHolderPtr, Type type)
         {
             string typeName = type.Name;
+
+            Console.WriteLine("Initializing managed class: " + typeName);
+
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
-            ManagedClass managedClass = ManagedClass_Create(classHolderPtr, type.GetHashCode(), typeNamePtr);
+            ManagedClass managedClass = new ManagedClass();
+            ManagedClass_Create(classHolderPtr, type.GetHashCode(), typeNamePtr, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -233,13 +237,10 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern ManagedClass ManagedClass_Create(IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr);
+        private static extern void ManagedClass_Create(IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
-
-        [DllImport("hyperion", EntryPoint = "NativeInterop_Initialize")]
-        private static extern void NativeInterop_Initialize(IntPtr invokeMethodPtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
         private static extern void NativeInterop_SetInvokeMethodFunction(IntPtr classHolderPtr, IntPtr invokeMethodPtr);

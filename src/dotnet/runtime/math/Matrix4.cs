@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Explicit, Size = 64)]
+    [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 16)]
     public struct Matrix4
     {
         [FieldOffset(0)]
@@ -72,7 +72,9 @@ namespace Hyperion
         {
             get
             {
-                return Matrix4_Transposed(this);
+                Matrix4 result = new Matrix4();
+                Matrix4_Transposed(ref this, out result);
+                return result;
             }
         }
 
@@ -80,20 +82,24 @@ namespace Hyperion
         {
             get
             {
-                return Matrix4_Inverted(this);
+                Matrix4 result = new Matrix4();
+                Matrix4_Inverted(ref this, out result);
+                return result;
             }
         }
 
         public static Matrix4 operator*(Matrix4 a, Matrix4 b)
         {
-            return Matrix4_Multiply(a, b);
+            Matrix4 result = new Matrix4();
+            Matrix4_Multiply(ref a, ref b, out result);
+            return result;
         }
 
         public static Matrix4 Identity
         {
             get
             {
-                return Matrix4_Identity();
+                return new Matrix4();
             }
         }
 
@@ -106,15 +112,15 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Identity")]
-        private static extern Matrix4 Matrix4_Identity();
+        private static extern void Matrix4_Identity([Out] out Matrix4 matrix);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Multiply")]
-        private static extern Matrix4 Matrix4_Multiply(Matrix4 a, Matrix4 b);
+        private static extern void Matrix4_Multiply([In] ref Matrix4 a, [In] ref Matrix4 b, [Out] out Matrix4 result);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Transposed")]
-        private static extern Matrix4 Matrix4_Transposed(Matrix4 matrix);
+        private static extern void Matrix4_Transposed([In] ref Matrix4 matrix, [Out] out Matrix4 result);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Inverted")]
-        private static extern Matrix4 Matrix4_Inverted(Matrix4 matrix);
+        private static extern void Matrix4_Inverted([In] ref Matrix4 matrix, [Out] out Matrix4 result);
     }
 }

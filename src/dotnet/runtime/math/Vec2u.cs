@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct Vec2u
     {
         [FieldOffset(0)]

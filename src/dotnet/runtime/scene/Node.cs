@@ -35,7 +35,8 @@ namespace Hyperion
 
         public Node()
         {
-            this.managedNode = Node_Create();
+            this.managedNode = new ManagedNode();
+            Node_Create(out this.managedNode);
         }
 
         public Node(ManagedNode managedNode)
@@ -56,11 +57,7 @@ namespace Hyperion
             }
             set
             {
-                IntPtr valuePtr = Marshal.StringToHGlobalAnsi(value);
-
-                Node_SetName(managedNode, valuePtr);
-
-                Marshal.FreeHGlobal(valuePtr);
+                Node_SetName(managedNode, value);
             }
         }
 
@@ -76,37 +73,36 @@ namespace Hyperion
                 throw new ArgumentNullException(nameof(node));
             }
 
-            Node_AddChild(managedNode, node.managedNode);
+            ManagedNode childManagedNode = new ManagedNode();
+            Node_AddChild(managedNode, node.managedNode, out childManagedNode);
 
             return node;
         }
 
         public Node? FindChild(string name)
         {
-            IntPtr namePtr = Marshal.StringToHGlobalAnsi(name);
+            ManagedNode childManagedNode = new ManagedNode();
+            Node_FindChild(managedNode, name, out childManagedNode);
 
-            ManagedNode child = Node_FindChild(managedNode, namePtr);
-
-            Marshal.FreeHGlobal(namePtr);
-
-            if (child.refPtr == IntPtr.Zero)
+            if (childManagedNode.refPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new Node(child);
+            return new Node(childManagedNode);
         }
 
         public Node? FindChildWithEntity(Entity entity)
         {
-            ManagedNode child = Node_FindChildWithEntity(managedNode, entity);
+            ManagedNode childManagedNode = new ManagedNode();
+            Node_FindChildWithEntity(managedNode, entity, out childManagedNode);
 
-            if (child.refPtr == IntPtr.Zero)
+            if (childManagedNode.refPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new Node(child);
+            return new Node(childManagedNode);
         }
 
         public bool RemoveChild(Node child)
@@ -123,7 +119,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetWorldTransform(managedNode);
+                Transform transform = new Transform();
+                Node_GetWorldTransform(managedNode, out transform);
+                return transform;
             }
             set
             {
@@ -135,7 +133,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetLocalTransform(managedNode);
+                Transform transform = new Transform();
+                Node_GetLocalTransform(managedNode, out transform);
+                return transform;
             }
             set
             {
@@ -147,7 +147,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetWorldTranslation(managedNode);
+                Vec3f translation = new Vec3f();
+                Node_GetWorldTranslation(managedNode, out translation);
+                return translation;
             }
             set
             {
@@ -159,7 +161,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetLocalTranslation(managedNode);
+                Vec3f translation = new Vec3f();
+                Node_GetLocalTranslation(managedNode, out translation);
+                return translation;
             }
             set
             {
@@ -171,7 +175,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetWorldRotation(managedNode);
+                Quaternion rotation = new Quaternion();
+                Node_GetWorldRotation(managedNode, out rotation);
+                return rotation;
             }
             set
             {
@@ -183,7 +189,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetLocalRotation(managedNode);
+                Quaternion rotation = new Quaternion();
+                Node_GetLocalRotation(managedNode, out rotation);
+                return rotation;
             }
             set
             {
@@ -195,7 +203,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetWorldScale(managedNode);
+                Vec3f scale = new Vec3f();
+                Node_GetWorldScale(managedNode, out scale);
+                return scale;
             }
             set
             {
@@ -207,7 +217,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetLocalScale(managedNode);
+                Vec3f scale = new Vec3f();
+                Node_GetLocalScale(managedNode, out scale);
+                return scale;
             }
             set
             {
@@ -250,7 +262,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetWorldAABB(managedNode);
+                BoundingBox aabb = new BoundingBox();
+                Node_GetWorldAABB(managedNode, out aabb);
+                return aabb;
             }
             set
             {
@@ -262,7 +276,9 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetLocalAABB(managedNode);
+                BoundingBox aabb = new BoundingBox();
+                Node_GetLocalAABB(managedNode, out aabb);
+                return aabb;
             }
             set
             {
@@ -271,46 +287,46 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Node_Create")]
-        private static extern ManagedNode Node_Create();
+        private static extern void Node_Create([Out] out ManagedNode managedNode);
 
         [DllImport("hyperion", EntryPoint = "Node_GetName")]
         private static extern IntPtr Node_GetName(ManagedNode managedNode);
 
         [DllImport("hyperion", EntryPoint = "Node_SetName")]
-        private static extern void Node_SetName(ManagedNode managedNode, IntPtr namePtr);
+        private static extern void Node_SetName(ManagedNode managedNode, [MarshalAs(UnmanagedType.LPStr)] string namePtr);
 
         [DllImport("hyperion", EntryPoint = "Node_AddChild")]
-        private static extern ManagedNode Node_AddChild(ManagedNode parent, ManagedNode child);
+        private static extern void Node_AddChild(ManagedNode parent, ManagedNode child, [Out] out ManagedNode result);
 
         [DllImport("hyperion", EntryPoint = "Node_FindChild")]
-        private static extern ManagedNode Node_FindChild(ManagedNode managedNode, IntPtr namePtr);
+        private static extern void Node_FindChild(ManagedNode managedNode, [MarshalAs(UnmanagedType.LPStr)] string namePtr, [Out] out ManagedNode result);
 
         [DllImport("hyperion", EntryPoint = "Node_FindChildWithEntity")]
-        private static extern ManagedNode Node_FindChildWithEntity(ManagedNode managedNode, Entity entity);
+        private static extern void Node_FindChildWithEntity(ManagedNode managedNode, Entity entity, [Out] out ManagedNode result);
 
         [DllImport("hyperion", EntryPoint = "Node_RemoveChild")]
         private static extern bool Node_RemoveChild(ManagedNode parent, ManagedNode child);
 
         [DllImport("hyperion", EntryPoint = "Node_GetWorldTransform")]
-        private static extern Transform Node_GetWorldTransform(ManagedNode managedNode);
+        private static extern void Node_GetWorldTransform(ManagedNode managedNode, [Out] out Transform transform);
 
         [DllImport("hyperion", EntryPoint = "Node_SetWorldTransform")]
         private static extern void Node_SetWorldTransform(ManagedNode managedNode, Transform transform);
 
         [DllImport("hyperion", EntryPoint = "Node_GetLocalTransform")]
-        private static extern Transform Node_GetLocalTransform(ManagedNode managedNode);
+        private static extern void Node_GetLocalTransform(ManagedNode managedNode, [Out] out Transform transform);
 
         [DllImport("hyperion", EntryPoint = "Node_SetLocalTransform")]
         private static extern void Node_SetLocalTransform(ManagedNode managedNode, Transform transform);
 
         [DllImport("hyperion", EntryPoint = "Node_GetWorldTranslation")]
-        private static extern Vec3f Node_GetWorldTranslation(ManagedNode managedNode);
+        private static extern void Node_GetWorldTranslation(ManagedNode managedNode, [Out] out Vec3f translation);
 
         [DllImport("hyperion", EntryPoint = "Node_SetWorldTranslation")]
         private static extern void Node_SetWorldTranslation(ManagedNode managedNode, Vec3f translation);
 
         [DllImport("hyperion", EntryPoint = "Node_GetLocalTranslation")]
-        private static extern Vec3f Node_GetLocalTranslation(ManagedNode managedNode);
+        private static extern void Node_GetLocalTranslation(ManagedNode managedNode, [Out] out Vec3f translation);
 
         [DllImport("hyperion", EntryPoint = "Node_SetLocalTranslation")]
         private static extern void Node_SetLocalTranslation(ManagedNode managedNode, Vec3f translation);
@@ -319,13 +335,13 @@ namespace Hyperion
         private static extern void Node_Translate(ManagedNode managedNode, Vec3f translation);
 
         [DllImport("hyperion", EntryPoint = "Node_GetWorldRotation")]
-        private static extern Quaternion Node_GetWorldRotation(ManagedNode managedNode);
+        private static extern void Node_GetWorldRotation(ManagedNode managedNode, [Out] out Quaternion rotation);
 
         [DllImport("hyperion", EntryPoint = "Node_SetWorldRotation")]
         private static extern void Node_SetWorldRotation(ManagedNode managedNode, Quaternion rotation);
 
         [DllImport("hyperion", EntryPoint = "Node_GetLocalRotation")]
-        private static extern Quaternion Node_GetLocalRotation(ManagedNode managedNode);
+        private static extern void Node_GetLocalRotation(ManagedNode managedNode, [Out] out Quaternion rotation);
 
         [DllImport("hyperion", EntryPoint = "Node_SetLocalRotation")]
         private static extern void Node_SetLocalRotation(ManagedNode managedNode, Quaternion rotation);
@@ -334,13 +350,13 @@ namespace Hyperion
         private static extern void Node_Rotate(ManagedNode managedNode, Quaternion rotation);
 
         [DllImport("hyperion", EntryPoint = "Node_GetWorldScale")]
-        private static extern Vec3f Node_GetWorldScale(ManagedNode managedNode);
+        private static extern void Node_GetWorldScale(ManagedNode managedNode, [Out] out Vec3f scale);
 
         [DllImport("hyperion", EntryPoint = "Node_SetWorldScale")]
         private static extern void Node_SetWorldScale(ManagedNode managedNode, Vec3f scale);
 
         [DllImport("hyperion", EntryPoint = "Node_GetLocalScale")]
-        private static extern Vec3f Node_GetLocalScale(ManagedNode managedNode);
+        private static extern void Node_GetLocalScale(ManagedNode managedNode, [Out] out Vec3f scale);
 
         [DllImport("hyperion", EntryPoint = "Node_SetLocalScale")]
         private static extern void Node_SetLocalScale(ManagedNode managedNode, Vec3f scale);
@@ -355,13 +371,13 @@ namespace Hyperion
         private static extern void Node_SetEntity(ManagedNode managedNode, Entity entity);
 
         [DllImport("hyperion", EntryPoint = "Node_GetWorldAABB")]
-        private static extern BoundingBox Node_GetWorldAABB(ManagedNode managedNode);
+        private static extern void Node_GetWorldAABB(ManagedNode managedNode, [Out] out BoundingBox aabb);
 
         [DllImport("hyperion", EntryPoint = "Node_SetWorldAABB")]
         private static extern void Node_SetWorldAABB(ManagedNode managedNode, BoundingBox aabb);
 
         [DllImport("hyperion", EntryPoint = "Node_GetLocalAABB")]
-        private static extern BoundingBox Node_GetLocalAABB(ManagedNode managedNode);
+        private static extern void Node_GetLocalAABB(ManagedNode managedNode, [Out] out BoundingBox aabb);
 
         [DllImport("hyperion", EntryPoint = "Node_SetLocalAABB")]
         private static extern void Node_SetLocalAABB(ManagedNode managedNode, BoundingBox aabb);

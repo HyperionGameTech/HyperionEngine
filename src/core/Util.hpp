@@ -46,6 +46,39 @@ constexpr auto StripNamespace()
  *  \return The name of the type T as a StaticString.
  */
 template <class T>
+constexpr auto TypeNameWithoutNamespace()
+{
+#ifdef HYP_CLANG_OR_GCC
+#ifdef HYP_CLANG
+    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
+
+    // auto hyperion::TypeName() [T = hyperion::v2::Task<int, int>]
+    constexpr auto substr = name.template Substr<47, sizeof(__PRETTY_FUNCTION__) - 2>();
+#elif defined(HYP_GCC)
+    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
+
+    // constexpr auto hyperion::TypeName() [with T = hyperion::v2::Task<int, int>]
+    constexpr auto substr = name.template Substr<63, sizeof(__PRETTY_FUNCTION__) - 2>();
+#endif
+#elif defined(HYP_MSVC)
+    constexpr StaticString<sizeof(__FUNCSIG__)> name(__FUNCSIG__);
+
+    // auto __cdecl hyperion::TypeName<hyperion::v2::Task<int,int>>(void) noexcept
+    constexpr auto substr = name.template Substr<48, sizeof(__FUNCSIG__) - 3>();
+#else
+    static_assert(false, "Unsupported compiler for TypeNameWithoutNamespace()");
+#endif
+
+    return detail::StripNamespace<substr>();
+}
+
+/*! \brief Returns the name of the type T as a StaticString.
+ *
+ *  \tparam T The type to get the name of.
+ *
+ *  \return The name of the type T as a StaticString.
+ */
+template <class T>
 constexpr auto TypeName()
 {
 #ifdef HYP_CLANG_OR_GCC
@@ -69,7 +102,7 @@ constexpr auto TypeName()
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    return detail::StripNamespace<substr>();
+    return substr;
 }
 
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */
