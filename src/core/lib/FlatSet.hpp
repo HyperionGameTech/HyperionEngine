@@ -25,13 +25,18 @@ public:
 
     FlatSet();
     FlatSet(std::initializer_list<T> initializer_list)
-        : SortedArray<T>(initializer_list)
+        : Base()
     {
+        for (const auto &item : initializer_list) {
+            Insert(item);
+        }
     }
 
     FlatSet(const T *begin, const T *end)
-        : SortedArray<T>(begin, end)
     {
+        for (const T *it = begin; it != end; ++it) {
+            Insert(*it);
+        }
     }
 
     FlatSet(const FlatSet &other);
