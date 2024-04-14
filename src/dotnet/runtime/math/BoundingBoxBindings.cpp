@@ -1,5 +1,4 @@
 #include <math/BoundingBox.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -8,21 +7,23 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 extern "C" {
-HYP_EXPORT float BoundingBox_GetRadius(ManagedBoundingBox managed_bounding_box)
+HYP_EXPORT float BoundingBox_Intersects(BoundingBox *left, BoundingBox *right)
 {
-    BoundingBox b(managed_bounding_box);
-    return b.GetRadius();
+    return left->Intersects(*right);
 }
 
-HYP_EXPORT bool BoundingBox_Contains(ManagedBoundingBox managed_bounding_box, ManagedBoundingBox other)
+HYP_EXPORT float BoundingBox_GetRadius(BoundingBox *bounding_box)
 {
-    BoundingBox b(managed_bounding_box);
-    return b.Contains(other);
+    return bounding_box->GetRadius();
 }
 
-HYP_EXPORT bool BoundingBox_ContainsPoint(ManagedBoundingBox managed_bounding_box, ManagedVec3f point)
+HYP_EXPORT bool BoundingBox_Contains(BoundingBox *left, BoundingBox *right)
 {
-    BoundingBox b(managed_bounding_box);
-    return b.ContainsPoint(point);
+    return left->Contains(*right);
+}
+
+HYP_EXPORT bool BoundingBox_ContainsPoint(BoundingBox *bounding_box, Vec3f *point)
+{
+    return bounding_box->ContainsPoint(*point);
 }
 } // extern "C"

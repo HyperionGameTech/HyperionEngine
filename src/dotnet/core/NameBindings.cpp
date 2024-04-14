@@ -13,12 +13,14 @@ extern "C" {
 static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
 static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
 
-HYP_EXPORT uint64 Name_FromString(const char *str)
+HYP_EXPORT void Name_FromString(const char *str, Name *out_name)
 {
     if (str == nullptr) {
-        return 0;
+        *out_name = Name::Invalid();
+
+        return;
     }
 
-    return CreateNameFromDynamicString(str).hash_code;
+    *out_name = CreateNameFromDynamicString(str).hash_code;
 }
 } // extern "C"

@@ -144,6 +144,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Texture_GetTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID Texture_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Texture_Create")]
@@ -153,12 +154,15 @@ namespace Hyperion
         private static extern void Texture_Init(ManagedHandle texture);
 
         [DllImport("hyperion", EntryPoint = "Texture_GetInternalFormat")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern InternalFormat Texture_GetInternalFormat(ManagedHandle texture);
 
         [DllImport("hyperion", EntryPoint = "Texture_GetFilterMode")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern FilterMode Texture_GetFilterMode(ManagedHandle texture);
 
         [DllImport("hyperion", EntryPoint = "Texture_GetImageType")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ImageType Texture_GetImageType(ManagedHandle texture);
     }
 }

@@ -54,6 +54,9 @@ struct CommandLineArguments
     operator const Array<String> &() const
         { return arguments; }
 
+    const String &GetCommand() const
+        { return command; }
+
     SizeType Size() const
         { return arguments.Size(); }
 };

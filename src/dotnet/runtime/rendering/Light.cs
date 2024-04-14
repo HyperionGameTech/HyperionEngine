@@ -19,8 +19,8 @@ namespace Hyperion
             handle = new ManagedHandle();
             Light_Create(
                 type,
-                position,
-                color,
+                ref position,
+                ref color,
                 intensity,
                 radius,
                 out handle
@@ -69,7 +69,7 @@ namespace Hyperion
             }
             set
             {
-                Light_SetPosition(handle, value);
+                Light_SetPosition(handle, ref value);
             }
         }
 
@@ -77,11 +77,13 @@ namespace Hyperion
         {
             get
             {
-                return Light_GetColor(handle);
+                Color color = new Color();
+                Light_GetColor(handle, out color);
+                return color;
             }
             set
             {
-                Light_SetColor(handle, value);
+                Light_SetColor(handle, ref value);
             }
         }
 
@@ -122,16 +124,17 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Light_GetTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID Light_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Light_Create")]
         private static extern void Light_Create(
-            LightType type,
-            Vec3f position,
-            Color color,
+            [MarshalAs(UnmanagedType.U4)] LightType type,
+            [In] ref Vec3f position,
+            [In] ref Color color,
             float intensity,
             float radius,
-            out ManagedHandle handle
+            [Out] out ManagedHandle handle
         );
 
         [DllImport("hyperion", EntryPoint = "Light_Init")]
@@ -141,13 +144,13 @@ namespace Hyperion
         private static extern void Light_GetPosition(ManagedHandle light, [Out] out Vec3f lightPosition);
 
         [DllImport("hyperion", EntryPoint = "Light_SetPosition")]
-        private static extern void Light_SetPosition(ManagedHandle light, Vec3f position);
+        private static extern void Light_SetPosition(ManagedHandle light, [In] ref Vec3f position);
 
         [DllImport("hyperion", EntryPoint = "Light_GetColor")]
-        private static extern Color Light_GetColor(ManagedHandle light);
+        private static extern void Light_GetColor(ManagedHandle light, [Out] out Color color);
 
         [DllImport("hyperion", EntryPoint = "Light_SetColor")]
-        private static extern void Light_SetColor(ManagedHandle light, Color color);
+        private static extern void Light_SetColor(ManagedHandle light, [In] ref Color color);
 
         [DllImport("hyperion", EntryPoint = "Light_GetIntensity")]
         private static extern float Light_GetIntensity(ManagedHandle light);

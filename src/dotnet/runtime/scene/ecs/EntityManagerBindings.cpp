@@ -14,7 +14,6 @@
 
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>

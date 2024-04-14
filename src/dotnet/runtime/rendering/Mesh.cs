@@ -53,11 +53,14 @@ namespace Hyperion
         {
             get
             {
-                return Mesh_GetAABB(handle);
+                BoundingBox aabb = new BoundingBox();
+                Mesh_GetAABB(handle, out aabb);
+                return aabb;
             }
         }
 
         [DllImport("hyperion", EntryPoint = "Mesh_GetTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID Mesh_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Mesh_Create")]
@@ -67,6 +70,6 @@ namespace Hyperion
         private static extern void Mesh_Init(ManagedHandle mesh);
 
         [DllImport("hyperion", EntryPoint = "Mesh_GetAABB")]
-        private static extern BoundingBox Mesh_GetAABB(ManagedHandle mesh);
+        private static extern void Mesh_GetAABB(ManagedHandle mesh, [Out] out BoundingBox aabb);
     }
 }

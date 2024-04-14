@@ -119,6 +119,14 @@ namespace Hyperion
             }
         }
 
+        public bool IsFinite
+        {
+            get
+            {
+                return float.IsFinite(x) && float.IsFinite(y) && float.IsFinite(z);
+            }
+        }
+
         public static Vec3f operator+(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x + right.x, left.y + right.y, left.z + right.z);

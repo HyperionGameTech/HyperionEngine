@@ -118,28 +118,28 @@ BoundingBox &BoundingBox::operator/=(float scalar)
     return *this;
 }
 
-BoundingBox BoundingBox::operator+(const Vec3f &scale) const
+BoundingBox BoundingBox::operator+(const Vec3f &vec) const
 {
-    return BoundingBox(min + scale, max + scale);
+    return BoundingBox(min + vec, max + vec);
 }
 
-BoundingBox &BoundingBox::operator+=(const Vec3f &scale)
+BoundingBox &BoundingBox::operator+=(const Vec3f &vec)
 {
-    min += scale;
-    max += scale;
+    min += vec;
+    max += vec;
 
     return *this;
 }
 
-BoundingBox BoundingBox::operator/(const Vec3f &scale) const
+BoundingBox BoundingBox::operator/(const Vec3f &vec) const
 {
-    return BoundingBox(min / scale, max / scale);
+    return BoundingBox(min / vec, max / vec);
 }
 
-BoundingBox &BoundingBox::operator/=(const Vec3f &scale)
+BoundingBox &BoundingBox::operator/=(const Vec3f &vec)
 {
-    min /= scale;
-    max /= scale;
+    min /= vec;
+    max /= vec;
 
     return *this;
 }

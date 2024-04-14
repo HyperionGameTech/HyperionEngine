@@ -332,7 +332,7 @@ public:
     /*! \returns The local-space (model) of the node's aabb. Only includes
      * the Entity's aabb.
      */
-    const BoundingBox &GetLocalAABB() const;
+    BoundingBox GetLocalAABB() const;
 
     /*! \brief Set the local-space aabb of the node. */
     void SetLocalAABB(const BoundingBox &aabb);
@@ -340,7 +340,7 @@ public:
     /*! \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
      */
-    const BoundingBox &GetWorldAABB() const;
+    BoundingBox GetWorldAABB() const;
 
     /*! \brief Set the world-space aabb of the node. */
     void SetWorldAABB(const BoundingBox &aabb);

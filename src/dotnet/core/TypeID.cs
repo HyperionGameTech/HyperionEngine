@@ -48,6 +48,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "TypeID_ForDynamicType")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID TypeID_ForDynamicType(IntPtr typeNamePtr);
     }
 }

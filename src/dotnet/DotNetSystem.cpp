@@ -1,11 +1,16 @@
 #include <dotnet/DotNetSystem.hpp>
 
-#include <util/fs/FsUtil.hpp>
 #include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>
+
+#include <system/Application.hpp>
+
 #include <Engine.hpp>
 
 #include <core/dll/DynamicLibrary.hpp>
+
+#include <util/fs/FsUtil.hpp>
+#include <util/json/JSON.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnetcore/hostfxr.h>
@@ -21,20 +26,26 @@ using InitializeAssemblyDelegate = void (*)(void *, const void *);
 
 static Optional<FilePath> FindAssemblyFilePath(const char *path)
 {
-    FilePath filepath(path);
-    
-    if (!filepath.Exists()) {
-        filepath = FilePath::Current() / path;
+    FilePath filepath = FilePath::Current() / path;
+
+    if (!filepath.Exists() && g_engine->GetApplication() != nullptr) {
+        DebugLog(LogType::Warn, "Failed to load .NET assembly at path: %s. Trying next path...\n", filepath.Data());
+
+        filepath = FilePath(g_engine->GetApplication()->GetArguments().GetCommand()).BasePath() / path;
     }
     
     if (!filepath.Exists()) {
+        DebugLog(LogType::Warn, "Failed to load .NET assembly at path: %s. Trying next path...\n", filepath.Data());
+
         filepath = g_asset_manager->GetBasePath() / path;
     }
     
     if (!filepath.Exists()) {
+        DebugLog(LogType::Warn, "Failed to load .NET assembly at path: %s.\n", filepath.Data());
+
         DebugLog(
             LogType::Error,
-            "Failed to load .NET assembly: File not found: %s\n",
+            "Failed to load .NET assembly: Could not locate assembly %s.\n",
             path
         );
 
@@ -47,8 +58,6 @@ static Optional<FilePath> FindAssemblyFilePath(const char *path)
 #ifdef HYP_DOTNET
 class DotNetImpl : public DotNetImplBase
 {
-    static const String runtime_config;
-
 public:
     DotNetImpl()
         : m_dll(nullptr),
@@ -206,10 +215,29 @@ private:
     {
         const FilePath filepath = GetRuntimeConfigPath();
 
-        // Write the runtime config file if it doesn't exist
+        const FilePath current_path = FilePath::Current();
+
+        Array<json::JSONValue> probing_paths;
+
+        probing_paths.PushBack(FilePath::Relative(GetLibraryPath(), current_path));
+
+        if (g_engine->GetApplication() != nullptr) {
+            probing_paths.PushBack(FilePath::Relative(FilePath(g_engine->GetApplication()->GetArguments().GetCommand()).BasePath(), current_path));
+        }
+
+        const json::JSONValue runtime_config_json(json::JSONObject {
+            { "runtimeOptions", json::JSONObject({
+                { "tfm", "net8.0" },
+                { "framework", json::JSONObject({
+                    { "name", "Microsoft.NETCore.App" },
+                    { "version", "8.0.1" }
+                }) },
+                { "additionalProbingPaths", json::JSONArray(probing_paths) }
+            }) }
+        });
 
         FileByteWriter writer(filepath.Data());
-        writer.WriteString(runtime_config);
+        writer.WriteString(runtime_config_json.ToString(true));
         writer.Close();
     }
 
@@ -287,18 +315,6 @@ private:
     hostfxr_get_runtime_delegate_fn             m_get_delegate_fptr;
     hostfxr_close_fn                            m_close_fptr;
 };
-
-const String DotNetImpl::runtime_config = R"(
-{
-    "runtimeOptions": {
-        "tfm": "net8.0",
-        "framework": {
-            "name": "Microsoft.NETCore.App",
-            "version": "8.0.1"
-        }
-    }
-}
-)";
 
 #else
 

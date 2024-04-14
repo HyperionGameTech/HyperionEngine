@@ -13,19 +13,20 @@ using namespace hyperion::v2;
 
 extern "C" {
 
-HYP_EXPORT uint64 UIObject_GetName(ManagedRefCountedPtr obj)
+HYP_EXPORT void UIObject_GetName(ManagedRefCountedPtr obj, Name *out_name)
 {
     DebugLog(LogType::Debug, "GetName called with address: %llu\n", obj.address);
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
-        return 0;
+        *out_name = Name::Invalid();
+        return;
     }
 
-    return ui_object->GetName().GetID();
+    *out_name = ui_object->GetName().GetID();
 }
 
-HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, uint64 name)
+HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, Name *name)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -33,7 +34,7 @@ HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, uint64 name)
         return;
     }
 
-    ui_object->SetName(Name(name));
+    ui_object->SetName(*name);
 }
 
 HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
@@ -48,7 +49,7 @@ HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
     *position = ui_object->GetPosition();
 }
 
-HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i position)
+HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -56,7 +57,7 @@ HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i position)
         return;
     }
 
-    ui_object->SetPosition(position);
+    ui_object->SetPosition(*position);
 }
 
 HYP_EXPORT void UIObject_GetSize(ManagedRefCountedPtr obj, Vec2i *size)
@@ -70,7 +71,7 @@ HYP_EXPORT void UIObject_GetSize(ManagedRefCountedPtr obj, Vec2i *size)
     *size = ui_object->GetActualSize();
 }
 
-HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
+HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i *size)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
@@ -78,7 +79,7 @@ HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i size)
         return;
     }
 
-    ui_object->SetSize(size);
+    ui_object->SetSize(*size);
 }
 
 HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)

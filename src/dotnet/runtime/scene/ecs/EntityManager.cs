@@ -148,58 +148,74 @@ namespace Hyperion
         // Components
         // TransformComponent
         [DllImport("hyperion", EntryPoint = "TransformComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID TransformComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "TransformComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID TransformComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // MeshComponent
         [DllImport("hyperion", EntryPoint = "MeshComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID MeshComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "MeshComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID MeshComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // BoundingBoxComponent
         [DllImport("hyperion", EntryPoint = "BoundingBoxComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID BoundingBoxComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "BoundingBoxComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID BoundingBoxComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // VisibilityStateComponent
         [DllImport("hyperion", EntryPoint = "VisibilityStateComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID VisibilityStateComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "VisibilityStateComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID VisibilityStateComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // LightComponent
         [DllImport("hyperion", EntryPoint = "LightComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID LightComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "LightComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID LightComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // ShadowMapComponent
         [DllImport("hyperion", EntryPoint = "ShadowMapComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID ShadowMapComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "ShadowMapComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID ShadowMapComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // UIComponent
         [DllImport("hyperion", EntryPoint = "UIComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID UIComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "UIComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID UIComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
 
         // NodeLinkComponent
         [DllImport("hyperion", EntryPoint = "NodeLinkComponent_GetNativeTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID NodeLinkComponent_GetNativeTypeID();
 
         [DllImport("hyperion", EntryPoint = "NodeLinkComponent_AddComponent")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern ComponentID NodeLinkComponent_AddComponent(IntPtr entityManagerPtr, Entity entity, IntPtr ptr);
     }
 }

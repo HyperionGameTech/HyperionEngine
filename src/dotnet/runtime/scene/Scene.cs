@@ -70,6 +70,7 @@ namespace Hyperion
         }
         
         [DllImport("hyperion", EntryPoint = "Scene_GetTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID Scene_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Scene_Create")]

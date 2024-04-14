@@ -1,5 +1,4 @@
 #include <math/Transform.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>

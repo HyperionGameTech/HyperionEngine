@@ -757,7 +757,7 @@ void SampleStreamer::InitGame()
         scene_tab_content_grid->SetNumColumns(5);
         // scene_tab_content_grid->SetNumRows(5);
 
-        auto scene_tab_content_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
+        auto scene_tab_content_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::PIXEL }));
         scene_tab_content_text->SetText("Scene tab content");
 
         auto scene_tab_content_button = GetUI().CreateUIObject<UIButton>(HYP_NAME(Scene_Tab_Button), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));

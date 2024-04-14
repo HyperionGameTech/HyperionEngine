@@ -1,5 +1,4 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <rendering/Mesh.hpp>
 
@@ -41,14 +40,14 @@ HYP_EXPORT void Mesh_Init(ManagedHandle mesh_handle)
     InitObject(mesh);
 }
 
-HYP_EXPORT ManagedBoundingBox Mesh_GetAABB(ManagedHandle mesh_handle)
+HYP_EXPORT void Mesh_GetAABB(ManagedHandle mesh_handle, BoundingBox *out_aabb)
 {
     Handle<Mesh> mesh = CreateHandleFromManagedHandle<Mesh>(mesh_handle);
 
     if (!mesh) {
-        return { };
+        return;
     }
 
-    return mesh->GetAABB();
+    *out_aabb = mesh->GetAABB();
 }
 } // extern "C"

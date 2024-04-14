@@ -21,9 +21,11 @@ namespace Hyperion
             return hashCode == other.hashCode;
         }
 
-        public static Name FromString(string name)
+        public static Name FromString(string nameString)
         {
-            return Name_FromString(name);
+            Name name = new Name(0);
+            Name_FromString(nameString, out name);
+            return name;
         }
 
         public ulong HashCode
@@ -35,6 +37,6 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Name_FromString")]
-        private static extern Name Name_FromString([MarshalAs(UnmanagedType.LPStr)] string namePtr);
+        private static extern void Name_FromString([MarshalAs(UnmanagedType.LPStr)] string namePtr, [Out] out Name result);
     }
 }

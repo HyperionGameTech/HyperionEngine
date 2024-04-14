@@ -1,5 +1,4 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <rendering/Light.hpp>
 
@@ -22,8 +21,8 @@ HYP_EXPORT uint32 Light_GetTypeID()
 
 HYP_EXPORT void Light_Create(
     uint32 type,
-    ManagedVec3f position,
-    uint32 color,
+    Vec3f *position,
+    Color *color,
     float intensity,
     float radius,
     ManagedHandle *out_handle
@@ -31,8 +30,8 @@ HYP_EXPORT void Light_Create(
 {
     *out_handle = CreateManagedHandleFromHandle(CreateObject<Light>(
         LightType(type),
-        position,
-        Color(color),
+        *position,
+        *color,
         intensity,
         radius
     ));
@@ -60,7 +59,7 @@ HYP_EXPORT void Light_GetPosition(ManagedHandle light_handle, Vec3f *out_positio
     *out_position = light->GetPosition();
 }
 
-HYP_EXPORT void Light_SetPosition(ManagedHandle light_handle, ManagedVec3f position)
+HYP_EXPORT void Light_SetPosition(ManagedHandle light_handle, Vec3f *position)
 {
     Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
 
@@ -68,21 +67,10 @@ HYP_EXPORT void Light_SetPosition(ManagedHandle light_handle, ManagedVec3f posit
         return;
     }
 
-    light->SetPosition(position);
+    light->SetPosition(*position);
 }
 
-HYP_EXPORT uint32 Light_GetColor(ManagedHandle light_handle)
-{
-    Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
-
-    if (!light) {
-        return 0;
-    }
-
-    return uint32(light->GetColor());
-}
-
-HYP_EXPORT void Light_SetColor(ManagedHandle light_handle, uint32 color)
+HYP_EXPORT void Light_GetColor(ManagedHandle light_handle, Color *out_color)
 {
     Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
 
@@ -90,7 +78,18 @@ HYP_EXPORT void Light_SetColor(ManagedHandle light_handle, uint32 color)
         return;
     }
 
-    light->SetColor(Color(color));
+    *out_color = light->GetColor();
+}
+
+HYP_EXPORT void Light_SetColor(ManagedHandle light_handle, Color *color)
+{
+    Handle<Light> light = CreateHandleFromManagedHandle<Light>(light_handle);
+
+    if (!light) {
+        return;
+    }
+
+    light->SetColor(*color);
 }
 
 HYP_EXPORT float Light_GetIntensity(ManagedHandle light_handle)

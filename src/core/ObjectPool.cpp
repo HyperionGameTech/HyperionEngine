@@ -12,7 +12,7 @@ ObjectPool::ObjectContainerHolder &ObjectPool::GetObjectContainerHolder()
 
 UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
 {
-    Mutex::Guard guard(s_object_container_map.mutex);
+    // Threads::AssertOnThread(THREAD_MAIN);
 
     auto it = s_object_container_map.map.FindIf([type_id](const auto &element)
     {

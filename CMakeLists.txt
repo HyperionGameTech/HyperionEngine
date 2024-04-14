@@ -270,33 +270,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
 
     # Run dotnet.sh to build the dotnet runtime
 
-    message(STATUS "Dotnet headers found, building .NET core runtime")
-
-    # copy all .so and .a files to lib/<platform name>
-
-    # if(UNIX)
-    #     execute_process(
-    #         COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.sh
-    #         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
-    #         RESULT_VARIABLE BUILD_RESULT
-    #         COMMAND_ECHO STDOUT
-    #     )
-    # 
-    #     if(BUILD_RESULT GREATER 0)
-    #         message(FATAL_ERROR "Failed to build .NET core runtime: ${BUILD_RESULT}")
-    #     endif()
-    # elseif(WIN32)
-    #     execute_process(
-    #         COMMAND ${CMAKE_SOURCE_DIR}/submodules/runtime/build.cmd
-    #         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/runtime
-    #         RESULT_VARIABLE BUILD_RESULT
-    #         COMMAND_ECHO STDOUT
-    #     )
-    # 
-    #     if(BUILD_RESULT GREATER 0)
-    #         message(FATAL_ERROR "Failed to build .NET core runtime: ${BUILD_RESULT}")
-    #     endif()
-    # endif(
+    message(STATUS ".NET headers found, building .NET core runtime")
     
     file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.dylib"
         "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.so"
@@ -407,19 +381,8 @@ function(create_csharp_library output_name csharp_sources)
     set(CSHARP_PROJECT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${output_name})
     file(MAKE_DIRECTORY ${CSHARP_PROJECT_DIR})
 
-    # # if it is HyperionCore, we'll add a new file to the sources that will be used to hold the engine version
-    
-    # if(${output_name} STREQUAL "HyperionCore")
-    #     file(WRITE ${CSHARP_PROJECT_DIR}/AssemblyInfo.cs "using System.Reflection;\n")
-    #     file(APPEND ${CSHARP_PROJECT_DIR}/AssemblyInfo.cs "[assembly: AssemblyVersion(\"${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}\")]\n")
-
-    #     list(APPEND csharp_sources "${CSHARP_PROJECT_DIR}/AssemblyInfo.cs")
-    # endif()
-
     # generate .csproj file
     file(WRITE ${CSHARP_PROJECT_DIR}/${output_name}.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-
-
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  <PropertyGroup>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <OutputType>Library</OutputType>\n")
@@ -466,26 +429,21 @@ function(create_csharp_library output_name csharp_sources)
 
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "</configuration>\n")
 
-
-    # build it
-    execute_process(
+    # add task to build the csharp project and copy the dll to the build directory
+    add_custom_target(${output_name} ALL
         COMMAND dotnet build
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
 
-    # move the dll up to the build directory
-    file(GLOB CSHARP_DLL_FILES "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll")
-    file(GLOB CSHARP_XML_FILES "${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml")
+    add_custom_command(TARGET ${output_name}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.dll ${CMAKE_CURRENT_BINARY_DIR}/
+    )
 
-    foreach(FILE_PATH ${CSHARP_DLL_FILES})
-        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_CURRENT_BINARY_DIR}/")
-        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-    endforeach()
-
-    foreach(FILE_PATH ${CSHARP_XML_FILES})
-        message(STATUS "Copying ${FILE_PATH} to ${CMAKE_CURRENT_BINARY_DIR}/")
-        file(COPY ${FILE_PATH} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-    endforeach()
+    add_custom_command(TARGET ${output_name}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/**/net8.0/*.xml ${CMAKE_CURRENT_BINARY_DIR}/
+    )
 endfunction()
 
 # for all csharp sources, compile them into a Class library

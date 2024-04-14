@@ -26,12 +26,16 @@ namespace Hyperion
             // Create a managed string from the pointer
             string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
 
+            Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
+
             Assembly assembly = Assembly.LoadFrom(assemblyPath);
 
             if (assembly == null)
             {
                 throw new Exception("Failed to load assembly: " + assemblyPath);
             }
+
+            Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} references assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
 
             for (int i = 0; i < assembly.GetReferencedAssemblies().Length; i++)
             {

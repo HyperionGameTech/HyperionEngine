@@ -313,15 +313,16 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Material_GetTypeID")]
+        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
         private static extern TypeID Material_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Material_Create")]
         private static extern void Material_Create([Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Material_GetParameter")]
-        private static extern void Material_GetParameter(ManagedHandle material, MaterialKey key, [Out] out MaterialParameter materialParameter);
+        private static extern void Material_GetParameter(ManagedHandle material, [MarshalAs(UnmanagedType.U8)] MaterialKey key, [Out] out MaterialParameter materialParameter);
 
         [DllImport("hyperion", EntryPoint = "Material_SetParameter")]
-        private static extern void Material_SetParameter(ManagedHandle material, MaterialKey key, [In] ref MaterialParameter parameter);
+        private static extern void Material_SetParameter(ManagedHandle material, [MarshalAs(UnmanagedType.U8)] MaterialKey key, [In] ref MaterialParameter parameter);
     }
 }

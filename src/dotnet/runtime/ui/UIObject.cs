@@ -51,11 +51,13 @@ namespace Hyperion
         {
             get
             {
-                return UIObject_GetName(refCountedPtr);
+                Name name = new Name(0);
+                UIObject_GetName(refCountedPtr, out name);
+                return name;
             }
             set
             {
-                UIObject_SetName(refCountedPtr, value);
+                UIObject_SetName(refCountedPtr, ref value);
             }
         }
 
@@ -69,7 +71,7 @@ namespace Hyperion
             }
             set
             {
-                UIObject_SetPosition(refCountedPtr, value);
+                UIObject_SetPosition(refCountedPtr, ref value);
             }
         }
 
@@ -83,7 +85,7 @@ namespace Hyperion
             }
             set
             {
-                UIObject_SetSize(refCountedPtr, value);
+                UIObject_SetSize(refCountedPtr, ref value);
             }
         }
 
@@ -112,33 +114,35 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetName")]
-        private static extern Name UIObject_GetName(RefCountedPtr rc);
+        private static extern void UIObject_GetName(RefCountedPtr rc, [Out] out Name name);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetName")]
-        private static extern void UIObject_SetName(RefCountedPtr rc, Name name);
+        private static extern void UIObject_SetName(RefCountedPtr rc, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetPosition")]
         private static extern void UIObject_GetPosition(RefCountedPtr rc, [Out] out Vec2i position);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetPosition")]
-        private static extern void UIObject_SetPosition(RefCountedPtr rc, Vec2i position);
+        private static extern void UIObject_SetPosition(RefCountedPtr rc, [In] ref Vec2i position);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetSize")]
         private static extern void UIObject_GetSize(RefCountedPtr rc, [Out] out Vec2i size);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetSize")]
-        private static extern void UIObject_SetSize(RefCountedPtr rc, Vec2i size);
+        private static extern void UIObject_SetSize(RefCountedPtr rc, [In] ref Vec2i size);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetOriginAlignment")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern UIObjectAlignment UIObject_GetOriginAlignment(RefCountedPtr rc);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetOriginAlignment")]
-        private static extern void UIObject_SetOriginAlignment(RefCountedPtr rc, UIObjectAlignment alignment);
+        private static extern void UIObject_SetOriginAlignment(RefCountedPtr rc, [MarshalAs(UnmanagedType.U4)] UIObjectAlignment alignment);
 
         [DllImport("hyperion", EntryPoint = "UIObject_GetParentAlignment")]
+        [return: MarshalAs(UnmanagedType.U4)]
         private static extern UIObjectAlignment UIObject_GetParentAlignment(RefCountedPtr rc);
 
         [DllImport("hyperion", EntryPoint = "UIObject_SetParentAlignment")]
-        private static extern void UIObject_SetParentAlignment(RefCountedPtr rc, UIObjectAlignment alignment);
+        private static extern void UIObject_SetParentAlignment(RefCountedPtr rc, [MarshalAs(UnmanagedType.U4)] UIObjectAlignment alignment);
     }
 }

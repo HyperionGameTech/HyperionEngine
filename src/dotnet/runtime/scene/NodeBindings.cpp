@@ -1,7 +1,6 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/runtime/scene/ManagedNode.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
-#include <dotnet/runtime/math/ManagedMathTypes.hpp>
 
 #include <scene/NodeProxy.hpp>
 
@@ -39,18 +38,7 @@ HYP_EXPORT void Node_SetName(ManagedNode managed_node, const char *name)
     node->SetName(name);
 }
 
-HYP_EXPORT ManagedEntity Node_GetEntity(ManagedNode managed_node)
-{
-    Node *node = managed_node.GetNode();
-
-    if (node == nullptr) {
-        return { };
-    }
-
-    return node->GetEntity();
-}
-
-HYP_EXPORT void Node_SetEntity(ManagedNode managed_node, ManagedEntity managed_entity)
+HYP_EXPORT void Node_GetEntity(ManagedNode managed_node, ManagedEntity *out_managed_entity)
 {
     Node *node = managed_node.GetNode();
 
@@ -58,7 +46,18 @@ HYP_EXPORT void Node_SetEntity(ManagedNode managed_node, ManagedEntity managed_e
         return;
     }
 
-    node->SetEntity(managed_entity);
+    *out_managed_entity = node->GetEntity();
+}
+
+HYP_EXPORT void Node_SetEntity(ManagedNode managed_node, ManagedEntity *managed_entity)
+{
+    Node *node = managed_node.GetNode();
+
+    if (node == nullptr) {
+        return;
+    }
+
+    node->SetEntity(*managed_entity);
 }
 
 HYP_EXPORT void Node_AddChild(ManagedNode parent, ManagedNode child, ManagedNode *out_child_managed_node)
@@ -97,15 +96,15 @@ HYP_EXPORT void Node_FindChild(ManagedNode managed_node, const char *name, Manag
     *out_result = CreateManagedNodeFromNodeProxy(std::move(child_node));
 }
 
-HYP_EXPORT void Node_FindChildWithEntity(ManagedNode managed_node, ManagedEntity entity, ManagedNode *out_result)
+HYP_EXPORT void Node_FindChildWithEntity(ManagedNode managed_node, ManagedEntity *entity, ManagedNode *out_result)
 {
     Node *node = managed_node.GetNode();
 
-    if (node == nullptr) {
+    if (node == nullptr || entity == nullptr) {
         return;
     }
 
-    NodeProxy child_node = node->FindChildWithEntity(entity);
+    NodeProxy child_node = node->FindChildWithEntity(*entity);
 
     if (!child_node) {
         return;
@@ -142,7 +141,7 @@ HYP_EXPORT void Node_GetWorldTransform(ManagedNode managed_node, Transform *out_
     *out_transform = node->GetWorldTransform();
 }
 
-HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, Transform transform)
+HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, Transform *transform)
 {
     Node *node = managed_node.GetNode();
 
@@ -150,7 +149,7 @@ HYP_EXPORT void Node_SetWorldTransform(ManagedNode managed_node, Transform trans
         return;
     }
 
-    node->SetWorldTransform(transform);
+    node->SetWorldTransform(*transform);
 }
 
 HYP_EXPORT void Node_GetLocalTransform(ManagedNode managed_node, Transform *out_transform)
@@ -164,7 +163,7 @@ HYP_EXPORT void Node_GetLocalTransform(ManagedNode managed_node, Transform *out_
     *out_transform = node->GetLocalTransform();
 }
 
-HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, Transform transform)
+HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, Transform *transform)
 {
     Node *node = managed_node.GetNode();
 
@@ -172,7 +171,7 @@ HYP_EXPORT void Node_SetLocalTransform(ManagedNode managed_node, Transform trans
         return;
     }
 
-    node->SetLocalTransform(transform);
+    node->SetLocalTransform(*transform);
 }
 
 HYP_EXPORT void Node_GetWorldTranslation(ManagedNode managed_node, Vec3f *out_translation)
@@ -186,7 +185,7 @@ HYP_EXPORT void Node_GetWorldTranslation(ManagedNode managed_node, Vec3f *out_tr
     *out_translation = node->GetWorldTranslation();
 }
 
-HYP_EXPORT void Node_SetWorldTranslation(ManagedNode managed_node, ManagedVec3f translation)
+HYP_EXPORT void Node_SetWorldTranslation(ManagedNode managed_node, Vec3f *translation)
 {
     Node *node = managed_node.GetNode();
 
@@ -194,7 +193,7 @@ HYP_EXPORT void Node_SetWorldTranslation(ManagedNode managed_node, ManagedVec3f 
         return;
     }
 
-    node->SetWorldTranslation(translation);
+    node->SetWorldTranslation(*translation);
 }
 
 HYP_EXPORT void Node_GetLocalTranslation(ManagedNode managed_node, Vec3f *out_translation)
@@ -208,7 +207,7 @@ HYP_EXPORT void Node_GetLocalTranslation(ManagedNode managed_node, Vec3f *out_tr
     *out_translation = node->GetLocalTranslation();
 }
 
-HYP_EXPORT void Node_SetLocalTranslation(ManagedNode managed_node, ManagedVec3f translation)
+HYP_EXPORT void Node_SetLocalTranslation(ManagedNode managed_node, Vec3f *translation)
 {
     Node *node = managed_node.GetNode();
 
@@ -216,10 +215,10 @@ HYP_EXPORT void Node_SetLocalTranslation(ManagedNode managed_node, ManagedVec3f 
         return;
     }
 
-    node->SetLocalTranslation(translation);
+    node->SetLocalTranslation(*translation);
 }
 
-HYP_EXPORT void Node_Translate(ManagedNode managed_node, ManagedVec3f translation)
+HYP_EXPORT void Node_Translate(ManagedNode managed_node, Vec3f *translation)
 {
     Node *node = managed_node.GetNode();
 
@@ -227,7 +226,7 @@ HYP_EXPORT void Node_Translate(ManagedNode managed_node, ManagedVec3f translatio
         return;
     }
 
-    node->Translate(translation);
+    node->Translate(*translation);
 }
 
 HYP_EXPORT void Node_GetWorldRotation(ManagedNode managed_node, Quaternion *out_rotation)
@@ -241,7 +240,7 @@ HYP_EXPORT void Node_GetWorldRotation(ManagedNode managed_node, Quaternion *out_
     *out_rotation = node->GetWorldRotation();
 }
 
-HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, Quaternion rotation)
+HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, Quaternion *rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -249,7 +248,7 @@ HYP_EXPORT void Node_SetWorldRotation(ManagedNode managed_node, Quaternion rotat
         return;
     }
 
-    node->SetWorldRotation(rotation);
+    node->SetWorldRotation(*rotation);
 }
 
 HYP_EXPORT void Node_GetLocalRotation(ManagedNode managed_node, Quaternion *out_rotation)
@@ -263,7 +262,7 @@ HYP_EXPORT void Node_GetLocalRotation(ManagedNode managed_node, Quaternion *out_
     *out_rotation = node->GetLocalRotation();
 }
 
-HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, Quaternion rotation)
+HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, Quaternion *rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -271,10 +270,10 @@ HYP_EXPORT void Node_SetLocalRotation(ManagedNode managed_node, Quaternion rotat
         return;
     }
 
-    node->SetLocalRotation(rotation);
+    node->SetLocalRotation(*rotation);
 }
 
-HYP_EXPORT void Node_Rotate(ManagedNode managed_node, Quaternion rotation)
+HYP_EXPORT void Node_Rotate(ManagedNode managed_node, Quaternion *rotation)
 {
     Node *node = managed_node.GetNode();
 
@@ -282,7 +281,7 @@ HYP_EXPORT void Node_Rotate(ManagedNode managed_node, Quaternion rotation)
         return;
     }
 
-    node->Rotate(rotation);
+    node->Rotate(*rotation);
 }
 
 HYP_EXPORT void Node_GetWorldScale(ManagedNode managed_node, Vec3f *out_scale)
@@ -296,7 +295,7 @@ HYP_EXPORT void Node_GetWorldScale(ManagedNode managed_node, Vec3f *out_scale)
     *out_scale = node->GetWorldScale();
 }
 
-HYP_EXPORT void Node_SetWorldScale(ManagedNode managed_node, ManagedVec3f scale)
+HYP_EXPORT void Node_SetWorldScale(ManagedNode managed_node, Vec3f *scale)
 {
     Node *node = managed_node.GetNode();
 
@@ -304,7 +303,7 @@ HYP_EXPORT void Node_SetWorldScale(ManagedNode managed_node, ManagedVec3f scale)
         return;
     }
 
-    node->SetWorldScale(scale);
+    node->SetWorldScale(*scale);
 }
 
 HYP_EXPORT void Node_GetLocalScale(ManagedNode managed_node, Vec3f *out_scale)
@@ -318,7 +317,7 @@ HYP_EXPORT void Node_GetLocalScale(ManagedNode managed_node, Vec3f *out_scale)
     *out_scale = node->GetLocalScale();
 }
 
-HYP_EXPORT void Node_SetLocalScale(ManagedNode managed_node, ManagedVec3f scale)
+HYP_EXPORT void Node_SetLocalScale(ManagedNode managed_node, Vec3f *scale)
 {
     Node *node = managed_node.GetNode();
 
@@ -326,7 +325,7 @@ HYP_EXPORT void Node_SetLocalScale(ManagedNode managed_node, ManagedVec3f scale)
         return;
     }
 
-    node->SetLocalScale(scale);
+    node->SetLocalScale(*scale);
 }
 
 HYP_EXPORT bool Node_IsTransformLocked(ManagedNode managed_node)
@@ -362,7 +361,7 @@ HYP_EXPORT void Node_UnlockTransform(ManagedNode managed_node)
     node->UnlockTransform();
 }
 
-HYP_EXPORT void Node_Scale(ManagedNode managed_node, ManagedVec3f scale)
+HYP_EXPORT void Node_Scale(ManagedNode managed_node, Vec3f *scale)
 {
     Node *node = managed_node.GetNode();
 
@@ -370,10 +369,10 @@ HYP_EXPORT void Node_Scale(ManagedNode managed_node, ManagedVec3f scale)
         return;
     }
 
-    node->Scale(scale);
+    node->Scale(*scale);
 }
 
-HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, ManagedBoundingBox *out_aabb)
+HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, BoundingBox *out_aabb)
 {
     Node *node = managed_node.GetNode();
 
@@ -384,7 +383,7 @@ HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, ManagedBoundingBox *
     *out_aabb = node->GetWorldAABB();
 }
 
-HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, ManagedBoundingBox aabb)
+HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, BoundingBox *aabb)
 {
     Node *node = managed_node.GetNode();
 
@@ -392,10 +391,10 @@ HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, ManagedBoundingBox a
         return;
     }
 
-    node->SetWorldAABB(aabb);
+    node->SetWorldAABB(*aabb);
 }
 
-HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, ManagedBoundingBox *out_aabb)
+HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, BoundingBox *out_aabb)
 {
     Node *node = managed_node.GetNode();
 
@@ -406,7 +405,7 @@ HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, ManagedBoundingBox *
     *out_aabb = node->GetLocalAABB();
 }
 
-HYP_EXPORT void Node_SetLocalAABB(ManagedNode managed_node, ManagedBoundingBox aabb)
+HYP_EXPORT void Node_SetLocalAABB(ManagedNode managed_node, BoundingBox *aabb)
 {
     Node *node = managed_node.GetNode();
 
@@ -414,6 +413,6 @@ HYP_EXPORT void Node_SetLocalAABB(ManagedNode managed_node, ManagedBoundingBox a
         return;
     }
 
-    node->SetLocalAABB(aabb);
+    node->SetLocalAABB(*aabb);
 }
 } // extern "C"
