@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYP_JSON_SOURCE_STREAM_HPP
 #define HYP_JSON_SOURCE_STREAM_HPP
 

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef BYTE_READER_H
 #define BYTE_READER_H
 

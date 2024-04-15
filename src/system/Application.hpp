@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 //
 // Created by ethan on 2/5/22.
 //
@@ -14,7 +13,7 @@
 #include <core/lib/Delegate.hpp>
 
 #include <util/fs/FsUtil.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>

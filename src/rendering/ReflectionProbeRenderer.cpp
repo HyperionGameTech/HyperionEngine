@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>

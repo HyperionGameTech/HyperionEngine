@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef BYTE_WRITER_H
 #define BYTE_WRITER_H
 
 #include <core/lib/Memory.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/DynArray.hpp>
+#include <core/lib/filesystem/FilePath.hpp>
 #include <Types.hpp>
 
 #include <type_traits>
@@ -108,13 +108,13 @@ private:
 class FileByteWriter : public ByteWriter
 {
 public:
-    FileByteWriter(const std::string &filepath, std::streampos begin = 0)
+    FileByteWriter(const FilePath &filepath, std::streampos begin = 0)
     {
-        file = new std::ofstream(filepath, std::ofstream::out | std::ofstream::binary);
+        file = new std::ofstream(filepath.Data(), std::ofstream::out | std::ofstream::binary);
     }
 
-    FileByteWriter(const FileByteWriter &other) = delete;
-    FileByteWriter &operator=(const FileByteWriter &other) = delete;
+    FileByteWriter(const FileByteWriter &other)             = delete;
+    FileByteWriter &operator=(const FileByteWriter &other)  = delete;
 
     FileByteWriter(FileByteWriter &&other) noexcept
         : file(other.file)

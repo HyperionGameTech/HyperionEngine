@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_CORE_THREAD_H
 #define HYPERION_V2_CORE_THREAD_H
 
@@ -7,7 +6,7 @@
 #include <core/lib/AtomicVar.hpp>
 #include <core/Name.hpp>
 #include <core/Task.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <thread>

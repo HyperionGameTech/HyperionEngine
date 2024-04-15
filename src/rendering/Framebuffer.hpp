@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_FRAMEBUFFER_H
 #define HYPERION_V2_FRAMEBUFFER_H
 

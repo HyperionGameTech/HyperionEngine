@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_RENDERER_H
 #define HYPERION_V2_RENDERER_H
 
@@ -16,7 +15,7 @@
 #include <rendering/Mesh.hpp>
 #include <Constants.hpp>
 #include <core/ID.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
 

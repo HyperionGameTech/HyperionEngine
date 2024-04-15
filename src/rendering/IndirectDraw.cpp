@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include "IndirectDraw.hpp"
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>

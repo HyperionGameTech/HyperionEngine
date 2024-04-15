@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
 
@@ -22,7 +24,7 @@
 #include <rendering/backend/RendererFrameHandler.hpp>
 #include <rendering/backend/RendererQueue.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

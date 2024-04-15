@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_PHYSICS_RIGID_BODY_HPP
 #define HYPERION_V2_PHYSICS_RIGID_BODY_HPP
 
@@ -12,7 +11,7 @@
 #include <physics/PhysicsMaterial.hpp>
 
 #include <Types.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <type_traits>
 

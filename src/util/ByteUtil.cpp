@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <util/ByteUtil.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <asset/serialization/fbom/FBOMObject.hpp>
 
 namespace hyperion::v2::fbom {

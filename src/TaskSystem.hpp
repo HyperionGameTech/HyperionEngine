@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_TASK_SYSTEM_HPP
 #define HYPERION_V2_TASK_SYSTEM_HPP
 
@@ -5,7 +7,7 @@
 #include <core/lib/AtomicVar.hpp>
 #include <core/lib/String.hpp>
 #include <math/MathUtil.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <system/Debug.hpp>
 
 #include <Threads.hpp>

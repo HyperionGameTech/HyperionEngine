@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef MATHUTIL_H
 #define MATHUTIL_H
 
@@ -9,7 +8,7 @@
 
 #include <core/Util.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <math.h>

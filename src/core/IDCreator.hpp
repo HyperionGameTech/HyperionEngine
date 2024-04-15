@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_CORE_ID_CREATOR_HPP
 #define HYPERION_V2_CORE_ID_CREATOR_HPP
 
@@ -8,7 +7,7 @@
 #include <core/ID.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <mutex>
 #include <atomic>

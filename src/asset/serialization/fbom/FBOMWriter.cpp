@@ -1,8 +1,8 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
 
-#include <core/lib/Path.hpp>
-#include <core/lib/SortedArray.hpp>
 #include <core/lib/Stack.hpp>
 
 #include <Constants.hpp>
@@ -66,10 +66,10 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out)
 
 FBOMResult FBOMWriter::WriteExternalObjects()
 {
-    for (auto &it : m_write_stream.m_external_objects) {
+    for (const auto &it : m_write_stream.m_external_objects) {
         FBOMWriter chunk_writer;
 
-        for (auto &objects_it : it.second.objects) {
+        for (const auto &objects_it : it.second.objects) {
             FBOMObject object(objects_it.second);
 
             // set to empty to not keep recursing. we only write the external data once.
@@ -80,9 +80,7 @@ FBOMResult FBOMWriter::WriteExternalObjects()
             }
         }
 
-        const Path output_path(it.first);
-
-        FileByteWriter byte_writer(output_path.Data());
+        FileByteWriter byte_writer(it.first);
         chunk_writer.Emit(&byte_writer);
         byte_writer.Close();
     }

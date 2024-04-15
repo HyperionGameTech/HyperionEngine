@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_ECS_SYSTEM_HPP
 #define HYPERION_V2_ECS_SYSTEM_HPP
 
@@ -6,7 +8,7 @@
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <GameCounter.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <tuple>
 

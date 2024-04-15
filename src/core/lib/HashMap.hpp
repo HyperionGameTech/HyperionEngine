@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_HASH_MAP_HPP
 #define HYPERION_V2_LIB_HASH_MAP_HPP
 
@@ -650,12 +652,6 @@ auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
         return End();
     }
 
-#ifdef HYP_DEBUG_MODE
-    AssertThrow(iter.hm == this);
-    AssertThrow(iter.bucket_iter.bucket != nullptr);
-    AssertThrow(iter.bucket_iter.index < iter.bucket_iter.bucket->elements.Size());
-#endif
-
     --m_size;
 
     const typename detail::HashBucket<KeyType, ValueType>::ElementList::Iterator element_list_it {
@@ -681,12 +677,6 @@ bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
     if (it == End()) {
         return false;
     }
-
-#ifdef HYP_DEBUG_MODE
-    AssertThrow(it.hm == this);
-    AssertThrow(it.bucket_iter.bucket != nullptr);
-    AssertThrow(it.bucket_iter.index < it.bucket_iter.bucket->elements.Size());
-#endif
     
     --m_size;
 

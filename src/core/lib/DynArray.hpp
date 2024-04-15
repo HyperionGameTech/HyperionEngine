@@ -1,10 +1,12 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_DYN_ARRAY_H
 #define HYPERION_V2_LIB_DYN_ARRAY_H
 
 #include <core/lib/ContainerBase.hpp>
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/Pair.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 #include <core/lib/Memory.hpp>
 #include <core/lib/ValueStorage.hpp>

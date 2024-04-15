@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <core/lib/Bitset.hpp>
 
 #ifdef HYP_WINDOWS
@@ -129,56 +131,6 @@ SizeType DynBitset::Count() const
     }
 
     return count;
-}
-
-uint32 DynBitset::ToUInt32() const
-{
-    if (m_blocks.Empty()) {
-        return 0;
-    } else {
-        return m_blocks[0];
-    }
-}
-
-bool DynBitset::ToUInt32(uint32 *out) const
-{
-    if (m_blocks.Empty()) {
-        *out = 0;
-
-        return true;
-    } else {
-        *out = m_blocks[0];
-
-        return m_blocks.Size() == 1;
-    }
-}
-
-uint64 DynBitset::ToUInt64() const
-{
-    if (m_blocks.Empty()) {
-        return 0;
-    } else if (m_blocks.Size() == 1) {
-        return uint64(m_blocks[0]);
-    } else {
-        return uint64(m_blocks[0]) | (uint64(m_blocks[1]) << 32);
-    }
-}
-
-bool DynBitset::ToUInt64(uint64 *out) const
-{
-    if (m_blocks.Empty()) {
-        *out = 0;
-
-        return true;
-    } else if (m_blocks.Size() == 1) {
-        *out = uint64(m_blocks[0]);
-
-        return true;
-    } else {
-        *out = uint64(m_blocks[0]) | (uint64(m_blocks[1]) << 32);
-
-        return m_blocks.Size() == 2;
-    }
 }
 
 DynBitset &DynBitset::Resize(SizeType num_bits, bool value)

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <dotnet/core/RefCountedPtrBindings.hpp>
 
 #include <core/lib/RefCountedPtr.hpp>

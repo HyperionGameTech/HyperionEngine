@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_DELEGATE_HPP
 #define HYPERION_V2_LIB_DELEGATE_HPP
 
@@ -8,7 +10,7 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/IDCreator.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

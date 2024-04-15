@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_RENDER_BUCKET_H
 #define HYPERION_V2_RENDER_BUCKET_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {

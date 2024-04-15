@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef INPUT_MANAGER_H
 #define INPUT_MANAGER_H
 

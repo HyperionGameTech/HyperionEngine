@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef NOISE_FACTORY_H
 #define NOISE_FACTORY_H
 
@@ -7,7 +6,7 @@
 #include <util/random/WorleyNoise.hpp>
 #include <util/img/Bitmap.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>

@@ -1,8 +1,10 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_DEFINITIONS_FILE_HPP
 #define HYPERION_V2_DEFINITIONS_FILE_HPP
 
 #include <core/Containers.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <util/StringUtil.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <asset/BufferedByteReader.hpp>

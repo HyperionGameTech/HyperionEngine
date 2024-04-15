@@ -1,8 +1,10 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <util/shader_compiler/ShaderCompiler.hpp>
 #include <util/definitions/DefinitionsFile.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <util/json/JSON.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <core/lib/util/ForEach.hpp>
 

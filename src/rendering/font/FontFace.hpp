@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYP_FONT_FACE_HPP
 #define HYP_FONT_FACE_HPP
 
@@ -5,7 +7,7 @@
 
 #include <core/Base.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <util/fs/FsUtil.hpp>
 
 #include <Constants.hpp>

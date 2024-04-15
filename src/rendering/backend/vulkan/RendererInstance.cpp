@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
@@ -8,7 +10,7 @@
 #include <system/Debug.hpp>
 #include <system/Application.hpp>
 #include <system/vma/VmaUsage.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

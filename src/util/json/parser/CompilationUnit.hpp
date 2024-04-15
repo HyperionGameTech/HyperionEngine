@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYP_JSON_COMPILATION_UNIT_HPP
 #define HYP_JSON_COMPILATION_UNIT_HPP
 

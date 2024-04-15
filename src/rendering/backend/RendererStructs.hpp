@@ -1,8 +1,10 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_BACKEND_RENDERER_STRUCTS_H
 #define HYPERION_V2_BACKEND_RENDERER_STRUCTS_H
 
 #include <core/lib/String.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <util/EnumOptions.hpp>
 #include <math/Extent.hpp>
 #include <Types.hpp>

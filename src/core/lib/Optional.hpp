@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_OPTIONAL_HPP
 #define HYPERION_V2_LIB_OPTIONAL_HPP
 
@@ -128,9 +130,13 @@ public:
         }
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     explicit operator bool() const
         { return m_has_value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T *TryGet()
     {
         if (m_has_value) {
@@ -140,6 +146,8 @@ public:
         return nullptr;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T *TryGet() const
     {
         if (m_has_value) {
@@ -149,20 +157,26 @@ public:
         return nullptr;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T &Get()
     {
         AssertThrow(m_has_value);
 
-        return *reinterpret_cast<T *>(&m_storage.data_buffer);
+        return *static_cast<T *>(m_storage.GetPointer());
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &Get() const
     {
         AssertThrow(m_has_value);
 
-        return *reinterpret_cast<const T *>(&m_storage.data_buffer);
+        return *static_cast<const T *>(m_storage.GetPointer());
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T GetOr(T &&default_value) const &
     {
         if (m_has_value) {
@@ -172,6 +186,8 @@ public:
         return std::forward<T>(default_value);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T GetOr(T &&default_value) &&
     {
         if (m_has_value) {
@@ -180,34 +196,21 @@ public:
 
         return std::forward<T>(default_value);
     }
-
+    
+    HYP_FORCE_INLINE
     void Set(const T &value)
     {
         *this = value;
     }
-
+    
+    HYP_FORCE_INLINE
     void Set(T &&value)
     {
-        *this = std::forward<T>(value);
+        *this = std::move(value);
     }
 
-    // template <class U>
-    // T GetOr(U &&default_value) const&
-    // {
-    //     return Any()
-    //         ? *reinterpret_cast<T *>(&m_storage.data_buffer)
-    //         : static_cast<T>(std::forward<U>(default_value));
-    // }
-
-    // template <class U>
-    // T GetOr(U &&default_value) const&
-    // {
-    //     return Any()
-    //         ? *reinterpret_cast<const T *>(&m_storage.data_buffer)
-    //         : static_cast<const T>(std::forward<U>(default_value));
-    // }
-
     //! \brief Remove the held value, setting the Optional<> to a default state.
+    HYP_FORCE_INLINE
     void Unset()
     {
         if (m_has_value) {
@@ -215,23 +218,44 @@ public:
             m_has_value = false;
         }
     }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T *operator->()
-        { return &Get(); }
-
+        { return static_cast<T *>(m_storage.GetPointer()); }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T *operator->() const
-        { return &Get(); }
-
+        { return static_cast<const T *>(m_storage.GetPointer()); }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     T &operator*()
         { return Get(); }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const T &operator*() const
         { return Get(); }
     
-    bool HasValue() const { return m_has_value; }
-    bool Any() const { return m_has_value; }
-    bool Empty() const { return !m_has_value; }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HasValue() const
+        { return m_has_value; }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Any() const
+        { return m_has_value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Empty() const
+        { return !m_has_value; }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         if (m_has_value) {

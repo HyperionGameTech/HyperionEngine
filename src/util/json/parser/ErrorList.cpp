@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <util/json/parser/ErrorList.hpp>
 #include <util/Termcolor.hpp>
 #include <util/StringUtil.hpp>

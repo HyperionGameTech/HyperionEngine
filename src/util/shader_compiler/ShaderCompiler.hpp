@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_SHADER_COMPILER_H
 #define HYPERION_V2_SHADER_COMPILER_H
 
@@ -10,7 +12,7 @@
 #include <rendering/backend/RendererDescriptorSet2.hpp>
 
 #include <util/definitions/DefinitionsFile.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <core/Handle.hpp>
 
 namespace hyperion::v2 {

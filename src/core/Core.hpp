@@ -1,11 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYP_CORE_CORE_HPP
 #define HYP_CORE_CORE_HPP
 
 #include <core/lib/Memory.hpp>
 #include <system/Debug.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <rendering/backend/Platform.hpp>

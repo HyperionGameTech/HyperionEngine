@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_BUFFERS_H
 #define HYPERION_V2_BUFFERS_H
 
@@ -10,7 +9,7 @@
 #include <math/Rect.hpp>
 #include <math/Matrix4.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <core/lib/HeapArray.hpp>
 #include <core/lib/DynArray.hpp>

@@ -1,7 +1,9 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_BACKEND_RENDERER_FEATURES_H
 #define HYPERION_V2_BACKEND_RENDERER_FEATURES_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 namespace renderer {

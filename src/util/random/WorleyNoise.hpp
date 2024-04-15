@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef WORLEY_NOISE_H
 #define WORLEY_NOISE_H
 

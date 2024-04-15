@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef TRANSFORM_H
 #define TRANSFORM_H
 

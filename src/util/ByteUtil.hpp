@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_BYTE_UTIL_H
 #define HYPERION_BYTE_UTIL_H
 
@@ -8,7 +7,7 @@
 
 #include <Types.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 

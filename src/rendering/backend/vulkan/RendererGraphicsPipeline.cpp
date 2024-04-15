@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 //
 // Created by emd22 on 2022-02-20.
 //
@@ -11,7 +13,7 @@
 #include <math/MathUtil.hpp>
 #include <math/Transform.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <cstring>
 

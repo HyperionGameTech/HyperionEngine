@@ -1,7 +1,9 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_ATOMIC_VAR_H
 #define HYPERION_V2_LIB_ATOMIC_VAR_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <atomic>
 #include <algorithm>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_CORE_NET_SOCKET_HPP
 #define HYPERION_CORE_NET_SOCKET_HPP
 
@@ -14,7 +16,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/HashMap.hpp>
 #include <core/lib/ByteBuffer.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 namespace hyperion::net {

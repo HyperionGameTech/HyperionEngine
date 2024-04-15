@@ -1,12 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef VECTOR4_H
 #define VECTOR4_H
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

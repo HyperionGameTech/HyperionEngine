@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "TextureLoader.hpp"
 #include <Engine.hpp>
 #include <util/StringUtil.hpp>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_FEATURES_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_FEATURES_HPP
 
@@ -9,7 +11,7 @@
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/DynArray.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <vulkan/vulkan.h>

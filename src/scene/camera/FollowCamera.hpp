@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_FOLLOW_CAMERA_H
 #define HYPERION_V2_FOLLOW_CAMERA_H
 

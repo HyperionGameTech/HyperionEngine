@@ -1,8 +1,10 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_LINKED_LIST_HPP
 #define HYPERION_V2_LIB_LINKED_LIST_HPP
 
 #include <core/lib/ContainerBase.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 #include <core/lib/Memory.hpp>
 #include <system/Debug.hpp>
@@ -19,8 +21,8 @@ namespace detail {
 template <class T>
 struct LinkedListNode
 {
-    LinkedListNode *previous = nullptr;
-    LinkedListNode *next = nullptr;
+    LinkedListNode  *previous = nullptr;
+    LinkedListNode  *next = nullptr;
     ValueStorage<T> value;
 };
 
@@ -43,46 +45,27 @@ public:
 
         HYP_FORCE_INLINE
         T &operator*()
-        {
-            AssertThrow(node != nullptr);
-            return node->value.Get();
-        }
+            { return node->value.Get(); }
 
         HYP_FORCE_INLINE
         const T &operator*() const
-        {
-            AssertThrow(node != nullptr);
-            return node->value.Get();
-        }
+            { return node->value.Get(); }
 
         HYP_FORCE_INLINE
         T *operator->()
-        {
-            AssertThrow(node != nullptr);
-            return &node->value.Get();
-        }
+            { return &node->value.Get(); }
 
         HYP_FORCE_INLINE
         const T *operator->() const
-        {
-            AssertThrow(node != nullptr);
-            return &node->value.Get();
-        }
+            { return &node->value.Get(); }
 
         HYP_FORCE_INLINE
         Iterator &operator++()
-        {
-            AssertThrow(node != nullptr);
-            node = node->next;
-            return *this;
-        }
+            { node = node->next; return *this; }
 
         HYP_FORCE_INLINE
         Iterator operator++(int)
-        {
-            AssertThrow(node != nullptr);
-            return Iterator { node->next };
-        }
+            { return Iterator { node->next }; }
 
         HYP_FORCE_INLINE
         bool operator==(const Iterator &other) const
@@ -107,32 +90,19 @@ public:
         
         HYP_FORCE_INLINE
         const T &operator*() const
-        {
-            AssertThrow(node != nullptr);
-            return node->value.Get();
-        }
+            { return node->value.Get(); }
 
         HYP_FORCE_INLINE
         const T *operator->() const
-        {
-            AssertThrow(node != nullptr);
-            return &node->value.Get();
-        }
+            { return &node->value.Get(); }
         
         HYP_FORCE_INLINE
         ConstIterator &operator++()
-        {
-            AssertThrow(node != nullptr);
-            node = node->next;
-            return *this;
-        }
+            { node = node->next; return *this; }
 
         HYP_FORCE_INLINE
         ConstIterator operator++(int)
-        {
-            AssertThrow(node != nullptr);
-            return ConstIterator { node->next };
-        }
+            { return ConstIterator { node->next }; }
 
         HYP_FORCE_INLINE
         bool operator==(const Iterator &other) const
@@ -156,12 +126,12 @@ public:
     using ValueType = T;
 
     LinkedList();
-    //LinkedList(const LinkedList &other);
-    //LinkedList(LinkedList &&other) noexcept;
+    LinkedList(const LinkedList &other);
+    LinkedList(LinkedList &&other) noexcept;
     ~LinkedList();
 
-    //LinkedList &operator=(const LinkedList &other);
-    //LinkedList &operator=(LinkedList &&other) noexcept;
+    LinkedList &operator=(const LinkedList &other);
+    LinkedList &operator=(LinkedList &&other) noexcept;
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -171,22 +141,22 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     ValueType &Front()
-        { AssertThrow(m_size != 0); return m_head->value.Get(); }
+        { return m_head->value.Get(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     const ValueType &Front() const
-        { AssertThrow(m_size != 0); return m_head->value.Get(); }
+        { return m_head->value.Get(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     ValueType &Back()
-        { AssertThrow(m_size != 0); return m_tail->value.Get(); }
+        { return m_tail->value.Get(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     const ValueType &Back() const
-        { AssertThrow(m_size != 0); return m_tail->value.Get(); }
+        { return m_tail->value.Get(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -234,25 +204,23 @@ public:
         ++m_size;
     }
     
+    /*! \brief Push an item to the back of the container.*/
     void PushBack(const ValueType &value);
+
+    /*! \brief Push an item to the back of the container.*/
     void PushBack(ValueType &&value);
 
-    /*! Push an item to the front of the container.
-        If any free spaces are available, they are used.
-        Else, new space is allocated and all current elements are shifted to the right.
-        Some padding is added so that successive calls to PushFront() do not incur an allocation
-        each time.
-        */
+    /*! \brief Push an item to the front of the container.*/
     void PushFront(const ValueType &value);
 
-    /*! Push an item to the front of the container.
-        If any free spaces are available, they are used.
-        Else, new space is allocated and all current elements are shifted to the right.
-        Some padding is added so that successive calls to PushFront() do not incur an allocation
-        each time. */
+    /*! \brief Push an item to the front of the container. */
     void PushFront(ValueType &&value);
 
+    /*! \brief Pop an item from the back of the linked list. The popped item is returned. */
     ValueType PopBack();
+
+    /*! \brief Pop an item from the front of the linked list. The popped item is returned. */
+    ValueType PopFront();
 
 #if 0
     //! \brief Erase an element by iterator.
@@ -263,10 +231,8 @@ public:
     Iterator EraseAt(typename Base::KeyType index);
     Iterator Insert(ConstIterator where, const ValueType &value);
     Iterator Insert(ConstIterator where, ValueType &&value);
-    ValueType PopFront();
-    ValueType PopBack();
-    void Clear();
 #endif
+    void Clear();
 
 #if 0
     template <SizeType OtherNumInlineBytes>
@@ -319,7 +285,64 @@ LinkedList<T>::LinkedList()
       m_tail(nullptr),
       m_size(0)
 {
-    //m_head->previous = m_head;
+}
+
+template <class T>
+LinkedList<T>::LinkedList(const LinkedList<T> &other)
+    : m_head(nullptr),
+      m_tail(nullptr),
+      m_size(0)
+{
+    for (const auto &value : other) {
+        PushBack(value);
+    }
+}
+
+template <class T>
+LinkedList<T>::LinkedList(LinkedList<T> &&other) noexcept
+    : m_head(other.m_head),
+      m_tail(other.m_tail),
+      m_size(other.m_size)
+{
+    other.m_head = nullptr;
+    other.m_tail = nullptr;
+    other.m_size = 0;
+}
+
+template <class T>
+LinkedList<T> &LinkedList<T>::operator=(const LinkedList<T> &other)
+{
+    if (std::addressof(other) == this) {
+        return *this;
+    }
+
+    Clear();
+
+    for (const auto &value : other) {
+        PushBack(value);
+    }
+
+    return *this;
+}
+
+template <class T>
+LinkedList<T> &LinkedList<T>::operator=(LinkedList<T> &&other) noexcept
+{
+    if (std::addressof(other) == this) {
+        return *this;
+    }
+
+    Clear();
+
+    m_head = other.m_head;
+    m_tail = other.m_tail;
+    m_size = other.m_size;
+
+    other.m_head = nullptr;
+    other.m_tail = nullptr;
+    other.m_size = 0;
+
+    return *this;
 }
 
 template <class T>
@@ -434,6 +457,50 @@ auto LinkedList<T>::PopBack() -> ValueType
     }
 
     return value;
+}
+
+template <class T>
+auto LinkedList<T>::PopFront() -> ValueType
+{
+    AssertThrow(m_size != 0);
+
+    Node *next = m_head->next;
+
+    ValueType value = std::move(m_head->value.Get());
+
+    m_head->value.Destruct();
+    delete m_head;
+
+    if (next) {
+        next->previous = nullptr;
+    }
+
+    m_head = next;
+
+    if (!--m_size) {
+        m_tail = nullptr;
+    }
+
+    return value;
+}
+
+template <class T>
+void LinkedList<T>::Clear()
+{
+    Node *node = m_head;
+
+    while (node != nullptr) {
+        Node *next = node->next;
+
+        node->value.Destruct();
+        delete node;
+
+        node = next;
+    }
+
+    m_head = nullptr;
+    m_tail = nullptr;
+    m_size = 0;
 }
 
 } // namespace hyperion

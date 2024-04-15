@@ -1,7 +1,9 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_REF_COUNTED_PTR_HPP
 #define HYPERION_V2_LIB_REF_COUNTED_PTR_HPP
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <core/lib/ValueStorage.hpp>
 #include <core/lib/TypeID.hpp>
 #include <core/lib/Memory.hpp>

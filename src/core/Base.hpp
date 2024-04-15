@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_COMPONENTS_BASE_H
 #define HYPERION_V2_COMPONENTS_BASE_H
 
@@ -16,7 +15,7 @@
 #include <rendering/backend/RendererInstance.hpp>
 
 #include <HashCode.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_RUNTIME_DOTNET_MANAGED_ASSET_TYPES_HPP
 #define HYPERION_V2_RUNTIME_DOTNET_MANAGED_ASSET_TYPES_HPP
 

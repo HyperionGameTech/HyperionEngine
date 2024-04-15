@@ -1,5 +1,6 @@
-#include "FBOM.hpp"
-#include <core/lib/Path.hpp>
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <asset/serialization/fbom/FBOM.hpp>
 
 namespace hyperion::v2::fbom {
 

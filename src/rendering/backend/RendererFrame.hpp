@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_BACKEND_RENDERER_FRAME_H
 #define HYPERION_V2_BACKEND_RENDERER_FRAME_H
 
@@ -5,7 +7,7 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

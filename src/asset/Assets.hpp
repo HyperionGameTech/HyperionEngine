@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_ASSETS_H
 #define HYPERION_V2_ASSETS_H
 
@@ -11,7 +10,7 @@
 
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Threads.hpp>
 #include <Constants.hpp>
 #include <core/ObjectPool.hpp>

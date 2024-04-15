@@ -1,10 +1,12 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_FLAT_SET_H
 #define HYPERION_V2_LIB_FLAT_SET_H
 
 #include <core/lib/ContainerBase.hpp>
 #include <core/lib/SortedArray.hpp>
 #include <core/lib/Pair.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <algorithm>
 #include <utility>

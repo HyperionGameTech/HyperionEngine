@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "CameraTrackController.hpp"
 
 namespace hyperion::v2 {

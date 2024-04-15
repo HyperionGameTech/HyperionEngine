@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_RENDERABLE_ATTRIBUTES_H
 #define HYPERION_V2_RENDERABLE_ATTRIBUTES_H
 
@@ -7,7 +6,7 @@
 #include <rendering/RenderBucket.hpp>
 #include <rendering/Shader.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 #include <HashCode.hpp>
 

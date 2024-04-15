@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef FRUSTUM_H
 #define FRUSTUM_H
 

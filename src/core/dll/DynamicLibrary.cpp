@@ -1,5 +1,7 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <core/dll/DynamicLibrary.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

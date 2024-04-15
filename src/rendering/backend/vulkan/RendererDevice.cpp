@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -9,7 +11,7 @@
 #include <iterator>
 
 #include <system/Debug.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 namespace renderer {

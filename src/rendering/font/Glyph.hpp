@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYP_FONT_FONTGLYPH_HPP
 #define HYP_FONT_FONTGLYPH_HPP
 

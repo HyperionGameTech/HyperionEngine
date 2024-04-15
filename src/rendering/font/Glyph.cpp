@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/font/Glyph.hpp>
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>

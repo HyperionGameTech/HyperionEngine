@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef VECTOR3_H
 #define VECTOR3_H
 
@@ -8,7 +7,7 @@
 
 #include <HashCode.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

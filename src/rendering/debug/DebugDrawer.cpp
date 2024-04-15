@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/debug/DebugDrawer.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <util/MeshBuilder.hpp>

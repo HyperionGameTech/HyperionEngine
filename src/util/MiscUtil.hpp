@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_UTIL_MISCUTIL_HPP
 #define HYPERION_UTIL_MISCUTIL_HPP
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <algorithm>
 

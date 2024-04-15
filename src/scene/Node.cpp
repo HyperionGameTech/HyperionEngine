@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <scene/Node.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>

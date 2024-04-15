@@ -1,11 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_STACK_DUMP_H
 #define HYPERION_STACK_DUMP_H
 
 #include <core/lib/DynArray.hpp>
 #include <core/lib/String.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 

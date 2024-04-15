@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <TaskSystem.hpp>
 
 #include <Engine.hpp>

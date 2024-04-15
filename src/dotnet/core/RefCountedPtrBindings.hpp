@@ -1,9 +1,11 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_RUNTIME_DOTNET_REF_COUNTED_PTR_BINDINGS_HPP
 #define HYPERION_V2_RUNTIME_DOTNET_REF_COUNTED_PTR_BINDINGS_HPP
 
 #include <core/lib/RefCountedPtr.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

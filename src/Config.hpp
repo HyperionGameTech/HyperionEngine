@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_CONFIG_HPP
 #define HYPERION_V2_CONFIG_HPP
 
@@ -5,7 +7,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/String.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <util/definitions/DefinitionsFile.hpp>
 #include <Types.hpp>
 

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_SHADER_DATA_STATE_HPP
 #define HYPERION_V2_SHADER_DATA_STATE_HPP
 

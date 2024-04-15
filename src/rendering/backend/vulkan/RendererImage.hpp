@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef RENDERER_IMAGE_H
 #define RENDERER_IMAGE_H
 

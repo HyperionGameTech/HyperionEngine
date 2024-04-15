@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 

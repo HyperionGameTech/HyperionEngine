@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_CRASH_HANDLER_HPP
 #define HYPERION_V2_CRASH_HANDLER_HPP
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <rendering/backend/RendererResult.hpp>
 

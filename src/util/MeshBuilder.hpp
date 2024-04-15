@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_MESH_BUILDER_H
 #define HYPERION_V2_MESH_BUILDER_H
 
@@ -9,7 +8,7 @@
 #include <core/Handle.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/Vector3.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {

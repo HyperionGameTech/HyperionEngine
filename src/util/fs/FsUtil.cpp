@@ -1,5 +1,7 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <util/fs/FsUtil.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <system/Debug.hpp>
 #include <asset/BufferedByteReader.hpp>
 
@@ -113,105 +115,6 @@ std::string FileSystem::CurrentPath()
 std::string FileSystem::RelativePath(const std::string &path, const std::string &base)
 {
     return std::filesystem::proximate(path, base).string();
-}
-
-int FilePath::MkDir() const
-{
-#if HYP_WINDOWS
-    return ::_mkdir(Data());
-#else
-    return ::mkdir(Data(), 0755);
-#endif
-}
-
-bool FilePath::Remove() const
-{
-    return std::filesystem::remove(Data());
-}
-
-bool FilePath::Exists() const
-{
-    struct stat st;
-    
-    return stat(Data(), &st) == 0;
-}
-
-bool FilePath::IsDirectory() const
-{
-    struct stat st;
-    
-    if (stat(Data(), &st) == 0) {
-        return st.st_mode & S_IFDIR;
-    }
-
-    return false;
-}
-
-uint64 FilePath::LastModifiedTimestamp() const
-{
-    struct stat st;
-    
-    if (stat(Data(), &st) != 0) {
-        return 0;
-    }
-
-#if HYP_MACOS
-    return st.st_mtimespec.tv_sec;
-#else
-    return st.st_mtime;
-#endif
-}
-
-bool FilePath::Open(BufferedReader &out) const
-{
-    if (!Exists()) {
-        return false;
-    }
-
-    out = BufferedReader(*this);
-
-    return true;
-}
-
-Array<FilePath> FilePath::GetAllFilesInDirectory() const
-{
-    Array<FilePath> files;
-
-    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
-        if (entry.is_regular_file()) {
-#ifdef HYP_WINDOWS
-            files.PushBack(WideString(entry.path().c_str()).ToUTF8());
-#else
-            files.PushBack(entry.path().c_str());
-#endif
-        }
-    }
-
-    return files;
-}
-
-SizeType FilePath::DirectorySize() const
-{
-    SizeType size = 0;
-
-    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
-        if (entry.is_regular_file()) {
-            size += entry.file_size();
-        }
-    }
-
-    return size;
-}
-
-SizeType FilePath::FileSize() const
-{
-    struct stat st;
-
-    if (stat(Data(), &st) != 0) {
-        return 0;
-    }
-
-    return st.st_size;
 }
 
 } // namespace hyperion

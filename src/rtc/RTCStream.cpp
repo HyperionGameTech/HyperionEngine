@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <rtc/RTCStream.hpp>
 #include <rtc/RTCServer.hpp>
 #include <rtc/RTCStreamEncoder.hpp>

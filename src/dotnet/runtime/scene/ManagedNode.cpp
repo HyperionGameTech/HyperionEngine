@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <dotnet/runtime/scene/ManagedNode.hpp>
 
 #include <Engine.hpp>

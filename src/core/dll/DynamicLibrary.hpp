@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_CORE_DLL_DYNAMIC_LIBRARY_HPP
 #define HYPERION_CORE_DLL_DYNAMIC_LIBRARY_HPP
 

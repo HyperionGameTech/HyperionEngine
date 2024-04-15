@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "Animation.hpp"
 #include "Bone.hpp"
 #include <math/MathUtil.hpp>

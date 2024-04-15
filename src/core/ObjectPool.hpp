@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_V2_CORE_OBJECT_POOL_HPP
 #define HYPERION_V2_CORE_OBJECT_POOL_HPP
 
@@ -12,7 +11,7 @@
 #include <core/Util.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <system/Debug.hpp>
 
 #include <mutex>

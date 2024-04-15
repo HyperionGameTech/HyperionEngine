@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_BACKEND_RENDERER_DESCRIPTOR_SET2_HPP
 #define HYPERION_V2_BACKEND_RENDERER_DESCRIPTOR_SET2_HPP
 
@@ -17,7 +19,7 @@
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 #include <HashCode.hpp>
 

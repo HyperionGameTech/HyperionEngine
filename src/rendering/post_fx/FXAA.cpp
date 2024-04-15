@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "FXAA.hpp"
 #include <rendering/Shader.hpp>
 #include <rendering/PostFX.hpp>

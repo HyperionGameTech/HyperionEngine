@@ -8,8 +8,8 @@ license_text = """Copyright (c) 2024 No Tomorrow Games. All rights reserved."""
 def apply_license(base_path, exclude=[]):
     global license_text
 
-    headers = glob.glob('{0}/**/*.hpp'.format(base_path))
-    sources = glob.glob('{0}/**/*.cpp'.format(base_path))
+    headers = glob.glob('{0}/**/*.hpp'.format(base_path), recursive = True)
+    sources = glob.glob('{0}/**/*.cpp'.format(base_path), recursive = True)
     all_sources = headers + sources
 
     for item in all_sources:

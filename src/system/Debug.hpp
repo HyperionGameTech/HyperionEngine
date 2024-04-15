@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 //
 // Created by emd22 on 2022-02-14.
 //
@@ -7,7 +6,7 @@
 #ifndef HYPERION_DEBUG_H
 #define HYPERION_DEBUG_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <ostream>
 #include <string>

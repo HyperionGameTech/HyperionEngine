@@ -1,13 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-
 #ifndef MATRIX4_H
 #define MATRIX4_H
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <math/Quaternion.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_ARG_PARSE_HPP
 #define HYPERION_ARG_PARSE_HPP
 
@@ -10,7 +9,7 @@
 #include <core/lib/Optional.hpp>
 #include <core/lib/Variant.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 

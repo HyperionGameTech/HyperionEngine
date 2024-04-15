@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef VERTEX_H
 #define VERTEX_H
 
@@ -16,7 +15,7 @@
 #include <math/Matrix4.hpp>
 
 #include <HashCode.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <type_traits>

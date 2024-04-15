@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "OgreXMLSkeletonLoader.hpp"
 #include <Engine.hpp>
 #include <scene/animation/Skeleton.hpp>

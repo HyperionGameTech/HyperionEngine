@@ -1,11 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef UTIL_H
 #define UTIL_H
 
 #include <core/lib/ValueStorage.hpp>
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <system/Debug.hpp>
 #include <Types.hpp>
 

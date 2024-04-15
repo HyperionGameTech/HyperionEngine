@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_PAIR_H
 #define HYPERION_V2_LIB_PAIR_H
 
@@ -25,11 +27,6 @@ enum PairArgTrait : PairArgTraits
     MOVE_CONSTRUCTIBLE      = 0x8,
     MOVE_ASSIGNABLE         = 0x10
 };
-
-#define PAIR_ARG_COPY_CONSTRUCTIBLE(x) (x & PairArgTrait::COPY_CONSTRUCTIBLE)
-#define PAIR_ARG_COPY_ASSIGNABLE(x) (x & PairArgTrait::COPY_ASSIGNABLE)
-#define PAIR_ARG_MOVE_CONSTRUCTIBLE(x) (x & PairArgTrait::MOVE_CONSTRUCTIBLE)
-#define PAIR_ARG_MOVE_ASSIGNABLE(x) (x & PairArgTrait::MOVE_ASSIGNABLE)
 
 template <class First, class Second>
 struct PairHelper

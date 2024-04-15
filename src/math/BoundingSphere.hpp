@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_BOUNDING_SPHERE_H
 #define HYPERION_BOUNDING_SPHERE_H
 

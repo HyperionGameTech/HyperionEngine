@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <HyperionEngine.hpp>
 #include <dotnet/DotNetSystem.hpp>
 

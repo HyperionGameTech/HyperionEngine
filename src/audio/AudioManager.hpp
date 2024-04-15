@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_AUDIO_MANAGER_H
 #define HYPERION_AUDIO_MANAGER_H
 

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef HYPERION_SYSTEM_COMMAND_QUEUE_HPP
 #define HYPERION_SYSTEM_COMMAND_QUEUE_HPP
 

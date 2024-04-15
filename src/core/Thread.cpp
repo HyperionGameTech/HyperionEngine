@@ -1,8 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <core/Thread.hpp>
 #include <Threads.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <util/UTF8.hpp>
 
 #ifdef HYP_WINDOWS

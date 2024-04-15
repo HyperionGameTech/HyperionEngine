@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_TYPE_MAP_H
 #define HYPERION_TYPE_MAP_H
 
@@ -8,7 +10,7 @@
 
 #include <Types.hpp>
 #include <HashCode.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 namespace hyperion {
 

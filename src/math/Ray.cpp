@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <math/Ray.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/Triangle.hpp>

@@ -1,7 +1,9 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_STATIC_MAP_H
 #define HYPERION_STATIC_MAP_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <array>
 #include <utility>

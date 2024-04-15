@@ -1,7 +1,9 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_BACKEND_RENDERER_BUFFER_H
 #define HYPERION_V2_BACKEND_RENDERER_BUFFER_H
 
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>

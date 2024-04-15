@@ -1,9 +1,11 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_LIB_CONTAINER_BASE_H
 #define HYPERION_V2_LIB_CONTAINER_BASE_H
 
 #include <core/lib/Pair.hpp>
 #include <core/lib/Memory.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 

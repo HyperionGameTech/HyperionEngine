@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #ifndef BUFFERED_BYTE_READER_H
 #define BUFFERED_BYTE_READER_H
 
@@ -7,20 +6,16 @@
 
 #include <Types.hpp>
 
-#include <util/Defines.hpp>
-#include <util/StringUtil.hpp>
-#include <util/fs/FsUtil.hpp>
-#include <core/Core.hpp>
+#include <core/Defines.hpp>
+
 #include <core/lib/DynArray.hpp>
+#include <core/lib/FixedArray.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/ByteBuffer.hpp>
-#include <core/Util.hpp>
+#include <core/lib/filesystem/FilePath.hpp>
 
-#include <array>
 #include <fstream>
 #include <type_traits>
-#include <thread>
-#include <mutex>
 
 namespace hyperion {
 
@@ -460,7 +455,7 @@ private:
     FilePath                        filepath;
     RC<BufferedReaderSource>        source;
     SizeType                        pos;
-    std::array<Byte, buffer_size>   buffer{};
+    FixedArray<Byte, buffer_size>   buffer{};
 
     SizeType Read()
     {

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_V2_TASK_THREAD_H
 #define HYPERION_V2_TASK_THREAD_H
 
@@ -7,7 +9,7 @@
 #include <core/lib/Queue.hpp>
 #include <math/MathUtil.hpp>
 #include <GameCounter.hpp>
-#include <util/Defines.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 

@@ -1,5 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-
 #include <util/Logger.hpp>
 
 #include <core/lib/Mutex.hpp>
