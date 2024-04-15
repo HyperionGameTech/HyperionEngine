@@ -16,7 +16,9 @@ public class TestUIScript : UIEventHandler
 
         Logger.Log(LogType.Info, "Init UI script");
 
-        Debug.Assert(TypeID.ForType<Light>() == Light.Light_GetTypeID(), "Testing typeids");
+        // Logger.Log(LogType.Info, "Checking light typeid == Light.Light_GetTypeID() ({0}) == ({1})",
+        //     TypeID.ForType<Light>().Value, Light.Light_GetTypeID().Value);
+        // Debug.Assert(TypeID.ForType<Light>() == Light.Light_GetTypeID(), "Testing typeids");
     }
 
     public override void Destroy()

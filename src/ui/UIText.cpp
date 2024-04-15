@@ -88,7 +88,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
         const float cell_dimensions_ratio = float(cell_dimensions.width) / float(cell_dimensions.height);
 
-        const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(Extent2D(main_texture_atlas->GetExtent()));
+        const Vec2f atlas_pixel_size = Vec2f::One() / (Vec2f(Extent2D(main_texture_atlas->GetExtent())) + 0.5f);
         const Vec2f glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) };
         const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) / Vec2f(cell_dimensions_ratio, 1.0f));
 
@@ -121,7 +121,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
             position += placement;
 
             vert.SetPosition(Vec3f { position.x, position.y, current_position.z });
-            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 1))) * atlas_pixel_size);
+            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 0.5f))) * atlas_pixel_size);
         }
 
         char_mesh.aabb.Extend(Vec3f(placement.x, placement.y, 0.0f));

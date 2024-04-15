@@ -44,6 +44,7 @@
 #include <ui/UIPanel.hpp>
 #include <ui/UITabView.hpp>
 #include <ui/UIGrid.hpp>
+#include <ui/UIImage.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
@@ -754,11 +755,14 @@ void SampleStreamer::InitGame()
         tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
 
         auto scene_tab_content_grid = GetUI().CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        scene_tab_content_grid->SetNumColumns(5);
+        scene_tab_content_grid->SetNumColumns(3);
         // scene_tab_content_grid->SetNumRows(5);
 
         auto scene_tab_content_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::PIXEL }));
-        scene_tab_content_text->SetText("Scene tab content");
+        scene_tab_content_text->SetText("grid test 1234567");
+        scene_tab_content_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        scene_tab_content_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
+        scene_tab_content_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
         auto scene_tab_content_button = GetUI().CreateUIObject<UIButton>(HYP_NAME(Scene_Tab_Button), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
         scene_tab_content_button->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
@@ -770,7 +774,11 @@ void SampleStreamer::InitGame()
         scene_tab_content_grid->AddChildUIObject(scene_tab_content_text);
         scene_tab_content_grid->AddChildUIObject(scene_tab_content_button);
 
-        tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+        auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+        auto ui_image = GetUI().CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
+        game_tab->GetContents()->AddChildUIObject(ui_image);
+
         btn->AddChildUIObject(tab_view);
 
         auto ui_text = GetUI().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));

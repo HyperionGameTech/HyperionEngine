@@ -12,12 +12,13 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_BITMAP_H
 
 #endif
 
 namespace hyperion::v2 {
 
-// GlyphImageData
+#pragma region GlyphImageData
 
 Handle<Texture> GlyphImageData::CreateTexture() const
 {
@@ -38,7 +39,9 @@ Handle<Texture> GlyphImageData::CreateTexture() const
     return texture;
 }
 
-// Glyph
+#pragma endregion GlyphImageData
+
+#pragma region Glyph
 
 Glyph::Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale)
     : m_face(std::move(face)),
@@ -58,7 +61,7 @@ void Glyph::LoadMetrics()
         return;
     }
 
-    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR)) {
+    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | FT_PIXEL_MODE_GRAY)) {
         DebugLog(LogType::Error, "Error loading glyph from font face!\n");
 
         return;
@@ -86,7 +89,7 @@ void Glyph::Render()
         return;
     }
 
-    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | FT_LOAD_RENDER)) {
+    if (FT_Load_Glyph(m_face->GetFace(), m_index, FT_LOAD_DEFAULT | FT_LOAD_COLOR | FT_LOAD_RENDER | FT_PIXEL_MODE_GRAY)) {
         DebugLog(LogType::Error, "Error loading glyph from font face!\n");
 
         return;
@@ -120,8 +123,18 @@ void Glyph::Render()
     byte_buffer.SetSize(dimensions.Size());
 
     if (ft_bitmap.buffer != nullptr) {
-        byte_buffer.Write(ft_bitmap.width * ft_bitmap.rows, 0, ft_bitmap.buffer);
+        // byte_buffer.Write(uint32(MathUtil::Abs(ft_bitmap.pitch)) * ft_bitmap.rows, 0, ft_bitmap.buffer);
+
+        for (uint32 row = 0; row < ft_bitmap.rows; ++row) {
+            for (uint32 col = 0; col < ft_bitmap.width; ++col) {
+                byte_buffer.Data()[row * dimensions.width + col] = ft_bitmap.buffer[row * ft_bitmap.pitch + col];
+            }
+        }
     }
+
+    Bitmap<1> bm(dimensions.width, dimensions.height);
+    bm.SetPixels(byte_buffer);
+    bm.Write(String("glyph_") + String::ToString(m_index) + ".bmp");
 
     m_glyph_image_data = GlyphImageData {
         dimensions,
@@ -136,7 +149,7 @@ Extent2D Glyph::GetMax()
 
 #ifdef HYP_FREETYPE
 
-    return { m_face->GetFace()->glyph->bitmap.width, m_face->GetFace()->glyph->bitmap.rows };
+    return { uint32(MathUtil::Abs(m_face->GetFace()->glyph->bitmap.pitch)), m_face->GetFace()->glyph->bitmap.rows };
     // auto &box = m_face->GetFace()->glyph->metrics;
     // return { (uint32)box.width/64, (uint32)box.height/64 };
 #else
@@ -155,5 +168,7 @@ Extent2D Glyph::GetMin()
     return { 0, 0 };
 #endif
 }
+
+#pragma endregion Glyph
 
 } // namespace::v2

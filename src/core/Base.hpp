@@ -10,13 +10,14 @@
 #include <core/Handle.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/StaticString.hpp>
+
 #include <rendering/backend/RendererInstance.hpp>
+
 #include <HashCode.hpp>
 #include <util/Defines.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 
-#include <memory>
 #include <atomic>
 #include <type_traits>
 
@@ -58,7 +59,10 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class BasicObjectBase { };
+class BasicObjectBase
+{
+
+};
 
 template <class Type>
 class BasicObject : public BasicObjectBase
@@ -94,8 +98,8 @@ public:
     {
     }
 
-    BasicObject(const BasicObject &other) = delete;
-    BasicObject &operator=(const BasicObject &other) = delete;
+    BasicObject(const BasicObject &other)               = delete;
+    BasicObject &operator=(const BasicObject &other)    = delete;
 
     BasicObject(BasicObject &&other) noexcept
         : m_name(std::move(other.m_name)),
@@ -143,11 +147,6 @@ public:
 
     bool IsReady() const
         { return m_is_ready.load(); }
-
-    /*! \brief Create a new UniquePtr instance of the type. */
-    template <class ...Args>
-    static inline auto Construct(Args &&... args) -> UniquePtr<InnerType>
-        { return Type::Construct(std::forward<Args>(args)...); }
 
     void Init()
     {
