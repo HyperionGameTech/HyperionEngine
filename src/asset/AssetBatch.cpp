@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 #include <math/MathUtil.hpp>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef STRING_UTIL_H
 #define STRING_UTIL_H
 

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef MATHUTIL_H
 #define MATHUTIL_H
 

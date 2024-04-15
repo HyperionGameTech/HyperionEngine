@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/HBAO.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <Engine.hpp>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <math/Matrix4.hpp>
 #include <math/Matrix3.hpp>
 #include <math/Rect.hpp>

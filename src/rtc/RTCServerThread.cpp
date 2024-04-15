@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rtc/RTCServerThread.hpp>
 
 #include <core/lib/Queue.hpp>

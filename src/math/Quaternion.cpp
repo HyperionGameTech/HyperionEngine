@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <math/Quaternion.hpp>
 #include <math/Matrix4.hpp>
 

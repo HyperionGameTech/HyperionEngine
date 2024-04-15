@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef NOISE_FACTORY_H
 #define NOISE_FACTORY_H
 

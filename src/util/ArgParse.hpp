@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ARG_PARSE_HPP
 #define HYPERION_ARG_PARSE_HPP
 

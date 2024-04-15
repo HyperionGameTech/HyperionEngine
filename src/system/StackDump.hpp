@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_STACK_DUMP_H
 #define HYPERION_STACK_DUMP_H
 

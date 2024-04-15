@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <streaming/StreamedData.hpp>
 #include <streaming/DataStore.hpp>
 #include <core/lib/StaticString.hpp>

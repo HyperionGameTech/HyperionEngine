@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef ENUM_OPTIONS_H
 #define ENUM_OPTIONS_H
 

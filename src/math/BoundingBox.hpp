@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef BOUNDING_BOX_H
 #define BOUNDING_BOX_H
 

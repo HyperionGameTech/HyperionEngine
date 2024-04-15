@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <Engine.hpp>
 #include <rendering/RenderEnvironment.hpp>

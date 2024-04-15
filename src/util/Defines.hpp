@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DEFINES_H
 #define HYPERION_DEFINES_H
 

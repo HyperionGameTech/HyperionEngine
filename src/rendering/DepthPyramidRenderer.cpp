@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/backend/RendererDescriptorSet2.hpp>
 

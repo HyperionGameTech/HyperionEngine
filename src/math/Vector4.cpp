@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include "Vector4.hpp"
 #include "MathUtil.hpp"
 #include "Vector3.hpp"

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <core/lib/DynArray.hpp>
 #include <core/Util.hpp>
 #include <rendering/EntityDrawCollection.hpp>

@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <streaming/StreamedMeshData.hpp>
 
 #include <asset/serialization/Serialization.hpp>

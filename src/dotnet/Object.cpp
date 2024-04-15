@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>
 #include <dotnet/Assembly.hpp>

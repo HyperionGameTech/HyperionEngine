@@ -40,7 +40,6 @@ HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, Name *name)
 HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 {
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
-    DebugLog(LogType::Debug, "SetPosition called with ref count: %u\n", ui_object.GetRefCountData()->strong_count.load());
 
     if (!ui_object) {
         return;

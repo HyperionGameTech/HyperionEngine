@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <ui/UIScene.hpp>
 #include <ui/UIButton.hpp>
 #include <ui/UIText.hpp>
