@@ -21,7 +21,7 @@ void UITab::Init()
 {
     UIPanel::Init();
 
-    auto title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
+    auto title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 16, UIObjectSize::PIXEL }));
     title_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });

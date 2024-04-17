@@ -40,6 +40,11 @@ struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+FullScreenPass::FullScreenPass()
+    : FullScreenPass(InternalFormat::NONE, Extent2D { 0, 0 })
+{
+}
+
 FullScreenPass::FullScreenPass(InternalFormat image_format, Extent2D extent)
     : FullScreenPass(Handle<Shader>(), image_format, extent)
 {
@@ -65,14 +70,25 @@ FullScreenPass::FullScreenPass(
     Extent2D extent
 ) : m_shader(shader),
     m_image_format(image_format),
-    m_extent(extent)
+    m_extent(extent),
+    m_blend_function(BlendFunction::None())
 {
 }
 
 FullScreenPass::~FullScreenPass() = default;
 
+void FullScreenPass::SetBlendFunction(const BlendFunction &blend_function)
+{
+    m_blend_function = blend_function;
+}
+
 void FullScreenPass::Create()
 {
+    AssertThrowMsg(
+        m_image_format != InternalFormat::NONE,
+        "Image format must be set before creating the full screen pass"
+    );
+
     InitObject(m_shader);
 
     CreateQuad();
@@ -80,8 +96,6 @@ void FullScreenPass::Create()
     CreateFramebuffer();
     CreatePipeline();
     CreateDescriptors();
-
-    // HYP_SYNC_RENDER();
 }
 
 void FullScreenPass::SetShader(const Handle<Shader> &shader)
@@ -134,11 +148,15 @@ void FullScreenPass::CreateFramebuffer()
     DeferCreate(attachment, g_engine->GetGPUInstance()->GetDevice());
     m_attachments.PushBack(attachment);
 
-    auto attachment_usage = MakeRenderObject<renderer::AttachmentUsage>(
+    AttachmentUsageRef attachment_usage = MakeRenderObject<renderer::AttachmentUsage>(
         attachment,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
+
+    if (m_blend_function != BlendFunction::None()) {
+        attachment_usage->SetAllowBlending(true);
+    }
 
     DeferCreate(attachment_usage, g_engine->GetGPUInstance()->GetDevice());
     m_framebuffer->AddAttachmentUsage(attachment_usage);
@@ -153,8 +171,9 @@ void FullScreenPass::CreatePipeline()
             .vertex_attributes = static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .fill_mode  = FillMode::FILL,
-            .flags      = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .fill_mode      = FillMode::FILL,
+            .blend_function = m_blend_function,
+            .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
         }
     ));
 }
@@ -253,7 +272,7 @@ void FullScreenPass::Render(Frame *frame)
 
     m_framebuffer->BeginCapture(frame_index, frame->GetCommandBuffer());
 
-    auto *secondary_command_buffer = m_command_buffers[frame_index].Get();
+    const CommandBufferRef &secondary_command_buffer = m_command_buffers[frame_index];
     HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
 
     m_framebuffer->EndCapture(frame_index, frame->GetCommandBuffer());

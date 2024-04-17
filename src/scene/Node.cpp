@@ -585,22 +585,7 @@ void Node::UpdateWorldTransform()
         m_world_transform = m_local_transform;
     }
 
-    if (m_world_transform == transform_before) {
-        return;
-    }
-
     m_world_aabb = m_local_aabb * m_world_transform;
-
-    for (auto &node : m_child_nodes) {
-        AssertThrow(node != nullptr);
-        node->UpdateWorldTransform();
-
-        m_world_aabb.Extend(node->GetWorldAABB());
-    }
-
-    if (m_parent_node != nullptr) {
-        m_parent_node->m_world_aabb.Extend(m_world_aabb);
-    }
 
     if (m_entity.IsValid()) {
         m_scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(m_entity);
@@ -613,6 +598,19 @@ void Node::UpdateWorldTransform()
                 m_world_transform
             });
         }
+    }
+
+    if (m_parent_node != nullptr) {
+        m_parent_node->m_world_aabb.Extend(m_world_aabb);
+    }
+
+    if (m_world_transform == transform_before) {
+        return;
+    }
+
+    for (auto &node : m_child_nodes) {
+        AssertThrow(node != nullptr);
+        node->UpdateWorldTransform();
     }
 }
 

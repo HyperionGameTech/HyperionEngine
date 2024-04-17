@@ -213,6 +213,10 @@ public:
         { return m_texture_format_defaults.At(type); }
     
     HYP_FORCE_INLINE
+    FinalPass &GetFinalPass()
+        { return m_final_pass; }
+    
+    HYP_FORCE_INLINE
     const FinalPass &GetFinalPass() const
         { return m_final_pass; }
     

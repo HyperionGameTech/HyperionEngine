@@ -55,12 +55,14 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
     const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlases()->GetMainAtlas();
     AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
+    const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(Extent2D(main_texture_atlas->GetExtent()));
+
     for (SizeType i = 0; i < length; i++) {
         const utf::u32char ch = text.GetChar(i);
 
         if (ch == utf::u32char(' ')) {
             // add room for space
-            placement.x += 0.5f;
+            placement.x += float(cell_dimensions.width) * 0.5f;
 
             continue;
         }
@@ -68,7 +70,7 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         if (ch == utf::u32char('\n')) {
             // reset placement, add room for newline
             placement.x = 0.0f;
-            placement.y += 1.0f;
+            placement.y += float(cell_dimensions.height);
 
             continue;
         }
@@ -89,9 +91,8 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
         const float cell_dimensions_ratio = float(cell_dimensions.width) / float(cell_dimensions.height);
 
-        const Vec2f atlas_pixel_size = Vec2f::One() / (Vec2f(Extent2D(main_texture_atlas->GetExtent())) + 0.5f);
         const Vec2f glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) };
-        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions) / Vec2f(cell_dimensions_ratio, 1.0f));
+        const Vec2f glyph_scaling = Vec2f(glyph_dimensions) / (Vec2f(cell_dimensions));
 
         UICharMesh char_mesh;
         char_mesh.mesh_data = m_quad_mesh->GetStreamedMeshData();
@@ -101,32 +102,26 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         Array<Vertex> vertices = ref->GetMeshData().vertices;
         const Array<uint32> &indices = ref->GetMeshData().indices;
 
-        const float bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / float(glyph_metrics->metrics.height);
-        const float char_width = float(glyph_metrics->metrics.advance / 64) / float(glyph_metrics->metrics.width) * glyph_scaling.x;
+        const float bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y);
+        const float char_width = float(glyph_metrics->metrics.advance / 64);
 
         for (Vertex &vert : vertices) {
             const Vec3f current_position = vert.GetPosition();
 
             Vec2f position = (Vec2f { current_position.x, current_position.y } + Vec2f { 1.0f, 1.0f }) * 0.5f;
-
-            // scale to glyph size
-            position *= glyph_scaling;
-
-            // adjust for bearing
-            position.y += (bearing_y * glyph_scaling.y);
-
-            // adjust to fit line height
-            position.y += m_options.line_height - (glyph_scaling.y);
-            
-            // offset from other characters
+            position *= glyph_dimensions;
+            position.y += float(cell_dimensions.height) - (glyph_dimensions.y);
+            position.y += bearing_y;
             position += placement;
 
             vert.SetPosition(Vec3f { position.x, position.y, current_position.z });
-            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions - 0.5f))) * atlas_pixel_size);
+            vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * (glyph_dimensions))) * atlas_pixel_size);
+
+            // char_mesh.aabb.Extend(Vec3f { position.x, position.y - bearing_y, current_position.z });
         }
 
         char_mesh.aabb.Extend(Vec3f(placement.x, placement.y, 0.0f));
-        char_mesh.aabb.Extend(Vec3f(placement.x + char_width, placement.y + m_options.line_height, 0.0f));
+        char_mesh.aabb.Extend(Vec3f(placement.x + float(glyph_dimensions.x), placement.y + float(cell_dimensions.height), 0.0f));
 
         char_mesh.mesh_data = StreamedMeshData::FromMeshData({
             std::move(vertices),
@@ -147,10 +142,12 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
         return { };
     }
 
+    Transform base_transform;
+
     BoundingBox aabb = char_meshes[0].aabb;
 
     Handle<Mesh> char_mesh = CreateObject<Mesh>(char_meshes[0].mesh_data);
-    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), char_meshes[0].transform);
+    Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), base_transform * char_meshes[0].transform);
 
     for (SizeType i = 1; i < char_meshes.Size(); i++) {
         aabb.Extend(char_meshes[i].aabb);
@@ -161,7 +158,7 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
             transformed_mesh.Get(),
             char_mesh.Get(),
             Transform::identity,
-            char_meshes[i].transform
+            base_transform * char_meshes[i].transform
         );
     }
 
@@ -252,8 +249,10 @@ void UIText::UpdateMesh()
         SetLocalAABB(BoundingBox::Empty());
     }
 
-    // Update bounding box, size
+    // Update bounding box, size (Material gets updated as well)
     UpdateSize();
+    // Update positioning to ensure it's aligned correctly
+    UpdatePosition();
 }
 
 Handle<Material> UIText::GetMaterial() const

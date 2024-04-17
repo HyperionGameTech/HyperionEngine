@@ -21,7 +21,11 @@ namespace hyperion {
 
 class ShaderManagerSystem;
 
-extern HYP_API ShaderManagerSystem *g_shader_manager;
+extern ShaderManagerSystem *g_shader_manager;
+
+struct RENDER_COMMAND(SetUITexture);
+
+class FinalPass;
 
 // Performs tonemapping, samples last postfx in chain
 class CompositePass : public FullScreenPass
@@ -34,30 +38,52 @@ public:
 
     void CreateShader();
     virtual void Create() override;
+    virtual void Record(uint frame_index) override;
+    virtual void Render(Frame *frame) override;
+
+private:
 };
 
-class FinalPass
+class FinalPass : public FullScreenPass
 {
 public:
+    friend struct RENDER_COMMAND(SetUITexture);
+
     FinalPass();
     FinalPass(const FinalPass &other)               = delete;
     FinalPass &operator=(const FinalPass &other)    = delete;
-    ~FinalPass();
+    virtual ~FinalPass() override;
+
+    CompositePass &GetCompositePass()
+        { return m_composite_pass; }
+
+    const CompositePass &GetCompositePass() const
+        { return m_composite_pass; }
+
+    const Handle<Texture> &GetUITexture() const
+        { return m_ui_texture; }
+    
+    void SetUITexture(Handle<Texture> texture);
 
     const ImageRef &GetLastFrameImage() const
         { return m_last_frame_image; }
 
-    void Create();
-    void Destroy();
+    virtual void Create() override;
+    virtual void Destroy() override;
 
-    void Render(Frame *frame);
+    virtual void Record(uint frame_index) override;
+    virtual void Render(Frame *frame) override;
 
 private:
-    Array<AttachmentRef>    m_attachments;
-    Handle<RenderGroup>     m_render_group;
-    Handle<Mesh>            m_quad;
+    void RenderUITexture() const;
+
     CompositePass           m_composite_pass;
     ImageRef                m_last_frame_image;
+
+    // For UI blitting to screen
+    Handle<Texture>         m_ui_texture;
+    RC<FullScreenPass>      m_render_texture_to_screen_pass;
+    uint8                   m_dirty_frame_indices;
 };
 } // namespace hyperion
 

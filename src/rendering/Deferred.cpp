@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -705,19 +706,11 @@ void ReflectionProbePass::Create()
         },
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
-            .blend_function = BlendFunction::Default()
+            .blend_function = BlendFunction::AlphaBlending()
         }
     );
 
     CreatePipeline(renderable_attributes);
-
-    m_previous_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
-        m_image_format,
-        nullptr
-    ));
-
-    InitObject(m_previous_texture);
 
     // Create temporal blending pass
     m_temporal_blending.Reset(new TemporalBlending(
@@ -743,7 +736,7 @@ void ReflectionProbePass::Create()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(RenderTextureToScreenDescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InTexture), m_previous_texture->GetImageView());//m_temporal_blending->GetImageOutput((frame_index + (max_frames_in_flight - 1)) % max_frames_in_flight).image_view);//m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InTexture), m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -764,6 +757,11 @@ void ReflectionProbePass::Record(uint frame_index)
 
 void ReflectionProbePass::Render(Frame *frame)
 {
+    const uint frame_index = frame->GetFrameIndex();
+
+    const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
+    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+
     // Sky renders first
     static const FixedArray<EnvProbeType, ApplyReflectionProbeMode::MAX> reflection_probe_types {
         ENV_PROBE_TYPE_SKY,
@@ -791,11 +789,6 @@ void ReflectionProbePass::Render(Frame *frame)
             pass_ptrs[mode_index].second.PushBack(env_probe_id);
         }
     }
-
-    const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
-    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
-
-    const uint frame_index = frame->GetFrameIndex();
     
     GetFramebuffer()->BeginCapture(frame_index, frame->GetCommandBuffer());
 
@@ -913,21 +906,6 @@ void ReflectionProbePass::Render(Frame *frame)
     }
 
     GetFramebuffer()->EndCapture(frame_index, frame->GetCommandBuffer());
-
-    { // Blit the result to the previous texture
-        const ImageRef &copy_src_image = GetFramebuffer()->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
-
-        copy_src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        m_previous_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
-
-        m_previous_texture->GetImage()->Blit(
-            frame->GetCommandBuffer(),
-            copy_src_image
-        );
-
-        m_previous_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        copy_src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    }
     
     // Perform temporal blending on the images
     if (m_temporal_blending) {

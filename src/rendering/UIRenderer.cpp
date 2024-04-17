@@ -79,6 +79,8 @@ UIRenderer::UIRenderer(Name name, Handle<Scene> scene)
 
 UIRenderer::~UIRenderer()
 {
+    g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
+
     PUSH_RENDER_COMMAND(UnsetUITextureFromGlobalDescriptorSet, GetComponentIndex());
 
     HYP_SYNC_RENDER();
@@ -96,6 +98,11 @@ void UIRenderer::Init()
     InitObject(m_scene);
 
     m_render_list.SetCamera(m_scene->GetCamera());
+
+    g_engine->GetFinalPass().SetUITexture(CreateObject<Texture>(
+        m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage(),
+        m_framebuffer->GetAttachmentUsages()[0]->GetImageView()
+    ));
 }
 
 void UIRenderer::CreateFramebuffer()
@@ -116,7 +123,10 @@ void UIRenderer::CreateDescriptors()
 // called from game thread
 void UIRenderer::InitGame() { }
 
-void UIRenderer::OnRemoved() { }
+void UIRenderer::OnRemoved()
+{
+    g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
+}
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {

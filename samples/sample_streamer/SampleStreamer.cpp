@@ -371,7 +371,9 @@ void SampleStreamer::InitGame()
         m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
     }
 
-    // m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
+    // Used for RTC streaming or for editor view.
+    // Has a performance impact due to copying the framebuffer.
+    auto streaming_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     if (false) {
         auto terrain_node = m_scene->GetRoot().AddChild();
@@ -750,7 +752,7 @@ void SampleStreamer::InitGame()
             }
         });
 
-        auto tab_view = GetUIStage().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 400, 300 });
+        auto tab_view = GetUIStage().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 800, 800 });
         tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
 
@@ -776,15 +778,23 @@ void SampleStreamer::InitGame()
 
         auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
         auto ui_image = GetUIStage().CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
+        // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
+        ui_image->SetTexture(streaming_capture_component->GetTexture());
         game_tab->GetContents()->AddChildUIObject(ui_image);
 
         btn->AddChildUIObject(tab_view);
 
-        auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 15, UIObjectSize::PIXEL }));
-        ui_text->SetText("Hello");
+        auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
+        ui_text->SetText("Hi hello");
         ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        ui_text->OnClick.Bind([ui_text](...) -> bool
+        {
+            ui_text->SetText("Hi hello world\nMultiline test");
+
+            return false;
+        }).Detach();
+
         btn->AddChildUIObject(ui_text);
         
         ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });

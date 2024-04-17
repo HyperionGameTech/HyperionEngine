@@ -337,7 +337,7 @@ protected:
 
 private:
     void UpdateActualSizes();
-    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool clamp = false);
+    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size);
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda);

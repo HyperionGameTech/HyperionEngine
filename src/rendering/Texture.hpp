@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_TEXTURE_HPP
 #define HYPERION_TEXTURE_HPP
 
@@ -42,6 +43,11 @@ public:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
 
     Texture();
+
+    Texture(
+        ImageRef image,
+        ImageViewRef image_view
+    );
 
     Texture(
         Extent3D extent,

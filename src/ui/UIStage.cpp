@@ -45,29 +45,29 @@ void UIStage::Init()
 
     BasicObject::Init();
 
-    // if (const RC<Application> &application = g_engine->GetApplication()) {
-    //     const auto UpdateWindowSize = [this](ApplicationWindow *window)
-    //     {
-    //         if (window == nullptr) {
-    //             return;
-    //         }
+    if (const RC<Application> &application = g_engine->GetApplication()) {
+        const auto UpdateWindowSize = [this](ApplicationWindow *window)
+        {
+            if (window == nullptr) {
+                return;
+            }
 
-    //         const Vec2i size = Vec2i(window->GetDimensions());
+            const Vec2i size = Vec2i(window->GetDimensions());
 
-    //         m_surface_size = Vec2i(size);
+            m_surface_size = Vec2i(size);
 
-    //         if (m_scene.IsValid()) {
-    //             m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
-    //                 0.0f, -float(m_surface_size.x),
-    //                 0.0f, float(m_surface_size.y),
-    //                 float(min_depth), float(max_depth)
-    //             ));
-    //         }
-    //     };
+            if (m_scene.IsValid()) {
+                m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+                    0.0f, -float(m_surface_size.x),
+                    0.0f, float(m_surface_size.y),
+                    float(min_depth), float(max_depth)
+                ));
+            }
+        };
 
-    //     UpdateWindowSize(application->GetCurrentWindow());
-    //     m_on_current_window_changed_handler = application->OnCurrentWindowChanged.Bind(UpdateWindowSize);
-    // }
+        UpdateWindowSize(application->GetCurrentWindow());
+        m_on_current_window_changed_handler = application->OnCurrentWindowChanged.Bind(UpdateWindowSize);
+    }
 
     if (!m_default_font_atlas) {
         LoaderResult loader_result;

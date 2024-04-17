@@ -150,10 +150,7 @@ Extent2D Glyph::GetMax()
     AssertThrow(m_face != nullptr);
 
 #ifdef HYP_FREETYPE
-
     return { uint32(MathUtil::Abs(m_face->GetFace()->glyph->bitmap.pitch)), m_face->GetFace()->glyph->bitmap.rows };
-    // auto &box = m_face->GetFace()->glyph->metrics;
-    // return { (uint32)box.width/64, (uint32)box.height/64 };
 #else
     return { 0, 0 };
 #endif

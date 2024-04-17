@@ -50,8 +50,13 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance(), initial_state));
-        HYPERION_BUBBLE_ERRORS(image_view->Create(g_engine->GetGPUInstance()->GetDevice(), image.Get()));
+        if (image->GetGPUImage() == nullptr || !image->GetGPUImage()->IsCreated()) {
+            HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance(), initial_state));
+        }
+
+        if (!image_view->IsCreated()) {
+            HYPERION_BUBBLE_ERRORS(image_view->Create(g_engine->GetGPUInstance()->GetDevice(), image.Get()));
+        }
         
         if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             g_engine->GetRenderData()->textures.AddResource(id, image_view);
@@ -258,6 +263,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+#pragma region TextureMipmapRenderer
 
 class TextureMipmapRenderer
 {
@@ -358,6 +364,10 @@ private:
     Array<RC<FullScreenPass>>   m_passes;
 };
 
+#pragma endregion TextureMipmapRenderer
+
+#pragma region Texture
+
 Texture::Texture()
     : Texture(
           TextureImage(
@@ -372,6 +382,19 @@ Texture::Texture()
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
       )
 {
+}
+
+Texture::Texture(
+    ImageRef image,
+    ImageViewRef image_view
+) : BasicObject(),
+    m_image(image),
+    m_image_view(image_view),
+    m_filter_mode(image.IsValid() ? image->GetMinFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST),
+    m_wrap_mode(WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE)
+{
+    AssertThrowMsg(m_image.IsValid(), "Image must be valid");
+    AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
 }
 
 Texture::Texture(
@@ -524,5 +547,7 @@ Vec4f Texture::Sample(Vec2f uv) const
         return Vec4f::Zero();
     }
 }
+
+#pragma endregion Texture
 
 } // namespace hyperion

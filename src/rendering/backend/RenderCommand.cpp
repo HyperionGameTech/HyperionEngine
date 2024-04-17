@@ -19,6 +19,8 @@ uint RenderCommands::buffer_index = 0;
 // // initalized when they are first added to a material's descriptor set.
 // #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
+#pragma region RenderScheduler
+
 void RenderScheduler::Commit(RenderCommand *command)
 {
     m_commands.PushBack(command);
@@ -29,6 +31,17 @@ void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 {
     out_container = std::move(m_commands);
     m_num_enqueued.Set(0, MemoryOrder::RELAXED);
+}
+
+#pragma endregion RenderScheduler
+
+#pragma region RenderCommands
+
+void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command)
+{
+    std::unique_lock lock(mtx);
+
+    scheduler.Commit(command);
 }
 
 Result RenderCommands::Flush()
@@ -152,5 +165,7 @@ void RenderCommands::Rewind(uint buffer_index)
         it->rewind_func(it->render_command_list_ptr, buffer_index);
     }
 }
+
+#pragma endregion RenderCommands
 
 } // namespace hyperion::renderer

@@ -36,8 +36,10 @@ class HYP_API FullScreenPass
     using PushConstantData = Pipeline::PushConstantData;
 
 public:
+    FullScreenPass();
+
     FullScreenPass(
-        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        InternalFormat image_format,
         Extent2D extent = Extent2D { 0, 0 }
     );
 
@@ -54,8 +56,8 @@ public:
         Extent2D extent = Extent2D { 0, 0 }
     );
 
-    FullScreenPass(const FullScreenPass &) = delete;
-    FullScreenPass &operator=(const FullScreenPass &) = delete;
+    FullScreenPass(const FullScreenPass &)              = delete;
+    FullScreenPass &operator=(const FullScreenPass &)   = delete;
     virtual ~FullScreenPass();
 
     Extent2D GetExtent() const
@@ -107,13 +109,23 @@ public:
         }
     }
 
+    const BlendFunction &GetBlendFunction() const
+        { return m_blend_function; }
+
+    /*! \brief Sets the blend function of the render pass.
+        Must be set before Create() is called. */
+    void SetBlendFunction(const BlendFunction &blend_function);
+
     virtual void CreateCommandBuffers();
     virtual void CreateFramebuffer();
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
     virtual void CreatePipeline();
     virtual void CreateDescriptors();
 
+    /*! \brief Create the full screen pass */
     virtual void Create();
+
+    /*! \brief Destroy the full screen pass */
     virtual void Destroy();
 
     virtual void Render(Frame *frame);
@@ -137,6 +149,8 @@ protected:
     PushConstantData                                    m_push_constant_data;
 
     InternalFormat                                      m_image_format;
+
+    BlendFunction                                       m_blend_function;
 
     Optional<DescriptorTableRef>                        m_descriptor_table;
 };

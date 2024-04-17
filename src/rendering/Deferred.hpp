@@ -132,7 +132,6 @@ private:
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
     UniquePtr<TemporalBlending>                                                                     m_temporal_blending;
-    Handle<Texture>                                                                                 m_previous_texture;
     UniquePtr<FullScreenPass>                                                                       m_render_texture_to_screen_pass;
     bool                                                                                            m_is_first_frame;
 };

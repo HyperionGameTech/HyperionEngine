@@ -21,7 +21,7 @@ FontFace::FontFace(FontEngine::Backend backend, const FilePath &path)
         return;
     }
 
-    RequestPixelSizes(0, 20);
+    RequestPixelSizes(0, 10);
 #endif
 }
 
@@ -63,7 +63,7 @@ void FontFace::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_hei
 void FontFace::RequestPixelSizes(int width, int height)
 {
 #ifdef HYP_FREETYPE
-    if (FT_Set_Pixel_Sizes(m_face, width, height)) {
+    if (FT_Set_Pixel_Sizes(m_face, width, 64 * height)) {
         DebugLog(LogType::Error, "Error! could not set the height of fontface to %u, %u\n", width, height);
     }
 #endif

@@ -219,9 +219,9 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
     Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
 
-    if (bucket == BUCKET_UI) {
-        extent = {2000, 2000};//tmp
-    }
+    // if (bucket == BUCKET_UI) {
+    //     extent = {2000, 2000};//tmp
+    // }
 
     framebuffer = CreateObject<Framebuffer>(
         extent,
@@ -234,7 +234,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
         AddOwnedAttachment(
-            InternalFormat::RGBA8_SRGB,
+            InternalFormat::RGBA16F,
             framebuffer,
             attachments,
             extent

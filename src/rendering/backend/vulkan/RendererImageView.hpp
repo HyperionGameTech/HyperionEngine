@@ -48,6 +48,9 @@ public:
     uint NumFaces() const
         { return m_num_faces; }
 
+    bool IsCreated() const
+        { return m_is_created; }
+
     /* Create imageview referencing an Image */
     HYP_API Result Create(
         Device<Platform::VULKAN> *device,
@@ -70,6 +73,8 @@ private:
     VkImageView m_image_view;
 
     uint        m_num_faces;
+
+    bool        m_is_created;
 };
 
 } // namespace platform

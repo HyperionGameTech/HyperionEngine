@@ -133,6 +133,8 @@ void FontAtlas::Render()
             MathUtil::Ceil<float, uint32>(float(m_cell_dimensions.height) * scale)
         };
 
+        DebugLog(LogType::Info, "Rendering font atlas for pixel size %u\n", scaled_extent.height);
+
         Handle<Texture> atlas = CreateObject<Texture>(
             Texture2D(
                 Extent2D { scaled_extent.width * symbol_columns, scaled_extent.height * symbol_rows },
@@ -174,19 +176,13 @@ void FontAtlas::Render()
             RenderCharacter(atlas, position, scaled_extent, glyph);
         }
 
-        DebugLog(LogType::Debug, "Rendered font atlas for pixel size %u\n", scaled_extent.height);
-
         // Add initial atlas
         m_atlases->AddAtlas(scaled_extent.height, std::move(atlas), is_main_atlas);
     };
 
     RenderGlyphs(1.0f, true);
 
-    for (float i = 0.1f; i <= 0.9f; i += 0.1f) {
-        RenderGlyphs(i, false);
-    }
-
-    for (float i = 1.1f; i <= 2.0f; i += 0.1f) {
+    for (float i = 1.1f; i <= 3.0f; i += 0.1f) {
         RenderGlyphs(i, false);
     }
 

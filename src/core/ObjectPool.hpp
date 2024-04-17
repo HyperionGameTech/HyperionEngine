@@ -17,6 +17,8 @@
 
 #include <type_traits>
 
+//#define HYP_OBJECT_POOL_DEBUG
+
 namespace hyperion {
 
 class Engine;
@@ -62,22 +64,26 @@ class ObjectContainer : public ObjectContainerBase
 
         ~ObjectBytes()
         {
-            if (HasValue()) {
-                Get().~T();
-            }
+#ifdef HYP_OBJECT_POOL_DEBUG
+            AssertThrow(!HasValue());
+#endif
         }
 
         template <class ...Args>
         T *Construct(Args &&... args)
         {
+#ifdef HYP_OBJECT_POOL_DEBUG
             AssertThrow(!HasValue());
+#endif
 
             return new (bytes) T(std::forward<Args>(args)...);
         }
 
         HYP_FORCE_INLINE void IncRefStrong()
         {
+#ifdef HYP_OBJECT_POOL_DEBUG
             AssertThrow(HasValue());
+#endif
 
             ref_count_strong.Increment(1, MemoryOrder::RELAXED);
         }
@@ -89,7 +95,9 @@ class ObjectContainer : public ObjectContainerBase
 
         uint DecRefStrong()
         {
+#ifdef HYP_OBJECT_POOL_DEBUG
             AssertThrow(HasValue());
+#endif
 
             uint16 count;
 
@@ -123,9 +131,10 @@ class ObjectContainer : public ObjectContainerBase
             { return reinterpret_cast<const T *>(bytes); }
 
     private:
-
+#ifdef HYP_OBJECT_POOL_DEBUG
         HYP_FORCE_INLINE bool HasValue() const
-            { return has_value; }
+            { return has_value.Get(MemoryOrder::RELAXED); }
+#endif
     };
 
 public:
@@ -158,7 +167,6 @@ public:
 
     virtual void IncRefStrong(uint index) override
     {
-        AssertThrowMsg(m_data[index].has_value, "Object at index %u does not have a value!", index);
         m_data[index].IncRefStrong();
     }
 
@@ -170,7 +178,9 @@ public:
     virtual void DecRefStrong(uint index) override
     {
         if (m_data[index].DecRefStrong() == 0) {
+#ifdef HYP_OBJECT_POOL_DEBUG
             m_data[index].has_value = false;
+#endif
 
             if (m_data[index].GetRefCountWeak() == 0) {
                 m_id_generator.FreeID(index + 1);
@@ -209,7 +219,11 @@ public:
     HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
     {
         T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
+
+#ifdef HYP_OBJECT_POOL_DEBUG
         m_data[index].has_value = true;
+#endif
+
         ptr->SetID(ID<T> { index + 1 });
     }
 

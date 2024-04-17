@@ -13,32 +13,39 @@ namespace platform {
 
 ImageView<Platform::VULKAN>::ImageView()
     : m_image_view(VK_NULL_HANDLE),
-      m_num_faces(1)
+      m_num_faces(1),
+      m_is_created(false)
 {
 }
 
 ImageView<Platform::VULKAN>::ImageView(ImageView<Platform::VULKAN> &&other) noexcept
     : m_image_view(other.m_image_view),
-      m_num_faces(other.m_num_faces)
+      m_num_faces(other.m_num_faces),
+      m_is_created(other.m_is_created)
 {
     other.m_image_view = VK_NULL_HANDLE;
     other.m_num_faces = 1;
+    other.m_is_created = false;
 }
 
 ImageView<Platform::VULKAN> &ImageView<Platform::VULKAN>::operator=(ImageView<Platform::VULKAN> &&other) noexcept
 {
     m_image_view = other.m_image_view;
     m_num_faces = other.m_num_faces;
+    m_is_created = other.m_is_created;
 
     other.m_image_view = VK_NULL_HANDLE;
     other.m_num_faces = 1;
+    other.m_is_created = false;
 
     return *this;
 }
 
 ImageView<Platform::VULKAN>::~ImageView()
 {
-    AssertThrowMsg(m_image_view == VK_NULL_HANDLE, "image view should have been destroyed");
+    if (m_is_created) {
+        AssertThrowMsg(m_image_view == VK_NULL_HANDLE, "image view should have been destroyed");
+    }
 }
 
 Result ImageView<Platform::VULKAN>::Create(
@@ -78,6 +85,8 @@ Result ImageView<Platform::VULKAN>::Create(
         vkCreateImageView(device->GetDevice(), &view_info, nullptr, &m_image_view),
         "Failed to create image view"
     );
+
+    m_is_created = true;
 
     HYPERION_RETURN_OK;
 }
@@ -132,6 +141,8 @@ Result ImageView<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     vkDestroyImageView(device->GetDevice(), m_image_view, nullptr);
     m_image_view = nullptr;
+
+    m_is_created = false;
 
     HYPERION_RETURN_OK;
 }

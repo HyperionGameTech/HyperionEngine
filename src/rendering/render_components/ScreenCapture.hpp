@@ -3,7 +3,6 @@
 #ifndef HYPERION_SCREEN_CAPTURE_HPP
 #define HYPERION_SCREEN_CAPTURE_HPP
 
-#include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Light.hpp>
@@ -13,20 +12,26 @@
 
 #include <rendering/backend/RendererFrame.hpp>
 
-#include <core/containers/FixedArray.hpp>
-
 #include <math/BoundingBox.hpp>
+
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
-#include <Types.hpp>
 
-#include <array>
+#include <core/containers/FixedArray.hpp>
+
+#include <Types.hpp>
 
 namespace hyperion {
 
 using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
+
+enum class ScreenCaptureMode
+{
+    TO_TEXTURE,
+    TO_BUFFER
+};
 
 class HYP_API ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptureRenderComponent>
 {
@@ -35,12 +40,7 @@ class HYP_API ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptur
     GPUBufferRef    m_buffer;
 
 public:
-    ScreenCaptureRenderComponent(Name name, const Extent2D window_size)
-        : RenderComponent(name),
-          m_window_size(window_size)
-    {
-    }
-
+    ScreenCaptureRenderComponent(Name name, const Extent2D window_size, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
     virtual ~ScreenCaptureRenderComponent() = default;
 
     const GPUBufferRef &GetBuffer() const
@@ -59,6 +59,8 @@ public:
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { }
+
+    ScreenCaptureMode   m_screen_capture_mode;
 };
 
 } // namespace hyperion

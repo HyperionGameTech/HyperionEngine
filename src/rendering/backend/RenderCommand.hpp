@@ -159,10 +159,22 @@ struct RenderCommandHolder
     RenderCommandFunc   rewind_func = nullptr;
 };
 
+/*! \brief A custom, overridable render command that can be used outside of
+    the main Hyperion DLL.
+    \details This is useful for custom render commands that need to be executed
+    in the render thread, but are not part of the main Hyperion DLL. 
+*/
+struct HYP_API RENDER_COMMAND(CustomRenderCommand) : RenderCommand
+{
+    RENDER_COMMAND(CustomRenderCommand)()                   = default;
+    virtual ~RENDER_COMMAND(CustomRenderCommand)() override = default;
+
+    virtual Result operator()() override = 0;
+};
+
 class RenderCommands
 {
 private:
-
     // last item must always have render_command_list_ptr be nullptr
     static FixedArray<RenderCommandHolder, max_render_command_types>    holders;
     static AtomicVar<SizeType>                                          render_command_type_index;
@@ -174,10 +186,22 @@ private:
     static RenderScheduler                                              scheduler;
 
 public:
+    /*! \brief Push a render command to the render command queue.
+        \details The render command will be executed in the render thread.
+
+        \tparam T The type of the render command to push. Must derive RenderCommand.
+        \tparam Args The arguments to pass to the constructor of the render command.
+
+        \param args The arguments to pass to the constructor of the render command.
+
+        \return A pointer to the render command that was pushed.
+    */
     template <class T, class ...Args>
     HYP_FORCE_INLINE
     static T *Push(Args &&... args)
     {
+        static_assert(std::is_base_of_v<RenderCommand, T>, "T must derive RenderCommand");
+
         std::unique_lock lock(mtx);
         
         void *mem = Alloc<T>(buffer_index);
@@ -191,6 +215,31 @@ public:
 
         return ptr;
     }
+
+    /*! \brief Push a custom render command to the render command queue.
+        The class must virtually inherit from RENDER_COMMAND(CustomRenderCommand) and implement the operator() method.
+
+        \details It is important to note that the memory for the command is NOT managed by the render command queue, but the destructor is will called without freeing the memory.
+        Therefore, the object should be allocated using the following pattern:
+        \code{.cpp}
+        struct MyCustomRenderCommand : public RENDER_COMMAND(CustomRenderCommand)
+        {
+            // ... implementation here
+        };
+
+        static_cast<MyCustomRenderCommand *> command = hyperion::Memory::AllocateAndConstruct<MyCustomRenderCommand>(...);
+        hyperion::renderer::RenderCommands::PushCustomRenderCommand(command);
+
+        // ... elsewhere, after the command has been executed
+        hyperion::Memory::Free(command);
+        \endcode
+
+        \attention Ownership of the command is NOT transferred to the render command queue, so the memory must be managed elsewhere.
+        HOWEVER, your calling code must NOT call the destructor of your object, as the render command queue already does this.
+        This is a complexity of the design due to how render commands within the Hyperion library are typically handled, using a custom allocation method.
+        However, this allocation method is not suitable for use outside of the library, so this method is provided as a workaround to still allow you to use the render command queue.
+    */
+    static HYP_API void PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command);
 
     HYP_FORCE_INLINE static SizeType Count()
         { return scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE); }

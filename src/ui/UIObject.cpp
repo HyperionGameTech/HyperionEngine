@@ -647,18 +647,16 @@ void UIObject::UpdateActualSizes()
 {
     if (m_max_size.GetValue().x != 0 || m_max_size.GetValue().y != 0) {
         ComputeActualSize(m_max_size, m_actual_max_size);
-    } else {
-        m_actual_max_size = m_actual_size;
     }
 
-    ComputeActualSize(m_size, m_actual_size, true);
+    ComputeActualSize(m_size, m_actual_size);
 
     // clamp actual size to max size (if set for either x or y axis)
     m_actual_size.x = m_actual_max_size.x != 0 ? MathUtil::Min(m_actual_size.x, m_actual_max_size.x) : m_actual_size.x;
     m_actual_size.y = m_actual_max_size.y != 0 ? MathUtil::Min(m_actual_size.y, m_actual_max_size.y) : m_actual_size.y;
 }
 
-void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, bool clamp)
+void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size)
 {
     const UIObject *parent_ui_object = GetParentUIObject();
 
@@ -702,6 +700,8 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
                 MathUtil::Floor(float(out_actual_size.y) * ratios.x),
                 MathUtil::Floor(float(out_actual_size.x) * ratios.y)
             };
+
+            DebugLog(LogType::Debug, "Ratio of w to h for object %s: %f\n", GetName().LookupString(), ratios.x);
         }
 
         if (in_size.GetFlagsX() & UIObjectSize::GROW) {
@@ -715,6 +715,14 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
     // make sure the actual size is at least 0
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
+
+    DebugLog(
+        LogType::Debug,
+        "Computed actual size for object %s: %d, %d\n",
+        GetName().LookupString(),
+        out_actual_size.x,
+        out_actual_size.y
+    );
 }
 
 void UIObject::UpdateMeshData()
