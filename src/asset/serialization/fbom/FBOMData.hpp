@@ -180,17 +180,17 @@ struct FBOMData
         return data;
     }
 
-    bool IsStruct() const
-        { return type.IsOrExtends(FBOMStruct(0)); }
+    bool IsStruct(const char *type_name) const
+        { return type.IsOrExtends(FBOMStruct(type_name, 0)); }
 
-    bool IsStruct(SizeType size) const
-        { return type.IsOrExtends(FBOMStruct(size)); }
+    bool IsStruct(const char *type_name, SizeType size) const
+        { return type.IsOrExtends(FBOMStruct(type_name, size)); }
 
-    FBOMResult ReadStruct(SizeType size, void *out) const
+    FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
     {
         AssertThrow(out != nullptr);
 
-        FBOM_ASSERT(IsStruct(size), "Object is not a struct or not struct of requested size");
+        FBOM_ASSERT(IsStruct(type_name, size), "Object is not a struct or not struct of requested size");
 
         ReadBytes(size, out);
 
@@ -201,8 +201,9 @@ struct FBOMData
     FBOMResult ReadStruct(T *out) const
     {
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
 
-        return ReadStruct(sizeof(T), out);
+        return ReadStruct(TypeNameWithoutNamespace<T>().Data(), sizeof(T), out);
     }
 
     bool IsSequence() const

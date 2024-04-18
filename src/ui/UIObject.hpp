@@ -208,9 +208,17 @@ public:
     Vec2i GetActualSize() const
         { return m_actual_size; }
 
+    /*! \brief Get the DrawableLayer of the UI object, based on its depth and parent index.
+     *
+     * The DrawableLayer of the UI object is used to determine the rendering order of the object in the scene.
+     *
+     * \return The DrawableLayer of the UI object
+     */
+    DrawableLayer GetDrawableLayer() const;
+
     /*! \brief Get the depth of the UI object
      *
-     * The depth of the UI object is used to determine the rendering order of the object in the scene, with higher depth values being rendered on top of lower depth values.
+     * The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      * If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *
      * \return The depth of the UI object
@@ -219,7 +227,7 @@ public:
 
     /*! \brief Set the depth of the UI object
      *
-     * The depth of the UI object is used to determine the rendering order of the object in the scene, with higher depth values being rendered on top of lower depth values.
+     * The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      * Set the depth to a value between UIStage::min_depth and UIStage::max_depth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *
      * \param depth The depth of the UI object

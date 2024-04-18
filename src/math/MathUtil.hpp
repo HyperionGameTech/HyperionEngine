@@ -465,19 +465,6 @@ public:
         return f;
     }
 
-    static uint64 BitCount(uint64 value)
-    {
-#if HYP_WINDOWS
-        return __popcnt64(value);
-#else
-        // https://graphics.stanford.edu/~seander/bithacks.html
-        value = value - ((value >> 1) & (uint64)~(uint64)0/3); 
-        value = (value & (uint64)~(uint64)0/15*3) + ((value >> 2) & (uint64)~(uint64)0/15*3);
-        value = (value + (value >> 4)) & (uint64)~(uint64)0/255*15;
-        return (uint64)(value * ((uint64)~(uint64)0/255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
-#endif
-    }
-
     template <class T, class U = T, class V = U>
     HYP_FORCE_INLINE
     static constexpr bool InRange(T value, const std::pair<U, V> &range)

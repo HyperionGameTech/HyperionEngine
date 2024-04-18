@@ -42,6 +42,7 @@
 #include <ui/UIButton.hpp>
 #include <ui/UIPanel.hpp>
 #include <ui/UITabView.hpp>
+#include <ui/UIMenuBar.hpp>
 #include <ui/UIGrid.hpp>
 #include <ui/UIImage.hpp>
 
@@ -742,19 +743,39 @@ void SampleStreamer::InitGame()
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto btn = GetUIStage().CreateUIObject<UIButton>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, Vec2i { 100, 40 }, true)) {
+    if (auto main_panel = GetUIStage().CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true)) {
         // btn->SetPadding(Vec2i { 5, 5 });
         
-        GetUIStage().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
-            {
-                .assembly_name  = "csharp.dll",
-                .class_name     = "TestUIScript"
-            }
+        // GetUIStage().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
+        //     {
+        //         .assembly_name  = "csharp.dll",
+        //         .class_name     = "TestUIScript"
+        //     }
+        // });
+
+
+        auto menu_bar = GetUIStage().CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        menu_bar->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
+        menu_bar->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
+
+        auto file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
+        file_menu_item->SetDropDownMenuItems({
+            { HYP_NAME(New), "New" },
+            { HYP_NAME(Open), "Open" },
+            { HYP_NAME(Save), "Save" },
+            { HYP_NAME(SaveAs), "Save As" },
+            { HYP_NAME(Exit), "Exit" }
         });
 
-        auto tab_view = GetUIStage().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 250, 0 }, Vec2i { 800, 800 });
-        tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
+        
+        main_panel->AddChildUIObject(menu_bar);
+
+
+        auto tab_view = GetUIStage().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 60, 80 }, Vec2i { 1150, 650 });
+        tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
+        main_panel->AddChildUIObject(tab_view);
 
         auto scene_tab_content_grid = GetUIStage().CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
         scene_tab_content_grid->SetNumColumns(3);
@@ -782,22 +803,23 @@ void SampleStreamer::InitGame()
         ui_image->SetTexture(streaming_capture_component->GetTexture());
         game_tab->GetContents()->AddChildUIObject(ui_image);
 
-        btn->AddChildUIObject(tab_view);
 
-        auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
-        ui_text->SetText("Hi hello");
-        ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
-        ui_text->OnClick.Bind([ui_text](...) -> bool
-        {
-            ui_text->SetText("Hi hello world\nMultiline test");
 
-            return false;
-        }).Detach();
 
-        btn->AddChildUIObject(ui_text);
+        // auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
+        // ui_text->SetText("Hi hello");
+        // ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        // ui_text->OnClick.Bind([ui_text](...) -> bool
+        // {
+        //     ui_text->SetText("Hi hello world\nMultiline test");
+
+        //     return false;
+        // }).Detach();
+
+        // btn->AddChildUIObject(ui_text);
         
-        ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
+        // ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
         // auto new_btn = GetUIStage().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
         // new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);

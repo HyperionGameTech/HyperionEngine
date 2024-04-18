@@ -21,7 +21,7 @@ void UITab::Init()
 {
     UIPanel::Init();
 
-    auto title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 16, UIObjectSize::PIXEL }));
+    auto title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 14, UIObjectSize::PIXEL }));
     title_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
     title_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -54,7 +54,7 @@ Handle<Material> UITab::GetMaterial() const
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
-            .z_layer            = GetDepth()
+            .layer              = GetDrawableLayer()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.05f, 0.06f, 0.09f, 1.0f } }
@@ -136,9 +136,6 @@ void UITabView::SetSelectedTabIndex(uint index)
     if (!tab || !tab->GetContents()) {
         return;
     }
-
-    AssertThrow(tab != nullptr);
-    AssertThrow(tab->GetContents() != nullptr);
 
     tab->SetFocusState(tab->GetFocusState() | UI_OBJECT_FOCUS_STATE_TOGGLED);
 

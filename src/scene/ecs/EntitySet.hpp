@@ -9,10 +9,12 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/IDCreator.hpp>
 #include <core/Handle.hpp>
+
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityContainer.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 #include <scene/ecs/EntitySetBase.hpp>
+
 #include <Types.hpp>
 
 #include <tuple>
@@ -128,7 +130,8 @@ public:
     const EntityContainer &GetEntityContainer() const
         { return m_entities; }
 
-    /*! \brief Gets a component. */
+    /*! \brief Gets a component.
+        \return Reference to the component. */
     template <class Component>
     Component &GetComponent(ID<Entity> entity)
     {
@@ -137,7 +140,8 @@ public:
         return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
 
-    /*! \brief Gets a component. */
+    /*! \brief Gets a component.
+        \return Reference to the component. */
     template <class Component>
     const Component &GetComponent(ID<Entity> entity) const
     {
@@ -162,7 +166,8 @@ public:
         }
     }
 
-    /*! \brief To be used by the EntityManager */
+    /*! \brief To be used by the EntityManager
+        \note Do not call this function directly. */
     virtual void OnEntityUpdated(ID<Entity> entity) override
     {
         const auto entity_element_it = m_elements.FindIf([&entity](const Element &element)
@@ -199,6 +204,11 @@ public:
         return m_entities.GetEntityData(entity).template HasComponents<Components...>();
     }
 
+    /*! \brief Iterates over the entities in this EntitySet, in parallel.
+     *
+     *  \param task_system The task system to use for parallelization.
+     *  \param lambda The lambda to call for each entity.
+     */
     template <class TaskSystem, class Lambda>
     void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
     {

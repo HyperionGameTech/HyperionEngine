@@ -584,9 +584,9 @@ private:
 
 struct ParseResult
 {
-    bool ok = true;
-    String message;
-    JSONValue value;
+    bool        ok = true;
+    String      message;
+    JSONValue   value;
 };
 
 class HYP_API JSON

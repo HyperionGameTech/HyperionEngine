@@ -19,7 +19,7 @@ public:
     {
         out.SetProperty(
             "vertices",
-            FBOMSequence(FBOMStruct(sizeof(Vertex)), in_object.vertices.Size()),
+            FBOMSequence(FBOMStruct::Create<Vertex>(), in_object.vertices.Size()),
             in_object.vertices.Data()
         );
     
@@ -37,12 +37,12 @@ public:
         Array<Vertex> vertices;
 
         if (const auto &vertices_property = in.GetProperty("vertices")) {
-            const auto num_vertices = vertices_property.NumElements(FBOMStruct(sizeof(Vertex)));
+            const auto num_vertices = vertices_property.NumElements(FBOMStruct::Create<Vertex>());
 
             if (num_vertices != 0) {
                 vertices.Resize(num_vertices);
 
-                if (auto err = vertices_property.ReadElements(FBOMStruct(sizeof(Vertex)), num_vertices, vertices.Data())) {
+                if (auto err = vertices_property.ReadElements(FBOMStruct::Create<Vertex>(), num_vertices, vertices.Data())) {
                     return err;
                 }
             }

@@ -21,7 +21,28 @@ struct FBOMLong         : FBOMType { FBOMLong() : FBOMType("i64", 8) { } };
 struct FBOMFloat        : FBOMType { FBOMFloat() : FBOMType("f32", 4) {} };
 struct FBOMBool         : FBOMType { FBOMBool() : FBOMType("bool", 1) { } };
 struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1) { } };
-struct FBOMStruct       : FBOMType { FBOMStruct(SizeType sz) : FBOMType("struct", sz) { } };
+
+struct FBOMStruct : FBOMType
+{
+    FBOMStruct(const char *type_name, SizeType sz)
+        : FBOMType(type_name, sz)
+    {
+    }
+
+    template <class T>
+    static FBOMStruct Create()
+    {
+        static_assert(!std::is_pointer_v<T>, "Cannot create struct of pointer type");
+        static_assert(!std::is_reference_v<T>, "Cannot create struct of reference type");
+        static_assert(!std::is_const_v<T>, "Cannot create struct of const type");
+        static_assert(!std::is_volatile_v<T>, "Cannot create struct of volatile type");
+
+        static_assert(std::is_standard_layout_v<T>, "Cannot create struct of non-standard layout type");
+        static_assert(std::is_trivially_copyable_v<T>, "Cannot create struct of non-trivially copyable type");
+
+        return FBOMStruct(TypeNameWithoutNamespace<T>().Data(), sizeof(T));
+    }
+};
 
 struct FBOMSequence : FBOMType
 {

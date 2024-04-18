@@ -31,8 +31,8 @@ public:
         out.SetProperty("world_transform.rotation", FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
         out.SetProperty("world_transform.scale", FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
 
-        out.SetProperty("local_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetLocalAABB());
-        out.SetProperty("world_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetWorldAABB());
+        out.SetProperty("local_aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetLocalAABB());
+        out.SetProperty("world_aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetWorldAABB());
 
         switch (in_object.GetType()) {
         case Node::Type::NODE:
@@ -133,13 +133,13 @@ public:
             BoundingBox local_aabb = BoundingBox::Empty();
             BoundingBox world_aabb = BoundingBox::Empty();
 
-            if (auto err = in.GetProperty("local_aabb").ReadStruct(sizeof(BoundingBox), &local_aabb)) {
+            if (auto err = in.GetProperty("local_aabb").ReadStruct<BoundingBox>(&local_aabb)) {
                 return err;
             }
 
             node_ptr->SetLocalAABB(local_aabb);
 
-            if (auto err = in.GetProperty("world_aabb").ReadStruct(sizeof(BoundingBox), &world_aabb)) {
+            if (auto err = in.GetProperty("world_aabb").ReadStruct<BoundingBox>(&world_aabb)) {
                 return err;
             }
 

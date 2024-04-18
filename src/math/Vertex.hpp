@@ -1,13 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef VERTEX_HPP
-#define VERTEX_HPP
+#ifndef HYPERION_VERTEX_HPP
+#define HYPERION_VERTEX_HPP
 
 #define MAX_BONE_WEIGHTS 4
 #define MAX_BONE_INDICES 4
 
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Variant.hpp>
+
 #include <util/EnumOptions.hpp>
+#include <util/ByteUtil.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
@@ -74,41 +76,41 @@ struct VertexAttributeSet
     constexpr VertexAttributeSet(VertexAttribute::Type flags)
         : flag_mask(uint64(flags)) {}
 
-    constexpr VertexAttributeSet(const VertexAttributeSet &other)
-        : flag_mask(other.flag_mask) {}
+    constexpr VertexAttributeSet(const VertexAttributeSet &other)   = default;
+    VertexAttributeSet &operator=(const VertexAttributeSet &other)  = default;
+    ~VertexAttributeSet()                                           = default;
 
-    VertexAttributeSet &operator=(const VertexAttributeSet &other)
-    {
-        flag_mask = other.flag_mask;
-
-        return *this;
-    }
-
-    ~VertexAttributeSet() = default;
-
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    explicit operator bool() const { return flag_mask != 0; }
+    explicit operator bool() const
+        { return flag_mask != 0; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const VertexAttributeSet &other) const
         { return flag_mask == other.flag_mask; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const VertexAttributeSet &other) const
         { return flag_mask != other.flag_mask; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(uint64 flags) const
         { return flag_mask == flags; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(uint64 flags) const
         { return flag_mask != flags; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     VertexAttributeSet operator~() const
         { return ~flag_mask; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     VertexAttributeSet operator&(const VertexAttributeSet &other) const
         { return { flag_mask & other.flag_mask }; }
@@ -117,6 +119,7 @@ struct VertexAttributeSet
     VertexAttributeSet &operator&=(const VertexAttributeSet &other)
         { flag_mask &= other.flag_mask; return *this; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     VertexAttributeSet operator&(uint64 flags) const
         { return { flag_mask & flags }; }
@@ -125,6 +128,7 @@ struct VertexAttributeSet
     VertexAttributeSet &operator&=(uint64 flags)
         { flag_mask &= flags; return *this; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     VertexAttributeSet operator|(const VertexAttributeSet &other) const
         { return { flag_mask | other.flag_mask }; }
@@ -133,6 +137,7 @@ struct VertexAttributeSet
     VertexAttributeSet &operator|=(const VertexAttributeSet &other)
         { flag_mask |= other.flag_mask; return *this; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     VertexAttributeSet operator|(uint64 flags) const
         { return { flag_mask | flags }; }
@@ -141,11 +146,15 @@ struct VertexAttributeSet
     VertexAttributeSet &operator|=(uint64 flags)
         { flag_mask |= flags; return *this; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool operator<(const VertexAttributeSet &other) const { return flag_mask < other.flag_mask; }
+    bool operator<(const VertexAttributeSet &other) const
+        { return flag_mask < other.flag_mask; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool Has(VertexAttribute::Type type) const { return bool(operator&(uint64(type))); }
+    bool Has(VertexAttribute::Type type) const
+        { return bool(operator&(uint64(type))); }
 
     HYP_FORCE_INLINE
     void Set(uint64 flags, bool enable = true)
@@ -165,13 +174,15 @@ struct VertexAttributeSet
     void Merge(const VertexAttributeSet &other)
         { flag_mask |= other.flag_mask; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint Size() const
-        { return uint(MathUtil::BitCount(flag_mask)); }
+        { return uint(ByteUtil::BitCount(flag_mask)); }
 
     HYP_API Array<VertexAttribute::Type> BuildAttributes() const;
     HYP_API SizeType CalculateVertexSize() const;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -247,19 +258,10 @@ struct alignas(16) Vertex
         }
     }
 
-    Vertex(const Vertex &other)
-        : position(other.position),
-          normal(other.normal),
-          texcoord0(other.texcoord0),
-          texcoord1(other.texcoord1),
-          tangent(other.tangent),
-          bitangent(other.bitangent),
-          num_indices(other.num_indices),
-          num_weights(other.num_weights),
-          bone_weights(other.bone_weights),
-          bone_indices(other.bone_indices)
-    {
-    }
+    Vertex(const Vertex &other)                 = default;
+    Vertex(Vertex &&other) noexcept             = default;
+    Vertex &operator=(const Vertex &other)      = default;
+    Vertex &operator=(Vertex &&other) noexcept  = default;
 
     bool operator==(const Vertex &other) const;
     // Vertex &operator=(const Vertex &other);

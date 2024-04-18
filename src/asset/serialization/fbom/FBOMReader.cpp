@@ -9,18 +9,6 @@ FBOMReader::FBOMReader(const FBOMConfig &config)
       m_in_static_data(false),
       m_swap_endianness(false)
 {
-    m_registered_types = {
-        FBOMUnsignedInt(),
-        FBOMUnsignedLong(),
-        FBOMInt(),
-        FBOMLong(),
-        FBOMFloat(),
-        FBOMBool(),
-        FBOMByte(),
-        FBOMString(),
-        FBOMStruct(0),
-        FBOMSequence()
-    };
 }
 
 FBOMReader::~FBOMReader() = default;

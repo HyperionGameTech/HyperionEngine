@@ -67,7 +67,8 @@ public:
      */
     virtual void RemoveEntity(ID<Entity> entity) = 0;
 
-    /*! \brief To be used by the EntityManager */
+    /*! \brief To be used by the EntityManager
+        \note Do not call this function directly. */
     virtual void OnEntityUpdated(ID<Entity> entity) = 0;
 };
 

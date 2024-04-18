@@ -37,7 +37,7 @@ Handle<Material> UIImage::GetMaterial() const
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
-            .z_layer            = GetDepth()
+            .layer              = GetDrawableLayer()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 1.0f, 1.0f, 1.0f, 1.0f } }

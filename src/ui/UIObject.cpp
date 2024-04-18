@@ -394,6 +394,13 @@ void UIObject::SetFocusState(UIObjectFocusState focus_state)
     UpdateMeshData();
 }
 
+DrawableLayer UIObject::GetDrawableLayer() const
+{
+    const NodeProxy &node = GetNode();
+    
+    return DrawableLayer(node != nullptr ? node->FindSelfIndex() : 0, GetDepth());
+}
+
 int UIObject::GetDepth() const
 {
     if (m_depth != 0) {
@@ -577,7 +584,7 @@ Handle<Material> UIObject::GetMaterial() const
             .blend_function     = BlendFunction::AlphaBlending(),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
-            .z_layer            = GetDepth()
+            .layer              = GetDrawableLayer()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.0f, 0.005f, 0.015f, 0.95f } }
@@ -706,10 +713,12 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
         if (in_size.GetFlagsX() & UIObjectSize::GROW) {
             out_actual_size.x = dynamic_size.x;
+            out_actual_size.x += m_padding.x * 2;
         }
 
         if (in_size.GetFlagsY() & UIObjectSize::GROW) {
             out_actual_size.y = dynamic_size.y;
+            out_actual_size.y += m_padding.y * 2;
         }
     }
 

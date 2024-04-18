@@ -84,12 +84,15 @@ public:
     World &operator=(const World &other)    = delete;
     ~World();
 
-    /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene. */
+    /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
+     *  \details This version of the function returns the Scene object handle for the detached Scene. */
     const Handle<Scene> &GetDetachedScene();
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
-     *         This version of the function allows the caller to specify the thread mask the Scene uses for entity management.
-        \param thread_mask The thread mask the Scene should be associated with.
+     *  This version of the function allows the caller to specify the thread mask the Scene uses for entity management.
+     *  If the Scene does not exist for the given thread mask, it will be created.
+     *\param thread_mask The thread mask the Scene should be associated with.
+     * \return The handle for the detached Scene for the given thread mask.
      */
     const Handle<Scene> &GetDetachedScene(ThreadMask thread_mask);
 
@@ -110,8 +113,7 @@ public:
     
     /*! \brief Perform any necessary game thread specific updates to the World.
      * The main logic loop of the engine happens here. Each Scene in the World is updated,
-     * and within each Scene, each Entity, etc.
-     */
+     * and within each Scene, each Entity, etc. */
     void Update(GameCounter::TickUnit delta);
 
     /*! \brief Perform any necessary render thread specific updates to the World. */

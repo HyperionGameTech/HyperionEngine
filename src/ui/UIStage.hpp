@@ -47,18 +47,47 @@ public:
     UIStage &operator=(const UIStage &other)    = delete;
     HYP_API ~UIStage();
 
+    /*! \brief Get the size of the surface that the UI objects are rendered on.
+     * 
+     * \return The size of the surface. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Vec2i GetSurfaceSize() const
         { return m_surface_size; }
 
+    /*! \brief Get the scene that contains the UI objects.
+     * 
+     * \return Handle to the scene. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const Handle<Scene> &GetScene() const
         { return m_scene; }
 
+    /*! \brief Get the default font atlas to use for text rendering.
+     * UIText objects will use this font atlas if they don't have a font atlas set.
+     * 
+     * \return The default font atlas. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const RC<FontAtlas> &GetDefaultFontAtlas() const
         { return m_default_font_atlas; }
 
+    /*! \brief Set the default font atlas to use for text rendering.
+     * UIText objects will use this font atlas if they don't have a font atlas set.
+     * 
+     * \param font_atlas The font atlas to set. */
+    HYP_FORCE_INLINE
     void SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
         { m_default_font_atlas = std::move(font_atlas); }
 
+    /*! \brief Create a UI object of type T and optionally attach it to the root.
+     * 
+     * \tparam T The type of UI object to create. Must be a derived class of UIObject.
+     * \param name The name of the UI object.
+     * \param position The position of the UI object.
+     * \param size The size of the UI object.
+     * \param attach_to_root Whether to attach the UI object to the root of the UI scene immediately.
+     * \return A handle to the created UI object. */
     template <class T>
     RC<T> CreateUIObject(
         Name name,

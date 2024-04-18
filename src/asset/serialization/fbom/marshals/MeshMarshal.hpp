@@ -18,7 +18,7 @@ public:
     virtual FBOMResult Serialize(const Mesh &in_object, FBOMObject &out) const override
     {
         out.SetProperty("topology", FBOMUnsignedInt(), in_object.GetTopology());
-        out.SetProperty("attributes", FBOMStruct(sizeof(VertexAttributeSet)), &in_object.GetVertexAttributes());
+        out.SetProperty("attributes", FBOMStruct::Create<VertexAttributeSet>(), &in_object.GetVertexAttributes());
 
         const RC<StreamedMeshData> &streamed_mesh_data = in_object.GetStreamedMeshData();
 
@@ -30,19 +30,19 @@ public:
             out.SetProperty(
                 "num_vertices",
                 FBOMUnsignedInt(),
-                static_cast<uint32>(mesh_data.vertices.Size())
+                uint32(mesh_data.vertices.Size())
             );
 
             out.SetProperty(
                 "vertices",
-                FBOMSequence(FBOMStruct(sizeof(Vertex)), mesh_data.vertices.Size()),
+                FBOMSequence(FBOMStruct::Create<Vertex>(), mesh_data.vertices.Size()),
                 mesh_data.vertices.Data()
             );
 
             out.SetProperty(
                 "num_indices",
                 FBOMUnsignedInt(),
-                static_cast<uint32>(mesh_data.indices.Size())
+                uint32(mesh_data.indices.Size())
             );
         
             out.SetProperty(
@@ -59,7 +59,7 @@ public:
 
             out.SetProperty(
                 "vertices",
-                FBOMSequence(FBOMStruct(sizeof(Vertex)), 0),
+                FBOMSequence(FBOMStruct::Create<Vertex>(), 0),
                 nullptr
             );
 
@@ -96,12 +96,12 @@ public:
         Array<Vertex> vertices;
 
         if (const auto &vertices_property = in.GetProperty("vertices")) {
-            const auto num_vertices = vertices_property.NumElements(FBOMStruct(sizeof(Vertex)));
+            const auto num_vertices = vertices_property.NumElements(FBOMStruct::Create<Vertex>());
 
             if (num_vertices != 0) {
                 vertices.Resize(num_vertices);
 
-                if (auto err = vertices_property.ReadElements(FBOMStruct(sizeof(Vertex)), num_vertices, vertices.Data())) {
+                if (auto err = vertices_property.ReadElements(FBOMStruct::Create<Vertex>(), num_vertices, vertices.Data())) {
                     return err;
                 }
             }

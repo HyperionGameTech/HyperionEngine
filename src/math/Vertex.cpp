@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-// VertexAttributeSet
+#pragma region VertexAttributeSet
 
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
 {
@@ -37,7 +37,9 @@ SizeType VertexAttributeSet::CalculateVertexSize() const
     return size;
 }
 
-// VertexAttribute
+#pragma endregion VertexAttributeSet
+
+#pragma region VertexAttribute
 
 const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
     { MESH_INPUT_ATTRIBUTE_POSITION,     VertexAttribute { .name = "a_position",     .location = 0, .binding = 0, .size = 3 * sizeof(float) } },
@@ -50,7 +52,9 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
     { MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS, VertexAttribute { .name = "a_bone_indices", .location = 7, .binding = 0, .size = 4 * sizeof(float) } }
 });
 
-// Vertex
+#pragma endregion VertexAttribute
+
+#pragma region Vertex
 
 bool Vertex::operator==(const Vertex &other) const
 {
@@ -90,5 +94,7 @@ Vertex operator*(const Transform &transform, const Vertex &vertex)
 {
     return transform.GetMatrix() * vertex;
 }
+
+#pragma endregion Vertex
 
 } // namespace hyperion

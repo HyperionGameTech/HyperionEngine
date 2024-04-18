@@ -5,10 +5,12 @@
 
 #include <core/containers/Array.hpp>
 #include <core/utilities/TypeID.hpp>
+#include <core/Defines.hpp>
+
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
+
 #include <GameCounter.hpp>
-#include <core/Defines.hpp>
 
 #include <tuple>
 

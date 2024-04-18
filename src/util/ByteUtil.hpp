@@ -11,6 +11,7 @@
 
 namespace hyperion {
 
+/*! \brief A 16-bit floating point number. */
 struct alignas(2) float16
 {
     uint16 value;
@@ -19,170 +20,179 @@ struct alignas(2) float16
     
     float16(float value)
     {
-        // Bit mask to extract bits from the float
-        const uint32 signMask = 0x80000000;
-        const uint32 expMask = 0x7F800000;
-        const uint32 fracMask = 0x007FFFFF;
+        static constexpr uint32 sign_mask = 0x80000000;
+        static constexpr uint32 exp_mask = 0x7F800000;
+        static constexpr uint32 frac_mask = 0x007FFFFF;
 
-        // Extract bits by applying masks and shifting
-        uint32 floatBits = *reinterpret_cast<uint32 *>(&value);
-        uint32 sign = (floatBits & signMask) >> 16; // Shift sign to bit 15
-        int32 exponent = (floatBits & expMask) >> 23; // Get exponent
-        uint32 fraction = floatBits & fracMask; // Get fraction
+        uint32 float_bits = *reinterpret_cast<uint32 *>(&value);
+        uint32 sign = (float_bits & sign_mask) >> 16;
+        int32 exponent = (float_bits & exp_mask) >> 23;
+        uint32 fraction = float_bits & frac_mask;
 
-        // Normalize exponent to fit float16 format
-        exponent -= 127; // Subtract float32 bias
-        exponent += 15; // Add float16 bias
+        exponent -= 127;
+        exponent += 15;
 
-        // Handle overflow/underflow cases
         if (exponent >= 31) {
-            // Overflow, set to infinity or max
             exponent = 31;
             fraction = 0;
         } else if (exponent <= 0) {
-            // Underflow, handle as subnormal or zero
             if (exponent < -10) {
-                // Too small, becomes zero
                 exponent = 0;
                 fraction = 0;
             } else {
-                // Subnormal numbers
                 fraction = (fraction | 0x00800000) >> (1 - exponent);
                 exponent = 0;
             }
         }
 
-        // Round and clamp fraction to fit 10 bits
-        fraction = fraction >> 13; // Shift to fit into 10 bits
-        // clamp to 10 bits
+        fraction = fraction >> 13;
+
         if (fraction > 0x3FF) {
             fraction = 0x3FF;
         }
 
-        // Combine sign, exponent, and fraction into a 16-bit integer
         this->value = (sign | (exponent << 10) | fraction);
     }
 
     explicit operator float() const
     {
-        // Masks for the float16 components
-        const uint16 signMask = 0x8000;
-        const uint16 expMask = 0x7C00;
-        const uint16 fracMask = 0x03FF;
+        static constexpr uint16 sign_mask = 0x8000;
+        static constexpr uint16 exp_mask = 0x7C00;
+        static constexpr uint16 frac_mask = 0x03FF;
 
-        // Extract the sign, exponent, and fraction from the float16 value
-        uint32 sign = (this->value & signMask) << 16; // Shift sign to the correct bit for a 32-bit float
-        int32 exponent = (this->value & expMask) >> 10; // Extract and shift exponent to proper position
-        uint32 fraction = (this->value & fracMask) << 13; // Shift fraction to align with 32-bit float
+        uint32 sign = (this->value & sign_mask) << 16;
+        int32 exponent = (this->value & exp_mask) >> 10;
+        uint32 fraction = (this->value & frac_mask) << 13;
 
-        // Adjust the exponent from float16 bias (15) to float32 bias (127)
         if (exponent == 0) {
             if (fraction == 0) {
-                // Zero (sign bit only)
                 exponent = 0;
             } else {
-                // Subnormal number, normalize it
                 while ((fraction & (1 << 23)) == 0) {
                     fraction <<= 1;
                     exponent--;
                 }
-                fraction &= ~(1 << 23); // Clear the leading 1 bit
-                exponent += 127; // Adjust bias
+                fraction &= ~(1 << 23);
+                exponent += 127;
             }
         } else if (exponent == 31) {
-            // Inf or NaN
-            exponent = 255; // Adjust bias for 32-bit float
+            exponent = 255;
         } else {
-            // Normalized number
-            exponent -= 15; // Adjust from float16 exponent bias
-            exponent += 127; // Adjust to float32 exponent bias
+            exponent -= 15;
+            exponent += 127;
         }
 
-        // Assemble the bits into a 32-bit integer, interpreting them as a float
-        uint32 floatBits = sign | (exponent << 23) | fraction;
+        uint32 float_bits = sign | (exponent << 23) | fraction;
 
-        return *reinterpret_cast<float*>(&floatBits);
+        return *reinterpret_cast<float *>(&float_bits);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     float16 operator+(float16 other) const
     {
         return float16(float(*this) + float(other));
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     float16 operator-(float16 other) const
     {
         return float16(float(*this) - float(other));
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     float16 operator*(float16 other) const
     {
         return float16(float(*this) * float(other));
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     float16 operator/(float16 other) const
     {
         return float16(float(*this) / float(other));
     }
 
+    HYP_FORCE_INLINE
     float16 &operator+=(float16 other)
     {
         *this = *this + other;
         return *this;
     }
 
+    HYP_FORCE_INLINE
     float16 &operator-=(float16 other)
     {
         *this = *this - other;
         return *this;
     }
 
+    HYP_FORCE_INLINE
     float16 &operator*=(float16 other)
     {
         *this = *this * other;
         return *this;
     }
 
+    HYP_FORCE_INLINE
     float16 &operator/=(float16 other)
     {
         *this = *this / other;
         return *this;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     float16 operator-() const
     {
         return float16(-float(*this));
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator==(float16 other) const
     {
         return float(*this) == float(other);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator!=(float16 other) const
     {
         return float(*this) != float(other);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator<(float16 other) const
     {
         return float(*this) < float(other);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator<=(float16 other) const
     {
         return float(*this) <= float(other);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator>(float16 other) const
     {
         return float(*this) > float(other);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator>=(float16 other) const
     {
         return float(*this) >= float(other);
     }
 
+    HYP_FORCE_INLINE
     float16 operator++(int)
     {
         float16 result = *this;
@@ -190,6 +200,7 @@ struct alignas(2) float16
         return result;
     }
 
+    HYP_FORCE_INLINE
     float16 operator--(int)
     {
         float16 result = *this;
@@ -197,12 +208,14 @@ struct alignas(2) float16
         return result;
     }
 
+    HYP_FORCE_INLINE
     float16 &operator++()
     {
         *this += 1.0f;
         return *this;
     }
 
+    HYP_FORCE_INLINE
     float16 &operator--()
     {
         *this -= 1.0f;
@@ -215,6 +228,9 @@ static_assert(sizeof(float16) == 2, "float16 must be 2 bytes in size");
 class HYP_API ByteUtil
 {
 public:
+    /*! \brief Packs a float into a 32-bit integer.
+     *  \param value The value to pack.
+     *  \return The 32-bit integer packed from the value. */
     static inline uint32 PackFloat(float value)
     {
         union {
@@ -227,6 +243,9 @@ public:
         return u;
     }
 
+    /*! \brief Unpacks a 32-bit integer into a float.
+     *  \param value The value to unpack.
+     *  \return The float unpacked from the value. */
     static inline float UnpackFloat(uint32 value)
     {
         union {
@@ -239,6 +258,9 @@ public:
         return f;
     }
 
+    /*! \brief Packs a 4-component vector into a 32-bit integer.
+     *  \param vec The vector to pack.
+     *  \return The 32-bit integer packed from the vector. */
     static inline uint32 PackVec4f(const Vector4 &vec)
     {
         union {
@@ -254,6 +276,9 @@ public:
         return result;
     }
 
+    /*! \brief Unpacks a 32-bit integer into a 4-component vector.
+     *  \param value The value to unpack.
+     *  \return The 4-component vector unpacked from the value. */
     static inline Vec4f UnpackVec4f(uint32 value)
     {
         return {
@@ -264,13 +289,26 @@ public:
         };
     }
 
+    /*! \brief Aligns a value to the specified alignment.
+     *  \tparam T The type of the value to align.
+     *  \param value The value to align.
+     *  \param alignment The alignment to use.
+     *  \return The value aligned to the specified alignment. */
     template <class T>
     static inline constexpr T AlignAs(T value, uint alignment)
     {
         return ((value + alignment - 1) / alignment) * alignment;
     }
-
+    
+    /*! \brief Gets the index of the lowest set bit in a 64-bit integer.
+     *  \param bits The bits to get the index of the lowest set bit of.
+     *  \return The index of the lowest set bit in the bits. */
     static uint LowestSetBitIndex(uint64 bits);
+
+    /*! \brief Counts the number of bits set in a 64-bit integer.
+     *  \param value The value to count the bits of.
+     *  \return The number of bits set in the value. */
+    static uint64 BitCount(uint64 value);
 };
 
 /*! \brief Converts a value of type \ref{To} to a value of type \ref{From}.

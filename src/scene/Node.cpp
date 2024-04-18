@@ -628,6 +628,21 @@ uint Node::CalculateDepth() const
     return depth;
 }
 
+uint Node::FindSelfIndex() const
+{
+    if (m_parent_node == nullptr) {
+        return ~0u;
+    }
+
+    const auto it = m_parent_node->FindChild(this);
+
+    if (it == m_parent_node->GetChildren().End()) {
+        return 0;
+    }
+
+    return uint(it - m_parent_node->GetChildren().Begin());
+}
+
 void Node::RefreshEntityTransform()
 {
     m_local_aabb = BoundingBox::Empty();

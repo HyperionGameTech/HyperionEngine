@@ -21,6 +21,68 @@ using renderer::BlendModeFactor;
 
 class Framebuffer;
 
+struct alignas(uint32) DrawableLayer
+{
+    uint16  object_index;
+    uint16  layer_index;
+
+    DrawableLayer()
+        : object_index(0),
+          layer_index(0)
+    {
+    }
+
+    DrawableLayer(uint16 object_index, uint16 layer_index)
+        : object_index(object_index),
+          layer_index(layer_index)
+    {
+    }
+
+    DrawableLayer(const DrawableLayer &other)                   = default;
+    DrawableLayer &operator=(const DrawableLayer &other)        = default;
+    DrawableLayer(DrawableLayer &&other) noexcept               = default;
+    DrawableLayer &operator=(DrawableLayer &&other) noexcept    = default;
+    ~DrawableLayer()                                            = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const DrawableLayer &other) const
+        { return object_index == other.object_index && layer_index == other.layer_index; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(const DrawableLayer &other) const
+        { return !(*this == other); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator<(const DrawableLayer &other) const
+    {
+        // if (object_index < other.object_index) {
+        //     return true;
+        // } else if (object_index == other.object_index) {
+        //     return layer_index < other.layer_index;
+        // }
+
+        // return false;
+
+        // @TEMP: Fix this
+
+        return layer_index < other.layer_index;
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(object_index);
+        hc.Add(layer_index);
+
+        return hc;
+    }
+};
+
 struct MaterialAttributes
 {
     using MaterialFlags = uint32;
@@ -38,8 +100,9 @@ struct MaterialAttributes
     BlendFunction       blend_function = BlendFunction::None();
     FaceCullMode        cull_faces = FaceCullMode::BACK;
     MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
-    int                 z_layer = 0;
+    DrawableLayer       layer;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const MaterialAttributes &other) const
     {
@@ -49,13 +112,16 @@ struct MaterialAttributes
             && blend_function == other.blend_function
             && cull_faces == other.cull_faces
             && flags == other.flags
-            && z_layer == other.z_layer;
+            && layer == other.layer;
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const MaterialAttributes &other) const
         { return !(*this == other); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
@@ -65,7 +131,7 @@ struct MaterialAttributes
         hc.Add(blend_function);
         hc.Add(cull_faces);
         hc.Add(flags);
-        hc.Add(z_layer);
+        hc.Add(layer);
 
         return hc;
     }
@@ -76,6 +142,7 @@ struct MeshAttributes
     VertexAttributeSet vertex_attributes { static_mesh_vertex_attributes };
     Topology topology { Topology::TRIANGLES };
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const MeshAttributes &other) const
     {
@@ -83,6 +150,7 @@ struct MeshAttributes
             && topology == other.topology;
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {

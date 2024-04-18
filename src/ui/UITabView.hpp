@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_TAB_VIEW_HPP
 #define HYPERION_UI_TAB_VIEW_HPP
 
@@ -22,11 +23,19 @@ public:
     UITab &operator=(UITab &&other) noexcept    = delete;
     virtual ~UITab() override                   = default;
 
+    /*! \brief Get the title of the tab.
+     * 
+     * \return The title of the tab.
+     */
     [[nodiscard]]
     HYP_FORCE_INLINE
     const String &GetTitle() const
         { return m_title; }
 
+    /*! \brief Set the title of the tab.
+     * 
+     * \param title The title of the tab.
+     */
     void SetTitle(const String &title);
 
     [[nodiscard]]
@@ -62,11 +71,19 @@ public:
 
     virtual void Init() override;
 
+    /*! \brief Gets the index of the selected tab.
+     * 
+     * \return The index of the selected tab.
+     */
     [[nodiscard]]
     HYP_FORCE_INLINE
     uint GetSelectedTabIndex() const
         { return m_selected_tab_index; }
 
+    /*! \brief Sets the selected tab by index.
+     * 
+     * \param index The index of the tab.
+     */
     void SetSelectedTabIndex(uint index);
 
     [[nodiscard]]

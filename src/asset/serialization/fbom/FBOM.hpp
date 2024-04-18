@@ -455,14 +455,12 @@ private:
 
     FBOMResult Handle(BufferedReader *, FBOMCommand, FBOMObject *root);
 
-    FBOMConfig m_config;
+    FBOMConfig              m_config;
 
-    Array<FBOMType> m_registered_types;
+    bool                    m_in_static_data;
+    Array<FBOMStaticData>   m_static_data_pool;
 
-    bool m_in_static_data;
-    Array<FBOMStaticData> m_static_data_pool;
-
-    bool m_swap_endianness;
+    bool                    m_swap_endianness;
 };
 
 struct FBOMExternalData

@@ -51,24 +51,50 @@ public:
 
     virtual void Init() override;
 
+    /*! \brief Gets the text to render.
+     * 
+     * \return The text to render. */
     const String &GetText() const
         { return m_text; }
 
+    /*! \brief Sets the text to render.
+     * 
+     * \param text The text to set. */
     void SetText(const String &text);
 
+    /*! \brief Gets the font atlas used for rendering the text, if any.
+     * \note If the font atlas is null, the default font atlas from the parent UIStage is used, but not returned from this function.
+     * 
+     * \return The font atlas used for rendering the text. */
     const RC<FontAtlas> &GetFontAtlas() const
         { return m_font_atlas; }
 
+    /*! \brief Sets the font atlas to use for rendering the text.
+     *  If the font atlas is null, the default font atlas from the parent UIStage is used.
+     * 
+     * \param font_atlas The font atlas to set. */
     void SetFontAtlas(RC<FontAtlas> font_atlas);
 
+    /*! \brief Gets the color of the text.
+     * 
+     * \return The color of the text. */
     const Vec4f &GetTextColor() const
         { return m_text_color; }
 
+    /*! \brief Sets the color of the text.
+     * 
+     * \param color The color to set. */
     void SetTextColor(const Vec4f &color);
 
+    /*! \brief Gets the options for rendering the text.
+     * 
+     * \return The options for rendering the text. */
     const UITextOptions &GetOptions() const
         { return m_options; }
 
+    /*! \brief Sets the options for rendering the text.
+     * 
+     * \param options The options to set. */
     void SetOptions(const UITextOptions &options)
         { m_options = options; }
 

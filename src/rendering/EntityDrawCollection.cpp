@@ -132,7 +132,7 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
         Bitset removed_id_bits = prev_bitsets[i] & ~new_bitsets[i];
 
         // Iterate over the bits that were removed, and drop the references to them.
-        while ((first_set_bit_index = removed_id_bits.FirstSetBitIndex()) != SizeType(-1)) {
+        while ((first_set_bit_index = removed_id_bits.FirstSetBitIndex()) != -1) {
             // Remove the reference
             switch (i) {
             case 0:
@@ -151,7 +151,7 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
 
         Bitset newly_added_id_bits = new_bitsets[i] & ~prev_bitsets[i];
 
-        while ((first_set_bit_index = newly_added_id_bits.FirstSetBitIndex()) != SizeType(-1)) {
+        while ((first_set_bit_index = newly_added_id_bits.FirstSetBitIndex()) != -1) {
             // Create a reference to it in the resources list.
             switch (i) {
             case 0:
@@ -619,7 +619,7 @@ void RenderList::ExecuteDrawCallsInLayers(
     std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
     {
         // sort by z layer
-        return lhs->first.GetMaterialAttributes().z_layer < rhs->first.GetMaterialAttributes().z_layer;
+        return lhs->first.GetMaterialAttributes().layer < rhs->first.GetMaterialAttributes().layer;
     });
 
     for (SizeType index = 0; index < iterators.Size(); index++) {

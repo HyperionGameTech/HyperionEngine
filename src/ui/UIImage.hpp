@@ -22,9 +22,15 @@ public:
     UIImage &operator=(UIImage &&other) noexcept    = delete;
     virtual ~UIImage() override                     = default;
 
+    /*! \brief Gets the texture of the image.
+     * 
+     * \return A handle to the texture of the image. */
     const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
+    /*! \brief Sets the texture of the image.
+     * 
+     * \param texture A handle to the texture to set. */
     void SetTexture(Handle<Texture> texture);
 
 protected:

@@ -4,8 +4,9 @@
 #include <util/definitions/DefinitionsFile.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <util/json/JSON.hpp>
-#include <core/Defines.hpp>
+#include <util/ByteUtil.hpp>
 
+#include <core/Defines.hpp>
 #include <core/util/ForEach.hpp>
 
 #include <asset/ByteWriter.hpp>
@@ -541,7 +542,7 @@ static void ForEachPermutation(
 
     for (SizeType i = 0; i < num_permutations; i++) {
         Array<ShaderProperty> current_properties;
-        current_properties.Reserve(MathUtil::BitCount(i) + static_properties.Size());
+        current_properties.Reserve(ByteUtil::BitCount(i) + static_properties.Size());
         current_properties.Concat(static_properties);
 
         for (SizeType j = 0; j < variable_properties.Size(); j++) {
@@ -594,7 +595,7 @@ static void ForEachPermutation(
     }
 }
 
-// ShaderProperties
+#pragma region ShaderProperties
 
 ShaderProperties &ShaderProperties::Set(const ShaderProperty &property, bool enabled)
 {
@@ -655,7 +656,9 @@ ShaderProperties &ShaderProperties::Set(const ShaderProperty &property, bool ena
     return *this;
 }
 
-// DescriptorUsageSet
+#pragma endregion ShaderProperties
+
+#pragma region DescriptorUsageSet
 
 DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
 {
@@ -712,7 +715,9 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
     return table;
 }
 
-// ShaderCompiler
+#pragma endregion DescriptorUsageSet
+
+#pragma region ShaderCompiler
 
 ShaderCompiler::ShaderCompiler()
     : m_definitions(nullptr)
@@ -1946,5 +1951,7 @@ bool ShaderCompiler::GetCompiledShader(
 
     return true;
 }
+
+#pragma endregion ShaderCompiler
 
 } // namespace hyperion

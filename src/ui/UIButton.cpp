@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <ui/UIButton.hpp>
+#include <ui/UIText.hpp>
 
 #include <Engine.hpp>
 
@@ -12,6 +14,30 @@ UIButton::UIButton(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
     SetBorderFlags(UI_OBJECT_BORDER_ALL);
 }
 
+void UIButton::Init()
+{
+    UIObject::Init();
+
+    auto text_element = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 16, UIObjectSize::PIXEL }));
+    text_element->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+    text_element->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+    text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
+    text_element->SetText(m_text);
+
+    m_text_element = text_element;
+
+    AddChildUIObject(text_element);
+}
+
+void UIButton::SetText(const String &text)
+{
+    m_text = text;
+
+    if (m_text_element != nullptr) {
+        m_text_element->SetText(m_text);
+    }
+}
+
 Handle<Material> UIButton::GetMaterial() const
 {
     return g_material_system->GetOrCreate(
@@ -22,7 +48,7 @@ Handle<Material> UIButton::GetMaterial() const
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
-            .z_layer            = GetDepth()
+            .layer              = GetDrawableLayer()
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.05f, 0.055f, 0.075f, 1.0f } }
