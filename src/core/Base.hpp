@@ -9,13 +9,16 @@
 #include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Handle.hpp>
+#include <core/Defines.hpp>
+
 #include <core/containers/TypeMap.hpp>
 #include <core/containers/StaticString.hpp>
+
+#include <core/threading/AtomicVar.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 
 #include <HashCode.hpp>
-#include <core/Defines.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 
@@ -75,6 +78,13 @@ public:
 
     static constexpr ID<InnerType> empty_id = ID<InnerType> { };
 
+    enum InitState : uint16
+    {
+        INIT_STATE_UNINITIALIZED    = 0x0,
+        INIT_STATE_INIT_CALLED      = 0x1,
+        INIT_STATE_READY            = 0x2
+    };
+
     BasicObject()
         : BasicObject(InitInfo { })
     {
@@ -94,8 +104,7 @@ public:
         : m_name(name),
           m_init_info(init_info),
           m_id(empty_id),
-          m_init_called(false),
-          m_is_ready(false)
+          m_init_state(INIT_STATE_UNINITIALIZED)
     {
     }
 
@@ -106,12 +115,10 @@ public:
         : m_name(std::move(other.m_name)),
           m_init_info(std::move(other.m_init_info)),
           m_id(other.m_id),
-          m_init_called { other.m_init_called.load() },
-          m_is_ready { other.m_is_ready.load() }
+          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
     {
         other.m_id = empty_id;
-        other.m_init_called.store(false);
-        other.m_is_ready.store(false);
+        other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
     }
 
     BasicObject &operator=(BasicObject &&other) noexcept = delete;
@@ -130,41 +137,54 @@ public:
     HYP_FORCE_INLINE void SetFlags(ComponentFlags flags, bool enable = true)
         { m_init_info.flags = enable ? (m_init_info.flags | flags) : (m_init_info.flags & ~flags); }
 
-    HYP_FORCE_INLINE ID<InnerType> GetID() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ID<InnerType> GetID() const
         { return m_id; }
 
     /* To be called from ObjectHolder<Type> */
+    HYP_FORCE_INLINE
     void SetID(ID<InnerType> id)
         { m_id = id; }
 
     /*! \brief Get assigned name of the object */
-    Name GetName() const { return m_name; }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Name GetName() const
+        { return m_name; }
 
     /*! \brief Set the assigned name of the object */
-    void SetName(Name name) { m_name = name; }
+    HYP_FORCE_INLINE
+    void SetName(Name name)
+        { m_name = name; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsInitCalled() const
-        { return m_init_called.load(); }
+        { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsReady() const
-        { return m_is_ready.load(); }
+        { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_READY; }
 
     void Init()
     {
-        m_init_called.store(true);
+        m_init_state.BitOr(INIT_STATE_INIT_CALLED, MemoryOrder::RELAXED);
     }
 
 protected:
     using ClassType = Type;
     using Base = BasicObject<Type>;
-
-    void Destroy()
-    {
-        m_init_called.store(false);
-    }
     
     void SetReady(bool is_ready)
-        { m_is_ready.store(is_ready); }
+    {
+        if (is_ready) {
+            m_init_state.BitOr(INIT_STATE_READY, MemoryOrder::RELAXED);
+        } else {
+            m_init_state.BitAnd(~INIT_STATE_READY, MemoryOrder::RELAXED);
+        }
+    }
 
     HYP_FORCE_INLINE
     void AssertReady() const
@@ -188,11 +208,10 @@ protected:
         );
     }
     
-    ID<InnerType> m_id;
-    Name m_name;
-    std::atomic_bool m_init_called;
-    std::atomic_bool m_is_ready;
-    InitInfo m_init_info;
+    ID<InnerType>       m_id;
+    Name                m_name;
+    AtomicVar<uint16>   m_init_state;
+    InitInfo            m_init_info;
 };
 
 } // namespace hyperion

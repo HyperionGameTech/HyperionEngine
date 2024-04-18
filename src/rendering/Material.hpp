@@ -5,10 +5,10 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/ShaderDataState.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <core/DataMutationState.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
@@ -298,11 +298,10 @@ public:
     Material &operator=(const Material &other) = delete;
     ~Material();
 
-    ShaderDataState GetShaderDataState() const
-        { return m_shader_data_state; }
-
-    void SetShaderDataState(ShaderDataState state)
-        { m_shader_data_state = state; }
+    /*! \brief Get the current mutation state of this Material.
+        \return The current mutation state of this Material */
+    DataMutationState GetMutationState() const
+        { return m_mutation_state; }
 
     const Handle<Shader> &GetShader() const
         { return m_shader; }
@@ -340,8 +339,8 @@ public:
     }
 
     /*! \brief Set a parameter on this material with the given key and value
-     * @param key The key of the parameter to be set
-     * @param value The value of the parameter to be set
+     *  \param key The key of the parameter to be set
+     *  \param value The value of the parameter to be set
      */
     void SetParameter(MaterialKey key, const Parameter &value);
 
@@ -349,26 +348,26 @@ public:
     void ResetParameters();
 
     /*! \brief Sets the texture with the given key on this Material.
-     * If the Material has already been initialized, the Texture is initialized.
-     * Otherwise, it will be initialized when the Material is initialized.
-     * @param key The texture slot to set the texture on
-     * @param texture A Texture resource
+     *  If the Material has already been initialized, the Texture is initialized.
+     *  Otherwise, it will be initialized when the Material is initialized.
+     *  \param key The texture slot to set the texture on
+     *  \param texture A Texture resource
      */
     void SetTexture(TextureKey key, Handle<Texture> &&texture);
 
     /*! \brief Sets the texture with the given key on this Material.
-     * If the Material has already been initialized, the Texture is initialized.
-     * Otherwise, it will be initialized when the Material is initialized.
-     * @param key The texture slot to set the texture on
-     * @param texture A Texture resource
+     *  If the Material has already been initialized, the Texture is initialized.
+     *  Otherwise, it will be initialized when the Material is initialized.
+     *  \param key The texture slot to set the texture on
+     *  \param texture A Texture resource
      */
     void SetTexture(TextureKey key, const Handle<Texture> &texture);
 
     /*! \brief Sets the texture at the given index on this Material.
-     * If the Material has already been initialized, the Texture is initialized.
-     * Otherwise, it will be initialized when the Material is initialized.
-     * @param index The index to set the texture in
-     * @param texture A Texture resource
+     *  If the Material has already been initialized, the Texture is initialized.
+     *  Otherwise, it will be initialized when the Material is initialized.
+     *  \param index The index to set the texture in
+     *  \param texture A Texture resource
      */
     void SetTextureAtIndex(uint index, const Handle<Texture> &texture);
 
@@ -379,16 +378,16 @@ public:
         { return m_textures; }
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
-     * texture key. If no Texture was set, nullptr is returned.
-     * @param key The key of the texture to find
-     * @returns Pointer to the found Texture, or nullptr.
+     *  texture key. If no Texture was set, nullptr is returned.
+     *  \param key The key of the texture to find
+     *  \return Pointer to the found Texture, or nullptr.
      */
     const Handle<Texture> &GetTexture(TextureKey key) const;
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
-     * index. If no Texture was set, nullptr is returned.
-     * @param index The index of the texture to find
-     * @returns Pointer to the found Texture, or nullptr.
+     *  index. If no Texture was set, nullptr is returned.
+     *  \param index The index of the texture to find
+     *  \return Pointer to the found Texture, or nullptr.
      */
     const Handle<Texture> &GetTextureAtIndex(uint index) const;
 
@@ -459,7 +458,8 @@ public:
         { return m_is_dynamic; }
 
     void Init();
-    void Update();
+
+    void EnqueueRenderUpdates();
 
     Handle<Material> Clone() const;
 
@@ -476,7 +476,6 @@ public:
     }
 
 private:
-    void EnqueueRenderUpdates();
     void EnqueueTextureUpdate(TextureKey key);
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
@@ -491,7 +490,7 @@ private:
     bool                                                m_is_dynamic;
 
     MaterialShaderData                                  m_shader_data;
-    mutable ShaderDataState                             m_shader_data_state;
+    mutable DataMutationState                             m_mutation_state;
 };
 
 class MaterialGroup : public BasicObject<STUB_CLASS(MaterialGroup)>

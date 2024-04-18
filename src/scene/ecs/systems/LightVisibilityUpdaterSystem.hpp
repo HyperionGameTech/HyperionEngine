@@ -18,8 +18,8 @@ class LightVisibilityUpdaterSystem : public System<
 
     // Can read and write the VisibilityStateComponent but does not receive events
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
-    // Can read the MeshComponent but does not receive events (uses material)
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false>
+    // Can read and write the MeshComponent but does not receive events (updates material render data)
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

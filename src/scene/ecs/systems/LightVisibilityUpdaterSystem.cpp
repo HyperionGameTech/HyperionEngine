@@ -96,6 +96,10 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             continue;
         }
 
+        if (!light_component.light->IsReady()) {
+            continue;
+        }
+
         // For area lights, update the material ID if the entity has a MeshComponent.
         if (light_component.light->GetType() == LightType::AREA_RECT) {
             /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity_id)) {
@@ -147,7 +151,10 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
         }
         
         light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
-        light_component.light->Update();
+
+        if (light_component.light->GetMutationState().IsDirty()) {
+            light_component.light->EnqueueRenderUpdates();
+        }
     }
 }
 

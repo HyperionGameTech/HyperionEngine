@@ -91,7 +91,7 @@ Light::Light(
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
-    m_shader_data_state(ShaderDataState::DIRTY)
+    m_mutation_state(DataMutationState::CLEAN)
 {
 }
 
@@ -114,7 +114,7 @@ Light::Light(
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
-    m_shader_data_state(ShaderDataState::DIRTY)
+    m_mutation_state(DataMutationState::CLEAN)
 {
 }
 
@@ -131,7 +131,7 @@ Light::Light(Light &&other) noexcept
       m_spot_angles(other.m_spot_angles),
       m_shadow_map_index(other.m_shadow_map_index),
       m_visibility_bits(std::move(other.m_visibility_bits)),
-      m_shader_data_state(ShaderDataState::DIRTY),
+      m_mutation_state(DataMutationState::CLEAN),
       m_material(std::move(other.m_material))
 {
     other.m_shadow_map_index = ~0u;
@@ -172,9 +172,11 @@ void Light::Init()
         .material_id        = m_material.GetID()
     };
 
-    EnqueueRenderUpdates();
+    m_mutation_state |= DataMutationState::DIRTY;
 
     SetReady(true);
+
+    EnqueueRenderUpdates();
 }
 
 #if 0
@@ -196,19 +198,18 @@ void Light::EnqueueUnbind() const
     PUSH_RENDER_COMMAND(UnbindLight, GetID());
 }
 
-void Light::Update()
-{
-    if (m_material.IsValid()) {
-        m_material->Update();
-    }
-
-    if (m_shader_data_state.IsDirty()) {
-        EnqueueRenderUpdates();
-    }
-}
-
 void Light::EnqueueRenderUpdates()
 {
+    AssertReady();
+
+    if (m_material.IsValid() && m_material->GetMutationState().IsDirty()) {
+        m_material->EnqueueRenderUpdates();
+    }
+
+    if (!m_mutation_state.IsDirty()) {
+        return;
+    }
+
     PUSH_RENDER_COMMAND(
         UpdateLightShaderData,
         *this,
@@ -228,7 +229,26 @@ void Light::EnqueueRenderUpdates()
         }
     );
 
-    m_shader_data_state = ShaderDataState::CLEAN;
+    m_mutation_state = DataMutationState::CLEAN;
+}
+
+void Light::SetMaterial(Handle<Material> material)
+{
+    if (material == m_material) {
+        return;
+    }
+
+    if (m_material.IsValid()) {
+        g_safe_deleter->SafeReleaseHandle(std::move(m_material));
+    }
+
+    m_material = std::move(material);
+
+    if (IsInitCalled()) {
+        InitObject(m_material);
+
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 }
 
 bool Light::IsVisible(ID<Camera> camera_id) const
@@ -242,8 +262,8 @@ void Light::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 
     m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
 
-    if (is_visible != previous_value) {
-        m_shader_data_state |= ShaderDataState::DIRTY;
+    if (is_visible != previous_value && IsInitCalled()) {
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 }
 

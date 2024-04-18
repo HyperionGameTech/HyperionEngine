@@ -54,8 +54,6 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, I
 
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
-
-    mesh_component.flags |= MESH_COMPONENT_FLAG_INIT | MESH_COMPONENT_FLAG_DIRTY;
 }
 
 void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
@@ -63,8 +61,6 @@ void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager,
     SystemBase::OnEntityRemoved(entity_manager, entity);
 
     MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
-
-    mesh_component.flags &= ~MESH_COMPONENT_FLAG_INIT;
 }
 
 void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
@@ -72,18 +68,13 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
     Array<EntityDrawData> entity_draw_datas;
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
-        // @TODO: Revisit dirty flags
-        // if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
-        //     continue;
-        // }
+        if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
+            continue;
+        }
 
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();
         const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
-
-        if (mesh_component.material) {
-            mesh_component.material->Update();
-        }
 
         entity_draw_datas.PushBack(EntityDrawData {
             entity_id,
@@ -99,13 +90,10 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             mesh_component.user_data
         });
 
-        if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {
-            // Update previous model matrix to current model matrix
-            mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
-            mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
-        } else {
-            mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
-        }
+        // Update the previous model matrix
+        mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
+
+        mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
     }
 
     if (entity_draw_datas.Any()) {

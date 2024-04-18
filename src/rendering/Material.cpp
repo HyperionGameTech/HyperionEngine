@@ -145,7 +145,7 @@ Material::Material()
         .bucket = Bucket::BUCKET_OPAQUE
       },
       m_is_dynamic(false),
-      m_shader_data_state(ShaderDataState::DIRTY)
+      m_mutation_state(DataMutationState::CLEAN)
 {
     ResetParameters();
 }
@@ -160,7 +160,7 @@ Material::Material(Name name, Bucket bucket)
         .bucket = Bucket::BUCKET_OPAQUE
       },
       m_is_dynamic(false),
-      m_shader_data_state(ShaderDataState::DIRTY)
+      m_mutation_state(DataMutationState::CLEAN)
 {
     if (m_render_attributes.shader_definition) {
         m_shader = g_shader_manager->GetOrCreate(m_render_attributes.shader_definition);
@@ -179,7 +179,7 @@ Material::Material(
     m_textures(textures),
     m_render_attributes(attributes),
     m_is_dynamic(false),
-    m_shader_data_state(ShaderDataState::DIRTY)
+    m_mutation_state(DataMutationState::CLEAN)
 {
     if (m_render_attributes.shader_definition) {
         m_shader = g_shader_manager->GetOrCreate(m_render_attributes.shader_definition);
@@ -193,6 +193,8 @@ Material::~Material()
     for (SizeType i = 0; i < m_textures.Size(); i++) {
         m_textures.ValueAt(i).Reset();
     }
+
+    g_safe_deleter->SafeReleaseHandle(std::move(m_shader));
 
     if (IsInitCalled()) {
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
@@ -229,18 +231,9 @@ void Material::Init()
         EnqueueDescriptorSetCreate();
     }
 
+    m_mutation_state |= DataMutationState::DIRTY;
+
     SetReady(true);
-
-    EnqueueRenderUpdates();
-}
-
-void Material::Update()
-{
-    AssertReady();
-
-    if (!m_shader_data_state.IsDirty()) {
-        return;
-    }
 
     EnqueueRenderUpdates();
 }
@@ -272,6 +265,10 @@ void Material::EnqueueDescriptorSetDestroy()
 void Material::EnqueueRenderUpdates()
 {
     AssertReady();
+
+    if (!m_mutation_state.IsDirty()) {
+        return;
+    }
 
     FixedArray<ID<Texture>, max_bound_textures> bound_texture_ids { };
 
@@ -315,7 +312,7 @@ void Material::EnqueueRenderUpdates()
         std::move(bound_texture_ids)
     );
 
-    m_shader_data_state = ShaderDataState::CLEAN;
+    m_mutation_state = DataMutationState::CLEAN;
 }
 
 void Material::EnqueueTextureUpdate(TextureKey key)
@@ -339,12 +336,19 @@ void Material::SetShader(Handle<Shader> shader)
         return;
     }
 
+    if (m_shader.IsValid()) {
+        g_safe_deleter->SafeReleaseHandle(std::move(m_shader));
+    }
+
     m_render_attributes.shader_definition = shader.IsValid()
         ? shader->GetCompiledShader().GetDefinition()
         : ShaderDefinition { };
 
     m_shader = std::move(shader);
-    m_shader_data_state |= ShaderDataState::DIRTY;
+
+    if (IsInitCalled()) {
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 }
 
 void Material::SetParameter(MaterialKey key, const Parameter &value)
@@ -354,14 +358,19 @@ void Material::SetParameter(MaterialKey key, const Parameter &value)
     }
 
     m_parameters.Set(key, value);
-    m_shader_data_state |= ShaderDataState::DIRTY;
+
+    if (IsInitCalled()) {
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 }
 
 void Material::ResetParameters()
 {
     m_parameters = DefaultParameters();
 
-    m_shader_data_state |= ShaderDataState::DIRTY;
+    if (IsInitCalled()) {
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 }
 
 void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
@@ -370,15 +379,17 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
         return;
     }
 
-    InitObject(texture);
-
     m_textures.Set(key, texture);
     
-    if (IsInitCalled() && !g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-        EnqueueTextureUpdate(key);
-    }
+    if (IsInitCalled()) {
+        InitObject(texture);
 
-    m_shader_data_state |= ShaderDataState::DIRTY;
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            EnqueueTextureUpdate(key);
+        }
+
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 }
 
 void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)

@@ -212,7 +212,7 @@ private:
 
     bool                            m_is_audio_listener;
                                  
-    mutable ShaderDataState         m_shader_data_state;
+    mutable DataMutationState         m_mutation_state;
 };
 
 } // namespace hyperion

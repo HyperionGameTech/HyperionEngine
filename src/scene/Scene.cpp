@@ -9,6 +9,7 @@
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
+#include <scene/ecs/systems/EntityMeshDirtyStateSystem.hpp>
 #include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/systems/ShadowMapUpdaterSystem.hpp>
@@ -106,9 +107,10 @@ Scene::Scene(
     m_is_audio_listener(false),
     m_entity_manager(new EntityManager(info.thread_mask, this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
-    m_shader_data_state(ShaderDataState::DIRTY)
+    m_mutation_state(DataMutationState::DIRTY)
 {
     m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
+    m_entity_manager->AddSystem<EntityMeshDirtyStateSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
@@ -220,7 +222,7 @@ void Scene::Update(GameCounter::TickUnit delta)
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
-            m_shader_data_state |= ShaderDataState::DIRTY;
+            m_mutation_state |= DataMutationState::DIRTY;
         }
     }
 
@@ -475,7 +477,7 @@ void Scene::EnqueueRenderUpdates()
         m_draw_proxy
     );
 
-    m_shader_data_state = ShaderDataState::CLEAN;
+    m_mutation_state = DataMutationState::CLEAN;
 }
 
 bool Scene::CreateTLAS()

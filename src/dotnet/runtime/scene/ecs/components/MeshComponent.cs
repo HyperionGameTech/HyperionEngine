@@ -6,8 +6,7 @@ namespace Hyperion
     public enum MeshComponentFlags : uint
     {
         None = 0x0,
-        Init = 0x1,
-        Dirty = 0x2
+        Dirty = 0x1
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 96)]

@@ -40,12 +40,14 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
 Skeleton::Skeleton()
     : BasicObject(),
       m_root_bone(nullptr),
-      m_shader_data_state(ShaderDataState::DIRTY)
+      m_mutation_state(DataMutationState::CLEAN)
 {
 }
 
 Skeleton::Skeleton(const NodeProxy &root_bone)
-    : BasicObject()
+    : BasicObject(),
+      m_root_bone(nullptr),
+      m_mutation_state(DataMutationState::CLEAN)
 {
     if (root_bone && root_bone.Get()->GetType() == Node::Type::BONE) {
         m_root_bone = root_bone;
@@ -66,6 +68,8 @@ void Skeleton::Init()
 
     BasicObject::Init();
 
+    m_mutation_state |= DataMutationState::DIRTY;
+    
     Update(0.0166f);
 
     SetReady(true);
@@ -73,7 +77,7 @@ void Skeleton::Init()
 
 void Skeleton::Update(GameCounter::TickUnit)
 {
-    if (!m_shader_data_state.IsDirty()) {
+    if (!m_mutation_state.IsDirty()) {
         return;
     }
 
@@ -99,7 +103,7 @@ void Skeleton::Update(GameCounter::TickUnit)
         PUSH_RENDER_COMMAND(UpdateSkeletonRenderData, GetID(), m_bone_data);
     }
     
-    m_shader_data_state = ShaderDataState::CLEAN;
+    m_mutation_state = DataMutationState::CLEAN;
 }
 
 Bone *Skeleton::FindBone(const String &name)

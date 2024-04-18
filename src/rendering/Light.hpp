@@ -4,7 +4,7 @@
 
 #include <core/Base.hpp>
 #include <core/containers/Bitset.hpp>
-#include <rendering/ShaderDataState.hpp>
+#include <core/DataMutationState.hpp>
 #include <rendering/DrawProxy.hpp>
 #include <rendering/Material.hpp>
 #include <math/Vector3.hpp>
@@ -55,6 +55,13 @@ public:
 
     ~Light();
 
+    /*! \brief Get the current mutation state of the light.
+     *
+     * \return The mutation state.
+     */
+    DataMutationState GetMutationState() const
+        { return m_mutation_state; }
+
     /*! \brief Get the type of the light.
      *
      * \return The type.
@@ -80,7 +87,7 @@ public:
         }
 
         m_position = position;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the normal for the light. This is used only for area lights.
@@ -101,7 +108,7 @@ public:
         }
 
         m_normal = normal;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the area size for the light. This is used only for area lights.
@@ -122,7 +129,7 @@ public:
         }
 
         m_area_size = area_size;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the color for the light.
@@ -143,7 +150,7 @@ public:
         }
 
         m_color = color;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the intensity for the light. This is used to determine how bright the light is.
@@ -164,7 +171,7 @@ public:
         }
 
         m_intensity = intensity;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
@@ -198,7 +205,7 @@ public:
         }
 
         m_radius = radius;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
@@ -223,7 +230,7 @@ public:
         }
 
         m_falloff = falloff;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
@@ -248,7 +255,7 @@ public:
         }
 
         m_spot_angles = spot_angles;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the shadow map index for the light. This is used when sampling shadow maps for the particular light.
@@ -269,7 +276,7 @@ public:
         }
 
         m_shadow_map_index = shadow_map_index;
-        m_shader_data_state |= ShaderDataState::DIRTY;
+        m_mutation_state |= DataMutationState::DIRTY;
     }
 
     /*! \brief Get the material  for the light. Used for area lights.
@@ -283,15 +290,7 @@ public:
      *
      * \param material The material to set for this Light.
      */
-    void SetMaterial(Handle<Material> material)
-    {
-        if (material == m_material) {
-            return;
-        }
-
-        m_material = std::move(material);
-        m_shader_data_state |= ShaderDataState::DIRTY;
-    }
+    void SetMaterial(Handle<Material> material);
 
     /*! \brief Check if the light is set as visible to the camera.
      *
@@ -313,7 +312,8 @@ public:
     void Init();
     //void EnqueueBind() const;
     void EnqueueUnbind() const;
-    void Update();
+
+    void EnqueueRenderUpdates();
 
 protected:
     LightType           m_type;
@@ -331,11 +331,9 @@ protected:
 private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;
 
-    void EnqueueRenderUpdates();
+    mutable DataMutationState   m_mutation_state;
 
-    mutable ShaderDataState m_shader_data_state;
-
-    Bitset                  m_visibility_bits;
+    Bitset                      m_visibility_bits;
 };
 
 class HYP_API DirectionalLight : public Light

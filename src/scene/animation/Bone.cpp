@@ -149,7 +149,7 @@ void Bone::UpdateBoneTransform()
     }
 
     if (m_skeleton != nullptr) {
-        m_skeleton->SetShaderDataState(ShaderDataState::DIRTY);
+        m_skeleton->SetMutationState(DataMutationState::DIRTY);
     }
 }
 
