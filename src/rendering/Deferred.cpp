@@ -219,7 +219,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(DeferredDirectDescriptorSet), frame_index);
             AssertThrow(descriptor_set != nullptr);
             
-            descriptor_set->SetElement(HYP_NAME(MaterialsBuffer), g_engine->GetRenderData()->materials.GetBuffer());
+            descriptor_set->SetElement(HYP_NAME(MaterialsBuffer), g_engine->GetRenderData()->materials.GetBuffer(frame_index));
             
             descriptor_set->SetElement(HYP_NAME(LTCSampler), m_ltc_sampler);
             descriptor_set->SetElement(HYP_NAME(LTCMatrixTexture), m_ltc_matrix_texture->GetImageView());

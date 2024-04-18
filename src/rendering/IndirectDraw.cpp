@@ -375,7 +375,7 @@ void IndirectRenderer::Create()
 
         descriptor_set->SetElement(HYP_NAME(ObjectInstancesBuffer), m_indirect_draw_state.GetInstanceBuffer(frame_index));
         descriptor_set->SetElement(HYP_NAME(IndirectDrawCommandsBuffer), m_indirect_draw_state.GetIndirectBuffer(frame_index));
-        descriptor_set->SetElement(HYP_NAME(EntityInstanceBatchesBuffer), g_engine->GetRenderData()->entity_instance_batches.GetBuffer());
+        descriptor_set->SetElement(HYP_NAME(EntityInstanceBatchesBuffer), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());

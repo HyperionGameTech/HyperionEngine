@@ -45,7 +45,7 @@ void DebugDrawer::Create()
         const DescriptorSetRef &debug_drawer_descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(DebugDrawerDescriptorSet), frame_index);
         AssertThrow(debug_drawer_descriptor_set != nullptr);
 
-        debug_drawer_descriptor_set->SetElement(HYP_NAME(ImmediateDrawsBuffer), g_engine->GetRenderData()->immediate_draws.GetBuffer());
+        debug_drawer_descriptor_set->SetElement(HYP_NAME(ImmediateDrawsBuffer), g_engine->GetRenderData()->immediate_draws.GetBuffer(frame_index));
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());

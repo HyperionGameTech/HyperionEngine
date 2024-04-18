@@ -235,14 +235,14 @@ HYP_API void Engine::Initialize(RC<Application> application)
         m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Global), frame_index)->SetElement(HYP_NAME(FinalOutputTexture), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Scene
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ScenesBuffer), m_render_data->scenes.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(LightsBuffer), m_render_data->lights.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ObjectsBuffer), m_render_data->objects.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(CamerasBuffer), m_render_data->cameras.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(EnvGridsBuffer), m_render_data->env_grids.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(EnvProbesBuffer), m_render_data->env_probes.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(CurrentEnvProbe), m_render_data->env_probes.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ShadowMapsBuffer), m_render_data->shadow_map_data.GetBuffer());
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ScenesBuffer), m_render_data->scenes.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(LightsBuffer), m_render_data->lights.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ObjectsBuffer), m_render_data->objects.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(CamerasBuffer), m_render_data->cameras.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(EnvGridsBuffer), m_render_data->env_grids.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(EnvProbesBuffer), m_render_data->env_probes.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(CurrentEnvProbe), m_render_data->env_probes.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(ShadowMapsBuffer), m_render_data->shadow_map_data.GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(SHGridBuffer), GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
         for (uint shadow_map_index = 0; shadow_map_index < max_shadow_maps; shadow_map_index++) {
@@ -260,9 +260,9 @@ HYP_API void Engine::Initialize(RC<Application> application)
         m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Scene), frame_index)->SetElement(HYP_NAME(VoxelGridTexture), GetPlaceholderData()->GetImageView3D1x1x1R8());
 
         // Object
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(MaterialsBuffer), m_render_data->materials.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(SkeletonsBuffer), m_render_data->skeletons.GetBuffer());
-        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(EntityInstanceBatchesBuffer), m_render_data->entity_instance_batches.GetBuffer());
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(MaterialsBuffer), m_render_data->materials.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(SkeletonsBuffer), m_render_data->skeletons.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(HYP_NAME(Object), frame_index)->SetElement(HYP_NAME(EntityInstanceBatchesBuffer), m_render_data->entity_instance_batches.GetBuffer(frame_index));
 
         // Material
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES

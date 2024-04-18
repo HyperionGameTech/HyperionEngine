@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <streaming/StreamedMeshData.hpp>
 
 #include <asset/serialization/Serialization.hpp>
@@ -12,32 +13,6 @@ namespace hyperion {
 
 RC<StreamedMeshData> StreamedMeshData::FromMeshData(const MeshData &mesh_data)
 {
-#if 0
-    MemoryByteWriter writer;
-
-    writer.Write<uint64>(engine_binary_magic_number);
-
-    writer.Write<uint32>(uint32(mesh_data.vertices.Size()));
-    writer.Write(mesh_data.vertices.Data(), mesh_data.vertices.Size() * sizeof(Vertex));
-
-    writer.Write<uint32>(uint32(mesh_data.indices.Size()));
-    writer.Write(mesh_data.indices.Data(), mesh_data.indices.Size() * sizeof(uint32));
-
-    auto rc = RC<StreamedMeshData>::Construct(RC<StreamedData>(new MemoryStreamedData(writer.GetBuffer())));
-    rc->Load();
-    const auto &m = rc->GetMeshData();
-
-    AssertThrowMsg(m.vertices.Size() == mesh_data.vertices.Size(),
-        "StreamedMeshData: Vertex count mismatch, expected %u, got %u\t%llu\n",
-        mesh_data.vertices.Size(),
-        m.vertices.Size(),
-        writer.GetBuffer().Size()
-    );
-
-    return rc;
-#endif
-
-#if 1
     MemoryByteWriter writer;
 
     fbom::FBOMWriter serializer;
@@ -45,7 +20,6 @@ RC<StreamedMeshData> StreamedMeshData::FromMeshData(const MeshData &mesh_data)
     serializer.Emit(&writer);
 
     return RC<StreamedMeshData>::Construct(RC<StreamedData>(new MemoryStreamedData(writer.GetBuffer())));
-#endif
 }
 
 StreamedMeshData::StreamedMeshData()

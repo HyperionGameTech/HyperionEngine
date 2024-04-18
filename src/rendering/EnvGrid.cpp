@@ -621,8 +621,8 @@ void EnvGrid::CreateVoxelGridData()
         descriptor_set->SetElement(HYP_NAME(InDepthImage), m_framebuffer->GetAttachmentUsages()[2]->GetImageView());
         descriptor_set->SetElement(HYP_NAME(SamplerLinear), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(HYP_NAME(SamplerNearest), g_engine->GetPlaceholderData()->GetSamplerNearest());
-        descriptor_set->SetElement(HYP_NAME(EnvGridBuffer), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids.GetBuffer());
-        descriptor_set->SetElement(HYP_NAME(EnvProbesBuffer), g_engine->GetRenderData()->env_probes.GetBuffer());
+        descriptor_set->SetElement(HYP_NAME(EnvGridBuffer), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids.GetBuffer(frame_index));
+        descriptor_set->SetElement(HYP_NAME(EnvProbesBuffer), g_engine->GetRenderData()->env_probes.GetBuffer(frame_index));
         descriptor_set->SetElement(HYP_NAME(OutVoxelGridImage), m_voxel_grid_texture->GetImageView());
 
         AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);

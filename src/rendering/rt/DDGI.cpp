@@ -248,8 +248,8 @@ void DDGI::CreatePipelines()
 
         descriptor_set->SetElement(HYP_NAME(TLAS), m_tlas->GetInternalTLAS());
         
-        descriptor_set->SetElement(HYP_NAME(LightsBuffer), g_engine->GetRenderData()->lights.GetBuffer());
-        descriptor_set->SetElement(HYP_NAME(MaterialsBuffer), g_engine->GetRenderData()->materials.GetBuffer());
+        descriptor_set->SetElement(HYP_NAME(LightsBuffer), g_engine->GetRenderData()->lights.GetBuffer(frame_index));
+        descriptor_set->SetElement(HYP_NAME(MaterialsBuffer), g_engine->GetRenderData()->materials.GetBuffer(frame_index));
         descriptor_set->SetElement(HYP_NAME(MeshDescriptionsBuffer), m_tlas->GetInternalTLAS()->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(HYP_NAME(DDGIUniforms), m_uniform_buffer);
