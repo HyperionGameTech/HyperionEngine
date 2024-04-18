@@ -5,6 +5,8 @@
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/UIComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 
 #include <ui/UIObject.hpp>
 
@@ -50,6 +52,49 @@ void UIRenderer::CreateFramebuffer()
     m_framebuffer = g_engine->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
+/*! \brief Custom CollectEntities function to use instead of Scene::CollectEntities.
+    Loop over nodes instead of Entities from EntitySets, as sort order is based on parent node for UI objects.
+    \note Definitely much less efficient when compared to Scene::CollectEntities, as we are not iterating over a contiguous array
+    of references to components. Plus, there are additional checks in place, as we are losing some of the conveniences that method brings.     
+*/
+void UIRenderer::CollectEntities(const Node *node)
+{
+    if (!node) {
+        return;
+    }
+
+    const ID<Entity> entity = node->GetEntity();
+
+    if (entity.IsValid()) {
+        AssertThrow(node->GetScene() != nullptr);
+        AssertThrow(node->GetScene()->GetEntityManager() != nullptr);
+
+        MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
+        TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
+        BoundingBoxComponent *bounding_box_component = node->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
+
+        if (mesh_component != nullptr && transform_component != nullptr && bounding_box_component != nullptr) {
+            if (mesh_component->mesh.IsValid() && mesh_component->material.IsValid()) {
+                m_render_list.PushEntityToRender(
+                    m_scene->GetCamera(),
+                    entity,
+                    mesh_component->mesh,
+                    mesh_component->material,
+                    mesh_component->skeleton,
+                    transform_component->transform.GetMatrix(),
+                    mesh_component->previous_model_matrix,
+                    bounding_box_component->world_aabb,
+                    nullptr
+                );
+            }
+        }
+    }
+
+    for (auto &it : node->GetChildren()) {
+        CollectEntities(it.Get());
+    }
+}
+
 // called from game thread
 void UIRenderer::InitGame() { }
 
@@ -62,10 +107,14 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     m_scene->Update(delta);
 
-    m_scene->CollectEntities(
-        m_render_list,
-        m_scene->GetCamera()
-    );
+    m_render_list.ClearEntities();
+
+    CollectEntities(m_scene->GetRoot().Get());
+
+    // m_scene->CollectEntities(
+    //     m_render_list,
+    //     m_scene->GetCamera()
+    // );
 
     m_render_list.UpdateRenderGroups();
 }

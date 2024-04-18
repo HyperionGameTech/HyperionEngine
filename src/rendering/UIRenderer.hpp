@@ -41,6 +41,8 @@ public:
 private:
     void CreateFramebuffer();
 
+    void CollectEntities(const Node *node);
+
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }
 

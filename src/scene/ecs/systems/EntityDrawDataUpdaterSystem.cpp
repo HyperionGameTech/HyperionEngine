@@ -72,9 +72,10 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
     Array<EntityDrawData> entity_draw_datas;
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
-        //if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
-        //    continue;
-       // }
+        // @TODO: Revisit dirty flags
+        // if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
+        //     continue;
+        // }
 
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();
