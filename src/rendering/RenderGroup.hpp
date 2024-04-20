@@ -138,11 +138,11 @@ private:
     void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(Frame *frame);
+    void PerformRendering(Frame *frame, bool parallel = true);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(Frame *frame);
+    void PerformRenderingIndirect(Frame *frame, bool parallel = true);
 
     void BindDescriptorSets(
         CommandBuffer *command_buffer,

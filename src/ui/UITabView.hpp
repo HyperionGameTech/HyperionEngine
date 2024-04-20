@@ -16,7 +16,7 @@ class UIText;
 class HYP_API UITab : public UIPanel
 {
 public:
-    UITab(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UITab(UIStage *stage, NodeProxy node_proxy);
     UITab(const UITab &other)                   = delete;
     UITab &operator=(const UITab &other)        = delete;
     UITab(UITab &&other) noexcept               = delete;
@@ -62,7 +62,7 @@ private:
 class HYP_API UITabView : public UIPanel
 {
 public:
-    UITabView(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UITabView(UIStage *stage, NodeProxy node_proxy);
     UITabView(const UITabView &other)                   = delete;
     UITabView &operator=(const UITabView &other)        = delete;
     UITabView(UITabView &&other) noexcept               = delete;

@@ -217,7 +217,11 @@
 
 // conditionals
 
-#define HYP_ENABLE_THREAD_ID // undef if needing to debug with RenderDoc and getting crt errors
+#define HYP_ENABLE_THREAD_ID
+
+#ifndef HYP_ENABLE_THREAD_ID
+    #error "Thread ID is required"
+#endif
 
 #if defined(HYP_ENABLE_THREAD_ID) && defined(HYP_DEBUG_MODE)
     #define HYP_ENABLE_THREAD_ASSERTIONS

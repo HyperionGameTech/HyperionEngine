@@ -8,7 +8,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 
-#include <ui/UIObject.hpp>
+#include <ui/UIStage.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
@@ -18,9 +18,9 @@ namespace hyperion {
 
 using renderer::Result;
 
-UIRenderer::UIRenderer(Name name, Handle<Scene> scene)
+UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
     : RenderComponent(name),
-      m_scene(std::move(scene))
+      m_ui_stage(std::move(ui_stage))
 {
 }
 
@@ -33,13 +33,14 @@ void UIRenderer::Init()
 {
     CreateFramebuffer();
 
-    AssertThrow(m_scene.IsValid());
-    AssertThrow(m_scene->GetCamera().IsValid());
+    AssertThrow(m_ui_stage != nullptr);
 
-    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-    InitObject(m_scene);
+    AssertThrow(m_ui_stage->GetScene() != nullptr);
+    AssertThrow(m_ui_stage->GetScene()->GetCamera().IsValid());
 
-    m_render_list.SetCamera(m_scene->GetCamera());
+    m_ui_stage->GetScene()->GetCamera()->SetFramebuffer(m_framebuffer);
+
+    m_render_list.SetCamera(m_ui_stage->GetScene()->GetCamera());
 
     g_engine->GetFinalPass().SetUITexture(CreateObject<Texture>(
         m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage(),
@@ -52,46 +53,81 @@ void UIRenderer::CreateFramebuffer()
     m_framebuffer = g_engine->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
-/*! \brief Custom CollectEntities function to use instead of Scene::CollectEntities.
+/*! \brief Custom CollectObjects function to use instead of Scene::CollectEntities.
     Loop over nodes instead of Entities from EntitySets, as sort order is based on parent node for UI objects.
     \note Definitely much less efficient when compared to Scene::CollectEntities, as we are not iterating over a contiguous array
     of references to components. Plus, there are additional checks in place, as we are losing some of the conveniences that method brings.     
 */
-void UIRenderer::CollectEntities(const Node *node)
+void UIRenderer::CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_objects)
 {
-    if (!node) {
+    if (!node.IsValid()) {
         return;
     }
 
     const ID<Entity> entity = node->GetEntity();
 
     if (entity.IsValid()) {
-        AssertThrow(node->GetScene() != nullptr);
-        AssertThrow(node->GetScene()->GetEntityManager() != nullptr);
-
         MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
         TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
         BoundingBoxComponent *bounding_box_component = node->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
 
         if (mesh_component != nullptr && transform_component != nullptr && bounding_box_component != nullptr) {
-            if (mesh_component->mesh.IsValid() && mesh_component->material.IsValid()) {
-                m_render_list.PushEntityToRender(
-                    m_scene->GetCamera(),
-                    entity,
-                    mesh_component->mesh,
-                    mesh_component->material,
-                    mesh_component->skeleton,
-                    transform_component->transform.GetMatrix(),
-                    mesh_component->previous_model_matrix,
-                    bounding_box_component->world_aabb,
-                    nullptr
-                );
+            UIComponent *ui_component = node->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
+
+            if (ui_component && ui_component->ui_object) {
+                // Visibility affects all child nodes as well, so return from here.
+                if (!ui_component->ui_object->IsVisible()) {
+                    return;
+                }
+
+                // depth += ui_component->ui_object->GetDepth();
+
+                // ui_component->ui_object->SetDrawableLayer(DrawableLayer(0, index++));
+
+                AssertThrow(ui_component->ui_object->GetNode().IsValid());
+
+                out_objects.PushBack(ui_component->ui_object);
             }
         }
     }
 
-    for (auto &it : node->GetChildren()) {
-        CollectEntities(it.Get());
+    Array<Pair<NodeProxy, RC<UIObject>>> children;
+    children.Reserve(node->GetChildren().Size());
+
+    for (const auto &it : node->GetChildren()) {
+        if (!it.IsValid()) {
+            continue;
+        }
+
+        UIComponent *ui_component = it->GetEntity().IsValid()
+            ? it->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
+            : nullptr;
+
+        children.PushBack({
+            it,
+            ui_component != nullptr
+                ? ui_component->ui_object
+                : nullptr
+        });
+    }
+
+    // std::sort(children.Begin(), children.End(), [](const Pair<NodeProxy, UIObject *> &a, const Pair<NodeProxy, UIObject *> &b)
+    // {
+    //     return (a.second ? a.second->GetDepth() : UIStage::min_depth) < (b.second ? b.second->GetDepth() : UIStage::min_depth);
+    // });
+
+    for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
+        // for (uint i = 0; i < index; i++) {
+        //     DebugLog(LogType::Debug, " ");
+        // }
+        // DebugLog(LogType::Debug,
+        //     "Parent: %s\tChild: %s\tDepth: %d\tIndex: %d\n",
+        //     node->GetName().Data(),
+        //     it.first->GetName().Data(),
+        //     (it.second ? it.second->GetDepth() : -1000),
+        //     (it.second ? int(it.second->GetDrawableLayer().layer_index) : -1000));
+
+        CollectObjects(it.first, out_objects);
     }
 }
 
@@ -105,15 +141,55 @@ void UIRenderer::OnRemoved()
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    m_scene->Update(delta);
-
     m_render_list.ClearEntities();
 
-    CollectEntities(m_scene->GetRoot().Get());
+    Array<RC<UIObject>> objects;
+    CollectObjects(m_ui_stage->GetScene()->GetRoot(), objects);
 
-    // m_scene->CollectEntities(
+    std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
+    {
+        AssertThrow(lhs != nullptr);
+        AssertThrow(lhs->GetNode() != nullptr);
+
+        AssertThrow(rhs != nullptr);
+        AssertThrow(rhs->GetNode() != nullptr);
+
+        return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
+    });
+
+    for (uint i = 0; i < objects.Size(); i++) {
+        const RC<UIObject> &object = objects[i];
+        AssertThrow(object != nullptr);
+
+        object->SetDrawableLayer(DrawableLayer(0, i));
+
+        const ID<Entity> entity = object->GetNode()->GetEntity();
+        const NodeProxy &node = object->GetNode();
+
+        MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
+        TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
+        BoundingBoxComponent *bounding_box_component = node->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
+
+        AssertThrow(mesh_component != nullptr);
+        AssertThrow(transform_component != nullptr);
+        AssertThrow(bounding_box_component != nullptr);
+
+        m_render_list.PushEntityToRender(
+            node->GetScene()->GetCamera(),
+            entity,
+            mesh_component->mesh,
+            mesh_component->material,
+            mesh_component->skeleton,
+            transform_component->transform.GetMatrix(),
+            mesh_component->previous_model_matrix,
+            bounding_box_component->world_aabb,
+            nullptr
+        );
+    }
+
+    // m_ui_stage->GetScene()->CollectEntities(
     //     m_render_list,
-    //     m_scene->GetCamera()
+    //     m_ui_stage->GetScene()->GetCamera()
     // );
 
     m_render_list.UpdateRenderGroups();
@@ -121,18 +197,18 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    g_engine->GetRenderState().BindScene(m_scene.Get());
+    g_engine->GetRenderState().BindScene(m_ui_stage->GetScene().Get());
 
     m_render_list.CollectDrawCalls(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr     /* cull_data */
+        /* cull_data */ nullptr    
     );
 
     m_render_list.ExecuteDrawCallsInLayers(
         frame,
         Bitset((1 << BUCKET_UI)),
-        nullptr      /* cull_data */
+        /* cull_data */ nullptr
     );
 
     g_engine->GetRenderState().UnbindScene();

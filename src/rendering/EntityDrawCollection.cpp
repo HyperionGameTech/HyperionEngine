@@ -1,14 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <core/containers/Array.hpp>
+#include <core/threading/Threads.hpp>
+#include <core/utilities/UniqueID.hpp>
 #include <core/Util.hpp>
+
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/RenderGroup.hpp>
+
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
 
 #include <Engine.hpp>
-#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 
@@ -76,18 +79,14 @@ const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityLi
     return m_lists[uint(thread_type)];
 }
 
-void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data)
+void EntityDrawCollection::InsertEntityWithAttributes(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data)
 {
     GetEntityList(ThreadType::THREAD_TYPE_GAME)[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes].entity_draw_datas.PushBack(std::move(entity_draw_data));
 }
 
 void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
 {
-    FlatSet<ID<Mesh>> debug_used_mesh_ids;
-
-    for (auto &it : entity_list.entity_draw_datas) {
-        debug_used_mesh_ids.Insert(it.mesh_id);
-    }
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
 
@@ -169,15 +168,15 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
         }
     }
 
-    // @TODO: When no resources are used, remove the mapping
+    auto &mappings = GetEntityList()[pass_type];
+    auto it = mappings.Find(attributes);
 
-    auto &mapping = GetEntityList()[pass_type];
-    auto it = mapping.Find(attributes);
-
-    if (it != mapping.End()) {
-        it->second = std::move(entity_list);
+    if (it != mappings.End()) {
+            it->second = std::move(entity_list);
     } else {
-        mapping.Set(attributes, std::move(entity_list));
+        if (!entity_list.entity_draw_datas.Empty()) {
+            mappings.Set(attributes, std::move(entity_list));
+        }
     }
 }
 
@@ -235,8 +234,6 @@ void RenderList::UpdateRenderGroups()
 
     for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(ThreadType::THREAD_TYPE_GAME)) {
         for (auto &it : collection_per_pass_type) {
-            // temp check
-            AssertThrow(it.first.GetMaterialAttributes().shader_definition.IsValid());
             iterators.PushBack(&it);
         }
     }
@@ -258,22 +255,30 @@ void RenderList::UpdateRenderGroups()
             } else {
                 auto render_group_it = m_render_groups.Find(attributes);
 
-                if (render_group_it == m_render_groups.End() || !render_group_it->second) {
+                if (render_group_it != m_render_groups.End()) {
+                    entity_list.render_group = render_group_it->second.Lock();
+
+                    // DebugLog(LogType::Debug, "Acquire lock for render group %llu\t%u\n", attributes.GetHashCode().Value(), attributes.GetMaterialAttributes().bucket);
+                }
+
+                if (!entity_list.render_group.IsValid()) {
                     Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
 
+                    DebugLog(LogType::Debug, "Create render group %llu (#%u)\n", attributes.GetHashCode().Value(), render_group.GetID().Value());
+
+#ifdef HYP_DEBUG_MODE
                     if (!render_group.IsValid()) {
                         DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
 
                         return;
                     }
+#endif
 
                     InitObject(render_group);
 
-                    entity_list.render_group = render_group;
+                    added_render_groups[index] = { attributes, render_group };
 
-                    added_render_groups[index] = { attributes, std::move(render_group) };
-                } else {
-                    entity_list.render_group = render_group_it->second;
+                    entity_list.render_group = std::move(render_group);
                 }
             }
         }
@@ -303,7 +308,7 @@ void RenderList::UpdateRenderGroups()
         Handle<RenderGroup> &render_group = it.second;
 
         if (render_group.IsValid()) {
-            m_render_groups.Set(attributes, std::move(render_group));
+            m_render_groups.Set(attributes, render_group);
         }
     }
 }
@@ -347,6 +352,10 @@ void RenderList::PushEntityToRender(
             ? override_attributes->GetShaderDefinition()
             : attributes.GetShaderDefinition();
 
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(shader_definition.IsValid());
+#endif
+
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
@@ -365,7 +374,7 @@ void RenderList::PushEntityToRender(
         attributes.SetStencilState(override_attributes->GetStencilState());
     }
 
-    m_draw_collection->Insert(attributes, EntityDrawData {
+    m_draw_collection->InsertEntityWithAttributes(attributes, EntityDrawData {
         entity_id,
         mesh.GetID(),
         material.GetID(),
@@ -430,10 +439,6 @@ void RenderList::CollectDrawCalls(
         }
     }
 
-    // for (SizeType index = 0; index < iterators.Size(); index++) {
-    //     (*iterators[index]).second.render_group->CollectDrawCalls();
-    // }
-
     if (use_draw_indirect && cull_data != nullptr) {
         for (SizeType index = 0; index < iterators.Size(); index++) {
             (*iterators[index]).second.render_group->PerformOcclusionCulling(frame, cull_data);
@@ -445,13 +450,14 @@ void RenderList::ExecuteDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant
+    PushConstantData push_constant,
+    bool parallel
 ) const
 {
     AssertThrow(m_camera.IsValid());
     AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant, parallel);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -459,12 +465,13 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Framebuffer> &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant
+    PushConstantData push_constant,
+    bool parallel
 ) const
 {
     AssertThrow(m_camera.IsValid());
 
-    ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant, parallel);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -472,13 +479,14 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Camera> &camera,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant
+    PushConstantData push_constant,
+    bool parallel
 ) const
 {
     AssertThrow(camera.IsValid());
     AssertThrowMsg(camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer is attached");
 
-    ExecuteDrawCalls(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant, parallel);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -487,7 +495,8 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Framebuffer> &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant
+    PushConstantData push_constant,
+    bool parallel
 ) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -530,9 +539,9 @@ void RenderList::ExecuteDrawCalls(
             }
 
             if (use_draw_indirect && cull_data != nullptr) {
-                entity_list.render_group->PerformRenderingIndirect(frame);
+                entity_list.render_group->PerformRenderingIndirect(frame, parallel);
             } else {
-                entity_list.render_group->PerformRendering(frame);
+                entity_list.render_group->PerformRendering(frame, parallel);
             }
         }
     }

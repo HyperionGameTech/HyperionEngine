@@ -28,9 +28,10 @@
 namespace hyperion {
 
 UIStage::UIStage()
-    : BasicObject(),
+    : UIObject(),
       m_surface_size { 1000, 1000 }
 {
+    SetName(HYP_NAME(Stage));
 }
 
 UIStage::~UIStage()
@@ -39,12 +40,6 @@ UIStage::~UIStage()
 
 void UIStage::Init()
 {
-    if (IsInitCalled()) {
-        return;
-    }
-
-    BasicObject::Init();
-
     if (const RC<Application> &application = g_engine->GetApplication()) {
         const auto UpdateWindowSize = [this](ApplicationWindow *window)
         {
@@ -97,7 +92,19 @@ void UIStage::Init()
 
     InitObject(m_scene);
 
-    SetReady(true);
+    m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
+
+    // @FIXME: Circular reference
+    m_scene->GetEntityManager()->AddComponent(m_scene->GetRoot()->GetEntity(), UIComponent { RefCountedPtrFromThis() });
+
+    m_scene->GetRoot()->LockTransform();
+
+    SetNodeProxy(m_scene->GetRoot());
+
+    SetSize(UIObjectSize({ m_scene->GetCamera()->GetWidth(), UIObjectSize::PIXEL }, { m_scene->GetCamera()->GetHeight(), UIObjectSize::PIXEL }));
+    m_actual_size = { m_scene->GetCamera()->GetWidth(), m_scene->GetCamera()->GetHeight() };
+
+    UIObject::Init();
 }
 
 void UIStage::Update(GameCounter::TickUnit delta)
@@ -144,20 +151,41 @@ bool UIStage::TestRay(const Vec2f &position, RayTestResults &out_ray_test_result
     return out_ray_test_results.Any();
 }
 
+RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
+{
+    if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
+        return ui_component->ui_object;
+    }
+
+    return nullptr;
+}
+
+void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
+{
+    RC<UIObject> current_focused_ui_object = m_focused_object.Lock();
+
+    if (current_focused_ui_object != nullptr) {
+        if (current_focused_ui_object == ui_object) {
+            return;
+        }
+
+        current_focused_ui_object->Blur();
+    }
+
+    if (!ui_object) {
+        m_focused_object.Reset();
+
+        return;
+    }
+
+    m_focused_object = ui_object;
+}
+
 bool UIStage::OnInputEvent(
     InputManager *input_manager,
     const SystemEvent &event
 )
 {
-    const auto GetUIObject = [this](ID<Entity> entity) -> RC<UIObject>
-    {
-        if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
-            return ui_component->ui_object;
-        }
-
-        return nullptr;
-    };
-
     bool event_handled = false;
     RayTestResults ray_test_results;
 
@@ -186,7 +214,7 @@ bool UIStage::OnInputEvent(
             for (auto &it : m_mouse_held_times) {
                 if (it.second >= 0.05f) {
                     // signal mouse drag
-                    if (auto ui_object = GetUIObject(it.first)) {
+                    if (auto ui_object = GetUIObjectForEntity(it.first)) {
                         event_handled |= ui_object->OnMouseDrag(UIMouseEventData {
                             .position   = mouse_screen,
                             .button     = event.GetMouseButton(),
@@ -202,7 +230,7 @@ bool UIStage::OnInputEvent(
         } else {
             if (TestRay(mouse_screen, ray_test_results)) {
                 for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                    if (auto ui_object = GetUIObject(it->id)) {
+                    if (auto ui_object = GetUIObjectForEntity(it->id)) {
                         if (!m_hovered_entities.Insert(it->id).second) {
                             // Already hovered, skip
                             continue;
@@ -210,15 +238,22 @@ bool UIStage::OnInputEvent(
 
                         ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_HOVER);
 
+                        DebugLog(LogType::Debug,
+                            "Mouse hover on object: %s, DrawableLayer: %u\tDepth: %d\n",
+                            ui_object->GetName().LookupString(),
+                            ui_object->GetDrawableLayer().layer_index,
+                            ui_object->GetDepth()
+                        );
+
                         event_handled |= ui_object->OnMouseHover(UIMouseEventData {
                             .position   = mouse_screen,
                             .button     = event.GetMouseButton(),
                             .is_down    = false
                         });
 
-                        if (event_handled) {
-                            break;
-                        }
+                        // if (event_handled) {
+                        //     break;
+                        // }
                     }
                 }
             }
@@ -230,7 +265,7 @@ bool UIStage::OnInputEvent(
                 });
 
                 if (ray_test_results_it == ray_test_results.End()) {
-                    if (auto other_ui_object = GetUIObject(*it)) {
+                    if (auto other_ui_object = GetUIObjectForEntity(*it)) {
                         other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_HOVER);
 
                         other_ui_object->OnMouseLeave(UIMouseEventData {
@@ -264,9 +299,17 @@ bool UIStage::OnInputEvent(
             float(mouse_y) / float(window_size.y)
         );
 
+        UIObject *focused_object = nullptr;
+
         if (TestRay(mouse_screen, ray_test_results)) {
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                if (auto ui_object = GetUIObject(it->id)) {
+                if (auto ui_object = GetUIObjectForEntity(it->id)) {
+                    if (focused_object == nullptr && ui_object->AcceptsFocus()) {
+                        ui_object->Focus();
+
+                        focused_object = ui_object.Get();
+                    }
+
                     m_mouse_held_times.Insert(it->id, 0.0f);
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_PRESSED);
@@ -282,6 +325,10 @@ bool UIStage::OnInputEvent(
                     }
                 }
             }
+        }
+
+        if (focused_object == nullptr) {
+            SetFocusedObject(nullptr);
         }
 
         break;
@@ -308,7 +355,7 @@ bool UIStage::OnInputEvent(
 
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
-                if (auto ui_object = GetUIObject(ray_test_results_it->id)) {
+                if (auto ui_object = GetUIObjectForEntity(ray_test_results_it->id)) {
                     event_handled |= ui_object->OnClick(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
@@ -324,7 +371,7 @@ bool UIStage::OnInputEvent(
 
         for (auto &it : m_mouse_held_times) {
             // trigger mouse up
-            if (auto ui_object = GetUIObject(it.first)) {
+            if (auto ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_PRESSED);
 
                 event_handled |= ui_object->OnMouseUp(UIMouseEventData {
@@ -339,6 +386,8 @@ bool UIStage::OnInputEvent(
 
         break;
     }
+    default:
+        break;
     }
 
     return event_handled;
@@ -350,11 +399,15 @@ bool UIStage::Remove(ID<Entity> entity)
         return false;
     }
 
+    if (!GetNode()) {
+        return false;
+    }
+
     if (!m_scene->GetEntityManager()->HasEntity(entity)) {
         return false;
     }
 
-    if (NodeProxy child_node = m_scene->GetRoot().Get()->FindChildWithEntity(entity)) {
+    if (NodeProxy child_node = GetNode()->FindChildWithEntity(entity)) {
         return child_node.Remove();
     }
 

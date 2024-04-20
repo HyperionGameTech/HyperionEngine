@@ -72,7 +72,8 @@ public:
         Handle<RenderGroup>     render_group;
     };
 
-    void Insert(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data);
+    void InsertEntityWithAttributes(const RenderableAttributeSet &attributes, EntityDrawData entity_draw_data);
+
     void ClearEntities();
 
     void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list);
@@ -150,6 +151,17 @@ public:
 
     void ClearEntities();
 
+    /*! \brief Pushes an Entity to the RenderList.
+     *  \param camera The camera to use for rendering.
+     *  \param entity_id The ID of the Entity.
+     *  \param mesh The Mesh to render.
+     *  \param material The Material to use for rendering.
+     *  \param skeleton The Skeleton to use for rendering.
+     *  \param model_matrix The model matrix of the Entity.
+     *  \param previous_model_matrix The previous model matrix of the Entity.
+     *  \param aabb The AABB of the Entity.
+     *  \param override_attributes The RenderableAttributeSet to use for rendering.
+     */
     void PushEntityToRender(
         const Handle<Camera> &camera,
         ID<Entity> entity_id,
@@ -163,7 +175,7 @@ public:
     );
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
-        Call after calling CollectEntities() on Scene. */
+     *  Call after calling CollectEntities() on Scene. */
     void UpdateRenderGroups();
 
     void CollectDrawCalls(
@@ -176,7 +188,8 @@ public:
         Frame *frame,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
+        PushConstantData push_constant = { },
+        bool parallel = true
     ) const;
 
     void ExecuteDrawCalls(
@@ -184,7 +197,8 @@ public:
         const Handle<Framebuffer> &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
+        PushConstantData push_constant = { },
+        bool parallel = true
     ) const;
 
     void ExecuteDrawCalls(
@@ -192,7 +206,8 @@ public:
         const Handle<Camera> &camera,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
+        PushConstantData push_constant = { },
+        bool parallel = true
     ) const;
 
     void ExecuteDrawCalls(
@@ -201,7 +216,8 @@ public:
         const Handle<Framebuffer> &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
+        PushConstantData push_constant = { },
+        bool parallel = true
     ) const;
 
     void ExecuteDrawCallsInLayers(
@@ -240,9 +256,9 @@ public:
     void Reset();
 
 private:
-    Handle<Camera>                                          m_camera;
-    RC<EntityDrawCollection>                                m_draw_collection;
-    FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_groups;
+    Handle<Camera>                                              m_camera;
+    RC<EntityDrawCollection>                                    m_draw_collection;
+    HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>>    m_render_groups;
 };
 
 } // namespace hyperion

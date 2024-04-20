@@ -20,13 +20,13 @@
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 
-#include <core/containers/Queue.hpp>
-
 #include <system/Application.hpp>
 
 #include <input/InputManager.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/containers/Queue.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -50,7 +50,7 @@ struct UIObjectMeshData
 
 static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
 
-// UIObject
+#pragma region UIObject
 
 Handle<Mesh> UIObject::GetQuadMesh()
 {
@@ -83,23 +83,29 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return quad_mesh_initializer.mesh;
 }
 
-UIObject::UIObject(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : m_entity(entity),
-      m_parent(parent),
-      m_node_proxy(std::move(node_proxy)),
+UIObject::UIObject()
+    : m_parent(nullptr),
       m_is_init(false),
       m_origin_alignment(UI_OBJECT_ALIGNMENT_TOP_LEFT),
       m_parent_alignment(UI_OBJECT_ALIGNMENT_TOP_LEFT),
       m_position(0, 0),
-      m_size({ 100, 100 }),
+      m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
       m_border_radius(5),
       m_border_flags(UI_OBJECT_BORDER_NONE),
-      m_focus_state(UI_OBJECT_FOCUS_STATE_NONE)
+      m_focus_state(UI_OBJECT_FOCUS_STATE_NONE),
+      m_is_visible(true)
 {
-    AssertThrowMsg(entity.IsValid(), "Invalid Entity provided to UIObject!");
+}
+
+UIObject::UIObject(UIStage *parent, NodeProxy node_proxy)
+    : UIObject()
+{
     AssertThrowMsg(parent != nullptr, "Invalid UIStage parent pointer provided to UIObject!");
-    AssertThrowMsg(m_node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
+    AssertThrowMsg(node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
+    
+    m_parent = parent;
+    m_node_proxy = std::move(node_proxy);
 }
 
 UIObject::~UIObject()
@@ -108,24 +114,21 @@ UIObject::~UIObject()
 
 void UIObject::Init()
 {
-    AssertThrow(m_entity.IsValid());
-    AssertThrow(m_parent != nullptr);
-
     Handle<Mesh> mesh = GetQuadMesh();
 
     Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
 
-    scene->GetEntityManager()->AddComponent(m_entity, MeshComponent {
+    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent {
         mesh,
         GetMaterial()
     });
 
-    scene->GetEntityManager()->AddComponent(m_entity, VisibilityStateComponent {
+    scene->GetEntityManager()->AddComponent(GetEntity(), VisibilityStateComponent {
         // VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
     });
 
-    scene->GetEntityManager()->AddComponent(m_entity, BoundingBoxComponent {
+    scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent {
         mesh->GetAABB()
     });
 
@@ -171,6 +174,8 @@ void UIObject::Init()
 
     OnMouseHover.Bind(ScriptedDelegate { this, "OnMouseHover" }).Detach();
     OnMouseLeave.Bind(ScriptedDelegate { this, "OnMouseLeave" }).Detach();
+    OnGainFocus.Bind(ScriptedDelegate { this, "OnGainFocus" }).Detach();
+    OnLoseFocus.Bind(ScriptedDelegate { this, "OnLoseFocus" }).Detach();
     OnMouseDrag.Bind(ScriptedDelegate { this, "OnMouseDrag" }).Detach();
     OnMouseUp.Bind(ScriptedDelegate { this, "OnMouseUp" }).Detach();
     OnMouseDown.Bind(ScriptedDelegate { this, "OnMouseDown" }).Detach();
@@ -208,7 +213,7 @@ void UIObject::SetPosition(Vec2i position)
 
 void UIObject::UpdatePosition()
 {
-    if (!m_is_init) {
+    if (!IsInit()) {
         return;
     }
 
@@ -270,6 +275,12 @@ void UIObject::UpdatePosition()
             break;
         }
     }
+
+    // float z_value = 0.0f;
+
+    // if (m_depth != 0) {
+    //     z_value = float(m_depth);
+    // }
 
     float z_value = 1.0f;
 
@@ -335,7 +346,7 @@ void UIObject::SetMaxHeight(int max_height, UIObjectSize::Flags flags)
 
 void UIObject::UpdateSize()
 {
-    if (!m_is_init) {
+    if (!IsInit()) {
         return;
     }
 
@@ -396,9 +407,18 @@ void UIObject::SetFocusState(UIObjectFocusState focus_state)
 
 DrawableLayer UIObject::GetDrawableLayer() const
 {
-    const NodeProxy &node = GetNode();
-    
-    return DrawableLayer(node != nullptr ? node->FindSelfIndex() : 0, GetDepth());
+    return m_drawable_layer;
+}
+
+void UIObject::SetDrawableLayer(DrawableLayer layer)
+{
+    if (m_drawable_layer == layer) {
+        return;
+    }
+
+    m_drawable_layer = layer;
+
+    UpdateMaterial(false);
 }
 
 int UIObject::GetDepth() const
@@ -419,7 +439,55 @@ void UIObject::SetDepth(int depth)
     m_depth = MathUtil::Clamp(depth, UIStage::min_depth, UIStage::max_depth + 1);
 
     UpdatePosition();
-    UpdateMaterial(); // Update material to change z-layer
+}
+
+void UIObject::Focus()
+{
+    if (!AcceptsFocus()) {
+        return;
+    }
+
+    if (GetFocusState() & UI_OBJECT_FOCUS_STATE_FOCUSED) {
+        return;
+    }
+
+    if (!m_parent) {
+        return;
+    }
+
+    m_parent->SetFocusedObject(RefCountedPtrFromThis());
+
+    SetFocusState(GetFocusState() | UI_OBJECT_FOCUS_STATE_FOCUSED);
+    OnGainFocus(UIMouseEventData { });
+}
+
+void UIObject::Blur()
+{
+    if (!AcceptsFocus()) {
+        return;
+    }
+
+    if (!(GetFocusState() & UI_OBJECT_FOCUS_STATE_FOCUSED)) {
+        return;
+    }
+
+    if (!m_parent) {
+        return;
+    }
+
+    SetFocusState(GetFocusState() & ~UI_OBJECT_FOCUS_STATE_FOCUSED);
+    OnLoseFocus(UIMouseEventData { });
+
+    ForEachChildUIObject([](UIObject *child)
+    {
+        child->Blur();
+    });
+
+    if (m_parent->GetFocusedObject() != this) {
+        return;
+    }
+
+    m_parent->SetFocusedObject(nullptr);
 }
 
 void UIObject::SetBorderRadius(uint32 border_radius)
@@ -466,6 +534,39 @@ void UIObject::SetPadding(Vec2i padding)
 
     UpdateSize();
     UpdatePosition();
+}
+
+bool UIObject::IsVisible() const
+{
+    return m_is_visible;
+}
+
+void UIObject::SetIsVisible(bool is_visible)
+{
+    m_is_visible = is_visible;
+}
+
+bool UIObject::HasFocus(bool include_children) const
+{
+    if (GetFocusState() & UI_OBJECT_FOCUS_STATE_FOCUSED) {
+        return true;
+    }
+
+    if (!include_children) {
+        return false;
+    }
+
+    bool has_focus = false;
+
+    // check if any child has focus
+    ForEachChildUIObject([&has_focus](UIObject *child)
+    {
+        if (child->HasFocus(true)) {
+            has_focus = true;
+        }
+    });
+
+    return has_focus;
 }
 
 void UIObject::AddChildUIObject(UIObject *ui_object)
@@ -571,7 +672,7 @@ void UIObject::SetLocalAABB(const BoundingBox &aabb)
         return;
     }
 
-    BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(m_entity);
+    BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
     bounding_box_component.local_aabb = aabb;
 }
 
@@ -581,7 +682,8 @@ Handle<Material> UIObject::GetMaterial() const
         MaterialAttributes {
             .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes) },
             .bucket             = Bucket::BUCKET_UI,
-            .blend_function     = BlendFunction::AlphaBlending(),
+            .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
             .layer              = GetDrawableLayer()
@@ -599,11 +701,11 @@ const Handle<Mesh> &UIObject::GetMesh() const
 {
     Scene *scene = GetScene();
 
-    if (!m_entity.IsValid() || !scene) {
+    if (!GetEntity().IsValid() || !scene) {
         return Handle<Mesh>::empty;
     }
 
-    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity)) {
+    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity())) {
         return mesh_component->mesh;
     }
 
@@ -630,6 +732,10 @@ const UIObject *UIObject::GetParentUIObject() const
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
+                    // TEMP
+                    if (ui_component->ui_object.Is<UIStage>()) {
+                        return nullptr;
+                    }
                     return ui_component->ui_object.Get();
                 }
             }
@@ -665,16 +771,25 @@ void UIObject::UpdateActualSizes()
 
 void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size)
 {
+    Vec2i parent_size = { 0, 0 };
+    Vec2i parent_padding = { 0, 0 };
+
     const UIObject *parent_ui_object = GetParentUIObject();
 
-    // if we have a parent ui object, use that as the parent size - otherwise use the actual surface size.
-    const Vec2i parent_size = parent_ui_object != nullptr
-        ? parent_ui_object->GetActualSize()
-        : m_parent->GetSurfaceSize();
-
-    const Vec2i parent_padding = parent_ui_object != nullptr
-        ? parent_ui_object->GetPadding()
-        : Vec2i { 0, 0 };
+    if (parent_ui_object) {
+        parent_size = parent_ui_object->GetActualSize();
+        parent_padding = parent_ui_object->GetPadding();
+    } else if (m_parent) {
+        parent_size = m_parent->GetSurfaceSize();
+    } else /*if (Scene *scene = GetScene(); scene->GetCamera().IsValid()) {
+        // In the case that this UIObject is actually a UIStage
+        parent_size = {
+            GetScene()->GetCamera()->GetWidth(),
+            GetScene()->GetCamera()->GetHeight()
+        };
+    } else*/ {
+        return;
+    }
 
     out_actual_size = in_size.GetValue();
 
@@ -742,7 +857,7 @@ void UIObject::UpdateMeshData()
         return;
     }
 
-    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
 
     if (!mesh_component) {
         return;
@@ -759,7 +874,7 @@ void UIObject::UpdateMeshData()
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-void UIObject::UpdateMaterial()
+void UIObject::UpdateMaterial(bool update_children)
 {
     Scene *scene = GetScene();
 
@@ -767,12 +882,14 @@ void UIObject::UpdateMaterial()
         return;
     }
 
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->UpdateMaterial();
-    });
+    if (update_children) {
+        ForEachChildUIObject([](UIObject *child)
+        {
+            child->UpdateMaterial();
+        });
+    }
 
-    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity);
+    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
 
     if (!mesh_component) {
         return;
@@ -817,8 +934,13 @@ bool UIObject::HasChildUIObjects() const
     return false;
 }
 
+void UIObject::SetNodeProxy(NodeProxy node_proxy)
+{
+    m_node_proxy = std::move(node_proxy);
+}
+
 template <class Lambda>
-void UIObject::ForEachChildUIObject(Lambda &&lambda)
+void UIObject::ForEachChildUIObject(Lambda &&lambda) const
 {
     Scene *scene = GetScene();
 
@@ -854,5 +976,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda)
         }
     }
 }
+
+#pragma endregion UIObject
 
 } // namespace hyperion

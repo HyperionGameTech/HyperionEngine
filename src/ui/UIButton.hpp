@@ -13,7 +13,7 @@ class UIText;
 class HYP_API UIButton : public UIObject
 {
 public:
-    UIButton(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIButton(UIStage *stage, NodeProxy node_proxy);
     UIButton(const UIButton &other)                 = delete;
     UIButton &operator=(const UIButton &other)      = delete;
     UIButton(UIButton &&other) noexcept             = delete;

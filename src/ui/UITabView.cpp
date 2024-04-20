@@ -10,8 +10,8 @@ namespace hyperion {
 
 #pragma region UITab
 
-UITab::UITab(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy))
+UITab::UITab(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy))
 {
     SetBorderRadius(5);
     SetBorderFlags(UI_OBJECT_BORDER_TOP | UI_OBJECT_BORDER_LEFT | UI_OBJECT_BORDER_RIGHT);
@@ -69,8 +69,8 @@ Handle<Material> UITab::GetMaterial() const
 
 #pragma region UITabView
 
-UITabView::UITabView(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy)),
+UITabView::UITabView(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy)),
       m_selected_tab_index(~0u)
 {
     SetBorderRadius(5);

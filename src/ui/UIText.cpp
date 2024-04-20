@@ -170,10 +170,10 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
     return transformed_mesh;
 }
 
-// UIText
+#pragma region UIText
 
-UIText::UIText(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIObject(entity, parent, std::move(node_proxy)),
+UIText::UIText(UIStage *parent, NodeProxy node_proxy)
+    : UIObject(parent, std::move(node_proxy)),
       m_text("No text set"),
       m_text_color(Vec4f { 0.0f, 0.0f, 0.0f, 1.0f })
 {
@@ -294,5 +294,7 @@ void UIText::UpdateSize()
     // Update material to get new font size if necessary
     UpdateMaterial();
 }
+
+#pragma endregion UIText
 
 } // namespace hyperion

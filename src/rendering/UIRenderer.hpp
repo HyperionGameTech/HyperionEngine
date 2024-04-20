@@ -22,11 +22,14 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
+class UIStage;
+class UIObject;
+
 class HYP_API UIRenderer
     : public RenderComponent<UIRenderer>
 {
 public:
-    UIRenderer(Name name, Handle<Scene> ui_scene);
+    UIRenderer(Name name, RC<UIStage> ui_stage);
     UIRenderer(const UIRenderer &other)             = delete;
     UIRenderer &operator=(const UIRenderer &other)  = delete;
     virtual ~UIRenderer();
@@ -41,12 +44,12 @@ public:
 private:
     void CreateFramebuffer();
 
-    void CollectEntities(const Node *node);
+    void CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_objects);
 
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }
 
-    Handle<Scene>                   m_scene;
+    RC<UIStage>                     m_ui_stage;
     Handle<Framebuffer>             m_framebuffer;
     Handle<Shader>                  m_shader;
     RenderList                      m_render_list;

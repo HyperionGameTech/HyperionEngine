@@ -203,7 +203,7 @@ void SampleStreamer::InitGame()
     // ByteBuffer atlas_byte_buffer;
     // atlas.WriteToBuffer(atlas_byte_buffer);
 
-    GetUIStage().SetDefaultFontAtlas(atlas);
+    GetUIStage()->SetDefaultFontAtlas(atlas);
 
     // auto font_bitmap = atlas->GenerateBitmap();
     // font_bitmap.Write("font_bitmap.bmp");
@@ -726,8 +726,8 @@ void SampleStreamer::InitGame()
         }
     }
 
-    // auto my_button_entity = GetUIStage().GetScene()->GetEntityManager()->AddEntity();
-    // GetUIStage().GetScene()->GetEntityManager()->AddComponent<UIComponent>(my_button_entity, {
+    // auto my_button_entity = GetUIStage()->GetScene()->GetEntityManager()->AddEntity();
+    // GetUIStage()->GetScene()->GetEntityManager()->AddComponent<UIComponent>(my_button_entity, {
     //     .type = UI_COMPONENT_TYPE_BUTTON,
     //     .name = HYP_NAME(MyButton),
     //     .bounds = {
@@ -737,16 +737,16 @@ void SampleStreamer::InitGame()
     // });
 
 
-    // auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text2), Vec2i { 25, 25 }, Vec2i { 100, 30 });
+    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text2), Vec2i { 25, 25 }, Vec2i { 100, 30 });
     // ui_text->SetText("Hello, world!");
     // ui_text->SetDepth(1);
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
 
-    if (auto main_panel = GetUIStage().CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true)) {
+    if (auto main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true)) {
         // btn->SetPadding(Vec2i { 5, 5 });
         
-        // GetUIStage().GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
+        // GetUIStage()->GetScene()->GetEntityManager()->AddComponent(btn->GetEntity(), ScriptComponent {
         //     {
         //         .assembly_name  = "csharp.dll",
         //         .class_name     = "TestUIScript"
@@ -754,7 +754,7 @@ void SampleStreamer::InitGame()
         // });
 
 
-        auto menu_bar = GetUIStage().CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        auto menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         menu_bar->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         menu_bar->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
 
@@ -772,24 +772,25 @@ void SampleStreamer::InitGame()
         main_panel->AddChildUIObject(menu_bar);
 
 
-        auto tab_view = GetUIStage().CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 60, 80 }, Vec2i { 1150, 650 });
+        auto tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 60, 80 }, Vec2i { 1150, 650 });
         tab_view->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         tab_view->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         main_panel->AddChildUIObject(tab_view);
 
-        auto scene_tab_content_grid = GetUIStage().CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        auto scene_tab_content_grid = GetUIStage()->CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
         scene_tab_content_grid->SetNumColumns(3);
         // scene_tab_content_grid->SetNumRows(5);
 
-        auto scene_tab_content_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::PIXEL }));
+        auto scene_tab_content_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::PIXEL }));
         scene_tab_content_text->SetText("grid test 1234567");
         scene_tab_content_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         scene_tab_content_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         scene_tab_content_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        auto scene_tab_content_button = GetUIStage().CreateUIObject<UIButton>(HYP_NAME(Scene_Tab_Button), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+        auto scene_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Scene_Tab_Button), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
         scene_tab_content_button->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         scene_tab_content_button->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
+        scene_tab_content_button->SetText("Hello hello helloworld");
 
         auto scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
         scene_tab->GetContents()->AddChildUIObject(scene_tab_content_grid);
@@ -798,7 +799,7 @@ void SampleStreamer::InitGame()
         scene_tab_content_grid->AddChildUIObject(scene_tab_content_button);
 
         auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
-        auto ui_image = GetUIStage().CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        auto ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
         // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
         ui_image->SetTexture(streaming_capture_component->GetTexture());
         game_tab->GetContents()->AddChildUIObject(ui_image);
@@ -806,7 +807,7 @@ void SampleStreamer::InitGame()
 
 
 
-        // auto ui_text = GetUIStage().CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
+        // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
         // ui_text->SetText("Hi hello");
         // ui_text->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         // ui_text->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
@@ -821,7 +822,7 @@ void SampleStreamer::InitGame()
         
         // ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        // auto new_btn = GetUIStage().CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
+        // auto new_btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
         // new_btn->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         // new_btn->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_CENTER);
         // btn->AddChildUIObject(new_btn);
@@ -832,7 +833,7 @@ void SampleStreamer::InitGame()
         // DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
     }
 
-    if (auto ui_renderer = m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUIStage().GetScene())) {
+    if (auto ui_renderer = m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUIStage())) {
     }
 
     //RC<LightmapRenderer> lightmap_renderer = m_scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(HYP_NAME(LightmapRenderer0));
@@ -1176,8 +1177,6 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
             m_rtc_stream->SendSample(dest);
         }
     }
-
-    GetUIStage().Update(delta);
 
     HandleCameraMovement(delta);
 }

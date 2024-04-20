@@ -173,7 +173,12 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
         }
     }
 
-    virtual ~RENDER_COMMAND(CreateIndirectDrawStateBuffers)() override = default;
+    virtual ~RENDER_COMMAND(CreateIndirectDrawStateBuffers)() override
+    {
+        SafeRelease(std::move(indirect_buffers));
+        SafeRelease(std::move(instance_buffers));
+        SafeRelease(std::move(staging_buffers));
+    }
 
     virtual Result operator()() override
     {
@@ -364,6 +369,12 @@ void IndirectRenderer::Create()
 
     Handle<Shader> object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
     AssertThrow(object_visibility_shader.IsValid());
+
+#ifdef HYP_DEBUG_MODE // silly check
+    volatile auto &bytes = Handle<Shader>::GetContainer().GetObjectBytes(object_visibility_shader.GetID().ToIndex());
+    
+    AssertThrow(bytes.has_value);
+#endif
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
 

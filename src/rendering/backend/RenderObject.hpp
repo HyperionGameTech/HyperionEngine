@@ -169,7 +169,8 @@ public:
 
         AssertThrowMsg(
             index < RenderObjectDefinitionType::max_size,
-            "Maximum number of RenderObject type allocated! Maximum: %llu\n",
+            "Maximum number of render object %s allocated! Maximum: %llu\n",
+            TypeNameWithoutNamespace<T>().Data(),
             RenderObjectDefinitionType::max_size
         );
 

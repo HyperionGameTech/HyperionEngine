@@ -48,8 +48,8 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     AssertThrow(entity_draw_data.mesh_id.IsValid());
 
 #ifndef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-        AssertThrow(id.Value() != 0);
-        AssertThrow(id.HasMaterial());
+    AssertThrow(id.Value() != 0);
+    AssertThrow(id.HasMaterial());
 #endif
 
     const auto it = index_map.Find(id.Value());

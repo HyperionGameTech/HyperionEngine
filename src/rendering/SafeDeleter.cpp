@@ -2,10 +2,12 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
 
+#pragma region Render commands
 
 struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderCommand
 {
@@ -15,7 +17,9 @@ struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderComman
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(RemoveTextureFromBindlessStorage)() override = default;
+
+    virtual Result operator()() override
     {
         g_engine->GetRenderData()->textures.RemoveResource(id);
 
@@ -23,95 +27,89 @@ struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderComman
     }
 };
 
+#pragma endregion Render commands
+
+#pragma region DeletionEntryBase
+
+bool DeletionEntryBase::DecrementCycle()
+{
+    if (m_cycles_remaining == 0) {
+        return true;
+    }
+
+    --m_cycles_remaining;
+
+    return m_cycles_remaining == 0;
+}
+
+bool DeletionEntryBase::PerformDeletion(bool force)
+{
+    if (force) {
+        m_cycles_remaining = 0;
+    }
+
+    if (m_cycles_remaining != 0) {
+        return false;
+    }
+
+    PerformDeletionImpl();
+
+    return true;
+}
+
+#pragma endregion DeletionEntryBase
+
+#pragma region SafeDeleter
+
 void SafeDeleter::PerformEnqueuedDeletions()
 {
-    if (auto deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
-        Mutex::Guard guard(m_render_resource_deletion_mutex);
+    if (bool deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+        Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
-        if (deletion_flags & RENDERABLE_DELETION_BUFFERS_OR_IMAGES) {
-            if (DeleteEnqueuedBuffersAndImages()) {
-                deletion_flags &= ~RENDERABLE_DELETION_BUFFERS_OR_IMAGES;
-            }
+        { // Critical section
+            Mutex::Guard guard(m_render_resource_deletion_mutex);
+
+            CollectAllEnqueuedItems(deletion_entries);
         }
 
-        if (deletion_flags & RENDERABLE_DELETION_TEXTURES) {
-            if (DeleteEnqueuedHandlesOfType<Texture>()) {
-                deletion_flags &= ~RENDERABLE_DELETION_TEXTURES;
-            }
+        for (auto &it : deletion_entries) {
+            AssertThrow(it->PerformDeletion());
         }
-
-        if (deletion_flags & RENDERABLE_DELETION_MATERIALS) {
-            if (DeleteEnqueuedHandlesOfType<Material>()) {
-                deletion_flags &= ~RENDERABLE_DELETION_MATERIALS;
-            }
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_MESHES) {
-            if (DeleteEnqueuedHandlesOfType<Mesh>()) {
-                deletion_flags &= ~RENDERABLE_DELETION_MESHES;
-            }
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_SKELETONS) {
-            if (DeleteEnqueuedHandlesOfType<Skeleton>()) {
-                deletion_flags &= ~RENDERABLE_DELETION_SKELETONS;
-            }
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_SHADERS) {
-            if (DeleteEnqueuedHandlesOfType<Shader>()) {
-                deletion_flags &= ~RENDERABLE_DELETION_SHADERS;
-            }
-        }
-
-        m_render_resource_deletion_flag.Set(deletion_flags, MemoryOrder::RELEASE);
+        
+        m_render_resource_deletion_flag.Set(false, MemoryOrder::RELEASE);
     }
 }
 
 void SafeDeleter::ForceReleaseAll()
 {
-    while (auto deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+    while (bool deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
         Mutex::Guard guard(m_render_resource_deletion_mutex);
 
-        if (deletion_flags & RENDERABLE_DELETION_BUFFERS_OR_IMAGES) {
-            ForceDeleteBuffersAndImages();
-            deletion_flags &= ~RENDERABLE_DELETION_BUFFERS_OR_IMAGES;
+        for (auto &it : m_deletion_entries) {
+            AssertThrow(it->PerformDeletion(true /* force */));
         }
 
-        if (deletion_flags & RENDERABLE_DELETION_TEXTURES) {
-            ForceDeleteHandlesOfType<Texture>();
-            deletion_flags &= ~RENDERABLE_DELETION_TEXTURES;
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_MATERIALS) {
-            ForceDeleteHandlesOfType<Material>();
-            deletion_flags &= ~RENDERABLE_DELETION_MATERIALS;
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_MESHES) {
-            ForceDeleteHandlesOfType<Mesh>();
-            deletion_flags &= ~RENDERABLE_DELETION_MESHES;
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_SKELETONS) {
-            ForceDeleteHandlesOfType<Skeleton>();
-            deletion_flags &= ~RENDERABLE_DELETION_SKELETONS;
-        }
-
-        if (deletion_flags & RENDERABLE_DELETION_SHADERS) {
-            ForceDeleteHandlesOfType<Shader>();
-            deletion_flags &= ~RENDERABLE_DELETION_SHADERS;
-        }
-
-        m_render_resource_deletion_flag.Set(deletion_flags, MemoryOrder::RELEASE);
+        m_render_resource_deletion_flag.Set(false, MemoryOrder::RELEASE);
     }
 }
 
-void SafeDeleter::EnqueueTextureBindlessStorageRemoval(ID<Texture> id)
+bool SafeDeleter::CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries)
 {
-    if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-        PUSH_RENDER_COMMAND(RemoveTextureFromBindlessStorage, id);
+    for (auto it = m_deletion_entries.Begin(); it != m_deletion_entries.End();) {
+        auto &entry = *it;
+
+        if (entry->DecrementCycle()) {
+            out_entries.PushBack(std::move(*it));
+
+            it = m_deletion_entries.Erase(it);
+        } else {
+            ++it;
+        }
     }
+
+    return m_deletion_entries.Empty();
 }
+
+#pragma endregion SafeDeleter
 
 } // namespace hyperion

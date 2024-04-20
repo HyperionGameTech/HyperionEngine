@@ -11,7 +11,7 @@ ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Exte
       m_window_size(window_size),
       m_texture(CreateObject<Texture>(Texture2D(
           m_window_size,
-          InternalFormat::RGBA8,
+          InternalFormat::RGBA16F,
           FilterMode::TEXTURE_FILTER_NEAREST,
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           nullptr
@@ -25,7 +25,7 @@ void ScreenCaptureRenderComponent::Init()
     InitObject(m_texture);
 
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
-    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetImage()->GetByteSize()));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_window_size.Size() * 4));
     m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
     m_buffer->GetMapping(g_engine->GetGPUDevice());
 }
@@ -71,6 +71,8 @@ void ScreenCaptureRenderComponent::OnRender(Frame *frame)
 
         break;
     case ScreenCaptureMode::TO_BUFFER:
+        AssertThrow(m_buffer.IsValid() && m_buffer->size >= image_ref->GetByteSize());
+
         m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
         image_ref->CopyToBuffer(

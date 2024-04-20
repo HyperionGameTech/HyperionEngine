@@ -5,8 +5,8 @@
 
 namespace hyperion {
 
-UIPanel::UIPanel(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIObject(entity, parent, std::move(node_proxy))
+UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy)
+    : UIObject(parent, std::move(node_proxy))
 {
     SetBorderRadius(5);
     SetBorderFlags(UI_OBJECT_BORDER_ALL);

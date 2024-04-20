@@ -26,7 +26,7 @@ struct DropDownMenuItem
 class HYP_API UIMenuItem : public UIPanel
 {
 public:
-    UIMenuItem(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIMenuItem(UIStage *stage, NodeProxy node_proxy);
     UIMenuItem(const UIMenuItem &other)                 = delete;
     UIMenuItem &operator=(const UIMenuItem &other)      = delete;
     UIMenuItem(UIMenuItem &&other) noexcept             = delete;
@@ -93,7 +93,7 @@ private:
 class HYP_API UIMenuBar : public UIPanel
 {
 public:
-    UIMenuBar(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIMenuBar(UIStage *stage, NodeProxy node_proxy);
     UIMenuBar(const UIMenuBar &other)                   = delete;
     UIMenuBar &operator=(const UIMenuBar &other)        = delete;
     UIMenuBar(UIMenuBar &&other) noexcept               = delete;

@@ -15,7 +15,8 @@ namespace hyperion {
 Game::Game(RC<Application> application)
     : m_application(application),
       m_is_init(false),
-      m_input_manager(new InputManager())
+      m_input_manager(new InputManager()),
+      m_ui_stage(new UIStage())
 {
 }
 
@@ -23,7 +24,8 @@ Game::Game(RC<Application> application, Optional<ManagedGameInfo> managed_game_i
     : m_application(application),
       m_is_init(false),
       m_input_manager(new InputManager()),
-      m_managed_game_info(std::move(managed_game_info))
+      m_managed_game_info(std::move(managed_game_info)),
+      m_ui_stage(new UIStage())
 {
 }
 
@@ -75,6 +77,10 @@ void Game::Init()
 void Game::Update(GameCounter::TickUnit delta)
 {
     Logic(delta);
+    
+    if (m_ui_stage) {
+        m_ui_stage->Update(delta);
+    }
 
     if (m_managed_game_object) {
         m_managed_game_object->InvokeMethodByName<void, float>("Update", float(delta));
@@ -87,7 +93,7 @@ void Game::InitGame()
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    m_ui_stage.Init();
+    m_ui_stage->Init();
 
     if (m_managed_game_object) {
         m_managed_game_object->InvokeMethodByName<void, ManagedHandle, void *, void *, void *>(
@@ -95,7 +101,7 @@ void Game::InitGame()
             CreateManagedHandleFromHandle(m_scene),
             m_input_manager.Get(),
             g_asset_manager,
-            &m_ui_stage
+            m_ui_stage.Get()
         );
 
         m_managed_game_object->InvokeMethodByName<void>("Init");
@@ -149,7 +155,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     // forward to UI
-    if (m_ui_stage.OnInputEvent(m_input_manager.Get(), event)) {
+    if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event)) {
         // ui handled the event
         return;
     }

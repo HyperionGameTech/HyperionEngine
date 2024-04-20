@@ -17,7 +17,7 @@
 
 #include <type_traits>
 
-//#define HYP_OBJECT_POOL_DEBUG
+#define HYP_OBJECT_POOL_DEBUG
 
 namespace hyperion {
 
@@ -48,13 +48,18 @@ class ObjectContainer : public ObjectContainerBase
         alignas(T) ubyte    bytes[sizeof(T)];
         AtomicVar<uint16>   ref_count_strong;
         AtomicVar<uint16>   ref_count_weak;
+
+#ifdef HYP_OBJECT_POOL_DEBUG
         bool                has_value;
+#endif
 
         ObjectBytes()
             : ref_count_strong(0),
-              ref_count_weak(0),
-              has_value(false)
+              ref_count_weak(0)
         {
+#ifdef HYP_OBJECT_POOL_DEBUG
+            has_value = false;
+#endif
         }
 
         ObjectBytes(const ObjectBytes &)                = delete;
@@ -133,7 +138,7 @@ class ObjectContainer : public ObjectContainerBase
     private:
 #ifdef HYP_OBJECT_POOL_DEBUG
         HYP_FORCE_INLINE bool HasValue() const
-            { return has_value.Get(MemoryOrder::RELAXED); }
+            { return has_value; }
 #endif
     };
 

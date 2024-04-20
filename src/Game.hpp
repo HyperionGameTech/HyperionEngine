@@ -69,10 +69,7 @@ public:
 protected:
     virtual void Logic(GameCounter::TickUnit delta) = 0;
 
-    UIStage &GetUIStage()
-        { return m_ui_stage; }
-
-    const UIStage &GetUIStage() const
+    const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
 
     const UniquePtr<InputManager> &GetInputManager() const
@@ -83,7 +80,7 @@ protected:
     UniquePtr<InputManager>     m_input_manager;
     Handle<Scene>               m_scene;
 
-    UIStage                     m_ui_stage;
+    RC<UIStage>                 m_ui_stage;
 
     RC<Assembly>                m_managed_assembly;
     UniquePtr<Object>           m_managed_game_object;

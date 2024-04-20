@@ -281,6 +281,7 @@ public:
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
     using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
 
+    /*! \brief Default parameters for a Material. */
     static ParameterTable DefaultParameters();
 
     Material();
@@ -331,17 +332,17 @@ public:
     typename std::enable_if_t<std::is_same_v<std::decay_t<decltype(T::values[0])>, float>, std::decay_t<T>>
     GetParameter(MaterialKey key) const
     {
-        static_assert(sizeof(T::values) <= sizeof(Parameter::values));
+        static_assert(sizeof(T::values) <= sizeof(Parameter::values), "T must have a size <= to the size of Parameter::values");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
         T result;
-        std::memcpy(&result.values[0], &m_parameters.Get(key).values.float_values[0], sizeof(float) * std::size(result.values));
+        std::memcpy(&result.values[0], &m_parameters.Get(key).values.float_values[0], sizeof(float) * ArraySize(result.values));
         return result;
     }
 
     /*! \brief Set a parameter on this material with the given key and value
      *  \param key The key of the parameter to be set
-     *  \param value The value of the parameter to be set
-     */
+     *  \param value The value of the parameter to be set */
     void SetParameter(MaterialKey key, const Parameter &value);
 
     /*! \brief Set all parameters back to their default values. */
@@ -351,24 +352,21 @@ public:
      *  If the Material has already been initialized, the Texture is initialized.
      *  Otherwise, it will be initialized when the Material is initialized.
      *  \param key The texture slot to set the texture on
-     *  \param texture A Texture resource
-     */
+     *  \param texture The Texture handle to set. */
     void SetTexture(TextureKey key, Handle<Texture> &&texture);
 
     /*! \brief Sets the texture with the given key on this Material.
      *  If the Material has already been initialized, the Texture is initialized.
      *  Otherwise, it will be initialized when the Material is initialized.
      *  \param key The texture slot to set the texture on
-     *  \param texture A Texture resource
-     */
+     *  \param texture The Texture handle to set. */
     void SetTexture(TextureKey key, const Handle<Texture> &texture);
 
     /*! \brief Sets the texture at the given index on this Material.
      *  If the Material has already been initialized, the Texture is initialized.
      *  Otherwise, it will be initialized when the Material is initialized.
      *  \param index The index to set the texture in
-     *  \param texture A Texture resource
-     */
+     *  \param texture The Texture handle to set. */
     void SetTextureAtIndex(uint index, const Handle<Texture> &texture);
 
     TextureSet &GetTextures()
@@ -380,26 +378,33 @@ public:
     /*! \brief Return a pointer to a Texture set on this Material by the given
      *  texture key. If no Texture was set, nullptr is returned.
      *  \param key The key of the texture to find
-     *  \return Pointer to the found Texture, or nullptr.
-     */
+     *  \return Handle for the found Texture, or an empty Handle if not found. */
     const Handle<Texture> &GetTexture(TextureKey key) const;
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
      *  index. If no Texture was set, nullptr is returned.
      *  \param index The index of the texture to find
-     *  \return Pointer to the found Texture, or nullptr.
-     */
+     *  \return Handle for the found Texture, or an empty Handle if not found. */
     const Handle<Texture> &GetTextureAtIndex(uint index) const;
 
+    /*! \brief Get the bucket for this Material.
+     *  \return The bucket for this Material. */
     Bucket GetBucket() const
         { return m_render_attributes.bucket; }
 
+    /*! \brief Set the bucket for this Material.
+     *  \param bucket The bucket to set. */
     void SetBucket(Bucket bucket)
         { m_render_attributes.bucket = bucket; }
 
+    /*! \brief Get whether this Material is alpha blended.
+     *  \return True if the Material is alpha blended, false otherwise. */
     bool IsAlphaBlended() const
         { return m_render_attributes.blend_function != BlendFunction::None(); }
 
+    /*! \brief Set whether this Material is alpha blended.
+     *  \param is_alpha_blended True if the Material is alpha blended, false otherwise.
+     *  \param blend_function The blend function to use if the Material is alpha blended. By default, it is set to \ref{BlendFunction::AlphaBlending()}. */
     void SetIsAlphaBlended(bool is_alpha_blended, BlendFunction blend_function = BlendFunction::AlphaBlending())
     {
         if (is_alpha_blended) {
@@ -409,15 +414,23 @@ public:
         }
     }
 
+    /*! \brief Get the blend function for this Material.
+     *  \return The blend function for this Material. */
     BlendFunction GetBlendFunction() const
         { return m_render_attributes.blend_function; }
 
+    /*! \brief Set the blend function for this Material.
+     *  \param blend_function The blend function to set. */
     void SetBlendMode(BlendFunction blend_function)
         { m_render_attributes.blend_function = blend_function; }
 
+    /*! \brief Get whether depth writing is enabled for this Material.
+     *  \return True if depth writing is enabled, false otherwise. */
     bool IsDepthWriteEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE); }
 
+    /*! \brief Set whether depth writing is enabled for this Material.
+     *  \param is_depth_write_enabled True if depth writing is enabled, false otherwise. */
     void SetIsDepthWriteEnabled(bool is_depth_write_enabled)
     {
         if (is_depth_write_enabled) {
@@ -427,9 +440,13 @@ public:
         }
     }
 
+    /*! \brief Get whether depth testing is enabled for this Material.
+     *  \return True if depth testing is enabled, false otherwise. */
     bool IsDepthTestEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST); }
 
+    /*! \brief Set whether depth testing is enabled for this Material.
+     *  \param is_depth_test_enabled True if depth testing is enabled, false otherwise. */
     void SetIsDepthTestEnabled(bool is_depth_test_enabled)
     {
         if (is_depth_test_enabled) {
@@ -439,30 +456,61 @@ public:
         }
     }
 
+    /*! \brief Get the face culling mode for this Material.
+     *  \return The face culling mode for this Material. */
     FaceCullMode GetFaceCullMode() const
         { return m_render_attributes.cull_faces; }
 
+    /*! \brief Set the face culling mode for this Material.
+     *  \param cull_mode The face culling mode to set. */
     void SetFaceCullMode(FaceCullMode cull_mode)
         { m_render_attributes.cull_faces = cull_mode; }
 
+    /*! \brief Get the render attributes of this Material.
+     *  \return The render attributes of this Material. */
     MaterialAttributes &GetRenderAttributes()
         { return m_render_attributes; }
 
+    /*! \brief Get the render attributes of this Material.
+     *  \return The render attributes of this Material. */
     const MaterialAttributes &GetRenderAttributes() const
         { return m_render_attributes; }
 
+    /*! \brief If a Material is static, it is expected to not change frequently and
+     *  may be shared across many objects. Otherwise, it is considered dynamic and may
+     *  be modified.
+     *  \return True if the Material is static, false if it is dynamic. */
     bool IsStatic() const
         { return !m_is_dynamic; }
 
+    /*! \brief If a Material is
+     *  dynamic, it is expected to change frequently and may be modified. Otherwise,
+     *  it is considered static and should not be modified as it may be shared across many
+     *  objects.
+     *  \return True if the Material is dynamic, false if it is static. */
     bool IsDynamic() const
         { return m_is_dynamic; }
 
     void Init();
 
+    /*! \brief If the Material's mutation state is dirty, this will
+     * create a task on the render thread to update the Material's
+     * data on the GPU. */
     void EnqueueRenderUpdates();
 
+    /*! \brief Clone this Material. The cloned Material will have the same
+     *  shader, parameters, textures, and render attributes as the original.
+     *  \details Using this method is a good way to get around the fact that
+     *  static Materials are shared across many objects. If you need to modify
+     *  a static Material, clone it first. The cloned Material will be dynamic
+     *  by default, and can be modified without affecting the original Material.
+     *  \note The cloned Material will not be initialized.
+     *  \return A new Material that is a clone of this Material.
+     */
     Handle<Material> Clone() const;
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
@@ -490,7 +538,7 @@ private:
     bool                                                m_is_dynamic;
 
     MaterialShaderData                                  m_shader_data;
-    mutable DataMutationState                             m_mutation_state;
+    mutable DataMutationState                           m_mutation_state;
 };
 
 class MaterialGroup : public BasicObject<STUB_CLASS(MaterialGroup)>
@@ -553,34 +601,36 @@ public:
     ~MaterialDescriptorSetManager();
 
     /*! \brief Get the descriptor set for the given material and frame index. Only
-        to be used from the render thread. If the descriptor set is not found, nullptr
-        is returned.
-
-        \param material The IDof material to get the descriptor set for
-        \param frame_index The frame index to get the descriptor set for
-        \returns The descriptor set for the given material and frame index or nullptr if not found
+     *   to be used from the render thread. If the descriptor set is not found, nullptr
+     *   is returned.
+     *   \param material The IDof material to get the descriptor set for
+     *   \param frame_index The frame index to get the descriptor set for
+     *   \returns The descriptor set for the given material and frame index or nullptr if not found
      */
     const DescriptorSetRef &GetDescriptorSet(ID<Material> material, uint frame_index) const;
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
-        the material and add it to the manager. Usable from any thread.
-
-        \param material The ID of the material to add
+     *  the material and add it to the manager. Usable from any thread.
+     *  \note If this function is called form the render thread, the descriptor set will
+     *  be created immediately. If called from any other thread, the descriptor set will
+     *  be created on the next call to Update.
+     *  \param id The ID of the material to add
      */
-    void EnqueueAdd(ID<Material> material);
+    void AddMaterial(ID<Material> id);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
-        the material and add it to the manager. Usable from any thread.
-
-        \param material The ID of the material to add
-        \param textures The textures to add to the material
+     *  the material and add it to the manager. Usable from any thread.
+     *  \note If this function is called form the render thread, the descriptor set will
+     *  be created immediately. If called from any other thread, the descriptor set will
+     *  be created on the next call to Update.
+     *  \param id The ID of the material to add
+     *  \param textures The textures to add to the material
      */
-    void EnqueueAdd(ID<Material> material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    void AddMaterial(ID<Material> id, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
-        for the material from the manager. Usable from any thread.
-
-        \param material The ID of the material to remove
+     *  for the material from the manager. Usable from any thread.
+     *  \param material The ID of the material to remove
      */
     void EnqueueRemove(ID<Material> material);
 
@@ -590,16 +640,16 @@ public:
     void Initialize();
 
     /*! \brief Update the manager. This will process any pending additions or removals
-        and update the descriptor sets. Usable from the render thread.
+     *  and update the descriptor sets. Usable from the render thread.
      */
     void Update(Frame *frame);
 
 private:
     void CreateInvalidMaterialDescriptorSet();
 
-    FlatMap<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>      m_material_descriptor_sets;
+    HashMap<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
 
-    Array<Pair<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>  m_pending_addition;
+    Array<Pair<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
     Array<ID<Material>>                                                             m_pending_removal;
     Mutex                                                                           m_pending_mutex;
     AtomicVar<bool>                                                                 m_pending_addition_flag;

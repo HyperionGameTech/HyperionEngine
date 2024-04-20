@@ -109,20 +109,6 @@ DeferredSystem::DeferredSystem()
     }
 }
 
-void DeferredSystem::AddFramebuffersToRenderGroups()
-{
-    for (auto &bucket : m_buckets) {
-        bucket.AddFramebuffersToRenderGroups();
-    }
-}
-
-void DeferredSystem::AddPendingRenderGroups()
-{
-    for (auto &bucket : m_buckets) {
-        bucket.AddPendingRenderGroups();
-    }
-}
-
 void DeferredSystem::Create()
 {
     for (auto &bucket : m_buckets) {
@@ -154,52 +140,6 @@ void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &rend
 
         render_group->AddFramebuffer(std::move(framebuffer));
     } else {
-        AddFramebuffersToRenderGroup(render_group);
-    }
-
-    //InitObject(render_group);
-
-    Mutex::Guard guard(renderer_instances_mutex);
-
-    renderer_instances_pending_addition.PushBack(render_group);
-    renderer_instances_changed.Set(true, MemoryOrder::RELEASE);
-
-    DebugLog(
-        LogType::Debug,
-        "Add RenderGroup (current count: %llu, pending: %llu)\n",
-        renderer_instances.Size(),
-        renderer_instances_pending_addition.Size()
-    );
-}
-
-void DeferredSystem::RenderGroupHolder::AddPendingRenderGroups()
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    if (!renderer_instances_changed.Get(MemoryOrder::ACQUIRE)) {
-        return;
-    }
-
-    DebugLog(LogType::Debug, "Adding %llu pending RenderGroups\n", renderer_instances_pending_addition.Size());
-
-    Mutex::Guard guard(renderer_instances_mutex);
-    DebugLog(LogType::Debug, "Adding pending RenderGroups, locked mutex.\n");
-
-    for (auto it = renderer_instances_pending_addition.Begin(); it != renderer_instances_pending_addition.End(); ++it) {
-        AssertThrow(*it != nullptr);
-
-        InitObject(*it);
-
-        renderer_instances.PushBack(std::move(*it));
-    }
-    
-    renderer_instances_pending_addition.Clear();
-    renderer_instances_changed.Set(false, MemoryOrder::RELEASE);
-}
-
-void DeferredSystem::RenderGroupHolder::AddFramebuffersToRenderGroups()
-{
-    for (auto &render_group : renderer_instances) {
         AddFramebuffersToRenderGroup(render_group);
     }
 }
@@ -279,12 +219,6 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
 void DeferredSystem::RenderGroupHolder::Destroy()
 {
-    renderer_instances.Clear();
-
-    renderer_instances_mutex.Lock();
-    renderer_instances_pending_addition.Clear();
-    renderer_instances_mutex.Unlock();
-
     framebuffer.Reset();
 
     for (AttachmentRef &attachment : attachments) {

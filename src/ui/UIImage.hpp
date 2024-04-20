@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_IMAGE_HPP
 #define HYPERION_UI_IMAGE_HPP
 
@@ -15,7 +16,7 @@ class UIStage;
 class HYP_API UIImage : public UIObject
 {
 public:
-    UIImage(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIImage(UIStage *stage, NodeProxy node_proxy);
     UIImage(const UIImage &other)                   = delete;
     UIImage &operator=(const UIImage &other)        = delete;
     UIImage(UIImage &&other) noexcept               = delete;

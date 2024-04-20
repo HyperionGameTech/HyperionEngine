@@ -58,10 +58,6 @@ public:
         Bucket                      bucket { BUCKET_OPAQUE };
         Handle<Framebuffer>         framebuffer;
         Array<AttachmentRef>        attachments;
-        Array<Handle<RenderGroup>>  renderer_instances;
-        Array<Handle<RenderGroup>>  renderer_instances_pending_addition;
-        AtomicVar<bool>             renderer_instances_changed;
-        Mutex                       renderer_instances_mutex;
 
     public:
         RenderGroupHolder();
@@ -77,9 +73,6 @@ public:
         const Handle<Framebuffer> &GetFramebuffer() const
             { return framebuffer; }
 
-        const Array<Handle<RenderGroup>> &GetRenderGroups() const
-            { return renderer_instances; }
-
         const AttachmentUsageRef &GetGBufferAttachment(GBufferResourceName resource_name) const
         {
             AssertThrow(framebuffer.IsValid());
@@ -89,8 +82,6 @@ public:
         }
 
         void AddRenderGroup(Handle<RenderGroup> &render_group);
-        void AddPendingRenderGroups();
-        void AddFramebuffersToRenderGroups();
         void AddFramebuffersToRenderGroup(Handle<RenderGroup> &pipeline);
         void CreateFramebuffer();
         void Destroy();
@@ -115,9 +106,6 @@ public:
 
     void Create();
     void Destroy();
-
-    void AddPendingRenderGroups();
-    void AddFramebuffersToRenderGroups();
 
 private:
     FixedArray<RenderGroupHolder, Bucket::BUCKET_MAX>   m_buckets;

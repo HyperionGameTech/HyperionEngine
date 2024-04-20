@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_GRID_HPP
 #define HYPERION_UI_GRID_HPP
 
@@ -13,7 +14,7 @@ namespace hyperion {
 class HYP_API UIGridColumn : public UIPanel
 {
 public:
-    UIGridColumn(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIGridColumn(UIStage *stage, NodeProxy node_proxy);
     UIGridColumn(const UIGridColumn &other)                 = delete;
     UIGridColumn &operator=(const UIGridColumn &other)      = delete;
     UIGridColumn(UIGridColumn &&other) noexcept             = delete;
@@ -30,7 +31,7 @@ public:
 class HYP_API UIGridRow : public UIPanel
 {
 public:
-    UIGridRow(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIGridRow(UIStage *stage, NodeProxy node_proxy);
     UIGridRow(const UIGridRow &other)                   = delete;
     UIGridRow &operator=(const UIGridRow &other)        = delete;
     UIGridRow(UIGridRow &&other) noexcept               = delete;
@@ -84,7 +85,7 @@ private:
 class HYP_API UIGrid : public UIPanel
 {
 public:
-    UIGrid(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIGrid(UIStage *stage, NodeProxy node_proxy);
     UIGrid(const UIGrid &other)                 = delete;
     UIGrid &operator=(const UIGrid &other)      = delete;
     UIGrid(UIGrid &&other) noexcept             = delete;

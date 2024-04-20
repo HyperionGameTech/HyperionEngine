@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_TEXT_HPP
 #define HYPERION_UI_TEXT_HPP
 
@@ -42,7 +43,7 @@ struct UITextOptions
 class HYP_API UIText : public UIObject
 {
 public:
-    UIText(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIText(UIStage *stage, NodeProxy node_proxy);
     UIText(const UIText &other)                 = delete;
     UIText &operator=(const UIText &other)      = delete;
     UIText(UIText &&other) noexcept             = delete;
@@ -97,6 +98,12 @@ public:
      * \param options The options to set. */
     void SetOptions(const UITextOptions &options)
         { m_options = options; }
+
+    /*! \brief Overriden from UIObject to return false as text is not focusable
+     * 
+     * \return False */
+    virtual bool AcceptsFocus() const override
+        { return false; }
 
 protected:
     virtual Handle<Material> GetMaterial() const override;

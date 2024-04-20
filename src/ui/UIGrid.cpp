@@ -10,8 +10,8 @@ namespace hyperion {
 
 #pragma region UIGridColumn
 
-UIGridColumn::UIGridColumn(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy))
+UIGridColumn::UIGridColumn(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy))
 {
 }
 
@@ -24,8 +24,8 @@ void UIGridColumn::Init()
 
 #pragma region UIGridRow
 
-UIGridRow::UIGridRow(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy))
+UIGridRow::UIGridRow(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy))
 {
 }
 
@@ -130,8 +130,8 @@ void UIGridRow::UpdateSize()
 
 #pragma region UIGrid
 
-UIGrid::UIGrid(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy)),
+UIGrid::UIGrid(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy)),
       m_num_columns(12)
 {
 }
@@ -199,7 +199,7 @@ void UIGrid::Init()
 
     AssertThrow(m_parent != nullptr);
 
-    m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(TabContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(GridContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     UIObject::AddChildUIObject(m_container);
 }
 

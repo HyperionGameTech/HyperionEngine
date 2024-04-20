@@ -788,8 +788,6 @@ auto Array<T, NumInlineBytes>::PushBack(ValueType &&value) -> ValueType&
         }
     }
 
-    AssertThrow(m_capacity >= m_size + 1);
-
     // set item at index
     Memory::Construct<T>(&GetStorage()[m_size++].data_buffer, std::forward<ValueType>(value));
 

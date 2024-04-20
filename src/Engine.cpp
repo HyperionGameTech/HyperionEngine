@@ -293,8 +293,6 @@ HYP_API void Engine::Initialize(RC<Application> application)
 
     m_final_pass.Create();
 
-    m_render_list_container.AddFramebuffersToRenderGroups();
-
     Compile();
 }
 
@@ -599,8 +597,6 @@ void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cach
 void Engine::PreFrameUpdate(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    m_render_list_container.AddPendingRenderGroups();
 
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 

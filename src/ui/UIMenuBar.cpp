@@ -12,8 +12,8 @@ namespace hyperion {
 
 #pragma region UIMenuItem
 
-UIMenuItem::UIMenuItem(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy))
+UIMenuItem::UIMenuItem(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy))
 {
     SetBorderRadius(0);
     SetPadding({ 10, 0 });
@@ -33,7 +33,7 @@ void UIMenuItem::Init()
     AddChildUIObject(text_element);
 
     auto drop_down_menu = m_parent->CreateUIObject<UIPanel>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_DropDownMenu"), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
-    drop_down_menu->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_BOTTOM_LEFT);
+    drop_down_menu->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
     drop_down_menu->SetBorderFlags(UI_OBJECT_BORDER_BOTTOM | UI_OBJECT_BORDER_LEFT | UI_OBJECT_BORDER_RIGHT);
     m_drop_down_menu = drop_down_menu;
@@ -93,7 +93,7 @@ void UIMenuItem::UpdateDropDownMenu()
     Vec2i offset = { 0, 0 };
 
     for (const DropDownMenuItem &item : m_drop_down_menu_items) {
-        auto drop_down_menu_item = m_parent->CreateUIObject<UIButton>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_DropDownMenuItem_" + ANSIString(item.name.LookupString())), offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        auto drop_down_menu_item = m_parent->CreateUIObject<UIButton>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_" + ANSIString(item.name.LookupString())), offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         drop_down_menu_item->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         drop_down_menu_item->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         drop_down_menu_item->SetBorderFlags(UI_OBJECT_BORDER_NONE);
@@ -114,11 +114,12 @@ void UIMenuItem::UpdateDropDownMenu()
 
 #pragma region UIMenuBar
 
-UIMenuBar::UIMenuBar(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(entity, parent, std::move(node_proxy)),
+UIMenuBar::UIMenuBar(UIStage *parent, NodeProxy node_proxy)
+    : UIPanel(parent, std::move(node_proxy)),
       m_selected_menu_item_index(~0u)
 {
     SetBorderRadius(0);
+    SetPadding({ 5, 2 });
 }
 
 void UIMenuBar::Init()
@@ -128,11 +129,28 @@ void UIMenuBar::Init()
     UIPanel::Init();
 
     m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(MenuItemContents), Vec2i { 0, 0 }, UIObjectSize({ 250, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
-    m_container->SetBorderFlags(UI_OBJECT_BORDER_BOTTOM | UI_OBJECT_BORDER_LEFT | UI_OBJECT_BORDER_RIGHT);
+    m_container->SetBorderFlags(UI_OBJECT_BORDER_NONE);
+    m_container->SetBorderRadius(0);
     m_container->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_BOTTOM_LEFT);
     m_container->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
-    m_container->SetBorderRadius(5);
-    m_container->SetPadding({ 5, 5 });
+    m_container->SetPadding({ 1, 1 });
+    m_container->SetDepth(100);
+
+    m_container->OnGainFocus.Bind([this](const UIMouseEventData &data) -> bool
+    {
+        DebugLog(LogType::Debug, "Container gained focus!\n");
+
+        return true;
+    }).Detach();
+
+    m_container->OnLoseFocus.Bind([this](const UIMouseEventData &data) -> bool
+    {
+        DebugLog(LogType::Debug, "Container lost focus!\n");
+
+        SetSelectedMenuItemIndex(~0u);
+
+        return true;
+    }).Detach();
 
     AddChildUIObject(m_container);
 }
@@ -151,6 +169,8 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
         node->RemoveAllChildren();
     }
 
+    m_container->SetIsVisible(false);
+
     for (uint i = 0; i < m_menu_items.Size(); i++) {
         if (i == m_selected_menu_item_index) {
             continue;
@@ -165,12 +185,8 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
         menu_item->SetFocusState(menu_item->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_TOGGLED);
     }
 
-    if (index >= m_menu_items.Size()) {
-        if (m_menu_items.Any()) {
-            m_selected_menu_item_index = 0;
-        } else {
-            m_selected_menu_item_index = ~0u;
-        }
+    if (m_selected_menu_item_index >= m_menu_items.Size()) {
+        m_selected_menu_item_index = ~0u;
 
         return;
     }
@@ -183,29 +199,45 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 
     menu_item->SetFocusState(menu_item->GetFocusState() | UI_OBJECT_FOCUS_STATE_TOGGLED);
 
+    m_container->SetIsVisible(true);
     m_container->SetPosition({ menu_item->GetPosition().x, 0 });
-    m_container->SetSize(UIObjectSize({ menu_item->GetActualSize().x, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
+    m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
+    m_container->Focus();
 }
 
 RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    auto menu_item = m_parent->CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    auto menu_item = m_parent->CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 100, UIObjectSize::PERCENT }));
     menu_item->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
     menu_item->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
     menu_item->SetText(text);
+
+    // Mouse hover: set selected menu item index if this menu bar has focus
+    menu_item->OnMouseHover.Bind([this, name](const UIMouseEventData &data)
+    {
+        if (HasFocus(true)) {
+            const uint menu_item_index = GetMenuItemIndex(name);
+
+            SetSelectedMenuItemIndex(menu_item_index);
+        }
+
+        return true;
+    }).Detach();
 
     menu_item->OnClick.Bind([this, name](const UIMouseEventData &data)
     {
         if (data.button == MOUSE_BUTTON_LEFT)
         {
             const uint menu_item_index = GetMenuItemIndex(name);
-            
-            DebugLog(LogType::Debug, "MenuItem clicked: %u\n", menu_item_index);
 
-            SetSelectedMenuItemIndex(menu_item_index);
+            if (GetSelectedMenuItemIndex() == menu_item_index) {
+                SetSelectedMenuItemIndex(~0u);
+            } else {
+                SetSelectedMenuItemIndex(menu_item_index);
+            }
 
             return true;
         }

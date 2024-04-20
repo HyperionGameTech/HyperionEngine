@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_CORE_HANDLE_HPP
 #define HYPERION_CORE_HANDLE_HPP
 
 #include <core/Core.hpp>
 #include <core/ID.hpp>
 #include <core/ObjectPool.hpp>
-
 namespace hyperion {
 
 template <class T>
@@ -23,6 +23,13 @@ static inline UniquePtr<ObjectContainerBase> *AllotContainer()
     return ObjectPool::template AllotContainer<T>();
 }
 
+/*! \brief Definition of a handle for a type.
+ *  \details In Hyperion, a handle is a reference to an instance of a specific core engine object type.
+ *  These objects are managed by the ObjectPool and are reference counted.
+ *  \note Objects that are managed by the ObjectPool must have a HandleDefinition defined for them.
+ *  Check the HandleDefinitions.inl file for list of defined handles.
+ *  \tparam T The type of object that the handle is referencing. 
+*/
 template <class T>
 struct Handle
 {
@@ -47,6 +54,7 @@ struct Handle
 
     static const Handle empty;
 
+    /*! \brief The index of the object in the object pool's container for \ref{T} */
     uint index;
 
     Handle()
@@ -54,6 +62,8 @@ struct Handle
     {
     }
 
+    /*! \brief Construct a handle from the given ID.
+     *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
         : index(id.Value())
     {
@@ -163,21 +173,30 @@ struct Handle
     bool operator!=(const Handle &other) const
         { return index != other.index; }
     
+    /*! \brief Compare two handles by their index.
+     *  \param other The handle to compare to.
+     *  \return True if the handle is less than the other handle. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const Handle &other) const
         { return index < other.index; }
     
+    /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
+     *  \return True if the handle is valid. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
     
+    /*! \brief Get a referenceable ID for the object that the handle is referencing.
+     *  \return The ID of the object. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
     
+    /*! \brief Get a pointer to the object that the handle is referencing.
+     *  \return A pointer to the object. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     T *Get() const
@@ -189,6 +208,9 @@ struct Handle
         return &GetContainer().Get(index - 1);
     }
     
+    /*! \brief Reset the handle to an empty state.
+     *  \details This will decrement the strong reference count of the object that the handle is referencing.
+     *  The index is set to 0. */
     HYP_FORCE_INLINE
     void Reset()
     {
@@ -247,6 +269,7 @@ struct WeakHandle
         return *s_container;
     }
 
+    /*! \brief The index of the object in the object pool's container for \ref{T} */
     uint index;
 
     WeakHandle()
@@ -325,6 +348,9 @@ struct WeakHandle
         }
     }
 
+    /*! \brief Lock the weak handle to get a strong reference to the object.
+     *  \details If the object is still alive, a strong reference is returned. Otherwise, an empty handle is returned.
+     *  \return A strong reference to the object. */
     [[nodiscard]]
     Handle<T> Lock() const
     {

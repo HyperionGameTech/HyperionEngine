@@ -7,8 +7,8 @@
 
 namespace hyperion {
 
-UIButton::UIButton(ID<Entity> entity, UIStage *parent, NodeProxy node_proxy)
-    : UIObject(entity, parent, std::move(node_proxy))
+UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
+    : UIObject(parent, std::move(node_proxy))
 {
     SetBorderRadius(5);
     SetBorderFlags(UI_OBJECT_BORDER_ALL);
@@ -47,8 +47,7 @@ Handle<Material> UIButton::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
-            .layer              = GetDrawableLayer()
+            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.05f, 0.055f, 0.075f, 1.0f } }

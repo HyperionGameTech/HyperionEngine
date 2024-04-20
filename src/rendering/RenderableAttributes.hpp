@@ -169,6 +169,7 @@ class RenderableAttributeSet
     MaterialAttributes  m_material_attributes;
     StencilState        m_stencil_state { };
     uint32              m_override_flags;
+    uint32              m_unique_identifier;
 
     mutable HashCode    m_cached_hash_code;
     mutable bool        m_needs_hash_code_recalculation = true;
@@ -180,7 +181,8 @@ public:
         uint32 override_flags = 0
     ) : m_mesh_attributes(mesh_attributes),
         m_material_attributes(material_attributes),
-        m_override_flags(override_flags)
+        m_override_flags(override_flags),
+        m_unique_identifier(0)
     {
     }
 
@@ -212,7 +214,10 @@ public:
 
     HYP_FORCE_INLINE
     void SetShaderDefinition(const ShaderDefinition &shader_definition)
-        { m_material_attributes.shader_definition = shader_definition; }
+    {
+        m_material_attributes.shader_definition = shader_definition;
+        m_needs_hash_code_recalculation = true;
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -221,7 +226,10 @@ public:
 
     HYP_FORCE_INLINE
     void SetFramebufferID(ID<Framebuffer> framebuffer_id)
-        { m_framebuffer_id = framebuffer_id; }
+    {
+        m_framebuffer_id = framebuffer_id;
+        m_needs_hash_code_recalculation = true;
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -230,7 +238,10 @@ public:
 
     HYP_FORCE_INLINE
     void SetMeshAttributes(const MeshAttributes &mesh_attributes)
-        { m_mesh_attributes = mesh_attributes; }
+    {
+        m_mesh_attributes = mesh_attributes;
+        m_needs_hash_code_recalculation = true;
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -239,7 +250,10 @@ public:
 
     HYP_FORCE_INLINE
     void SetMaterialAttributes(const MaterialAttributes &material_attributes)
-        { m_material_attributes = material_attributes; }
+    {
+        m_material_attributes = material_attributes;
+        m_needs_hash_code_recalculation = true;
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -248,7 +262,10 @@ public:
 
     HYP_FORCE_INLINE
     void SetStencilState(const StencilState &stencil_state)
-        { m_stencil_state = stencil_state; }
+    {
+        m_stencil_state = stencil_state;
+        m_needs_hash_code_recalculation = true;
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -257,8 +274,45 @@ public:
 
     HYP_FORCE_INLINE
     void SetOverrideFlags(uint32 override_flags)
-        { m_override_flags = override_flags; }
+    {
+        m_override_flags = override_flags;
+        m_needs_hash_code_recalculation = true;
+    }
 
+    /*! \brief Get the unique identifier for this RenderableAttributeSet object.
+     *  \return The unique identifier. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetUniqueIdentifier() const
+        { return m_unique_identifier; }
+
+    /*! \brief Set a unique identifier for this RenderableAttributeSet object,
+     *  which can be used to differentiate between objects that are otherwise equal.
+     *  Usually will not be needed but is used interally by the renderer for when order
+     *  needs to be preserved.
+     *  \param unique_identifier The unique identifier to set. */
+    HYP_FORCE_INLINE
+    void SetUniqueIdentifier(uint32 unique_identifier)
+    {
+        m_unique_identifier = unique_identifier;
+        m_needs_hash_code_recalculation = true;
+    }
+
+    /*! \brief Compare two RenderableAttributeSet objects for equality, ignoring the unique identifier (if set).
+     *  \param other The other RenderableAttributeSet object to compare against.
+     *  \return True if the two objects are equal, false otherwise. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool SoftEquals(const RenderableAttributeSet &other) const
+    {
+        return m_framebuffer_id == other.m_framebuffer_id
+            && m_mesh_attributes == other.m_mesh_attributes
+            && m_material_attributes == other.m_material_attributes
+            && m_stencil_state == other.m_stencil_state
+            && m_override_flags == other.m_override_flags;
+    }
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -280,6 +334,7 @@ private:
         hc.Add(m_material_attributes.GetHashCode());
         hc.Add(m_stencil_state.GetHashCode());
         hc.Add(m_override_flags);
+        hc.Add(m_unique_identifier);
 
         m_cached_hash_code = hc;
     }

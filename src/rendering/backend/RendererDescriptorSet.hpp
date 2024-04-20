@@ -484,7 +484,32 @@ struct DescriptorSetElement
     using ValueType = Variant<GPUBufferRef<PLATFORM>, ImageViewRef<PLATFORM>, SamplerRef<PLATFORM>, TLASRef<PLATFORM>>;
 
     FlatMap<uint, ValueType>    values;
-    Range<uint>                 dirty_range { };     
+    Range<uint>                 dirty_range { };
+
+    ~DescriptorSetElement()
+    {
+        if (values.Empty()) {
+            return;
+        }
+
+        for (auto &it : values) {
+            if (!it.second.IsValid()) {
+                continue;
+            }
+            
+            if (it.second.template Is<GPUBufferRef<PLATFORM>>()) {
+                SafeRelease(std::move(it.second.template Get<GPUBufferRef<PLATFORM>>()));
+            } else if (it.second.template Is<ImageViewRef<PLATFORM>>()) {
+                SafeRelease(std::move(it.second.template Get<ImageViewRef<PLATFORM>>()));
+            } else if (it.second.template Is<SamplerRef<PLATFORM>>()) {
+                SafeRelease(std::move(it.second.template Get<SamplerRef<PLATFORM>>()));
+            } else if (it.second.template Is<TLASRef<PLATFORM>>()) {
+                SafeRelease(std::move(it.second.template Get<TLASRef<PLATFORM>>()));
+            } else {
+                DebugLog(LogType::Warn, "Unknown descriptor set element type when releasing.\n");
+            }
+        }
+    }
 
     HYP_FORCE_INLINE
     bool IsDirty() const

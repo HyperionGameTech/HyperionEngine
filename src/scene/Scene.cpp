@@ -100,7 +100,7 @@ Scene::Scene(
 ) : BasicObject(info),
     HasDrawProxy(),
     m_camera(std::move(camera)),
-    m_root_node_proxy(new Node("root", ID<Entity>::invalid, Transform { }, this)),
+    m_root_node_proxy(new Node("<ROOT>", ID<Entity>::invalid, Transform { }, this)),
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(info.flags & InitInfo::SCENE_FLAGS_NON_WORLD),
@@ -454,9 +454,9 @@ void Scene::EnqueueRenderUpdates()
             draw_proxy.frame_counter = frame_counter;
 
             SceneShaderData shader_data { };
-            shader_data.aabb_max         = Vector4(aabb.max, 1.0f);
-            shader_data.aabb_min         = Vector4(aabb.min, 1.0f);
-            shader_data.fog_params       = Vector4(float(fog_params.color.Packed()), fog_params.start_distance, fog_params.end_distance, 0.0f);
+            shader_data.aabb_max         = Vec4f(aabb.max, 1.0f);
+            shader_data.aabb_min         = Vec4f(aabb.min, 1.0f);
+            shader_data.fog_params       = Vec4f(float(fog_params.color.Packed()), fog_params.start_distance, fog_params.end_distance, 0.0f);
             shader_data.global_timer     = global_timer;
             shader_data.frame_counter    = frame_counter;
             shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();

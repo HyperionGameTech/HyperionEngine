@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_PANEL_HPP
 #define HYPERION_UI_PANEL_HPP
 
@@ -13,7 +14,7 @@ class UIStage;
 class HYP_API UIPanel : public UIObject
 {
 public:
-    UIPanel(ID<Entity> entity, UIStage *stage, NodeProxy node_proxy);
+    UIPanel(UIStage *stage, NodeProxy node_proxy);
     UIPanel(const UIPanel &other)                   = delete;
     UIPanel &operator=(const UIPanel &other)        = delete;
     UIPanel(UIPanel &&other) noexcept               = delete;
