@@ -100,11 +100,10 @@ private:
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
-    Handlers can be bound as strong or weak references, and adding them is thread safe.
-
-    \tparam ReturnType The return type of the handler functions.
-    \tparam Args The argument types of the handler functions.
- */
+ *  Handlers can be bound as strong or weak references, and adding them is thread safe.
+ *
+ *  \tparam ReturnType The return type of the handler functions.
+ *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class ... Args>
 class Delegate
 {
@@ -118,8 +117,7 @@ public:
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
      *
      * \param proc The Proc to bind.
-     * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate.
-     */
+     * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     DelegateHandler Bind(ProcType &&proc)
     {
         const uint id = m_id_generator.NextID();
@@ -130,11 +128,9 @@ public:
         return CreateDelegateHandler(id);
     }
 
-    /*! \brief Bind a Proc<> to the Delegate.
-     *
-     * \param proc The Proc to bind.
-     * \return A reference counted DelegateHandler object that can be used to remove the handler from the Delegate.
-     */
+    /*! \brief Remove a DelegateHandler from the Delegate
+     *  \param handler The DelegateHandler to remove
+     *  \return True if the DelegateHandler was removed, false otherwise. */
     bool Remove(const DelegateHandler &handler)
     {
         if (!handler.IsValid()) {
@@ -156,8 +152,7 @@ public:
     /*! \brief Attempt to remove a handler from the Delegate.
      *
      * \param id The ID of the handler to remove.
-     * \return True if the handler was removed, false otherwise.
-     */
+     * \return True if the handler was removed, false otherwise. */
     bool Remove(uint id)
     {
         m_mutex.Lock();
@@ -175,11 +170,11 @@ public:
 
     /*! \brief Broadcast a message to all bound handlers.
 
-     * \tparam ArgTypes The argument types to pass to the handlers.
+     *  \tparam ArgTypes The argument types to pass to the handlers.
 
-     * \param args The arguments to pass to the handlers.
-     * \return If \ref{ReturnType} is bool, the result will return true if any handler returned true. Otherwise, the result will always be true, indicating that all handlers were called.
-     */
+     *  \param args The arguments to pass to the handlers.
+     *  \return If \ref{ReturnType} is bool, the result will return true if any handler returned true.
+     *  Otherwise, the result will always be true, indicating that all handlers were called. */
     template <class ... ArgTypes>
     bool Broadcast(ArgTypes &&... args)
     {
@@ -208,11 +203,11 @@ public:
 
     /*! \brief Call operator overload - alias method for Broadcast().
      *
-     * \tparam ArgTypes The argument types to pass to the handlers.
+     *  \tparam ArgTypes The argument types to pass to the handlers.
      *
-     * \param args The arguments to pass to the handlers.
-     * \return If \ref{ReturnType} is bool, the result will return true if any handler returned true. Otherwise, the result will always be true, indicating that all handlers were called.
-     */
+     *  \param args The arguments to pass to the handlers.
+     *  \return If \ref{ReturnType} is bool, the result will return true if any handler returned true.
+     *  Otherwise, the result will always be true, indicating that all handlers were called. */
     template <class ... ArgTypes>
     HYP_FORCE_INLINE
     bool operator()(ArgTypes &&... args)

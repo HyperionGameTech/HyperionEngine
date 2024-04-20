@@ -25,6 +25,8 @@ struct SocketServerImpl
 #endif
 };
 
+#pragma region SocketServer
+
 SocketServer::SocketServer(String name)
     : m_name(std::move(name)),
       m_impl(nullptr)
@@ -172,7 +174,7 @@ bool SocketServer::Stop()
     return false;
 }
 
-bool SocketServer::PollForConnections(Array<UniquePtr<SocketClient>> &out_connections)
+bool SocketServer::PollForConnections(Array<RC<SocketClient>> &out_connections)
 {
     if (m_impl == nullptr) {
         return false;
@@ -202,7 +204,7 @@ bool SocketServer::PollForConnections(Array<UniquePtr<SocketClient>> &out_connec
             continue;
         }
 
-        out_connections.PushBack(UniquePtr<SocketClient>(new SocketClient(client_name, SocketID { new_socket })));
+        out_connections.PushBack(RC<SocketClient>(new SocketClient(client_name, SocketID { new_socket })));
     }
 
     return true;    
@@ -212,7 +214,7 @@ bool SocketServer::PollForConnections(Array<UniquePtr<SocketClient>> &out_connec
     return false;
 }
 
-void SocketServer::AddConnection(UniquePtr<SocketClient> &&connection)
+void SocketServer::AddConnection(RC<SocketClient> &&connection)
 {
     if (!connection) {
         return;
@@ -267,7 +269,9 @@ SocketResultType SocketServer::Send(Name client_name, const ByteBuffer &data)
     return it->second->Send(data);
 }
 
-// SocketServerThread
+#pragma endregion SocketServer
+
+#pragma region SocketServerThread
 
 SocketServerThread::SocketServerThread(const String &socket_name)
     : Thread(CreateNameFromDynamicString(ANSIString("SocketServerThread_") + socket_name.Data()))
@@ -288,7 +292,7 @@ void SocketServerThread::operator()(SocketServer *server)
     while (m_is_running.Get(MemoryOrder::RELAXED)) {
         // Check for incoming connections
 
-        Array<UniquePtr<SocketClient>> new_connections;
+        Array<RC<SocketClient>> new_connections;
 
         if (server->PollForConnections(new_connections)) {
             for (auto &connection : new_connections) {
@@ -296,7 +300,7 @@ void SocketServerThread::operator()(SocketServer *server)
             }
         }
 
-        Array<UniquePtr<SocketClient>> removed_connections;
+        Array<RC<SocketClient>> removed_connections;
 
         { // Check for incoming data
             ByteBuffer received_data;
@@ -357,7 +361,9 @@ void SocketServerThread::operator()(SocketServer *server)
     });
 }
 
-// SocketClient
+#pragma endregion SocketServerThread
+
+#pragma region SocketClient
 
 SocketClient::SocketClient(Name name, SocketID internal_id)
     : m_name(name),
@@ -436,5 +442,7 @@ void SocketClient::Close()
 
     m_internal_id.value = 0;
 }
+
+#pragma endregion SocketClient
 
 } // namespace hyperion::net

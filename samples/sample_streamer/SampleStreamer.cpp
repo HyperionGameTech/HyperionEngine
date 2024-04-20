@@ -101,6 +101,10 @@ SampleStreamer::SampleStreamer(RC<Application> application)
 
 void SampleStreamer::InitGame()
 {
+    constexpr auto typename_string = TypeNameWithoutNamespace<String>();
+    DebugLog(LogType::Debug, "Typename string = %s\n", typename_string.Data());
+
+
     Game::InitGame();
 
     ArgParse args;

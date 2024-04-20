@@ -36,7 +36,7 @@ constexpr std::index_sequence<(Offset + Indices)...> make_offset_index_sequence(
 }
 
 template <SizeType N, SizeType Offset>
-using make_offset_index_sequence_t = decltype(make_offset_index_sequence<Offset>(std::make_index_sequence<N>{}));
+using make_offset_index_sequence_t = decltype(make_offset_index_sequence<Offset>(std::make_index_sequence<N>()));
 
 } // namespace detail
 
@@ -113,7 +113,7 @@ struct StaticString
         if constexpr (Start == End) {
             return StaticString<1> { { '\0' } };
         } else {
-            return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start> { });
+            return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start>());
         }
     }
 
@@ -127,7 +127,7 @@ struct StaticString
         } else if constexpr (decltype(OtherStaticString)::size <= 1) {
             return StaticString<Sz> { { data } };
         } else {
-            return ConcatImpl<OtherStaticString>(std::make_index_sequence<Sz + decltype(OtherStaticString)::size - 1> { });
+            return ConcatImpl<OtherStaticString>(std::make_index_sequence<Sz + decltype(OtherStaticString)::size - 1>());
         }
     }
 

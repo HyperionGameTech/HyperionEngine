@@ -7,16 +7,16 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 #include <core/threading/AtomicVar.hpp>
-#include <core/utilities/Variant.hpp>
+#include <core/threading/Mutex.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/functional/Proc.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/containers/FlatMap.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/memory/UniquePtr.hpp>
 #include <core/memory/ByteBuffer.hpp>
+#include <core/functional/Proc.hpp>
+#include <core/utilities/Variant.hpp>
 #include <core/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion::net {
@@ -116,10 +116,10 @@ public:
 
 private:
     // for the thread
-    bool PollForConnections(Array<UniquePtr<SocketClient>> &out_connections);
+    bool PollForConnections(Array<RC<SocketClient>> &out_connections);
 
     // for the thread
-    void AddConnection(UniquePtr<SocketClient> &&connection);
+    void AddConnection(RC<SocketClient> &&connection);
     bool RemoveConnection(Name client_name);
 
     String                                  m_name;
@@ -127,7 +127,7 @@ private:
     UniquePtr<SocketServerThread>           m_thread;
 
     // SocketServerThread controls the connections list
-    FlatMap<Name, UniquePtr<SocketClient>>  m_connections;
+    HashMap<Name, RC<SocketClient>>         m_connections;
     Mutex                                   m_connections_mutex;
 };
 
