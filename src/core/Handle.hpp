@@ -6,6 +6,7 @@
 #include <core/Core.hpp>
 #include <core/ID.hpp>
 #include <core/ObjectPool.hpp>
+
 namespace hyperion {
 
 template <class T>

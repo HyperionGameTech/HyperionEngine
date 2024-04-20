@@ -1,9 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_HBAO_HPP
 #define HYPERION_HBAO_HPP
-
-#include <Constants.hpp>
-#include <core/Containers.hpp>
 
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/FullScreenPass.hpp>

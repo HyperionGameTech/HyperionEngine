@@ -6,8 +6,6 @@
 #include <util/json/parser/SourceFile.hpp>
 #include <util/UTF8.hpp>
 
-#include <cstddef>
-
 namespace hyperion::json {
 
 class SourceStream

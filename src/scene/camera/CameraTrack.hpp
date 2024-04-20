@@ -5,8 +5,6 @@
 
 #include <math/Transform.hpp>
 #include <core/containers/SortedArray.hpp>
-#include <core/utilities/Optional.hpp>
-#include <Types.hpp>
 
 namespace hyperion {
 

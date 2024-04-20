@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <dotnet/DotNetSystem.hpp>
 
 #include <asset/ByteWriter.hpp>
@@ -237,8 +238,12 @@ private:
             }) }
         });
 
+        String str = runtime_config_json.ToString(true);
+
+        DebugLog(LogType::Debug, "JSON string: %s\n", str.Data());
+
         FileByteWriter writer(filepath.Data());
-        writer.WriteString(runtime_config_json.ToString(true));
+        writer.WriteString(str);
         writer.Close();
     }
 

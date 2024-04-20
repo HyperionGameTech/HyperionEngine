@@ -1,12 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_NODE_PROXY_HPP
 #define HYPERION_NODE_PROXY_HPP
 
 #include <core/Containers.hpp>
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
+
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {

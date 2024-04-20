@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DEFERRED_HPP
 #define HYPERION_DEFERRED_HPP
 
@@ -19,7 +20,6 @@
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
-#include <rendering/backend/RendererComputePipeline.hpp>
 
 namespace hyperion {
 
@@ -30,10 +30,10 @@ using renderer::Sampler;
 using renderer::Device;
 using renderer::AttachmentUsage;
 
-using DeferredFlagBits = uint;
-
 class IndirectDrawState;
 class RenderEnvironment;
+
+using DeferredFlagBits = uint32;
 
 enum DeferredFlags : DeferredFlagBits
 {

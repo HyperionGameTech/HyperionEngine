@@ -1,7 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/camera/Camera.hpp>
+
 #include <math/Halton.hpp>
+
+#include <rendering/ShaderGlobals.hpp>
 
 #include <Engine.hpp>
 
@@ -24,7 +27,9 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
     {
     }
 
-    virtual Result operator()()
+    virtual ~RENDER_COMMAND(UpdateCameraDrawProxy)() override = default;
+
+    virtual Result operator()() override
     {
         camera->m_draw_proxy = draw_proxy;
 

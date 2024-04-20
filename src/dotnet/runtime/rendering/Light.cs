@@ -7,7 +7,8 @@ namespace Hyperion
     {
         Directional = 0,
         Point = 1,
-        Spot = 2
+        Spot = 2,
+        AreaRect = 3
     }
 
     public class Light : IDisposable

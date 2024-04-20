@@ -6,8 +6,6 @@
 #include <util/json/parser/SourceLocation.hpp>
 #include <core/containers/String.hpp>
 
-#include <string>
-
 namespace hyperion::json {
 
 enum TokenClass

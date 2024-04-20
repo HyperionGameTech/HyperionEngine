@@ -57,14 +57,17 @@ struct StaticString
     template <typename IntegerSequence, int Index = 0>
     constexpr SizeType FindFirst() const
     {
+        constexpr auto this_size = Sz - 1; // -1 to account for null terminator
         constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
 
-        if constexpr (Index > Sz - other_size) {
+        if constexpr (this_size < other_size) {
+            return -1;
+        } else if constexpr (Index >= this_size - other_size) {
             return -1;
         } else {
             bool found = true;
 
-            for (SizeType j = 0; j < other_size && j < Sz; ++j) {
+            for (SizeType j = 0; j < other_size && j < this_size; ++j) {
                 if (data[Index + j] != IntegerSequence{}.Data()[j]) {
                     found = false;
                     break;
@@ -79,17 +82,20 @@ struct StaticString
         }
     }
 
-    template <typename IntegerSequence, int Index = int(Sz) - int(IntegerSequence::Size())>
+    template <typename IntegerSequence, int Index = (int(Sz) - int(IntegerSequence::Size()))>
     constexpr SizeType FindLast() const
     {
+        constexpr auto this_size = Sz - 1; // -1 to account for null terminator
         constexpr auto other_size = IntegerSequence::Size() - 1; // -1 to account for null terminator
 
-        if constexpr (Index < 0) {
+        if constexpr (this_size < other_size) {
+            return -1;
+        } else if constexpr (Index < 0) {
             return -1;
         } else {
             bool found = true;
 
-            for (SizeType j = 0; j < other_size && j < Sz; ++j) {
+            for (SizeType j = 0; j < other_size; ++j) {
                 if (data[Index + j] != IntegerSequence{}.Data()[j]) {
                     found = false;
                     break;
@@ -105,15 +111,14 @@ struct StaticString
     }
 
     template <SizeType Start, SizeType End>
-    constexpr StaticString<End - Start + 1> Substr() const
+    constexpr auto Substr() const
     {
-        static_assert(Start <= End, "Start must be less or equal to End");
-        static_assert(End <= Sz, "End must be less than or equal to Size");
+        constexpr auto clamped_end = End >= Sz ? Sz - 1 : End;
 
-        if constexpr (Start == End) {
+        if constexpr (Start >= clamped_end) {
             return StaticString<1> { { '\0' } };
         } else {
-            return MakeSubString(detail::make_offset_index_sequence_t<End - Start, Start>());
+            return MakeSubString(detail::make_offset_index_sequence_t<clamped_end - Start, Start>());
         }
     }
 

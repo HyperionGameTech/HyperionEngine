@@ -1,15 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DOTNET_CLASS_HPP
 #define HYPERION_DOTNET_CLASS_HPP
 
 #include <Engine.hpp>
 #include <Types.hpp>
 
-#include <core/threading/Mutex.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/memory/UniquePtr.hpp>
-#include <core/containers/Array.hpp>
-#include <core/utilities/Pair.hpp>
 #include <core/containers/String.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>

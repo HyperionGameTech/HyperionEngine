@@ -1,13 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PHYSICS_RIGID_BODY_HPP
 #define HYPERION_PHYSICS_RIGID_BODY_HPP
 
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
+
 #include <math/Transform.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/BoundingSphere.hpp>
 #include <math/Vector3.hpp>
+
 #include <physics/PhysicsMaterial.hpp>
 
 #include <Types.hpp>

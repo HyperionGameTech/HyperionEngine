@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef SAXPARSER_HPP
-#define SAXPARSER_HPP
+#ifndef HYPERION_SAX_PARSER_HPP
+#define HYPERION_SAX_PARSER_HPP
 
 #include <asset/BufferedByteReader.hpp>
 #include <core/containers/FlatMap.hpp>

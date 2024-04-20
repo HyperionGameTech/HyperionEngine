@@ -23,9 +23,6 @@
 
 #include <Types.hpp>
 
-#include <memory>
-#include <map>
-
 namespace hyperion {
 
 using renderer::Image;

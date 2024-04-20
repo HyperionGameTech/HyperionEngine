@@ -1,8 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PHYSICS_MATERIAL_HPP
 #define HYPERION_PHYSICS_MATERIAL_HPP
-
-#include <Types.hpp>
 
 namespace hyperion {
 

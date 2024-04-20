@@ -43,7 +43,12 @@ using SocketProcArgument = Variant<String, ByteBuffer, Name, int8, int16, int32,
 class HYP_API SocketConnection
 {
 public:
-    virtual ~SocketConnection() = default;
+    SocketConnection()                                          = default;
+    SocketConnection(const SocketConnection &)                  = delete;
+    SocketConnection &operator=(const SocketConnection &)       = delete;
+    SocketConnection(SocketConnection &&) noexcept              = delete;
+    SocketConnection &operator=(SocketConnection &&) noexcept   = delete;
+    virtual ~SocketConnection()                                 = default;
 
     void SetEventProc(Name event_name, Proc<void, Array<SocketProcArgument> &&> &&proc)
     {

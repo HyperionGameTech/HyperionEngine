@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef STRING_UTIL_HPP
 #define STRING_UTIL_HPP
 
@@ -6,11 +7,9 @@
 #include <core/containers/String.hpp>
 
 #include <string>
-#include <vector>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-#include <functional>
 #include <cstdlib>
 #include <cctype>
 

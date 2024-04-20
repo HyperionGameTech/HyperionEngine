@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <scene/Octree.hpp>
 #include <scene/Entity.hpp>
 
@@ -7,7 +8,6 @@
 #include <scene/camera/Camera.hpp>
 
 #include <Engine.hpp>
-#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 

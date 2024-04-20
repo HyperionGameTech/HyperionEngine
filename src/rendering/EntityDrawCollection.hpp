@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ENTITY_DRAW_COLLECTION_HPP
 #define HYPERION_ENTITY_DRAW_COLLECTION_HPP
 
 #include <core/containers/ArrayMap.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <core/threading/Threads.hpp>
 #include <core/ID.hpp>
-#include <core/Defines.hpp>
 
 #include <math/Transform.hpp>
 
@@ -15,8 +15,6 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
-
-#include <core/threading/Threads.hpp>
 #include <Types.hpp>
 
 namespace hyperion::renderer {

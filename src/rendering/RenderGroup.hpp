@@ -1,11 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RENDERER_HPP
 #define HYPERION_RENDERER_HPP
 
 #include <core/Containers.hpp>
+#include <core/ID.hpp>
+#include <core/Defines.hpp>
+
 #include <rendering/Shader.hpp>
 #include <rendering/Framebuffer.hpp>
-#include <rendering/RenderBucket.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/EntityDrawData.hpp>
@@ -13,14 +16,11 @@
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
-#include <Constants.hpp>
-#include <core/ID.hpp>
-#include <core/Defines.hpp>
-
-#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
+
+#include <Constants.hpp>
 
 #include <memory>
 #include <mutex>

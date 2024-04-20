@@ -3,11 +3,7 @@
 #ifndef HYPERION_DOF_BLUR_HPP
 #define HYPERION_DOF_BLUR_HPP
 
-#include <core/Containers.hpp>
-
 #include <rendering/FullScreenPass.hpp>
-
-#include <Constants.hpp>
 
 namespace hyperion {
 

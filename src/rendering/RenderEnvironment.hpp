@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ENVIRONMENT_HPP
 #define HYPERION_ENVIRONMENT_HPP
 
-#include <rendering/Light.hpp>
-#include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
 #include <rendering/RenderComponent.hpp>
@@ -15,14 +14,11 @@
 #include <core/Base.hpp>
 #include <core/Name.hpp>
 #include <core/Containers.hpp>
-#include <core/containers/Queue.hpp>
 #include <core/utilities/Pair.hpp>
 
 #include <math/MathUtil.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
-
-#include <vector>
 
 namespace hyperion {
 

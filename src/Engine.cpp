@@ -2,11 +2,9 @@
 
 #include <Engine.hpp>
 
-#include <asset/ByteReader.hpp>
-
 #include <rendering/PostFX.hpp>
-#include <rendering/DrawProxy.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -125,9 +123,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_NORMALS,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ //InternalFormat::RG16,
-                        InternalFormat::R11G11B10F,
-                        InternalFormat::RGBA16F,
+            std::array{ InternalFormat::RGBA16F,
                         InternalFormat::RGBA32F,
                         InternalFormat::RGBA8 },
             renderer::ImageSupportType::SRV

@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_FULL_SCREEN_PASS_HPP
 #define HYPERION_FULL_SCREEN_PASS_HPP
 
@@ -10,9 +11,7 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/Containers.hpp>
 

@@ -4,11 +4,9 @@
 #define HYPERION_DEFINITIONS_FILE_HPP
 
 #include <core/Containers.hpp>
-#include <core/Defines.hpp>
-#include <util/StringUtil.hpp>
-#include <util/fs/FsUtil.hpp>
+
 #include <asset/BufferedByteReader.hpp>
-#include <system/Debug.hpp>
+
 #include <Config.hpp>
 
 namespace hyperion {

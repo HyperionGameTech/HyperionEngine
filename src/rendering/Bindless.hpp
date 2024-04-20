@@ -1,12 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_BINDLESS_HPP
 #define HYPERION_BINDLESS_HPP
 
 #include <core/Base.hpp>
-#include <core/Containers.hpp>
 #include <core/ID.hpp>
-#include <core/threading/Mutex.hpp>
-#include <Constants.hpp>
 
 namespace hyperion {
 

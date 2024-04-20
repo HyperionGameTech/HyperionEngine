@@ -295,11 +295,11 @@
 // Exporting
 
 #ifdef HYP_MSVC
-    #define HYP_EXPORT __declspec(dllexport)
-    #define HYP_IMPORT __declspec(dllimport)
+#define HYP_EXPORT __declspec(dllexport)
+#define HYP_IMPORT __declspec(dllimport)
 #elif defined(HYP_CLANG_OR_GCC)
-    #define HYP_EXPORT __attribute__((visibility("default")))
-    #define HYP_IMPORT
+#define HYP_EXPORT __attribute__((visibility("default")))
+#define HYP_IMPORT
 #endif
 
 #ifdef HYP_BUILD_LIBRARY
@@ -313,11 +313,11 @@
 // Optimization
 
 #ifdef HYP_MSVC
-    #define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
-    #define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
+#define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
+#define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
 #elif defined(HYP_CLANG_OR_GCC)
-    #define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
-    #define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
+#define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
+#define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
 #endif
 
 // Helpers
@@ -330,7 +330,8 @@
 // Warning disabling
 
 #ifdef HYP_MSVC
-//#pragma warning(disable: C4251) // class needs to have dll-interface to be used by clients of class
+#pragma warning( disable : 4251 ) // class needs to have dll-interface to be used by clients of class
+#pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
 #endif
 
 #endif // !HYPERION_DEFINES_HPP

@@ -1,7 +1,4 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-//
-// Created by ethan on 2/5/22.
-//
 
 #ifndef HYPERION_APPLICATION_HPP
 #define HYPERION_APPLICATION_HPP
@@ -17,10 +14,8 @@
 #include <Types.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
-#include <rendering/backend/RendererStructs.hpp>
 
 #include <vector>
-#include <string>
 
 namespace hyperion {
 

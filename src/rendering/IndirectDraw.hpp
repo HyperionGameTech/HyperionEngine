@@ -2,29 +2,18 @@
 #ifndef HYPERION_INDIRECT_DRAW_HPP
 #define HYPERION_INDIRECT_DRAW_HPP
 
-#include <core/Base.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/DrawProxy.hpp>
 #include <rendering/CullData.hpp>
-// #include <rendering/DrawCall.hpp>
 
-#include <core/containers/Queue.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/Array.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/ID.hpp>
 
-#include <math/BoundingSphere.hpp>
-
-#include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
-
-#include <memory>
 
 namespace hyperion {
 

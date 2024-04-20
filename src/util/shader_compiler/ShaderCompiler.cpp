@@ -16,8 +16,6 @@
 
 #include <math/MathUtil.hpp>
 
-#include <Constants.hpp>
-
 #include <rendering/backend/RendererFeatures.hpp>
 
 #ifdef HYP_GLSLANG

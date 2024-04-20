@@ -7,7 +7,9 @@
 #include <core/containers/Array.hpp>
 #include <core/IDCreator.hpp>
 #include <core/ID.hpp>
+
 #include <scene/ecs/EntityContainer.hpp>
+
 #include <Types.hpp>
 
 #include <atomic>

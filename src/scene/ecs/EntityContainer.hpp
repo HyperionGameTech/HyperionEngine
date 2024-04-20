@@ -7,6 +7,7 @@
 #include <core/containers/TypeMap.hpp>
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
+
 #include <scene/ecs/ComponentContainer.hpp>
 
 namespace hyperion {

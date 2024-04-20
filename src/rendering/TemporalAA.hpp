@@ -1,19 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_TEMPORAL_AA_HPP
 #define HYPERION_TEMPORAL_AA_HPP
-
-#include <Constants.hpp>
-#include <core/Containers.hpp>
-
-#include <math/Matrix4.hpp>
 
 #include <scene/Scene.hpp>
 
 #include <rendering/RenderState.hpp>
-#include <rendering/DrawProxy.hpp>
-
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererComputePipeline.hpp>
 
 namespace hyperion {
 

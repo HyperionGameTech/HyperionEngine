@@ -1,10 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/rt/DDGI.hpp>
+#include <rendering/ShaderGlobals.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
+
 #include <Engine.hpp>
 #include <Types.hpp>
-
-#include <rendering/backend/RendererShader.hpp>
 
 #include <util/fs/FsUtil.hpp>
 #include <util/ByteUtil.hpp>

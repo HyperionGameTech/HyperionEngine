@@ -16,8 +16,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <memory>
-
 namespace hyperion {
 
 using renderer::TextureImage2D;

@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_POST_FX_HPP
 #define HYPERION_POST_FX_HPP
 
@@ -16,11 +17,7 @@
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 
-
-#include <memory>
 #include <utility>
 
 namespace hyperion {

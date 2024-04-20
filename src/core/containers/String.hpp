@@ -26,21 +26,21 @@ namespace detail {
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 using namespace ::utf;
 
-enum StringType
+enum StringType : int
 {
-    STRING_TYPE_NONE,
-    STRING_TYPE_ANSI,
-    STRING_TYPE_UTF8,
-    STRING_TYPE_UTF16,
-    STRING_TYPE_UTF32,
-    STRING_TYPE_WIDE
+    STRING_TYPE_NONE    = 0,
+    STRING_TYPE_ANSI    = 1,
+    STRING_TYPE_UTF8    = 2,
+    STRING_TYPE_UTF16   = 3,
+    STRING_TYPE_UTF32   = 4,
+    STRING_TYPE_WIDE    = 5
 };
 
 template <class T>
 using CharArray = Array<T, 64u>;
 
-template <class T, bool IsUtf8>
-class DynString : Array<T, 64u>
+template <class T, int string_type>
+class String : Array<T, 64u>
 {
 protected:
     using Base = Array<T, 64u>;
@@ -52,20 +52,19 @@ public:
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 
-    static const DynString empty;
+    static const String empty;
 
-    static constexpr bool is_utf8 = IsUtf8;
-    static constexpr bool is_ansi = !is_utf8 && (std::is_same_v<T, char> || std::is_same_v<T, unsigned char>);
-    static constexpr bool is_utf16 = !is_utf8 && std::is_same_v<T, utf::u16char>;
-    static constexpr bool is_utf32 = !is_utf8 && std::is_same_v<T, utf::u32char>;
-    static constexpr bool is_wide = !is_utf8 && std::is_same_v<T, wchar_t>;
+    static constexpr bool is_utf8 = string_type == STRING_TYPE_UTF8;
+    static constexpr bool is_ansi = string_type == STRING_TYPE_ANSI;
+    static constexpr bool is_utf16 = string_type == STRING_TYPE_UTF16;
+    static constexpr bool is_utf32 = string_type == STRING_TYPE_UTF32;
+    static constexpr bool is_wide = string_type == STRING_TYPE_WIDE;
 
-    static constexpr StringType string_type =
-        (is_ansi ? STRING_TYPE_ANSI :
-        (is_utf8 ? STRING_TYPE_UTF8 :
-        (is_utf16 ? STRING_TYPE_UTF16 :
-        (is_utf32 ? STRING_TYPE_UTF32 :
-        (is_wide ? STRING_TYPE_WIDE : STRING_TYPE_NONE)))));
+    static_assert(!is_utf8 || (std::is_same_v<T, char> || std::is_same_v<T, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
+    static_assert(!is_ansi || (std::is_same_v<T, char> || std::is_same_v<T, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
+    static_assert(!is_utf16 || std::is_same_v<T, utf::u16char>, "UTF-16 Strings must have CharType equal to utf::u16char");
+    static_assert(!is_utf32 || std::is_same_v<T, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
+    static_assert(!is_wide || std::is_same_v<T, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
 
     static constexpr SizeType not_found = SizeType(-1);
     
@@ -74,35 +73,35 @@ public:
 
     static_assert(!is_utf8 || std::is_same_v<CharType, char>, "UTF-8 Strings must have CharType equal to char");
 
-    DynString();
-    DynString(const DynString &other);
-    DynString(const T *str);
-    DynString(const T *str, int max_len);
-    explicit DynString(const CharArray<T> &char_array);
-    explicit DynString(const ByteBuffer &byte_buffer);
+    String();
+    String(const String &other);
+    String(const T *str);
+    String(const T *str, int max_len);
+    explicit String(const CharArray<T> &char_array);
+    explicit String(const ByteBuffer &byte_buffer);
 
-    template <bool OtherIsUtf8>
-    explicit DynString(const DynString<T, OtherIsUtf8> &other)
-        : DynString(other.Data())
+    template <int other_string_type>
+    explicit String(const String<T, other_string_type> &other)
+        : String(other.Data())
     {
     }
 
-    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || OtherIsUtf8 != is_utf8, int> = 0>
-    DynString(const DynString<OtherCharType, OtherIsUtf8> &other)
-        : DynString()
+    template <class OtherCharType, int other_string_type, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || other_string_type != string_type, int> = 0>
+    String(const String<OtherCharType, other_string_type> &other)
+        : String()
     {
         *this = other;
     }
     
-    DynString(DynString &&other) noexcept;
-    ~DynString();
+    String(String &&other) noexcept;
+    ~String();
 
-    DynString &operator=(const T *str);
-    DynString &operator=(const DynString &other);
-    DynString &operator=(DynString &&other) noexcept;
+    String &operator=(const T *str);
+    String &operator=(const String &other);
+    String &operator=(String &&other) noexcept;
     
-    template <class OtherCharType, bool OtherIsUtf8, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || OtherIsUtf8 != IsUtf8, int> = 0>
-    DynString &operator=(const DynString<OtherCharType, OtherIsUtf8> &other)
+    template <class OtherCharType, int other_string_type, std::enable_if_t<!std::is_same_v<OtherCharType, CharType> || other_string_type != string_type, int> = 0>
+    String &operator=(const String<OtherCharType, other_string_type> &other)
     {
         Clear();
         Reserve(other.Size());
@@ -113,28 +112,28 @@ public:
         return *this;
     }
 
-    DynString operator+(const DynString &other) const;
-    DynString operator+(DynString &&other) const;
-    DynString operator+(T ch) const;
+    String operator+(const String &other) const;
+    String operator+(String &&other) const;
+    String operator+(T ch) const;
     
     template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
-    DynString operator+(U32Char ch) const
-        { return DynString(*this) += ch; }
+    String operator+(U32Char ch) const
+        { return String(*this) += ch; }
     
-    DynString &operator+=(const DynString &other);
-    DynString &operator+=(DynString &&other);
-    DynString &operator+=(T ch);
+    String &operator+=(const String &other);
+    String &operator+=(String &&other);
+    String &operator+=(T ch);
     
     template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
-    DynString &operator+=(U32Char ch)
+    String &operator+=(U32Char ch)
         { Append(ch); return *this; }
 
-    bool operator==(const DynString &other) const;
+    bool operator==(const String &other) const;
     bool operator==(const T *str) const;
-    bool operator!=(const DynString &other) const;
+    bool operator!=(const String &other) const;
     bool operator!=(const T *str) const;
 
-    bool operator<(const DynString &other) const;
+    bool operator<(const String &other) const;
 
     /*! \brief Raw access of the character data of the string at index.
      * \note For UTF-8 Strings, the returned value may not be a valid UTF-8 character,
@@ -186,13 +185,13 @@ public:
         { return ch != T{0} && Base::Contains(ch); }
 
     /*! \brief Check if the string contains the given string. */
-    [[nodiscard]] bool Contains(const DynString &str) const
+    [[nodiscard]] bool Contains(const String &str) const
         { return FindIndex(str) != not_found; }
 
     /*! \brief Find the index of the first occurrence of the character in the string.
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    [[nodiscard]] SizeType FindIndex(const DynString &str) const;
+    [[nodiscard]] SizeType FindIndex(const String &str) const;
 
     /*! \brief Check if the string is empty. */
     [[nodiscard]] bool Empty() const
@@ -211,8 +210,8 @@ public:
 
     void Refit() { Base::Refit(); }
 
-    void Append(const DynString &other);
-    void Append(DynString &&other);
+    void Append(const String &other);
+    void Append(String &&other);
     void Append(const T *str);
     void Append(T value);
     
@@ -229,33 +228,33 @@ public:
     typename Base::ValueType PopFront();
     void Clear();
 
-    bool StartsWith(const DynString &other) const;
-    bool EndsWith(const DynString &other) const;
+    bool StartsWith(const String &other) const;
+    bool EndsWith(const String &other) const;
 
-    DynString ToLower() const;
-    DynString ToUpper() const;
+    String ToLower() const;
+    String ToUpper() const;
     
-    DynString Trimmed() const;
-    DynString TrimmedLeft() const;
-    DynString TrimmedRight() const;
+    String Trimmed() const;
+    String TrimmedLeft() const;
+    String TrimmedRight() const;
 
-    DynString Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const;
+    String Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const;
 
-    DynString Escape() const;
+    String Escape() const;
 
-    DynString ReplaceAll(const DynString &search, const DynString &replace) const;
+    String ReplaceAll(const String &search, const String &replace) const;
 
     template <class ... SeparatorType>
-    Array<DynString> Split(SeparatorType ... separators) const 
+    Array<String> Split(SeparatorType ... separators) const 
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separator_values { WidestCharType(separators)... };
 
         const auto *data = Base::Data();
         const auto size = Size();
 
-        Array<DynString> tokens;
+        Array<String> tokens;
 
-        DynString working_string;
+        String working_string;
         working_string.Reserve(size);
 
         if (!is_utf8 || m_length == size) {
@@ -316,9 +315,9 @@ public:
     }
 
     template <class Container>
-    static DynString Join(const Container &container, const DynString &separator)
+    static String Join(const Container &container, const String &separator)
     {
-        DynString result;
+        String result;
 
         for (auto it = container.Begin(); it != container.End(); ++it) {
             result.Append(ToString(*it));
@@ -332,9 +331,9 @@ public:
     }
 
     template <class Container>
-    static DynString Join(const Container &container, WidestCharType separator)
+    static String Join(const Container &container, WidestCharType separator)
     {
-        DynString result;
+        String result;
 
         for (auto it = container.Begin(); it != container.End(); ++it) {
             result.Append(ToString(*it));
@@ -362,11 +361,11 @@ public:
         return result;
     }
 
-    static DynString Base64Encode(const Array<ubyte> &bytes)
+    static String Base64Encode(const Array<ubyte> &bytes)
     {
         static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-        DynString out;
+        String out;
 
         uint i = 0;
         int j = -6;
@@ -392,7 +391,7 @@ public:
         return out;
     }
 
-    static Array<ubyte> Base64Decode(const DynString &in)
+    static Array<ubyte> Base64Decode(const String &in)
     {
         static const int lookup_table[] = {
             -1, -1, -1, -1, -1, -1, -1, -1,
@@ -451,23 +450,23 @@ public:
         return out;
     }
 
-    DynString<char, true> ToUTF8() const
+    String<char, STRING_TYPE_UTF8> ToUTF8() const
     {
         if constexpr (is_utf8) {
             return *this;
         } else if constexpr (is_ansi) {
-            return DynString<char, true>(Data());
+            return String<char, STRING_TYPE_UTF8>(Data());
         } else if constexpr (is_utf16) {
             uint32 len = utf::utf16_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
-                return DynString<char, true>::empty;
+                return String<char, STRING_TYPE_UTF8>::empty;
             }
 
             utf::u8char *buffer = new utf::u8char[len + 1];
             utf::utf16_to_utf8(Data(), Data() + Size(), buffer);
 
-            DynString<char, true> result(reinterpret_cast<const char *>(buffer));
+            String<char, STRING_TYPE_UTF8> result(reinterpret_cast<const char *>(buffer));
 
             delete[] buffer;
 
@@ -476,13 +475,13 @@ public:
             uint32 len = utf::utf32_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
-                return DynString<char, true>::empty;
+                return String<char, STRING_TYPE_UTF8>::empty;
             }
 
             utf::u8char *buffer = new utf::u8char[len + 1];
             utf::utf32_to_utf8(Data(), Data() + Size(), buffer);
 
-            DynString<char, true> result(reinterpret_cast<const char *>(buffer));
+            String<char, STRING_TYPE_UTF8> result(reinterpret_cast<const char *>(buffer));
 
             delete[] buffer;
 
@@ -491,24 +490,24 @@ public:
             uint32 len = utf::wide_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
-                return DynString<char, true>::empty;
+                return String<char, STRING_TYPE_UTF8>::empty;
             }
 
             utf::u8char *buffer = new utf::u8char[len + 1];
             utf::wide_to_utf8(Data(), Data() + Size(), buffer);
 
-            DynString<char, true> result(reinterpret_cast<const char *>(buffer));
+            String<char, STRING_TYPE_UTF8> result(reinterpret_cast<const char *>(buffer));
 
             delete[] buffer;
 
             return result;
         } else {
-            return DynString<char, true>();
+            return String<char, STRING_TYPE_UTF8>();
         }
     }
 
     template <class Integral>
-    static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, DynString>
+    static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, String>
     ToString(Integral value)
     {
         SizeType result_size;
@@ -516,7 +515,7 @@ public:
 
         AssertThrow(result_size >= 1);
 
-        DynString result;
+        String result;
         result.Reserve(result_size - 1);  // String class automatically adds 1 for null character
 
         T *data = new T[result_size];
@@ -531,23 +530,23 @@ public:
         return result;
     }
     
-    static DynString ToString(const DynString &value) { return value; }
-    static DynString ToString(DynString &&value)      { return value; }
+    static String ToString(const String &value) { return value; }
+    static String ToString(String &&value)      { return value; }
 
     [[nodiscard]] HashCode GetHashCode() const
         { return HashCode::GetHashCode(Data()); }
 
 protected:
-    const T *StrStr(const DynString &other) const;
+    const T *StrStr(const String &other) const;
 
     SizeType m_length;
 };
 
-template <class T, bool IsUtf8>
-const DynString<T, IsUtf8> DynString<T, IsUtf8>::empty = DynString();
+template <class T, int string_type>
+const String<T, string_type> String<T, string_type>::empty = String();
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString()
+template <class T, int string_type>
+String<T, string_type>::String()
     : Base(),
       m_length(0)
 {
@@ -555,8 +554,8 @@ DynString<T, IsUtf8>::DynString()
     Base::PushBack(T { 0 });
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const T *str)
+template <class T, int string_type>
+String<T, string_type>::String(const T *str)
     : Base(),
       m_length(0)
 {
@@ -565,7 +564,7 @@ DynString<T, IsUtf8>::DynString(const T *str)
     }
     
     int count;
-    const int len = utf::utf_strlen<T, IsUtf8>(str, &count);
+    const int len = utf::utf_strlen<T, is_utf8>(str, &count);
 
     if (len == -1) {
         // invalid utf8 string
@@ -588,8 +587,8 @@ DynString<T, IsUtf8>::DynString(const T *str)
     Base::PushBack(T { 0 });
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const T *str, int max_len)
+template <class T, int string_type>
+String<T, string_type>::String(const T *str, int max_len)
     : Base(),
       m_length(0)
 {
@@ -598,7 +597,7 @@ DynString<T, IsUtf8>::DynString(const T *str, int max_len)
     }
 
     int count;
-    const int len = MathUtil::Min(utf::utf_strlen<T, IsUtf8>(str, &count), max_len);
+    const int len = MathUtil::Min(utf::utf_strlen<T, is_utf8>(str, &count), max_len);
 
     if (len == -1) {
         // invalid utf8 string
@@ -621,15 +620,15 @@ DynString<T, IsUtf8>::DynString(const T *str, int max_len)
     Base::PushBack(T { 0 });
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const DynString &other)
+template <class T, int string_type>
+String<T, string_type>::String(const String &other)
     : Base(other),
       m_length(other.m_length)
 {
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(DynString &&other) noexcept
+template <class T, int string_type>
+String<T, string_type>::String(String &&other) noexcept
     : Base(static_cast<Base &&>(std::move(other))),
       m_length(other.m_length)
 {
@@ -637,8 +636,8 @@ DynString<T, IsUtf8>::DynString(DynString &&other) noexcept
 }
 
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const CharArray<T> &char_array)
+template <class T, int string_type>
+String<T, string_type>::String(const CharArray<T> &char_array)
     : Base(),
       m_length(0)
 {
@@ -650,11 +649,11 @@ DynString<T, IsUtf8>::DynString(const CharArray<T> &char_array)
         Base::PushBack(0);
     }
 
-    m_length = utf::utf_strlen<T, IsUtf8>(Base::Data());
+    m_length = utf::utf_strlen<T, is_utf8>(Base::Data());
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::DynString(const ByteBuffer &byte_buffer)
+template <class T, int string_type>
+String<T, string_type>::String(const ByteBuffer &byte_buffer)
     : Base(),
       m_length(0)
 {
@@ -676,24 +675,24 @@ DynString<T, IsUtf8>::DynString(const ByteBuffer &byte_buffer)
     Base::Resize((size / sizeof(T)) + 1); // +1 for null char
     Memory::MemCpy(Data(), byte_buffer.Data(), size / sizeof(T));
 
-    m_length = utf::utf_strlen<T, IsUtf8>(Base::Data());
+    m_length = utf::utf_strlen<T, is_utf8>(Base::Data());
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8>::~DynString()
+template <class T, int string_type>
+String<T, string_type>::~String()
 {
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator=(const T *str) -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator=(const T *str) -> String&
 {
-    DynString<T, IsUtf8>::operator=(DynString(str));
+    String<T, string_type>::operator=(String(str));
 
     return *this;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator=(const DynString &other) -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator=(const String &other) -> String&
 {
     Base::operator=(other);
     m_length = other.m_length;
@@ -701,8 +700,8 @@ auto DynString<T, IsUtf8>::operator=(const DynString &other) -> DynString&
     return *this;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator=(DynString &&other) noexcept -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator=(String &&other) noexcept -> String&
 {
     const auto len = other.m_length;
     Base::operator=(std::move(other));
@@ -712,59 +711,59 @@ auto DynString<T, IsUtf8>::operator=(DynString &&other) noexcept -> DynString&
     return *this;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+(const DynString &other) const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::operator+(const String &other) const -> String
 {
-    DynString result(*this);
+    String result(*this);
     result.Append(other);
 
     return result;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+(T ch) const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::operator+(T ch) const -> String
 {
-    DynString result(*this);
+    String result(*this);
     result.Append(ch);
 
     return result;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+(DynString &&other) const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::operator+(String &&other) const -> String
 {
-    DynString result(*this);
+    String result(*this);
     result.Append(std::move(other));
 
     return result;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+=(const DynString &other) -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator+=(const String &other) -> String&
 {
     Append(other);
 
     return *this;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+=(DynString &&other) -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator+=(String &&other) -> String&
 {
     Append(std::move(other));
 
     return *this;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator+=(T ch) -> DynString&
+template <class T, int string_type>
+auto String<T, string_type>::operator+=(T ch) -> String&
 {
     Append(ch);
 
     return *this;
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::operator==(const DynString &other) const
+template <class T, int string_type>
+bool String<T, string_type>::operator==(const String &other) const
 {
     if (this == std::addressof(other)) {
         return true;
@@ -778,17 +777,17 @@ bool DynString<T, IsUtf8>::operator==(const DynString &other) const
         return true;
     }
 
-    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), other.Data()) == 0;
+    return utf::utf_strcmp<T, is_utf8>(Base::Data(), other.Data()) == 0;
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::operator==(const T *str) const
+template <class T, int string_type>
+bool String<T, string_type>::operator==(const T *str) const
 {
     if (!str) {
         return *this == empty;
     }
 
-    const auto len = utf::utf_strlen<T, IsUtf8>(str);
+    const auto len = utf::utf_strlen<T, is_utf8>(str);
 
     if (len == -1) {
         return false; // invalid utf string
@@ -802,37 +801,37 @@ bool DynString<T, IsUtf8>::operator==(const T *str) const
         return true;
     }
 
-    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), str) == 0;
+    return utf::utf_strcmp<T, is_utf8>(Base::Data(), str) == 0;
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::operator!=(const DynString &other) const
+template <class T, int string_type>
+bool String<T, string_type>::operator!=(const String &other) const
 {
     return !operator==(other);
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::operator!=(const T *str) const
+template <class T, int string_type>
+bool String<T, string_type>::operator!=(const T *str) const
 {
     return !operator==(str);
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::operator<(const DynString &other) const
+template <class T, int string_type>
+bool String<T, string_type>::operator<(const String &other) const
 {
-    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), other.Data()) < 0;
+    return utf::utf_strcmp<T, is_utf8>(Base::Data(), other.Data()) < 0;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::operator[](SizeType index) const -> const T
+template <class T, int string_type>
+auto String<T, string_type>::operator[](SizeType index) const -> const T
 {
     return Base::operator[](index);
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::GetChar(SizeType index) const -> WidestCharType
+template <class T, int string_type>
+auto String<T, string_type>::GetChar(SizeType index) const -> WidestCharType
 {
-    if constexpr (IsUtf8) {
+    if constexpr (is_utf8) {
         const SizeType size = Size();
 
         AssertThrow(index < size);
@@ -843,8 +842,8 @@ auto DynString<T, IsUtf8>::GetChar(SizeType index) const -> WidestCharType
     }
 }
 
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(const DynString &other)
+template <class T, int string_type>
+void String<T, string_type>::Append(const String &other)
 {
     if (Size() + other.Size() + 1 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + other.Size() + 1) {
@@ -868,8 +867,8 @@ void DynString<T, IsUtf8>::Append(const DynString &other)
     m_length += other.m_length;
 }
 
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(DynString &&other)
+template <class T, int string_type>
+void String<T, string_type>::Append(String &&other)
 {
     if (Size() + other.Size() + 1 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + other.Size() + 1) {
@@ -895,14 +894,14 @@ void DynString<T, IsUtf8>::Append(DynString &&other)
     other.Clear();
 }
 
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(const T *str)
+template <class T, int string_type>
+void String<T, string_type>::Append(const T *str)
 {
-    Append(DynString(str));
+    Append(String(str));
 }
 
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Append(T value)
+template <class T, int string_type>
+void String<T, string_type>::Append(T value)
 {
     if (Size() + 2 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + 2) {
@@ -923,15 +922,15 @@ void DynString<T, IsUtf8>::Append(T value)
     ++m_length;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::PopFront() -> typename Base::ValueType
+template <class T, int string_type>
+auto String<T, string_type>::PopFront() -> typename Base::ValueType
 {
     --m_length;
     return Base::PopFront();
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::PopBack() -> typename Base::ValueType
+template <class T, int string_type>
+auto String<T, string_type>::PopBack() -> typename Base::ValueType
 {
     --m_length;
     Base::PopBack(); // pop NT-char
@@ -940,16 +939,16 @@ auto DynString<T, IsUtf8>::PopBack() -> typename Base::ValueType
     return res;
 }
 
-template <class T, bool IsUtf8>
-void DynString<T, IsUtf8>::Clear()
+template <class T, int string_type>
+void String<T, string_type>::Clear()
 {
     Base::Clear();
     Base::PushBack(T { 0 }); // NT char
     m_length = 0;
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::StartsWith(const DynString &other) const
+template <class T, int string_type>
+bool String<T, string_type>::StartsWith(const String &other) const
 {
     if (Size() < other.Size()) {
         return false;
@@ -958,8 +957,8 @@ bool DynString<T, IsUtf8>::StartsWith(const DynString &other) const
     return std::equal(Base::Begin(), Base::Begin() + other.Size(), other.Base::Begin());
 }
 
-template <class T, bool IsUtf8>
-bool DynString<T, IsUtf8>::EndsWith(const DynString &other) const
+template <class T, int string_type>
+bool String<T, string_type>::EndsWith(const String &other) const
 {
     if (Size() < other.Size()) {
         return false;
@@ -968,10 +967,10 @@ bool DynString<T, IsUtf8>::EndsWith(const DynString &other) const
     return std::equal(Base::Begin() + Size() - other.Size(), Base::End(), other.Base::Begin());
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::ToLower() const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::ToLower() const -> String
 {
-    DynString result;
+    String result;
     result.Reserve(Size());
 
     for (SizeType i = 0; i < Size();) {
@@ -1001,10 +1000,10 @@ auto DynString<T, IsUtf8>::ToLower() const -> DynString
     return result;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::ToUpper() const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::ToUpper() const -> String
 {
-    DynString result(*this);
+    String result(*this);
 
     std::transform(result.Begin(), result.End(), result.Begin(), [](auto ch) {
         return std::toupper(ch);
@@ -1013,16 +1012,16 @@ auto DynString<T, IsUtf8>::ToUpper() const -> DynString
     return result;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::Trimmed() const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::Trimmed() const -> String
 {
     return TrimmedLeft().TrimmedRight();
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::TrimmedLeft() const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::TrimmedLeft() const -> String
 {
-    DynString res;
+    String res;
     res.Reserve(Size());
 
     SizeType start_index;
@@ -1040,10 +1039,10 @@ auto DynString<T, IsUtf8>::TrimmedLeft() const -> DynString
     return res;
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::TrimmedRight() const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::TrimmedRight() const -> String
 {
-    DynString res;
+    String res;
     res.Reserve(Size());
 
     SizeType start_index;
@@ -1060,12 +1059,12 @@ auto DynString<T, IsUtf8>::TrimmedRight() const -> DynString
 
     return res;
 }
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8> DynString<T, IsUtf8>::ReplaceAll(const DynString &search, const DynString &replace) const
+template <class T, int string_type>
+String<T, string_type> String<T, string_type>::ReplaceAll(const String &search, const String &replace) const
 {
-    DynString tmp(*this);
+    String tmp(*this);
 
-    DynString result;
+    String result;
     result.Reserve(Size());
 
     SizeType index = 0;
@@ -1088,13 +1087,13 @@ DynString<T, IsUtf8> DynString<T, IsUtf8>::ReplaceAll(const DynString &search, c
     return result;
 }
 
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8> DynString<T, IsUtf8>::Escape() const
+template <class T, int string_type>
+String<T, string_type> String<T, string_type>::Escape() const
 {
     const SizeType size = Size();
     const auto *data = Base::Data();
 
-    DynString result;
+    String result;
     result.Reserve(size);
 
     if (!is_utf8 || m_length == size) {
@@ -1207,8 +1206,8 @@ DynString<T, IsUtf8> DynString<T, IsUtf8>::Escape() const
 }
 
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::Substr(SizeType first, SizeType last) const -> DynString
+template <class T, int string_type>
+auto String<T, string_type>::Substr(SizeType first, SizeType last) const -> String
 {
     if (first == SizeType(-1)) {
         return *this;
@@ -1218,8 +1217,8 @@ auto DynString<T, IsUtf8>::Substr(SizeType first, SizeType last) const -> DynStr
 
     const auto size = Size();
 
-    if constexpr (IsUtf8) {
-        DynString result;
+    if constexpr (is_utf8) {
+        String result;
 
         SizeType char_index = 0;
 
@@ -1276,10 +1275,10 @@ auto DynString<T, IsUtf8>::Substr(SizeType first, SizeType last) const -> DynStr
         return result;
     } else {
         if (first >= size) {
-            return DynString::empty;
+            return String::empty;
         }
 
-        DynString result;
+        String result;
         result.Reserve(MathUtil::Min(size, last) - first);
 
         for (SizeType i = first; i < size; i++) {
@@ -1296,8 +1295,8 @@ auto DynString<T, IsUtf8>::Substr(SizeType first, SizeType last) const -> DynStr
     }
 }
 
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::StrStr(const DynString &other) const -> const T*
+template <class T, int string_type>
+auto String<T, string_type>::StrStr(const String &other) const -> const T*
 {
     if (Size() < other.Size()) {
         return nullptr;
@@ -1328,11 +1327,11 @@ auto DynString<T, IsUtf8>::StrStr(const DynString &other) const -> const T*
     return nullptr;
 }
 
-template <class T, bool IsUtf8>
-SizeType DynString<T, IsUtf8>::FindIndex(const DynString &other) const
+template <class T, int string_type>
+SizeType String<T, string_type>::FindIndex(const String &other) const
 {
     if (auto *ptr = StrStr(other)) {
-        if constexpr (IsUtf8) {
+        if constexpr (is_utf8) {
             int *count;
             const int len = utf8_strlen(Data(), ptr, count);
 
@@ -1346,10 +1345,10 @@ SizeType DynString<T, IsUtf8>::FindIndex(const DynString &other) const
 }
 
 #if 0
-template <class T, bool IsUtf8>
-DynString<T, IsUtf8> operator+(const T *str, const DynString<T, IsUtf8> &other)
+template <class T, int string_type>
+String<T, string_type> operator+(const T *str, const String<T, string_type> &other)
 {
-    return DynString<T, IsUtf8>(str) + other;
+    return String<T, string_type>(str) + other;
 }
 #endif
 
@@ -1359,15 +1358,15 @@ DynString<T, IsUtf8> operator+(const T *str, const DynString<T, IsUtf8> &other)
 
 using CharArray = containers::detail::CharArray<char>;
 
-using String = containers::detail::DynString<char, true>;
+using String = containers::detail::String<char, containers::detail::STRING_TYPE_UTF8>;
 
-using ANSIString = containers::detail::DynString<char, false>;
-using WideString = containers::detail::DynString<wchar_t, false>;
+using ANSIString = containers::detail::String<char, containers::detail::STRING_TYPE_ANSI>;
+using WideString = containers::detail::String<wchar_t, containers::detail::STRING_TYPE_WIDE>;
 
-using UTF32String = containers::detail::DynString<utf::u32char, false>;
-using UTF16String = containers::detail::DynString<utf::u16char, false>;
+using UTF32String = containers::detail::String<utf::u32char, containers::detail::STRING_TYPE_UTF32>;
+using UTF16String = containers::detail::String<utf::u16char, containers::detail::STRING_TYPE_UTF16>;
 
-using PlatformString = containers::detail::DynString<TChar, false>;
+using PlatformString = containers::detail::String<TChar, std::is_same_v<TChar, wchar_t> ? containers::detail::STRING_TYPE_WIDE : containers::detail::STRING_TYPE_UTF8>;
 
 inline String operator+(const char *str, const String &other)
     { return String(str) + other; }
@@ -1381,16 +1380,16 @@ inline UTF16String operator+(const utf::u16char *str, const UTF16String &other)
 inline UTF32String operator+(const utf::u32char *str, const UTF32String &other)
     { return UTF32String(str) + other; }
 
-template <class CharType, bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, char>, int>>
-std::ostream &operator<<(std::ostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
+template <class CharType, int string_type, typename = std::enable_if_t<std::is_same_v<CharType, char>, int>>
+std::ostream &operator<<(std::ostream &os, const containers::detail::String<CharType, string_type> &str)
 {
     os << str.Data();
 
     return os;
 }
 
-template <class CharType, bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, wchar_t>, int>>
-std::wostream &operator<<(std::wostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
+template <class CharType, int string_type, typename = std::enable_if_t<std::is_same_v<CharType, wchar_t>, int>>
+std::wostream &operator<<(std::wostream &os, const containers::detail::String<CharType, string_type> &str)
 {
     os << str.Data();
 

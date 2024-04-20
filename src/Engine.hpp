@@ -56,6 +56,7 @@ class Engine;
 class Framebuffer;
 class Game;
 class GameThread;
+class ShaderGlobals;
 
 extern Engine               *g_engine;
 extern AssetManager         *g_asset_manager;

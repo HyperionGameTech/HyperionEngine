@@ -1,12 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PHYSICS_ADAPTER_HPP
 #define HYPERION_PHYSICS_ADAPTER_HPP
 
-#include <core/ID.hpp>
 #include <core/Handle.hpp>
 #include <GameCounter.hpp>
-
-#include <type_traits>
 
 namespace hyperion::physics {
 

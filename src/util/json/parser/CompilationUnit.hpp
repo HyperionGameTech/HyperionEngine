@@ -3,11 +3,6 @@
 #ifndef HYP_JSON_COMPILATION_UNIT_HPP
 #define HYP_JSON_COMPILATION_UNIT_HPP
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/UniquePtr.hpp>
-
 #include <util/json/parser/ErrorList.hpp>
 
 namespace hyperion::json {

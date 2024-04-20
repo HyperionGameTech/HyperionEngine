@@ -5,8 +5,11 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
+
 #include <util/json/parser/Token.hpp>
+
 #include <system/Debug.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion::json {

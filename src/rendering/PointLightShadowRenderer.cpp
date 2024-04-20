@@ -1,11 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/Light.hpp>
-#include <rendering/Texture.hpp>
-
-#include <scene/camera/PerspectiveCamera.hpp>
 
 #include <Engine.hpp>
 

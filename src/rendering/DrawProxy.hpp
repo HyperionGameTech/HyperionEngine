@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DRAW_PROXY_HPP
 #define HYPERION_DRAW_PROXY_HPP
 
@@ -15,10 +16,8 @@
 #include <math/Color.hpp>
 #include <math/Frustum.hpp>
 
-#include <Constants.hpp>
 #include <Types.hpp>
 
-#include <memory>
 #include <atomic>
 
 namespace hyperion {

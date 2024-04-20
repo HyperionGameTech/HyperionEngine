@@ -1,5 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/SafeDeleter.hpp>
+#include <rendering/ShaderGlobals.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 

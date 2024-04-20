@@ -101,10 +101,6 @@ SampleStreamer::SampleStreamer(RC<Application> application)
 
 void SampleStreamer::InitGame()
 {
-    constexpr auto typename_string = TypeNameWithoutNamespace<String>();
-    DebugLog(LogType::Debug, "Typename string = %s\n", typename_string.Data());
-
-
     Game::InitGame();
 
     ArgParse args;
@@ -229,9 +225,6 @@ void SampleStreamer::InitGame()
         nullptr
     ));
     InitObject(m_texture);
-
-    constexpr auto hc = TypeName<int>().GetHashCode();
-    constexpr auto hc1 = HashCode::GetHashCode("testing testing");
     
     DebugLog(LogType::Debug, "SampleStreamer::InitGame : Scene ID = %u\n", m_scene.GetID().Value());
     m_scene->SetCamera(CreateObject<Camera>(

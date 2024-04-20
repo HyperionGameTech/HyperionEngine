@@ -1,11 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <Engine.hpp>
-
-#include <asset/ByteReader.hpp>
-#include <util/fs/FsUtil.hpp>
 
 namespace hyperion {
 

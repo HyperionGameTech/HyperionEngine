@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DOTNET_DOT_NET_SYSTEM_HPP
 #define HYPERION_DOTNET_DOT_NET_SYSTEM_HPP
 
@@ -6,11 +7,7 @@
 
 #include <Types.hpp>
 
-#include <dotnet/Types.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
-#include <dotnet/interop/ManagedObject.hpp>
 
 namespace hyperion {
 namespace dotnet {

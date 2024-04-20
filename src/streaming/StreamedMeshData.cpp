@@ -2,12 +2,9 @@
 
 #include <streaming/StreamedMeshData.hpp>
 
-#include <asset/serialization/Serialization.hpp>
 #include <asset/serialization/fbom/marshals/MeshDataMarshal.hpp>
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
-
-#include <Constants.hpp>
 
 namespace hyperion {
 

@@ -2,10 +2,11 @@
 
 #include <scene/World.hpp>
 
+#include <core/threading/Threads.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 
 #include <Engine.hpp>
-#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 

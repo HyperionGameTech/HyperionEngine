@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PARTICLE_SYSTEM_HPP
 #define HYPERION_PARTICLE_SYSTEM_HPP
 
@@ -12,7 +13,6 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
@@ -20,12 +20,8 @@
 #include <rendering/Texture.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
-#include <rendering/backend/RendererComputePipeline.hpp>
 
 #include <atomic>
 #include <mutex>

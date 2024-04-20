@@ -3,6 +3,8 @@
 #include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <rendering/ShaderGlobals.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
 
 #include <Engine.hpp>
@@ -90,10 +92,11 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
             mesh_component.user_data
         });
 
-        // Update the previous model matrix
-        mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
-
-        mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
+        if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix()) {
+            mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
+        } else {
+            mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
+        }
     }
 
     if (entity_draw_datas.Any()) {

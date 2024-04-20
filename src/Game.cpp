@@ -3,11 +3,13 @@
 #include <Game.hpp>
 #include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
+
 #include <Engine.hpp>
 
 #include <system/Debug.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
+#include <dotnet/Class.hpp>
 #include <dotnet/runtime/ManagedHandle.hpp>
 
 namespace hyperion {

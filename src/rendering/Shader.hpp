@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_SHADER_HPP
 #define HYPERION_SHADER_HPP
 
@@ -6,21 +7,12 @@
 #include <core/Name.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <rendering/Bindless.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererShader.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererStructs.hpp>
 
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
-#include <math/Transform.hpp>
-
 #include <HashCode.hpp>
-
-#include <memory>
-#include <utility>
-#include <string>
 
 namespace hyperion {
 

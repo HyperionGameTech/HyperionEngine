@@ -5,6 +5,7 @@
 
 #include <core/Containers.hpp>
 #include <core/Name.hpp>
+#include <core/Defines.hpp>
 
 #include <math/Vertex.hpp>
 
@@ -12,12 +13,10 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <util/definitions/DefinitionsFile.hpp>
-#include <core/Defines.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>
 
-#include <set>
 #include <mutex>
 
 namespace hyperion {

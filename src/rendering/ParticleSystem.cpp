@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/ParticleSystem.hpp>
 
 #include <rendering/Buffers.hpp>
@@ -9,10 +10,8 @@
 #include <core/util/ForEach.hpp>
 
 #include <math/MathUtil.hpp>
-#include <math/Color.hpp>
 #include <util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>
-#include <util/fs/FsUtil.hpp>
 
 #include <Engine.hpp>
 

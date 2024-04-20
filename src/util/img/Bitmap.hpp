@@ -5,14 +5,13 @@
 
 #include <asset/ByteWriter.hpp>
 
-#include <core/Containers.hpp>
+#include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <math/MathUtil.hpp>
 
-#include <util/ByteUtil.hpp>
 #include <util/img/WriteBitmap.hpp>
 
 #include <Types.hpp>

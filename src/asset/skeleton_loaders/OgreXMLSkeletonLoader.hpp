@@ -4,9 +4,11 @@
 #define HYPERION_OGRE_XML_SKELETON_LOADER_HPP
 
 #include <asset/Assets.hpp>
-#include <scene/Node.hpp>
+
+#include <scene/animation/Skeleton.hpp>
+
 #include <math/Quaternion.hpp>
-#include <core/Containers.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {

@@ -1,18 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_POINT_LIGHT_SHADOW_RENDERER_HPP
 #define HYPERION_POINT_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/Base.hpp>
+
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
-
 #include <rendering/backend/RendererFrame.hpp>
-
-#include <core/containers/FixedArray.hpp>
 
 #include <math/BoundingBox.hpp>
 #include <scene/camera/Camera.hpp>
-#include <Types.hpp>
 
 namespace hyperion {
 

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #ifndef HYPERION_SAFE_DELETER_HPP
+
 #define HYPERION_SAFE_DELETER_HPP
 
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
-#include <core/utilities/Pair.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/ID.hpp>
@@ -13,16 +13,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Shader.hpp>
-#include <rendering/Shader.hpp>
-#include <scene/animation/Skeleton.hpp>
-
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
-
-#include <mutex>
-#include <tuple>
-#include <atomic>
 
 namespace hyperion {
 

@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <core/containers/Array.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/utilities/UniqueID.hpp>
@@ -10,6 +11,7 @@
 
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <Engine.hpp>
 

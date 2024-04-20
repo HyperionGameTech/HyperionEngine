@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_STREAMED_DATA_HPP
 #define HYPERION_STREAMED_DATA_HPP
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/filesystem/FilePath.hpp>
-
 #include <core/Defines.hpp>
 
 namespace hyperion {

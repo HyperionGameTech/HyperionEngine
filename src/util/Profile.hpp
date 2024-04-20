@@ -5,7 +5,6 @@
 #include <Types.hpp>
 
 #include <vector>
-#include <functional>
 #include <type_traits>
 
 namespace hyperion {

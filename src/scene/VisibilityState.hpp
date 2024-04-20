@@ -1,14 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_VISIBILITY_STATE_HPP
 #define HYPERION_VISIBILITY_STATE_HPP
 
 #include <core/Containers.hpp>
 #include <core/ID.hpp>
-#include <math/MathUtil.hpp>
-#include <Types.hpp>
 
-#include <atomic>
-#include <cstdint>
+#include <Types.hpp>
 
 namespace hyperion {
 
@@ -16,7 +14,7 @@ class Camera;
 
 struct VisibilityStateSnapshot
 {
-    uint16 validity_marker { 0u };
+    uint16  validity_marker { 0u };
 
     VisibilityStateSnapshot()                                                       = default;
     VisibilityStateSnapshot(const VisibilityStateSnapshot &other)                   = default;

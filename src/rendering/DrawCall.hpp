@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DRAW_CALL_HPP
 #define HYPERION_DRAW_CALL_HPP
 
 #include <core/Containers.hpp>
-#include <Constants.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
@@ -11,9 +11,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/EntityDrawData.hpp>
-#include <rendering/ShaderGlobals.hpp>
 
-#include <system/StackDump.hpp>
 #include <system/Debug.hpp>
 
 #include <Types.hpp>

@@ -1,7 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#include <streaming/DataStore.hpp>
-#include <asset/ByteWriter.hpp>
 
+#include <streaming/DataStore.hpp>
+
+#include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>
 
 namespace hyperion {

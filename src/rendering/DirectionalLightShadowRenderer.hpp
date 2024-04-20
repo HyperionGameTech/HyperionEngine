@@ -4,23 +4,20 @@
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <rendering/FullScreenPass.hpp>
-#include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererComputePipeline.hpp>
 
 #include <math/BoundingBox.hpp>
+
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
-#include <Types.hpp>
 
-#include <mutex>
+#include <Types.hpp>
 
 namespace hyperion {
 

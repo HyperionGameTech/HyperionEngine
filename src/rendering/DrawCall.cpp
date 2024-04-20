@@ -1,6 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/DrawCall.hpp>
 #include <rendering/IndirectDraw.hpp>
+#include <rendering/ShaderGlobals.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

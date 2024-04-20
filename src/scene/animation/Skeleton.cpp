@@ -3,6 +3,8 @@
 #include <scene/animation/Skeleton.hpp>
 #include <scene/animation/Bone.hpp>
 
+#include <rendering/ShaderGlobals.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 
 #include <Engine.hpp>

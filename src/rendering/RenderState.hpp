@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RENDER_STATE_HPP
 #define HYPERION_RENDER_STATE_HPP
 
@@ -6,16 +7,17 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/containers/Stack.hpp>
+#include <core/Defines.hpp>
+
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/Lightmap.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/DrawProxy.hpp>
+
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
-#include <math/MathUtil.hpp>
 
-#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <stack>

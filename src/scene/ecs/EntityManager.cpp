@@ -2,7 +2,9 @@
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/Entity.hpp>
+
 #include <core/threading/TaskSystem.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

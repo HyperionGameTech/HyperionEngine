@@ -49,6 +49,10 @@ if(MSVC)
             `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`.")
     endif()
 
+    # disable specific warnings
+    add_definitions("/wd4251")
+    add_definitions("/wd4275")
+
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")

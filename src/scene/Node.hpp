@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_NODE_HPP
 #define HYPERION_NODE_HPP
 
 #include <core/Containers.hpp>
-#include <core/Name.hpp>
 #include <core/containers/String.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/functional/Delegate.hpp>
@@ -13,10 +13,8 @@
 
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>
-#include <math/Matrix4.hpp>
 #include <math/BoundingBox.hpp>
 
-#include <GameCounter.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 

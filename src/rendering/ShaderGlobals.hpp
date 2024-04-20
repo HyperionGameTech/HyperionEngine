@@ -1,22 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_SHADER_GLOBALS_HPP
 #define HYPERION_SHADER_GLOBALS_HPP
 
 #include <rendering/Buffers.hpp>
 #include <rendering/Bindless.hpp>
-#include <rendering/DrawProxy.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererStructs.hpp>
-
-#include <core/containers/Queue.hpp>
-#include <core/ID.hpp>
-
-#include <math/MathUtil.hpp>
-
-#include <utility>
 
 namespace hyperion {
 

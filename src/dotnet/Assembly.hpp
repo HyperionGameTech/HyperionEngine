@@ -1,12 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYP_DOTNET_ASSEMBLY_HPP
 #define HYP_DOTNET_ASSEMBLY_HPP
 
-#include <core/threading/Mutex.hpp>
 #include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 
-#include <dotnet/Types.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
 
 namespace hyperion {

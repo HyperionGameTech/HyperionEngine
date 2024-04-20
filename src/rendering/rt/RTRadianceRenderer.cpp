@@ -2,7 +2,11 @@
 
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/rt/DDGI.hpp>
+#include <rendering/ShaderGlobals.hpp>
+
+#include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -224,8 +228,8 @@ void RTRadianceRenderer::CreateImages()
 void RTRadianceRenderer::CreateUniformBuffer()
 {
     m_uniform_buffers = {
-        MakeRenderObject<GPUBuffer>(UniformBuffer()),
-        MakeRenderObject<GPUBuffer>(UniformBuffer())
+        MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER),
+        MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER)
     };
 
     PUSH_RENDER_COMMAND(CreateRTRadianceUniformBuffers, m_uniform_buffers);

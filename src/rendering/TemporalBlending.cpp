@@ -2,11 +2,9 @@
 
 #include <rendering/TemporalBlending.hpp>
 
-#include <asset/ByteReader.hpp>
-#include <util/fs/FsUtil.hpp>
+#include <core/threading/Threads.hpp>
 
 #include <Engine.hpp>
-#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 
@@ -222,9 +220,9 @@ void TemporalBlending::Render(Frame *frame)
     const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
 
     struct alignas(128) {
-        ShaderVec2<uint32>  output_dimensions;
-        ShaderVec2<uint32>  depth_texture_dimensions;
-        uint32              blending_frame_counter;
+        Vec2u   output_dimensions;
+        Vec2u   depth_texture_dimensions;
+        uint32  blending_frame_counter;
     } push_constants;
 
     push_constants.output_dimensions = Extent2D(extent);

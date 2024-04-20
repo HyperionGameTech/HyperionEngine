@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef UTF8_HPP
-#define UTF8_HPP
+
+#ifndef HYPERION_UTF8_HPP
+#define HYPERION_UTF8_HPP
 
 #include <iostream>
 #include <algorithm>
 #include <fstream>
 #include <vector>
 #include <string>
-#include <stdexcept>
 #include <cstdint>
 #include <cstring>
 

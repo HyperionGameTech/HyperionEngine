@@ -1,12 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <core/threading/Threads.hpp>
+
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <Engine.hpp>
-#include <core/threading/Threads.hpp>
-
-#include <asset/ByteReader.hpp>
-#include <util/fs/FsUtil.hpp>
 
 namespace hyperion {
 

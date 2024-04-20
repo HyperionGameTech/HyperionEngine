@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef INPUT_MANAGER_HPP
 #define INPUT_MANAGER_HPP
 
@@ -10,9 +11,6 @@
 
 #include <system/Application.hpp>
 
-#include <functional>
-#include <mutex>
-#include <cstring>
 #include <atomic>
 
 namespace hyperion {

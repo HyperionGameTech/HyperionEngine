@@ -174,9 +174,9 @@ namespace Hyperion
         private static extern bool BoundingBox_Intersects([In] ref BoundingBox box, [In] ref BoundingBox other);
 
         [DllImport("hyperion", EntryPoint = "BoundingBox_Contains")]
-        public static extern bool BoundingBox_Contains([In] ref BoundingBox box, [In] ref BoundingBox other);
+        private static extern bool BoundingBox_Contains([In] ref BoundingBox box, [In] ref BoundingBox other);
 
         [DllImport("hyperion", EntryPoint = "BoundingBox_ContainsPoint")]
-        public static extern bool BoundingBox_ContainsPoint([In] ref BoundingBox box, [In] ref Vec3f point);
+        private static extern bool BoundingBox_ContainsPoint([In] ref BoundingBox box, [In] ref Vec3f point);
     }
 }

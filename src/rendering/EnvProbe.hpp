@@ -1,23 +1,25 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ENV_PROBE_HPP
 #define HYPERION_ENV_PROBE_HPP
 
-#include <HashCode.hpp>
 #include <core/Base.hpp>
 #include <core/containers/Bitset.hpp>
-#include <core/utilities/Optional.hpp>
 #include <core/threading/AtomicVar.hpp>
+
 #include <math/BoundingBox.hpp>
+
 #include <rendering/Texture.hpp>
 #include <rendering/DrawProxy.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
+
+#include <GameCounter.hpp>
+#include <HashCode.hpp>
 
 namespace hyperion {
 

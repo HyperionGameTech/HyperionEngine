@@ -1,19 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_FINAL_PASS_HPP
 #define HYPERION_FINAL_PASS_HPP
 
 #include <Config.hpp>
 
-#include <rendering/DefaultFormats.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/FullScreenPass.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSampler.hpp>
-#include <rendering/backend/RendererSemaphore.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <Types.hpp>
 

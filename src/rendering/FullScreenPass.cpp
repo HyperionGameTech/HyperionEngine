@@ -1,10 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/FullScreenPass.hpp>
 #include <Engine.hpp>
 #include <Types.hpp>
 
-#include <asset/ByteReader.hpp>
-#include <util/fs/FsUtil.hpp>
 #include <util/MeshBuilder.hpp>
 
 namespace hyperion {

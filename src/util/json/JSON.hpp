@@ -4,13 +4,17 @@
 #define HYPERION_JSON_HPP
 
 #include <asset/ByteReader.hpp>
-#include <util/json/parser/Lexer.hpp>
+
 #include <core/containers/String.hpp>
-#include <core/utilities/Variant.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>
-#include <util/StringUtil.hpp>
+#include <core/utilities/Variant.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 #include <core/Defines.hpp>
+
+#include <util/json/parser/Lexer.hpp>
+
+#include <util/StringUtil.hpp>
 
 namespace hyperion {
 namespace json {
@@ -423,7 +427,9 @@ public:
             return result;
         }
 
-        return "";
+        DebugLog(LogType::Warn, "Invalid JSON value type, <Invalid> will be written\n");
+
+        return "<Invalid>";
     }
 
     JSONNumber &AsNumber()

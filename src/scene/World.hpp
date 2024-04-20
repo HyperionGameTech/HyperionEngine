@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_WORLD_HPP
 #define HYPERION_WORLD_HPP
 
 #include <scene/Scene.hpp>
-#include <physics/PhysicsWorld.hpp>
-#include <rendering/backend/RendererFrame.hpp>
 
-#include <mutex>
-#include <atomic>
+#include <physics/PhysicsWorld.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
 
 namespace hyperion {
 

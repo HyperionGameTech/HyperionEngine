@@ -146,7 +146,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
     Array<RC<UIObject>> objects;
     CollectObjects(m_ui_stage->GetScene()->GetRoot(), objects);
 
-    std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
+    /*std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
     {
         AssertThrow(lhs != nullptr);
         AssertThrow(lhs->GetNode() != nullptr);
@@ -155,7 +155,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         AssertThrow(rhs->GetNode() != nullptr);
 
         return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
-    });
+    });*/
 
     for (uint i = 0; i < objects.Size(); i++) {
         const RC<UIObject> &object = objects[i];

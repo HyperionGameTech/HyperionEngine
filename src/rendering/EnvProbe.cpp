@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/EnvProbe.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <Engine.hpp>
 

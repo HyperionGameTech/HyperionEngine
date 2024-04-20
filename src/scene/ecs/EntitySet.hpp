@@ -5,10 +5,8 @@
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Array.hpp>
-#include <core/memory/UniquePtr.hpp>
 #include <core/containers/FixedArray.hpp>
-#include <core/IDCreator.hpp>
-#include <core/Handle.hpp>
+#include <core/memory/UniquePtr.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityContainer.hpp>

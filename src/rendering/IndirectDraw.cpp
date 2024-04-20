@@ -1,7 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/ShaderGlobals.hpp>
+
+#include <rendering/backend/RendererBuffer.hpp>
 
 #include <math/MathUtil.hpp>
 #include <Engine.hpp>
@@ -370,7 +374,7 @@ void IndirectRenderer::Create()
     Handle<Shader> object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
     AssertThrow(object_visibility_shader.IsValid());
 
-#ifdef HYP_DEBUG_MODE // silly check
+#ifdef HYP_DEBUG_OBJECT_POOL_DEBUG // silly check to ensure the shader is ok (getting crash)
     volatile auto &bytes = Handle<Shader>::GetContainer().GetObjectBytes(object_visibility_shader.GetID().ToIndex());
     
     AssertThrow(bytes.has_value);

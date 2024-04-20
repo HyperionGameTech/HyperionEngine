@@ -1,14 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PHYSICS_WORLD_HPP
 #define HYPERION_PHYSICS_WORLD_HPP
 
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
-#include <core/ID.hpp>
-#include <core/Containers.hpp>
-#include <math/Vector3.hpp>
 
-#include <type_traits>
+#include <math/Vector3.hpp>
 
 namespace hyperion::physics {
 

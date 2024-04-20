@@ -1,11 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ARG_PARSE_HPP
 #define HYPERION_ARG_PARSE_HPP
 
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
-#include <core/utilities/Pair.hpp>
 #include <core/containers/FlatMap.hpp>
+#include <core/utilities/Pair.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 

@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_STREAMED_MESH_DATA_HPP
 #define HYPERION_STREAMED_MESH_DATA_HPP
 
@@ -15,8 +16,8 @@ namespace hyperion {
 
 struct MeshData
 {
-    Array<Vertex> vertices;
-    Array<uint32> indices;
+    Array<Vertex>   vertices;
+    Array<uint32>   indices;
 };
 
 class HYP_API StreamedMeshData : public StreamedData

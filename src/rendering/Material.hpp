@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_MATERIAL_HPP
 #define HYPERION_MATERIAL_HPP
 
@@ -6,7 +7,6 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/DataMutationState.hpp>
 #include <core/containers/FixedArray.hpp>

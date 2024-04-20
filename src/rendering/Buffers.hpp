@@ -1,30 +1,25 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_BUFFERS_HPP
 #define HYPERION_BUFFERS_HPP
+
+#include <core/containers/HeapArray.hpp>
+#include <core/containers/FixedArray.hpp>
+#include <core/utilities/Range.hpp>
+#include <core/threading/Threads.hpp>
+#include <core/Defines.hpp>
 
 #include <rendering/DrawProxy.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/Platform.hpp>
 
-#include <math/Rect.hpp>
 #include <math/Matrix4.hpp>
-
-#include <core/Defines.hpp>
-
-#include <core/containers/HeapArray.hpp>
-#include <core/containers/Array.hpp>
-#include <core/utilities/Range.hpp>
-#include <core/containers/FixedArray.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
-#include <core/threading/Threads.hpp>
 
 #include <memory>
-#include <atomic>
 #include <mutex>
-#include <climits>
-
 
 #define HYP_RENDER_OBJECT_OFFSET(cls, index) \
     (uint32((index) * sizeof(cls ## ShaderData)))

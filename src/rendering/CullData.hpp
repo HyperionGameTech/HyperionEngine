@@ -1,15 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_CULL_DATA_HPP
 #define HYPERION_CULL_DATA_HPP
 
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>
-
-#include <core/containers/FixedArray.hpp>
-
-#include <Constants.hpp>
-#include <Types.hpp>
 
 namespace hyperion {
 

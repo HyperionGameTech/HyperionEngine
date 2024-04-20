@@ -2,7 +2,10 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/ShaderGlobals.hpp>
+
 #include <util/MeshBuilder.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

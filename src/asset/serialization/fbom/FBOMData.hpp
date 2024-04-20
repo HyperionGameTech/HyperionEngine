@@ -134,8 +134,8 @@ struct FBOMData
 
     bool IsString() const { return type.IsOrExtends(FBOMString()); }
 
-    template <bool IsUtf8>
-    FBOMResult ReadString(containers::detail::DynString<char, IsUtf8> &str) const
+    template <int string_type>
+    FBOMResult ReadString(containers::detail::String<char, string_type> &str) const
     {
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 
@@ -151,9 +151,9 @@ struct FBOMData
 
         FBOM_RETURN_OK;
     }
-
-    template <bool IsUtf8>
-    static FBOMData FromString(const containers::detail::DynString<char, IsUtf8> &str)
+    
+    template <int string_type>
+    static FBOMData FromString(const containers::detail::String<char, string_type> &str)
     {
         FBOMData data(FBOMString(str.Size()));
         data.SetBytes(str.Size(), str.Data());

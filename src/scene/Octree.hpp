@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_OCTREE_HPP
 #define HYPERION_OCTREE_HPP
 
@@ -8,7 +9,6 @@
 #include <scene/Entity.hpp>
 #include <scene/VisibilityState.hpp>
 #include <scene/ecs/EntityTag.hpp>
-#include <util/ByteUtil.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>

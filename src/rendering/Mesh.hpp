@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_MESH_HPP
 #define HYPERION_MESH_HPP
 
@@ -12,7 +13,6 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 

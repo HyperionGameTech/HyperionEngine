@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderGroup.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -107,7 +108,7 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
     {
         indirect_renderer->Create();
 
-        return renderer::Result { };
+        return { };
     }
 };
 

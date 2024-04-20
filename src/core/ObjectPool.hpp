@@ -8,16 +8,16 @@
 #include <core/ID.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/Name.hpp>
-#include <core/containers/HashMap.hpp>
 #include <core/Util.hpp>
+#include <core/Defines.hpp>
+
 #include <Constants.hpp>
 #include <Types.hpp>
-#include <core/Defines.hpp>
 #include <system/Debug.hpp>
 
 #include <type_traits>
 
-#define HYP_OBJECT_POOL_DEBUG
+//#define HYP_OBJECT_POOL_DEBUG
 
 namespace hyperion {
 
@@ -106,7 +106,7 @@ class ObjectContainer : public ObjectContainerBase
 
             uint16 count;
 
-            if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+            if ((count = ref_count_strong.Decrement(1, MemoryOrder::SEQUENTIAL)) == 1) {
                 reinterpret_cast<T *>(bytes)->~T();
             }
 
@@ -115,16 +115,16 @@ class ObjectContainer : public ObjectContainerBase
 
         uint DecRefWeak()
         {
-            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::SEQUENTIAL);
 
             return uint(count) - 1;
         }
 
         HYP_FORCE_INLINE uint GetRefCountStrong() const
-            { return uint(ref_count_strong.Get(MemoryOrder::ACQUIRE_RELEASE)); }
+            { return uint(ref_count_strong.Get(MemoryOrder::SEQUENTIAL)); }
 
         HYP_FORCE_INLINE uint GetRefCountWeak() const
-            { return uint(ref_count_weak.Get(MemoryOrder::ACQUIRE_RELEASE)); }
+            { return uint(ref_count_weak.Get(MemoryOrder::SEQUENTIAL)); }
 
         HYP_FORCE_INLINE T &Get()
             { return *reinterpret_cast<T *>(bytes); }

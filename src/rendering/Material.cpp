@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/Material.hpp>
+#include <rendering/ShaderGlobals.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <util/ByteUtil.hpp>

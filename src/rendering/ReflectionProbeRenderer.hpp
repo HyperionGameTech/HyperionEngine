@@ -7,19 +7,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
-#include <rendering/Buffers.hpp>
 #include <rendering/EnvProbe.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
-#include <core/containers/FixedArray.hpp>
-
 #include <math/BoundingBox.hpp>
-#include <scene/Scene.hpp>
-#include <scene/camera/Camera.hpp>
-#include <Types.hpp>
-
-#include <array>
 
 namespace hyperion {
 

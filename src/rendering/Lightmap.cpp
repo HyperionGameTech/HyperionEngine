@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <rendering/Lightmap.hpp>
 #include <Engine.hpp>
 
