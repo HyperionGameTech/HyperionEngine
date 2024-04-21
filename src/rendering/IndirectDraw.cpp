@@ -255,7 +255,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 
     const uint32 draw_command_index = m_num_draw_commands++;
 
-    for (uint index = 0; index < draw_call.entity_id_count; index++) {
+    for (uint32 index = 0; index < draw_call.entity_id_count; index++) {
         ObjectInstance instance { };
         instance.entity_id = draw_call.entity_ids[index].Value();
         instance.draw_command_index = draw_command_index;
@@ -267,8 +267,8 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 
     out.draw_command_index = draw_command_index;
 
-    if (m_draw_commands.Size() < SizeType(m_num_draw_commands)) {
-        m_draw_commands.Resize(SizeType(m_num_draw_commands));
+    if (m_draw_commands.Size() < m_num_draw_commands) {
+        m_draw_commands.Resize(m_num_draw_commands);
     }
 
     Handle<Mesh>::GetContainer().Get(draw_call.mesh_id.ToIndex())
@@ -421,7 +421,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->size != 0);
 
-    const uint num_instances = uint(m_indirect_draw_state.GetInstances().Size());
+    const uint num_instances = m_indirect_draw_state.GetInstances().Size();
     const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
 
     if (num_instances == 0) {

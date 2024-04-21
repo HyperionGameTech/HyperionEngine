@@ -3,6 +3,8 @@
 #define HYPERION_CORE_ID_CREATOR_HPP
 
 #include <core/containers/Queue.hpp>
+#include <core/threading/AtomicVar.hpp>
+#include <core/threading/Mutex.hpp>
 #include <core/containers/TypeMap.hpp>
 #include <core/ID.hpp>
 #include <Constants.hpp>
@@ -14,20 +16,19 @@
 
 namespace hyperion {
 
-template <auto ... Args>
-struct IDCreator
+struct IDGenerator
 {
     TypeID              type_id;
-    std::atomic<uint>   id_counter { 0u };
-    std::mutex          free_id_mutex;
+    AtomicVar<uint32>   id_counter { 0u };
+    Mutex               free_id_mutex;
     Queue<uint>         free_indices;
 
     uint NextID()
     {
-        std::lock_guard guard(free_id_mutex);
+        Mutex::Guard guard(free_id_mutex);
 
         if (free_indices.Empty()) {
-            return id_counter.fetch_add(1) + 1;
+            return id_counter.Increment(1, MemoryOrder::SEQUENTIAL) + 1;
         }
 
         return free_indices.Pop();
@@ -35,7 +36,7 @@ struct IDCreator
 
     void FreeID(uint index)
     {
-        std::lock_guard guard(free_id_mutex);
+        Mutex::Guard guard(free_id_mutex);
 
         free_indices.Push(index);
     }

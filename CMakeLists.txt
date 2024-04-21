@@ -53,6 +53,9 @@ if(MSVC)
     add_definitions("/wd4251")
     add_definitions("/wd4275")
 
+    # add _CRT_SECURE_NO_WARNINGS
+    add_definitions("/D_CRT_SECURE_NO_WARNINGS")
+
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")

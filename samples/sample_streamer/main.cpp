@@ -38,45 +38,6 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
-template <class T>
-constexpr auto FuncName()
-{
-    return __FUNCSIG__;
-}
-
-template <auto Str>
-constexpr auto StripNamespace()
-{
-    constexpr auto last_index = Str.template FindLast<containers::detail::IntegerSequenceFromString<StaticString("::")>>();
-
-    if constexpr (last_index == SizeType(-1)) {
-        return detail::StripClassOrStruct< Str >();
-    } else {
-        return detail::StripClassOrStruct< Str.template Substr<last_index + 2, Str.Size() - 1>() >();
-    }
-}
-
-template <auto Str>
-constexpr auto StripNestedNamespace()
-{
-    constexpr auto left_arrow_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("<") > >();
-    constexpr auto right_arrow_index = Str.template FindLast< containers::detail::IntegerSequenceFromString< StaticString(">") > >();
-
-    if constexpr (left_arrow_index != SizeType(-1) && right_arrow_index != SizeType(-1)) {
-
-        // constexpr auto after_right_arrow = Str.template Substr<right_arrow_index + 1, Str.Size() - 1>();
-        return StripNestedNamespace< Str.template Substr<0, left_arrow_index>() >()
-            .template Concat< StaticString("<")>()
-            .template Concat< StripNestedNamespace< Str.template Substr<left_arrow_index + 1, right_arrow_index>() >() >()
-            .template Concat<StaticString(">")>();
-
-    } else if constexpr (left_arrow_index != -1 || right_arrow_index != -1) {
-        static_assert(resolution_failure<containers::detail::IntegerSequenceFromString< Str > >, "Mismatched < and > in type name");
-    } else {
-        return StripNamespace< Str >();
-    }
-}
-
 int main(int argc, char **argv)
 {
     signal(SIGINT, HandleSignal);

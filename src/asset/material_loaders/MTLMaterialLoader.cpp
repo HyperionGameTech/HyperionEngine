@@ -30,13 +30,13 @@ enum IlluminationModel
 };
 
 template <class Vector>
-static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
+static Vector ReadVector(const Tokens &tokens, uint32 offset = 1)
 {
     Vector result { 0.0f };
 
     int value_index = 0;
 
-    for (SizeType i = offset; i < tokens.Size(); i++) {
+    for (uint32 i = offset; i < tokens.Size(); i++) {
         const String &token = tokens[i];
 
         if (token.Empty()) {

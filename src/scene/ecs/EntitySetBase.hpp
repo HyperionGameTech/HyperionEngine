@@ -3,12 +3,7 @@
 #ifndef HYPERION_ECS_ENTITY_SET_BASE_HPP
 #define HYPERION_ECS_ENTITY_SET_BASE_HPP
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/containers/Array.hpp>
-#include <core/IDCreator.hpp>
 #include <core/ID.hpp>
-
-#include <scene/ecs/EntityContainer.hpp>
 
 #include <Types.hpp>
 
@@ -22,6 +17,8 @@ using EntitySetTypeID = uint;
 
 class EntitySetBase;
 class ComponentContainerBase;
+
+// @TODO Ensure it is safe across DLLs
 
 struct EntitySetIDGeneratorBase
 {

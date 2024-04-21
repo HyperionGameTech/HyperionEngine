@@ -627,10 +627,7 @@ ReflectionProbePass::~ReflectionProbePass()
         m_render_texture_to_screen_pass.Reset();
     }
 
-    if (m_temporal_blending) {
-        m_temporal_blending->Destroy();
-        m_temporal_blending.Reset();
-    }
+    g_safe_deleter->SafeReleaseHandle(std::move(m_previous_texture));
 }
 
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
@@ -712,16 +709,16 @@ void ReflectionProbePass::Create()
 
     CreatePipeline(renderable_attributes);
 
-    // Create temporal blending pass
-    m_temporal_blending.Reset(new TemporalBlending(
-        m_framebuffer->GetExtent(),
-        InternalFormat::RGBA16F,
-        TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::LOW,
-        m_framebuffer
+    // Create previous image
+    m_previous_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        m_image_format,
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
     ));
 
-    m_temporal_blending->Create();
+    InitObject(m_previous_texture);
     
     // Create render texture to screen pass.
     // this is used to render the previous frame's result to the screen,
@@ -729,14 +726,14 @@ void ReflectionProbePass::Create()
     Handle<Shader> render_texture_to_screen_shader = g_shader_manager->GetOrCreate(HYP_NAME(RenderTextureToScreen));
     AssertThrow(InitObject(render_texture_to_screen_shader));
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(RenderTextureToScreenDescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InTexture), m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InTexture), m_previous_texture->GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -906,10 +903,21 @@ void ReflectionProbePass::Render(Frame *frame)
     }
 
     GetFramebuffer()->EndCapture(frame_index, frame->GetCommandBuffer());
-    
-    // Perform temporal blending on the images
-    if (m_temporal_blending) {
-        m_temporal_blending->Render(frame);
+
+    { // Copy the result to the previous texture
+        const ImageRef &src_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+        const ImageRef &dst_image = m_previous_texture->GetImage();
+
+        src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
+        dst_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+
+        dst_image->Blit(
+            frame->GetCommandBuffer(),
+            src_image
+        );
+
+        src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+        dst_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 
@@ -1020,7 +1028,7 @@ void DeferredRenderer::CreateDescriptorSets()
             ->SetElement(HYP_NAME(EnvGridRadianceResultTexture), m_env_grid_radiance_pass.GetTemporalBlending()->GetImageOutput(frame_index).image_view);
 
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-            ->SetElement(HYP_NAME(ReflectionProbeResultTexture), m_reflection_probe_pass.GetTemporalBlending()->GetImageOutput(frame_index).image_view);
+            ->SetElement(HYP_NAME(ReflectionProbeResultTexture), m_reflection_probe_pass.GetAttachmentUsage(0)->GetImageView());
 
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
             ->SetElement(HYP_NAME(DeferredIndirectResultTexture), m_indirect_pass.GetAttachmentUsage(0)->GetImageView());

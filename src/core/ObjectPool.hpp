@@ -3,10 +3,10 @@
 #ifndef HYPERION_CORE_OBJECT_POOL_HPP
 #define HYPERION_CORE_OBJECT_POOL_HPP
 
-#include <core/Containers.hpp>
-#include <core/IDCreator.hpp>
-#include <core/ID.hpp>
 #include <core/threading/Mutex.hpp>
+#include <core/Containers.hpp>
+#include <core/IDGenerator.hpp>
+#include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
@@ -235,7 +235,7 @@ public:
 private:
     HeapArray<ObjectBytes, max_size>    m_data;
     SizeType                            m_size;
-    IDCreator<>                         m_id_generator;
+    IDGenerator                         m_id_generator;
 };
 
 class ObjectPool

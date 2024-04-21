@@ -3,12 +3,12 @@
 #ifndef HYPERION_BACKEND_RENDERER_RENDER_OBJECT_HPP
 #define HYPERION_BACKEND_RENDERER_RENDER_OBJECT_HPP
 
+#include <core/utilities/ValueStorage.hpp>
+#include <core/threading/Threads.hpp>
 #include <core/Core.hpp>
 #include <core/Name.hpp>
 #include <core/Containers.hpp>
-#include <core/IDCreator.hpp>
-#include <core/utilities/ValueStorage.hpp>
-#include <core/threading/Threads.hpp>
+#include <core/IDGenerator.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 
@@ -17,7 +17,6 @@
 #include <rendering/backend/Platform.hpp>
 
 #include <mutex>
-#include <atomic>
 #include <tuple>
 
 namespace hyperion {
@@ -50,8 +49,6 @@ static inline Name GetNameForRenderObject()
 template <class T, PlatformType PLATFORM>
 class RenderObjectContainer
 {
-    using IDCreatorType = IDCreator<PLATFORM>;
-
 public:
     static constexpr SizeType max_size = RenderObjectDefinition<T, PLATFORM>::max_size;
 
@@ -242,7 +239,7 @@ private:
     HeapArray<Name, max_size>       m_debug_names;
 #endif
     SizeType                        m_size;
-    IDCreatorType                   m_id_generator;
+    IDGenerator                     m_id_generator;
 };
 
 template <class T, PlatformType PLATFORM>

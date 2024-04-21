@@ -33,7 +33,7 @@ struct DrawCall;
 
 struct DrawCommandData
 {
-    uint draw_command_index;
+    uint32  draw_command_index;
 };
 
 class IndirectDrawState

@@ -355,8 +355,8 @@ public:
         }
 
         bool stop = false;
-        SizeType total_read = 0;
-        SizeType total_processed = 0;
+        uint32 total_read = 0;
+        uint32 total_processed = 0;
 
         if (!buffered) { // not buffered, do it in one pass
             const ByteBuffer all_bytes = ReadBytes();
@@ -365,13 +365,13 @@ public:
             String accum;
             accum.Reserve(buffer_size);
             
-            for (SizeType i = 0; i < all_bytes.Size(); i++) {
+            for (uint32 i = 0; i < all_bytes.Size(); i++) {
                 if (all_bytes[i] == '\n') {
                     func(accum, &stop);
                     total_processed += accum.Size() + 1;
 
                     if (stop) {
-                        const SizeType amount_remaining = total_read - total_processed;
+                        const uint32 amount_remaining = total_read - total_processed;
 
                         if (amount_remaining != 0) {
                             Rewind(amount_remaining);
@@ -411,13 +411,13 @@ public:
         while ((byte_buffer = ReadBytes(buffer_size)).Any()) {
             total_read += byte_buffer.Size();
 
-            for (SizeType i = 0; i < byte_buffer.Size(); i++) {
+            for (uint32 i = 0; i < byte_buffer.Size(); i++) {
                 if (byte_buffer[i] == '\n') {
                     func(accum, &stop);
                     total_processed += accum.Size() + 1;
 
                     if (stop) {
-                        const SizeType amount_remaining = total_read - total_processed;
+                        const uint32 amount_remaining = total_read - total_processed;
 
                         if (amount_remaining != 0) {
                             Rewind(amount_remaining);

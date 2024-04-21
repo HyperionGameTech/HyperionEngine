@@ -315,18 +315,18 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
         return;
     }
 
-    const SizeType buffer_size = atlas->GetImage()->GetByteSize();
+    const uint32 buffer_size = atlas->GetImage()->GetByteSize();
     buffer.SetSize(buffer_size);
 
     struct RENDER_COMMAND(FontAtlas_WriteToBuffer) : renderer::RenderCommand
     {
         Handle<Texture> atlas;
         ByteBuffer      &out_buffer;
-        SizeType        buffer_size;
+        uint32          buffer_size;
 
         GPUBufferRef    buffer;
 
-        RENDER_COMMAND(FontAtlas_WriteToBuffer)(Handle<Texture> atlas, ByteBuffer &out_buffer, SizeType buffer_size)
+        RENDER_COMMAND(FontAtlas_WriteToBuffer)(Handle<Texture> atlas, ByteBuffer &out_buffer, uint32 buffer_size)
             : atlas(std::move(atlas)),
               out_buffer(out_buffer),
               buffer_size(buffer_size)
@@ -340,11 +340,11 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
             SafeRelease(std::move(buffer));
         }
 
-        virtual renderer::Result operator()() override
+        virtual Result operator()() override
         {
-            renderer::Result result = renderer::Result { };
+            Result result = Result::OK();
 
-            buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+            buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
             HYPERION_ASSERT_RESULT(buffer->Create(g_engine->GetGPUDevice(), buffer_size));
             buffer->SetResourceState(renderer::ResourceState::COPY_DST);
             buffer->GetMapping(g_engine->GetGPUDevice());

@@ -8,7 +8,7 @@
 #include <core/containers/HashMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/IDCreator.hpp>
+#include <core/IDGenerator.hpp>
 
 #include <core/Defines.hpp>
 
@@ -257,7 +257,7 @@ private:
     Array<DelegateHandler>          m_detached_handlers;
     Mutex                           m_detached_handlers_mutex;
 
-    IDCreator<>                     m_id_generator;
+    IDGenerator                     m_id_generator;
 };
 } // namespace functional
 

@@ -485,7 +485,7 @@ RenderAll(
                                     .RenderIndirect(
                                         secondary,
                                         indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
-                                        draw_call.draw_command_index * sizeof(IndirectDrawCommand)
+                                        draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
                                     );
                             } else {
                                 mesh_container.Get(draw_call.mesh_id.ToIndex())
@@ -577,7 +577,7 @@ RenderAll(
                                 .RenderIndirect(
                                     secondary,
                                     indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
-                                    draw_call.draw_command_index * sizeof(IndirectDrawCommand)
+                                    draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
                                 );
                         } else {
                             Handle<Mesh>::GetContainer().Get(draw_call.mesh_id.ToIndex())

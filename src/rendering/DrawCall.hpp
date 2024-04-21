@@ -226,13 +226,13 @@ struct DrawCall
 
     DrawCallID                          id;
     BufferTicket<EntityInstanceBatch>   batch_index;
-    SizeType                            draw_command_index;
+    uint32                              draw_command_index;
 
     ID<Mesh>                            mesh_id;
     ID<Material>                        material_id;
     ID<Skeleton>                        skeleton_id;
 
-    uint                                entity_id_count;
+    uint32                              entity_id_count;
     ID<Entity>                          entity_ids[max_entities_per_instance_batch];
 };
 
@@ -244,8 +244,8 @@ struct DrawCallCollection
     HashMap<uint64, Array<SizeType>>    index_map;
 
     DrawCallCollection() = default;
-    DrawCallCollection(const DrawCallCollection &other) = delete;
-    DrawCallCollection &operator=(const DrawCallCollection &other) = delete;
+    DrawCallCollection(const DrawCallCollection &other)             = delete;
+    DrawCallCollection &operator=(const DrawCallCollection &other)  = delete;
 
     DrawCallCollection(DrawCallCollection &&other) noexcept;
     DrawCallCollection &operator=(DrawCallCollection &&other) noexcept;

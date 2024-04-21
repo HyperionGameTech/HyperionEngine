@@ -56,9 +56,13 @@ public:
     const FenceRef<PLATFORM> &GetFence() const
         { return m_queue_submit_fence; }
 
-    HYP_FORCE_INLINE uint GetFrameIndex() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint GetFrameIndex() const
         { return m_frame_index; }
-
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const CommandBufferRef<PLATFORM> &GetCommandBuffer() const
         { return m_command_buffer; }
 
