@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef MATRIX3_HPP
-#define MATRIX3_HPP
+
+#ifndef HYPERION_MATRIX3_HPP
+#define HYPERION_MATRIX3_HPP
 
 #include <math/Vector3.hpp>
 
 #include <Types.hpp>
 
-#include <iostream>
 #include <string.h>
 
 namespace hyperion {

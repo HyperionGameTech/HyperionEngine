@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef MATHUTIL_HPP
-#define MATHUTIL_HPP
+
+#ifndef HYPERION_MATHUTIL_HPP
+#define HYPERION_MATHUTIL_HPP
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
@@ -13,7 +14,6 @@
 
 #include <math.h>
 #include <cstdlib>
-#include <cstddef>
 #include <cmath>
 #include <cfloat>
 #include <limits>

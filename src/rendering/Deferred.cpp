@@ -123,7 +123,7 @@ static ShaderProperties GetDeferredShaderProperties()
 #pragma region Deferred pass
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
-    : FullScreenPass(InternalFormat::RGBA16F),
+    : FullScreenPass(InternalFormat::RGBA8_SRGB),
       m_is_indirect_pass(is_indirect_pass)
 {
 }
@@ -615,7 +615,7 @@ void EnvGridPass::Render(Frame *frame)
 #pragma region Reflection probe pass
 
 ReflectionProbePass::ReflectionProbePass()
-    : FullScreenPass(InternalFormat::RGBA16F),
+    : FullScreenPass(InternalFormat::RGBA8_SRGB),
       m_is_first_frame(true)
 {
 }
@@ -1047,7 +1047,7 @@ void DeferredRenderer::CreateCombinePass()
 
     g_engine->InitObject(shader);
 
-    m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA16F));
+    m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA8_SRGB));
     m_combine_pass->Create();
 
     PUSH_RENDER_COMMAND(

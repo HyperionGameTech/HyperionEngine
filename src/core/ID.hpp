@@ -59,70 +59,6 @@ struct IDBase
 template <class T>
 struct ID;
 
-struct EncodedID
-{
-    TypeID type_id;
-    IDBase::ValueType value;
-
-    EncodedID()
-        : type_id(TypeID::ForType<void>()),
-          value(0)
-    {
-    }
-
-    template <class T>
-    EncodedID(ID<T> id)
-        : type_id(TypeID::ForType<NormalizedType<T>>()),
-          value(id.value)
-    {
-    }
-
-    EncodedID(const EncodedID &other) = default;
-    EncodedID &operator=(const EncodedID &other) = default;
-
-    EncodedID(EncodedID &&other) noexcept = default;
-    EncodedID &operator=(EncodedID &&other) noexcept = default;
-
-    HYP_FORCE_INLINE
-    bool IsValid() const
-        { return type_id != TypeID::ForType<void>() && value != 0; }
-
-    HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return IsValid(); }
-
-    template <class T>
-    HYP_FORCE_INLINE
-    bool operator==(const ID<T> &other) const
-        { return type_id == TypeID::ForType<NormalizedType<T>>() && value == other.value; }
-
-    template <class T>
-    HYP_FORCE_INLINE
-    bool operator!=(const ID<T> &other) const
-        { return type_id != TypeID::ForType<NormalizedType<T>>() || value != other.value; }
-
-    ~EncodedID() = default;
-
-    template <class T>
-    ID<T> Decode() const
-    {
-        if (type_id != TypeID::ForType<NormalizedType<T>>()) {
-            return ID<NormalizedType<T>>();
-        }
-
-        return ID<NormalizedType<T>>(value);
-    }
-
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(type_id);
-        hc.Add(value);
-
-        return hc;
-    }
-};
-
 template <class T>
 struct ID : IDBase
 {
@@ -157,16 +93,8 @@ struct ID : IDBase
         { return IDBase::operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const EncodedID &other) const
-        { return other.type_id == GetTypeID() && other.value == value; }
-
-    HYP_FORCE_INLINE
     bool operator!=(const ID &other) const
         { return IDBase::operator!=(other); }
-
-    HYP_FORCE_INLINE
-    bool operator!=(const EncodedID &other) const
-        { return other.type_id != GetTypeID() || other.value != value; }
 
     HYP_FORCE_INLINE
     bool operator<(const ID &other) const

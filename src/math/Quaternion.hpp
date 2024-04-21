@@ -1,12 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef QUATERNION_HPP
-#define QUATERNION_HPP
+
+#ifndef HYPERION_QUATERNION_HPP
+#define HYPERION_QUATERNION_HPP
 
 #include <math/MathUtil.hpp>
 #include <math/Vector3.hpp>
-
-#include <cmath>
-using std::abs;
 
 namespace hyperion {
 

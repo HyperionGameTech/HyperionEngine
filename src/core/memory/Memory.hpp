@@ -120,14 +120,16 @@ public:
     static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(T &object)
     {
         object.~T();
-
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(&object, sizeof(T));
 #endif
     }
 
     template <class T>
-    static void Destruct(void *ptr)
+    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(void *) { /* Do nothing */ }
+
+    template <class T>
+    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(void *ptr)
     {
         static_cast<T *>(ptr)->~T();
 
@@ -140,7 +142,9 @@ public:
     static typename std::enable_if_t<!std::is_same_v<void *, std::add_pointer_t<T>>, void>
     DestructAndFree(void *ptr)
     {
-        static_cast<T *>(ptr)->~T();
+        if constexpr (!std::is_trivially_destructible_v<T>) { 
+            static_cast<T *>(ptr)->~T();
+        }
 
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));

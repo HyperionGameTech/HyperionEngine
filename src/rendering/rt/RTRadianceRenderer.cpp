@@ -322,7 +322,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
         InternalFormat::RGBA8,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
-            : TemporalBlendTechnique::TECHNIQUE_1,
+            : TemporalBlendTechnique::TECHNIQUE_2,
         IsPathTracer()
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::LOW,

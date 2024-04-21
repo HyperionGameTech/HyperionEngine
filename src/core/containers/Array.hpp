@@ -66,10 +66,12 @@ public:
     Array(T const (&items)[Sz])
         : Array()
     {
-        Reserve(Sz);
+        ResizeUninitialized(Sz);
+        
+        auto *storage_ptr = Data();
 
         for (SizeType i = 0; i < Sz; ++i) {
-            PushBack(items[i]);
+            Memory::Construct<T>(storage_ptr++, items[i]);
         }
     }
 
@@ -77,62 +79,74 @@ public:
     Array(T (&&items)[Sz])
         : Array()
     {
-        Reserve(Sz);
+        ResizeUninitialized(Sz);
+        
+        auto *storage_ptr = Data();
 
         for (SizeType i = 0; i < Sz; ++i) {
-            PushBack(std::move(items[i]));
+            Memory::Construct<T>(storage_ptr++, std::move(items[i]));
         }
     }
 
     Array(std::initializer_list<T> items)
         : Array()
     {
-        Reserve(items.size());
+        const SizeType dist = items.size();
+        ResizeUninitialized(dist);
+        
+        auto *storage_ptr = Data();
 
         for (auto it = items.begin(); it != items.end(); ++it) {
-            PushBack(std::move(*it));
+            Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
     template <SizeType Sz>
     Array(const FixedArray<T, Sz> &items)
-        : Array()
+        : Array(items.Begin(), items.End())
     {
-        Resize(Sz);
-
-        for (SizeType i = 0; i < Sz; ++i) {
-            Base::Set(static_cast<KeyType>(i), items[i]);
-        }
     }
 
     template <SizeType Sz>
     Array(FixedArray<T, Sz> &&items)
         : Array()
     {
-        Resize(Sz);
+        ResizeUninitialized(Sz);
+
+        auto *storage_ptr = Data();
 
         for (SizeType i = 0; i < Sz; ++i) {
-            Base::Set(static_cast<KeyType>(i), std::move(items[i]));
+            Memory::Construct<T>(storage_ptr++, std::move(items[i]));
         }
     }
 
     Array(T *ptr, SizeType size)
         : Array()
     {
-        Reserve(size);
+        ResizeUninitialized(size);
+        
+        auto *storage_ptr = Data();
 
-        for (SizeType i = 0; i < size; i++) {
-            PushBack(ptr[i]);
+        const T *first = ptr;
+        const T *last = ptr + size;
+
+        for (auto it = first; it != last; ++it) {
+            Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
     Array(const T *ptr, SizeType size)
         : Array()
     {
-        Reserve(size);
+        ResizeUninitialized(size);
+        
+        auto *storage_ptr = Data();
 
-        for (SizeType i = 0; i < size; i++) {
-            PushBack(ptr[i]);
+        const T *first = ptr;
+        const T *last = ptr + size;
+
+        for (auto it = first; it != last; ++it) {
+            Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
@@ -140,10 +154,12 @@ public:
         : Array()
     {
         const SizeType dist = last - first;
-        Reserve(dist);
+        ResizeUninitialized(dist);
+        
+        auto *storage_ptr = Data();
 
         for (auto it = first; it != last; ++it) {
-            PushBack(*it);
+            Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
@@ -151,10 +167,12 @@ public:
         : Array()
     {
         const SizeType dist = last - first;
-        Reserve(dist);
+        ResizeUninitialized(dist);
+        
+        auto *storage_ptr = Data();
 
         for (auto it = first; it != last; ++it) {
-            PushBack(*it);
+            Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
@@ -332,6 +350,8 @@ protected:
         }
     }
 
+    void ResizeUninitialized(SizeType new_size);
+
     void ResetOffsets();
 
     auto RealBegin() const { return ToValueTypePtr(GetStorage()[0]); }
@@ -383,9 +403,8 @@ private:
     };
 
 protected:
-    bool        m_is_dynamic;
-
-    SizeType    m_start_offset;
+    SizeType                                                m_start_offset;
+    bool                                                    m_is_dynamic;
 };
 
 template <class T, SizeType NumInlineBytes>
@@ -722,18 +741,20 @@ void Array<T, NumInlineBytes>::Reserve(SizeType capacity)
 template <class T, SizeType NumInlineBytes>
 void Array<T, NumInlineBytes>::Resize(SizeType new_size)
 {
-    if (new_size == Size()) {
+    const SizeType current_size = Size();
+
+    if (new_size == current_size) {
         return;
     }
 
-    if (new_size > Size()) {
-        const SizeType diff = new_size - Size();
+    if (new_size > current_size) {
+        const SizeType diff = new_size - current_size;
 
         if (m_size + diff >= m_capacity) {
-            if (m_capacity >= Size() + diff) {
+            if (m_capacity >= current_size + diff) {
                 ResetOffsets();
             } else {
-                SetCapacity(GetCapacity(Size() + diff));
+                SetCapacity(GetCapacity(current_size + diff));
             }
         }
 
@@ -743,6 +764,34 @@ void Array<T, NumInlineBytes>::Resize(SizeType new_size)
             // construct item at index
             Memory::Construct<T>(&buffer[m_size++].data_buffer);
         }
+    } else {
+        while (new_size < Size()) {
+            PopBack();
+        }
+    }
+}
+
+template <class T, SizeType NumInlineBytes>
+void Array<T, NumInlineBytes>::ResizeUninitialized(SizeType new_size)
+{
+    const SizeType current_size = Size();
+
+    if (new_size == current_size) {
+        return;
+    }
+
+    if (new_size > current_size) {
+        const SizeType diff = new_size - current_size;
+
+        if (m_size + diff >= m_capacity) {
+            if (m_capacity >= current_size + diff) {
+                ResetOffsets();
+            } else {
+                SetCapacity(GetCapacity(current_size + diff));
+            }
+        }
+
+        m_size += diff;
     } else {
         while (new_size < Size()) {
             PopBack();
@@ -979,7 +1028,7 @@ Array<T, NumInlineBytes> Array<T, NumInlineBytes>::Slice(int first, int last) co
     }
 
     Array<T, NumInlineBytes> result;
-    result.Resize(last - first + 1);
+    result.ResizeUninitialized(last - first + 1);
 
     auto *buffer = GetStorage();
     auto *result_buffer = result.GetStorage();

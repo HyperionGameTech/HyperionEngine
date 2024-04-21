@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_MATH_HALTON_HPP
 #define HYPERION_MATH_HALTON_HPP
 

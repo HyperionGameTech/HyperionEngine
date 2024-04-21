@@ -186,8 +186,7 @@ public:
         Frame *frame,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { },
-        bool parallel = true
+        PushConstantData push_constant = { }
     ) const;
 
     void ExecuteDrawCalls(
@@ -195,8 +194,7 @@ public:
         const Handle<Framebuffer> &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { },
-        bool parallel = true
+        PushConstantData push_constant = { }
     ) const;
 
     void ExecuteDrawCalls(
@@ -204,8 +202,7 @@ public:
         const Handle<Camera> &camera,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { },
-        bool parallel = true
+        PushConstantData push_constant = { }
     ) const;
 
     void ExecuteDrawCalls(
@@ -214,8 +211,7 @@ public:
         const Handle<Framebuffer> &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { },
-        bool parallel = true
+        PushConstantData push_constant = { }
     ) const;
 
     void ExecuteDrawCallsInLayers(

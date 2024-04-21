@@ -601,7 +601,8 @@ void DDGI::ComputeIrradiance(Frame *frame)
             1u
         }
     );
-
+    
+#if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     m_irradiance_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
@@ -678,6 +679,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );
+#endif
 }
 
 } // namespace hyperion

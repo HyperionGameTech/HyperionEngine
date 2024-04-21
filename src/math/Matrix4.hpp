@@ -1,16 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef MATRIX4_HPP
-#define MATRIX4_HPP
+#ifndef HYPERION_MATRIX4_HPP
+#define HYPERION_MATRIX4_HPP
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <math/Quaternion.hpp>
+
 #include <core/Defines.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
-#include <iostream>
 #include <cstring>
 
 namespace hyperion {

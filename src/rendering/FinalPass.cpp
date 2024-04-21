@@ -62,7 +62,7 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
 #pragma region CompositePass
 
 CompositePass::CompositePass()
-    : FullScreenPass(InternalFormat::RGBA16F)
+    : FullScreenPass(InternalFormat::RGBA8_SRGB)
 {
 }
 
@@ -263,7 +263,7 @@ void FinalPass::Create()
 
     m_last_frame_image = MakeRenderObject<renderer::Image>(renderer::TextureImage(
         Extent3D { m_extent.width, m_extent.height, 1 },
-        InternalFormat::RGBA16F,
+        InternalFormat::RGBA8_SRGB,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,

@@ -176,7 +176,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
         AddOwnedAttachment(
-            InternalFormat::RGBA16F,
+            InternalFormat::RGBA8_SRGB,
             framebuffer,
             attachments,
             extent

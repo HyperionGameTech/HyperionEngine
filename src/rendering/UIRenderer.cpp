@@ -80,10 +80,6 @@ void UIRenderer::CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_
                     return;
                 }
 
-                // depth += ui_component->ui_object->GetDepth();
-
-                // ui_component->ui_object->SetDrawableLayer(DrawableLayer(0, index++));
-
                 AssertThrow(ui_component->ui_object->GetNode().IsValid());
 
                 out_objects.PushBack(ui_component->ui_object);
@@ -111,22 +107,7 @@ void UIRenderer::CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_
         });
     }
 
-    // std::sort(children.Begin(), children.End(), [](const Pair<NodeProxy, UIObject *> &a, const Pair<NodeProxy, UIObject *> &b)
-    // {
-    //     return (a.second ? a.second->GetDepth() : UIStage::min_depth) < (b.second ? b.second->GetDepth() : UIStage::min_depth);
-    // });
-
     for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
-        // for (uint i = 0; i < index; i++) {
-        //     DebugLog(LogType::Debug, " ");
-        // }
-        // DebugLog(LogType::Debug,
-        //     "Parent: %s\tChild: %s\tDepth: %d\tIndex: %d\n",
-        //     node->GetName().Data(),
-        //     it.first->GetName().Data(),
-        //     (it.second ? it.second->GetDepth() : -1000),
-        //     (it.second ? int(it.second->GetDrawableLayer().layer_index) : -1000));
-
         CollectObjects(it.first, out_objects);
     }
 }
@@ -139,6 +120,7 @@ void UIRenderer::OnRemoved()
     g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     m_render_list.ClearEntities();
@@ -146,7 +128,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
     Array<RC<UIObject>> objects;
     CollectObjects(m_ui_stage->GetScene()->GetRoot(), objects);
 
-    /*std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
+    std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
     {
         AssertThrow(lhs != nullptr);
         AssertThrow(lhs->GetNode() != nullptr);
@@ -155,7 +137,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         AssertThrow(rhs->GetNode() != nullptr);
 
         return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
-    });*/
+    });
 
     for (uint i = 0; i < objects.Size(); i++) {
         const RC<UIObject> &object = objects[i];
@@ -194,6 +176,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     m_render_list.UpdateRenderGroups();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void UIRenderer::OnRender(Frame *frame)
 {

@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_COLOR_HPP
 #define HYPERION_COLOR_HPP
 
 #include <math/Vector4.hpp>
 
-#include <HashCode.hpp>
 #include <core/Defines.hpp>
+
+#include <HashCode.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

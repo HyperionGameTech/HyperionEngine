@@ -209,6 +209,7 @@ void UIObject::SetPosition(Vec2i position)
     m_position = position;
 
     UpdatePosition();
+    UpdateMeshData();
 }
 
 void UIObject::UpdatePosition()
@@ -318,6 +319,7 @@ void UIObject::SetSize(UIObjectSize size)
     m_size = size;
 
     UpdateSize();
+    UpdateMeshData();
 }
 
 int UIObject::GetMaxWidth() const

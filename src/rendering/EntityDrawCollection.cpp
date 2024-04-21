@@ -452,14 +452,13 @@ void RenderList::ExecuteDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant,
-    bool parallel
+    PushConstantData push_constant
 ) const
 {
     AssertThrow(m_camera.IsValid());
     AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant, parallel);
+    ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -467,13 +466,12 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Framebuffer> &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant,
-    bool parallel
+    PushConstantData push_constant
 ) const
 {
     AssertThrow(m_camera.IsValid());
 
-    ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant, parallel);
+    ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -481,14 +479,13 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Camera> &camera,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant,
-    bool parallel
+    PushConstantData push_constant
 ) const
 {
     AssertThrow(camera.IsValid());
     AssertThrowMsg(camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer is attached");
 
-    ExecuteDrawCalls(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant, parallel);
+    ExecuteDrawCalls(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
 }
 
 void RenderList::ExecuteDrawCalls(
@@ -497,8 +494,7 @@ void RenderList::ExecuteDrawCalls(
     const Handle<Framebuffer> &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
-    PushConstantData push_constant,
-    bool parallel
+    PushConstantData push_constant
 ) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -541,9 +537,9 @@ void RenderList::ExecuteDrawCalls(
             }
 
             if (use_draw_indirect && cull_data != nullptr) {
-                entity_list.render_group->PerformRenderingIndirect(frame, parallel);
+                entity_list.render_group->PerformRenderingIndirect(frame);
             } else {
-                entity_list.render_group->PerformRendering(frame, parallel);
+                entity_list.render_group->PerformRendering(frame);
             }
         }
     }

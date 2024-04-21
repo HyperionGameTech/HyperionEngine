@@ -1,14 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef VECTOR3_HPP
-#define VECTOR3_HPP
+
+#ifndef HYPERION_VECTOR3_HPP
+#define HYPERION_VECTOR3_HPP
+
+#include <core/Defines.hpp>
+
+#include <HashCode.hpp>
+#include <Types.hpp>
 
 #include <cmath>
 #include <iostream>
-
-#include <HashCode.hpp>
-
-#include <core/Defines.hpp>
-#include <Types.hpp>
 
 namespace hyperion {
 

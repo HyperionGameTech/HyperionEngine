@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef TRANSFORM_HPP
-#define TRANSFORM_HPP
+
+#ifndef HYPERION_TRANSFORM_HPP
+#define HYPERION_TRANSFORM_HPP
 
 #include <math/Vector3.hpp>
 #include <math/Quaternion.hpp>

@@ -1,9 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <math/BoundingBox.hpp>
 #include <math/MathUtil.hpp>
-
-#include <limits>
-#include <cmath>
 
 namespace hyperion {
 

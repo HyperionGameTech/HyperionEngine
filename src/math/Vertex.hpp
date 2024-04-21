@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_VERTEX_HPP
 #define HYPERION_VERTEX_HPP
 
@@ -14,7 +15,6 @@
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
 #include <math/Transform.hpp>
-#include <math/Matrix4.hpp>
 
 #include <HashCode.hpp>
 #include <core/Defines.hpp>
@@ -44,17 +44,19 @@ struct VertexAttribute
     const char  *name;
     uint32      location;
     uint32      binding;
-    SizeType    size; // total size == num elements * 4
+    uint32      size; // total size == num elements * 4
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const VertexAttribute &other) const
         { return location < other.location; }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(String(name));
+        hc.Add(name);
         hc.Add(location);
         hc.Add(binding);
         hc.Add(size);

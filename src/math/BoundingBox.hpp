@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef BOUNDING_BOX_HPP
 #define BOUNDING_BOX_HPP
 
 #include <math/Vector3.hpp>
 #include <math/Transform.hpp>
+
 #include <core/containers/FixedArray.hpp>
-#include <core/memory/Memory.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -14,6 +16,7 @@ namespace hyperion {
 class HYP_API BoundingBox
 {
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
+
 public:
     BoundingBox();
     BoundingBox(const Vec3f &min, const Vec3f &max);

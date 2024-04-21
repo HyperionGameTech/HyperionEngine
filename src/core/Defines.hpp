@@ -1,68 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_DEFINES_HPP
 #define HYPERION_DEFINES_HPP
 
-// #define HYP_LOG_MEMORY_OPERATIONS
-// #define HYP_LOG_DESCRIPTOR_SET_UPDATES
-// #define HYP_DEBUG_LOG_RENDER_COMMANDS
-
-#if defined(HYP_BULLET) && HYP_BULLET
-#define HYP_BULLET_PHYSICS 1
-#endif
-
-// stl helpers and such
-
-#define HYP_STR(x) #x
-#define HYP_METHOD(method) HYP_STR(method)
-
-#define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
-#define HYP_CONCAT_INNER(a, b) a ## b
-
-#define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class) \
-    bool operator==(const hyp_class &other) const { \
-        return !std::memcmp(this, &other, sizeof(*this)); \
-    }
-
-#define HYP_DEF_STRUCT_COMPARE_LT(hyp_class) \
-    bool operator<(const hyp_class &other) const { \
-        return std::memcmp(this, &other, sizeof(*this)) < 0; \
-    }
-
-#define HYP_DEF_STL_HASH(hyp_class) \
-    template<> \
-    struct std::hash<hyp_class> { \
-        size_t operator()(const hyp_class &obj) const \
-        { \
-            return obj.GetHashCode().Value(); \
-        } \
-    }
-
-#define HYP_DEF_STL_ITERATOR(container) \
-    [[nodiscard]] Iterator Begin()             { return container.begin(); }  \
-    [[nodiscard]] Iterator End()               { return container.end(); }    \
-    [[nodiscard]] ConstIterator Begin() const  { return container.begin(); }  \
-    [[nodiscard]] ConstIterator End() const    { return container.end(); }    \
-    [[nodiscard]] Iterator begin()             { return container.begin(); }  \
-    [[nodiscard]] Iterator end()               { return container.end(); }    \
-    [[nodiscard]] ConstIterator begin() const  { return container.begin(); }  \
-    [[nodiscard]] ConstIterator end() const    { return container.end(); }    \
-    [[nodiscard]] ConstIterator cbegin() const { return container.cbegin(); } \
-    [[nodiscard]] ConstIterator cend() const   { return container.cend(); }
-
-#define HYP_DEF_STL_BEGIN_END(_begin, _end) \
-    [[nodiscard]] Iterator Begin()             { return _begin; } \
-    [[nodiscard]] Iterator End()               { return _end; }   \
-    [[nodiscard]] ConstIterator Begin() const  { return _begin; } \
-    [[nodiscard]] ConstIterator End() const    { return _end; }   \
-    [[nodiscard]] Iterator begin()             { return _begin; } \
-    [[nodiscard]] Iterator end()               { return _end; }   \
-    [[nodiscard]] ConstIterator begin() const  { return _begin; } \
-    [[nodiscard]] ConstIterator end() const    { return _end; }
-
-#define HYP_ENABLE_IF(cond, return_type) \
-    typename std::enable_if_t<cond, return_type>
-
-// switches
+#pragma region Compiler and Platform Switches
 
 #if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
     #define HYPERION_BUILD_RELEASE 1 // just to ensure
@@ -146,6 +87,97 @@
     #endif
 #endif
 
+#ifdef HYP_MSVC
+#pragma warning( disable : 4251 ) // class needs to have dll-interface to be used by clients of class
+#pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
+#endif
+
+#pragma endregion Compiler and Platform Switches
+
+#pragma region Utility Macros
+
+#define HYP_STR(x) #x
+#define HYP_METHOD(method) HYP_STR(method)
+
+#ifdef HYP_WINDOWS
+#define HYP_TEXT(x) L##x
+#else
+#define HYP_TEXT(x) x
+#endif
+
+#define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
+#define HYP_CONCAT_INNER(a, b) a ## b
+
+#define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class) \
+    bool operator==(const hyp_class &other) const { \
+        return !std::memcmp(this, &other, sizeof(*this)); \
+    }
+
+#define HYP_DEF_STRUCT_COMPARE_LT(hyp_class) \
+    bool operator<(const hyp_class &other) const { \
+        return std::memcmp(this, &other, sizeof(*this)) < 0; \
+    }
+
+#define HYP_DEF_STL_HASH(hyp_class) \
+    template<> \
+    struct std::hash<hyp_class> { \
+        size_t operator()(const hyp_class &obj) const \
+        { \
+            return obj.GetHashCode().Value(); \
+        } \
+    }
+
+#define HYP_DEF_STL_ITERATOR(container) \
+    [[nodiscard]] Iterator Begin()             { return container.begin(); }  \
+    [[nodiscard]] Iterator End()               { return container.end(); }    \
+    [[nodiscard]] ConstIterator Begin() const  { return container.begin(); }  \
+    [[nodiscard]] ConstIterator End() const    { return container.end(); }    \
+    [[nodiscard]] Iterator begin()             { return container.begin(); }  \
+    [[nodiscard]] Iterator end()               { return container.end(); }    \
+    [[nodiscard]] ConstIterator begin() const  { return container.begin(); }  \
+    [[nodiscard]] ConstIterator end() const    { return container.end(); }    \
+    [[nodiscard]] ConstIterator cbegin() const { return container.cbegin(); } \
+    [[nodiscard]] ConstIterator cend() const   { return container.cend(); }
+
+#define HYP_DEF_STL_BEGIN_END(_begin, _end) \
+    [[nodiscard]] Iterator Begin()             { return _begin; } \
+    [[nodiscard]] Iterator End()               { return _end; }   \
+    [[nodiscard]] ConstIterator Begin() const  { return _begin; } \
+    [[nodiscard]] ConstIterator End() const    { return _end; }   \
+    [[nodiscard]] Iterator begin()             { return _begin; } \
+    [[nodiscard]] Iterator end()               { return _end; }   \
+    [[nodiscard]] ConstIterator begin() const  { return _begin; } \
+    [[nodiscard]] ConstIterator end() const    { return _end; }
+
+#define HYP_ENABLE_IF(cond, return_type) \
+    typename std::enable_if_t<cond, return_type>
+
+#define HYP_LIKELY(cond) cond
+#define HYP_UNLIKELY(cond) cond
+
+#ifdef HYP_MSVC
+#define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
+#define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
+#elif defined(HYP_CLANG_OR_GCC)
+#define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
+#define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
+#endif
+
+#ifdef __COUNTER__
+    #define HYP_UNIQUE_NAME(prefix) \
+        HYP_CONCAT(prefix, __COUNTER__)
+#else
+    #define HYP_UNIQUE_NAME(prefix) \
+        prefix
+#endif
+
+#define HYP_PAD_STRUCT_HERE(type, count) \
+    type HYP_UNIQUE_NAME(_padding)[count]
+
+#pragma endregion Utility Macros
+
+#pragma region Debugging
+
 // #define HYP_USE_EXCEPTIONS
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
@@ -196,6 +228,10 @@
     #define HYP_BREAKPOINT           (void(0))
 #endif
 
+#pragma endregion Debugging
+
+#pragma region Error Handling
+
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
     #define HYP_THROW(msg) throw ::std::runtime_error(msg)
 #else
@@ -209,6 +245,10 @@
         #define HYP_THROW(msg) std::terminate()
     #endif
 #endif
+
+#pragma endregion Error Handling
+
+#pragma region Synchonization
 
 #define HYP_WAIT_IDLE() \
     do { \
@@ -226,6 +266,10 @@
 #if defined(HYP_ENABLE_THREAD_ID) && defined(HYP_DEBUG_MODE)
     #define HYP_ENABLE_THREAD_ASSERTIONS
 #endif
+
+#pragma endregion Synchonization
+
+#pragma region GPU features
 
 #ifdef HYP_DEBUG_MODE
     #ifdef HYP_VULKAN
@@ -259,18 +303,9 @@
     #endif
 #endif
 
-#ifdef __COUNTER__
-    #define HYP_UNIQUE_NAME(prefix) \
-        HYP_CONCAT(prefix, __COUNTER__)
-#else
-    #define HYP_UNIQUE_NAME(prefix) \
-        prefix
-#endif
+#pragma endregion GPU features
 
-#define HYP_PAD_STRUCT_HERE(type, count) \
-    type HYP_UNIQUE_NAME(_padding)[count]
-
-
+#pragma region Memory Management
 
 #ifdef HYP_WINDOWS
     #include <malloc.h>
@@ -282,8 +317,9 @@
     #define HYP_FREE_ALIGNED(block) free(block)
 #endif
 
-#define HYP_LIKELY(cond) cond
-#define HYP_UNLIKELY(cond) cond
+#pragma endregion Memory Management
+
+#pragma region Engine Static Configuration
 
 #define HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
 
@@ -292,7 +328,21 @@
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
-// Exporting
+// #define HYP_LOG_MEMORY_OPERATIONS
+// #define HYP_LOG_DESCRIPTOR_SET_UPDATES
+// #define HYP_DEBUG_LOG_RENDER_COMMANDS
+
+#if !defined(HYP_EDITOR) || !HYP_EDITOR
+    #define HYP_NO_EDITOR
+#endif
+
+#if defined(HYP_BULLET) && HYP_BULLET
+    #define HYP_BULLET_PHYSICS 1
+#endif
+
+#pragma endregion Engine Static Configuration
+
+#pragma region Symbol Visibility
 
 #ifdef HYP_MSVC
 #define HYP_EXPORT __declspec(dllexport)
@@ -310,28 +360,6 @@
 #define HYP_C_API extern "C" HYP_IMPORT
 #endif
 
-// Optimization
-
-#ifdef HYP_MSVC
-#define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
-#define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
-#elif defined(HYP_CLANG_OR_GCC)
-#define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
-#define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
-#endif
-
-// Helpers
-#ifdef HYP_WINDOWS
-#define HYP_TEXT(x) L##x
-#else
-#define HYP_TEXT(x) x
-#endif
-
-// Warning disabling
-
-#ifdef HYP_MSVC
-#pragma warning( disable : 4251 ) // class needs to have dll-interface to be used by clients of class
-#pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
-#endif
+#pragma endregion Symbol Visibility
 
 #endif // !HYPERION_DEFINES_HPP

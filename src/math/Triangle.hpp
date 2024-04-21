@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef TRIANGLE_HPP
-#define TRIANGLE_HPP
+
+#ifndef HYPERION_TRIANGLE_HPP
+#define HYPERION_TRIANGLE_HPP
 
 #include <math/Vertex.hpp>
-#include <math/Transform.hpp>
-#include <math/Matrix4.hpp>
 #include <math/BoundingBox.hpp>
 
 #include <core/containers/FixedArray.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {

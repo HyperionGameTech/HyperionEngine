@@ -1,18 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_BOUNDING_SPHERE_HPP
 #define HYPERION_BOUNDING_SPHERE_HPP
 
 #include <math/Vector3.hpp>
-#include <math/Matrix4.hpp>
 #include <math/BoundingBox.hpp>
-#include <math/Transform.hpp>
 #include <math/Ray.hpp>
 
 #include <HashCode.hpp>
-#include <Types.hpp>
-
-#include <array>
-#include <limits>
 
 namespace hyperion {
 

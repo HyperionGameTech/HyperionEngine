@@ -239,10 +239,11 @@ bool UIStage::OnInputEvent(
                         ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_HOVER);
 
                         DebugLog(LogType::Debug,
-                            "Mouse hover on object: %s, DrawableLayer: %u\tDepth: %d\n",
+                            "Mouse hover on object: %s, DrawableLayer: %u\tDepth: %d\t%z: %f\n",
                             ui_object->GetName().LookupString(),
                             ui_object->GetDrawableLayer().layer_index,
-                            ui_object->GetDepth()
+                            ui_object->GetDepth(),
+                            ui_object->GetNode()->GetWorldTranslation().z
                         );
 
                         event_handled |= ui_object->OnMouseHover(UIMouseEventData {

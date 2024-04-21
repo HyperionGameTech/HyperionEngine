@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RAY_HPP
 #define HYPERION_RAY_HPP
 
@@ -12,7 +13,6 @@
 #include <core/containers/FlatSet.hpp>
 #include <core/utilities/Optional.hpp>
 
-#include <array>
 #include <tuple>
 
 namespace hyperion {

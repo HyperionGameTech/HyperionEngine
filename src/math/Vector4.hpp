@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef VECTOR4_HPP
-#define VECTOR4_HPP
+
+#ifndef HYPERION_VECTOR4_HPP
+#define HYPERION_VECTOR4_HPP
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>

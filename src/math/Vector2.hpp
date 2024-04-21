@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef VECTOR2_HPP
-#define VECTOR2_HPP
+
+#ifndef HYPERION_VECTOR2_HPP
+#define HYPERION_VECTOR2_HPP
 
 #include <HashCode.hpp>
 
