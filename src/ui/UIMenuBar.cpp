@@ -135,6 +135,7 @@ void UIMenuBar::Init()
     m_container->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
     m_container->SetPadding({ 1, 1 });
     m_container->SetDepth(100);
+    m_container->SetIsVisible(false);
 
     m_container->OnGainFocus.Bind([this](const UIMouseEventData &data) -> bool
     {

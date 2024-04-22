@@ -555,7 +555,7 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = AssetManager::GetInstance()->CreateBatch();
-        batch->Add("test_model", "models/pica_pica/pica_pica.obj");////living_room/living_room.obj");//
+        batch->Add("test_model", "models/pica_pica/pica_pica.obj");////living_room/living_room.obj");//sponza/sponza.obj");
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
         batch->LoadAsync();
@@ -764,7 +764,19 @@ void SampleStreamer::InitGame()
             { HYP_NAME(Exit), "Exit" }
         });
 
-        menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
+        auto edit_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
+        edit_menu_item->SetDropDownMenuItems({
+           { HYP_NAME(Undo), "Undo" },
+           { HYP_NAME(Redo), "Redo" },
+           { HYP_NAME(Cut), "Cut" },
+           { HYP_NAME(Copy), "Copy" },
+           { HYP_NAME(Paste), "Paste" }
+       });
+
+        auto tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Tools");
+        tools_menu_item->SetDropDownMenuItems({
+            { HYP_NAME(Build_Lightmap), "Build Lightmaps" } // Temp
+        });
         
         main_panel->AddChildUIObject(menu_bar);
 
