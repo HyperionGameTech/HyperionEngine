@@ -110,8 +110,7 @@ public:
     TemporalBlendFeedback GetFeedback() const
         { return m_feedback; }
 
-    void ResetProgressiveBlending()
-        { m_blending_frame_counter = 0; }
+    void ResetProgressiveBlending();
 
     void Create();
     void Destroy();
@@ -130,7 +129,7 @@ private:
     TemporalBlendTechnique                          m_technique;
     TemporalBlendFeedback                           m_feedback;
 
-    uint                                            m_blending_frame_counter;
+    uint32                                          m_blending_frame_counter;
 
     ComputePipelineRef                              m_perform_blending;
     DescriptorTableRef                              m_descriptor_table;

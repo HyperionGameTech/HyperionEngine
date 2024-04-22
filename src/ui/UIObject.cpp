@@ -571,6 +571,22 @@ bool UIObject::HasFocus(bool include_children) const
     return has_focus;
 }
 
+bool UIObject::IsOrHasParent(const UIObject *other) const
+{
+    if (!other) {
+        return false;
+    }
+
+    const NodeProxy &this_node = GetNode();
+    const NodeProxy &other_node = other->GetNode();
+
+    if (!this_node.IsValid() || !other_node.IsValid()) {
+        return false;
+    }
+
+    return this_node->IsOrHasParent(other_node.Get());
+}
+
 void UIObject::AddChildUIObject(UIObject *ui_object)
 {
     if (!ui_object) {
@@ -580,7 +596,7 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
     const NodeProxy &node = GetNode();
 
     if (!node) {
-        DebugLog(LogType::Error, "Parent UI object has no attachable node: %s\n", GetName().LookupString());
+        DebugLog(LogType::Error, "Parent UI object has no attachable node: %s\n", *GetName());
 
         return;
     }
@@ -594,7 +610,7 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
 
         node->AddChild(child_node);
     } else {
-        DebugLog(LogType::Error, "Child UI object '%s' has no attachable node\n", ui_object->GetName().LookupString());
+        DebugLog(LogType::Error, "Child UI object '%s' has no attachable node\n", *ui_object->GetName());
 
         return;
     }
@@ -824,8 +840,6 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
                 MathUtil::Floor(float(out_actual_size.y) * ratios.x),
                 MathUtil::Floor(float(out_actual_size.x) * ratios.y)
             };
-
-            DebugLog(LogType::Debug, "Ratio of w to h for object %s: %f\n", GetName().LookupString(), ratios.x);
         }
 
         if (in_size.GetFlagsX() & UIObjectSize::GROW) {
@@ -841,14 +855,6 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
     // make sure the actual size is at least 0
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
-
-    DebugLog(
-        LogType::Debug,
-        "Computed actual size for object %s: %d, %d\n",
-        GetName().LookupString(),
-        out_actual_size.x,
-        out_actual_size.y
-    );
 }
 
 void UIObject::UpdateMeshData()

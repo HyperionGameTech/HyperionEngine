@@ -160,6 +160,8 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
+    DebugLog(LogType::Debug, "SetSelectedMenuItemIndex(%u)\n", index);
+
     if (index == m_selected_menu_item_index) {
         return;
     }
@@ -233,6 +235,8 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
         if (data.button == MOUSE_BUTTON_LEFT)
         {
             const uint menu_item_index = GetMenuItemIndex(name);
+
+            DebugLog(LogType::Debug, "Menu item index for item with name %s: %u\n", *name, menu_item_index);
 
             if (GetSelectedMenuItemIndex() == menu_item_index) {
                 SetSelectedMenuItemIndex(~0u);

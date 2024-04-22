@@ -308,6 +308,15 @@ public:
     [[nodiscard]]
     bool HasFocus(bool include_children = true) const;
 
+    /*! \brief Check if \ref{other} is either a parent of this object or is equal to the current object.
+     *  \details Comparison is performed by using \ref{Node::IsOrHasParent}. If either this or \ref{other} does not have a Node,
+     *  false is returned.
+     *  \param other The UIObject to check if it is a parent of this object.
+     *  \return Whether \ref{other} is a parent of this object or equal to the current object.
+     */
+    [[nodiscard]]
+    bool IsOrHasParent(const UIObject *other) const;
+
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 

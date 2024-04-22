@@ -771,11 +771,16 @@ void SampleStreamer::InitGame()
            { HYP_NAME(Cut), "Cut" },
            { HYP_NAME(Copy), "Copy" },
            { HYP_NAME(Paste), "Paste" }
-       });
+        });
 
-        auto tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Tools");
+        auto tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Tools_Menu_Item), "Tools");
         tools_menu_item->SetDropDownMenuItems({
             { HYP_NAME(Build_Lightmap), "Build Lightmaps" } // Temp
+        });
+
+        auto view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "View");
+        view_menu_item->SetDropDownMenuItems({
+            { HYP_NAME(Reset_Layout), "Reset Layout" } // Temp
         });
         
         main_panel->AddChildUIObject(menu_bar);

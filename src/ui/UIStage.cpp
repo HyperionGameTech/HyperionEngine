@@ -229,8 +229,20 @@ bool UIStage::OnInputEvent(
             }
         } else {
             if (TestRay(mouse_screen, ray_test_results)) {
+                UIObject *first_hit = nullptr;
+
                 for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                     if (auto ui_object = GetUIObjectForEntity(it->id)) {
+                        if (first_hit) {
+                            // We don't want to check the current object if it's not a child of the first hit object,
+                            // since it would be behind the first hit object.
+                            if (!first_hit->IsOrHasParent(ui_object)) {
+                                continue;
+                            }
+                        } else {
+                            first_hit = ui_object;
+                        }
+
                         if (!m_hovered_entities.Insert(it->id).second) {
                             // Already hovered, skip
                             continue;
@@ -252,9 +264,9 @@ bool UIStage::OnInputEvent(
                             .is_down    = false
                         });
 
-                        // if (event_handled) {
-                        //     break;
-                        // }
+                        if (event_handled) {
+                            break;
+                        }
                     }
                 }
             }
