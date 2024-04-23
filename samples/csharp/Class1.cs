@@ -26,7 +26,7 @@ public class TestUIScript : UIEventHandler
         Logger.Log(LogType.Info, "Destroy UI script");
     }
 
-    public override bool OnClick()
+    public override UIEventHandlerResult OnClick()
     {
         Logger.Log(LogType.Info, "Object RefCountedPtr address: {0}", UIObject.RefCountedPtr.Address);
         Logger.Log(LogType.Info, "Object name: {0}", UIObject.Name.HashCode);
@@ -37,7 +37,7 @@ public class TestUIScript : UIEventHandler
 
         UIObject.Position += offset;
 
-        return true;
+        return UIEventHandlerResult.StopBubbling;
     }
 }
 

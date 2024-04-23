@@ -72,7 +72,7 @@ public:
 
     void UpdateLayout();
     
-    virtual void UpdateSize() override;
+    virtual void UpdateSize(bool update_children = true) override;
     
 private:
     Array<RC<UIGridColumn>> m_columns;
@@ -121,7 +121,7 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
-    virtual void UpdateSize() override;
+    virtual void UpdateSize(bool update_children = true) override;
 
 private:
     void UpdateLayout();

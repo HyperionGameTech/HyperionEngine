@@ -333,8 +333,8 @@ public:
     BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;
 
-    virtual void UpdatePosition();
-    virtual void UpdateSize();
+    virtual void UpdatePosition(bool update_children = true);
+    virtual void UpdateSize(bool update_children = true);
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -343,14 +343,14 @@ public:
 
     void SetFocusState(UIObjectFocusState focus_state);
 
-    Delegate<bool, const UIMouseEventData &>    OnMouseDown;
-    Delegate<bool, const UIMouseEventData &>    OnMouseUp;
-    Delegate<bool, const UIMouseEventData &>    OnMouseDrag;
-    Delegate<bool, const UIMouseEventData &>    OnMouseHover;
-    Delegate<bool, const UIMouseEventData &>    OnMouseLeave;
-    Delegate<bool, const UIMouseEventData &>    OnGainFocus;
-    Delegate<bool, const UIMouseEventData &>    OnLoseFocus;
-    Delegate<bool, const UIMouseEventData &>    OnClick;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDown;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseUp;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDrag;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseHover;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseLeave;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnGainFocus;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnLoseFocus;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnClick;
 
 protected:
     /*! \brief Sets the NodeProxy for this UIObject.

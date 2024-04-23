@@ -21,6 +21,7 @@ namespace functional {
 class DelegateHandler;
 
 namespace detail {
+
 struct DelegateHandlerData
 {
     uint    id = 0;
@@ -37,6 +38,17 @@ struct DelegateHandlerData
     bool IsValid() const
         { return id != 0 && delegate != nullptr; }
 };
+
+template <class ReturnType>
+struct DelegateDefaultReturn
+{
+    static_assert(!std::is_void_v<ReturnType>, "DelegateDefaultReturn should not be used with void return types");
+    static_assert(std::is_default_constructible_v<ReturnType>, "DelegateDefaultReturn requires a default constructible type");
+
+    static ReturnType Get()
+        { return ReturnType(); }
+};
+
 } // namespace detail
 
 /*! \brief Holds a reference to a DelegateHandlerData object.
@@ -109,8 +121,6 @@ class Delegate
 {
     using ProcType = Proc<ReturnType, Args...>;
 
-    static constexpr bool returns_boolean = std::is_same_v<ReturnType, bool>;
-
 public:
     /*! \brief Bind a Proc<> to the Delegate.
      * \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
@@ -168,49 +178,57 @@ public:
         return true;
     }
 
-    /*! \brief Broadcast a message to all bound handlers.
-
+    /*! \brief Broadcast a message to all bound handlers. Returns the first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
-
      *  \param args The arguments to pass to the handlers.
-     *  \return If \ref{ReturnType} is bool, the result will return true if any handler returned true.
-     *  Otherwise, the result will always be true, indicating that all handlers were called. */
+     *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
     template <class ... ArgTypes>
-    bool Broadcast(ArgTypes &&... args)
+    ReturnType Broadcast(ArgTypes &&... args)
     {
         Mutex::Guard guard(m_mutex);
 
+        // If no handlers are bound, return a default constructed object or void
         if (m_procs.Empty()) {
-            return false;
+            if constexpr (!std::is_void_v<ReturnType>) {
+                // default construct the return object
+                return detail::DelegateDefaultReturn<ReturnType>::Get();
+            } else {
+                // void return type
+                return;
+            }
         }
 
-        if constexpr (returns_boolean) {
-            bool result = false;
+        ValueStorage<ReturnType> result_storage;
 
-            for (auto &it : m_procs) {
-                result |= it.second((args)...);
+        const auto begin = m_procs.Begin();
+        const auto end = m_procs.End();
+
+        for (auto it = begin; it != end; ++it) {
+            if constexpr (!std::is_void_v<ReturnType>) {
+                if (it == begin) {
+                    result_storage.Construct(it->second((args)...));
+
+                    continue;
+                }
             }
 
-            return result;
-        } else {
-            for (auto &it : m_procs) {
-                it.second((args)...);
-            }
+            it->second((args)...);
+        }
 
-            return true;
+        if constexpr (!std::is_void_v<ReturnType>) {
+            return std::move(result_storage.Get());
         }
     }
 
-    /*! \brief Call operator overload - alias method for Broadcast().
-     *
+    /*! \brief Call operator overload - alias method for Broadcast(). Returns the first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
-     *
      *  \param args The arguments to pass to the handlers.
-     *  \return If \ref{ReturnType} is bool, the result will return true if any handler returned true.
-     *  Otherwise, the result will always be true, indicating that all handlers were called. */
+     *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
     template <class ... ArgTypes>
     HYP_FORCE_INLINE
-    bool operator()(ArgTypes &&... args)
+    ReturnType operator()(ArgTypes &&... args)
         { return Broadcast(std::forward<ArgTypes>(args)...); }
 
 private:

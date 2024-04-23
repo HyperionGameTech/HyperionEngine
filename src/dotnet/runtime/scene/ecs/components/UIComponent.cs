@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
-{
+{   
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct UIComponent : IComponent
     {

@@ -11,7 +11,7 @@
 namespace hyperion {
 namespace utilities {
 
-template <class T, uint Alignment = alignof(T)>
+template <class T, uint Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
 struct alignas(Alignment) ValueStorage
 {
     static constexpr uint alignment = Alignment;
@@ -88,10 +88,21 @@ struct alignas(Alignment) ValueStorage
         { return &data_buffer[0]; }
 };
 
-template <class T, uint Size, uint Alignment = alignof(T)>
+template <>
+struct ValueStorage<void>
+{
+    ValueStorage()                                      = default;
+    ValueStorage(const ValueStorage &)                  = default;
+    ValueStorage &operator=(const ValueStorage &)       = default;
+    ValueStorage(ValueStorage &&) noexcept              = default;
+    ValueStorage &operator=(ValueStorage &&) noexcept   = default;
+    ~ValueStorage()                                     = default;
+};
+
+template <class T, uint Count, uint Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
 struct ValueStorageArray
 {
-    ValueStorage<T, Alignment>  data[Size];
+    ValueStorage<T, Alignment>  data[Count];
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -131,7 +142,7 @@ struct ValueStorageArray
     [[nodiscard]]
     HYP_FORCE_INLINE
     constexpr uint TotalSize() const
-        { return Size * sizeof(T); }
+        { return Count * sizeof(T); }
 };
 
 template <class T, uint Alignment>
@@ -162,10 +173,10 @@ struct ValueStorageArray<T, 0, Alignment>
 
 } // namespace utilities
 
-template <class T, uint Alignment = alignof(T)>
+template <class T, uint Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
 using ValueStorage = utilities::ValueStorage<T, Alignment>;
 
-template <class T, uint Size, uint Alignment = alignof(T)>
+template <class T, uint Size, uint Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
 using ValueStorageArray = utilities::ValueStorageArray<T, Size, Alignment>;
 
 } // namespace hyperion

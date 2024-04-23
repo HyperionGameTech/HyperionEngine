@@ -151,7 +151,7 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
     tab->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_BOTTOM_LEFT);
     tab->SetTitle(title);
 
-    tab->OnClick.Bind([this, name](const UIMouseEventData &data)
+    tab->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
         if (data.button == MOUSE_BUTTON_LEFT)
         {
@@ -161,10 +161,10 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
 
             SetSelectedTabIndex(tab_index);
 
-            return true;
+            return UI_EVENT_HANDLER_RESULT_STOP_BUBBLING;
         }
 
-        return false;
+        return UI_EVENT_HANDLER_RESULT_OK;
     }).Detach();
 
     AddChildUIObject(tab);

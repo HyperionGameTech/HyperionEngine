@@ -181,12 +181,13 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
     m_focused_object = ui_object;
 }
 
-bool UIStage::OnInputEvent(
+UIEventHandlerResult UIStage::OnInputEvent(
     InputManager *input_manager,
     const SystemEvent &event
 )
 {
-    bool event_handled = false;
+    UIEventHandlerResult event_handler_result = UI_EVENT_HANDLER_RESULT_OK;
+
     RayTestResults ray_test_results;
 
     switch (event.GetType()) {
@@ -215,13 +216,13 @@ bool UIStage::OnInputEvent(
                 if (it.second >= 0.05f) {
                     // signal mouse drag
                     if (auto ui_object = GetUIObjectForEntity(it.first)) {
-                        event_handled |= ui_object->OnMouseDrag(UIMouseEventData {
+                        event_handler_result |= ui_object->OnMouseDrag(UIMouseEventData {
                             .position   = mouse_screen,
                             .button     = event.GetMouseButton(),
                             .is_down    = true
                         });
 
-                        if (event_handled) {
+                        if (event_handler_result & UI_EVENT_HANDLER_RESULT_STOP_BUBBLING) {
                             break;
                         }
                     }
@@ -258,13 +259,13 @@ bool UIStage::OnInputEvent(
                             ui_object->GetNode()->GetWorldTranslation().z
                         );
 
-                        event_handled |= ui_object->OnMouseHover(UIMouseEventData {
+                        event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
                             .position   = mouse_screen,
                             .button     = event.GetMouseButton(),
                             .is_down    = false
                         });
 
-                        if (event_handled) {
+                        if (event_handler_result & UI_EVENT_HANDLER_RESULT_STOP_BUBBLING) {
                             break;
                         }
                     }
@@ -327,13 +328,13 @@ bool UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UI_OBJECT_FOCUS_STATE_PRESSED);
 
-                    event_handled |= ui_object->OnMouseDown(UIMouseEventData {
+                    event_handler_result |= ui_object->OnMouseDown(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
                         .is_down    = true
                     });
 
-                    if (event_handled) {
+                    if (event_handler_result & UI_EVENT_HANDLER_RESULT_STOP_BUBBLING) {
                         break;
                     }
                 }
@@ -369,13 +370,13 @@ bool UIStage::OnInputEvent(
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
                 if (auto ui_object = GetUIObjectForEntity(ray_test_results_it->id)) {
-                    event_handled |= ui_object->OnClick(UIMouseEventData {
+                    event_handler_result |= ui_object->OnClick(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
                         .is_down    = false
                     });
 
-                    if (event_handled) {
+                    if (event_handler_result & UI_EVENT_HANDLER_RESULT_STOP_BUBBLING) {
                         break;
                     }
                 }
@@ -387,7 +388,7 @@ bool UIStage::OnInputEvent(
             if (auto ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UI_OBJECT_FOCUS_STATE_PRESSED);
 
-                event_handled |= ui_object->OnMouseUp(UIMouseEventData {
+                event_handler_result |= ui_object->OnMouseUp(UIMouseEventData {
                     .position   = mouse_screen,
                     .button     = event.GetMouseButton(),
                     .is_down    = false
@@ -403,7 +404,7 @@ bool UIStage::OnInputEvent(
         break;
     }
 
-    return event_handled;
+    return event_handler_result;
 }
 
 bool UIStage::Remove(ID<Entity> entity)

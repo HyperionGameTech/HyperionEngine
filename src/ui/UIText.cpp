@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <ui/UIText.hpp>
 #include <ui/UIStage.hpp>
 
@@ -287,9 +288,9 @@ Handle<Material> UIText::GetMaterial() const
     );
 }
 
-void UIText::UpdateSize()
+void UIText::UpdateSize(bool update_children)
 {
-    UIObject::UpdateSize();
+    UIObject::UpdateSize(update_children);
 
     // Update material to get new font size if necessary
     UpdateMaterial();

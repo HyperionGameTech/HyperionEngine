@@ -23,6 +23,17 @@ struct UIMouseEventData
     bool    is_down = false;
 };
 
+using UIEventHandlerResult = uint32;
+
+enum UIEventHandlerResultBits : UIEventHandlerResult
+{
+    UI_EVENT_HANDLER_RESULT_ERR             = 0x1u << 31u,
+    UI_EVENT_HANDLER_RESULT_OK              = 0x0,
+
+    // Stop bubbling the event up the hierarchy
+    UI_EVENT_HANDLER_RESULT_STOP_BUBBLING   = 0x1
+};
+
 struct UIComponent
 {
     RC<UIObject>    ui_object;

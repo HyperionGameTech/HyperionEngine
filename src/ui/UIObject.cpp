@@ -151,30 +151,30 @@ void UIObject::Init()
         {
         }
 
-        bool operator()(const UIMouseEventData &)
+        UIEventHandlerResult operator()(const UIMouseEventData &)
         {
             if (!entity.IsValid() || !scene) {
-                return false;
+                return UI_EVENT_HANDLER_RESULT_ERR;
             }
 
             ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity);
 
             if (!script_component || !script_component->object) {
-                return false;
+                return UI_EVENT_HANDLER_RESULT_ERR;
             }
             
             if (dotnet::Class *class_ptr = script_component->object->GetClass()) {
                 if (auto *method_ptr = class_ptr->GetMethod(method_name)) {
                     // Stubbed method, do not call
                     if (method_ptr->HasAttribute("Hyperion.ScriptMethodStub")) {
-                        return false;
+                        return UI_EVENT_HANDLER_RESULT_OK;
                     }
 
-                    return script_component->object->InvokeMethod<bool>(method_ptr);
+                    return script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr);
                 }
             }
 
-            return false;
+            return UI_EVENT_HANDLER_RESULT_ERR;
         }
     };
 
@@ -218,7 +218,7 @@ void UIObject::SetPosition(Vec2i position)
     UpdateMeshData();
 }
 
-void UIObject::UpdatePosition()
+void UIObject::UpdatePosition(bool update_children)
 {
     if (!IsInit()) {
         return;
@@ -309,12 +309,15 @@ void UIObject::UpdatePosition()
 
     node->LockTransform();
 
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->UpdatePosition();
+    if (update_children) {
+        ForEachChildUIObject([](const RC<UIObject> &child)
+        {
+            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+            child->UpdatePosition(false);
 
-        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
-    });
+            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+        });
+    }
 }
 
 UIObjectSize UIObject::GetSize() const
@@ -354,7 +357,7 @@ void UIObject::SetMaxHeight(int max_height, UIObjectSize::Flags flags)
     UpdateSize();
 }
 
-void UIObject::UpdateSize()
+void UIObject::UpdateSize(bool update_children)
 {
     if (!IsInit()) {
         return;
@@ -402,12 +405,15 @@ void UIObject::UpdateSize()
 
     node->LockTransform();
 
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->UpdateSize();
+    if (update_children) {
+        ForEachChildUIObject([](const RC<UIObject> &child)
+        {
+            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+            child->UpdateSize(false);
 
-        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
-    });
+            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+        });
+    }
 }
 
 void UIObject::SetFocusState(UIObjectFocusState focus_state)
@@ -490,7 +496,7 @@ void UIObject::Blur()
     SetFocusState(GetFocusState() & ~UI_OBJECT_FOCUS_STATE_FOCUSED);
     OnLoseFocus(UIMouseEventData { });
 
-    ForEachChildUIObject([](UIObject *child)
+    ForEachChildUIObject([](const RC<UIObject> &child)
     {
         child->Blur();
 
@@ -573,7 +579,7 @@ bool UIObject::HasFocus(bool include_children) const
     bool has_focus = false;
 
     // check if any child has focus
-    ForEachChildUIObject([&has_focus](UIObject *child)
+    ForEachChildUIObject([&has_focus](const RC<UIObject> &child)
     {
         if (child->HasFocus(true)) {
             has_focus = true;
@@ -675,10 +681,10 @@ RC<UIObject> UIObject::FindChildUIObject(Name name) const
 {
     RC<UIObject> found_object;
 
-    ForEachChildUIObject([name, &found_object](UIObject *child)
+    ForEachChildUIObject([name, &found_object](const RC<UIObject> &child)
     {
         if (child->GetName() == name) {
-            found_object = child->RefCountedPtrFromThis();
+            found_object = child;
 
             return UI_OBJECT_ITERATION_RESULT_STOP;
         }
@@ -925,9 +931,12 @@ void UIObject::UpdateMaterial(bool update_children)
     }
 
     if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
+        ForEachChildUIObject([](const RC<UIObject> &child)
         {
-            child->UpdateMaterial();
+            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+            child->UpdateMaterial(false);
+
+            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
         });
     }
 
@@ -1010,7 +1019,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda) const
 
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(child->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object.Get());
+                    const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object);
 
                     // stop iterating if stop was set to true
                     if (iteration_result == UI_OBJECT_ITERATION_RESULT_STOP) {

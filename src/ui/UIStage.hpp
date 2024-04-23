@@ -129,7 +129,7 @@ public:
         return ui_object.Cast<T>();
     }
 
-    bool OnInputEvent(
+    UIEventHandlerResult OnInputEvent(
         InputManager *input_manager,
         const SystemEvent &event
     );

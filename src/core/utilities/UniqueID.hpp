@@ -3,7 +3,7 @@
 #ifndef HYPERION_UNIQUE_ID_HPP
 #define HYPERION_UNIQUE_ID_HPP
 
-#include <random>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>
@@ -15,13 +15,7 @@ namespace detail {
 
 struct UniqueIDGenerator
 {
-    static inline uint64 Generate()
-    {
-        static thread_local std::mt19937 random_engine;
-        std::uniform_int_distribution<uint64> distribution;
-
-        return distribution(random_engine);
-    }
+    static HYP_API uint64 Generate();
 };
 
 } // namespace detail

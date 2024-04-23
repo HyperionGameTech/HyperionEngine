@@ -143,8 +143,6 @@ void Game::HandleEvent(SystemEvent &&event)
             g_engine->game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable
             {
                 OnInputEvent(event);
-
-                HYPERION_RETURN_OK;
             });
         }
 
@@ -157,7 +155,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     // forward to UI
-    if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event)) {
+    if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event) & UI_EVENT_HANDLER_RESULT_STOP_BUBBLING) {
         // ui handled the event
         return;
     }

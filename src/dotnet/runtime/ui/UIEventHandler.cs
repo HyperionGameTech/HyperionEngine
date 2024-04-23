@@ -32,39 +32,39 @@ namespace Hyperion
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnMouseDown()
+        public virtual UIEventHandlerResult OnMouseDown()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnMouseUp()
+        public virtual UIEventHandlerResult OnMouseUp()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnMouseHover()
+        public virtual UIEventHandlerResult OnMouseHover()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnMouseLeave()
+        public virtual UIEventHandlerResult OnMouseLeave()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnMouseDrag()
+        public virtual UIEventHandlerResult OnMouseDrag()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
-        public virtual bool OnClick()
+        public virtual UIEventHandlerResult OnClick()
         {
-            return false;
+            return UIEventHandlerResult.Ok;
         }
     }
 }

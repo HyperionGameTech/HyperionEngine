@@ -2,7 +2,7 @@
 
   <Target Name="CopyOutputFiles" AfterTargets="Build">
     <Message Text="Copying output binary to res/scripts/bin" Importance="high"/>
-    <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="..\res\scripts\bin\" />
+    <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="../../res/scripts/bin/" />
   </Target>
 
   <PropertyGroup>
@@ -14,12 +14,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="8.0.1" />
     <Reference Include="HyperionCore">
-      <!-- HyperionCore.dll is located in parent folder/build -->
-      <HintPath>..\build\HyperionCore.dll</HintPath>
+      <HintPath>../../build/HyperionCore.dll</HintPath>
     </Reference>
     <Reference Include="HyperionRuntime">
-      <!-- HyperionRuntime.dll is located in parent folder/build -->
-      <HintPath>..\build\HyperionRuntime.dll</HintPath>
+      <HintPath>../../build/HyperionRuntime.dll</HintPath>
     </Reference>
   </ItemGroup>
 

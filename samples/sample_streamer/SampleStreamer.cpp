@@ -755,39 +755,68 @@ void SampleStreamer::InitGame()
         menu_bar->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
 
         auto file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
-        file_menu_item->SetDropDownMenuItems({
+
+        file_menu_item->AddDropDownMenuItem({
+            HYP_NAME(New),
+            "New",
+            []()
             {
-                HYP_NAME(New),
-                "New",
-                []()
-                {
-                    DebugLog(LogType::Debug, "New clicked!\n");
-                }
-            },
-            { HYP_NAME(Open), "Open" },
-            { HYP_NAME(Save), "Save" },
-            { HYP_NAME(SaveAs), "Save As" },
-            { HYP_NAME(Exit), "Exit" }
+                HYP_BREAKPOINT;
+                DebugLog(LogType::Debug, "New clicked!\n");
+            }
+        });
+
+        file_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Open),
+            "Open"
+        });
+
+        file_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Save),
+            "Save"
+        });
+
+        file_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Save_As),
+            "Save As..."
+        });
+
+        file_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Exit),
+            "Exit"
         });
 
         auto edit_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
-        edit_menu_item->SetDropDownMenuItems({
-           { HYP_NAME(Undo), "Undo" },
-           { HYP_NAME(Redo), "Redo" },
-           { HYP_NAME(Cut), "Cut" },
-           { HYP_NAME(Copy), "Copy" },
-           { HYP_NAME(Paste), "Paste" }
+        edit_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Undo),
+            "Undo"
+        });
+
+        edit_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Redo),
+            "Redo"
+        });
+
+        edit_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Cut),
+            "Cut"
+        });
+
+        edit_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Copy),
+            "Copy"
+        });
+
+        edit_menu_item->AddDropDownMenuItem({
+            HYP_NAME(Paste),
+            "Paste"
         });
 
         auto tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Tools_Menu_Item), "Tools");
-        tools_menu_item->SetDropDownMenuItems({
-            { HYP_NAME(Build_Lightmap), "Build Lightmaps" } // Temp
-        });
+        tools_menu_item->AddDropDownMenuItem({ HYP_NAME(Build_Lightmap), "Build Lightmaps" });
 
-        auto view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "View");
-        view_menu_item->SetDropDownMenuItems({
-            { HYP_NAME(Reset_Layout), "Reset Layout" } // Temp
-        });
+        auto view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "Window");
+        view_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
         
         main_panel->AddChildUIObject(menu_bar);
 

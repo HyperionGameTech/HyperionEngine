@@ -136,23 +136,25 @@ void UIMenuItem::UpdateDropDownMenu()
         drop_down_menu_item->SetBorderRadius(0);
         drop_down_menu_item->SetText(item.text);
 
-        drop_down_menu_item->OnClick.Bind([this, name = item.name](const UIMouseEventData &data) -> bool
+        drop_down_menu_item->OnClick.Bind([this, name = item.name](const UIMouseEventData &data) -> UIEventHandlerResult
         {
+            DebugLog(LogType::Debug, "OnClick item with name %s\n", *name);
+
             DropDownMenuItem *item_ptr = GetDropDownMenuItem(name);
 
             if (item_ptr == nullptr) {
                 DebugLog(LogType::Warn, "Could not find drop down menu item with name %s\n", *name);
 
-                return false;
+                return UI_EVENT_HANDLER_RESULT_ERR;
             }
 
             if (!item_ptr->action.IsValid()) {
-                return false;
+                return UI_EVENT_HANDLER_RESULT_OK;
             }
 
             item_ptr->action();
 
-            return true;
+            return UI_EVENT_HANDLER_RESULT_STOP_BUBBLING;
         }).Detach();
 
         drop_down_menu_item->GetTextElement()->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
@@ -191,20 +193,20 @@ void UIMenuBar::Init()
     m_container->SetDepth(100);
     m_container->SetIsVisible(false);
 
-    m_container->OnGainFocus.Bind([this](const UIMouseEventData &data) -> bool
+    m_container->OnGainFocus.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
     {
         DebugLog(LogType::Debug, "Container gained focus!\n");
 
-        return true;
+        return UI_EVENT_HANDLER_RESULT_OK;
     }).Detach();
 
-    m_container->OnLoseFocus.Bind([this](const UIMouseEventData &data) -> bool
+    m_container->OnLoseFocus.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
     {
         DebugLog(LogType::Debug, "Container lost focus!\n");
 
         SetSelectedMenuItemIndex(~0u);
 
-        return true;
+        return UI_EVENT_HANDLER_RESULT_OK;
     }).Detach();
 
     AddChildUIObject(m_container);
@@ -273,7 +275,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     menu_item->SetText(text);
 
     // Mouse hover: set selected menu item index if this menu bar has focus
-    menu_item->OnMouseHover.Bind([this, name](const UIMouseEventData &data)
+    menu_item->OnMouseHover.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
         if (HasFocus(true)) {
             const uint menu_item_index = GetMenuItemIndex(name);
@@ -281,10 +283,10 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
             SetSelectedMenuItemIndex(menu_item_index);
         }
 
-        return true;
+        return UI_EVENT_HANDLER_RESULT_OK;
     }).Detach();
 
-    menu_item->OnClick.Bind([this, name](const UIMouseEventData &data)
+    menu_item->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
         if (data.button == MOUSE_BUTTON_LEFT)
         {
@@ -298,10 +300,10 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
                 SetSelectedMenuItemIndex(menu_item_index);
             }
 
-            return true;
+            return UI_EVENT_HANDLER_RESULT_STOP_BUBBLING;
         }
 
-        return false;
+        return UI_EVENT_HANDLER_RESULT_OK;
     }).Detach();
 
     AddChildUIObject(menu_item);

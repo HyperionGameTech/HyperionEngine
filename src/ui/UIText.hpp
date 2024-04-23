@@ -108,7 +108,7 @@ public:
 protected:
     virtual Handle<Material> GetMaterial() const override;
 
-    virtual void UpdateSize() override;
+    virtual void UpdateSize(bool update_children = true) override;
 
     void UpdateMesh();
 

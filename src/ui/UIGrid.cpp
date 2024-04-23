@@ -119,9 +119,9 @@ void UIGridRow::UpdateLayout()
     }
 }
 
-void UIGridRow::UpdateSize()
+void UIGridRow::UpdateSize(bool update_children)
 {
-    UIPanel::UpdateSize();
+    UIPanel::UpdateSize(update_children);
 
     UpdateLayout();
 }
@@ -227,9 +227,9 @@ bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
     return UIObject::RemoveChildUIObject(ui_object);
 }
 
-void UIGrid::UpdateSize()
+void UIGrid::UpdateSize(bool update_children)
 {
-    UIPanel::UpdateSize();
+    UIPanel::UpdateSize(update_children);
 
     UpdateLayout();
 }

@@ -3,6 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    public enum UIEventHandlerResult : uint
+    {
+        Error = 0x1u << 31,
+        Ok = 0x0,
+        StopBubbling = 0x1
+    }
+
     public enum UIObjectAlignment : uint
     {
         TopLeft = 0,
