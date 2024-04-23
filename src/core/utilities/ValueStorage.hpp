@@ -11,10 +11,12 @@
 namespace hyperion {
 namespace utilities {
 
-template <class T, uint alignment = alignof(T)>
-struct alignas(alignment) ValueStorage
+template <class T, uint Alignment = alignof(T)>
+struct alignas(Alignment) ValueStorage
 {
-    alignas(alignment) ubyte data_buffer[sizeof(T)];
+    static constexpr uint alignment = Alignment;
+
+    alignas(Alignment) ubyte data_buffer[sizeof(T)];
 
     ValueStorage()                                          = default;
 
@@ -86,23 +88,19 @@ struct alignas(alignment) ValueStorage
         { return &data_buffer[0]; }
 };
 
-struct alignas(16) Tmp { int x; float y; void *stuff[16]; };
-static_assert(sizeof(ValueStorage<Tmp>) == sizeof(Tmp));
-static_assert(alignof(ValueStorage<Tmp>) == alignof(Tmp));
-
-template <class T, SizeType Sz>
+template <class T, uint Size, uint Alignment = alignof(T)>
 struct ValueStorageArray
 {
-    ValueStorage<T> data[Sz];
+    ValueStorage<T, Alignment>  data[Size];
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    ValueStorage<T> &operator[](SizeType index)
+    ValueStorage<T, Alignment> &operator[](uint index)
         { return data[index]; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const ValueStorage<T> &operator[](SizeType index) const
+    const ValueStorage<T, Alignment> &operator[](uint index) const
         { return data[index]; }
     
     [[nodiscard]]
@@ -127,19 +125,19 @@ struct ValueStorageArray
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr SizeType Size() const
-        { return Sz; }
+    constexpr uint Size() const
+        { return Size; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr SizeType TotalSize() const
-        { return Sz * sizeof(T); }
+    constexpr uint TotalSize() const
+        { return Size * sizeof(T); }
 };
 
-template <class T>
-struct ValueStorageArray<T, 0>
+template <class T, uint Alignment>
+struct ValueStorageArray<T, 0, Alignment>
 {
-    ValueStorage<char> data[1];
+    ValueStorage<char>  data[1];
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -153,25 +151,22 @@ struct ValueStorageArray<T, 0>
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr SizeType Size() const
+    constexpr uint Size() const
         { return 0; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    constexpr SizeType TotalSize() const
+    constexpr uint TotalSize() const
         { return 0; }
 };
 
-static_assert(sizeof(ValueStorageArray<int, 200>) == sizeof(int) * 200);
-static_assert(sizeof(ValueStorageArray<int, 0>) == 1);
-
 } // namespace utilities
 
-template <class T>
-using ValueStorage = utilities::ValueStorage<T>;
+template <class T, uint Alignment = alignof(T)>
+using ValueStorage = utilities::ValueStorage<T, Alignment>;
 
-template <class T, SizeType Sz>
-using ValueStorageArray = utilities::ValueStorageArray<T, Sz>;
+template <class T, uint Size, uint Alignment = alignof(T)>
+using ValueStorageArray = utilities::ValueStorageArray<T, Size, Alignment>;
 
 } // namespace hyperion
 

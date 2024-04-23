@@ -17,6 +17,7 @@ struct DropDownMenuItem
 {
     Name        name;
     String      text;
+    Proc<void>  action;
 };
 
 #pragma endregion DropDownMenuItem
@@ -48,6 +49,12 @@ public:
      */
     void SetText(const String &text);
 
+    /*! \brief Adds a DropDownMenuItem to the menu item.
+     *
+     * \param item The DropDownMenuItem to add.
+     */
+    void AddDropDownMenuItem(DropDownMenuItem &&item);
+
     /*! \brief Gets the list of DropDownMenuItems.
      * 
      * \return The array of DropDownMenuItems.
@@ -60,7 +67,23 @@ public:
      * 
      * \param items The array of DropDownMenuItems.
      */
-    void SetDropDownMenuItems(const Array<DropDownMenuItem> &items);
+    void SetDropDownMenuItems(Array<DropDownMenuItem> items);
+
+    /*! \brief Get a dropdown menu item by name.
+     *
+     * \param name The name of the dropdown menu item.
+     * \return The dropdown menu item.
+     */
+    [[nodiscard]]
+    DropDownMenuItem *GetDropDownMenuItem(Name name);
+
+    /*! \brief Get a dropdown menu item by name.
+     *
+     * \param name The name of the dropdown menu item.
+     * \return The dropdown menu item.
+     */
+    [[nodiscard]]
+    const DropDownMenuItem *GetDropDownMenuItem(Name name) const;
 
     /*! \brief Gets the drop down menu element.
      * 

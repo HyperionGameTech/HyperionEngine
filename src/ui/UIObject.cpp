@@ -31,6 +31,12 @@
 
 namespace hyperion {
 
+enum UIObjectIterationResult : uint8
+{
+    UI_OBJECT_ITERATION_RESULT_CONTINUE = 0,
+    UI_OBJECT_ITERATION_RESULT_STOP
+};
+
 enum UIObjectFlags : uint32
 {
     UI_OBJECT_FLAG_NONE                 = 0x0,
@@ -306,6 +312,8 @@ void UIObject::UpdatePosition()
     ForEachChildUIObject([](UIObject *child)
     {
         child->UpdatePosition();
+
+        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
     });
 }
 
@@ -397,6 +405,8 @@ void UIObject::UpdateSize()
     ForEachChildUIObject([](UIObject *child)
     {
         child->UpdateSize();
+
+        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
     });
 }
 
@@ -483,6 +493,8 @@ void UIObject::Blur()
     ForEachChildUIObject([](UIObject *child)
     {
         child->Blur();
+
+        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
     });
 
     if (m_parent->GetFocusedObject() != this) {
@@ -565,7 +577,11 @@ bool UIObject::HasFocus(bool include_children) const
     {
         if (child->HasFocus(true)) {
             has_focus = true;
+
+            return UI_OBJECT_ITERATION_RESULT_STOP;
         }
+
+        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
     });
 
     return has_focus;
@@ -653,6 +669,24 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
     }
 
     return false;
+}
+
+RC<UIObject> UIObject::FindChildUIObject(Name name) const
+{
+    RC<UIObject> found_object;
+
+    ForEachChildUIObject([name, &found_object](UIObject *child)
+    {
+        if (child->GetName() == name) {
+            found_object = child->RefCountedPtrFromThis();
+
+            return UI_OBJECT_ITERATION_RESULT_STOP;
+        }
+
+        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+    });
+
+    return found_object;
 }
 
 const NodeProxy &UIObject::GetNode() const
@@ -976,7 +1010,12 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda) const
 
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(child->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    lambda(ui_component->ui_object.Get());
+                    const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object.Get());
+
+                    // stop iterating if stop was set to true
+                    if (iteration_result == UI_OBJECT_ITERATION_RESULT_STOP) {
+                        return;
+                    }
                 }
             }
 

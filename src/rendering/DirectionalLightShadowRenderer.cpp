@@ -308,7 +308,7 @@ void ShadowPass::CreateShadowMap()
 
 void ShadowPass::CreateCombineShadowMapsPass()
 {
-    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(CombineShadowMaps), ShaderProperties({ "STAGE_DYNAMICS"}));
+    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(CombineShadowMaps), {{ "STAGE_DYNAMICS" }});
     g_engine->InitObject(shader);
 
     DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();

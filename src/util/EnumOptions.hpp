@@ -148,9 +148,7 @@ public:
     EnumOptions(std::initializer_list<KeyValuePairType> initializer_list)
         : Base { }
     {
-        Array<KeyValuePairType> temp(initializer_list);
-
-        for (const auto &item : temp) {
+        for (const auto &item : initializer_list) {
             Set(item.first, item.second);
         }
     }

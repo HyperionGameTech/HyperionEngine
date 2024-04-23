@@ -27,7 +27,8 @@ public:
 
     static int StrCmp(const char *lhs, const char *rhs, SizeType length = 0)
     {
-        if (length) {
+        if (length)
+        {
             return std::strncmp(lhs, rhs, length);
         }
 
@@ -36,13 +37,21 @@ public:
 
     static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs)
     {
-        return *lhs == *rhs
-            && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
+        if (std::is_constant_evaluated())
+        {
+            return *lhs == *rhs
+                && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
+        }
+        else
+        {
+            return StrCmp(lhs, rhs) == 0;
+        }
     }
 
     static char *StrCpy(char *dest, const char *src, SizeType length = 0)
     {
-        if (length) {
+        if (length)
+        {
             // ReSharper disable once CppDeprecatedEntity
             return std::strncpy(dest, src, length);
         }
@@ -53,7 +62,8 @@ public:
 
     static inline SizeType StrLen(const char *str)
     {
-        if (!str) {
+        if (!str)
+        {
             return 0;
         }
 
@@ -142,7 +152,8 @@ public:
     static typename std::enable_if_t<!std::is_same_v<void *, std::add_pointer_t<T>>, void>
     DestructAndFree(void *ptr)
     {
-        if constexpr (!std::is_trivially_destructible_v<T>) { 
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        { 
             static_cast<T *>(ptr)->~T();
         }
 

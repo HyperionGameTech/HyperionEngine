@@ -28,26 +28,44 @@ private:
 public:
     static constexpr bool is_contiguous = true;
 
-    using Base          = ContainerBase<FlatMap<Key, Value>, Key>;
+    using Base = ContainerBase<FlatMap<Key, Value>, Key>;
 
-    using KeyType       = Key;
-    using ValueType     = Value;
+    using KeyType = Key;
+    using ValueType = Value;
 
-    using Iterator      = typename decltype(m_vector)::Iterator;
+    using Iterator = typename decltype(m_vector)::Iterator;
     using ConstIterator = typename decltype(m_vector)::ConstIterator;
-    using InsertResult  = std::pair<Iterator, bool>; // iterator, was inserted
+    using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     FlatMap();
-    FlatMap(std::initializer_list<KeyValuePairType> initializer_list)
-        : m_vector(initializer_list)
+
+    template <SizeType Sz>
+    FlatMap(KeyValuePairType const (&items)[Sz])
     {
-        std::sort(
-            m_vector.begin(),
-            m_vector.end(),
-            [](const auto &lhs, const auto &rhs) {
-                return lhs.first < rhs.first;
-            }
-        );
+        m_vector.Reserve(Sz);
+
+        for (auto it = items; it != items + Sz; ++it) {
+            Insert(*it);
+        }
+    }
+
+    template <SizeType Sz>
+    FlatMap(KeyValuePairType (&&items)[Sz])
+    {
+        m_vector.Reserve(Sz);
+
+        for (auto it = items; it != items + Sz; ++it) {
+            Insert(std::move(*it));
+        }
+    }
+
+    FlatMap(std::initializer_list<Pair<Key, Value>> initializer_list)
+    {
+        m_vector.Reserve(initializer_list.size());
+
+        for (const auto &it : initializer_list) {
+            Insert(it);
+        }
     }
 
     FlatMap(const FlatMap &other);
@@ -64,6 +82,7 @@ public:
     InsertResult Insert(const Key &key, const Value &value);
     InsertResult Insert(const Key &key, Value &&value);
     InsertResult Insert(Pair<Key, Value> &&pair);
+    InsertResult Insert(const Pair<Key, Value> &pair);
 
     InsertResult Set(const Key &key, const Value &value);
     InsertResult Set(const Key &key, Value &&value);
@@ -229,6 +248,20 @@ auto FlatMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
 
     if (lower_bound == End() || !(lower_bound->first == key)) {
         auto it = m_vector.Insert(lower_bound, KeyValuePairType { key, std::move(value) });
+
+        return { it, true };
+    }
+
+    return { lower_bound, false };
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Insert(const Pair<Key, Value> &pair) -> InsertResult
+{
+    const auto lower_bound = m_vector.LowerBound(pair.first);// FlatMap<Key, Value>::Base::LowerBound(pair.first);
+
+    if (lower_bound == End() || !(lower_bound->first == pair.first)) {
+        auto it = m_vector.Insert(lower_bound, pair);
 
         return { it, true };
     }

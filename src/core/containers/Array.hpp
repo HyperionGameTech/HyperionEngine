@@ -88,19 +88,6 @@ public:
         }
     }
 
-    Array(std::initializer_list<T> items)
-        : Array()
-    {
-        const SizeType dist = items.size();
-        ResizeUninitialized(dist);
-        
-        auto *storage_ptr = Data();
-
-        for (auto it = items.begin(); it != items.end(); ++it) {
-            Memory::Construct<T>(storage_ptr++, *it);
-        }
-    }
-
     template <SizeType Sz>
     Array(const FixedArray<T, Sz> &items)
         : Array(items.Begin(), items.End())
@@ -121,21 +108,6 @@ public:
     }
 
     Array(T *ptr, SizeType size)
-        : Array()
-    {
-        ResizeUninitialized(size);
-        
-        auto *storage_ptr = Data();
-
-        const T *first = ptr;
-        const T *last = ptr + size;
-
-        for (auto it = first; it != last; ++it) {
-            Memory::Construct<T>(storage_ptr++, *it);
-        }
-    }
-
-    Array(const T *ptr, SizeType size)
         : Array()
     {
         ResizeUninitialized(size);
@@ -174,6 +146,16 @@ public:
         for (auto it = first; it != last; ++it) {
             Memory::Construct<T>(storage_ptr++, *it);
         }
+    }
+
+    Array(const T *ptr, SizeType size)
+        : Array(ptr, ptr + size)
+    {
+    }
+    
+    Array(std::initializer_list<T> initializer_list)
+        : Array(initializer_list.begin(), initializer_list.end())
+    {
     }
 
     Array(const Array &other);

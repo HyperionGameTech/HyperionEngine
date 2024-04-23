@@ -135,8 +135,10 @@ struct FBOMData
     bool IsString() const { return type.IsOrExtends(FBOMString()); }
 
     template <int string_type>
-    FBOMResult ReadString(containers::detail::String<char, string_type> &str) const
+    FBOMResult ReadString(containers::detail::String<string_type> &str) const
     {
+        static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
+
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 
         const auto total_size = TotalSize();
@@ -153,15 +155,18 @@ struct FBOMData
     }
     
     template <int string_type>
-    static FBOMData FromString(const containers::detail::String<char, string_type> &str)
+    static FBOMData FromString(const containers::detail::String<string_type> &str)
     {
+        static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
+
         FBOMData data(FBOMString(str.Size()));
         data.SetBytes(str.Size(), str.Data());
 
         return data;
     }
 
-    bool IsByteBuffer() const { return type.IsOrExtends(FBOMByteBuffer()); }
+    bool IsByteBuffer() const
+        { return type.IsOrExtends(FBOMByteBuffer()); }
 
     FBOMResult ReadByteBuffer(ByteBuffer &byte_buffer) const
     {

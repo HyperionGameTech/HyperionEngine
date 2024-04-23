@@ -32,18 +32,18 @@ using AssetLoadFlags = uint32;
 
 enum AssetLoadFlagBits : AssetLoadFlags
 {
-    ASSET_LOAD_FLAGS_NONE = 0x0,
-    ASSET_LOAD_FLAGS_CACHE_READ = 0x1,
-    ASSET_LOAD_FLAGS_CACHE_WRITE = 0x2
+    ASSET_LOAD_FLAGS_NONE           = 0x0,
+    ASSET_LOAD_FLAGS_CACHE_READ     = 0x1,
+    ASSET_LOAD_FLAGS_CACHE_WRITE    = 0x2
 };
 
 struct AssetLoaderDefinition
 {
-    const StringView            name;
-    TypeID                      loader_type_id;
-    TypeID                      result_type_id;
-    FlatSet<String>             extensions;
-    UniquePtr<AssetLoaderBase>  loader;
+    const StringView<StringType::ANSI>  name;
+    TypeID                              loader_type_id;
+    TypeID                              result_type_id;
+    FlatSet<String>                     extensions;
+    UniquePtr<AssetLoaderBase>          loader;
 
     [[nodiscard]]
     HYP_FORCE_INLINE

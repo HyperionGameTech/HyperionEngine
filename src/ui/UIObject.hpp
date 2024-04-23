@@ -320,6 +320,12 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
+    /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
+     *  If no child UIObject with the specified Name is found, nullptr is returned.
+     *  \param name The Name of the child UIObject to find.
+     *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
+    RC<UIObject> FindChildUIObject(Name name) const;
+
     bool HasChildUIObjects() const;
 
     const NodeProxy &GetNode() const;

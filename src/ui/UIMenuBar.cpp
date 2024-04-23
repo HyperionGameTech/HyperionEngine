@@ -50,11 +50,37 @@ void UIMenuItem::SetText(const String &text)
     }
 }
 
-void UIMenuItem::SetDropDownMenuItems(const Array<DropDownMenuItem> &items)
+void UIMenuItem::AddDropDownMenuItem(DropDownMenuItem &&item)
 {
-    m_drop_down_menu_items = items;
+    m_drop_down_menu_items.PushBack(std::move(item));
+    
+    UpdateDropDownMenu();
+}
+
+void UIMenuItem::SetDropDownMenuItems(Array<DropDownMenuItem> items)
+{
+    m_drop_down_menu_items = std::move(items);
 
     UpdateDropDownMenu();
+}
+
+DropDownMenuItem *UIMenuItem::GetDropDownMenuItem(Name name)
+{
+    const auto it = m_drop_down_menu_items.FindIf([name](const DropDownMenuItem &item)
+    {
+        return item.name == name;
+    });
+
+    if (it == m_drop_down_menu_items.End()) {
+        return nullptr;
+    }
+
+    return it;
+}
+
+const DropDownMenuItem *UIMenuItem::GetDropDownMenuItem(Name name) const
+{
+    return const_cast<UIMenuItem *>(this)->GetDropDownMenuItem(name);
 }
 
 Handle<Material> UIMenuItem::GetMaterial() const
@@ -93,13 +119,41 @@ void UIMenuItem::UpdateDropDownMenu()
     Vec2i offset = { 0, 0 };
 
     for (const DropDownMenuItem &item : m_drop_down_menu_items) {
-        auto drop_down_menu_item = m_parent->CreateUIObject<UIButton>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_" + ANSIString(item.name.LookupString())), offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        const Name drop_down_menu_item_name = CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_" + ANSIString(item.name.LookupString()));
+
+        auto drop_down_menu_item = m_drop_down_menu->FindChildUIObject(drop_down_menu_item_name).Cast<UIButton>();
+
+        if (drop_down_menu_item != nullptr) {
+            offset += { 0, drop_down_menu_item->GetActualSize().y };
+
+            continue;
+        }
+
+        drop_down_menu_item = m_parent->CreateUIObject<UIButton>(drop_down_menu_item_name, offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         drop_down_menu_item->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         drop_down_menu_item->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         drop_down_menu_item->SetBorderFlags(UI_OBJECT_BORDER_NONE);
         drop_down_menu_item->SetBorderRadius(0);
         drop_down_menu_item->SetText(item.text);
-        // drop_down_menu_item->OnClick.Bind([]); // @TODO
+
+        drop_down_menu_item->OnClick.Bind([this, name = item.name](const UIMouseEventData &data) -> bool
+        {
+            DropDownMenuItem *item_ptr = GetDropDownMenuItem(name);
+
+            if (item_ptr == nullptr) {
+                DebugLog(LogType::Warn, "Could not find drop down menu item with name %s\n", *name);
+
+                return false;
+            }
+
+            if (!item_ptr->action.IsValid()) {
+                return false;
+            }
+
+            item_ptr->action();
+
+            return true;
+        }).Detach();
 
         drop_down_menu_item->GetTextElement()->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         drop_down_menu_item->GetTextElement()->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);

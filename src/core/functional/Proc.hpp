@@ -17,20 +17,6 @@ namespace hyperion {
 namespace functional {
 namespace detail {
 
-template <SizeType Sz>
-struct ProcFunctorMemory
-{
-    alignas(std::max_align_t) ubyte bytes[Sz];
-
-    HYP_FORCE_INLINE
-    void *GetPointer()
-        { return &bytes[0]; }
-
-    HYP_FORCE_INLINE
-    const void *GetPointer() const
-        { return &bytes[0]; }
-};
-
 template <class MemoryType, class ReturnType, class ...Args>
 struct ProcFunctorInternal
 {
@@ -44,8 +30,8 @@ struct ProcFunctorInternal
     {
     }
 
-    ProcFunctorInternal(const ProcFunctorInternal &other) = delete;
-    ProcFunctorInternal &operator=(const ProcFunctorInternal &other) = delete;
+    ProcFunctorInternal(const ProcFunctorInternal &other)               = delete;
+    ProcFunctorInternal &operator=(const ProcFunctorInternal &other)    = delete;
 
     ProcFunctorInternal(ProcFunctorInternal &&other) noexcept
     {
@@ -64,7 +50,7 @@ struct ProcFunctorInternal
             return *this;
         }
 
-        if (HasValue()) {
+        if (delete_fn != nullptr) {
             delete_fn(GetPointer());
         }
 
@@ -81,7 +67,7 @@ struct ProcFunctorInternal
 
     ~ProcFunctorInternal()
     {
-        if (HasValue()) {
+        if (delete_fn != nullptr) {
             delete_fn(GetPointer());
         }
     }
@@ -92,7 +78,7 @@ struct ProcFunctorInternal
     
     HYP_FORCE_INLINE
     bool HasValue() const
-        { return delete_fn != nullptr; }
+        { return memory.HasValue(); }
 
     HYP_FORCE_INLINE
     void *GetPointer()
@@ -142,8 +128,8 @@ struct Proc : detail::ProcBase
 {
     static constexpr uint inline_storage_size_bytes = 256;
 
-    using MemoryDataType = detail::ProcFunctorMemory<inline_storage_size_bytes>;
-    using FunctorDataType = detail::ProcFunctorInternal<MemoryDataType, ReturnType, Args...>;
+    using InlineStorage = ValueStorage<ubyte[inline_storage_size_bytes], alignof(std::max_align_t)>;
+    using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
 
@@ -160,14 +146,14 @@ public:
     template <class Functor>
     Proc(Functor &&fn)
     {
-        using FunctorNormalized = std::remove_cvref_t<Functor>;
+        using FunctorNormalized = NormalizedType<Functor>;
 
         static_assert(!std::is_base_of_v<detail::ProcBase, FunctorNormalized>, "Object should not be ProcBase");
 
         functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FunctorNormalized>;
 
-        if constexpr (sizeof(FunctorNormalized) <= sizeof(MemoryDataType::bytes) && alignof(Functor) <= alignof(std::max_align_t)) {
-            functor.memory.template Set<MemoryDataType>({ });
+        if constexpr (sizeof(FunctorNormalized) <= sizeof(InlineStorage) && alignof(Functor) <= InlineStorage::alignment) {
+            functor.memory.template Set<InlineStorage>({ });
             Memory::Construct<FunctorNormalized>(functor.GetPointer(), std::forward<Functor>(fn));
 
             if constexpr (std::is_trivially_destructible_v<FunctorNormalized>) {
@@ -176,6 +162,7 @@ public:
                 functor.delete_fn = &Memory::Destruct<FunctorNormalized>;
             }
         } else {
+            // Use heap allocation if the functor is too large for inline storage or alignment doesn't match.
             functor.memory.template Set<void *>(Memory::AllocateAndConstruct<FunctorNormalized>(std::forward<Functor>(fn)));
             functor.delete_fn = &Memory::DestructAndFree<FunctorNormalized>;
         }

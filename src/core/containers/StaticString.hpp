@@ -3,6 +3,8 @@
 #ifndef HYPERION_STATIC_STRING_HPP
 #define HYPERION_STATIC_STRING_HPP
 
+#include <core/Defines.hpp>
+
 #include <Types.hpp>
 #include <HashCode.hpp>
 
@@ -43,6 +45,9 @@ using make_offset_index_sequence_t = decltype(make_offset_index_sequence<Offset>
 template <SizeType Sz>
 struct StaticString
 {
+    using Iterator = const char *;
+    using ConstIterator = const char *;
+
     static constexpr SizeType size = Sz;
 
     char data[Sz];
@@ -162,6 +167,11 @@ struct StaticString
     {
         return HashCode::GetHashCode<Sz>(data);
     }
+
+    HYP_DEF_STL_BEGIN_END(
+        &data[0],
+        &data[0] + Sz
+    )
 };
 
 namespace detail {

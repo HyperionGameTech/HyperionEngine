@@ -129,7 +129,7 @@ private:
     TemporalBlendTechnique                          m_technique;
     TemporalBlendFeedback                           m_feedback;
 
-    uint32                                          m_blending_frame_counter;
+    uint16                                          m_blending_frame_counter;
 
     ComputePipelineRef                              m_perform_blending;
     DescriptorTableRef                              m_descriptor_table;

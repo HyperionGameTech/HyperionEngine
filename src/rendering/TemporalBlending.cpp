@@ -273,8 +273,8 @@ void TemporalBlending::Render(Frame *frame)
 
 void TemporalBlending::ResetProgressiveBlending()
 {
-    // set to UINT32_MAX over to 0 on next increment to add an extra frame
-    m_blending_frame_counter = UINT32_MAX;
+    // roll over to 0 on next increment to add an extra frame
+    m_blending_frame_counter = MathUtil::MaxSafeValue(m_blending_frame_counter);
 }
 
 } // namespace hyperion

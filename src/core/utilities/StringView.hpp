@@ -11,60 +11,92 @@
 
 #include <Types.hpp>
 
-#include <algorithm>
-#include <cstring>
+#include <type_traits>
 
 namespace hyperion {
 namespace utilities {
 
+namespace detail {
+
+using namespace containers::detail;
+
+template <int string_type>
 class StringView
 {
 public:
-    using Iterator = const char *;
-    using ConstIterator = const char *;
+    using CharType = typename containers::detail::StringTypeImpl<string_type>::CharType;
+    using WidestCharType = typename containers::detail::StringTypeImpl<string_type>::WidestCharType;
 
-    StringView(const char str[])
-        : m_str(&str[0]),
+    using Iterator = const CharType *;
+    using ConstIterator = const CharType *;
+
+    static constexpr bool is_ansi = string_type == StringType::ANSI;
+    static constexpr bool is_utf8 = string_type == StringType::UTF8;
+    static constexpr bool is_utf16 = string_type == StringType::UTF16;
+    static constexpr bool is_utf32 = string_type == StringType::UTF32;
+    static constexpr bool is_wide = string_type == StringType::WIDE_CHAR;
+
+    static_assert(!is_utf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
+    static_assert(!is_ansi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
+    static_assert(!is_utf16 || std::is_same_v<CharType, utf::u16char>, "UTF-16 Strings must have CharType equal to utf::u16char");
+    static_assert(!is_utf32 || std::is_same_v<CharType, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
+    static_assert(!is_wide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
+
+    StringView()
+        : m_begin(nullptr),
+          m_end(nullptr),
           m_length(0)
     {
-        m_length = Memory::StrLen(str);
     }
 
-    template <SizeType Sz>
-    constexpr StringView(const StaticString<Sz> &str)
-        : m_str(&str.data[0]),
-          m_length(Sz)
+    StringView(const detail::String<string_type> &str)
+        : m_begin(str.Begin()),
+          m_end(str.End()),
+          m_length(str.Length())
     {
     }
 
-    StringView(const StringView &other)
-        : m_str(other.m_str),
-          m_length(other.m_length)
+    StringView(const CharType str[])
+        : m_begin(&str[0]),
+          m_end(nullptr),
+          m_length(0)
+    {
+        int size = 0;
+        const int len = utf::utf_strlen<CharType, is_utf8>(str, &size);
+
+        m_end = m_begin + size;
+        m_length = len;
+    }
+
+    template <SizeType Sz, std::enable_if_t<is_utf8 || is_ansi, int> = 0>
+    StringView(const StaticString<Sz> &str)
+        : m_begin(str.Begin()),
+          m_end(str.End()),
+          m_length(utf::utf_strlen<CharType, is_utf8>(str.data))
     {
     }
 
-    StringView &operator=(const StringView &other)
-    {
-        m_str = other.m_str;
-        m_length = other.m_length;
-
-        return *this;
-    }
+    StringView(const StringView &other)             = default;
+    StringView &operator=(const StringView &other)  = default;
 
     StringView(StringView &&other) noexcept
-        : m_str(other.m_str),
+        : m_begin(other.m_begin),
+          m_end(other.m_end),
           m_length(other.m_length)
     {
-        other.m_str = nullptr;
+        other.m_begin = nullptr;
+        other.m_end = nullptr;
         other.m_length = 0;
     }
 
     StringView &operator=(StringView &&other) noexcept
     {
-        m_str = other.m_str;
+        m_begin = other.m_begin;
+        m_end = other.m_end;
         m_length = other.m_length;
 
-        other.m_str = nullptr;
+        other.m_begin = nullptr;
+        other.m_end = nullptr;
         other.m_length = 0;
 
         return *this;
@@ -74,59 +106,111 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    explicit operator const char *() const
-        { return m_str; }
+    explicit operator const CharType *() const
+        { return m_begin; }
 
+    /*! \brief Convenience operator overload to return the raw string using the dereference operator
+     *  \returns The raw string that the StringView has a pointer to. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const char * operator*() const
+        { return m_begin; }
+    
+
+    /*! \brief Compare two StringView objects. If the underlying pointers are equal by memory address,
+     *  compares the length to ensure both strings are equal. If the strings are not nullptr, then
+     *  the strings are compared using the \ref{Memory::AreStaticStringsEqual} function.
+     *  \param other The other StringView object to compare against.
+     *  \returns True if the strings are equal, false otherwise. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     constexpr bool operator==(const StringView &other) const
     {
-        if (!m_str) {
-            return !other.m_str;
+        // If memory addresses are equal then return true,
+        // only compare length if strings are not nullptr.
+        if (m_begin == other.m_begin && (!m_begin || Size() == other.Size())) {
+            return true;
         }
 
-        return Memory::AreStaticStringsEqual(m_str, other.m_str);
+        return Memory::AreStaticStringsEqual(m_begin, other.m_begin);
     }
 
+    /*! \brief Inversion of the equality operator.
+     *  \param other The other StringView object to compare against.
+     *  \returns True if the strings are not equal, false otherwise. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     constexpr bool operator!=(const StringView &other) const
         { return !operator==(other); }
 
+    /*! \brief Compare two StringView objects using the \ref{Memory::StrCmp} function.
+     *  \param other The other StringView object to compare against.
+     *  \returns True if the strcmp result is less than 0, false otherwise. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const StringView &other) const
-        { return m_str == nullptr ? true : bool(Memory::StrCmp(m_str, other.m_str) < 0); }
+        { return m_begin == nullptr ? true : bool(Memory::StrCmp(m_begin, other.m_begin) < 0); }
 
+    /*! \brief Return the size of the string. For UTF-8 strings, this is the number of bytes.
+     *  For other types, this is the number of characters.
+     *  \note For UTF-8 strings, use the \ref{Length} function to get the number of characters.
+     *  \returns The size of the string. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType Size() const
+        { return SizeType(m_end - m_begin); }
+
+    /*! \brief Return the length of the string. For UTF-8 strings, this is the number of characters.
+     *  For other types, this is the same as the \ref{Size} function.
+     *  \returns The length of the string in characters. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     SizeType Length() const
         { return m_length; }
 
+    /*! \brief Return the raw string pointer.
+     *  \returns The raw string pointer. */
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const char *Data() const
-        { return m_str; }
+    const CharType *Data() const
+        { return m_begin; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(Begin(), End());
+        return HashCode::GetHashCode(m_begin, m_end);
     }
 
     HYP_DEF_STL_BEGIN_END(
-        m_str,
-        m_str + m_length
+        m_begin,
+        m_end
     )
 
 private:
-    const char  *m_str;
-    SizeType    m_length;
+    const CharType  *m_begin;
+    const CharType  *m_end;
+    SizeType        m_length;
 };
+} // namespace detail
+
+template <int string_type>
+using StringView = detail::StringView<string_type>;
+
+using ANSIStringView = StringView<StringType::ANSI>;
+using UTF8StringView = StringView<StringType::UTF8>;
+using UTF16StringView = StringView<StringType::UTF16>;
+using UTF32StringView = StringView<StringType::UTF32>;
+using WideStringView = StringView<StringType::WIDE_CHAR>;
+
 } // namespace utilities
 
 using utilities::StringView;
+using utilities::ANSIStringView;
+using utilities::UTF8StringView;
+using utilities::UTF16StringView;
+using utilities::UTF32StringView;
+using utilities::WideStringView;
 
 } // namespace hyperion
 

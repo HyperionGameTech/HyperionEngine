@@ -69,18 +69,28 @@ public:
     HYP_FORCE_INLINE
     static constexpr HYP_ENABLE_IF(!std::is_enum_v<T> && !is_math_vector_v<T>, T) MinSafeValue()
         { return std::numeric_limits<T>::lowest(); }
+
+    template <class T>
+    HYP_FORCE_INLINE
+    static constexpr auto MaxSafeValue(T)
+        { return MaxSafeValue<T>(); }
+
+    template <class T>
+    HYP_FORCE_INLINE
+    static constexpr auto MinSafeValue(T)
+        { return MinSafeValue<T>(); }
     
     HYP_FORCE_INLINE
-    static Vector2 SafeValue(const Vector2 &value)
-        { return Vector2::Max(Vector2::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
+    static Vec2f SafeValue(const Vec2f &value)
+        { return Vec2f::Max(Vec2f::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
 
     HYP_FORCE_INLINE
-    static Vector3 SafeValue(const Vector3 &value)
-        { return Vector3::Max(Vector3::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
+    static Vec3f SafeValue(const Vec3f &value)
+        { return Vec3f::Max(Vec3f::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
 
     HYP_FORCE_INLINE
-    static Vector4 SafeValue(const Vector4 &value)
-        { return Vector4::Max(Vector4::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
+    static Vec4f SafeValue(const Vec4f &value)
+        { return Vec4f::Max(Vector4::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>()); }
 
     template <class T>
     HYP_FORCE_INLINE

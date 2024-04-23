@@ -750,14 +750,20 @@ void SampleStreamer::InitGame()
         //     }
         // });
 
-
         auto menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         menu_bar->SetParentAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
         menu_bar->SetOriginAlignment(UIObjectAlignment::UI_OBJECT_ALIGNMENT_TOP_LEFT);
 
         auto file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
         file_menu_item->SetDropDownMenuItems({
-            { HYP_NAME(New), "New" },
+            {
+                HYP_NAME(New),
+                "New",
+                []()
+                {
+                    DebugLog(LogType::Debug, "New clicked!\n");
+                }
+            },
             { HYP_NAME(Open), "Open" },
             { HYP_NAME(Save), "Save" },
             { HYP_NAME(SaveAs), "Save As" },

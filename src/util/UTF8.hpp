@@ -162,18 +162,10 @@ inline int utf8_strlen(const char *str, int *out_count = nullptr)
     return count;
 }
 
-inline int utf32_strlen(const u32char *str)
-{
-    int counter = 0;
-    const u32char *pos = str;
-    for (; *pos; ++pos, counter++);
-    return counter;
-}
-
-template <class T, bool IsUtf8>
+template <class T, bool is_utf8>
 int utf_strlen(const T *str, int *out_count = nullptr)
 {
-    if constexpr (IsUtf8) {
+    if constexpr (is_utf8) {
         return utf8_strlen(str, out_count);
     }
 
