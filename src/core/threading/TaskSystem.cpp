@@ -77,7 +77,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
     const ThreadID &current_thread_id = Threads::CurrentThreadID();
 
     /*if (Threads::IsThreadInMask(current_thread_id, THREAD_TASK)) {
-        DebugLog(LogType::Warn, "Enqueing tasks from within a task thread may have performance implications\n");
+        DebugLog(LogType::Warn, "Enqueuing tasks from within a task thread may have performance implications\n");
     }*/
 
     TaskThreadPool &pool = GetPool(batch->pool);
@@ -119,7 +119,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         if (was_busy) {
             DebugLog(
                 LogType::Warn,
-                "On task thread %s: All other task threads busy while enqueing a batch from within another task thread! "
+                "On task thread %s: All other task threads busy while enqueuing a batch from within another task thread! "
                 "The task will instead be executed inline on the current task thread."
                 "\n\tReduce usage of batching within batches?\n",
                 current_thread_id.name.LookupString()

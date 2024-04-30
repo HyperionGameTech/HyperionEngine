@@ -206,6 +206,10 @@ public:
 
                 ptr->handles.Set(id, std::move(handle));
             } else {
+#ifdef HYP_DEBUG_MODE
+                DebugLog(LogType::Debug, "Releasing no longer used object of type %s with ID #%u\n", TypeName<T>().Data(), id.Value());
+#endif
+
                 // Use SafeRelease to defer the actual destruction of the resource until after a few frames
                 g_safe_deleter->SafeReleaseHandle(std::move(ptr->handles.Get(id)));
             }

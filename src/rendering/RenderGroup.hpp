@@ -32,7 +32,6 @@ using renderer::CommandBuffer;
 using renderer::Topology;
 using renderer::FillMode;
 using renderer::FaceCullMode;
-using renderer::StencilState;
 using renderer::Frame;
 using renderer::Pipeline;
 

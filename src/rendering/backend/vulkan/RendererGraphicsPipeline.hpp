@@ -51,8 +51,7 @@ public:
         RenderPassRef<Platform::VULKAN>                 render_pass;
         Array<FramebufferObjectRef<Platform::VULKAN>>   fbos;
 
-        // stencil
-        StencilState                        stencil_state { };
+        StencilFunction                                 stencil_function;
     };
 
     GraphicsPipeline();

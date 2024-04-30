@@ -21,7 +21,7 @@ DebugDrawer::~DebugDrawer()
 
 void DebugDrawer::Create()
 {
-    m_shapes[uint(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(8);
+    m_shapes[uint(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(4);
     m_shapes[uint(DebugDrawShape::BOX)] = MeshBuilder::Cube();
     m_shapes[uint(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
 

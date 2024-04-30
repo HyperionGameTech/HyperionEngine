@@ -150,38 +150,22 @@ void EntityDrawCollection::UpdateRenderSideResources()
         render_side_resources.GetResourceUsageMap<Skeleton>()
     };
 
+    Bitset new_bitsets[ArraySize(resource_usage_maps)] = { }; // mesh, material, skeleton
+
+    // @TODO: Optimize without nested looping
+    for (const auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
+        for (const auto &it : list_per_pass_type) {
+            for (uint32 i = 0; i < ArraySize(new_bitsets); i++) {
+                new_bitsets[i] |= it.second.usage_bits[i];
+            }
+        }
+    }
+
     Bitset prev_bitsets[ArraySize(resource_usage_maps)];
 
     for (uint32 i = 0; i < ArraySize(resource_usage_maps); i++) {
         if (resource_usage_maps[i]) {
             prev_bitsets[i] = resource_usage_maps[i]->usage_bits;
-        }
-    }
-
-    Bitset new_bitsets[ArraySize(resource_usage_maps)] = { }; // mesh, material, skeleton
-
-    // prevent these objects from going out of scope while rendering is happening
-
-    // @TODO: Optimize without nested looping
-    for (auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (auto &it : list_per_pass_type) {
-            new_bitsets[RESOURCE_USAGE_TYPE_MESH] |= it.second.usage_bits[RESOURCE_USAGE_TYPE_MESH];
-            new_bitsets[RESOURCE_USAGE_TYPE_MATERIAL] |= it.second.usage_bits[RESOURCE_USAGE_TYPE_MATERIAL];
-            new_bitsets[RESOURCE_USAGE_TYPE_SKELETON] |= it.second.usage_bits[RESOURCE_USAGE_TYPE_SKELETON];
-
-            // for (const EntityDrawData &entity_draw_data : it.second.entity_draw_datas) {
-            //     if (entity_draw_data.mesh_id.IsValid()) {
-            //         new_bitsets[RESOURCE_USAGE_TYPE_MESH].Set(entity_draw_data.mesh_id.ToIndex(), true);
-            //     }
-
-            //     if (entity_draw_data.material_id.IsValid()) {
-            //         new_bitsets[RESOURCE_USAGE_TYPE_MATERIAL].Set(entity_draw_data.material_id.ToIndex(), true);
-            //     }
-
-            //     if (entity_draw_data.skeleton_id.IsValid()) {
-            //         new_bitsets[RESOURCE_USAGE_TYPE_SKELETON].Set(entity_draw_data.skeleton_id.ToIndex(), true);
-            //     }
-            // }
         }
     }
 
@@ -435,7 +419,6 @@ void RenderList::PushEntityToRender(
         new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetMaterialAttributes(new_material_attributes);
-        attributes.SetStencilState(override_attributes->GetStencilState());
     }
 
     m_draw_collection->InsertEntityWithAttributes(attributes, EntityDrawData {

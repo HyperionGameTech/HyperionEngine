@@ -191,7 +191,7 @@ void HyperionEditorImpl::CreateMainPanel()
         auto *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-            editor_camera_controller->SetMode(EC_MODE_FOCUSED);
+            editor_camera_controller->SetMode(ECM_FOCUSED);
         }
 
         return UEHR_OK;
@@ -204,7 +204,7 @@ void HyperionEditorImpl::CreateMainPanel()
         auto *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-            editor_camera_controller->SetMode(EC_MODE_INACTIVE);
+            editor_camera_controller->SetMode(ECM_INACTIVE);
         }
 
         return UEHR_OK;
@@ -214,26 +214,26 @@ void HyperionEditorImpl::CreateMainPanel()
     scene_tab->GetContents()->AddChildUIObject(ui_image);
 
     auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
-    auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Hello_world_button), Vec2i { 20, 50 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
-    game_tab_content_button->SetParentAlignment(UIObjectAlignment::UOA_CENTER);
-    game_tab_content_button->SetOriginAlignment(UIObjectAlignment::UOA_CENTER);
-    game_tab_content_button->SetText("Hello hello helloworld");
-    game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 900, UIObjectSize::PIXEL }));
-    game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
 
-    AssertThrow(game_tab_content_button->GetScene() != nullptr);
-
-    game_tab_content_button->GetScene()->GetEntityManager()->AddComponent(game_tab_content_button->GetEntity(), ScriptComponent {
-        {
-            .assembly_name  = "csharp.dll",
-            .class_name     = "TestUIScript"
-        }
-    });
+    for (int i = 0; i < 50; i++) {
+        auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(CreateNameFromDynamicString(ANSIString("Hello_world_button_") + ANSIString::ToString(i)), Vec2i { 20, i * 25 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+        // game_tab_content_button->SetParentAlignment(UIObjectAlignment::UOA_CENTER);
+        // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::UOA_CENTER);
+        game_tab_content_button->SetText(String("Hello ") + String::ToString(i));
+        game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
+        game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
+    }
 
     // AssertThrow(game_tab_content_button->GetScene() != nullptr);
 
-    // AssertThrow(game_tab_content_button->GetScene()->GetEntityManager()->HasComponent<ScriptComponent>(game_tab_content_button->GetEntity()));
-    AssertThrow(game_tab_content_button->GetScene()->GetEntityManager()->HasEntity(game_tab_content_button->GetEntity()));
+    // game_tab_content_button->GetScene()->GetEntityManager()->AddComponent(game_tab_content_button->GetEntity(), ScriptComponent {
+    //     {
+    //         .assembly_name  = "csharp.dll",
+    //         .class_name     = "TestUIScript"
+    //     }
+    // });
+
+    // AssertThrow(game_tab_content_button->GetScene()->GetEntityManager()->HasEntity(game_tab_content_button->GetEntity()));
 
     // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
 }

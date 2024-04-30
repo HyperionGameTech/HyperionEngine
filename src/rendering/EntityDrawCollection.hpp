@@ -117,11 +117,11 @@ struct PushConstantData
         size = sizeof(T);
     }
 
-    PushConstantData(const PushConstantData &other) = default;
-    PushConstantData &operator=(const PushConstantData &other) = default;
-    PushConstantData(PushConstantData &&other) noexcept = default;
-    PushConstantData &operator=(PushConstantData &&other) noexcept = default;
-    ~PushConstantData() = default;
+    PushConstantData(const PushConstantData &other)                 = default;
+    PushConstantData &operator=(const PushConstantData &other)      = default;
+    PushConstantData(PushConstantData &&other) noexcept             = default;
+    PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
+    ~PushConstantData()                                             = default;
 
     explicit operator bool() const
         { return ptr && size; }
@@ -132,11 +132,11 @@ class RenderList
 public:
     RenderList();
     RenderList(const Handle<Camera> &camera);
-    RenderList(const RenderList &other) = default;
-    RenderList &operator=(const RenderList &other) = default;
-    RenderList(RenderList &&other) noexcept = default;
-    RenderList &operator=(RenderList &&other) noexcept = default;
-    ~RenderList() = default;
+    RenderList(const RenderList &other)                 = default;
+    RenderList &operator=(const RenderList &other)      = default;
+    RenderList(RenderList &&other) noexcept             = default;
+    RenderList &operator=(RenderList &&other) noexcept  = default;
+    ~RenderList()                                       = default;
 
     const Handle<Camera> &GetCamera() const
         { return m_camera; }

@@ -23,13 +23,13 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
 void FirstPersonCameraController::UpdateLogic(double dt)
 {
     switch (m_mode) {
-    case FPC_MODE_MOUSE_LOCKED:
+    case FPCCM_MOUSE_LOCKED:
         m_desired_mag = Vec2f {
             m_mouse_x - (float(m_camera->GetWidth()) / 2.0f),
             m_mouse_y - (float(m_camera->GetHeight()) / 2.0f)
         };
         break;
-    case FPC_MODE_MOUSE_FREE:
+    case FPCCM_MOUSE_FREE:
         m_desired_mag = Vec2f {
             m_mouse_x - m_prev_mouse_x,
             m_mouse_y - m_prev_mouse_y

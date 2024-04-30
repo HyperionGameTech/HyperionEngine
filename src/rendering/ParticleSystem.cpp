@@ -278,7 +278,7 @@ void ParticleSpawner::CreateRenderGroup()
                 .bucket         = Bucket::BUCKET_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces     = FaceCullMode::FRONT,
-                .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
+                .flags          = MaterialAttributes::RAF_DEPTH_TEST
             }
         ),
         std::move(descriptor_table)
