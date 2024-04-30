@@ -153,11 +153,11 @@ enum KeyCode : uint16
     KEY_ARROW_UP = 82,
 };
 
-enum MouseButton
+enum MouseButtonName
 {
-    MB_LEFT = SDL_BUTTON_LEFT,
-    MB_MIDDLE,
-    MB_RIGHT,
+    MBN_LEFT = SDL_BUTTON_LEFT,
+    MBN_MIDDLE,
+    MBN_RIGHT,
 };
 
 using MouseButtonMask = uint32;
@@ -360,7 +360,7 @@ public:
 } // namespace sys
 
 using sys::KeyCode;
-using sys::MouseButton;
+using sys::MouseButtonName;
 using sys::MouseButtonMask;
 using sys::MouseState;
 

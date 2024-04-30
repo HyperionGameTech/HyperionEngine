@@ -153,7 +153,7 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
 
     tab->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
-        if (data.button == MouseButton::MB_LEFT)
+        if (data.button == MouseButtonName::MBN_LEFT)
         {
             const uint tab_index = GetTabIndex(name);
 
