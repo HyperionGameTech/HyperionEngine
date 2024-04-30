@@ -632,7 +632,12 @@ public:
      *  for the material from the manager. Usable from any thread.
      *  \param material The ID of the material to remove
      */
-    void EnqueueRemove(ID<Material> material);
+    void EnqueueRemoveMaterial(ID<Material> material);
+
+    /*! \brief Remove a material from the manager. Only to be used from the render thread.
+     *  \param material The ID of the material to remove
+     */
+    void RemoveMaterial(ID<Material> material);
 
     void SetNeedsDescriptorSetUpdate(ID<Material> id);
 

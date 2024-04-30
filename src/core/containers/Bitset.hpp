@@ -39,7 +39,7 @@ private:
 public:
     friend std::ostream &operator<<(std::ostream &os, const Bitset &bitset);
 
-    Bitset()                                    = default;
+    Bitset();
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
     HYP_API explicit Bitset(uint64 value);
@@ -82,6 +82,11 @@ public:
 
     HYP_API Bitset operator^(const Bitset &other) const;
     HYP_API Bitset &operator^=(const Bitset &other);
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const ubyte *Data() const
+        { return reinterpret_cast<const ubyte *>(m_blocks.Data()); }
 
     /*! \brief Resizes the bitset to the given number of bits.
         \param num_bits The new number of bits in the bitset. */

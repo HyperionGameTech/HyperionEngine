@@ -253,7 +253,7 @@ void RenderGroup::Init()
     SetReady(true);
 }
 
-void RenderGroup::CollectDrawCalls()
+void RenderGroup::CollectDrawCalls(const Array<EntityDrawData> &entity_draw_datas)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
 
@@ -265,7 +265,7 @@ void RenderGroup::CollectDrawCalls()
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    for (EntityDrawData &entity_draw_data : m_entity_draw_datas) {
+    for (const EntityDrawData &entity_draw_data : entity_draw_datas) {
 #ifdef HYP_DEBUG_MODE
         AssertThrow(entity_draw_data.mesh_id.IsValid());
         AssertThrow(entity_draw_data.material_id.IsValid());
@@ -302,7 +302,7 @@ void RenderGroup::CollectDrawCalls()
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
 
-    m_entity_draw_datas.Clear();
+    // m_entity_draw_datas.Clear();
 }
 
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
@@ -491,8 +491,6 @@ RenderAll(
                                 mesh_container.Get(draw_call.mesh_id.ToIndex())
                                     .Render(secondary, entity_batch.num_entities);
                             }
-
-                            // num_rendered_objects.Increment(1u, MemoryOrder::RELAXED);
                         }
 
                         HYPERION_RETURN_OK;
@@ -671,20 +669,6 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame, bool parallel)
             m_divided_draw_calls,
             m_draw_state
         );
-}
-
-void RenderGroup::Render(Frame *frame)
-{
-    // perform all ops in one batch
-    CollectDrawCalls();
-    PerformRendering(frame);
-}
-
-void RenderGroup::SetEntityDrawDatas(const Array<EntityDrawData> &entity_draw_datas)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
-
-    m_entity_draw_datas = entity_draw_datas;
 }
 
 #pragma endregion RenderGroup

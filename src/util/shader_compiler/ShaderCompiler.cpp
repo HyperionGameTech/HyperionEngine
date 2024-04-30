@@ -8,6 +8,7 @@
 
 #include <core/Defines.hpp>
 #include <core/util/ForEach.hpp>
+#include <core/system/Time.hpp>
 
 #include <asset/ByteWriter.hpp>
 #include <asset/BufferedByteReader.hpp>
@@ -437,7 +438,7 @@ struct LoadedSourceFile
     ShaderModuleType            type;
     ShaderLanguage              language;
     ShaderCompiler::SourceFile  file;
-    uint64                      last_modified_timestamp;
+    Time                        last_modified_timestamp;
     String                      source;
 
     FilePath GetOutputFilepath(const FilePath &base_path, const CompiledShader &compiled_shader) const
@@ -817,15 +818,15 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     // if not, we need to recompile those versions.
 
     // TODO: Each individual item should have a timestamp internally set
-    const uint64 object_file_last_modified = output_file_path.LastModifiedTimestamp();
+    const Time object_file_last_modified = output_file_path.LastModifiedTimestamp();
 
-    uint64 max_source_file_last_modified = 0;
+    Time max_source_file_last_modified = Time(0);
 
     for (auto &source_file : bundle.sources) {
         max_source_file_last_modified = MathUtil::Max(max_source_file_last_modified, FilePath(source_file.second.path).LastModifiedTimestamp());
     }
 
-    if (max_source_file_last_modified >= object_file_last_modified) {
+    if (max_source_file_last_modified > object_file_last_modified) {
         DebugLog(
             LogType::Info,
             "Source file in batch %s has been modified since the batch was last compiled, recompiling...\n",
@@ -864,7 +865,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             }
 
             mtx.unlock();
-        }, true);
+        }, false);
 
         const auto it = batch.compiled_shaders.FindIf([properties_hash = additional_versions.GetHashCode()](const CompiledShader &item)
         {
@@ -1087,7 +1088,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
 
     const bool supports_rt_shaders = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported();
 
-    FlatMap<Bundle *, bool> results;
+    HashMap<Bundle *, bool> results;
     std::mutex results_mutex;
 
     // Compile all shaders ahead of time
@@ -1111,15 +1112,17 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties)
         {
             CompiledShader compiled_shader;
+            bool result = GetCompiledShader(bundle.name, properties, compiled_shader);
 
             results_mutex.lock();
-            results[&bundle] = GetCompiledShader(bundle.name, properties, compiled_shader);
+            results[&bundle] = result;
             results_mutex.unlock();
-        }, false);
+        }, true);
     });
 
-    return results.Every([](const KeyValuePair<Bundle *, bool> &it)
-    {
+    bool all_results = true;
+
+    for (const auto &it : results) {
         if (!it.second) {
             String permutation_string;
 
@@ -1129,10 +1132,12 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
                 it.first->name.LookupString(),
                 it.first->versions.GetHashCode().Value()
             );
-        }
 
-        return it.second;
-    });
+            all_results = false;
+        }
+    }
+
+    return all_results;
 }
 
 bool ShaderCompiler::CanCompileShaders() const

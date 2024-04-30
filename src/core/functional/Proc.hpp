@@ -191,10 +191,10 @@ public:
     bool IsValid() const
         { return functor.HasValue(); }
 
-    FunctorDataType functor;
+    mutable FunctorDataType functor;
 
     HYP_FORCE_INLINE
-    ReturnType operator()(Args... args)
+    ReturnType operator()(Args... args) const
         { return functor.Invoke(std::forward<Args>(args)...); }
 };
 

@@ -275,16 +275,9 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         return true;
     };
 
-    DebugLog(
-        LogType::Debug,
-        "Locking ShaderManager for ShaderDefinition with hash %llu from thread %s\n",
-        definition.GetHashCode().Value(),
-        Threads::CurrentThreadID().name.LookupString()
-    );
+    Mutex::Guard guard(m_mutex);
 
     { // check if exists in cache
-        Mutex::Guard guard(m_mutex);
-
         const auto it = m_map.Find(definition);
 
         if (it != m_map.End()) {
@@ -322,13 +315,13 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         definition.GetProperties().GetHashCode().Value()
     );
 
-    DebugLog(LogType::Debug, "Creating shader... %s\n", definition.GetName().LookupString());
+    DebugLog(LogType::Debug, "Creating shader '%s'\n", *definition.GetName());
 
     Handle<Shader> handle = CreateObject<Shader>();
     handle->SetName(definition.GetName());
     handle->SetCompiledShader(std::move(compiled_shader));
 
-    DebugLog(LogType::Debug, "Shader created.\n");
+    DebugLog(LogType::Debug, "Shader '%s' created\n", *definition.GetName());
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetDefinition().GetProperties()));
@@ -336,11 +329,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     InitObject(handle);
 
-    { // Add it to the cache
-        Mutex::Guard guard(m_mutex);
-
-        m_map.Set(definition, handle);
-    }
+    m_map.Set(definition, handle);
 
     return handle;
 }

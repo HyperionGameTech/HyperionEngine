@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-const RenderBinding<Scene> RenderBinding<Scene>::empty = RenderBinding { };
-const RenderBinding<Camera> RenderBinding<Camera>::empty = RenderBinding { };
+const RenderBinding<Scene> RenderBinding<Scene>::empty = { };
+const RenderBinding<Camera> RenderBinding<Camera>::empty = { };
 
 } // namespace hyperion

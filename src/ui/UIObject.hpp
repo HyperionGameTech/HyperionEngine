@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_UI_OBJECT_HPP
 #define HYPERION_UI_OBJECT_HPP
 
@@ -271,6 +272,11 @@ public:
      *  \return The DrawableLayer of the UI object */
     DrawableLayer GetDrawableLayer() const;
 
+    /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
+     *  \see{Node::CalculateDepth}
+     *  \return The depth of the UI object */
+    int GetComputedDepth() const;
+
     /*! \brief Get the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
@@ -401,6 +407,14 @@ public:
         { return m_focus_state; }
 
     void SetFocusState(UIObjectFocusState focus_state);
+
+    /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
+     *  \param proc The function to call for each collected UIObject. */
+    void CollectObjects(const Proc<void, const RC<UIObject> &> &proc) const;
+
+    /*! \brief Collect all nested UIObjects in the hierarchy and push them to the `out_objects` array.
+     *  \param out_objects The array to store the collected UIObjects in. */
+    void CollectObjects(Array<RC<UIObject>> &out_objects) const;
 
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDown;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseUp;
