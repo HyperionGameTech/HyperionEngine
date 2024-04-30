@@ -39,15 +39,15 @@ private:
 public:
     friend std::ostream &operator<<(std::ostream &os, const Bitset &bitset);
 
-    Bitset();
+    HYP_API Bitset();
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
     HYP_API explicit Bitset(uint64 value);
 
     Bitset(const Bitset &other)                 = default;
     Bitset &operator=(const Bitset &other)      = default;
-    Bitset(Bitset &&other) noexcept;
-    Bitset &operator=(Bitset &&other) noexcept;
+    HYP_API Bitset(Bitset &&other) noexcept;
+    HYP_API Bitset &operator=(Bitset &&other) noexcept;
     ~Bitset()                                   = default;
 
     [[nodiscard]]
