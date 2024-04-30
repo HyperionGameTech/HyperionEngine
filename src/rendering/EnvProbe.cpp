@@ -432,8 +432,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                     MeshAttributes { },
                     MaterialAttributes {
                         .shader_definition  = m_shader->GetCompiledShader().GetDefinition(),
-                        .cull_faces         = FaceCullMode::NONE,
-                        .blend_function     = BlendFunction::AlphaBlending()
+                        .blend_function     = BlendFunction::AlphaBlending(),
+                        .cull_faces         = FaceCullMode::NONE
                     }
                 ),
                 true // skip frustum culling
@@ -449,8 +449,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                     MeshAttributes { },
                     MaterialAttributes {
                         .shader_definition  = m_shader->GetCompiledShader().GetDefinition(),
-                        .cull_faces         = FaceCullMode::NONE,
-                        .blend_function     = BlendFunction::AlphaBlending()
+                        .blend_function     = BlendFunction::AlphaBlending(),
+                        .cull_faces         = FaceCullMode::NONE
                     }
                 ),
                 true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
@@ -461,15 +461,15 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     }
 
     PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
-        .id = m_id,
-        .aabb = m_aabb,
+        .id             = GetID(),
+        .aabb           = m_aabb,
         .world_position = GetOrigin(),
-        .camera_near = m_camera_near,
-        .camera_far = m_camera_far,
-        .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
-            | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-            | ENV_PROBE_FLAGS_DIRTY,
-        .grid_slot = m_grid_slot
+        .camera_near    = m_camera_near,
+        .camera_far     = m_camera_far,
+        .flags          = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
+                        | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+                        | ENV_PROBE_FLAGS_DIRTY,
+        .grid_slot      = m_grid_slot
     });
 
     SetNeedsUpdate(false);
