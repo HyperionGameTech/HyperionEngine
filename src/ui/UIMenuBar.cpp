@@ -93,7 +93,7 @@ Handle<Material> UIMenuItem::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .flags              = MaterialAttributes::RAF_NONE,
             .layer              = GetDrawableLayer()
         },
         {
@@ -193,7 +193,7 @@ void UIMenuBar::Init()
     m_container->SetParentAlignment(UIObjectAlignment::UOA_BOTTOM_LEFT);
     m_container->SetOriginAlignment(UIObjectAlignment::UOA_TOP_LEFT);
     m_container->SetPadding({ 1, 1 });
-    m_container->SetDepth(100);
+    m_container->SetDepth(1000);
 
     m_container->OnClick.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
     {

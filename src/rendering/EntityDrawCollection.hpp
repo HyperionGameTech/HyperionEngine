@@ -13,6 +13,7 @@
 #include <rendering/EntityDrawData.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderResourceManager.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
 #include <Types.hpp>
@@ -61,28 +62,49 @@ constexpr PassType BucketToPassType(Bucket bucket)
     return pass_type_per_bucket[uint(bucket)];
 }
 
+struct EntityList
+{
+    Array<EntityDrawData>                       entity_draw_datas;
+    Handle<RenderGroup>                         render_group;
+    FixedArray<Bitset, RESOURCE_USAGE_TYPE_MAX> usage_bits;
+
+    EntityList() = default;
+    EntityList(const EntityList &other);
+    EntityList &operator=(const EntityList &other);
+    EntityList(EntityList &&other) noexcept;
+    EntityList &operator=(EntityList &&other) noexcept;
+    ~EntityList() = default;
+
+    void ClearEntities()
+    {
+        entity_draw_datas.Clear();
+
+        // Reset usage bitset
+        usage_bits = { };
+
+        // Do not clear render group; keep it reserved
+    }
+};
+
 class EntityDrawCollection
 {
 public:
-    struct EntityList
-    {
-        Array<EntityDrawData>                       entity_draw_datas;
-        Handle<RenderGroup>                         render_group;
-        FixedArray<Bitset, RESOURCE_USAGE_TYPE_MAX> usage_bits;
-
-        void ClearEntities()
-        {
-            entity_draw_datas.Clear();
-            usage_bits = { };
-        }
-    };
-
     void InsertEntityWithAttributes(const RenderableAttributeSet &attributes, const EntityDrawData &entity_draw_data);
 
     void ClearEntities();
 
     void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list);
-    void UpdateRenderSideResources();
+
+    /*! \brief Update the render thread side resource manager using another ResourceManager
+     *  that was handed off from the game thread. \ref{resources} only needs to hold Handle<T> objects
+     *  for newly added resources, as they will be taken and stored in the render side resource manager. */
+    void UpdateRenderSideResources(RenderResourceManager &resources);
+
+    RenderResourceManager &GetRenderSideResources()
+        { return m_current_render_side_resources; }
+
+    const RenderResourceManager &GetRenderSideResources() const
+        { return m_current_render_side_resources; }
 
     FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList();
     const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList() const;
@@ -117,11 +139,11 @@ struct PushConstantData
         size = sizeof(T);
     }
 
-    PushConstantData(const PushConstantData &other) = default;
-    PushConstantData &operator=(const PushConstantData &other) = default;
-    PushConstantData(PushConstantData &&other) noexcept = default;
-    PushConstantData &operator=(PushConstantData &&other) noexcept = default;
-    ~PushConstantData() = default;
+    PushConstantData(const PushConstantData &other)                 = default;
+    PushConstantData &operator=(const PushConstantData &other)      = default;
+    PushConstantData(PushConstantData &&other) noexcept             = default;
+    PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
+    ~PushConstantData()                                             = default;
 
     explicit operator bool() const
         { return ptr && size; }
@@ -132,11 +154,11 @@ class RenderList
 public:
     RenderList();
     RenderList(const Handle<Camera> &camera);
-    RenderList(const RenderList &other) = default;
-    RenderList &operator=(const RenderList &other) = default;
-    RenderList(RenderList &&other) noexcept = default;
-    RenderList &operator=(RenderList &&other) noexcept = default;
-    ~RenderList() = default;
+    RenderList(const RenderList &other)                 = delete;
+    RenderList &operator=(const RenderList &other)      = delete;
+    RenderList(RenderList &&other) noexcept             = default;
+    RenderList &operator=(RenderList &&other) noexcept  = default;
+    ~RenderList();
 
     const Handle<Camera> &GetCamera() const
         { return m_camera; }
@@ -253,6 +275,10 @@ private:
     Handle<Camera>                                              m_camera;
     RC<EntityDrawCollection>                                    m_draw_collection;
     HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>>    m_render_groups;
+
+    // Keeps track of resources that are used per frame.
+    // Handles to the objects are not persistently held, as they are moved when passed to the render command UpdateRenderSideResources
+    RenderResourceManager                                       m_resources;
 };
 
 } // namespace hyperion

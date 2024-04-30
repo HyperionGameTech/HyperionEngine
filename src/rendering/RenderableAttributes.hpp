@@ -15,7 +15,11 @@ namespace hyperion {
 using renderer::FaceCullMode;
 using renderer::Topology;
 using renderer::FillMode;
-using renderer::StencilState;
+
+using renderer::StencilFunction;
+using renderer::StencilOp;
+using renderer::StencilCompareOp;
+
 using renderer::BlendFunction;
 using renderer::BlendModeFactor;
 
@@ -89,9 +93,9 @@ struct MaterialAttributes
 
     enum MaterialFlagBits : MaterialFlags
     {
-        RENDERABLE_ATTRIBUTE_FLAGS_NONE         = 0x0,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE  = 0x1,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST   = 0x2
+        RAF_NONE        = 0x0,
+        RAF_DEPTH_WRITE = 0x1,
+        RAF_DEPTH_TEST  = 0x2
     };
 
     ShaderDefinition    shader_definition;
@@ -99,8 +103,9 @@ struct MaterialAttributes
     FillMode            fill_mode = FillMode::FILL;
     BlendFunction       blend_function = BlendFunction::None();
     FaceCullMode        cull_faces = FaceCullMode::BACK;
-    MaterialFlags       flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
+    MaterialFlags       flags = RAF_DEPTH_WRITE | RAF_DEPTH_TEST;
     DrawableLayer       layer;
+    StencilFunction     stencil_function;
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -112,7 +117,8 @@ struct MaterialAttributes
             && blend_function == other.blend_function
             && cull_faces == other.cull_faces
             && flags == other.flags
-            && layer == other.layer;
+            && layer == other.layer
+            && stencil_function == other.stencil_function;
     }
 
     [[nodiscard]]
@@ -132,6 +138,7 @@ struct MaterialAttributes
         hc.Add(cull_faces);
         hc.Add(flags);
         hc.Add(layer);
+        hc.Add(stencil_function);
 
         return hc;
     }
@@ -167,7 +174,6 @@ class RenderableAttributeSet
     ID<Framebuffer>     m_framebuffer_id; // only used for scenes, not per entity
     MeshAttributes      m_mesh_attributes;
     MaterialAttributes  m_material_attributes;
-    StencilState        m_stencil_state { };
     uint32              m_override_flags;
     uint32              m_unique_identifier;
 
@@ -257,18 +263,6 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const StencilState &GetStencilState() const
-        { return m_stencil_state; }
-
-    HYP_FORCE_INLINE
-    void SetStencilState(const StencilState &stencil_state)
-    {
-        m_stencil_state = stencil_state;
-        m_needs_hash_code_recalculation = true;
-    }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
     uint32 GetOverrideFlags() const
         { return m_override_flags; }
 
@@ -308,7 +302,6 @@ public:
         return m_framebuffer_id == other.m_framebuffer_id
             && m_mesh_attributes == other.m_mesh_attributes
             && m_material_attributes == other.m_material_attributes
-            && m_stencil_state == other.m_stencil_state
             && m_override_flags == other.m_override_flags;
     }
 
@@ -332,7 +325,6 @@ private:
         hc.Add(m_framebuffer_id.GetHashCode());
         hc.Add(m_mesh_attributes.GetHashCode());
         hc.Add(m_material_attributes.GetHashCode());
-        hc.Add(m_stencil_state.GetHashCode());
         hc.Add(m_override_flags);
         hc.Add(m_unique_identifier);
 

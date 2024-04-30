@@ -36,7 +36,7 @@ Handle<Material> UIImage::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .flags              = MaterialAttributes::RAF_NONE,
             .layer              = GetDrawableLayer()
         },
         {

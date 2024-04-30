@@ -1,9 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-//
-// Created by emd22 on 2022-02-20.
-//
-
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererRenderPass.hpp>
@@ -20,6 +16,8 @@
 namespace hyperion {
 namespace renderer {
 namespace platform {
+
+#pragma region Helpers
 
 static VkBlendFactor ToVkBlendFactor(BlendModeFactor blend_mode)
 {
@@ -48,6 +46,42 @@ static VkBlendFactor ToVkBlendFactor(BlendModeFactor blend_mode)
         return VK_BLEND_FACTOR_ONE;
     }
 }
+
+static VkStencilOp ToVkStencilOp(StencilOp stencil_op)
+{
+    switch (stencil_op) {
+    case StencilOp::KEEP:
+        return VK_STENCIL_OP_KEEP;
+    case StencilOp::ZERO:
+        return VK_STENCIL_OP_ZERO;
+    case StencilOp::REPLACE:
+        return VK_STENCIL_OP_REPLACE;
+    case StencilOp::INCREMENT:
+        return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    case StencilOp::DECREMENT:
+        return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+    default:
+        return VK_STENCIL_OP_KEEP;
+    }
+}
+
+static VkCompareOp ToVkCompareOp(StencilCompareOp compare_op)
+{
+    switch (compare_op) {
+    case StencilCompareOp::ALWAYS:
+        return VK_COMPARE_OP_ALWAYS;
+    case StencilCompareOp::NEVER:
+        return VK_COMPARE_OP_NEVER;
+    case StencilCompareOp::EQUAL:
+        return VK_COMPARE_OP_EQUAL;
+    case StencilCompareOp::NOT_EQUAL:
+        return VK_COMPARE_OP_NOT_EQUAL;
+    default:
+        return VK_COMPARE_OP_ALWAYS;
+    }
+}
+
+#pragma endregion Helpers
 
 GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline()
     : Pipeline<Platform::VULKAN>(),
@@ -360,34 +394,22 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     depth_stencil.minDepthBounds = 0.0f; // Optional
     depth_stencil.maxDepthBounds = 1.0f; // Optional
     depth_stencil.stencilTestEnable = VK_FALSE;
-    depth_stencil.front = {}; // Optional
-    depth_stencil.back = {}; // Optional
+    depth_stencil.front = {};
+    depth_stencil.back = {};
 
-    if (m_construction_info.stencil_state.mode != StencilMode::NONE) {
+    if (m_construction_info.stencil_function.IsSet()) {
         depth_stencil.stencilTestEnable = VK_TRUE;
 
-        switch (m_construction_info.stencil_state.mode) {
-        case StencilMode::FILL:
-            depth_stencil.back = {
-                .failOp      = VK_STENCIL_OP_REPLACE,
-                .passOp      = VK_STENCIL_OP_REPLACE,
-                .depthFailOp = VK_STENCIL_OP_REPLACE,
-                .compareOp   = VK_COMPARE_OP_ALWAYS
-            };
+        depth_stencil.back = {
+            .failOp      = ToVkStencilOp(m_construction_info.stencil_function.fail_op),
+            .passOp      = ToVkStencilOp(m_construction_info.stencil_function.pass_op),
+            .depthFailOp = ToVkStencilOp(m_construction_info.stencil_function.depth_fail_op),
+            .compareOp   = ToVkCompareOp(m_construction_info.stencil_function.compare_op),
+            .compareMask = m_construction_info.stencil_function.mask,
+            .writeMask   = m_construction_info.stencil_function.mask,
+            .reference   = m_construction_info.stencil_function.value
+        };
 
-            break;
-        case StencilMode::OUTLINE:
-            depth_stencil.back = {
-                .failOp      = VK_STENCIL_OP_KEEP,
-                .passOp      = VK_STENCIL_OP_KEEP,
-                .depthFailOp = VK_STENCIL_OP_KEEP,
-                .compareOp   = VK_COMPARE_OP_NOT_EQUAL
-            };
-
-            break;
-        }
-
-        depth_stencil.back.reference = m_construction_info.stencil_state.id;
         depth_stencil.front = depth_stencil.back;
     }
 

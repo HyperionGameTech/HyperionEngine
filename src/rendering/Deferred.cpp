@@ -472,7 +472,7 @@ void EnvGridPass::Create()
             .fill_mode      = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .flags          = MaterialAttributes::RAF_NONE
         }
     );
 
@@ -744,7 +744,7 @@ void ReflectionProbePass::Create()
             .fill_mode      = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .flags          = MaterialAttributes::RAF_NONE
         }
     );
 

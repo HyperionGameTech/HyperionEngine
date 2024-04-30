@@ -309,16 +309,16 @@ void UIObject::UpdatePosition(bool update_children)
         }
     }
     
-    offset_position += Vec2f(m_scroll_offset);
+    offset_position -= Vec2f(m_scroll_offset);
 
-    float z_value = 1.0f;
+    float z_value = 0.0f;
 
     if (m_depth != 0) {
         z_value = float(m_depth);
 
-        if (Node *parent_node = node->GetParent()) {
-            z_value -= parent_node->GetWorldTranslation().z;
-        }
+        // if (Node *parent_node = node->GetParent()) {
+        //     z_value -= parent_node->GetWorldTranslation().z;
+        // }
     }
 
     node->UnlockTransform();
@@ -461,6 +461,10 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset)
         return;
     }
 
+    DebugLog(LogType::Info, "Scroll offset changed for UI object %s: %d, %d\n", *GetName(), scroll_offset.x, scroll_offset.y);
+    DebugLog(LogType::Info, "Actual size: %d, %d\n", m_actual_size.x, m_actual_size.y);
+    DebugLog(LogType::Info, "Actual inner size: %d, %d\n", m_actual_inner_size.x, m_actual_inner_size.y);
+
     m_scroll_offset = scroll_offset;
 
     UpdatePosition();
@@ -489,7 +493,7 @@ void UIObject::SetDrawableLayer(DrawableLayer layer)
     UpdateMaterial(false);
 }
 
-int UIObject::GetDepth() const
+int UIObject::GetComputedDepth() const
 {
     if (m_depth != 0) {
         return m_depth;
@@ -497,6 +501,15 @@ int UIObject::GetDepth() const
 
     if (const NodeProxy &node = GetNode()) {
         return MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
+    }
+
+    return 0;
+}
+
+int UIObject::GetDepth() const
+{
+    if (m_depth != 0) {
+        return m_depth;
     }
 
     return 0;
@@ -513,7 +526,7 @@ void UIObject::SetAcceptsFocus(bool accepts_focus)
 {
     m_accepts_focus = accepts_focus;
 
-    if (HasFocus(true)) {
+    if (!accepts_focus && HasFocus(true)) {
         Blur();
     }
 }
@@ -803,7 +816,7 @@ Handle<Material> UIObject::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE,
+            .flags              = MaterialAttributes::RAF_NONE,
             .layer              = GetDrawableLayer()
         },
         {
@@ -1014,6 +1027,8 @@ void UIObject::UpdateMaterial(bool update_children)
         return;
     }
 
+    g_safe_deleter->SafeReleaseHandle(std::move(mesh_component->material));
+
     mesh_component->material = std::move(material);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
@@ -1050,6 +1065,80 @@ bool UIObject::HasChildUIObjects() const
 void UIObject::SetNodeProxy(NodeProxy node_proxy)
 {
     m_node_proxy = std::move(node_proxy);
+}
+
+void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) const
+{
+    AssertThrow(proc.IsValid());
+
+    if (!m_node_proxy.IsValid()) {
+        return;
+    }
+
+    const ID<Entity> entity = m_node_proxy->GetEntity();
+
+    if (entity.IsValid()) {
+        MeshComponent *mesh_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
+        TransformComponent *transform_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
+        BoundingBoxComponent *bounding_box_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
+
+        if (mesh_component != nullptr && transform_component != nullptr && bounding_box_component != nullptr) {
+            UIComponent *ui_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
+
+            if (ui_component && ui_component->ui_object) {
+                // Visibility affects all child nodes as well, so return from here.
+                if (!ui_component->ui_object->IsVisible()) {
+                    return;
+                }
+
+                AssertThrow(ui_component->ui_object->GetNode().IsValid());
+
+                proc(ui_component->ui_object);
+            }
+        }
+    }
+
+    Array<Pair<NodeProxy, RC<UIObject>>> children;
+    children.Reserve(m_node_proxy->GetChildren().Size());
+
+    for (const auto &it : m_node_proxy->GetChildren()) {
+        if (!it.IsValid()) {
+            continue;
+        }
+
+        UIComponent *ui_component = it->GetEntity().IsValid()
+            ? it->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
+            : nullptr;
+
+        children.PushBack({
+            it,
+            ui_component != nullptr
+                ? ui_component->ui_object
+                : nullptr
+        });
+    }
+
+    std::sort(children.Begin(), children.End(), [](const auto &lhs, const auto &rhs)
+    {
+        AssertThrow(lhs.first.IsValid());
+        AssertThrow(rhs.first.IsValid());
+
+        return lhs.first->GetLocalTranslation().z < rhs.first->GetLocalTranslation().z;
+    });
+
+    for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
+        proc(it.second);
+
+        it.second->CollectObjects(proc);
+    }
+}
+
+void UIObject::CollectObjects(Array<RC<UIObject>> &out_objects) const
+{
+    CollectObjects([&out_objects](const RC<UIObject> &ui_object)
+    {
+        out_objects.PushBack(ui_object);
+    });
 }
 
 template <class Lambda>

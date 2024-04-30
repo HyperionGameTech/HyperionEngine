@@ -5,6 +5,7 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/ContainerBase.hpp>
+#include <core/system/Time.hpp>
 #include <core/Defines.hpp>
 
 #include <util/fs/FsUtil.hpp>
@@ -133,7 +134,7 @@ public:
     HYP_API bool IsDirectory() const;
     HYP_API int MkDir() const;
 
-    HYP_API uint64 LastModifiedTimestamp() const;
+    HYP_API Time LastModifiedTimestamp() const;
 
     HYP_API String Basename() const;
 

@@ -65,7 +65,7 @@ enum class Topology : uint32
     POINTS
 };
 
-enum class StencilMode : uint32
+enum class StencilMode : uint8
 {
     NONE,
     FILL,
@@ -194,26 +194,75 @@ struct BlendFunction
         { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE); }
 };
 
-struct StencilState
+enum class StencilCompareOp : uint8
 {
-    uint        id = 0;
-    StencilMode mode = StencilMode::NONE;
+    ALWAYS,
+    NEVER,
+    EQUAL,
+    NOT_EQUAL
+};
 
-    HYP_DEF_STRUCT_COMPARE_EQL(StencilState);
+enum class StencilOp : uint8
+{
+    KEEP,
+    ZERO,
+    REPLACE,
+    INCREMENT,
+    DECREMENT
+};
 
-    bool operator<(const StencilState &other) const
+struct StencilFunction
+{
+    StencilOp           pass_op;
+    StencilOp           fail_op;
+    StencilOp           depth_fail_op;
+    StencilCompareOp    compare_op;
+    uint8               mask;
+    uint8               value;
+
+    StencilFunction()
+        : StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0x0, 0x1)
     {
-        return std::tie(id, mode) < std::tie(other.id, other.mode);
     }
 
+    StencilFunction(StencilOp pass_op, StencilOp fail_op, StencilOp depth_fail_op, StencilCompareOp compare_op, uint8 mask, uint8 value)
+        : pass_op(pass_op),
+          fail_op(fail_op),
+          depth_fail_op(depth_fail_op),
+          compare_op(compare_op),
+          mask(mask),
+          value(value)
+    {
+    }
+
+    StencilFunction(const StencilFunction &other)                   = default;
+    StencilFunction &operator=(const StencilFunction &other)        = default;
+    StencilFunction(StencilFunction &&other) noexcept               = default;
+    StencilFunction &operator=(StencilFunction &&other) noexcept    = default;
+    ~StencilFunction()                                              = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const StencilFunction &other) const = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(const StencilFunction &other) const = default;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator<(const StencilFunction &other) const
+        { return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsSet() const
+        { return mask != 0x0; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(id);
-        hc.Add(mode);
-
-        return hc;
-    }
+        { return HashCode::GetHashCode(value); }
 };
 
 } // namespace hyperion::renderer

@@ -174,9 +174,16 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        // ui only has this attachment.
         AddOwnedAttachment(
             InternalFormat::RGBA8_SRGB,
+            framebuffer,
+            attachments,
+            extent
+        );
+
+        // Needed for stencil
+        AddOwnedAttachment(
+            InternalFormat::DEPTH_32F,
             framebuffer,
             attachments,
             extent

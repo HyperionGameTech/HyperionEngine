@@ -139,7 +139,7 @@ public:
     );
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    bool TestRay(const Vec2f &position, RayTestResults &out_ray_test_results);
+    bool TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects);
 
     virtual void Init() override;
 

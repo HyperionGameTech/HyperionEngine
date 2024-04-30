@@ -115,11 +115,9 @@ void UIStage::Update(GameCounter::TickUnit delta)
     }
 }
 
-bool UIStage::TestRay(const Vec2f &position, RayTestResults &out_ray_test_results)
+bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    out_ray_test_results.Clear();
 
     const Vec4f world_position = m_scene->GetCamera()->TransformScreenToWorld(position);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };
@@ -128,26 +126,37 @@ bool UIStage::TestRay(const Vec2f &position, RayTestResults &out_ray_test_result
     ray.position = world_position.GetXYZ() / world_position.w;
     ray.direction = direction;
 
-    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
-        if (!ui_component.ui_object) {
-            continue;
-        }
-
-        BoundingBox aabb(bounding_box_component.world_aabb);
+    CollectObjects([&out_objects, &direction, &position](const RC<UIObject> &ui_object)
+    {
+        BoundingBox aabb(ui_object->GetWorldAABB());
         aabb.min.z = -1.0f;
         aabb.max.z = 1.0f;
         
         if (aabb.ContainsPoint(direction)) {
-            RayHit hit { };
-            hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
-            hit.distance = m_scene->GetCamera()->TransformWorldToNDC(transform_component.transform.GetTranslation()).z;
-            hit.id = entity_id.value;
-
-            out_ray_test_results.AddHit(hit);
+            out_objects.PushBack(ui_object);
         }
-    }
+    });
 
-    return out_ray_test_results.Any();
+    // for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
+    //     if (!ui_component.ui_object) {
+    //         continue;
+    //     }
+
+    //     BoundingBox aabb(bounding_box_component.world_aabb);
+    //     aabb.min.z = -1.0f;
+    //     aabb.max.z = 1.0f;
+        
+    //     if (aabb.ContainsPoint(direction)) {
+    //         RayHit hit { };
+    //         hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
+    //         hit.distance = -float(ui_component.ui_object->GetComputedDepth());
+    //         hit.id = entity_id.value;
+
+    //         out_ray_test_results.AddHit(hit);
+    //     }
+    // }
+
+    return out_objects.Any();
 }
 
 RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
@@ -235,11 +244,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 }
             }
         } else {
+            Array<RC<UIObject>> ray_test_results;
+
             if (TestRay(mouse_screen, ray_test_results)) {
                 UIObject *first_hit = nullptr;
 
                 for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                    if (auto ui_object = GetUIObjectForEntity(it->id)) {
+                    if (const RC<UIObject> &ui_object = *it) {
                         if (first_hit) {
                             // We don't want to check the current object if it's not a child of the first hit object,
                             // since it would be behind the first hit object.
@@ -250,7 +261,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                             first_hit = ui_object;
                         }
 
-                        if (!m_hovered_entities.Insert(it->id).second) {
+                        if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
                             // Already hovered, skip
                             continue;
                         }
@@ -279,9 +290,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
             }
 
             for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
-                const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RayHit &hit)
+                const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RC<UIObject> &ui_object)
                 {
-                    return hit.id == entity.Value();
+                    return ui_object->GetEntity() == entity;
                 });
 
                 if (ray_test_results_it == ray_test_results.End()) {
@@ -321,16 +332,18 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         UIObject *focused_object = nullptr;
 
+        Array<RC<UIObject>> ray_test_results;
+
         if (TestRay(mouse_screen, ray_test_results)) {
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                if (auto ui_object = GetUIObjectForEntity(it->id)) {
+                if (const RC<UIObject> &ui_object = *it) {
                     if (focused_object == nullptr && ui_object->AcceptsFocus()) {
                         ui_object->Focus();
 
                         focused_object = ui_object.Get();
                     }
 
-                    m_mouse_held_times.Insert(it->id, 0.0f);
+                    m_mouse_held_times.Set(ui_object->GetEntity(), 0.0f);
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UOFS_PRESSED);
 
@@ -365,17 +378,18 @@ UIEventHandlerResult UIStage::OnInputEvent(
             float(mouse_y) / float(window_size.y)
         );
 
+        Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
         for (auto &it : m_mouse_held_times) {
-            const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RayHit &hit)
+            const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RC<UIObject> &ui_object)
             {
-                return hit.id == entity.Value();
+                return ui_object->GetEntity() == entity;
             });
 
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
-                if (auto ui_object = GetUIObjectForEntity(ray_test_results_it->id)) {
+                if (const RC<UIObject> &ui_object = *ray_test_results_it) {
                     event_handler_result |= ui_object->OnClick(UIMouseEventData {
                         .position   = mouse_screen,
                         .button     = event.GetMouseButton(),
@@ -422,11 +436,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
             float(mouse_y) / float(window_size.y)
         );
 
+        Array<RC<UIObject>> ray_test_results;
+
         if (TestRay(mouse_screen, ray_test_results)) {
                 UIObject *first_hit = nullptr;
 
                 for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                    if (auto ui_object = GetUIObjectForEntity(it->id)) {
+                    if (const RC<UIObject> &ui_object = *it) {
                         if (first_hit) {
                             // We don't want to check the current object if it's not a child of the first hit object,
                             // since it would be behind the first hit object.

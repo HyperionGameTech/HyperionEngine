@@ -5,6 +5,8 @@
 #include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>
 
+#include <core/system/Time.hpp>
+
 namespace hyperion {
 
 extern AssetManager *g_asset_manager;
@@ -35,10 +37,13 @@ void DataStoreBase::DiscardOldFiles() const
         return;
     }
 
-    FlatMap<uint64, FilePath> files_by_time;
+    const Time now = Time::Now();
+
+    // Sort by oldest first -- use diff from now
+    FlatMap<TimeDiff, FilePath> files_by_time;
 
     for (const FilePath &file : path.GetAllFilesInDirectory()) {
-        files_by_time.Insert(file.LastModifiedTimestamp(), file);
+        files_by_time.Insert(now - file.LastModifiedTimestamp(), file);
     }
 
     while (directory_size > m_options.max_size) {

@@ -110,7 +110,10 @@
 
 #define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class) \
     bool operator==(const hyp_class &other) const { \
-        return !std::memcmp(this, &other, sizeof(*this)); \
+        return std::memcmp(this, &other, sizeof(*this)) == 0; \
+    } \
+    bool operator!=(const hyp_class &other) const { \
+        return std::memcmp(this, &other, sizeof(*this)) != 0; \
     }
 
 #define HYP_DEF_STRUCT_COMPARE_LT(hyp_class) \

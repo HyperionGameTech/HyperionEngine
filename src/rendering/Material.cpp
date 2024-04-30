@@ -108,6 +108,25 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
+{
+    ID<Material>    id;
+
+    RENDER_COMMAND(RemoveMaterialDescriptorSet)(ID<Material> id)
+        : id(id)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(RemoveMaterialDescriptorSet)() override = default;
+
+    virtual Result operator()() override
+    {
+        g_engine->GetMaterialDescriptorSetManager().RemoveMaterial(id);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 #pragma region Material
@@ -190,6 +209,8 @@ Material::Material(
 
 Material::~Material()
 {
+    DebugLog(LogType::Debug, "Destroy material with ID : %u\n", m_id.Value());
+
     SetReady(false);
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
@@ -261,7 +282,12 @@ void Material::EnqueueDescriptorSetCreate()
 
 void Material::EnqueueDescriptorSetDestroy()
 {
-    g_engine->GetMaterialDescriptorSetManager().EnqueueRemove(GetID());
+    // g_engine->GetMaterialDescriptorSetManager().EnqueueRemoveMaterial(GetID());
+
+    PUSH_RENDER_COMMAND(
+        RemoveMaterialDescriptorSet,
+        GetID()
+    );
 }
 
 void Material::EnqueueRenderUpdates()
@@ -753,7 +779,7 @@ void MaterialDescriptorSetManager::AddMaterial(ID<Material> id, FixedArray<Handl
     m_pending_addition_flag.Set(true, MemoryOrder::RELAXED);
 }
 
-void MaterialDescriptorSetManager::EnqueueRemove(ID<Material> id)
+void MaterialDescriptorSetManager::EnqueueRemoveMaterial(ID<Material> id)
 {
     DebugLog(LogType::Debug, "EnqueueRemove material with ID %u from thread %s\n", id.Value(), Threads::CurrentThreadID().name.LookupString());
 
@@ -777,6 +803,46 @@ void MaterialDescriptorSetManager::EnqueueRemove(ID<Material> id)
     }
 
     m_pending_addition_flag.Set(true, MemoryOrder::RELAXED);
+}
+
+void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    { // remove from pending
+        Mutex::Guard guard(m_pending_mutex);
+    
+        while (true) {
+            const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
+                {
+                    return item.first == id;
+                });
+
+            if (pending_addition_it == m_pending_addition.End()) {
+                break;
+            }
+
+            m_pending_addition.Erase(pending_addition_it);
+        }
+
+        const auto pending_removal_it = m_pending_removal.Find(id);
+
+        if (pending_removal_it != m_pending_removal.End()) {
+            m_pending_removal.Erase(pending_removal_it);
+        }
+    }
+
+    const auto material_descriptor_sets_it = m_material_descriptor_sets.Find(id);
+
+    if (material_descriptor_sets_it != m_material_descriptor_sets.End()) {
+        DebugLog(LogType::Debug, "Releasing descriptor sets for material with ID %u from thread %s\n", id.Value(), *Threads::CurrentThreadID().name);
+
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            SafeRelease(std::move(material_descriptor_sets_it->second[frame_index]));
+        }
+
+        m_material_descriptor_sets.Erase(material_descriptor_sets_it);
+    }
 }
 
 void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(ID<Material> id)

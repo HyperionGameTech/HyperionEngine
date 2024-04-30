@@ -9,9 +9,16 @@ namespace platform {
 
 #pragma region Helpers
 
-static VkImageLayout GetInitialLayout()
+static VkImageLayout GetInitialLayout(LoadOperation load_operation)
 {
-    return VK_IMAGE_LAYOUT_UNDEFINED;
+    switch (load_operation) {
+    case LoadOperation::CLEAR:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    case LoadOperation::LOAD:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    default:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    }
 }
 
 static VkImageLayout GetFinalLayout(RenderPassStage stage, bool is_depth_attachment)
@@ -140,9 +147,9 @@ VkAttachmentDescription AttachmentUsage<Platform::VULKAN>::GetAttachmentDescript
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = ToVkLoadOp(m_load_operation),
         .storeOp        = ToVkStoreOp(m_store_operation),
-        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = GetInitialLayout(),
+        .initialLayout  = GetInitialLayout(m_load_operation),
         .finalLayout    = GetFinalLayout(m_attachment->GetRenderPassStage(), m_attachment->IsDepthAttachment())
     };
 }

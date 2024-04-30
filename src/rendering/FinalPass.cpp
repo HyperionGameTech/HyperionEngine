@@ -111,7 +111,7 @@ void CompositePass::Create()
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
             .blend_function = BlendFunction::Default(),
-            .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .flags          = MaterialAttributes::RAF_NONE
         }
     );
 

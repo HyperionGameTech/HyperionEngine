@@ -41,8 +41,6 @@ public:
 private:
     void CreateFramebuffer();
 
-    void CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_objects);
-
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }
 

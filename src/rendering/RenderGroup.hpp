@@ -32,7 +32,6 @@ using renderer::CommandBuffer;
 using renderer::Topology;
 using renderer::FillMode;
 using renderer::FaceCullMode;
-using renderer::StencilState;
 using renderer::Frame;
 using renderer::Pipeline;
 
@@ -120,11 +119,6 @@ public:
 
     void Init();
 
-    void SetEntityDrawDatas(const Array<EntityDrawData> &entity_draw_datas);
-
-    // render non-indirect (collects draw calls, then renders)
-    void Render(Frame *frame);
-
     RendererProxy GetProxy()
         { return RendererProxy(this); }
 
@@ -133,7 +127,7 @@ private:
      * to mark any occluded objects as such. Must be used with indirect rendering.
      * If nullptr is provided for cull_data, no occlusion culling will happen.
      */
-    void CollectDrawCalls();
+    void CollectDrawCalls(const Array<EntityDrawData> &entity_draw_datas);
 
     void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
 
@@ -172,8 +166,6 @@ private:
     uint m_command_buffer_index = 0u;
 
     FlatMap<uint, BufferTicket<EntityInstanceBatch>> m_entity_batches;
-
-    Array<EntityDrawData> m_entity_draw_datas;
 
     DrawCallCollection m_draw_state;
 };

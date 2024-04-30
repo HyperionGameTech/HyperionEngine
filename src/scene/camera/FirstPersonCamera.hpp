@@ -11,14 +11,14 @@ namespace hyperion {
 
 enum FirstPersonCameraControllerMode
 {
-    FPC_MODE_MOUSE_LOCKED,
-    FPC_MODE_MOUSE_FREE
+    FPCCM_MOUSE_LOCKED,
+    FPCCM_MOUSE_FREE
 };
 
 class HYP_API FirstPersonCameraController : public PerspectiveCameraController
 {
 public:
-    FirstPersonCameraController(FirstPersonCameraControllerMode mode = FPC_MODE_MOUSE_FREE);
+    FirstPersonCameraController(FirstPersonCameraControllerMode mode = FPCCM_MOUSE_FREE);
     virtual ~FirstPersonCameraController() = default;
     
     FirstPersonCameraControllerMode GetMode() const
@@ -28,7 +28,7 @@ public:
         { m_mode = mode; }
 
     virtual bool IsMouseLocked() const override
-        { return m_mode == FPC_MODE_MOUSE_LOCKED; }
+        { return m_mode == FPCCM_MOUSE_LOCKED; }
 
     virtual void UpdateLogic(double dt) override;
 

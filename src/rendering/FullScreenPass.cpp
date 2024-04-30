@@ -172,7 +172,7 @@ void FullScreenPass::CreatePipeline()
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
             .blend_function = m_blend_function,
-            .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .flags          = MaterialAttributes::RAF_NONE
         }
     ));
 }

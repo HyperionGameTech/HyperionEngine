@@ -526,7 +526,7 @@ void GaussianSplattingInstance::CreateRenderGroup()
                 .bucket         = Bucket::BUCKET_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces     = FaceCullMode::NONE,
-                .flags          = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+                .flags          = MaterialAttributes::RAF_NONE
             }
         ),
         std::move(descriptor_table)

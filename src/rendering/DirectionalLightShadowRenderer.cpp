@@ -426,8 +426,6 @@ void ShadowPass::Render(Frame *frame)
         const bool needs_statics_rerender = m_camera->GetPreviousViewMatrix() != m_camera->GetViewMatrix();
 
         if (needs_statics_rerender) {
-            DebugLog(LogType::Debug, "Re-render statics\n");
-
             m_render_list_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),

@@ -177,7 +177,6 @@ public:
      */
     TaskID Enqueue(Task &&fn, AtomicVar<uint> *atomic_counter)
     {
-        // debugging
         std::unique_lock lock(m_mutex);
 
         auto result = EnqueueInternal(std::forward<Task>(fn), atomic_counter);

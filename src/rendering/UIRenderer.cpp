@@ -53,65 +53,6 @@ void UIRenderer::CreateFramebuffer()
     m_framebuffer = g_engine->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
-/*! \brief Custom CollectObjects function to use instead of Scene::CollectEntities.
-    Loop over nodes instead of Entities from EntitySets, as sort order is based on parent node for UI objects.
-    \note Definitely much less efficient when compared to Scene::CollectEntities, as we are not iterating over a contiguous array
-    of references to components. Plus, there are additional checks in place, as we are losing some of the conveniences that method brings.     
-*/
-void UIRenderer::CollectObjects(const NodeProxy &node, Array<RC<UIObject>> &out_objects)
-{
-    if (!node.IsValid()) {
-        return;
-    }
-
-    const ID<Entity> entity = node->GetEntity();
-
-    if (entity.IsValid()) {
-        MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
-        TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
-        BoundingBoxComponent *bounding_box_component = node->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
-
-        if (mesh_component != nullptr && transform_component != nullptr && bounding_box_component != nullptr) {
-            UIComponent *ui_component = node->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
-
-            if (ui_component && ui_component->ui_object) {
-                // Visibility affects all child nodes as well, so return from here.
-                if (!ui_component->ui_object->IsVisible()) {
-                    return;
-                }
-
-                AssertThrow(ui_component->ui_object->GetNode().IsValid());
-
-                out_objects.PushBack(ui_component->ui_object);
-            }
-        }
-    }
-
-    Array<Pair<NodeProxy, RC<UIObject>>> children;
-    children.Reserve(node->GetChildren().Size());
-
-    for (const auto &it : node->GetChildren()) {
-        if (!it.IsValid()) {
-            continue;
-        }
-
-        UIComponent *ui_component = it->GetEntity().IsValid()
-            ? it->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
-            : nullptr;
-
-        children.PushBack({
-            it,
-            ui_component != nullptr
-                ? ui_component->ui_object
-                : nullptr
-        });
-    }
-
-    for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
-        CollectObjects(it.first, out_objects);
-    }
-}
-
 // called from game thread
 void UIRenderer::InitGame() { }
 
@@ -120,24 +61,31 @@ void UIRenderer::OnRemoved()
     g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     m_render_list.ClearEntities();
 
     Array<RC<UIObject>> objects;
-    CollectObjects(m_ui_stage->GetScene()->GetRoot(), objects);
+    m_ui_stage->CollectObjects(objects);
 
-    std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
-    {
-        AssertThrow(lhs != nullptr);
-        AssertThrow(lhs->GetNode() != nullptr);
+    // std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
+    // {
+    //     AssertThrow(lhs != nullptr);
+    //     AssertThrow(lhs->GetNode() != nullptr);
 
-        AssertThrow(rhs != nullptr);
-        AssertThrow(rhs->GetNode() != nullptr);
+    //     AssertThrow(rhs != nullptr);
+    //     AssertThrow(rhs->GetNode() != nullptr);
 
-        return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
-    });
+    //     return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
+    // });
+
+    // // Set layer first as it updates material
+    // for (uint i = 0; i < objects.Size(); i++) {
+    //     const RC<UIObject> &object = objects[i];
+    //     AssertThrow(object != nullptr);
+
+    //     object->SetDrawableLayer(DrawableLayer(0, i));
+    // }
 
     for (uint i = 0; i < objects.Size(); i++) {
         const RC<UIObject> &object = objects[i];
@@ -145,8 +93,10 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
         object->SetDrawableLayer(DrawableLayer(0, i));
 
-        const ID<Entity> entity = object->GetNode()->GetEntity();
         const NodeProxy &node = object->GetNode();
+        AssertThrow(node.IsValid());
+
+        const ID<Entity> entity = node->GetEntity();
 
         MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
         TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
@@ -176,7 +126,6 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     m_render_list.UpdateRenderGroups();
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void UIRenderer::OnRender(Frame *frame)
 {

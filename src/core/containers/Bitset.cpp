@@ -20,10 +20,14 @@ static Array<Bitset::BlockType, 64> CreateBlocks(uint64 value = 0)
     return { Bitset::BlockType(value & 0xFFFFFFFF), Bitset::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) };
 }
 
+Bitset::Bitset()
+    : m_blocks(CreateBlocks())
+{
+}
+
 Bitset::Bitset(uint64 value)
     : m_blocks(CreateBlocks(value))
 {
-    RemoveLeadingZeros();
 }
 
 Bitset::Bitset(Bitset &&other) noexcept
@@ -197,12 +201,12 @@ Bitset &Bitset::Resize(uint32 num_bits)
 
     const uint32 current_num_bits = NumBits();
 
-    if (current_num_bits > num_bits && !m_blocks.Empty()) {
-        // @FIXME: Use bitmask
-        for (uint32 index = num_bits; index < current_num_bits; ++index) {
-            Set(index, false);
-        }
-    }
+    // if (current_num_bits > num_bits && !m_blocks.Empty()) {
+    //     // @FIXME: Use bitmask
+    //     for (uint32 index = num_bits; index < current_num_bits; ++index) {
+    //         Set(index, false);
+    //     }
+    // }
 
     if (m_blocks.Size() < num_preallocated_blocks) {
         m_blocks.Resize(num_preallocated_blocks);

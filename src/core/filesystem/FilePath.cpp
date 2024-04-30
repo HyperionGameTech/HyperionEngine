@@ -55,18 +55,18 @@ bool FilePath::IsDirectory() const
     return false;
 }
 
-uint64 FilePath::LastModifiedTimestamp() const
+Time FilePath::LastModifiedTimestamp() const
 {
     struct stat st;
     
     if (stat(Data(), &st) != 0) {
-        return 0;
+        return Time(0);
     }
 
 #ifdef HYP_MACOS
-    return st.st_mtimespec.tv_sec;
+    return Time(st.st_mtimespec.tv_sec);
 #else
-    return st.st_mtime;
+    return Time(st.st_mtime);
 #endif
 }
 

@@ -11,8 +11,8 @@ namespace hyperion {
 
 enum EditorCameraControllerMode
 {
-    EC_MODE_INACTIVE,
-    EC_MODE_FOCUSED
+    ECM_INACTIVE,
+    ECM_FOCUSED
 };
 
 class HYP_API EditorCameraController : public FirstPersonCameraController

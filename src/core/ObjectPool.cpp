@@ -21,8 +21,6 @@ UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectCo
         return element.first == type_id;
     });
 
-    DebugLog(LogType::Debug, "Allot object container for type %u. Exists? %d\n", type_id.Value(), it != s_object_container_map.map.End());
-
     // Already allocated
     if (it != s_object_container_map.map.End()) {
         return &it->second;
