@@ -274,7 +274,9 @@ public:
 private:
     Handle<Camera>                                              m_camera;
     RC<EntityDrawCollection>                                    m_draw_collection;
-    HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>>    m_render_groups;
+
+    // Handled from Render thread
+    HashMap<RenderableAttributeSet, Handle<RenderGroup>>        m_render_groups;
 
     // Keeps track of resources that are used per frame.
     // Handles to the objects are not persistently held, as they are moved when passed to the render command UpdateRenderSideResources

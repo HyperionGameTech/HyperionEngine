@@ -292,13 +292,8 @@ public:
             });
         }
 
-        if (batch.tasks.Size() > 1) {
-            EnqueueBatch(&batch);
-            batch.AwaitCompletion();
-        } else if (batch.tasks.Size() == 1) {
-            // no point in enqueing for just 1 task, execute immediately
-            batch.ExecuteBlocking();
-        }
+        EnqueueBatch(&batch);
+        batch.AwaitCompletion();
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.

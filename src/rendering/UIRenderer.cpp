@@ -129,6 +129,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
+    return; // temp
     g_engine->GetRenderState().BindScene(m_ui_stage->GetScene().Get());
 
     m_render_list.CollectDrawCalls(
