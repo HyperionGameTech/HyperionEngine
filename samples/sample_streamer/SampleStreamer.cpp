@@ -526,7 +526,7 @@ void SampleStreamer::Init()
     // add sample model
     {
         auto batch = AssetManager::GetInstance()->CreateBatch();
-        batch->Add("test_model", "models/pica_pica/pica_pica.obj");////living_room/living_room.obj");//sponza/sponza.obj");
+        batch->Add("test_model", "models/sponza/sponza.obj");//pica_pica/pica_pica.obj");////living_room/living_room.obj");//
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
         batch->LoadAsync();
