@@ -64,13 +64,13 @@ constexpr PassType BucketToPassType(Bucket bucket)
 
 struct EntityList
 {
-    Array<EntityDrawData>                       entity_draw_datas;
-    Handle<RenderGroup>                         render_group;
-    FixedArray<Bitset, RESOURCE_USAGE_TYPE_MAX> usage_bits;
+    Array<EntityDrawData>   entity_draw_datas;
+    Handle<RenderGroup>     render_group;
+    RenderResourceManager   resources;
 
     EntityList() = default;
-    EntityList(const EntityList &other);
-    EntityList &operator=(const EntityList &other);
+    EntityList(const EntityList &other)             = delete;
+    EntityList &operator=(const EntityList &other)  = delete;
     EntityList(EntityList &&other) noexcept;
     EntityList &operator=(EntityList &&other) noexcept;
     ~EntityList() = default;
@@ -79,8 +79,8 @@ struct EntityList
     {
         entity_draw_datas.Clear();
 
-        // Reset usage bitset
-        usage_bits = { };
+        // Reset resource usage
+        resources.Reset();
 
         // Do not clear render group; keep it reserved
     }
@@ -100,12 +100,6 @@ public:
      *  for newly added resources, as they will be taken and stored in the render side resource manager. */
     void UpdateRenderSideResources(RenderResourceManager &resources);
 
-    RenderResourceManager &GetRenderSideResources()
-        { return m_current_render_side_resources; }
-
-    const RenderResourceManager &GetRenderSideResources() const
-        { return m_current_render_side_resources; }
-
     FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList();
     const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList() const;
 
@@ -116,7 +110,6 @@ public:
 
 private:
     FixedArray<FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, ThreadType::THREAD_TYPE_MAX>    m_lists;
-    RenderResourceManager                                                                                               m_current_render_side_resources;
 };
 
 struct PushConstantData

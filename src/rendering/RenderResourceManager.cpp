@@ -12,6 +12,11 @@ RenderResourceManager::RenderResourceManager()
     InitResourceUsageMap<Skeleton>();
 }
 
+RenderResourceManager::~RenderResourceManager()
+{
+    Reset();
+}
+
 void RenderResourceManager::CollectNeededResourcesForBits(ResourceUsageType type, const Bitset &bits)
 {
     ResourceUsageMapBase *map = m_resource_usage_maps[uint32(type)].Get();
@@ -67,5 +72,13 @@ void RenderResourceManager::CollectNeededResourcesForBits(ResourceUsageType type
         newly_added_id_bits.Set(first_set_bit_index, false);
     }
 }
+
+void RenderResourceManager::Reset()
+{
+    for (auto &map : m_resource_usage_maps) {
+        map->Reset();
+    }
+}
+
 
 } // namespace hyperion

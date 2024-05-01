@@ -45,6 +45,11 @@ struct ResourceUsageMapBase
     virtual ~ResourceUsageMapBase() = default;
 
     virtual void TakeUsagesFrom(ResourceUsageMapBase *other, bool use_soft_references) = 0;
+
+    virtual void Reset()
+    {
+        usage_bits.Clear();
+    }
 };
 
 template <class T>
@@ -137,6 +142,22 @@ struct ResourceUsageMap : ResourceUsageMapBase
         // NOTE: Copy instead of move is intentional
         usage_bits = other_map->usage_bits;
     }
+
+    virtual void Reset() override
+    {
+        ResourceUsageMapBase::Reset();
+        
+        for (auto &it : handles) {
+            // Use SafeRelease to defer the actual destruction of the resource.
+            // This is used so that any resources that will require a mutex lock to release render side resources
+            // will not cause a deadlock.
+            DebugLog(LogType::Debug, "Safe releasing handle of type %s for resource ID: %u\n", TypeName<T>().Data(), it.first.Value());
+            
+            g_safe_deleter->SafeReleaseHandle(std::move(it.second));
+        }
+
+        handles.Clear();
+    }
 };
 
 // holds a handle for any resource needed in
@@ -157,7 +178,7 @@ public:
     RenderResourceManager &operator=(const RenderResourceManager &other)    = delete;
     RenderResourceManager(RenderResourceManager &&other) noexcept           = default;
     RenderResourceManager &operator=(RenderResourceManager &&other)         = default;
-    ~RenderResourceManager()                                                = default;
+    ~RenderResourceManager();
 
     /*! \brief Steal the tracked handles from \ref{other}. If \ref{use_soft_references} is true,
      *  we don't depend on the handles being in \ref{other}'s map of handles. Instead, we'll
@@ -229,6 +250,13 @@ public:
 
     template <class T>
     HYP_FORCE_INLINE
+    void SetIsUsed(ID<T> id, bool is_used)
+    {
+        SetIsUsed<T>(GetResourceUsageMap<T>(), id, Handle<T>(), is_used);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE
     bool IsUsed(ID<T> id) const
     {
         if (!id.IsValid()) {
@@ -257,6 +285,8 @@ public:
     }
 
     void CollectNeededResourcesForBits(ResourceUsageType type, const Bitset &bits);
+
+    void Reset();
 
 private:
 

@@ -74,30 +74,10 @@ struct RENDER_COMMAND(UpdateRenderSideResources) : renderer::RenderCommand
 
 #pragma region EntityList
 
-EntityList::EntityList(const EntityList &other)
-    : entity_draw_datas(other.entity_draw_datas),
-      render_group(other.render_group),
-      usage_bits(other.usage_bits)
-{
-}
-
-EntityList &EntityList::operator=(const EntityList &other)
-{
-    if (this == &other) {
-        return *this;
-    }
-
-    entity_draw_datas = other.entity_draw_datas;
-    render_group = other.render_group;
-    usage_bits = other.usage_bits;
-
-    return *this;
-}
-
 EntityList::EntityList(EntityList &&other) noexcept
     : entity_draw_datas(std::move(other.entity_draw_datas)),
       render_group(std::move(other.render_group)),
-      usage_bits(std::move(other.usage_bits))
+      resources(std::move(other.resources))
 {
 }
 
@@ -109,7 +89,7 @@ EntityList &EntityList::operator=(EntityList &&other) noexcept
 
     entity_draw_datas = std::move(other.entity_draw_datas);
     render_group = std::move(other.render_group);
-    usage_bits = std::move(other.usage_bits);
+    resources = std::move(other.resources);
 
     return *this;
 }
@@ -155,15 +135,15 @@ void EntityDrawCollection::InsertEntityWithAttributes(const RenderableAttributeS
     auto &list = GetEntityList(ThreadType::THREAD_TYPE_GAME)[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes];
 
     if (entity_draw_data.mesh_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_MESH].Set(entity_draw_data.mesh_id.ToIndex(), true);
+        list.resources.SetIsUsed(entity_draw_data.mesh_id, true);
     }
 
     if (entity_draw_data.material_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_MATERIAL].Set(entity_draw_data.material_id.ToIndex(), true);
+        list.resources.SetIsUsed(entity_draw_data.material_id, true);
     }
 
     if (entity_draw_data.skeleton_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_SKELETON].Set(entity_draw_data.skeleton_id.ToIndex(), true);
+        list.resources.SetIsUsed(entity_draw_data.skeleton_id, true);
     }
     
     list.entity_draw_datas.PushBack(entity_draw_data);
@@ -180,121 +160,6 @@ void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attri
     auto &mappings = GetEntityList()[pass_type];
     
     mappings.Set(attributes, std::move(entity_list));
-}
-
-void EntityDrawCollection::UpdateRenderSideResources(RenderResourceManager &new_resources)
-{
-    DebugLog(LogType::Debug, "UpdateRenderSideResources()  %p\n", this);
-
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    RenderResourceManager &render_side_resources = m_current_render_side_resources;
-    render_side_resources.TakeUsagesFrom(new_resources);
-    
-    // ResourceUsageMapBase *resource_usage_maps[] = {
-    //     render_side_resources.GetResourceUsageMap<Mesh>(),
-    //     render_side_resources.GetResourceUsageMap<Material>(),
-    //     render_side_resources.GetResourceUsageMap<Skeleton>()
-    // };
-
-    // Bitset new_bitsets[ArraySize(resource_usage_maps)] = { }; // mesh, material, skeleton
-
-    // // @TODO: Optimize without nested looping
-    // for (const auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-    //     for (const auto &it : list_per_pass_type) {
-    //         for (uint32 i = 0; i < ArraySize(new_bitsets); i++) {
-    //             new_bitsets[i] |= it.second.usage_bits[i];
-    //         }
-    //     }
-    // }
-
-    // Bitset prev_bitsets[ArraySize(resource_usage_maps)];
-
-    // for (uint32 i = 0; i < ArraySize(resource_usage_maps); i++) {
-    //     prev_bitsets[i] = resource_usage_maps[i]->usage_bits;
-    // }
-
-    // // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
-    // // This will give us a list of IDs that were removed.
-    // for (uint32 i = 0; i < ArraySize(resource_usage_maps); i++) {
-    //     // If any of the bitsets are different sizes, resize them to match the largest one,
-    //     // this makes ~ and & operations work as expected
-    //     if (prev_bitsets[i].NumBits() > new_bitsets[i].NumBits()) {
-    //         new_bitsets[i].Resize(prev_bitsets[i].NumBits());
-    //     } else if (prev_bitsets[i].NumBits() < new_bitsets[i].NumBits()) {
-    //         prev_bitsets[i].Resize(new_bitsets[i].NumBits());
-    //     }
-
-    //     SizeType first_set_bit_index;
-
-    //     Bitset removed_id_bits = prev_bitsets[i] & ~new_bitsets[i];
-    //     Bitset newly_added_id_bits = new_bitsets[i] & ~prev_bitsets[i];
-
-    //     switch (i) {
-    //     case RESOURCE_USAGE_TYPE_MESH:
-    //         DebugLog(LogType::Debug, "[Mesh] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     case RESOURCE_USAGE_TYPE_MATERIAL:
-    //         DebugLog(LogType::Debug, "[Material] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     case RESOURCE_USAGE_TYPE_SKELETON:
-    //         DebugLog(LogType::Debug, "[Skeleton] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     }
-
-    //     // Iterate over the bits that were removed, and drop the references to them.
-    //     while ((first_set_bit_index = removed_id_bits.FirstSetBitIndex()) != -1) {
-    //         // Remove the reference
-    //         switch (i) {
-    //         case RESOURCE_USAGE_TYPE_MESH:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Mesh>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_MATERIAL:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Material>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_SKELETON:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Skeleton>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         }
-
-    //         removed_id_bits.Set(first_set_bit_index, false);
-    //     }
-
-    //     while ((first_set_bit_index = newly_added_id_bits.FirstSetBitIndex()) != -1) {
-    //         // Create a reference to it in the resources list.
-    //         switch (i) {
-    //         case RESOURCE_USAGE_TYPE_MESH:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Mesh>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_MATERIAL:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Material>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_SKELETON:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Skeleton>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         }
-
-    //         newly_added_id_bits.Set(first_set_bit_index, false);
-    //     }
-    // }
-
-    // @TEMP Debug
-
-    for (const auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (const auto &it : list_per_pass_type) {
-            for (auto &draw_data : it.second.entity_draw_datas) {
-                if (draw_data.mesh_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.mesh_id));
-                }
-                if (draw_data.material_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.material_id));
-                }
-                if (draw_data.skeleton_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.skeleton_id));
-                }
-            }
-        }
-    }
 }
 
 void EntityDrawCollection::ClearEntities()
@@ -364,8 +229,6 @@ void RenderList::UpdateRenderGroups()
 
     added_render_groups.Resize(iterators.Size());
 
-    FixedArray<Bitset, ResourceUsageType::RESOURCE_USAGE_TYPE_MAX> bitsets;
-
     for (uint index = 0; index < iterators.Size(); index++) {
         const RenderableAttributeSet &attributes = iterators[index]->first;
         EntityList &entity_list = iterators[index]->second;
@@ -408,20 +271,12 @@ void RenderList::UpdateRenderGroups()
             }
         }
 
-        for (uint resource_type_index = 0; resource_type_index < RESOURCE_USAGE_TYPE_MAX; resource_type_index++) {
-            bitsets[resource_type_index] |= entity_list.usage_bits[resource_type_index];
-        }
-
         PUSH_RENDER_COMMAND(
             SetRenderSideList,
             m_draw_collection,
             attributes,
             std::move(entity_list)
         );
-    }
-
-    for (uint resource_type_index = 0; resource_type_index < RESOURCE_USAGE_TYPE_MAX; resource_type_index++) {
-        m_resources.CollectNeededResourcesForBits(ResourceUsageType(resource_type_index), bitsets[resource_type_index]);
     }
 
     for (auto &it : added_render_groups) {
@@ -432,15 +287,6 @@ void RenderList::UpdateRenderGroups()
             m_render_groups.Set(attributes, render_group);
         }
     }
-
-    RenderResourceManager frame_resources;
-    frame_resources.TakeUsagesFrom(m_resources);
-    
-    PUSH_RENDER_COMMAND(
-        UpdateRenderSideResources,
-        m_draw_collection,
-        std::move(frame_resources)
-    );
 }
 
 void RenderList::PushEntityToRender(
@@ -544,13 +390,13 @@ void RenderList::CollectDrawCalls(
     for (auto &it : iterators) {
         for (auto &draw_data : it->second.entity_draw_datas) {
             if (draw_data.mesh_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.mesh_id), "Expected ID %u to be marked as used\t%p", draw_data.mesh_id.Value(), m_draw_collection.Get());
+                AssertThrowMsg(it->second.resources.IsUsed(draw_data.mesh_id), "Expected ID %u to be marked as used\t%p", draw_data.mesh_id.Value(), m_draw_collection.Get());
             }
             if (draw_data.material_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.material_id), "Expected ID %u to be marked as used\t%p", draw_data.material_id.Value(), m_draw_collection.Get());
+                AssertThrowMsg(it->second.resources.IsUsed(draw_data.material_id), "Expected ID %u to be marked as used\t%p", draw_data.material_id.Value(), m_draw_collection.Get());
             }
             if (draw_data.skeleton_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.skeleton_id), "Expected ID %u to be marked as used\t%p", draw_data.skeleton_id.Value(), m_draw_collection.Get());
+                AssertThrowMsg(it->second.resources.IsUsed(draw_data.skeleton_id), "Expected ID %u to be marked as used\t%p", draw_data.skeleton_id.Value(), m_draw_collection.Get());
             }
         }
     }
@@ -773,21 +619,6 @@ void RenderList::ExecuteDrawCallsInLayers(
 
         const RenderableAttributeSet &attributes = it.first;
         const EntityList &entity_list = it.second;
-
-
-        // @TEMP Debug
-        for (auto &draw_data : entity_list.entity_draw_datas) {
-            if (draw_data.mesh_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.mesh_id));
-            }
-            if (draw_data.material_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.material_id));
-            }
-            if (draw_data.skeleton_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.skeleton_id));
-            }
-        }
-
 
         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
