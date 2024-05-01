@@ -231,7 +231,6 @@ IndirectDrawState::~IndirectDrawState()
 
 void IndirectDrawState::Create()
 {
-    // Push render command to create buffers
     PUSH_RENDER_COMMAND(
         CreateIndirectDrawStateBuffers,
         m_indirect_buffers,
@@ -373,12 +372,6 @@ void IndirectRenderer::Create()
 
     Handle<Shader> object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
     AssertThrow(object_visibility_shader.IsValid());
-
-#ifdef HYP_DEBUG_OBJECT_POOL_DEBUG // silly check to ensure the shader is ok (getting crash)
-    volatile auto &bytes = Handle<Shader>::GetContainer().GetObjectBytes(object_visibility_shader.GetID().ToIndex());
-    
-    AssertThrow(bytes.has_value);
-#endif
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
 

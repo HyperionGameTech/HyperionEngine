@@ -193,7 +193,7 @@ void UIMenuBar::Init()
     m_container->SetParentAlignment(UIObjectAlignment::UOA_BOTTOM_LEFT);
     m_container->SetOriginAlignment(UIObjectAlignment::UOA_TOP_LEFT);
     m_container->SetPadding({ 1, 1 });
-    m_container->SetDepth(1000);
+    m_container->SetDepth(100);
 
     m_container->OnClick.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
     {

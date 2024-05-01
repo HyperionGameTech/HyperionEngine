@@ -10,9 +10,11 @@
 #include <rendering/Material.hpp>
 #include <scene/animation/Skeleton.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
+
+struct RenderProxy;
 
 using MeshComponentFlags = uint32;
 
@@ -30,12 +32,13 @@ struct MeshComponent
     Handle<Material>        material;
     Handle<Skeleton>        skeleton;
 
-    MeshComponentUserData   user_data;
-
+    RC<RenderProxy>         proxy;
     MeshComponentFlags      flags = MESH_COMPONENT_FLAG_DIRTY;
 
     Matrix4                 previous_model_matrix;
 };
+
+constexpr auto x = sizeof(MeshComponent);
 
 static_assert(sizeof(MeshComponent) == 96, "MeshComponent size must match C# struct size");
 

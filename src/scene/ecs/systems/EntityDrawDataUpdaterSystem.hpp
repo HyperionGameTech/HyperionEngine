@@ -7,7 +7,7 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
 

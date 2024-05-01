@@ -353,6 +353,20 @@ void HyperionEditor::Init()
         .radius     = 18.0f,
         .resolution = { 2048, 2048 }
     });
+
+
+    // temp
+    auto batch = AssetManager::GetInstance()->CreateBatch();
+    batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->LoadAsync();
+    auto results = batch->AwaitResults();
+
+    auto node = results["test_model"].ExtractAs<Node>();
+    node.Scale(0.0125f);
+    node.SetName("test_model");
+    node.LockTransform();
+
+    GetScene()->GetRoot().AddChild(node);
 }
 
 void HyperionEditor::Teardown()
@@ -374,7 +388,6 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
 
 void HyperionEditor::OnFrameEnd(Frame *frame)
 {
-
 }
 
 #pragma endregion HyperionEditor

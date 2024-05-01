@@ -116,7 +116,6 @@ void World::Update(GameCounter::TickUnit delta)
         RenderList &render_list = m_render_list_container.GetRenderListForScene(scene->GetID());
 
         scene->CollectEntities(render_list, scene->GetCamera());
-        render_list.UpdateRenderGroups();
     }
 }
 

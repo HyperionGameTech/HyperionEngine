@@ -78,7 +78,7 @@ struct RENDER_COMMAND(CreateRTRadianceUniformBuffers) : renderer::RenderCommand
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            GPUBufferRef &uniform_buffer = uniform_buffers[frame_index];
+            const GPUBufferRef &uniform_buffer = uniform_buffers[frame_index];
 
             HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms)));
             uniform_buffer->Memset(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms), 0x0);

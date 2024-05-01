@@ -311,14 +311,14 @@ void UIObject::UpdatePosition(bool update_children)
     
     offset_position -= Vec2f(m_scroll_offset);
 
-    float z_value = 0.0f;
+    float z_value = 1.0f;
 
     if (m_depth != 0) {
         z_value = float(m_depth);
 
-        // if (Node *parent_node = node->GetParent()) {
-        //     z_value -= parent_node->GetWorldTranslation().z;
-        // }
+        if (Node *parent_node = node->GetParent()) {
+            z_value -= parent_node->GetWorldTranslation().z;
+        }
     }
 
     node->UnlockTransform();
@@ -479,18 +479,22 @@ void UIObject::SetFocusState(UIObjectFocusState focus_state)
 
 DrawableLayer UIObject::GetDrawableLayer() const
 {
-    return m_drawable_layer;
+    const NodeProxy &node = GetNode();
+
+    return DrawableLayer(0, GetComputedDepth());
+
+    //return m_drawable_layer;
 }
 
 void UIObject::SetDrawableLayer(DrawableLayer layer)
 {
-    if (m_drawable_layer == layer) {
+    /*if (m_drawable_layer == layer) {
         return;
     }
 
     m_drawable_layer = layer;
 
-    UpdateMaterial(false);
+    UpdateMaterial(false);*/
 }
 
 int UIObject::GetComputedDepth() const
@@ -508,11 +512,7 @@ int UIObject::GetComputedDepth() const
 
 int UIObject::GetDepth() const
 {
-    if (m_depth != 0) {
-        return m_depth;
-    }
-
-    return 0;
+    return m_depth;
 }
 
 void UIObject::SetDepth(int depth)
@@ -520,6 +520,7 @@ void UIObject::SetDepth(int depth)
     m_depth = MathUtil::Clamp(depth, UIStage::min_depth, UIStage::max_depth + 1);
 
     UpdatePosition();
+    UpdateMaterial(); // Update material to change z-layer
 }
 
 void UIObject::SetAcceptsFocus(bool accepts_focus)
@@ -993,7 +994,8 @@ void UIObject::UpdateMeshData()
     ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
         | ((m_border_flags & 0xFu) << 8u);
 
-    mesh_component->user_data.Set(ui_object_mesh_data);
+    // @FIXME userdata on mesh component
+    // mesh_component->user_data.Set(ui_object_mesh_data);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
@@ -1118,13 +1120,13 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
         });
     }
 
-    std::sort(children.Begin(), children.End(), [](const auto &lhs, const auto &rhs)
+    /*std::sort(children.Begin(), children.End(), [](const auto &lhs, const auto &rhs)
     {
         AssertThrow(lhs.first.IsValid());
         AssertThrow(rhs.first.IsValid());
 
         return lhs.first->GetLocalTranslation().z < rhs.first->GetLocalTranslation().z;
-    });
+    });*/
 
     for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
         proc(it.second);

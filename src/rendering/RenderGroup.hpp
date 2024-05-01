@@ -11,7 +11,7 @@
 #include <rendering/Framebuffer.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
@@ -127,7 +127,7 @@ private:
      * to mark any occluded objects as such. Must be used with indirect rendering.
      * If nullptr is provided for cull_data, no occlusion culling will happen.
      */
-    void CollectDrawCalls(const Array<EntityDrawData> &entity_draw_datas);
+    void CollectDrawCalls(const Array<RenderProxy> &render_proxies);
 
     void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
 

@@ -65,25 +65,6 @@ struct DrawProxy<STUB_CLASS(Material)>
 using MaterialDrawProxy = DrawProxy<STUB_CLASS(Material)>;
 
 template <>
-struct DrawProxy<STUB_CLASS(Entity)>
-{
-    ID<Entity>      entity_id;
-    ID<Mesh>        mesh_id;
-    ID<Material>    material_id;
-    ID<Skeleton>    skeleton_id;
-
-    BoundingBox     bounding_box;
-
-    Transform       transform;
-
-    Mesh            *mesh = nullptr;
-
-    Bucket          bucket = Bucket::BUCKET_OPAQUE;
-};
-
-using EntityDrawProxy = DrawProxy<STUB_CLASS(Entity)>;
-
-template <>
 struct DrawProxy<STUB_CLASS(Camera)>
 {
     Matrix4     view;

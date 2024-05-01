@@ -126,7 +126,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
     ray.position = world_position.GetXYZ() / world_position.w;
     ray.direction = direction;
 
-    CollectObjects([&out_objects, &direction, &position](const RC<UIObject> &ui_object)
+    /*CollectObjects([&out_objects, &direction, &position](const RC<UIObject> &ui_object)
     {
         BoundingBox aabb(ui_object->GetWorldAABB());
         aabb.min.z = -1.0f;
@@ -135,26 +135,36 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
         if (aabb.ContainsPoint(direction)) {
             out_objects.PushBack(ui_object);
         }
-    });
+    });*/
 
-    // for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
-    //     if (!ui_component.ui_object) {
-    //         continue;
-    //     }
+    RayTestResults ray_test_results;
 
-    //     BoundingBox aabb(bounding_box_component.world_aabb);
-    //     aabb.min.z = -1.0f;
-    //     aabb.max.z = 1.0f;
-        
-    //     if (aabb.ContainsPoint(direction)) {
-    //         RayHit hit { };
-    //         hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
-    //         hit.distance = -float(ui_component.ui_object->GetComputedDepth());
-    //         hit.id = entity_id.value;
+    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
+        if (!ui_component.ui_object) {
+            continue;
+        }
 
-    //         out_ray_test_results.AddHit(hit);
-    //     }
-    // }
+        BoundingBox aabb(bounding_box_component.world_aabb);
+        aabb.min.z = -1.0f;
+        aabb.max.z = 1.0f;
+     
+        if (aabb.ContainsPoint(direction)) {
+            RayHit hit { };
+            hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
+            hit.distance = -float(ui_component.ui_object->GetComputedDepth());
+            hit.id = entity_id.value;
+
+            ray_test_results.AddHit(hit);
+        }
+    }
+
+    out_objects.Reserve(ray_test_results.Size());
+
+    for (const RayHit &hit : ray_test_results) {
+        if (auto ui_object = GetUIObjectForEntity(ID<Entity>(hit.id))) {
+            out_objects.PushBack(std::move(ui_object));
+        }
+    }
 
     return out_objects.Any();
 }

@@ -595,8 +595,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
             m_shadow_pass->GetCamera(),
             renderable_attribute_set
         );
-
-        m_shadow_pass->GetRenderListStatics().UpdateRenderGroups();
     }
 
     GetParent()->GetScene()->CollectDynamicEntities(
@@ -604,8 +602,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         m_shadow_pass->GetCamera(),
         renderable_attribute_set
     );
-
-    m_shadow_pass->GetRenderListDynamics().UpdateRenderGroups();
 }
 
 void DirectionalLightShadowRenderer::OnRender(Frame *frame)

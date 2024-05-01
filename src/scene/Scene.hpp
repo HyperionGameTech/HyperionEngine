@@ -170,21 +170,21 @@ public:
     HYP_API void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
-        Optional<RenderableAttributeSet> override_attributes = { },
+        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
     HYP_API void CollectDynamicEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
-        Optional<RenderableAttributeSet> override_attributes = { },
+        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
     HYP_API void CollectStaticEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
-        Optional<RenderableAttributeSet> override_attributes = { },
+        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 

@@ -8,7 +8,7 @@
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
 

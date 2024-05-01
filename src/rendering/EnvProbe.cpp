@@ -456,8 +456,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
             );
         }
-
-        m_render_list.UpdateRenderGroups();
     }
 
     PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {

@@ -50,6 +50,8 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
+        DebugLog(LogType::Debug, "UploadMeshData for VBO: %llu and IBO: %llu\n", vbo.index, ibo.index);
+
         auto *instance = g_engine->GetGPUInstance();
         auto *device = g_engine->GetGPUDevice();
 

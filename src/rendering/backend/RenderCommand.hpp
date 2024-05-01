@@ -26,7 +26,13 @@ using renderer::Result;
 #define RENDER_COMMAND(name) RenderCommand_##name
 
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push. */
-#define PUSH_RENDER_COMMAND(name, ...) ::hyperion::renderer::RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__)
+#define PUSH_RENDER_COMMAND(name, ...) \
+    if (::hyperion::Threads::IsOnThread(::hyperion::ThreadName::THREAD_RENDER)) { \
+        const ::hyperion::renderer::Result command_result = RENDER_COMMAND(name)(__VA_ARGS__).Call(); \
+        AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.error_code, command_result.message); \
+    } else { \
+        ::hyperion::renderer::RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__); \
+    }
 
 /*! \brief Executes a render command line. This must be called from the render thread. Avoid if possible. */
 #define EXEC_RENDER_COMMAND_INLINE(name, ...) \
@@ -201,6 +207,8 @@ public:
     static T *Push(Args &&... args)
     {
         static_assert(std::is_base_of_v<RenderCommand, T>, "T must derive RenderCommand");
+
+        Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
 
         std::unique_lock lock(mtx);
         

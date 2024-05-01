@@ -10,7 +10,7 @@
 #include <math/Transform.hpp>
 
 #include <rendering/DrawProxy.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderResourceManager.hpp>
@@ -62,25 +62,21 @@ constexpr PassType BucketToPassType(Bucket bucket)
     return pass_type_per_bucket[uint(bucket)];
 }
 
-struct EntityList
+struct RenderProxyGroup
 {
-    Array<EntityDrawData>                       entity_draw_datas;
+    Array<RenderProxy>                          render_proxies;
     Handle<RenderGroup>                         render_group;
-    FixedArray<Bitset, RESOURCE_USAGE_TYPE_MAX> usage_bits;
 
-    EntityList() = default;
-    EntityList(const EntityList &other);
-    EntityList &operator=(const EntityList &other);
-    EntityList(EntityList &&other) noexcept;
-    EntityList &operator=(EntityList &&other) noexcept;
-    ~EntityList() = default;
+    RenderProxyGroup() = default;
+    RenderProxyGroup(const RenderProxyGroup &other);
+    RenderProxyGroup &operator=(const RenderProxyGroup &other);
+    RenderProxyGroup(RenderProxyGroup &&other) noexcept;
+    RenderProxyGroup &operator=(RenderProxyGroup &&other) noexcept;
+    ~RenderProxyGroup() = default;
 
-    void ClearEntities()
+    void ClearProxies()
     {
-        entity_draw_datas.Clear();
-
-        // Reset usage bitset
-        usage_bits = { };
+        render_proxies.Clear();
 
         // Do not clear render group; keep it reserved
     }
@@ -89,34 +85,23 @@ struct EntityList
 class EntityDrawCollection
 {
 public:
-    void InsertEntityWithAttributes(const RenderableAttributeSet &attributes, const EntityDrawData &entity_draw_data);
+    void AddRenderProxy(ThreadType thread_type, const RenderableAttributeSet &attributes, const RenderProxy &proxy);
+    void AddRenderProxy(const RenderableAttributeSet &attributes, const RenderProxy &proxy);
 
-    void ClearEntities();
+    void ClearProxyGroups();
 
-    void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list);
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();
+    const FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups() const;
 
-    /*! \brief Update the render thread side resource manager using another ResourceManager
-     *  that was handed off from the game thread. \ref{resources} only needs to hold Handle<T> objects
-     *  for newly added resources, as they will be taken and stored in the render side resource manager. */
-    void UpdateRenderSideResources(RenderResourceManager &resources);
-
-    RenderResourceManager &GetRenderSideResources()
-        { return m_current_render_side_resources; }
-
-    const RenderResourceManager &GetRenderSideResources() const
-        { return m_current_render_side_resources; }
-
-    FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList();
-    const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList() const;
-
-    FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList(ThreadType);
-    const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList(ThreadType) const;
-
-    HashCode CalculateCombinedAttributesHashCode() const;
+    RenderProxyList &GetProxyList(ThreadType);
+    const RenderProxyList &GetProxyList(ThreadType) const;
 
 private:
-    FixedArray<FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, ThreadType::THREAD_TYPE_MAX>    m_lists;
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>                                       m_proxy_groups;
     RenderResourceManager                                                                                               m_current_render_side_resources;
+
+
+    FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                                                            m_proxy_lists;
 };
 
 struct PushConstantData
@@ -169,34 +154,21 @@ public:
     const RC<EntityDrawCollection> &GetEntityCollection() const
         { return m_draw_collection; }
 
-    void ClearEntities();
-
-    /*! \brief Pushes an Entity to the RenderList.
-     *  \param camera The camera to use for rendering.
-     *  \param entity_id The ID of the Entity.
-     *  \param mesh The Mesh to render.
-     *  \param material The Material to use for rendering.
-     *  \param skeleton The Skeleton to use for rendering.
-     *  \param model_matrix The model matrix of the Entity.
-     *  \param previous_model_matrix The previous model matrix of the Entity.
-     *  \param aabb The AABB of the Entity.
-     *  \param override_attributes The RenderableAttributeSet to use for rendering.
+    /*! \brief Pushes an entity to the RenderList.
+     *  \param entity The entity the proxy is used for
+     *  \param proxy A RenderProxy associated with the entity
      */
     void PushEntityToRender(
-        const Handle<Camera> &camera,
-        ID<Entity> entity_id,
-        const Handle<Mesh> &mesh,
-        const Handle<Material> &material,
-        const Handle<Skeleton> &skeleton,
-        const Matrix4 &model_matrix,
-        const Matrix4 &previous_model_matrix,
-        const BoundingBox &aabb,
-        const RenderableAttributeSet *override_attributes
+        ID<Entity> entity,
+        const RenderProxy &proxy
     );
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
-    void UpdateRenderGroups();
+    void UpdateOnRenderThread(
+        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const Optional<RenderableAttributeSet> &override_attributes = { }
+    );
 
     void CollectDrawCalls(
         Frame *frame,
@@ -274,11 +246,6 @@ public:
 private:
     Handle<Camera>                                              m_camera;
     RC<EntityDrawCollection>                                    m_draw_collection;
-    HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>>    m_render_groups;
-
-    // Keeps track of resources that are used per frame.
-    // Handles to the objects are not persistently held, as they are moved when passed to the render command UpdateRenderSideResources
-    RenderResourceManager                                       m_resources;
 };
 
 } // namespace hyperion

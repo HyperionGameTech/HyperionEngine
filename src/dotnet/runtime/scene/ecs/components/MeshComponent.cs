@@ -18,11 +18,11 @@ namespace Hyperion
         private ManagedHandle materialHandle;
         [FieldOffset(8)]
         private ManagedHandle skeletonHandle;
-        [FieldOffset(12)] // ubyte[16]
-        private fixed byte userData[16];
-        [FieldOffset(28)]
+        [FieldOffset(12)]
+        private RefCountedPtr proxyRc;
+        [FieldOffset(20)]
         private MeshComponentFlags meshComponentFlags;
-        [FieldOffset(32)]
+        [FieldOffset(32)] // align to 16 byte boundary
         private Matrix4 previousModelMatrix;
 
         public Mesh Mesh

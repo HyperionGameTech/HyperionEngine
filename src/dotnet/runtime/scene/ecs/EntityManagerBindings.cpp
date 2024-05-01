@@ -16,6 +16,7 @@
 
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
+#include <dotnet/core/RefCountedPtrBindings.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -66,7 +67,7 @@ struct ManagedMeshComponent
     ManagedHandle           mesh_handle;
     ManagedHandle           material_handle;
     ManagedHandle           skeleton_handle;
-    MeshComponentUserData   user_data;
+    ManagedRefCountedPtr    proxy_rc;
     uint32                  mesh_component_flags;
     Matrix4                 previous_model_matrix;
 };
@@ -86,11 +87,13 @@ HYP_EXPORT ComponentID MeshComponent_AddComponent(EntityManager *manager, Manage
     Handle<Mesh> mesh = CreateHandleFromManagedHandle<Mesh>(component->mesh_handle);
     Handle<Material> material = CreateHandleFromManagedHandle<Material>(component->material_handle);
 
+    RC<RenderProxy> proxy = GetRefCountedPtrFromManaged<RenderProxy>(component->proxy_rc);
+
     return manager->AddComponent(entity, MeshComponent {
         std::move(mesh),
         std::move(material),
         Handle<Skeleton> { },
-        component->user_data,
+        std::move(proxy),
         component->mesh_component_flags,
         component->previous_model_matrix
     });

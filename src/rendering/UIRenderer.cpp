@@ -64,21 +64,19 @@ void UIRenderer::OnRemoved()
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    m_render_list.ClearEntities();
-
     Array<RC<UIObject>> objects;
     m_ui_stage->CollectObjects(objects);
 
-    // std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
-    // {
-    //     AssertThrow(lhs != nullptr);
-    //     AssertThrow(lhs->GetNode() != nullptr);
+    /*std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
+    {
+        AssertThrow(lhs != nullptr);
+        AssertThrow(lhs->GetNode() != nullptr);
 
-    //     AssertThrow(rhs != nullptr);
-    //     AssertThrow(rhs->GetNode() != nullptr);
+        AssertThrow(rhs != nullptr);
+        AssertThrow(rhs->GetNode() != nullptr);
 
-    //     return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
-    // });
+        return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
+    });*/
 
     // // Set layer first as it updates material
     // for (uint i = 0; i < objects.Size(); i++) {
@@ -92,7 +90,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         const RC<UIObject> &object = objects[i];
         AssertThrow(object != nullptr);
 
-        object->SetDrawableLayer(DrawableLayer(0, i));
+        //object->SetDrawableLayer(DrawableLayer(0, object->GetComputedDepth()));
 
         const NodeProxy &node = object->GetNode();
         AssertThrow(node.IsValid());
@@ -100,32 +98,16 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         const ID<Entity> entity = node->GetEntity();
 
         MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
-        TransformComponent *transform_component = node->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
-        BoundingBoxComponent *bounding_box_component = node->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
-
         AssertThrow(mesh_component != nullptr);
-        AssertThrow(transform_component != nullptr);
-        AssertThrow(bounding_box_component != nullptr);
+        AssertThrow(mesh_component->proxy != nullptr);
 
         m_render_list.PushEntityToRender(
-            node->GetScene()->GetCamera(),
             entity,
-            mesh_component->mesh,
-            mesh_component->material,
-            mesh_component->skeleton,
-            transform_component->transform.GetMatrix(),
-            mesh_component->previous_model_matrix,
-            bounding_box_component->world_aabb,
-            nullptr
+            *mesh_component->proxy
         );
     }
 
-    // m_ui_stage->GetScene()->CollectEntities(
-    //     m_render_list,
-    //     m_ui_stage->GetScene()->GetCamera()
-    // );
-
-    m_render_list.UpdateRenderGroups();
+    m_render_list.UpdateOnRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
 }
 
 void UIRenderer::OnRender(Frame *frame)

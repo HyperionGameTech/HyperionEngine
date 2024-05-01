@@ -46,9 +46,9 @@ DrawCallCollection::~DrawCallCollection()
     Reset();
 }
 
-void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, EntityDrawData entity_draw_data)
+void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy)
 {
-    AssertThrow(entity_draw_data.mesh_id.IsValid());
+    AssertThrow(render_proxy.mesh.IsValid());
 
 #ifndef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
     AssertThrow(id.Value() != 0);
@@ -62,13 +62,13 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
             DrawCall &draw_call = draw_calls[draw_call_index];
             AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
 
-            if (!PushEntityToBatch(draw_call.batch_index, entity_draw_data.entity_id)) {
+            if (!PushEntityToBatch(draw_call.batch_index, render_proxy.entity)) {
                 // filled up, continue looking in array,
                 // if all are filled, we push a new one
                 continue;
             }
 
-            draw_call.entity_ids[draw_call.entity_id_count++] = entity_draw_data.entity_id;
+            draw_call.entity_ids[draw_call.entity_id_count++] = render_proxy.entity;
 
             AssertThrow(draw_call.entity_id_count == g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index).num_entities);
 
@@ -88,14 +88,14 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     DrawCall draw_call;
     draw_call.id = id;
     draw_call.draw_command_index = ~0u;
-    draw_call.mesh_id = entity_draw_data.mesh_id;
-    draw_call.material_id = entity_draw_data.material_id;
-    draw_call.skeleton_id = entity_draw_data.skeleton_id;
-    draw_call.entity_ids[0] = entity_draw_data.entity_id;
+    draw_call.mesh_id = render_proxy.mesh.GetID();
+    draw_call.material_id = render_proxy.material.GetID();
+    draw_call.skeleton_id = render_proxy.skeleton.GetID();
+    draw_call.entity_ids[0] = render_proxy.entity;
     draw_call.entity_id_count = 1;
     draw_call.batch_index = batch_index;
 
-    PushEntityToBatch(draw_call.batch_index, entity_draw_data.entity_id);
+    PushEntityToBatch(draw_call.batch_index, render_proxy.entity);
 
     draw_calls.PushBack(draw_call);
 }

@@ -21,50 +21,117 @@ static constexpr bool do_parallel_collection = true;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(SetRenderSideList) : renderer::RenderCommand
+struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 {
-    RC<EntityDrawCollection>    collection;
-    RenderableAttributeSet      attributes;
-    EntityList                  entity_list;
+    RC<EntityDrawCollection>                collection;
+    Array<RenderProxy>                      added_proxies;
+    Array<ID<Entity>>                       removed_proxies;
 
-    RENDER_COMMAND(SetRenderSideList)(
+    Handle<Framebuffer>                     framebuffer;
+    Optional<RenderableAttributeSet>        override_attributes;
+
+    RENDER_COMMAND(RebuildProxyGroups)(
         const RC<EntityDrawCollection> &collection,
-        const RenderableAttributeSet &attributes,
-        EntityList &&entity_list
+        Array<RenderProxy> &&added_proxies,
+        Array<ID<Entity>> &&removed_proxies,
+        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
-        attributes(attributes),
-        entity_list(std::move(entity_list))
+        added_proxies(std::move(added_proxies)),
+        removed_proxies(std::move(removed_proxies)),
+        framebuffer(framebuffer),
+        override_attributes(override_attributes)
     {
     }
 
-    virtual ~RENDER_COMMAND(SetRenderSideList)() override = default;
+    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override = default;
 
     virtual Result operator()() override
     {
-        collection->SetRenderSideList(attributes, std::move(entity_list));
+        // Clear out all proxy groups and recreate them
+        collection->ClearProxyGroups();
 
-        HYPERION_RETURN_OK;
-    }
-};
+        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
-struct RENDER_COMMAND(UpdateRenderSideResources) : renderer::RenderCommand
-{
-    RC<EntityDrawCollection>    collection;
-    RenderResourceManager       resources;
+        for (RenderProxy &proxy : added_proxies) {
+            const ID<Entity> entity = proxy.entity;
 
-    RENDER_COMMAND(UpdateRenderSideResources)(
-        const RC<EntityDrawCollection> &collection,
-        RenderResourceManager &&resources
-    ) : collection(collection),
-        resources(std::move(resources))
-    {
-    }
+            Handle<Mesh> &mesh = proxy.mesh;
+            Handle<Material> &material = proxy.material;
 
-    virtual ~RENDER_COMMAND(UpdateRenderSideResources)() override = default;
+            RenderableAttributeSet attributes {
+                mesh.IsValid() ? mesh->GetMeshAttributes() : MeshAttributes { },
+                material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { }
+            };
 
-    virtual Result operator()() override
-    {
-        collection->UpdateRenderSideResources(resources);
+            if (framebuffer.IsValid()) {
+                attributes.SetFramebufferID(framebuffer->GetID());
+            }
+
+            if (override_attributes.HasValue()) {
+                if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
+                    attributes.SetShaderDefinition(override_shader_definition);
+                }
+                
+                ShaderDefinition shader_definition = override_attributes->GetShaderDefinition().IsValid()
+                    ? override_attributes->GetShaderDefinition()
+                    : attributes.GetShaderDefinition();
+
+        #ifdef HYP_DEBUG_MODE
+                AssertThrow(shader_definition.IsValid());
+        #endif
+
+                // Check for varying vertex attributes on the override shader compared to the entity's vertex
+                // attributes. If there is not a match, we should switch to a version of the override shader that
+                // has matching vertex attribs.
+                const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
+
+                if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes()) {
+                    shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
+                }
+
+                MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
+                new_material_attributes.shader_definition = shader_definition;
+                // do not override bucket!
+                new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
+
+                attributes.SetMaterialAttributes(new_material_attributes);
+            }
+
+            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            
+            // Add proxy to group
+            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
+
+            if (!render_proxy_group.render_group.IsValid()) {
+                // Create RenderGroup
+                Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
+
+                DebugLog(LogType::Debug, "Create render group %llu (#%u)\n", attributes.GetHashCode().Value(), render_group.GetID().Value());
+
+#ifdef HYP_DEBUG_MODE
+                if (!render_group.IsValid()) {
+                    DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
+
+                    continue;
+                }
+#endif
+
+                InitObject(render_group);
+
+                render_proxy_group.render_group = std::move(render_group);
+            }
+
+            render_proxy_group.render_proxies.PushBack(proxy);
+
+            proxy_list.Add(entity, std::move(proxy));
+        }
+
+        for (const ID<Entity> &entity : removed_proxies) {
+            proxy_list.MarkToRemove(entity);
+        }
+
+        proxy_list.Advance(RPLAA_PERSIST);
 
         HYPERION_RETURN_OK;
     }
@@ -74,42 +141,38 @@ struct RENDER_COMMAND(UpdateRenderSideResources) : renderer::RenderCommand
 
 #pragma region EntityList
 
-EntityList::EntityList(const EntityList &other)
-    : entity_draw_datas(other.entity_draw_datas),
-      render_group(other.render_group),
-      usage_bits(other.usage_bits)
+RenderProxyGroup::RenderProxyGroup(const RenderProxyGroup &other)
+    : render_proxies(other.render_proxies),
+      render_group(other.render_group)
 {
 }
 
-EntityList &EntityList::operator=(const EntityList &other)
+RenderProxyGroup &RenderProxyGroup::operator=(const RenderProxyGroup &other)
 {
     if (this == &other) {
         return *this;
     }
 
-    entity_draw_datas = other.entity_draw_datas;
+    render_proxies = other.render_proxies;
     render_group = other.render_group;
-    usage_bits = other.usage_bits;
 
     return *this;
 }
 
-EntityList::EntityList(EntityList &&other) noexcept
-    : entity_draw_datas(std::move(other.entity_draw_datas)),
-      render_group(std::move(other.render_group)),
-      usage_bits(std::move(other.usage_bits))
+RenderProxyGroup::RenderProxyGroup(RenderProxyGroup &&other) noexcept
+    : render_proxies(std::move(other.render_proxies)),
+      render_group(std::move(other.render_group))
 {
 }
 
-EntityList &EntityList::operator=(EntityList &&other) noexcept
+RenderProxyGroup &RenderProxyGroup::operator=(RenderProxyGroup &&other) noexcept
 {
     if (this == &other) {
         return *this;
     }
 
-    entity_draw_datas = std::move(other.entity_draw_datas);
+    render_proxies = std::move(other.render_proxies);
     render_group = std::move(other.render_group);
-    usage_bits = std::move(other.usage_bits);
 
     return *this;
 }
@@ -118,207 +181,57 @@ EntityList &EntityList::operator=(EntityList &&other) noexcept
 
 #pragma region EntityDrawCollection
 
-FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList()
+FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups()
 {
-    const ThreadType thread_type = Threads::GetThreadType();
-
-    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
-
-    return m_lists[uint(thread_type)];
-}
-
-const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList() const
-{
-    const ThreadType thread_type = Threads::GetThreadType();
-
-    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
-
-    return m_lists[uint(thread_type)];
-}
-
-FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList(ThreadType thread_type)
-{
-    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
-
-    return m_lists[uint(thread_type)];
-}
-
-const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList(ThreadType thread_type) const
-{
-    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
-
-    return m_lists[uint(thread_type)];
-}
-
-void EntityDrawCollection::InsertEntityWithAttributes(const RenderableAttributeSet &attributes, const EntityDrawData &entity_draw_data)
-{
-    auto &list = GetEntityList(ThreadType::THREAD_TYPE_GAME)[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes];
-
-    if (entity_draw_data.mesh_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_MESH].Set(entity_draw_data.mesh_id.ToIndex(), true);
-    }
-
-    if (entity_draw_data.material_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_MATERIAL].Set(entity_draw_data.material_id.ToIndex(), true);
-    }
-
-    if (entity_draw_data.skeleton_id.IsValid()) {
-        list.usage_bits[RESOURCE_USAGE_TYPE_SKELETON].Set(entity_draw_data.skeleton_id.ToIndex(), true);
-    }
-    
-    list.entity_draw_datas.PushBack(entity_draw_data);
-}
-
-void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
-{
-    DebugLog(LogType::Debug, "SetRenderSideList()  %p\n", this);
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
-
-    auto &mappings = GetEntityList()[pass_type];
-    
-    mappings.Set(attributes, std::move(entity_list));
+    return m_proxy_groups;
 }
 
-void EntityDrawCollection::UpdateRenderSideResources(RenderResourceManager &new_resources)
+const FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups() const
 {
-    DebugLog(LogType::Debug, "UpdateRenderSideResources()  %p\n", this);
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    RenderResourceManager &render_side_resources = m_current_render_side_resources;
-    render_side_resources.TakeUsagesFrom(new_resources);
-    
-    // ResourceUsageMapBase *resource_usage_maps[] = {
-    //     render_side_resources.GetResourceUsageMap<Mesh>(),
-    //     render_side_resources.GetResourceUsageMap<Material>(),
-    //     render_side_resources.GetResourceUsageMap<Skeleton>()
-    // };
-
-    // Bitset new_bitsets[ArraySize(resource_usage_maps)] = { }; // mesh, material, skeleton
-
-    // // @TODO: Optimize without nested looping
-    // for (const auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-    //     for (const auto &it : list_per_pass_type) {
-    //         for (uint32 i = 0; i < ArraySize(new_bitsets); i++) {
-    //             new_bitsets[i] |= it.second.usage_bits[i];
-    //         }
-    //     }
-    // }
-
-    // Bitset prev_bitsets[ArraySize(resource_usage_maps)];
-
-    // for (uint32 i = 0; i < ArraySize(resource_usage_maps); i++) {
-    //     prev_bitsets[i] = resource_usage_maps[i]->usage_bits;
-    // }
-
-    // // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
-    // // This will give us a list of IDs that were removed.
-    // for (uint32 i = 0; i < ArraySize(resource_usage_maps); i++) {
-    //     // If any of the bitsets are different sizes, resize them to match the largest one,
-    //     // this makes ~ and & operations work as expected
-    //     if (prev_bitsets[i].NumBits() > new_bitsets[i].NumBits()) {
-    //         new_bitsets[i].Resize(prev_bitsets[i].NumBits());
-    //     } else if (prev_bitsets[i].NumBits() < new_bitsets[i].NumBits()) {
-    //         prev_bitsets[i].Resize(new_bitsets[i].NumBits());
-    //     }
-
-    //     SizeType first_set_bit_index;
-
-    //     Bitset removed_id_bits = prev_bitsets[i] & ~new_bitsets[i];
-    //     Bitset newly_added_id_bits = new_bitsets[i] & ~prev_bitsets[i];
-
-    //     switch (i) {
-    //     case RESOURCE_USAGE_TYPE_MESH:
-    //         DebugLog(LogType::Debug, "[Mesh] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     case RESOURCE_USAGE_TYPE_MATERIAL:
-    //         DebugLog(LogType::Debug, "[Material] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     case RESOURCE_USAGE_TYPE_SKELETON:
-    //         DebugLog(LogType::Debug, "[Skeleton] prev bits: %llu\tnew bits: %llu\tRemoved: %llu\tAdded: %llu\n", prev_bitsets[i].Count(), new_bitsets[i].Count(), removed_id_bits.Count(), newly_added_id_bits.Count());
-    //         break;
-    //     }
-
-    //     // Iterate over the bits that were removed, and drop the references to them.
-    //     while ((first_set_bit_index = removed_id_bits.FirstSetBitIndex()) != -1) {
-    //         // Remove the reference
-    //         switch (i) {
-    //         case RESOURCE_USAGE_TYPE_MESH:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Mesh>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_MATERIAL:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Material>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_SKELETON:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Skeleton>::FromIndex(first_set_bit_index), false);
-    //             break;
-    //         }
-
-    //         removed_id_bits.Set(first_set_bit_index, false);
-    //     }
-
-    //     while ((first_set_bit_index = newly_added_id_bits.FirstSetBitIndex()) != -1) {
-    //         // Create a reference to it in the resources list.
-    //         switch (i) {
-    //         case RESOURCE_USAGE_TYPE_MESH:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Mesh>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_MATERIAL:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Material>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         case RESOURCE_USAGE_TYPE_SKELETON:
-    //             render_side_resources.SetIsUsed(resource_usage_maps[i], ID<Skeleton>::FromIndex(first_set_bit_index), true);
-    //             break;
-    //         }
-
-    //         newly_added_id_bits.Set(first_set_bit_index, false);
-    //     }
-    // }
-
-    // @TEMP Debug
-
-    for (const auto &list_per_pass_type : GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (const auto &it : list_per_pass_type) {
-            for (auto &draw_data : it.second.entity_draw_datas) {
-                if (draw_data.mesh_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.mesh_id));
-                }
-                if (draw_data.material_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.material_id));
-                }
-                if (draw_data.skeleton_id.IsValid()) {
-                    AssertThrow(render_side_resources.IsUsed(draw_data.skeleton_id));
-                }
-            }
-        }
-    }
+    return m_proxy_groups;
 }
 
-void EntityDrawCollection::ClearEntities()
+RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type)
 {
+    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
+
+    return m_proxy_lists[uint(thread_type)];
+}
+
+const RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type) const
+{
+    AssertThrowMsg(thread_type != ThreadType::THREAD_TYPE_INVALID, "Invalid thread for calling method");
+
+    return m_proxy_lists[uint(thread_type)];
+}
+
+void EntityDrawCollection::AddRenderProxy(ThreadType thread_type, const RenderableAttributeSet &attributes, const RenderProxy &proxy)
+{
+    auto &group = GetProxyGroups()[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes];
+
+    group.render_proxies.PushBack(proxy);
+}
+
+void EntityDrawCollection::AddRenderProxy(const RenderableAttributeSet &attributes, const RenderProxy &proxy)
+{
+    AddRenderProxy(Threads::GetThreadType(), attributes, proxy);
+}
+
+void EntityDrawCollection::ClearProxyGroups()
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    for (auto &collection_per_pass_type : GetEntityList()) {
-        for (auto &it : collection_per_pass_type) {
-            it.second.ClearEntities();
+    for (auto &proxy_group : GetProxyGroups()) {
+        for (auto &it : proxy_group) {
+            it.second.ClearProxies();
         }
     }
-}
-
-HashCode EntityDrawCollection::CalculateCombinedAttributesHashCode() const
-{
-    HashCode hc;
-
-    for (auto &collection_per_pass_type : GetEntityList()) {
-        for (auto &it : collection_per_pass_type) {
-            hc.Add(it.first.GetHashCode());
-        }
-    }
-
-    return hc;
 }
 
 #pragma endregion EntityDrawCollection
@@ -339,180 +252,55 @@ RenderList::~RenderList()
 {
 }
 
-void RenderList::ClearEntities()
-{
-    AssertThrow(m_draw_collection != nullptr);
-
-    m_draw_collection->ClearEntities();
-}
-
-void RenderList::UpdateRenderGroups()
+void RenderList::UpdateOnRenderThread(const Handle<Framebuffer> &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, EntityList>::Iterator;
+    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
-    Array<IteratorType> iterators;
-    Array<Pair<RenderableAttributeSet, Handle<RenderGroup>>> added_render_groups;
+    Array<ID<Entity>> removed_proxies;
+    proxy_list.GetRemovedEntities(removed_proxies);
 
-    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(ThreadType::THREAD_TYPE_GAME)) {
-        for (auto &it : collection_per_pass_type) {
-            iterators.PushBack(&it);
-        }
-    }
+    Array<RenderProxy *> added_proxies_ptrs;
+    proxy_list.GetAddedEntities(added_proxies_ptrs, true);
 
-    added_render_groups.Resize(iterators.Size());
+    if (added_proxies_ptrs.Any() || removed_proxies.Any()) {
+        Array<RenderProxy> added_proxies;
+        added_proxies.Resize(added_proxies_ptrs.Size());
 
-    FixedArray<Bitset, ResourceUsageType::RESOURCE_USAGE_TYPE_MAX> bitsets;
+        for (uint i = 0; i < added_proxies_ptrs.Size(); i++) {
+            AssertThrow(added_proxies_ptrs[i] != nullptr);
 
-    for (uint index = 0; index < iterators.Size(); index++) {
-        const RenderableAttributeSet &attributes = iterators[index]->first;
-        EntityList &entity_list = iterators[index]->second;
-
-        if (!entity_list.render_group.IsValid()) {
-            if (added_render_groups[index].second.IsValid()) {
-#ifdef HYP_DEBUG_MODE
-                AssertThrowMsg(attributes == added_render_groups[index].first, "Attributes do not match with assigned index of %u", index);
-#endif
-
-                entity_list.render_group = added_render_groups[index].second;
-            } else {
-                auto render_group_it = m_render_groups.Find(attributes);
-
-                if (render_group_it != m_render_groups.End()) {
-                    DebugLog(LogType::Debug, "RenderGroup for attributes hash %llu found. Valid? %d\n", attributes.GetHashCode().Value(), render_group_it->second.Lock().IsValid());
-
-                    entity_list.render_group = render_group_it->second.Lock();
-                }
-
-                if (!entity_list.render_group.IsValid()) {
-                    Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
-
-                    DebugLog(LogType::Debug, "Create render group %llu (#%u)\n", attributes.GetHashCode().Value(), render_group.GetID().Value());
-
-#ifdef HYP_DEBUG_MODE
-                    if (!render_group.IsValid()) {
-                        DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
-
-                        return;
-                    }
-#endif
-
-                    InitObject(render_group);
-
-                    added_render_groups[index] = { attributes, render_group };
-
-                    entity_list.render_group = std::move(render_group);
-                }
-            }
-        }
-
-        for (uint resource_type_index = 0; resource_type_index < RESOURCE_USAGE_TYPE_MAX; resource_type_index++) {
-            bitsets[resource_type_index] |= entity_list.usage_bits[resource_type_index];
+            // Copy the proxy to be added on the render thread
+            added_proxies[i] = *added_proxies_ptrs[i];
         }
 
         PUSH_RENDER_COMMAND(
-            SetRenderSideList,
+            RebuildProxyGroups,
             m_draw_collection,
-            attributes,
-            std::move(entity_list)
+            std::move(added_proxies),
+            std::move(removed_proxies),
+            framebuffer,
+            override_attributes
         );
     }
 
-    for (uint resource_type_index = 0; resource_type_index < RESOURCE_USAGE_TYPE_MAX; resource_type_index++) {
-        m_resources.CollectNeededResourcesForBits(ResourceUsageType(resource_type_index), bitsets[resource_type_index]);
-    }
-
-    for (auto &it : added_render_groups) {
-        const RenderableAttributeSet &attributes = it.first;
-        Handle<RenderGroup> &render_group = it.second;
-
-        if (render_group.IsValid()) {
-            m_render_groups.Set(attributes, render_group);
-        }
-    }
-
-    RenderResourceManager frame_resources;
-    frame_resources.TakeUsagesFrom(m_resources);
-    
-    PUSH_RENDER_COMMAND(
-        UpdateRenderSideResources,
-        m_draw_collection,
-        std::move(frame_resources)
-    );
+    proxy_list.Advance(RPLAA_CLEAR);
 }
 
 void RenderList::PushEntityToRender(
-    const Handle<Camera> &camera,
-    ID<Entity> entity_id,
-    const Handle<Mesh> &mesh,
-    const Handle<Material> &material,
-    const Handle<Skeleton> &skeleton,
-    const Matrix4 &model_matrix,
-    const Matrix4 &previous_model_matrix,
-    const BoundingBox &aabb,
-    const RenderableAttributeSet *override_attributes
+    ID<Entity> entity,
+    const RenderProxy &proxy
 )
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    AssertThrow(mesh.IsValid());
-    AssertThrow(entity_id.IsValid());
+    AssertThrow(entity.IsValid());
+    AssertThrow(proxy.mesh.IsValid());
 
-    const Handle<Framebuffer> &framebuffer = camera
-        ? camera->GetFramebuffer()
-        : Handle<Framebuffer>::empty;
-
-    RenderableAttributeSet attributes {
-        mesh.IsValid() ? mesh->GetMeshAttributes() : MeshAttributes { },
-        material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { }
-    };
-
-    if (framebuffer) {
-        attributes.SetFramebufferID(framebuffer->GetID());
-    }
-
-    if (override_attributes) {
-        if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
-            attributes.SetShaderDefinition(override_shader_definition);
-        }
-        
-        ShaderDefinition shader_definition = override_attributes->GetShaderDefinition().IsValid()
-            ? override_attributes->GetShaderDefinition()
-            : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-        AssertThrow(shader_definition.IsValid());
-#endif
-
-        // Check for varying vertex attributes on the override shader compared to the entity's vertex
-        // attributes. If there is not a match, we should switch to a version of the override shader that
-        // has matching vertex attribs.
-        const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
-
-        if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes()) {
-            shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
-        }
-
-        MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
-        new_material_attributes.shader_definition = shader_definition;
-        // do not override bucket!
-        new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
-
-        attributes.SetMaterialAttributes(new_material_attributes);
-    }
-
-    m_draw_collection->InsertEntityWithAttributes(attributes, EntityDrawData {
-        entity_id,
-        mesh.GetID(),
-        material.GetID(),
-        skeleton.GetID(),
-        model_matrix,
-        previous_model_matrix,
-        aabb,
-        attributes.GetMaterialAttributes().bucket
-    });
+    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
+    proxy_list.Add(entity, proxy);
 }
 
 void RenderList::CollectDrawCalls(
@@ -523,12 +311,12 @@ void RenderList::CollectDrawCalls(
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, EntityList>::Iterator;
+    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
 
     Array<IteratorType> iterators;
 
-    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (auto &it : collection_per_pass_type) {
+    for (auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
+        for (auto &it : proxy_groups) {
             const RenderableAttributeSet &attributes = it.first;
 
             const Bucket bucket = bucket_bits.Test(uint(attributes.GetMaterialAttributes().bucket)) ? attributes.GetMaterialAttributes().bucket : BUCKET_INVALID;
@@ -541,42 +329,28 @@ void RenderList::CollectDrawCalls(
         }
     }
 
-    for (auto &it : iterators) {
-        for (auto &draw_data : it->second.entity_draw_datas) {
-            if (draw_data.mesh_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.mesh_id), "Expected ID %u to be marked as used\t%p", draw_data.mesh_id.Value(), m_draw_collection.Get());
-            }
-            if (draw_data.material_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.material_id), "Expected ID %u to be marked as used\t%p", draw_data.material_id.Value(), m_draw_collection.Get());
-            }
-            if (draw_data.skeleton_id.IsValid()) {
-                AssertThrowMsg(this->m_draw_collection->GetRenderSideResources().IsUsed(draw_data.skeleton_id), "Expected ID %u to be marked as used\t%p", draw_data.skeleton_id.Value(), m_draw_collection.Get());
-            }
-        }
-    }
-
     if constexpr (do_parallel_collection) {
         TaskSystem::GetInstance().ParallelForEach(
             TaskThreadPoolName::THREAD_POOL_RENDER,
             iterators,
             [this](IteratorType it, uint, uint)
             {
-                EntityList &entity_list = it->second;
-                Handle<RenderGroup> &render_group = entity_list.render_group;
+                RenderProxyGroup &proxy_group = it->second;
 
+                Handle<RenderGroup> &render_group = proxy_group.render_group;
                 AssertThrow(render_group.IsValid());
 
-                render_group->CollectDrawCalls(entity_list.entity_draw_datas);
+                render_group->CollectDrawCalls(proxy_group.render_proxies);
             }
         );
     } else {
         for (IteratorType it : iterators) {
-            EntityList &entity_list = it->second;
-            Handle<RenderGroup> &render_group = entity_list.render_group;
+            RenderProxyGroup &proxy_group = it->second;
 
+            Handle<RenderGroup> &render_group = proxy_group.render_group;
             AssertThrow(render_group.IsValid());
 
-            render_group->CollectDrawCalls(entity_list.entity_draw_datas);
+            render_group->CollectDrawCalls(proxy_group.render_proxies);
         }
     }
 
@@ -651,10 +425,10 @@ void RenderList::ExecuteDrawCalls(
 
     g_engine->GetRenderState().BindCamera(camera.Get());
 
-    for (const auto &collection_per_pass_type : m_draw_collection->GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (const auto &it : collection_per_pass_type) {
+    for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
+        for (const auto &it : proxy_groups) {
             const RenderableAttributeSet &attributes = it.first;
-            const EntityList &entity_list = it.second;
+            const RenderProxyGroup &proxy_group = it.second;
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -662,7 +436,7 @@ void RenderList::ExecuteDrawCalls(
                 continue;
             }
 
-            AssertThrow(entity_list.render_group.IsValid());
+            AssertThrow(proxy_group.render_group.IsValid());
 
             if (framebuffer) {
                 AssertThrowMsg(
@@ -672,13 +446,13 @@ void RenderList::ExecuteDrawCalls(
             }
 
             if (push_constant) {
-                entity_list.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
+                proxy_group.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
             }
 
             if (use_draw_indirect && cull_data != nullptr) {
-                entity_list.render_group->PerformRenderingIndirect(frame);
+                proxy_group.render_group->PerformRenderingIndirect(frame);
             } else {
-                entity_list.render_group->PerformRendering(frame);
+                proxy_group.render_group->PerformRendering(frame);
             }
         }
     }
@@ -753,11 +527,11 @@ void RenderList::ExecuteDrawCallsInLayers(
 
     g_engine->GetRenderState().BindCamera(camera.Get());
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, EntityList>::ConstIterator;
+    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto &collection_per_pass_type : m_draw_collection->GetEntityList(ThreadType::THREAD_TYPE_RENDER)) {
-        for (const auto &it : collection_per_pass_type) {
+    for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
+        for (const auto &it : proxy_groups) {
             iterators.PushBack(&it);
         }
     }
@@ -772,22 +546,7 @@ void RenderList::ExecuteDrawCallsInLayers(
         const auto &it = *iterators[index];
 
         const RenderableAttributeSet &attributes = it.first;
-        const EntityList &entity_list = it.second;
-
-
-        // @TEMP Debug
-        for (auto &draw_data : entity_list.entity_draw_datas) {
-            if (draw_data.mesh_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.mesh_id));
-            }
-            if (draw_data.material_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.material_id));
-            }
-            if (draw_data.skeleton_id.IsValid()) {
-                AssertThrow(m_draw_collection->GetRenderSideResources().IsUsed(draw_data.skeleton_id));
-            }
-        }
-
+        const RenderProxyGroup &proxy_group = it.second;
 
         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -795,7 +554,7 @@ void RenderList::ExecuteDrawCallsInLayers(
             continue;
         }
 
-        AssertThrow(entity_list.render_group.IsValid());
+        AssertThrow(proxy_group.render_group.IsValid());
 
         if (framebuffer) {
             AssertThrowMsg(
@@ -805,13 +564,13 @@ void RenderList::ExecuteDrawCallsInLayers(
         }
 
         if (push_constant) {
-            entity_list.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
+            proxy_group.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
         }
 
         if (use_draw_indirect && cull_data != nullptr) {
-            entity_list.render_group->PerformRenderingIndirect(frame);
+            proxy_group.render_group->PerformRenderingIndirect(frame);
         } else {
-            entity_list.render_group->PerformRendering(frame);
+            proxy_group.render_group->PerformRendering(frame);
         }
     }
 

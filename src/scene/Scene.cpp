@@ -240,22 +240,17 @@ void Scene::Update(GameCounter::TickUnit delta)
 void Scene::CollectEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
-    Optional<RenderableAttributeSet> override_attributes,
+    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
-
-    // clear out existing entities before populating
-    render_list.ClearEntities();
 
     if (!camera) {
         return;
     }
 
     const ID<Camera> camera_id = camera.GetID();
-
-    RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
 
     const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
 
@@ -283,40 +278,34 @@ void Scene::CollectEntities(
 #endif
         }
 
+        AssertThrow(mesh_component.proxy != nullptr);
+
         render_list.PushEntityToRender(
-            camera,
             entity_id,
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            transform_component.transform.GetMatrix(),
-            mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            override_attributes_ptr
+            *mesh_component.proxy
         );
     }
+
+    render_list.UpdateOnRenderThread(
+        camera->GetFramebuffer(),
+        override_attributes
+    );
 }
 
 void Scene::CollectDynamicEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
-    Optional<RenderableAttributeSet> override_attributes,
+    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
-
-    // clear out existing entities before populating
-    render_list.ClearEntities();
 
     if (!camera) {
         return;
     }
 
     const ID<Camera> camera_id = camera.GetID();
-
-    RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
-    const uint32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
     const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
 
@@ -345,40 +334,34 @@ void Scene::CollectDynamicEntities(
 #endif
         }
 
+        AssertThrow(mesh_component.proxy != nullptr);
+
         render_list.PushEntityToRender(
-            camera,
             entity_id,
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            transform_component.transform.GetMatrix(),
-            mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            override_attributes_ptr
+            *mesh_component.proxy
         );
     }
+
+    render_list.UpdateOnRenderThread(
+        camera->GetFramebuffer(),
+        override_attributes
+    );
 }
 
 void Scene::CollectStaticEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
-    Optional<RenderableAttributeSet> override_attributes,
+    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
-
-    // clear out existing entities before populating
-    render_list.ClearEntities();
 
     if (!camera) {
         return;
     }
 
     const ID<Camera> camera_id = camera.GetID();
-
-    RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
-    const uint32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
     const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
 
@@ -407,18 +390,18 @@ void Scene::CollectStaticEntities(
 #endif
         }
 
+        AssertThrow(mesh_component.proxy != nullptr);
+
         render_list.PushEntityToRender(
-            camera,
             entity_id,
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            transform_component.transform.GetMatrix(),
-            mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            override_attributes_ptr
+            *mesh_component.proxy
         );
     }
+
+    render_list.UpdateOnRenderThread(
+        camera->GetFramebuffer(),
+        override_attributes
+    );
 }
 
 void Scene::EnqueueRenderUpdates()

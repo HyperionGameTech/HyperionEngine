@@ -35,8 +35,8 @@ Handle<Material> UIPanel::GetMaterial() const
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
             .flags              = MaterialAttributes::RAF_NONE,
-            .layer              = GetDrawableLayer(),
-            .stencil_function   = StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0xFF, 0x1)// <-- @TEMP test
+            .layer              = GetDrawableLayer()
+            //.stencil_function   = StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0xFF, 0x1)// <-- @TEMP test
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.075f, 0.09f, 0.135f, 1.0f } }

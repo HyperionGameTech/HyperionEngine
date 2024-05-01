@@ -147,7 +147,7 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
         return;
     }
 
-    Threads::AssertOnThread(m_owner_thread_mask & other.m_owner_thread_mask);
+    // Threads::AssertOnThread(m_owner_thread_mask & other.m_owner_thread_mask);
 
     AssertThrow(entity.IsValid());
 

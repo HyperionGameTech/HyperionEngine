@@ -13,32 +13,33 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateEntityDrawDatas) : renderer::RenderCommand
+struct RENDER_COMMAND(UpdateRenderProxies) : renderer::RenderCommand
 {
-    Array<EntityDrawData> entity_draw_datas;
+    Array<RC<RenderProxy>>  render_proxies;
 
-    RENDER_COMMAND(UpdateEntityDrawDatas)(Array<EntityDrawData> &&entity_draw_datas)
-        : entity_draw_datas(std::move(entity_draw_datas))
+    RENDER_COMMAND(UpdateRenderProxies)(Array<RC<RenderProxy>> &&render_proxies)
+        : render_proxies(std::move(render_proxies))
     {
     }
 
-    virtual ~RENDER_COMMAND(UpdateEntityDrawDatas)() override = default;
+    virtual ~RENDER_COMMAND(UpdateRenderProxies)() override = default;
 
     virtual Result operator()() override
     {
-        for (const EntityDrawData &entity_draw_data : entity_draw_datas) {
-            // @TODO: Change it to use EntityDrawData instead of EntityShaderData.
-            g_engine->GetRenderData()->objects.Set(entity_draw_data.entity_id.ToIndex(), EntityShaderData {
-                .model_matrix           = entity_draw_data.model_matrix,
-                .previous_model_matrix  = entity_draw_data.previous_model_matrix,
-                .world_aabb_max         = Vec4f(entity_draw_data.aabb.max, 1.0f),
-                .world_aabb_min         = Vec4f(entity_draw_data.aabb.min, 1.0f),
-                .entity_index           = entity_draw_data.entity_id.ToIndex(),
-                .material_index         = entity_draw_data.material_id.ToIndex(),
-                .skeleton_index         = entity_draw_data.skeleton_id.ToIndex(),
-                .bucket                 = entity_draw_data.bucket,
-                .flags                  = entity_draw_data.skeleton_id.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
-                .user_data              = entity_draw_data.user_data.ReinterpretAs<Vec4u>()
+        for (const RC<RenderProxy> &proxy_ptr : render_proxies) {
+            const RenderProxy &proxy = *proxy_ptr;
+
+            g_engine->GetRenderData()->objects.Set(proxy.entity.ToIndex(), EntityShaderData {
+                .model_matrix           = proxy.model_matrix,
+                .previous_model_matrix  = proxy.previous_model_matrix,
+                .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),
+                .world_aabb_min         = Vec4f(proxy.aabb.min, 1.0f),
+                .entity_index           = proxy.entity.ToIndex(),
+                .material_index         = proxy.material.GetID().ToIndex(),
+                .skeleton_index         = proxy.skeleton.GetID().ToIndex(),
+                .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
+                .flags                  = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE
+                // .user_data              = entity_draw_data.user_data.ReinterpretAs<Vec4u>()
             });
         }
 
@@ -56,6 +57,18 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, I
 
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
+    InitObject(mesh_component.skeleton);
+
+    if (!mesh_component.proxy) {
+        mesh_component.proxy.Reset(new RenderProxy {
+            entity,
+            mesh_component.mesh,
+            mesh_component.material,
+            mesh_component.skeleton
+        });
+    }
+
+    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
 void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
@@ -67,9 +80,9 @@ void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager,
 
 void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
 {
-    Array<EntityDrawData> entity_draw_datas;
+    Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }
@@ -78,19 +91,18 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
         const ID<Material> material_id = mesh_component.material.GetID();
         const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
 
-        entity_draw_datas.PushBack(EntityDrawData {
-            entity_id,
-            mesh_id,
-            material_id,
-            skeleton_id,
+        // Update MeshComponent's proxy
+        *mesh_component.proxy = RenderProxy {
+            entity,
+            mesh_component.mesh,
+            mesh_component.material,
+            mesh_component.skeleton,
             transform_component.transform.GetMatrix(),
             mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            mesh_component.material.IsValid()
-                ? uint32(mesh_component.material->GetBucket())
-                : BUCKET_OPAQUE,
-            mesh_component.user_data
-        });
+            bounding_box_component.world_aabb
+        };
+
+        render_proxies.PushBack(mesh_component.proxy);
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix()) {
             mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
@@ -99,10 +111,10 @@ void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCou
         }
     }
 
-    if (entity_draw_datas.Any()) {
+    if (render_proxies.Any()) {
         PUSH_RENDER_COMMAND(
-            UpdateEntityDrawDatas,
-            std::move(entity_draw_datas)
+            UpdateRenderProxies,
+            std::move(render_proxies)
         );
     }
 }

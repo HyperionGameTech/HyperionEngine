@@ -10,7 +10,7 @@
 
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/EntityDrawData.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <core/system/Debug.hpp>
 
@@ -103,7 +103,7 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, EntityDrawData entity_draw_data);
+    void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy);
     DrawCall *TakeDrawCall(DrawCallID id);
     void Reset();
 };

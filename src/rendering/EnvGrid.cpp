@@ -410,8 +410,6 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
         true // skip frustum culling, until Camera supports multiple frustums.
     );
 
-    m_render_list.UpdateRenderGroups();
-
     for (uint index = 0; index < m_env_probe_collection.num_probes; index++) {
         // Don't worry about using the indirect index
         Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
