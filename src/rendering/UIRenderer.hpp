@@ -22,6 +22,41 @@ using renderer::ImageView;
 class UIStage;
 class UIObject;
 
+class UIRenderList : public RenderList
+{
+public:
+    UIRenderList();
+    UIRenderList(const Handle<Camera> &camera);
+    UIRenderList(const UIRenderList &other)                 = delete;
+    UIRenderList &operator=(const UIRenderList &other)      = delete;
+    UIRenderList(UIRenderList &&other) noexcept             = default;
+    UIRenderList &operator=(UIRenderList &&other) noexcept  = default;
+    ~UIRenderList();
+
+    void ResetOrdering();
+
+    void PushEntityToRender(
+        ID<Entity> entity,
+        const RenderProxy &proxy
+    );
+
+    void UpdateOnRenderThread(
+        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const Optional<RenderableAttributeSet> &override_attributes = { }
+    );
+
+    void CollectDrawCalls(
+        Frame *frame
+    );
+
+    void ExecuteDrawCalls(
+        Frame *frame
+    ) const;
+
+private:
+    Array<ID<Entity>>   m_proxy_ordering;
+};
+
 class HYP_API UIRenderer
     : public RenderComponent<UIRenderer>
 {
@@ -47,7 +82,7 @@ private:
     RC<UIStage>                     m_ui_stage;
     Handle<Framebuffer>             m_framebuffer;
     Handle<Shader>                  m_shader;
-    RenderList                      m_render_list;
+    UIRenderList                    m_render_list;
 };
 
 } // namespace hyperion

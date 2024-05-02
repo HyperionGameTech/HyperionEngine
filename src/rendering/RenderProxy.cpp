@@ -1,10 +1,25 @@
 #include <rendering/RenderProxy.hpp>
+#include <rendering/SafeDeleter.hpp>
 
 namespace hyperion {
 
-void RenderProxyList::Add(ID<Entity> entity, RenderProxy proxy)
+extern HYP_API SafeDeleter *g_safe_deleter;
+
+void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
 {
-    m_proxies.Set(entity, std::move(proxy));
+    HashMap<ID<Entity>, RenderProxy>::Iterator iter = m_proxies.End();
+
+    if (HasProxyForEntity(entity)) {
+        iter = m_proxies.Find(entity);
+    }
+
+    if (iter != m_proxies.End()) {
+        g_safe_deleter->SafeRelease(std::move(iter->second));
+
+        iter->second = proxy;
+    } else {
+        iter = m_proxies.Insert(entity, proxy).first;
+    }
 
     m_next_entities.Set(entity.ToIndex(), true);
     m_changed_entities.Set(entity.ToIndex(), true);
@@ -93,6 +108,8 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
             const auto it = m_proxies.Find(entity);
 
             if (it != m_proxies.End()) {
+                g_safe_deleter->SafeRelease(std::move(it->second));
+
                 m_proxies.Erase(it);
             }
 

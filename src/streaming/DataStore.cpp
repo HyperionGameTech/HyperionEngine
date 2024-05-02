@@ -15,11 +15,8 @@ DataStoreBase::DataStoreBase(const String &prefix, DataStoreOptions options)
     : m_prefix(prefix),
       m_options(options)
 {
-    if (m_options.flags & DATA_STORE_FLAG_WRITE) {
+    if (m_options.flags & DSF_WRITE) {
         AssertThrowMsg(MakeDirectory(), "Failed to create directory for data store at path %s", GetDirectory().Data());
-
-        // Clean up the directory if it's too large
-        DiscardOldFiles();
     }
 }
 
@@ -82,7 +79,7 @@ bool DataStoreBase::MakeDirectory() const
 
 void DataStoreBase::Write(const String &key, const ByteBuffer &byte_buffer)
 {
-    AssertThrowMsg(m_options.flags & DATA_STORE_FLAG_WRITE, "Data store is not writable");
+    AssertThrowMsg(m_options.flags & DSF_WRITE, "Data store is not writable");
 
     const FilePath filepath = GetDirectory() / key;
 
@@ -93,7 +90,7 @@ void DataStoreBase::Write(const String &key, const ByteBuffer &byte_buffer)
 
 bool DataStoreBase::Read(const String &key, ByteBuffer &out_byte_buffer) const
 {
-    AssertThrowMsg(m_options.flags & DATA_STORE_FLAG_READ, "Data store is not readable");
+    AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
 
     const FilePath directory = GetDirectory();
 

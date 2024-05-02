@@ -217,7 +217,7 @@ Material::~Material()
         m_textures.ValueAt(i).Reset();
     }
 
-    g_safe_deleter->SafeReleaseHandle(std::move(m_shader));
+    g_safe_deleter->SafeRelease(std::move(m_shader));
 
     if (IsInitCalled()) {
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
@@ -369,7 +369,7 @@ void Material::SetShader(Handle<Shader> shader)
     }
 
     if (m_shader.IsValid()) {
-        g_safe_deleter->SafeReleaseHandle(std::move(m_shader));
+        g_safe_deleter->SafeRelease(std::move(m_shader));
     }
 
     m_render_attributes.shader_definition = shader.IsValid()

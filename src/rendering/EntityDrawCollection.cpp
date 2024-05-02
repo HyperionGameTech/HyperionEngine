@@ -103,7 +103,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             // Add proxy to group
             RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
 
-            if (!render_proxy_group.render_group.IsValid()) {
+            if (!render_proxy_group.GetRenderGroup().IsValid()) {
                 // Create RenderGroup
                 Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
 
@@ -119,10 +119,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
                 InitObject(render_group);
 
-                render_proxy_group.render_group = std::move(render_group);
+                render_proxy_group.SetRenderGroup(render_group);
             }
 
-            render_proxy_group.render_proxies.PushBack(proxy);
+            render_proxy_group.AddRenderProxy(proxy);
 
             proxy_list.Add(entity, std::move(proxy));
         }
@@ -132,6 +132,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         proxy_list.Advance(RPLAA_PERSIST);
+        
+        // Clear out groups that are no longer used
+        collection->RemoveEmptyProxyGroups();
 
         HYPERION_RETURN_OK;
     }
@@ -142,8 +145,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 #pragma region EntityList
 
 RenderProxyGroup::RenderProxyGroup(const RenderProxyGroup &other)
-    : render_proxies(other.render_proxies),
-      render_group(other.render_group)
+    : m_render_proxies(other.m_render_proxies),
+      m_render_group(other.m_render_group)
 {
 }
 
@@ -153,15 +156,15 @@ RenderProxyGroup &RenderProxyGroup::operator=(const RenderProxyGroup &other)
         return *this;
     }
 
-    render_proxies = other.render_proxies;
-    render_group = other.render_group;
+    m_render_proxies = other.m_render_proxies;
+    m_render_group = other.m_render_group;
 
     return *this;
 }
 
 RenderProxyGroup::RenderProxyGroup(RenderProxyGroup &&other) noexcept
-    : render_proxies(std::move(other.render_proxies)),
-      render_group(std::move(other.render_group))
+    : m_render_proxies(std::move(other.m_render_proxies)),
+      m_render_group(std::move(other.m_render_group))
 {
 }
 
@@ -171,10 +174,30 @@ RenderProxyGroup &RenderProxyGroup::operator=(RenderProxyGroup &&other) noexcept
         return *this;
     }
 
-    render_proxies = std::move(other.render_proxies);
-    render_group = std::move(other.render_group);
+    m_render_proxies = std::move(other.m_render_proxies);
+    m_render_group = std::move(other.m_render_group);
 
     return *this;
+}
+
+void RenderProxyGroup::ClearProxies()
+{
+    m_render_proxies.Clear();
+}
+
+void RenderProxyGroup::AddRenderProxy(const RenderProxy &render_proxy)
+{
+    m_render_proxies.PushBack(render_proxy);
+}
+
+void RenderProxyGroup::ResetRenderGroup()
+{
+    m_render_group.Reset();
+}
+
+void RenderProxyGroup::SetRenderGroup(const Handle<RenderGroup> &render_group)
+{
+    m_render_group = render_group;
 }
 
 #pragma endregion EntityList
@@ -213,7 +236,7 @@ void EntityDrawCollection::AddRenderProxy(ThreadType thread_type, const Renderab
 {
     auto &group = GetProxyGroups()[BucketToPassType(attributes.GetMaterialAttributes().bucket)][attributes];
 
-    group.render_proxies.PushBack(proxy);
+    group.AddRenderProxy(proxy);
 }
 
 void EntityDrawCollection::AddRenderProxy(const RenderableAttributeSet &attributes, const RenderProxy &proxy)
@@ -221,15 +244,36 @@ void EntityDrawCollection::AddRenderProxy(const RenderableAttributeSet &attribut
     AddRenderProxy(Threads::GetThreadType(), attributes, proxy);
 }
 
-void EntityDrawCollection::ClearProxyGroups()
+void EntityDrawCollection::ClearProxyGroups(bool reset_render_groups)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    for (auto &proxy_group : GetProxyGroups()) {
-        for (auto &it : proxy_group) {
+    for (auto &proxy_groups : GetProxyGroups()) {
+        for (auto &it : proxy_groups) {
             it.second.ClearProxies();
+
+            if (reset_render_groups) {
+                it.second.ResetRenderGroup();
+            }
+        }
+    }
+}
+
+void EntityDrawCollection::RemoveEmptyProxyGroups()
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    for (auto &proxy_groups : GetProxyGroups()) {
+        for (auto it = proxy_groups.Begin(); it != proxy_groups.End();) {
+            if (it->second.GetRenderProxies().Any()) {
+                ++it;
+
+                continue;
+            }
+
+            it = proxy_groups.Erase(it);
         }
     }
 }
@@ -329,7 +373,7 @@ void RenderList::CollectDrawCalls(
         }
     }
 
-    if constexpr (do_parallel_collection) {
+    if (do_parallel_collection && iterators.Size() > 1) {
         TaskSystem::GetInstance().ParallelForEach(
             TaskThreadPoolName::THREAD_POOL_RENDER,
             iterators,
@@ -337,26 +381,26 @@ void RenderList::CollectDrawCalls(
             {
                 RenderProxyGroup &proxy_group = it->second;
 
-                Handle<RenderGroup> &render_group = proxy_group.render_group;
+                const Handle<RenderGroup> &render_group = proxy_group.GetRenderGroup();
                 AssertThrow(render_group.IsValid());
 
-                render_group->CollectDrawCalls(proxy_group.render_proxies);
+                render_group->CollectDrawCalls(proxy_group.GetRenderProxies());
             }
         );
     } else {
         for (IteratorType it : iterators) {
             RenderProxyGroup &proxy_group = it->second;
 
-            Handle<RenderGroup> &render_group = proxy_group.render_group;
+            const Handle<RenderGroup> &render_group = proxy_group.GetRenderGroup();
             AssertThrow(render_group.IsValid());
 
-            render_group->CollectDrawCalls(proxy_group.render_proxies);
+            render_group->CollectDrawCalls(proxy_group.GetRenderProxies());
         }
     }
 
     if (use_draw_indirect && cull_data != nullptr) {
         for (SizeType index = 0; index < iterators.Size(); index++) {
-            (*iterators[index]).second.render_group->PerformOcclusionCulling(frame, cull_data);
+            (*iterators[index]).second.GetRenderGroup()->PerformOcclusionCulling(frame, cull_data);
         }
     }
 }
@@ -436,7 +480,7 @@ void RenderList::ExecuteDrawCalls(
                 continue;
             }
 
-            AssertThrow(proxy_group.render_group.IsValid());
+            AssertThrow(proxy_group.GetRenderGroup().IsValid());
 
             if (framebuffer) {
                 AssertThrowMsg(
@@ -446,131 +490,14 @@ void RenderList::ExecuteDrawCalls(
             }
 
             if (push_constant) {
-                proxy_group.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
+                proxy_group.GetRenderGroup()->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
             }
 
             if (use_draw_indirect && cull_data != nullptr) {
-                proxy_group.render_group->PerformRenderingIndirect(frame);
+                proxy_group.GetRenderGroup()->PerformRenderingIndirect(frame);
             } else {
-                proxy_group.render_group->PerformRendering(frame);
+                proxy_group.GetRenderGroup()->PerformRendering(frame);
             }
-        }
-    }
-
-    g_engine->GetRenderState().UnbindCamera();
-
-    if (framebuffer) {
-        framebuffer->EndCapture(frame_index, command_buffer);
-    }
-}
-
-void RenderList::ExecuteDrawCallsInLayers(
-    Frame *frame,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
-{
-    AssertThrow(m_camera.IsValid());
-    AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer attached");
-
-    ExecuteDrawCallsInLayers(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
-}
-
-void RenderList::ExecuteDrawCallsInLayers(
-    Frame *frame,
-    const Handle<Framebuffer> &framebuffer,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
-{
-    AssertThrow(m_camera.IsValid());
-
-    ExecuteDrawCallsInLayers(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
-}
-
-void RenderList::ExecuteDrawCallsInLayers(
-    Frame *frame,
-    const Handle<Camera> &camera,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
-{
-    AssertThrow(camera.IsValid());
-    AssertThrowMsg(camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer is attached");
-
-    ExecuteDrawCallsInLayers(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
-}
-
-void RenderList::ExecuteDrawCallsInLayers(
-    Frame *frame,
-    const Handle<Camera> &camera,
-    const Handle<Framebuffer> &framebuffer,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-    
-    AssertThrow(m_draw_collection != nullptr);
-    AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
-
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const uint frame_index = frame->GetFrameIndex();
-
-    if (framebuffer) {
-        framebuffer->BeginCapture(frame_index, command_buffer);
-    }
-
-    g_engine->GetRenderState().BindCamera(camera.Get());
-
-    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::ConstIterator;
-    Array<IteratorType> iterators;
-
-    for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
-        for (const auto &it : proxy_groups) {
-            iterators.PushBack(&it);
-        }
-    }
-
-    std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
-    {
-        // sort by z layer
-        return lhs->first.GetMaterialAttributes().layer < rhs->first.GetMaterialAttributes().layer;
-    });
-
-    for (SizeType index = 0; index < iterators.Size(); index++) {
-        const auto &it = *iterators[index];
-
-        const RenderableAttributeSet &attributes = it.first;
-        const RenderProxyGroup &proxy_group = it.second;
-
-        const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-        if (!bucket_bits.Test(uint(bucket))) {
-            continue;
-        }
-
-        AssertThrow(proxy_group.render_group.IsValid());
-
-        if (framebuffer) {
-            AssertThrowMsg(
-                attributes.GetFramebufferID() == framebuffer->GetID(),
-                "Given Framebuffer's ID does not match RenderList item's framebuffer ID -- invalid data passed?"
-            );
-        }
-
-        if (push_constant) {
-            proxy_group.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
-        }
-
-        if (use_draw_indirect && cull_data != nullptr) {
-            proxy_group.render_group->PerformRenderingIndirect(frame);
-        } else {
-            proxy_group.render_group->PerformRendering(frame);
         }
     }
 

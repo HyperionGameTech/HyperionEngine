@@ -479,22 +479,22 @@ void UIObject::SetFocusState(UIObjectFocusState focus_state)
 
 DrawableLayer UIObject::GetDrawableLayer() const
 {
-    const NodeProxy &node = GetNode();
+    // const NodeProxy &node = GetNode();
 
-    return DrawableLayer(0, GetComputedDepth());
+    // return DrawableLayer(0, GetComputedDepth());
 
-    //return m_drawable_layer;
+    return m_drawable_layer;
 }
 
 void UIObject::SetDrawableLayer(DrawableLayer layer)
 {
-    /*if (m_drawable_layer == layer) {
+    if (m_drawable_layer == layer) {
         return;
     }
 
     m_drawable_layer = layer;
 
-    UpdateMaterial(false);*/
+    UpdateMaterial(false);
 }
 
 int UIObject::GetComputedDepth() const
@@ -817,8 +817,7 @@ Handle<Material> UIObject::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RAF_NONE,
-            .layer              = GetDrawableLayer()
+            .flags              = MaterialAttributes::RAF_NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.0f, 0.005f, 0.015f, 0.95f } }
@@ -1029,7 +1028,7 @@ void UIObject::UpdateMaterial(bool update_children)
         return;
     }
 
-    g_safe_deleter->SafeReleaseHandle(std::move(mesh_component->material));
+    g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
     mesh_component->material = std::move(material);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;

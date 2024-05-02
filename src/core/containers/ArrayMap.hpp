@@ -70,7 +70,7 @@ public:
     InsertResult Emplace(const Key &key, Args &&... args)
         { return Insert(key, Value(std::forward<Args>(args)...)); }
 
-    bool Erase(Iterator it);
+    Iterator Erase(ConstIterator it);
     bool Erase(const Key &key);
 
     [[nodiscard]] SizeType Size() const { return m_vector.Size(); }
@@ -250,21 +250,19 @@ auto ArrayMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
 }
 
 template <class Key, class Value>
-bool ArrayMap<Key, Value>::Erase(Iterator it)
+auto ArrayMap<Key, Value>::Erase(ConstIterator it) -> Iterator
 {
     if (it == End()) {
-        return false;
+        return End();
     }
 
-    m_vector.Erase(it);
-
-    return true;
+    return m_vector.Erase(it);
 }
 
 template <class Key, class Value>
 bool ArrayMap<Key, Value>::Erase(const Key &value)
 {
-    return Erase(Find(value));
+    return Erase(Find(value)) != End();
 }
 } // namespace containers
 

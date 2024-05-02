@@ -474,8 +474,6 @@ Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *dev
 
     m_construction_info.fbos.Clear();
 
-    DebugLog(LogType::Info, "Destroying pipeline!\n");
-
     vkDestroyPipeline(render_device, this->pipeline, nullptr);
     this->pipeline = nullptr;
 

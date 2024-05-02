@@ -30,12 +30,12 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
 
     virtual ~RENDER_COMMAND(SetUITexture)() override
     {
-        g_safe_deleter->SafeReleaseHandle(std::move(texture));
+        g_safe_deleter->SafeRelease(std::move(texture));
     }
 
     virtual Result operator()() override
     {
-        g_safe_deleter->SafeReleaseHandle(std::move(final_pass.m_ui_texture));
+        g_safe_deleter->SafeRelease(std::move(final_pass.m_ui_texture));
 
         if (final_pass.m_render_texture_to_screen_pass != nullptr) {
             const DescriptorTableRef &descriptor_table = final_pass.m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable();

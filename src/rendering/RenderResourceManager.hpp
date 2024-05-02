@@ -60,7 +60,7 @@ struct ResourceUsageMap : ResourceUsageMapBase
             // will not cause a deadlock.
             DebugLog(LogType::Debug, "Safe releasing handle of type %s for resource ID: %u\n", TypeName<T>().Data(), it.first.Value());
             
-            g_safe_deleter->SafeReleaseHandle(std::move(it.second));
+            g_safe_deleter->SafeRelease(std::move(it.second));
         }
     }
 
@@ -101,7 +101,7 @@ struct ResourceUsageMap : ResourceUsageMapBase
             // Use SafeRelease to defer the actual destruction of the resource.
             // This is used so that any resources that will require a mutex lock to release render side resources
             // will not cause a deadlock.
-            g_safe_deleter->SafeReleaseHandle(std::move(it->second));
+            g_safe_deleter->SafeRelease(std::move(it->second));
 
             removed_id_bits.Set(first_set_bit_index, false);
         }
@@ -205,7 +205,7 @@ public:
 #endif
 
                 // Use SafeRelease to defer the actual destruction of the resource until after a few frames
-                g_safe_deleter->SafeReleaseHandle(std::move(ptr->handles.Get(id)));
+                g_safe_deleter->SafeRelease(std::move(ptr->handles.Get(id)));
             }
         }
 

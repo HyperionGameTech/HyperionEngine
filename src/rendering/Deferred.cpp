@@ -666,7 +666,7 @@ ReflectionProbePass::~ReflectionProbePass()
         m_render_texture_to_screen_pass.Reset();
     }
 
-    g_safe_deleter->SafeReleaseHandle(std::move(m_previous_texture));
+    g_safe_deleter->SafeRelease(std::move(m_previous_texture));
 }
 
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)

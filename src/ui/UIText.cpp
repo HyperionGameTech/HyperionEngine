@@ -237,7 +237,7 @@ void UIText::UpdateMesh()
         mesh = GetQuadMesh();
     }
 
-    g_safe_deleter->SafeReleaseHandle(std::move(mesh_component.mesh));
+    g_safe_deleter->SafeRelease(std::move(mesh_component.mesh));
 
     mesh_component.mesh = mesh;
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
@@ -276,8 +276,7 @@ Handle<Material> UIText::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RAF_NONE,
-            .layer              = GetDrawableLayer()
+            .flags              = MaterialAttributes::RAF_NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, m_text_color }

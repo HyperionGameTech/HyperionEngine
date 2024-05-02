@@ -125,7 +125,7 @@ void RTRadianceRenderer::Destroy()
     SafeRelease(std::move(m_uniform_buffers));
     
     // remove result image from global descriptor set
-    g_safe_deleter->SafeReleaseHandle(std::move(m_texture));
+    g_safe_deleter->SafeRelease(std::move(m_texture));
 
     PUSH_RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet);
 

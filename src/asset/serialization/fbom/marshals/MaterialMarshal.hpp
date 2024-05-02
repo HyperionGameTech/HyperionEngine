@@ -24,7 +24,6 @@ public:
         out.SetProperty("attributes.flags", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags));
         out.SetProperty("attributes.cull_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces));
         out.SetProperty("attributes.fill_mode", FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode));
-        out.SetProperty("attributes.layer", FBOMStruct::Create<DrawableLayer>(), in_object.GetRenderAttributes().layer);
 
         out.SetProperty("params.size", FBOMUnsignedInt(), uint32(in_object.GetParameters().Size()));
 
@@ -104,7 +103,6 @@ public:
         in.GetProperty("attributes.flags").ReadUnsignedInt(&attributes.flags);
         in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&attributes.cull_faces);
         in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&attributes.fill_mode);
-        in.GetProperty("attributes.layer").ReadStruct<DrawableLayer>(&attributes.layer);
 
         uint32 num_parameters;
 

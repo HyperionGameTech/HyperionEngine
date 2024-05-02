@@ -23,13 +23,13 @@ class Entity;
 
 struct RenderProxy
 {
-    ID<Entity>                              entity;
-    Handle<Mesh>                            mesh;
-    Handle<Material>                        material;
-    Handle<Skeleton>                        skeleton;
-    Matrix4                                 model_matrix;
-    Matrix4                                 previous_model_matrix;
-    BoundingBox                             aabb;
+    ID<Entity>          entity;
+    Handle<Mesh>        mesh;
+    Handle<Material>    material;
+    Handle<Skeleton>    skeleton;
+    Matrix4             model_matrix;
+    Matrix4             previous_model_matrix;
+    BoundingBox         aabb;
 };
 
 /*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */
@@ -42,7 +42,7 @@ enum RenderProxyListAdvanceAction : uint32
 class RenderProxyList
 {
 public:
-    void Add(ID<Entity> entity, RenderProxy proxy);
+    void Add(ID<Entity> entity, const RenderProxy &proxy);
 
     /*! \brief Mark to keep a proxy from the previous iteration for this iteration.
      *  Usable when \ref{Advance} is called with \ref{RPLAA_CLEAR}. Returns true if the
@@ -59,6 +59,9 @@ public:
 
     RenderProxy *GetProxyForEntity(ID<Entity> entity);
 
+    const RenderProxy *GetProxyForEntity(ID<Entity> entity) const
+        { return const_cast<RenderProxyList *>(this)->GetProxyForEntity(entity); }
+        
     void Advance(RenderProxyListAdvanceAction action);
 
     /*! \brief Checks if the RenderProxyList already has a proxy for the given entity
@@ -88,8 +91,6 @@ public:
     const Bitset &GetChangedEntities() const
         { return m_changed_entities; }
 
-    const RenderProxy *GetProxyForEntity(ID<Entity> entity) const
-        { return const_cast<RenderProxyList *>(this)->GetProxyForEntity(entity); }
 
 private:
     // @TODO use sparse array

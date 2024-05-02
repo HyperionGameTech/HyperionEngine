@@ -146,8 +146,6 @@ RenderGroup::RenderGroup(
 
 RenderGroup::~RenderGroup()
 {
-    DebugLog(LogType::Info, "Destroy RenderGroup with ID: #%u\n", GetID().Value());
-
     if (m_indirect_renderer != nullptr) {
         m_indirect_renderer->Destroy();
     }

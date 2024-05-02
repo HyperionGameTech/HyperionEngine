@@ -66,8 +66,8 @@ void TemporalAA::Destroy()
         Handle<Texture>::empty
     );
 
-    g_safe_deleter->SafeReleaseHandle(std::move(m_result_texture));
-    g_safe_deleter->SafeReleaseHandle(std::move(m_history_texture));
+    g_safe_deleter->SafeRelease(std::move(m_result_texture));
+    g_safe_deleter->SafeRelease(std::move(m_history_texture));
 }
 
 void TemporalAA::CreateImages()

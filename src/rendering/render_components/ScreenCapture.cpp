@@ -38,7 +38,7 @@ void ScreenCaptureRenderComponent::InitGame()
 void ScreenCaptureRenderComponent::OnRemoved()
 {
     SafeRelease(std::move(m_buffer));
-    g_safe_deleter->SafeReleaseHandle(std::move(m_texture));
+    g_safe_deleter->SafeRelease(std::move(m_texture));
 }
 
 void ScreenCaptureRenderComponent::OnUpdate(GameCounter::TickUnit delta)

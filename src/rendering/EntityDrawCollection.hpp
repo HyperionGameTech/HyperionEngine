@@ -64,9 +64,10 @@ constexpr PassType BucketToPassType(Bucket bucket)
 
 struct RenderProxyGroup
 {
-    Array<RenderProxy>                          render_proxies;
-    Handle<RenderGroup>                         render_group;
+    Array<RenderProxy>  m_render_proxies;
+    Handle<RenderGroup> m_render_group;
 
+public:
     RenderProxyGroup() = default;
     RenderProxyGroup(const RenderProxyGroup &other);
     RenderProxyGroup &operator=(const RenderProxyGroup &other);
@@ -74,12 +75,19 @@ struct RenderProxyGroup
     RenderProxyGroup &operator=(RenderProxyGroup &&other) noexcept;
     ~RenderProxyGroup() = default;
 
-    void ClearProxies()
-    {
-        render_proxies.Clear();
+    void ClearProxies();
 
-        // Do not clear render group; keep it reserved
-    }
+    void AddRenderProxy(const RenderProxy &render_proxy);
+    
+    const Array<RenderProxy> &GetRenderProxies() const
+        { return m_render_proxies; }
+
+    void ResetRenderGroup();
+
+    void SetRenderGroup(const Handle<RenderGroup> &render_group);
+
+    const Handle<RenderGroup> &GetRenderGroup() const
+        { return m_render_group; }
 };
 
 class EntityDrawCollection
@@ -88,7 +96,8 @@ public:
     void AddRenderProxy(ThreadType thread_type, const RenderableAttributeSet &attributes, const RenderProxy &proxy);
     void AddRenderProxy(const RenderableAttributeSet &attributes, const RenderProxy &proxy);
 
-    void ClearProxyGroups();
+    void ClearProxyGroups(bool reset_render_groups = false);
+    void RemoveEmptyProxyGroups();
 
     FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();
     const FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups() const;
@@ -97,17 +106,14 @@ public:
     const RenderProxyList &GetProxyList(ThreadType) const;
 
 private:
-    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>                                       m_proxy_groups;
-    RenderResourceManager                                                                                               m_current_render_side_resources;
-
-
-    FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                                                            m_proxy_lists;
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>   m_proxy_groups;
+    FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
 };
 
 struct PushConstantData
 {
-    const void *ptr = nullptr;
-    SizeType size = 0;
+    const void  *ptr = nullptr;
+    uint8       size = 0;
 
     PushConstantData()
         : ptr(nullptr),
@@ -208,42 +214,10 @@ public:
         PushConstantData push_constant = { }
     ) const;
 
-    void ExecuteDrawCallsInLayers(
-        Frame *frame,
-        const Bitset &bucket_bits,
-        const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
-    ) const;
-
-    void ExecuteDrawCallsInLayers(
-        Frame *frame,
-        const Handle<Framebuffer> &framebuffer,
-        const Bitset &bucket_bits,
-        const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
-    ) const;
-
-    void ExecuteDrawCallsInLayers(
-        Frame *frame,
-        const Handle<Camera> &camera,
-        const Bitset &bucket_bits,
-        const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
-    ) const;
-
-    void ExecuteDrawCallsInLayers(
-        Frame *frame,
-        const Handle<Camera> &camera,
-        const Handle<Framebuffer> &framebuffer,
-        const Bitset &bucket_bits,
-        const CullData *cull_data = nullptr,
-        PushConstantData push_constant = { }
-    ) const;
-
     /*! \brief Perform a full reset, when this is not needed anymore. */
     void Reset();
 
-private:
+protected:
     Handle<Camera>                                              m_camera;
     RC<EntityDrawCollection>                                    m_draw_collection;
 };

@@ -84,7 +84,6 @@ class HYP_API RenderGroup
     friend class Engine;
     friend class Entity;
     friend class RendererProxy;
-    friend class RenderList;
 public:
     using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
 
@@ -99,8 +98,8 @@ public:
         DescriptorTableRef descriptor_table
     );
 
-    RenderGroup(const RenderGroup &other) = delete;
-    RenderGroup &operator=(const RenderGroup &other) = delete;
+    RenderGroup(const RenderGroup &other)               = delete;
+    RenderGroup &operator=(const RenderGroup &other)    = delete;
     ~RenderGroup();
 
     const GraphicsPipelineRef &GetPipeline() const
@@ -112,24 +111,19 @@ public:
     const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
-    void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
+    void AddFramebuffer(Handle<Framebuffer> &&fbo)
+        { m_fbos.PushBack(std::move(fbo)); }
+
     void RemoveFramebuffer(ID<Framebuffer> id);
-    Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; }
-    const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
 
-    void Init();
+    const Array<Handle<Framebuffer>> &GetFramebuffers() const
+        { return m_fbos; }
 
-    RendererProxy GetProxy()
-        { return RendererProxy(this); }
-
-private:
     /*! \brief Collect drawable objects, then run the culling compute shader
      * to mark any occluded objects as such. Must be used with indirect rendering.
      * If nullptr is provided for cull_data, no occlusion culling will happen.
      */
     void CollectDrawCalls(const Array<RenderProxy> &render_proxies);
-
-    void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(Frame *frame, bool parallel = true);
@@ -138,6 +132,14 @@ private:
      * using CollectDrawCalls(). */
     void PerformRenderingIndirect(Frame *frame, bool parallel = true);
 
+    void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
+
+    void Init();
+
+    RendererProxy GetProxy()
+        { return RendererProxy(this); }
+
+private:
     void BindDescriptorSets(
         CommandBuffer *command_buffer,
         uint scene_index

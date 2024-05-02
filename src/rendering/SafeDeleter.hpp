@@ -9,12 +9,13 @@
 #include <core/threading/Mutex.hpp>
 #include <core/ID.hpp>
 
-#include <rendering/backend/RenderObject.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
 
@@ -146,9 +147,12 @@ public:
         m_render_resource_deletion_flag.Set(true, MemoryOrder::RELEASE);
     }
 
-    template <class T>
-    void SafeReleaseHandle(T &&resource)
-        { SafeRelease(std::forward<T>(resource)); } // alias
+    void SafeRelease(RenderProxy &&proxy)
+    {
+        SafeRelease(std::move(proxy.mesh));
+        SafeRelease(std::move(proxy.material));
+        SafeRelease(std::move(proxy.skeleton));
+    }
 
     void PerformEnqueuedDeletions();
     void ForceReleaseAll();

@@ -35,7 +35,7 @@ struct RENDER_COMMAND(RenderFontAtlas) : renderer::RenderCommand
 FontAtlasTextureSet::~FontAtlasTextureSet()
 {
     for (auto &atlas : atlases) {
-        g_safe_deleter->SafeReleaseHandle(std::move(atlas.second));
+        g_safe_deleter->SafeRelease(std::move(atlas.second));
     }
 }
 
@@ -214,8 +214,8 @@ void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D
 
         virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override
         {
-            g_safe_deleter->SafeReleaseHandle(std::move(atlas));
-            g_safe_deleter->SafeReleaseHandle(std::move(glyph_texture));
+            g_safe_deleter->SafeRelease(std::move(atlas));
+            g_safe_deleter->SafeRelease(std::move(glyph_texture));
         }
 
         virtual Result operator()() override
@@ -335,7 +335,7 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
 
         virtual ~RENDER_COMMAND(FontAtlas_WriteToBuffer)() override
         {
-            g_safe_deleter->SafeReleaseHandle(std::move(atlas));
+            g_safe_deleter->SafeRelease(std::move(atlas));
 
             SafeRelease(std::move(buffer));
         }

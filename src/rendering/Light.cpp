@@ -143,7 +143,7 @@ Light::~Light()
 {
     // If material is set for this Light, defer its deletion for a few frames
     if (m_material.IsValid()) {
-        g_safe_deleter->SafeReleaseHandle(std::move(m_material));
+        g_safe_deleter->SafeRelease(std::move(m_material));
     }
 
     PUSH_RENDER_COMMAND(UnbindLight, GetID());
@@ -241,7 +241,7 @@ void Light::SetMaterial(Handle<Material> material)
     }
 
     if (m_material.IsValid()) {
-        g_safe_deleter->SafeReleaseHandle(std::move(m_material));
+        g_safe_deleter->SafeRelease(std::move(m_material));
     }
 
     m_material = std::move(material);

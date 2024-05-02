@@ -474,7 +474,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
     }
 
     // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
+    auto renderer_group = CreateObject<RenderGroup>(
         std::move(shader),
         renderable_attributes
     );
@@ -488,9 +488,9 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 
     std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRenderGroupInternal(renderer_instance, false);
+    AddRenderGroupInternal(renderer_group, false);
 
-    return renderer_instance;
+    return renderer_group;
 }
 
 // Handle<RenderGroup> Engine::CreateRenderGroup(

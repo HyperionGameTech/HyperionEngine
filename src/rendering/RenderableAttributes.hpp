@@ -104,7 +104,6 @@ struct MaterialAttributes
     BlendFunction       blend_function = BlendFunction::None();
     FaceCullMode        cull_faces = FaceCullMode::BACK;
     MaterialFlags       flags = RAF_DEPTH_WRITE | RAF_DEPTH_TEST;
-    DrawableLayer       layer;
     StencilFunction     stencil_function;
 
     [[nodiscard]]
@@ -117,7 +116,6 @@ struct MaterialAttributes
             && blend_function == other.blend_function
             && cull_faces == other.cull_faces
             && flags == other.flags
-            && layer == other.layer
             && stencil_function == other.stencil_function;
     }
 
@@ -137,7 +135,6 @@ struct MaterialAttributes
         hc.Add(blend_function);
         hc.Add(cull_faces);
         hc.Add(flags);
-        hc.Add(layer);
         hc.Add(stencil_function);
 
         return hc;
@@ -175,7 +172,7 @@ class RenderableAttributeSet
     MeshAttributes      m_mesh_attributes;
     MaterialAttributes  m_material_attributes;
     uint32              m_override_flags;
-    uint32              m_unique_identifier;
+    DrawableLayer       m_drawable_layer;
 
     mutable HashCode    m_cached_hash_code;
     mutable bool        m_needs_hash_code_recalculation = true;
@@ -187,8 +184,7 @@ public:
         uint32 override_flags = 0
     ) : m_mesh_attributes(mesh_attributes),
         m_material_attributes(material_attributes),
-        m_override_flags(override_flags),
-        m_unique_identifier(0)
+        m_override_flags(override_flags)
     {
     }
 
@@ -273,36 +269,16 @@ public:
         m_needs_hash_code_recalculation = true;
     }
 
-    /*! \brief Get the unique identifier for this RenderableAttributeSet object.
-     *  \return The unique identifier. */
     [[nodiscard]]
     HYP_FORCE_INLINE
-    uint32 GetUniqueIdentifier() const
-        { return m_unique_identifier; }
+    const DrawableLayer &GetDrawableLayer() const
+        { return m_drawable_layer; }
 
-    /*! \brief Set a unique identifier for this RenderableAttributeSet object,
-     *  which can be used to differentiate between objects that are otherwise equal.
-     *  Usually will not be needed but is used interally by the renderer for when order
-     *  needs to be preserved.
-     *  \param unique_identifier The unique identifier to set. */
     HYP_FORCE_INLINE
-    void SetUniqueIdentifier(uint32 unique_identifier)
+    void SetDrawableLayer(const DrawableLayer &drawable_layer)
     {
-        m_unique_identifier = unique_identifier;
+        m_drawable_layer = drawable_layer;
         m_needs_hash_code_recalculation = true;
-    }
-
-    /*! \brief Compare two RenderableAttributeSet objects for equality, ignoring the unique identifier (if set).
-     *  \param other The other RenderableAttributeSet object to compare against.
-     *  \return True if the two objects are equal, false otherwise. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool SoftEquals(const RenderableAttributeSet &other) const
-    {
-        return m_framebuffer_id == other.m_framebuffer_id
-            && m_mesh_attributes == other.m_mesh_attributes
-            && m_material_attributes == other.m_material_attributes
-            && m_override_flags == other.m_override_flags;
     }
 
     [[nodiscard]]
@@ -326,7 +302,7 @@ private:
         hc.Add(m_mesh_attributes.GetHashCode());
         hc.Add(m_material_attributes.GetHashCode());
         hc.Add(m_override_flags);
-        hc.Add(m_unique_identifier);
+        hc.Add(m_drawable_layer);
 
         m_cached_hash_code = hc;
     }

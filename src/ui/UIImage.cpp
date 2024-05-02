@@ -17,7 +17,7 @@ void UIImage::SetTexture(Handle<Texture> texture)
     }
 
     if (m_texture.IsValid()) {
-        g_safe_deleter->SafeReleaseHandle(std::move(m_texture));
+        g_safe_deleter->SafeRelease(std::move(m_texture));
     }
 
     m_texture = std::move(texture);
@@ -36,8 +36,7 @@ Handle<Material> UIImage::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RAF_NONE,
-            .layer              = GetDrawableLayer()
+            .flags              = MaterialAttributes::RAF_NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 1.0f, 1.0f, 1.0f, 1.0f } }

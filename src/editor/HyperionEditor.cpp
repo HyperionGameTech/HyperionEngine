@@ -29,6 +29,9 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UIImage.hpp>
 
+// temp
+#include <util/Profile.hpp>
+
 namespace hyperion {
 namespace editor {
 
@@ -309,6 +312,47 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
+
+
+    const auto profile_results = Profile::RunInterleved(
+        {
+            Profile([]()
+            {
+                std::unordered_map<String, int> map;
+
+                for (uint i = 0; i < 1000; i++) {
+                    map.insert({ String("item_") + String::ToString(i), i * 100 });
+                }
+
+                for (auto &it : map) {
+                    it.second *= 100;
+                }
+            }),
+            Profile([]()
+            {
+                HashMap<String, int> map;
+
+                for (uint i = 0; i < 1000; i++) {
+                    map.Insert({ String("item_") + String::ToString(i), i * 100 });
+                }
+
+                for (auto &it : map) {
+                    it.second *= 100;
+                }
+            })
+        },
+        8,
+        30,
+        30
+    );
+
+    DebugLog(LogType::Debug, "Profile results:\n");
+    DebugLog(LogType::Debug, "\tfirst: %f\n", profile_results[0]);
+    DebugLog(LogType::Debug, "\tsecond: %f\n", profile_results[1]);
+
+    HYP_BREAKPOINT;
+
+
 
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 

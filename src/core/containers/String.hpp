@@ -1437,4 +1437,10 @@ std::wostream &operator<<(std::wostream &os, const containers::detail::String<st
 
 } // namespace hyperion
 
+HYP_DEF_STL_HASH(hyperion::String);
+HYP_DEF_STL_HASH(hyperion::ANSIString);
+HYP_DEF_STL_HASH(hyperion::WideString);
+HYP_DEF_STL_HASH(hyperion::UTF16String);
+HYP_DEF_STL_HASH(hyperion::UTF32String);
+
 #endif
