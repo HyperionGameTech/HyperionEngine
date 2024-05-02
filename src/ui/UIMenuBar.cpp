@@ -193,7 +193,7 @@ void UIMenuBar::Init()
     m_container->SetParentAlignment(UIObjectAlignment::UOA_BOTTOM_LEFT);
     m_container->SetOriginAlignment(UIObjectAlignment::UOA_TOP_LEFT);
     m_container->SetPadding({ 1, 1 });
-    m_container->SetDepth(100);
+    // m_container->SetDepth(100);
 
     m_container->OnClick.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
     {
@@ -264,11 +264,11 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 
     menu_item->SetFocusState(menu_item->GetFocusState() | UOFS_TOGGLED);
 
+    m_container->SetIsVisible(true);
     m_container->SetPosition({ menu_item->GetPosition().x, 0 });
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
     m_container->Focus();
-    m_container->SetIsVisible(true);
 }
 
 RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
