@@ -15,130 +15,129 @@ namespace detail {
 template <class KeyType, class ValueType>
 struct HashElement
 {
-    HashCode::ValueType hash_code;
+    HashElement                 *next = nullptr;
+    HashCode::ValueType         hash_code;
 
-    KeyType     first;
-    ValueType   second;
+    Pair<KeyType, ValueType>    pair;
 
     /*! \brief Implement GetHashCode() so GetHashCode() of the entire HashMap can be used. */
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(first);
-        hc.Add(second);
-
-        return hc;
-    }
+        { return pair.GetHashCode(); }
 };
 
 template <class KeyType, class ValueType>
 struct HashBucket
 {
-    using ElementList = Array<HashElement<KeyType, ValueType>>;
-
     struct ConstIterator;
 
     struct Iterator
     {
         HashBucket<KeyType, ValueType>  *bucket;
-        SizeType                        index;
+        HashElement<KeyType, ValueType> *element;
 
         HYP_FORCE_INLINE
-        HashElement<KeyType, ValueType> *operator->() const
-            { return &bucket->elements[index]; }
+        Pair<KeyType, ValueType> *operator->() const
+            { return &element->pair; }
 
         HYP_FORCE_INLINE
-        HashElement<KeyType, ValueType> &operator*()
-            { return bucket->elements[index]; }
+        Pair<KeyType, ValueType> &operator*()
+            { return element->pair; }
 
         HYP_FORCE_INLINE
-        const HashElement<KeyType, ValueType> &operator*() const
-            { return bucket->elements[index]; }
+        const Pair<KeyType, ValueType> &operator*() const
+            { return element->pair; }
 
         HYP_FORCE_INLINE
         Iterator &operator++()
-            { ++index; return *this; }
+            { element = element->next; return *this; }
 
         HYP_FORCE_INLINE
         Iterator operator++(int) const
-            { return Iterator { bucket, index + 1 }; }
+            { return Iterator { bucket, element->next }; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator==(const ConstIterator &other) const
-            { return bucket == other.bucket && index == other.index; }
+            { return element == other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator!=(const ConstIterator &other) const
-            { return bucket != other.bucket || index != other.index; }
+            { return element != other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator==(const Iterator &other) const
-            { return bucket == other.bucket && index == other.index; }
+            { return element == other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator!=(const Iterator &other) const
-            { return bucket != other.bucket || index != other.index; }
+            { return element != other.element; }
 
         HYP_FORCE_INLINE
         operator ConstIterator() const
-            { return { bucket, index }; }
+            { return { bucket, element }; }
     };
 
     struct ConstIterator
     {
-        const HashBucket<KeyType, ValueType> *bucket;
-        SizeType index;
+        const HashBucket<KeyType, ValueType>    *bucket;
+        const HashElement<KeyType, ValueType>   *element;
 
         HYP_FORCE_INLINE
-        const HashElement<KeyType, ValueType> *operator->() const
-            { return &bucket->elements[index]; }
+        const Pair<KeyType, ValueType> *operator->() const
+            { return &element->pair; }
 
         HYP_FORCE_INLINE
-        const HashElement<KeyType, ValueType> &operator*() const
-            { return bucket->elements[index]; }
+        const Pair<KeyType, ValueType> &operator*() const
+            { return element->pair; }
 
         HYP_FORCE_INLINE
         ConstIterator &operator++()
-            { ++index; return *this; }
+            { element = element->next; return *this; }
 
         HYP_FORCE_INLINE
         ConstIterator operator++(int) const
-            { return ConstIterator { bucket, index + 1 }; }
+            { return ConstIterator { bucket, element->next }; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator==(const ConstIterator &other) const
-            { return bucket == other.bucket && index == other.index; }
+            { return element == other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator!=(const ConstIterator &other) const
-            { return bucket != other.bucket || index != other.index; }
+            { return element != other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator==(const Iterator &other) const
-            { return bucket == other.bucket && index == other.index; }
+            { return element == other.element; }
 
         [[nodiscard]] HYP_FORCE_INLINE
         bool operator!=(const Iterator &other) const
-            { return bucket != other.bucket || index != other.index; }
+            { return element != other.element; }
     };
     
-    ElementList elements;
+    HashElement<KeyType, ValueType> *head = nullptr;
+    HashElement<KeyType, ValueType> *tail = nullptr;
     
-    Iterator Push(HashElement<KeyType, ValueType> &&element)
+    Iterator Push(HashElement<KeyType, ValueType> *element)
     {
-        const Iterator iter { this, elements.Size() };
+        if (head == nullptr) {
+            head = element;
+            tail = head;
+        } else {
+            tail->next = element;
+            tail = tail->next;
+        }
 
-        elements.PushBack(std::move(element));
+        tail->next = nullptr;
 
-        return iter;
+        return { this, tail };
     }
 
     Iterator Find(HashCode::ValueType hash)
     {
-        for (auto it = elements.Begin(); it != elements.End(); ++it) {
+        for (auto it = head; it != nullptr; it = it->next) {
             if (it->hash_code == hash) {
-                return Iterator { this, SizeType(std::distance(elements.Begin(), it)) };
+                return Iterator { this, it };
             }
         }
 
@@ -147,19 +146,19 @@ struct HashBucket
 
     ConstIterator Find(HashCode::ValueType hash) const
     {
-        for (auto it = elements.Begin(); it != elements.End(); ++it) {
+       for (auto it = head; it != nullptr; it = it->next) {
             if (it->hash_code == hash) {
-                return ConstIterator { this, SizeType(std::distance(elements.Begin(), it)) };
+                return ConstIterator { this, it };
             }
         }
 
         return End();
     }
 
-    Iterator Begin() { return { this, 0 }; }
-    Iterator End() { return { this, elements.Size() }; }
-    ConstIterator Begin() const { return { this, 0 }; }
-    ConstIterator End() const { return { this, elements.Size() }; }
+    Iterator Begin() { return { this, head }; }
+    Iterator End() { return { this, nullptr }; }
+    ConstIterator Begin() const { return { this, head }; }
+    ConstIterator End() const { return { this, nullptr }; }
 
     Iterator begin() { return Begin(); }
     Iterator end() { return End(); }
@@ -177,21 +176,38 @@ class HashMap : public ContainerBase<HashMap<KeyType, ValueType>, KeyType>
     static constexpr bool is_contiguous = false;
 
     static constexpr SizeType initial_bucket_size = 16;
-    static constexpr double desired_load_factor = 0.9;
+    static constexpr double desired_load_factor = 0.75;
 
     template <class IteratorType>
     static inline void AdvanceIteratorBucket(IteratorType &iter)
     {
-        while (iter.bucket_iter.bucket != iter.hm->m_buckets.End() && iter.bucket_iter.index >= iter.bucket_iter.bucket->elements.Size()) {
-            ++iter.bucket_iter.bucket;
-            iter.bucket_iter.index = 0;
+        // while (iter.bucket_iter.bucket != iter.hm->m_buckets.End() && iter.bucket_iter.element == nullptr) {
+        //     ++iter.bucket_iter.bucket;
+
+        //     if (iter.bucket_iter.bucket == iter.hm->m_buckets.End()) {
+        //         iter.bucket_iter.element = nullptr;
+
+        //         break;
+        //     }
+
+        //     iter.bucket_iter.element = iter.bucket_iter.bucket->head;
+        // }
+
+        const auto *end = iter.hm->m_buckets.End();
+
+        while (iter.bucket_iter.element == nullptr && iter.bucket_iter.bucket != end) {
+            if (++iter.bucket_iter.bucket == end) {
+                break;
+            }
+
+            iter.bucket_iter.element = iter.bucket_iter.bucket->head;
         }
     }
 
     template <class IteratorType>
     static inline void AdvanceIterator(IteratorType &iter)
     {
-        ++iter.bucket_iter.index;
+        iter.bucket_iter.element = iter.bucket_iter.element->next;
 
         AdvanceIteratorBucket(iter);
     }
@@ -204,8 +220,8 @@ public:
 
     struct Iterator
     {
-        HashMap *hm;
-        typename detail::HashBucket<KeyType, ValueType>::Iterator bucket_iter;
+        HashMap                                                     *hm;
+        typename detail::HashBucket<KeyType, ValueType>::Iterator   bucket_iter;
 
         Iterator(HashMap *hm, typename detail::HashBucket<KeyType, ValueType>::Iterator bucket_iter)
             : hm(hm),
@@ -221,15 +237,15 @@ public:
         ~Iterator()                                     = default;
         
         HYP_FORCE_INLINE
-        detail::HashElement<KeyType, ValueType> *operator->() const
+        Pair<KeyType, ValueType> *operator->() const
             {  return bucket_iter.operator->(); }
         
         HYP_FORCE_INLINE
-        detail::HashElement<KeyType, ValueType> &operator*()
+        Pair<KeyType, ValueType> &operator*()
             {  return bucket_iter.operator*(); }
         
         HYP_FORCE_INLINE
-        const detail::HashElement<KeyType, ValueType> &operator*() const
+        const Pair<KeyType, ValueType> &operator*() const
             {  return bucket_iter.operator*(); }
         
         HYP_FORCE_INLINE
@@ -271,8 +287,8 @@ public:
 
     struct ConstIterator
     {
-        const HashMap *hm;
-        typename detail::HashBucket<KeyType, ValueType>::ConstIterator bucket_iter;
+        const HashMap                                                   *hm;
+        typename detail::HashBucket<KeyType, ValueType>::ConstIterator  bucket_iter;
 
         ConstIterator(const HashMap *hm, typename detail::HashBucket<KeyType, ValueType>::ConstIterator bucket_iter)
             : hm(hm),
@@ -288,11 +304,11 @@ public:
         ~ConstIterator()                                            = default;
         
         HYP_FORCE_INLINE
-        const detail::HashElement<KeyType, ValueType> *operator->() const
+        const Pair<KeyType, ValueType> *operator->() const
             {  return bucket_iter.operator->(); }
         
         HYP_FORCE_INLINE
-        const detail::HashElement<KeyType, ValueType> &operator*() const
+        const Pair<KeyType, ValueType> &operator*() const
             {  return bucket_iter.operator*(); }
         
         HYP_FORCE_INLINE
@@ -351,7 +367,7 @@ public:
     HashMap &operator=(const HashMap &other);
     HashMap(HashMap &&other) noexcept;
     HashMap &operator=(HashMap &&other) noexcept;
-    ~HashMap() = default;
+    ~HashMap();
 
     ValueType &operator[](const KeyType &key);
 
@@ -396,14 +412,14 @@ public:
         }
 
         for (const auto &bucket : m_buckets) {
-            for (const auto &element : bucket.elements) {
-                const auto other_it = other.Find(element.first);
+            for (auto it = bucket.head; it != nullptr; it = it->next) {
+                const auto other_it = other.Find(it->pair.first);
 
                 if (other_it == other.End()) {
                     return false;
                 }
 
-                if (other_it->second != element.second) {
+                if (other_it->second != it->pair.second) {
                     return false;
                 }
             }
@@ -426,11 +442,6 @@ public:
     HYP_FORCE_INLINE
     SizeType BucketCount() const
         { return m_buckets.Size(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType BucketSize(SizeType bucket_index) const
-        { return m_buckets[bucket_index].elements.Size(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -470,19 +481,19 @@ public:
     
     HYP_FORCE_INLINE
     Iterator Begin()
-        { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data(), SizeType(0) }); }
+        { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data(), m_buckets[0].head }); }
     
     HYP_FORCE_INLINE
     Iterator End()
-        { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data() + m_buckets.Size(), SizeType(0) }); }
+        { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data() + m_buckets.Size(), nullptr }); }
     
     HYP_FORCE_INLINE
     ConstIterator Begin() const
-        { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data(), SizeType(0) }); }
+        { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data(), m_buckets[0].head }); }
     
     HYP_FORCE_INLINE
     ConstIterator End() const
-        { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data() + m_buckets.Size(), SizeType(0) }); }
+        { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data() + m_buckets.Size(), nullptr }); }
     
     HYP_FORCE_INLINE
     Iterator begin()
@@ -521,8 +532,8 @@ private:
     const detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash) const
         { return &m_buckets[hash % m_buckets.Size()]; }
 
-    void SetElement(detail::HashElement<KeyType, ValueType> &&element);
-    InsertResult InsertElement(detail::HashElement<KeyType, ValueType> &&element);
+    void Set_Internal(Pair<KeyType, ValueType> &&pair);
+    InsertResult Insert_Internal(Pair<KeyType, ValueType> &&pair);
 
     Array<detail::HashBucket<KeyType, ValueType>, initial_bucket_size * sizeof(detail::HashBucket<KeyType, ValueType>)> m_buckets;
     SizeType m_size;
@@ -537,16 +548,53 @@ HashMap<KeyType, ValueType>::HashMap()
 
 template <class KeyType, class ValueType>
 HashMap<KeyType, ValueType>::HashMap(const HashMap &other)
-    : m_buckets(other.m_buckets),
-      m_size(other.m_size)
+    : m_size(other.m_size)
 {
+    m_buckets.Resize(other.m_buckets.Size());
+
+    for (SizeType bucket_index = 0; bucket_index < other.m_buckets.Size(); bucket_index++) {
+        const auto &bucket = other.m_buckets[bucket_index];
+
+        for (auto it = bucket.head; it != nullptr; it = it->next) {
+            m_buckets[bucket_index].Push(new detail::HashElement<KeyType, ValueType> {
+                nullptr,
+                it->hash_code,
+                it->pair
+            });
+        }
+    }
 }
 
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::operator=(const HashMap &other) -> HashMap &
 {
-    m_buckets = other.m_buckets;
+    for (auto buckets_it = m_buckets.Begin(); buckets_it != m_buckets.End(); ++buckets_it) {
+        for (auto element_it = buckets_it->head; element_it != nullptr;) {
+            auto *head = element_it;
+            auto *next = head->next;
+
+            delete head;
+
+            element_it = next;
+        }
+    }
+    
     m_size = other.m_size;
+
+    m_buckets.Clear();
+    m_buckets.Resize(other.m_buckets.Size());
+
+    for (SizeType bucket_index = 0; bucket_index < other.m_buckets.Size(); bucket_index++) {
+        const auto &bucket = other.m_buckets[bucket_index];
+
+        for (auto it = bucket.head; it != nullptr; it = it->next) {
+            m_buckets[bucket_index].Push(new detail::HashElement<KeyType, ValueType> {
+                nullptr,
+                it->hash_code,
+                it->pair
+            });
+        }
+    }
 
     return *this;
 }
@@ -570,6 +618,21 @@ auto HashMap<KeyType, ValueType>::operator=(HashMap &&other) noexcept -> HashMap
     other.m_size = 0;
 
     return *this;
+}
+
+template <class KeyType, class ValueType>
+HashMap<KeyType, ValueType>::~HashMap()
+{
+    for (auto buckets_it = m_buckets.Begin(); buckets_it != m_buckets.End(); ++buckets_it) {
+        for (auto element_it = buckets_it->head; element_it != nullptr;) {
+            auto *head = element_it;
+            auto *next = head->next;
+
+            delete head;
+
+            element_it = next;
+        }
+    }
 }
 
 template <class KeyType, class ValueType>
@@ -599,10 +662,15 @@ void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
     new_buckets.Resize(new_bucket_count);
 
     for (auto &bucket : m_buckets) {
-        for (auto &element : bucket.elements) {
-            detail::HashBucket<KeyType, ValueType> *new_bucket = new_buckets.Data() + (element.hash_code % new_buckets.Size());
+        for (auto it = bucket.head; it != nullptr;) {
+            detail::HashBucket<KeyType, ValueType> *new_bucket = new_buckets.Data() + (it->hash_code % new_buckets.Size());
 
-            new_bucket->Push(std::move(element));
+            detail::HashElement<KeyType, ValueType> *next = it->next;
+            it->next = nullptr;
+
+            new_bucket->Push(it);
+
+            it = next;
         }
     }
 
@@ -615,7 +683,7 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) -> Iterator
     const HashCode::ValueType hash_code = HashCode::GetHashCode(key).Value();
     detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code);
 
-    const typename detail::HashBucket<KeyType, ValueType>::Iterator it = bucket->Find(hash_code);
+    typename detail::HashBucket<KeyType, ValueType>::Iterator it = bucket->Find(hash_code);
 
     if (it == bucket->End()) {
         return End();
@@ -654,19 +722,29 @@ auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
 
     --m_size;
 
-    const typename detail::HashBucket<KeyType, ValueType>::ElementList::Iterator element_list_it {
-        iter.bucket_iter.bucket->elements.Data() + iter.bucket_iter.index
-    };
+    detail::HashElement<KeyType, ValueType> *prev = nullptr;
 
-    const auto erase_it = iter.bucket_iter.bucket->elements.Erase(element_list_it);
-
-    if (erase_it == iter.bucket_iter.bucket->elements.End()) {
-        return End();
+    for (auto it = iter.bucket_iter.bucket->head; it != nullptr && it != iter.bucket_iter.element; it = it->next) {
+        prev = it;
     }
 
-    const SizeType erase_index = std::distance(iter.bucket_iter.bucket->elements.Begin(), erase_it);
+    if (iter.bucket_iter.element == iter.bucket_iter.bucket->head) {
+        iter.bucket_iter.bucket->head = iter.bucket_iter.element->next;
+    }
 
-    return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { iter.bucket_iter.bucket, erase_index });
+    if (iter.bucket_iter.element == iter.bucket_iter.bucket->tail) {
+        iter.bucket_iter.bucket->tail = prev;
+    }
+
+    if (prev != nullptr) {
+        prev->next = iter.bucket_iter.element->next;
+    }
+
+    Iterator next_iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { iter.bucket_iter.bucket, iter.bucket_iter.element->next });
+
+    delete iter.bucket_iter.element;
+
+    return next_iterator;
 }
 
 template <class KeyType, class ValueType>
@@ -678,32 +756,29 @@ bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
         return false;
     }
     
-    --m_size;
-
-    const typename detail::HashBucket<KeyType, ValueType>::ElementList::ConstIterator element_list_it {
-        it.bucket_iter.bucket->elements.Data() + it.bucket_iter.index
-    };
-
-    const auto erase_it = it.bucket_iter.bucket->elements.Erase(element_list_it);
-
-    if (erase_it == it.bucket_iter.bucket->elements.End()) {
-        return false;
-    }
+    Erase(it);
 
     return true;
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::SetElement(detail::HashElement<KeyType, ValueType> &&element)
+void HashMap<KeyType, ValueType>::Set_Internal(Pair<KeyType, ValueType> &&pair)
 {
-    detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(element.hash_code);
+    const HashCode::ValueType hash_code = HashCode::GetHashCode(pair.first).Value();
 
-    auto it = bucket->Find(element.hash_code);
+    detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code);
+
+    auto it = bucket->Find(hash_code);
 
     if (it != bucket->End()) {
-        *it = std::move(element);
+        *it = std::move(pair);
     } else {
-        bucket->Push(std::move(element));
+        bucket->Push(new detail::HashElement<KeyType, ValueType> {
+            nullptr,
+            hash_code,
+            std::move(pair)
+        });
+
         m_size++;
 
         CheckAndRebuildBuckets();
@@ -711,14 +786,16 @@ void HashMap<KeyType, ValueType>::SetElement(detail::HashElement<KeyType, ValueT
 }
 
 template <class KeyType, class ValueType>
-auto HashMap<KeyType, ValueType>::InsertElement(detail::HashElement<KeyType, ValueType> &&element) -> InsertResult
+auto HashMap<KeyType, ValueType>::Insert_Internal(Pair<KeyType, ValueType> &&pair) -> InsertResult
 {
     // Have to rehash before any insertion, so we don't invalidate the iterator or bucket pointer.
     CheckAndRebuildBuckets();
 
-    detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(element.hash_code);
+    const HashCode::ValueType hash_code = HashCode::GetHashCode(pair.first).Value();
 
-    auto it = bucket->Find(element.hash_code);
+    detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code);
+
+    auto it = bucket->Find(hash_code);
 
     Iterator insert_it(this, it);
 
@@ -726,7 +803,12 @@ auto HashMap<KeyType, ValueType>::InsertElement(detail::HashElement<KeyType, Val
         return InsertResult { insert_it, false };
     }
 
-    insert_it.bucket_iter = bucket->Push(std::move(element));
+    insert_it.bucket_iter = bucket->Push(new detail::HashElement<KeyType, ValueType> {
+        nullptr,
+        hash_code,
+        std::move(pair)
+    });
+    
     m_size++;
 
     return InsertResult { insert_it, true };
@@ -735,8 +817,7 @@ auto HashMap<KeyType, ValueType>::InsertElement(detail::HashElement<KeyType, Val
 template <class KeyType, class ValueType>
 void HashMap<KeyType, ValueType>::Set(const KeyType &key, const ValueType &value)
 {
-    SetElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    Set_Internal(Pair<KeyType, ValueType> {
         key,
         value
     });
@@ -745,8 +826,7 @@ void HashMap<KeyType, ValueType>::Set(const KeyType &key, const ValueType &value
 template <class KeyType, class ValueType>
 void HashMap<KeyType, ValueType>::Set(const KeyType &key, ValueType &&value)
 {
-    SetElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    Set_Internal(Pair<KeyType, ValueType> {
         key,
         std::move(value)
     });
@@ -755,8 +835,7 @@ void HashMap<KeyType, ValueType>::Set(const KeyType &key, ValueType &&value)
 template <class KeyType, class ValueType>
 void HashMap<KeyType, ValueType>::Set(KeyType &&key, const ValueType &value)
 {
-    SetElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    Set_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         value
     });
@@ -765,8 +844,7 @@ void HashMap<KeyType, ValueType>::Set(KeyType &&key, const ValueType &value)
 template <class KeyType, class ValueType>
 void HashMap<KeyType, ValueType>::Set(KeyType &&key, ValueType &&value)
 {
-    SetElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    Set_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         std::move(value)
     });
@@ -775,8 +853,7 @@ void HashMap<KeyType, ValueType>::Set(KeyType &&key, ValueType &&value)
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Insert(const KeyType &key, const ValueType &value) -> InsertResult
 {
-    return InsertElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    return Insert_Internal(Pair<KeyType, ValueType> {
         key,
         value
     });
@@ -785,8 +862,7 @@ auto HashMap<KeyType, ValueType>::Insert(const KeyType &key, const ValueType &va
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Insert(const KeyType &key, ValueType &&value) -> InsertResult
 {
-    return InsertElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    return Insert_Internal(Pair<KeyType, ValueType> {
         key,
         std::move(value)
     });
@@ -795,8 +871,7 @@ auto HashMap<KeyType, ValueType>::Insert(const KeyType &key, ValueType &&value) 
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Insert(KeyType &&key, const ValueType &value) -> InsertResult
 {
-    return InsertElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    return Insert_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         value
     });
@@ -805,8 +880,7 @@ auto HashMap<KeyType, ValueType>::Insert(KeyType &&key, const ValueType &value) 
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Insert(KeyType &&key, ValueType &&value) -> InsertResult
 {
-    return InsertElement(detail::HashElement<KeyType, ValueType> {
-        HashCode::GetHashCode(key).Value(),
+    return Insert_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         std::move(value)
     });
@@ -815,18 +889,23 @@ auto HashMap<KeyType, ValueType>::Insert(KeyType &&key, ValueType &&value) -> In
 template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Insert(Pair<KeyType, ValueType> &&pair) -> InsertResult
 {
-    const HashCode hash_code = HashCode::GetHashCode(pair.first);
-
-    return InsertElement(detail::HashElement<KeyType, ValueType> {
-        hash_code.Value(),
-        std::move(pair.first),
-        std::move(pair.second)
-    });
+    return Insert_Internal(std::move(pair));
 }
 
 template <class KeyType, class ValueType>
 void HashMap<KeyType, ValueType>::Clear()
 {
+    for (auto buckets_it = m_buckets.Begin(); buckets_it != m_buckets.End(); ++buckets_it) {
+        for (auto element_it = buckets_it->head; element_it != nullptr;) {
+            auto *head = element_it;
+            auto *next = head->next;
+
+            delete head;
+
+            element_it = next;
+        }
+    }
+
     m_buckets.Clear();
     m_buckets.Resize(initial_bucket_size);
 
