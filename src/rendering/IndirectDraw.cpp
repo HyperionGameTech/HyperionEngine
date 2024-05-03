@@ -255,13 +255,12 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
     const uint32 draw_command_index = m_num_draw_commands++;
 
     for (uint32 index = 0; index < draw_call.entity_id_count; index++) {
-        ObjectInstance instance { };
-        instance.entity_id = draw_call.entity_ids[index].Value();
-        instance.draw_command_index = draw_command_index;
-        instance.instance_index = index;
-        instance.batch_index = draw_call.batch_index;
-
-        m_object_instances.PushBack(instance);
+        m_object_instances.EmplaceBack(ObjectInstance {
+            draw_call.entity_ids[index].Value(),
+            draw_command_index,
+            index,
+            draw_call.batch_index
+        });
     }
 
     out.draw_command_index = draw_command_index;

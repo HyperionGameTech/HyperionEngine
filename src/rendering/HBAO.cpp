@@ -78,8 +78,6 @@ void HBAO::Create()
 
 void HBAO::Destroy()
 {
-    m_temporal_blending->Destroy();
-
     m_hbao_pass->Destroy();
 
     PUSH_RENDER_COMMAND(RemoveHBAODescriptors);

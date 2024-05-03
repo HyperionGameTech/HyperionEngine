@@ -20,11 +20,11 @@ SAXParser::Result SAXParser::Parse(const FilePath &filepath)
 SAXParser::Result SAXParser::Parse(BufferedReader *reader)
 {
     if (reader == nullptr) {
-        return Result(Result::SAX_ERR, "Reader was null");
+        return Result(Result::SRT_ERR, "Reader was null");
     }
 
     if (!reader->IsOpen()) {
-        return Result(Result::SAX_ERR, "File could not be read.");
+        return Result(Result::SRT_ERR, "File could not be read.");
     }
 
     bool is_reading = false,
@@ -42,12 +42,8 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
     String element_str, comment_str, value_str;
     Array<Pair<String, String>> attribs;
 
-    // shield your eyes
-    // 2022-02-09: wtf
-    // 2022-04-10: still lookin' good
-    // 2023-10-15: never change, baby <3
-    // 2024-01-01: i'm still here, still kickin'. i love you.
-    reader->ReadChars([&](char ch) {
+    reader->ReadChars([&](char ch)
+    {
         if (ch != '\t' && ch != '\n') {
             if (ch == '<') {
                 element_str.Clear();
@@ -140,7 +136,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
         last_char = ch;
     });
 
-    return Result(Result::SAX_OK);
+    return { Result::SRT_OK };
 }
 
 } // namespace xml

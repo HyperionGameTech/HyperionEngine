@@ -55,7 +55,7 @@ bool DeletionEntryBase::PerformDeletion(bool force)
         return false;
     }
 
-    PerformDeletionImpl();
+    PerformDeletion_Internal();
 
     return true;
 }
@@ -66,7 +66,7 @@ bool DeletionEntryBase::PerformDeletion(bool force)
 
 void SafeDeleter::PerformEnqueuedDeletions()
 {
-    if (bool deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+    if (uint32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
@@ -75,24 +75,24 @@ void SafeDeleter::PerformEnqueuedDeletions()
             CollectAllEnqueuedItems(deletion_entries);
         }
 
-        for (auto &it : deletion_entries) {
-            AssertThrow(it->PerformDeletion());
-        }
+        for (auto it = deletion_entries.Begin(); it != deletion_entries.End(); ++it) {
+            AssertThrow((*it)->PerformDeletion());
         
-        m_render_resource_deletion_flag.Set(false, MemoryOrder::RELEASE);
+            m_num_deletion_entries.Decrement(1u, MemoryOrder::RELAXED);
+        }
     }
 }
 
-void SafeDeleter::ForceReleaseAll()
+void SafeDeleter::ForceDeleteAll()
 {
-    while (bool deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+    while (uint32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
         Mutex::Guard guard(m_render_resource_deletion_mutex);
 
-        for (auto &it : m_deletion_entries) {
-            AssertThrow(it->PerformDeletion(true /* force */));
-        }
+        for (auto it = m_deletion_entries.Begin(); it != m_deletion_entries.End(); ++it) {
+            AssertThrow((*it)->PerformDeletion(true /* force */));
 
-        m_render_resource_deletion_flag.Set(false, MemoryOrder::RELEASE);
+            m_num_deletion_entries.Decrement(1u, MemoryOrder::RELAXED);
+        }
     }
 }
 

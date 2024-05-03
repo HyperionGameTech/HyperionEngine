@@ -313,6 +313,46 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+    // const auto profile_results = Profile::RunInterleved(
+    //     {
+    //         new Profile([]()
+    //         {
+    //             HashMap<Vec3f, int> hash_map;
+    //             for (uint i = 0; i < 30; i++) {
+    //                 hash_map.Insert({ Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) }, i * 100 });
+    //             }
+    //             for (uint i = 0; i < 30; i++) {
+    //                 auto key = Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) };
+
+    //                 auto &value = hash_map[key];
+    //                 value *= 100;
+    //             }
+    //         }),
+    //         new Profile([]()
+    //         {
+    //             FlatMap<Vec3f, int> flat_map;
+    //             for (uint i = 0; i < 30; i++) {
+    //                 flat_map.Insert({ Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) }, i * 100 });
+    //             }
+    //             for (uint i = 0; i < 30; i++) {
+    //                 auto key = Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) };
+
+    //                 auto &value = flat_map[key];
+    //                 value *= 100;
+    //             }
+    //         })
+    //     },
+    //     8,
+    //     2500,
+    //     2500
+    // );
+
+    // DebugLog(LogType::Debug, "Profile results:\n");
+    // DebugLog(LogType::Debug, "\tfirst: %f\n", profile_results[0]);
+    // DebugLog(LogType::Debug, "\tsecond: %f\n", profile_results[1]);
+
+    // HYP_BREAKPOINT;
+
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 
     GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(EditorUIRenderer), GetUIStage());

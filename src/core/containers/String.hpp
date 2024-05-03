@@ -477,7 +477,7 @@ public:
             j += 6;
 
             if (j >= 0) {
-                out.PushBack(static_cast<ubyte>((i >> j) & 0xFF));
+                out.PushBack(ubyte((i >> j) & 0xFF));
                 j -= 8;
             }
         }

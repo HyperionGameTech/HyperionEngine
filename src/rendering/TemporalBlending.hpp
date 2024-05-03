@@ -113,7 +113,6 @@ public:
     void ResetProgressiveBlending();
 
     void Create();
-    void Destroy();
 
     void Render(Frame *frame);
 

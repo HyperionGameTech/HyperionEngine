@@ -40,7 +40,7 @@ struct RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet) : renderer::Render
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
                 ->SetElement(HYP_NAME(DepthPyramidResult), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 

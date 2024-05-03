@@ -30,7 +30,7 @@ public:
     SubMesh &LastSubMesh()
     {
         if (m_model.submeshes.Empty()) {
-            m_model.submeshes.PushBack({ });
+            return m_model.submeshes.EmplaceBack();
         }
 
         return m_model.submeshes.Back();
@@ -52,7 +52,7 @@ public:
             const auto y = StringUtil::Parse<float>(attributes.At("y"));
             const auto z = StringUtil::Parse<float>(attributes.At("z"));
 
-            m_model.positions.PushBack(Vector3(x, y, z));
+            m_model.positions.EmplaceBack(x, y, z);
         } else if (name == "normal") {
             if (!attributes.Contains("x") || !attributes.Contains("y") || !attributes.Contains("z")) {
                 return;
@@ -62,7 +62,7 @@ public:
             const auto y = StringUtil::Parse<float>(attributes.At("y"));
             const auto z = StringUtil::Parse<float>(attributes.At("z"));
 
-            m_model.normals.PushBack(Vector3(x, y, z));
+            m_model.normals.EmplaceBack(x, y, z);
         } else if (name == "texcoord") {
             if (!attributes.Contains("u") || !attributes.Contains("v")) {
                 return;
@@ -71,7 +71,7 @@ public:
             const auto x = StringUtil::Parse<float>(attributes.At("u"));
             const auto y = StringUtil::Parse<float>(attributes.At("v"));
 
-            m_model.texcoords.PushBack(Vector2(x, y));
+            m_model.texcoords.EmplaceBack(x, y);
         } else if (name == "face") {
             if (attributes.Size() != 3) {
                 DebugLog(LogType::Warn, "Ogre XML parser: `face` tag expected to have 3 attributes.\n");
@@ -84,8 +84,8 @@ public:
             m_model.skeleton_name = attributes.At("name");
         } else if (name == "vertexboneassignment") {
             const auto vertex_index = StringUtil::Parse<uint32>(attributes.At("vertexindex"));
-            const auto bone_index   = StringUtil::Parse<uint32>(attributes.At("boneindex"));
-            const auto bone_weight  = StringUtil::Parse<float>(attributes.At("weight"));
+            const auto bone_index = StringUtil::Parse<uint32>(attributes.At("boneindex"));
+            const auto bone_weight = StringUtil::Parse<float>(attributes.At("weight"));
 
             AddBoneAssignment(vertex_index, {bone_index, bone_weight});
         } else if (name == "submesh") {

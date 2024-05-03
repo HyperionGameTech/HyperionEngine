@@ -300,7 +300,7 @@ private:
     {
         fn.id = ++m_id_counter;
 
-        m_enqueued_tasks.PushBack(ScheduledTask(std::forward<Task>(fn), atomic_counter));
+        m_enqueued_tasks.EmplaceBack(std::forward<Task>(fn), atomic_counter);
 
         m_num_enqueued.Increment(1, MemoryOrder::RELAXED);
 

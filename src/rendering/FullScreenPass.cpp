@@ -204,15 +204,17 @@ void FullScreenPass::CreateDescriptors()
 
 void FullScreenPass::Destroy()
 {
-    for (auto &attachment : m_attachments) {
-        m_framebuffer->RemoveAttachmentUsage(attachment);
+    if (m_framebuffer.IsValid()) {
+        for (auto &attachment : m_attachments) {
+            m_framebuffer->RemoveAttachmentUsage(attachment);
+        }
+
+        if (m_render_group) {
+            m_render_group->RemoveFramebuffer(m_framebuffer.GetID());
+        }
     }
 
     SafeRelease(std::move(m_attachments));
-
-    if (m_render_group) {
-        m_render_group->RemoveFramebuffer(m_framebuffer->GetID());
-    }
 
     m_framebuffer.Reset();
     m_render_group.Reset();

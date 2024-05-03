@@ -131,6 +131,12 @@ void PlaceholderData::Destroy()
     SafeRelease(std::move(m_sampler_linear_mipmap));
     SafeRelease(std::move(m_sampler_nearest));
 
+    for (auto &buffer_map : m_buffers) {
+        for (auto &it : buffer_map.second) {
+            SafeRelease(std::move(it.second));
+        }
+    }
+
     m_buffers.Clear();
 }
 

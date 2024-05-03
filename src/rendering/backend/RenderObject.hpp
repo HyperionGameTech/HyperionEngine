@@ -871,26 +871,25 @@ struct RenderObjectDeleter
         {
             Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-            if (!Base::num_items.Get(MemoryOrder::ACQUIRE)) {
+            if (!Base::num_items.Get(MemoryOrder::SEQUENTIAL)) {
                 return;
             }
 
             Base::mtx.lock();
 
-            for (auto &it : items) {
-                HYPERION_ASSERT_RESULT(it.first->Destroy(GetEngineDevice()));
+            for (auto it = items.Begin(); it != items.End();) {
+                HYPERION_ASSERT_RESULT(it->first->Destroy(GetEngineDevice()));
+                it = items.Erase(it);
+
+                Base::num_items.Decrement(1u, MemoryOrder::SEQUENTIAL);
             }
-
-            items.Clear();
-
-            Base::num_items.Set(0, MemoryOrder::RELEASE);
 
             Base::mtx.unlock();
         }
 
         void Push(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)
         {
-            Base::num_items.Increment(1, MemoryOrder::RELAXED);
+            Base::num_items.Increment(1u, MemoryOrder::SEQUENTIAL);
 
             std::lock_guard guard(Base::mtx);
 
@@ -944,11 +943,19 @@ struct RenderObjectDeleter
 
     static void ForceDeleteAll()
     {
-        DeletionQueueBase **queue = queues.Data();
+        FixedArray<uint32, max_queues + 1> queue_num_items;
 
-        while (*queue) {
-            (*queue)->ForceDeleteAll();
-            ++queue;
+        // Loop until all queues are empty
+        while (queue_num_items.Any([](uint32 count) { return count != 0; })) {
+            DeletionQueueBase **queue = queues.Data();
+
+            for (uint i = 0; *queue; i++) {
+                (*queue)->ForceDeleteAll();
+
+                queue_num_items[i] = (*queue)->num_items.Get(MemoryOrder::SEQUENTIAL);
+
+                ++queue;
+            }
         }
     }
 };

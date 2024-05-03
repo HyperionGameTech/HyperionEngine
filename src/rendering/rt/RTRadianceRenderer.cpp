@@ -116,8 +116,6 @@ void RTRadianceRenderer::Create()
 
 void RTRadianceRenderer::Destroy()
 {
-    m_temporal_blending->Destroy();
-
     m_shader.Reset();
 
     SafeRelease(std::move(m_raytracing_pipeline));

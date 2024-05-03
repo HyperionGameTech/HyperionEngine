@@ -213,7 +213,14 @@ public:
     /*! \brief Updates the capacity of the array to be at least {capacity} */
     void SetCapacity(SizeType capacity, SizeType copy_offset = 0);
 
+    /*! \brief Push an item to the back of the container.
+     *  \param value The value to push back.
+     *  \return Reference to the newly pushed back item. */
     ValueType &PushBack(const ValueType &value);
+
+    /*! \brief Push an item to the back of the container.
+     *  \param value The value to push back.
+     *  \return Reference to the newly pushed back item. */
     ValueType &PushBack(ValueType &&value);
 
     /*! \brief Push an item to the front of the container.
@@ -231,6 +238,67 @@ public:
         each time. */
     ValueType &PushFront(ValueType &&value);
 
+    /*! \brief Construct an item in place at the back of the array.
+     *  \param args Arguments to forward to the constructor of the item.
+     *  \return Reference to the newly constructed item. */
+    template <class ... Args>
+    ValueType &EmplaceBack(Args &&... args)
+    {
+        if (m_size + 1 >= m_capacity) {
+            if (m_capacity >= Size() + 1) {
+                ResetOffsets();
+            } else {
+                SetCapacity(GetCapacity(Size() + 1));
+            }
+        }
+
+        // set item at index
+        GetStorage()[m_size++].Construct(std::forward<Args>(args)...);
+
+        return Back();
+    }
+
+    /*! \brief Construct an item in place at the front of the array.
+     *  If there is no space at the front, the array is resized and all elements are shifted to the right.
+     *  \param args Arguments to forward to the constructor of the item.
+     *  \return Reference to the newly constructed item. */
+    template <class ... Args>
+    ValueType &EmplaceFront(Args &&... args)
+    {
+        if (m_start_offset == 0) {
+            // have to push everything else over by 1
+            if (m_size + push_front_padding >= m_capacity) {
+                SetCapacity(
+                    GetCapacity(Size() + push_front_padding),
+                    push_front_padding // copy_offset is 1 so we have a space for 1 at the start
+                );
+            } else {
+                auto *buffer = GetStorage();
+
+                // shift over without realloc
+                for (SizeType index = Size(); index > 0;) {
+                    --index;
+
+                    const auto move_index = index + push_front_padding;
+
+                    Memory::Construct<T>(&buffer[move_index].data_buffer, std::forward<Args>(args)...);
+
+                    // manual destructor call
+                    Memory::Destruct(buffer[index].Get());
+                }
+
+                m_start_offset = push_front_padding;
+                m_size += m_start_offset;
+            }
+        }
+
+        --m_start_offset;
+
+        Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, std::forward<Args>(args)...);
+
+        return Front();
+    }
+
     /*! \brief Shift the array to the left by {count} times */
     void Shift(SizeType count);
 
@@ -238,6 +306,7 @@ public:
 
     void Concat(const Array &other);
     void Concat(Array &&other);
+
     /*! \brief Erase an element by iterator. */
     Iterator Erase(ConstIterator iter);
 
@@ -247,8 +316,10 @@ public:
     Iterator EraseAt(typename Base::KeyType index);
     Iterator Insert(ConstIterator where, const ValueType &value);
     Iterator Insert(ConstIterator where, ValueType &&value);
+
     ValueType PopFront();
     ValueType PopBack();
+    
     void Clear();
 
     /*! \brief Returns true if any elements in the array satisfy the given lambda. */

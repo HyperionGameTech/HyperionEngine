@@ -526,8 +526,6 @@ void Device<Platform::VULKAN>::Destroy()
         queue->command_pools = { };
     }
 
-    ForceDeleteAllEnqueuedRenderObjects<Platform::VULKAN>();
-
     if (m_device != VK_NULL_HANDLE) {
         /* By the time this destructor is called there should never
          * be a running queue, but just in case we will wait until

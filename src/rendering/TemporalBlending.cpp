@@ -80,7 +80,17 @@ TemporalBlending::TemporalBlending(
 {
 }
 
-TemporalBlending::~TemporalBlending() = default;
+TemporalBlending::~TemporalBlending()
+{
+    SafeRelease(std::move(m_perform_blending));
+
+    SafeRelease(std::move(m_descriptor_table));
+
+    for (auto &image_output : m_image_outputs) {
+        SafeRelease(std::move(image_output.image));
+        SafeRelease(std::move(image_output.image_view));
+    }
+}
 
 void TemporalBlending::Create()
 {
@@ -89,18 +99,6 @@ void TemporalBlending::Create()
     CreateImageOutputs();
     CreateDescriptorSets();
     CreateComputePipelines();
-}
-
-void TemporalBlending::Destroy()
-{
-    m_perform_blending.Reset();
-
-    SafeRelease(std::move(m_descriptor_table));
-
-    for (auto &image_output : m_image_outputs) {
-        SafeRelease(std::move(image_output.image));
-        SafeRelease(std::move(image_output.image_view));
-    }
 }
 
 ShaderProperties TemporalBlending::GetShaderProperties() const

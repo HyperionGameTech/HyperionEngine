@@ -205,19 +205,16 @@ void SSRRenderer::Destroy()
 {
     m_is_rendered = false;
 
-    m_write_uvs.Reset();
-    m_sample.Reset();
+    SafeRelease(std::move(m_write_uvs));
+    SafeRelease(std::move(m_sample));
 
     if (m_temporal_blending) {
-        m_temporal_blending->Destroy();
         m_temporal_blending.Reset();
     }
     
     SafeRelease(std::move(m_uniform_buffer));
 
     PUSH_RENDER_COMMAND(RemoveSSRDescriptors);
-
-    HYP_SYNC_RENDER();
 }
 
 ShaderProperties SSRRenderer::GetShaderProperties() const

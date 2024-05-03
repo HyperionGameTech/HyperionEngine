@@ -6,6 +6,7 @@
 #include <core/ID.hpp>
 #include <core/utilities/UserData.hpp>
 #include <core/containers/Bitset.hpp>
+#include <core/containers/FlatMap.hpp>
 
 #include <math/Transform.hpp>
 #include <math/BoundingBox.hpp>
@@ -61,7 +62,7 @@ public:
 
     const RenderProxy *GetProxyForEntity(ID<Entity> entity) const
         { return const_cast<RenderProxyList *>(this)->GetProxyForEntity(entity); }
-        
+
     void Advance(RenderProxyListAdvanceAction action);
 
     /*! \brief Checks if the RenderProxyList already has a proxy for the given entity
@@ -93,9 +94,7 @@ public:
 
 
 private:
-    // @TODO use sparse array
     HashMap<ID<Entity>, RenderProxy>    m_proxies;
-
     Bitset                              m_previous_entities;
     Bitset                              m_next_entities;
     Bitset                              m_changed_entities;

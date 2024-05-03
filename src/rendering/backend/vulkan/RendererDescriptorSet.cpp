@@ -477,8 +477,6 @@ void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const GP
 
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<Platform::VULKAN> &ref)
 {
-    // @TODO Use buffer_size to ensure it matches the layout size
-
     SetElement<GPUBufferRef<Platform::VULKAN>>(name, index, ref);
 }
 

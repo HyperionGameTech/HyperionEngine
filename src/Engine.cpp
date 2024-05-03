@@ -40,8 +40,8 @@ SafeDeleter         *g_safe_deleter = nullptr;
 
 struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 {
-    ImageRef image;
-    GPUBufferRef buffer;
+    ImageRef        image;
+    GPUBufferRef    buffer;
 
     RENDER_COMMAND(CopyBackbufferToCPU)(const ImageRef &image, const GPUBufferRef &buffer)
         : image(image),
@@ -351,12 +351,6 @@ void Engine::FinalizeStop()
         "Stopping all engine processes\n"
     );
 
-    // Force execute any remaining render commands
-    // HYP_SYNC_RENDER();
-
-    // Wait for any remaining frames to finish
-    // HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
-
     if (TaskSystem::GetInstance().IsRunning()) { // Stop task system
         DebugLog(
             LogType::Debug,
@@ -371,33 +365,25 @@ void Engine::FinalizeStop()
         );
     }
 
-    HYPERION_ASSERT_RESULT(m_global_descriptor_table->Destroy(m_instance->GetDevice()));
-
     m_render_list_container.Destroy();
     m_deferred_renderer.Destroy();
 
     m_final_pass.Destroy();
 
-    // delete placeholder data
-    m_placeholder_data->Destroy();
-
-    // delete debug drawer mode
     m_debug_drawer.Destroy();
 
     m_render_data->Destroy();
 
-    { // here we delete all the objects that will be enqueued to be deleted
-        // delete objects that are enqueued for deletion
-        g_safe_deleter->ForceReleaseAll();
-
-        // delete all render objects
-        // @FIXME: Need to delete objects until all enqueued are deleted, deletign some objects may cause others to be enqueued for deletion
-    }
-
     m_render_group_mapping.Clear();
 
-    AssertThrow(m_instance != nullptr);
-    m_instance->Destroy();
+    HYPERION_ASSERT_RESULT(m_global_descriptor_table->Destroy(m_instance->GetDevice()));
+
+    m_placeholder_data->Destroy();
+
+    g_safe_deleter->ForceDeleteAll();
+    ForceDeleteAllEnqueuedRenderObjects<renderer::Platform::CURRENT>();
+
+    HYPERION_ASSERT_RESULT(m_instance->Destroy());
 }
 
 HYP_API void Engine::RenderNextFrame(Game *game)

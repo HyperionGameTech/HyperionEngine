@@ -429,7 +429,6 @@ EnvGridPass::~EnvGridPass()
     }
 
     if (m_temporal_blending) {
-        m_temporal_blending->Destroy();
         m_temporal_blending.Reset();
     }
 }

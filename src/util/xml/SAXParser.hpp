@@ -4,7 +4,7 @@
 #define HYPERION_SAX_PARSER_HPP
 
 #include <asset/BufferedByteReader.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
 #include <core/utilities/Pair.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -15,7 +15,7 @@
 namespace hyperion {
 namespace xml {
 
-using AttributeMap = FlatMap<String, String>;
+using AttributeMap = HashMap<String, String>;
 
 class SAXHandler
 {
@@ -34,23 +34,27 @@ class SAXParser
 public:
     struct Result
     {
-        enum {
-            SAX_OK = 0,
-            SAX_ERR = 1
+        enum SaxParserResult
+        {
+            SRT_OK  = 0,
+            SRT_ERR = 1
         } result;
 
         String message;
 
-        Result(decltype(result) result = SAX_OK, const String &message = String::empty)
+        Result(decltype(result) result = SRT_OK, const String &message = String::empty)
             : result(result),
               message(message)
         {
         }
 
-        Result(const Result &other) = default;
-        Result &operator=(const Result &other) = default;
+        Result(const Result &other)             = default;
+        Result &operator=(const Result &other)  = default;
 
-        operator bool() const { return result == SAX_OK; }
+        [[nodiscard]]
+        HYP_FORCE_INLINE
+        operator bool() const
+            { return result == SRT_OK; }
     };
 
     SAXParser(SAXHandler *handler);

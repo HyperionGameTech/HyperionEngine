@@ -41,7 +41,7 @@ public:
     HYP_API virtual bool PerformDeletion(bool force = false) final;
 
 protected:
-    virtual void PerformDeletionImpl() = 0;
+    virtual void PerformDeletion_Internal() = 0;
 
     uint8   m_cycles_remaining = 0;
 };
@@ -58,7 +58,7 @@ public:
     virtual ~DeletionEntry() override                               = default;
 
 protected:
-    virtual void PerformDeletionImpl() override = 0;
+    virtual void PerformDeletion_Internal() override = 0;
 };
 
 template <class T>
@@ -88,7 +88,7 @@ public:
     virtual ~DeletionEntry() override = default;
 
 private:
-    virtual void PerformDeletionImpl() override
+    virtual void PerformDeletion_Internal() override
     {
         m_handle.Reset();
     }
@@ -123,7 +123,7 @@ public:
     virtual ~DeletionEntry() override = default;
 
 private:
-    virtual void PerformDeletionImpl() override
+    virtual void PerformDeletion_Internal() override
     {
         m_handle.Reset();
     }
@@ -144,7 +144,7 @@ public:
         
         m_deletion_entries.PushBack(UniquePtr<DeletionEntry<T>>::Construct(std::move(resource)));
 
-        m_render_resource_deletion_flag.Set(true, MemoryOrder::RELEASE);
+        m_num_deletion_entries.Increment(1u, MemoryOrder::RELAXED);
     }
 
     void SafeRelease(RenderProxy &&proxy)
@@ -155,13 +155,13 @@ public:
     }
 
     void PerformEnqueuedDeletions();
-    void ForceReleaseAll();
-
-    bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries);
+    void ForceDeleteAll();
 
 private:
+    bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries);
+
     Mutex                               m_render_resource_deletion_mutex;
-    AtomicVar<bool>                     m_render_resource_deletion_flag = false;
+    AtomicVar<uint32>                   m_num_deletion_entries { 0u };
 
     Array<UniquePtr<DeletionEntryBase>> m_deletion_entries;
 };

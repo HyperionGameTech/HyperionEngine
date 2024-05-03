@@ -6,30 +6,34 @@
 
 namespace hyperion {
 
-std::vector<double> Profile::RunInterleved(std::vector<Profile> &&profiles, SizeType runs_per, SizeType num_iterations, SizeType runs_per_iteration)
+Array<double> Profile::RunInterleved(Array<Profile *> &&profiles, SizeType runs_per, SizeType num_iterations, SizeType runs_per_iteration)
 {
-    std::vector<double> results;
-    results.resize(profiles.size());
+    Array<double> results;
+    results.Resize(profiles.Size());
 
     SizeType run_index = 0;
 
     for (SizeType i = 0; i < runs_per; i++) {
 
         // size_t index = 0;
-        SizeType index = run_index++ % profiles.size();
+        SizeType index = run_index++ % profiles.Size();
         SizeType counter = 0;
 
-        while (counter < profiles.size()) {
-            profiles[index].Run(num_iterations, runs_per_iteration);
+        while (counter < profiles.Size()) {
+            profiles[index]->Run(num_iterations, runs_per_iteration);
 
-            index = ++index % profiles.size();
+            index = ++index % profiles.Size();
 
             ++counter;
         }
     }
 
-    for (SizeType i = 0; i < profiles.size(); i++) {
-        results[i] = profiles[i].GetResult();
+    for (SizeType i = 0; i < profiles.Size(); i++) {
+        results[i] = profiles[i]->GetResult();
+    }
+
+    for (Profile *profile : profiles) {
+        delete profile;
     }
 
     return results;

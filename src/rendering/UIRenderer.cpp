@@ -69,9 +69,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 ? override_attributes->GetShaderDefinition()
                 : attributes.GetShaderDefinition();
 
-    #ifdef HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
             AssertThrow(shader_definition.IsValid());
-    #endif
+#endif
 
             // Check for varying vertex attributes on the override shader compared to the entity's vertex
             // attributes. If there is not a match, we should switch to a version of the override shader that
@@ -268,7 +268,7 @@ void UIRenderList::CollectDrawCalls(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
 
     Array<IteratorType> iterators;
 
@@ -317,7 +317,7 @@ void UIRenderList::ExecuteDrawCalls(Frame *frame) const
 
     g_engine->GetRenderState().BindCamera(m_camera.Get());
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::ConstIterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::ConstIterator;
     Array<IteratorType> iterators;
 
     for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {

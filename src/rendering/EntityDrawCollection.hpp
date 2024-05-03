@@ -13,7 +13,6 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderResourceManager.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
 #include <Types.hpp>

@@ -65,7 +65,7 @@ void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool 
     Bitset newly_added_bits = GetAddedEntities();
 
     if (include_changed) {
-        newly_added_bits |= (GetChangedEntities());
+        newly_added_bits |= GetChangedEntities();
     }
 
     out_entities.Reserve(newly_added_bits.Count());

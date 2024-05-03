@@ -645,7 +645,7 @@ private:
         }
 
         if (!ptr) {
-            ptr = static_cast<SystemType *>(m_system_execution_groups.PushBack({ }).AddSystem<SystemType>(std::move(system_ptr)));
+            ptr = static_cast<SystemType *>(m_system_execution_groups.EmplaceBack().AddSystem<SystemType>(std::move(system_ptr)));
         }
 
         // @TODO Notify the system of all entities that have the components it needs
