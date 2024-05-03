@@ -26,12 +26,23 @@ World::~World()
 
         scene->SetWorld(nullptr);
     }
+
+    for (auto &it : m_scenes) {
+        DebugLog(LogType::Debug, "~World, scene ID: %u\n", it->GetID().value);
+    }
+
+    for (auto &it : m_scenes_pending_addition) {
+        DebugLog(LogType::Debug, "~World, pending add scene ID: %u\n", it->GetID().value);
+    }
+
+    for (auto &it : m_scenes_pending_removal) {
+        DebugLog(LogType::Debug, "~World, pending removal scene ID: %u\n", it->GetID().value);
+    }
     
     m_scenes.Clear();
-    
-    Mutex::Guard guard(m_scene_update_mutex);
     m_scenes_pending_addition.Clear();
     m_scenes_pending_removal.Clear();
+    m_detached_scenes.Clear();
 
     m_physics_world.Teardown();
 }
@@ -195,6 +206,8 @@ const Handle<Scene> &World::GetDetachedScene(ThreadMask thread_mask)
                 .thread_mask = thread_mask
             }
         );
+
+        scene->SetName(Name::Unique("DetachedScene"));
 
         InitObject(scene);
 

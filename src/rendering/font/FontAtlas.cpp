@@ -259,11 +259,7 @@ void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D
         }
     };
 
-    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-        EXEC_RENDER_COMMAND_INLINE(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
-    } else {
-        PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
-    }
+    PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
 }
 
 Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face) const
@@ -382,12 +378,8 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
         }
     };
 
-    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-        EXEC_RENDER_COMMAND_INLINE(FontAtlas_WriteToBuffer, atlas, buffer, buffer_size);
-    } else {
-        PUSH_RENDER_COMMAND(FontAtlas_WriteToBuffer, atlas, buffer, buffer_size);
-        HYP_SYNC_RENDER();
-    }
+    PUSH_RENDER_COMMAND(FontAtlas_WriteToBuffer, atlas, buffer, buffer_size);
+    HYP_SYNC_RENDER();
 }
 
 Bitmap<1> FontAtlas::GenerateBitmap(uint pixel_size) const

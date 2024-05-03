@@ -666,6 +666,10 @@ ReflectionProbePass::~ReflectionProbePass()
     }
 
     g_safe_deleter->SafeRelease(std::move(m_previous_texture));
+
+    for (auto &it : m_command_buffers) {
+        SafeRelease(std::move(it));
+    }
 }
 
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
@@ -1100,12 +1104,9 @@ void DeferredRenderer::Destroy()
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    //! TODO: remove all descriptors
-
     SafeRelease(std::move(m_blue_noise_buffer));
 
     m_ssr->Destroy();
-    m_dpr.Destroy();
     m_hbao->Destroy();
     m_temporal_aa->Destroy();
 

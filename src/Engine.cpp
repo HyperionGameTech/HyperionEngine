@@ -143,6 +143,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
     Threads::SetCurrentThreadPriority(ThreadPriorityValue::HIGHEST);
+    
+    RenderObjectDeleter<renderer::Platform::CURRENT>::Initialize();
 
     m_crash_handler.Initialize();
 
@@ -326,7 +328,8 @@ void Engine::Compile()
         m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
-    m_deferred_renderer.Create();
+    m_deferred_renderer.Reset(new DeferredRenderer);
+    m_deferred_renderer->Create();
     
     HYP_SYNC_RENDER();
 
@@ -351,6 +354,10 @@ void Engine::FinalizeStop()
         "Stopping all engine processes\n"
     );
 
+    m_delegates.OnShutdown.Broadcast();
+
+    m_world.Reset();
+
     if (TaskSystem::GetInstance().IsRunning()) { // Stop task system
         DebugLog(
             LogType::Debug,
@@ -366,7 +373,9 @@ void Engine::FinalizeStop()
     }
 
     m_render_list_container.Destroy();
-    m_deferred_renderer.Destroy();
+
+    m_deferred_renderer->Destroy();
+    m_deferred_renderer.Reset();
 
     m_final_pass.Destroy();
 
@@ -380,8 +389,12 @@ void Engine::FinalizeStop()
 
     m_placeholder_data->Destroy();
 
+    HYPERION_ASSERT_RESULT(m_instance->GetDevice()->Wait());
+
     g_safe_deleter->ForceDeleteAll();
     ForceDeleteAllEnqueuedRenderObjects<renderer::Platform::CURRENT>();
+
+    HYPERION_ASSERT_RESULT(m_instance->GetDevice()->Wait());
 
     HYPERION_ASSERT_RESULT(m_instance->Destroy());
 }
@@ -586,7 +599,7 @@ void Engine::UpdateBuffersAndDescriptors(Frame *frame)
     m_render_data->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
     m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
-    m_deferred_renderer.GetPostProcessing().PerformUpdates();
+    m_deferred_renderer->GetPostProcessing().PerformUpdates();
 
     m_material_descriptor_set_manager.Update(frame);
 
@@ -601,7 +614,7 @@ void Engine::RenderDeferred(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    m_deferred_renderer.Render(frame, render_state.GetScene().render_environment);
+    m_deferred_renderer->Render(frame, render_state.GetScene().render_environment);
 }
 
 // GlobalDescriptorSetManager

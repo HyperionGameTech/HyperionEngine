@@ -316,10 +316,10 @@ Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
 Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_vk_descriptor_set != VK_NULL_HANDLE);
-
-    device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_vk_descriptor_set);
-    m_vk_descriptor_set = VK_NULL_HANDLE;
+    if (m_vk_descriptor_set != VK_NULL_HANDLE) {
+        device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_vk_descriptor_set);
+        m_vk_descriptor_set = VK_NULL_HANDLE;
+    }
 
     // Release reference to layout
     m_vk_layout_wrapper.Reset();

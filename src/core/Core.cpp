@@ -15,7 +15,7 @@ Engine *GetEngine()
 
 Device *GetEngineDevice()
 {
-    return g_engine->GetGPUInstance()->GetDevice();
+    return g_engine->GetGPUDevice();
 }
 
 } // namespace hyperion

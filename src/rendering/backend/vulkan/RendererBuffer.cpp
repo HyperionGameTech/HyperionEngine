@@ -347,7 +347,9 @@ void GPUMemory<Platform::VULKAN>::Create()
 
 void GPUMemory<Platform::VULKAN>::Destroy()
 {
-    stats.DecMemoryUsage(size);
+    if (m_is_created) {
+        stats.DecMemoryUsage(size);
+    }
 
     m_is_created = false;
 }

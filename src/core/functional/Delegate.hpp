@@ -5,6 +5,7 @@
 
 #include <core/functional/Proc.hpp>
 #include <core/containers/Array.hpp>
+#include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -122,6 +123,11 @@ class Delegate
     using ProcType = Proc<ReturnType, Args...>;
 
 public:
+    ~Delegate()
+    {
+        m_detached_handlers.Clear();
+    }
+
     /*! \brief Bind a Proc<> to the Delegate.
      * \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
@@ -133,7 +139,7 @@ public:
         const uint id = m_id_generator.NextID();
 
         Mutex::Guard guard(m_mutex);
-        m_procs.Insert(id, std::move(proc));
+        m_procs.PushBack({ id, std::move(proc) });
 
         return CreateDelegateHandler(id);
     }
@@ -166,10 +172,19 @@ public:
     bool Remove(uint id)
     {
         m_mutex.Lock();
-        if (!m_procs.Erase(id)) {
+
+        const auto it = m_procs.FindIf([id](const auto &element)
+        {
+            return element.first == id;
+        });
+
+        if (it == m_procs.End()) {
             m_mutex.Unlock();
+
             return false;
         }
+
+        m_procs.Erase(it);
 
         m_mutex.Unlock();
 
@@ -186,34 +201,44 @@ public:
     template <class ... ArgTypes>
     ReturnType Broadcast(ArgTypes &&... args)
     {
-        Mutex::Guard guard(m_mutex);
+        Array<ProcType *> procs_array;
 
-        // If no handlers are bound, return a default constructed object or void
-        if (m_procs.Empty()) {
-            if constexpr (!std::is_void_v<ReturnType>) {
-                // default construct the return object
-                return detail::DelegateDefaultReturn<ReturnType>::Get();
-            } else {
-                // void return type
-                return;
+        { // Copy pointers to procs_array for iteration without needing mutex lock
+            Mutex::Guard guard(m_mutex);
+
+            // If no handlers are bound, return a default constructed object or void
+            if (m_procs.Empty()) {
+                if constexpr (!std::is_void_v<ReturnType>) {
+                    // default construct the return object
+                    return detail::DelegateDefaultReturn<ReturnType>::Get();
+                } else {
+                    // void return type
+                    return;
+                }
+            }
+
+            procs_array.Reserve(m_procs.Size());
+
+            for (auto &it : m_procs) {
+                procs_array.PushBack(&it.second);
             }
         }
 
         ValueStorage<ReturnType> result_storage;
 
-        const auto begin = m_procs.Begin();
-        const auto end = m_procs.End();
+        const auto begin = procs_array.Begin();
+        const auto end = procs_array.End();
 
         for (auto it = begin; it != end; ++it) {
             if constexpr (!std::is_void_v<ReturnType>) {
                 if (it == begin) {
-                    result_storage.Construct(it->second((args)...));
+                    result_storage.Construct((*(*it))((args)...));
 
                     continue;
                 }
             }
 
-            it->second((args)...);
+            (*(*it))((args)...);
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {
@@ -236,12 +261,7 @@ private:
     {
         Delegate *delegate_casted = static_cast<Delegate *>(delegate);
 
-        Mutex::Guard guard(delegate_casted->m_mutex);
-        if (!delegate_casted->m_procs.Erase(id)) {
-            return;
-        }
-
-        delegate_casted->m_id_generator.FreeID(id);
+        delegate_casted->Remove(id);
     }
 
     static void DetachDelegateHandlerCallback(void *delegate, DelegateHandler &&handler)
@@ -269,13 +289,13 @@ private:
         }));
     }
 
-    HashMap<uint, ProcType>         m_procs;
-    Mutex                           m_mutex;
+    LinkedList<Pair<uint, ProcType>>    m_procs;
+    Mutex                               m_mutex;
 
-    Array<DelegateHandler>          m_detached_handlers;
-    Mutex                           m_detached_handlers_mutex;
+    Array<DelegateHandler>              m_detached_handlers;
+    Mutex                               m_detached_handlers_mutex;
 
-    IDGenerator                     m_id_generator;
+    IDGenerator                         m_id_generator;
 };
 } // namespace functional
 

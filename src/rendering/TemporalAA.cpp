@@ -118,7 +118,7 @@ void TemporalAA::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(TemporalAADescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InColorTexture), g_engine->GetDeferredRenderer().GetCombinedResult()->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InColorTexture), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
         descriptor_set->SetElement(HYP_NAME(InPrevColorTexture), (*textures[(frame_index + 1) % 2])->GetImageView());
 
         descriptor_set->SetElement(HYP_NAME(InVelocityTexture), g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)

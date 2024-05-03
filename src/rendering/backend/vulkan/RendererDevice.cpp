@@ -52,7 +52,6 @@ void Device<Platform::VULKAN>::SetRequiredExtensions(const ExtensionMap &extensi
 
 VkDevice Device<Platform::VULKAN>::GetDevice()
 {
-    AssertThrow(m_device != VK_NULL_HANDLE);
     return m_device;
 }
 

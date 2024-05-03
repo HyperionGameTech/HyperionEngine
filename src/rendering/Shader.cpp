@@ -228,6 +228,11 @@ void Shader::Init()
 
     BasicObject::Init();
 
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
+    {
+        SafeRelease(std::move(m_shader_program));
+    }));
+
     if (!m_compiled_shader.IsValid()) {
         return;
     }

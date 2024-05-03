@@ -144,7 +144,7 @@ public:
         
         m_deletion_entries.PushBack(UniquePtr<DeletionEntry<T>>::Construct(std::move(resource)));
 
-        m_num_deletion_entries.Increment(1u, MemoryOrder::RELAXED);
+        m_num_deletion_entries.Increment(1, MemoryOrder::RELAXED);
     }
 
     void SafeRelease(RenderProxy &&proxy)
@@ -157,11 +157,14 @@ public:
     void PerformEnqueuedDeletions();
     void ForceDeleteAll();
 
+    int32 NumEnqueuedDeletions() const
+        { return m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL); }
+
 private:
     bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries);
 
     Mutex                               m_render_resource_deletion_mutex;
-    AtomicVar<uint32>                   m_num_deletion_entries { 0u };
+    AtomicVar<int32>                    m_num_deletion_entries { 0 };
 
     Array<UniquePtr<DeletionEntryBase>> m_deletion_entries;
 };

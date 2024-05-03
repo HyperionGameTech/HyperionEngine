@@ -25,7 +25,8 @@ using renderer::Result;
 
 #define RENDER_COMMAND(name) RenderCommand_##name
 
-/*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push. */
+/*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
+ *  If called from the render thread, the command is executed immediately. */
 #define PUSH_RENDER_COMMAND(name, ...) \
     if (::hyperion::Threads::IsOnThread(::hyperion::ThreadName::THREAD_RENDER)) { \
         const ::hyperion::renderer::Result command_result = RENDER_COMMAND(name)(__VA_ARGS__).Call(); \
@@ -34,17 +35,11 @@ using renderer::Result;
         ::hyperion::renderer::RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__); \
     }
 
-/*! \brief Executes a render command line. This must be called from the render thread. Avoid if possible. */
-#define EXEC_RENDER_COMMAND_INLINE(name, ...) \
-    do { \
-        ::hyperion::Threads::AssertOnThread(::hyperion::ThreadName::THREAD_RENDER); \
-        RENDER_COMMAND(name)(__VA_ARGS__)(); \
-    } while (0)
-
-#define HYP_SYNC_RENDER() \
-    do { \
-        HYPERION_ASSERT_RESULT(::hyperion::renderer::RenderCommands::FlushOrWait()); \
-    } while (0)
+/*! \brief If not on the render thread, waits for the render thread to finish executing all render commands. */
+#define HYP_SYNC_RENDER(...) \
+    if (!::hyperion::Threads::IsOnThread(::hyperion::ThreadName::THREAD_RENDER)) { \
+        ::hyperion::renderer::RenderCommands::Wait(); \
+    }
 
 
 constexpr SizeType max_render_command_types = 128;

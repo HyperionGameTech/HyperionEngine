@@ -50,8 +50,6 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        DebugLog(LogType::Debug, "UploadMeshData for VBO: %llu and IBO: %llu\n", vbo.index, ibo.index);
-
         auto *instance = g_engine->GetGPUInstance();
         auto *device = g_engine->GetGPUDevice();
 
@@ -268,14 +266,6 @@ Mesh::~Mesh()
     if (IsInitCalled()) {
         SetReady(false);
 
-        DebugLog(
-            LogType::Debug,
-            "Destroy mesh with id %u\n",
-            GetID().Value()
-        );
-
-        m_indices_count = 0;
-
         SafeRelease(std::move(m_vbo));
         SafeRelease(std::move(m_ibo));
     }
@@ -288,6 +278,12 @@ void Mesh::Init()
     }
 
     BasicObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
+    {
+        SafeRelease(std::move(m_vbo));
+        SafeRelease(std::move(m_ibo));
+    }));
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
@@ -307,9 +303,6 @@ void Mesh::Init()
         m_vbo,
         m_ibo
     );
-
-    //m_vertices.clear();
-    //m_indices.clear();
 
     SetReady(true);
 }
@@ -371,8 +364,8 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
 
         m_indices_count = mesh_data.indices.Size();
 
-        // Execute render command inline so we do not have any frames rendered where the VBO/IBO is invalid
-        EXEC_RENDER_COMMAND_INLINE(
+        // Execute render command inline
+        PUSH_RENDER_COMMAND(
             UploadMeshData,
             BuildVertexBuffer(GetVertexAttributes(), mesh_data),
             mesh_data.indices,

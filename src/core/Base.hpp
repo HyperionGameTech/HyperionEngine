@@ -15,6 +15,8 @@
 #include <core/containers/TypeMap.hpp>
 #include <core/containers/StaticString.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <core/threading/AtomicVar.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
@@ -208,11 +210,17 @@ protected:
             TypeNameWithoutNamespace<InnerType>().Data()
         );
     }
+
+    void AddDelegateHandler(DelegateHandler &&delegate_handler)
+    {
+        m_delegate_handlers.PushBack(std::move(delegate_handler));
+    }
     
-    ID<InnerType>       m_id;
-    Name                m_name;
-    AtomicVar<uint16>   m_init_state;
-    InitInfo            m_init_info;
+    ID<InnerType>           m_id;
+    Name                    m_name;
+    AtomicVar<uint16>       m_init_state;
+    InitInfo                m_init_info;
+    Array<DelegateHandler>  m_delegate_handlers;
 };
 
 } // namespace hyperion

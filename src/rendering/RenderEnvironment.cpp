@@ -11,6 +11,8 @@ namespace hyperion {
 
 using renderer::Result;
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 {
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> render_components;
@@ -43,6 +45,8 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
         return result;
     }
 };
+
+#pragma endregion Render commands
 
 RenderEnvironment::RenderEnvironment(Scene *scene)
     : BasicObject(),

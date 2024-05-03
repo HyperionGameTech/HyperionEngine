@@ -15,7 +15,7 @@ namespace hyperion {
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static const uint systems_execution_parallel_threshold = 3;
 
-// EntityManagerCommandQueue
+#pragma region EntityManagerCommandQueue
 
 EntityManagerCommandQueue::EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy)
     : m_policy(policy)
@@ -76,7 +76,9 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
     }
 }
 
-// EntityManager
+#pragma endregion EntityManagerCommandQueue
+
+#pragma region EntityManager
 
 ID<Entity> EntityManager::AddEntity()
 {
@@ -373,5 +375,7 @@ void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::T
     puts("");
 #endif
 }
+
+#pragma endregion EntityManager
 
 } // namespace hyperion

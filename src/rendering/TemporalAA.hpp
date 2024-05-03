@@ -13,7 +13,6 @@ using renderer::StorageImage;
 using renderer::Image;
 using renderer::ImageView;
 using renderer::Frame;
-;
 using renderer::Result;
 
 class Engine;

@@ -339,23 +339,13 @@ public:
 
     void Render()
     {
-        if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-            EXEC_RENDER_COMMAND_INLINE(
-                RenderTextureMipmapLevels,
-                m_image,
-                m_image_view,
-                m_mip_image_views,
-                m_passes
-            );
-        } else {
-            PUSH_RENDER_COMMAND(
-                RenderTextureMipmapLevels,
-                m_image,
-                m_image_view,
-                m_mip_image_views,
-                m_passes
-            );
-        }
+        PUSH_RENDER_COMMAND(
+            RenderTextureMipmapLevels,
+            m_image,
+            m_image_view,
+            m_mip_image_views,
+            m_passes
+        );
     }
 
 private:
@@ -465,6 +455,21 @@ void Texture::Init()
     }
 
     BasicObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
+    {
+        SafeRelease(std::move(m_image));
+        SafeRelease(std::move(m_image_view));
+
+        if (IsInitCalled()) {
+            PUSH_RENDER_COMMAND(
+                DestroyTexture,
+                m_id,
+                std::move(m_image),
+                std::move(m_image_view)
+            );
+        }
+    }));
 
     PUSH_RENDER_COMMAND(
         CreateTexture,

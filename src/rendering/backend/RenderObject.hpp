@@ -795,13 +795,13 @@ static inline renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT
 struct DeletionQueueBase
 {
     TypeID              type_id;
-    AtomicVar<uint32>   num_items { 0 };
+    AtomicVar<int32>    num_items { 0 };
     std::mutex          mtx;
 
     virtual ~DeletionQueueBase() = default;
 
     virtual void Iterate() = 0;
-    virtual void ForceDeleteAll() = 0;
+    virtual int32 ForceDeleteAll() = 0;
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -836,7 +836,7 @@ struct RenderObjectDeleter
         {
             Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-            if (!Base::num_items.Get(MemoryOrder::ACQUIRE)) {
+            if (Base::num_items.Get(MemoryOrder::SEQUENTIAL) <= 0) {
                 return;
             }
             
@@ -847,12 +847,12 @@ struct RenderObjectDeleter
                     to_delete.Push(std::move(it->first));
 
                     it = items.Erase(it);
+
+                    Base::num_items.Decrement(1, MemoryOrder::RELAXED);
                 } else {
                     ++it;
                 }
             }
-
-            Base::num_items.Set(uint32(items.Size()), MemoryOrder::RELEASE);
 
             Base::mtx.unlock();
 
@@ -867,29 +867,42 @@ struct RenderObjectDeleter
             }
         }
 
-        virtual void ForceDeleteAll() override
+        virtual int32 ForceDeleteAll() override
         {
             Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-            if (!Base::num_items.Get(MemoryOrder::SEQUENTIAL)) {
-                return;
+            if (Base::num_items.Get(MemoryOrder::SEQUENTIAL) <= 0) {
+                return 0;
             }
+
+            int32 num_deleted_objects = 0;
 
             Base::mtx.lock();
 
             for (auto it = items.Begin(); it != items.End();) {
-                HYPERION_ASSERT_RESULT(it->first->Destroy(GetEngineDevice()));
+                Base::num_items.Decrement(1, MemoryOrder::RELAXED);
+
+                to_delete.Push(std::move(it->first));
+
                 it = items.Erase(it);
 
-                Base::num_items.Decrement(1u, MemoryOrder::SEQUENTIAL);
+                ++num_deleted_objects;
             }
 
             Base::mtx.unlock();
+
+            while (to_delete.Any()) {
+                auto object = to_delete.Pop();
+                
+                HYPERION_ASSERT_RESULT(object->Destroy(GetEngineDevice()));
+            }
+
+            return num_deleted_objects;
         }
 
         void Push(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)
         {
-            Base::num_items.Increment(1u, MemoryOrder::SEQUENTIAL);
+            Base::num_items.Increment(1, MemoryOrder::RELAXED);
 
             std::lock_guard guard(Base::mtx);
 
@@ -905,17 +918,17 @@ struct RenderObjectDeleter
 
         DeletionQueueInstance()
         {
-            index = queue_index.Increment(1, MemoryOrder::RELAXED);
+            index = queue_index.Increment(1, MemoryOrder::SEQUENTIAL);
 
             AssertThrowMsg(index < max_queues, "Maximum number of deletion queues added");
 
             queues[index] = &queue;
         }
 
-        DeletionQueueInstance(const DeletionQueueInstance &other) = delete;
-        DeletionQueueInstance &operator=(const DeletionQueueInstance &other) = delete;
-        DeletionQueueInstance(DeletionQueueInstance &&other) noexcept = delete;
-        DeletionQueueInstance &operator=(DeletionQueueInstance &&other) noexcept = delete;
+        DeletionQueueInstance(const DeletionQueueInstance &other)                   = delete;
+        DeletionQueueInstance &operator=(const DeletionQueueInstance &other)        = delete;
+        DeletionQueueInstance(DeletionQueueInstance &&other) noexcept               = delete;
+        DeletionQueueInstance &operator=(DeletionQueueInstance &&other) noexcept    = delete;
 
         ~DeletionQueueInstance()
         {
@@ -931,33 +944,9 @@ struct RenderObjectDeleter
         return instance.queue;
     }
 
-    static void Iterate()
-    {
-        DeletionQueueBase **queue = queues.Data();
-
-        while (*queue) {
-            (*queue)->Iterate();
-            ++queue;
-        }
-    }
-
-    static void ForceDeleteAll()
-    {
-        FixedArray<uint32, max_queues + 1> queue_num_items;
-
-        // Loop until all queues are empty
-        while (queue_num_items.Any([](uint32 count) { return count != 0; })) {
-            DeletionQueueBase **queue = queues.Data();
-
-            for (uint i = 0; *queue; i++) {
-                (*queue)->ForceDeleteAll();
-
-                queue_num_items[i] = (*queue)->num_items.Get(MemoryOrder::SEQUENTIAL);
-
-                ++queue;
-            }
-        }
-    }
+    static void Initialize();
+    static void Iterate();
+    static void ForceDeleteAll();
 };
 
 template <renderer::PlatformType PLATFORM>

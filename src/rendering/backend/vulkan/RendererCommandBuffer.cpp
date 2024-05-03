@@ -60,16 +60,16 @@ Result CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
 
 Result CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_command_buffer != VK_NULL_HANDLE);
-    AssertThrow(m_command_pool != VK_NULL_HANDLE);
+    if (m_command_buffer != VK_NULL_HANDLE) {
+        AssertThrow(m_command_pool != VK_NULL_HANDLE);
 
-    Result result;
+        vkFreeCommandBuffers(device->GetDevice(), m_command_pool, 1, &m_command_buffer);
+        
+        m_command_buffer = VK_NULL_HANDLE;
+        m_command_pool = VK_NULL_HANDLE;
+    }
 
-    vkFreeCommandBuffers(device->GetDevice(), m_command_pool, 1, &m_command_buffer);
-    m_command_buffer = VK_NULL_HANDLE;
-    m_command_pool = VK_NULL_HANDLE;
-
-    return result;
+    HYPERION_RETURN_OK;
 }
 
 Result CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass)

@@ -111,11 +111,10 @@ Result Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
 Result Sampler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_sampler != VK_NULL_HANDLE);
-
-    vkDestroySampler(device->GetDevice(), m_sampler, nullptr);
-
-    m_sampler = VK_NULL_HANDLE;
+    if (m_sampler != VK_NULL_HANDLE) {
+        vkDestroySampler(device->GetDevice(), m_sampler, nullptr);
+        m_sampler = VK_NULL_HANDLE;
+    }
 
     HYPERION_RETURN_OK;
 }

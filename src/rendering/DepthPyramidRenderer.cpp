@@ -55,7 +55,23 @@ DepthPyramidRenderer::DepthPyramidRenderer()
 {
 }
 
-DepthPyramidRenderer::~DepthPyramidRenderer() = default;
+DepthPyramidRenderer::~DepthPyramidRenderer()
+{
+    PUSH_RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet);
+
+    SafeRelease(std::move(m_depth_pyramid));
+    SafeRelease(std::move(m_depth_pyramid_view));
+    SafeRelease(std::move(m_depth_pyramid_mips));
+
+    for (auto &mip_descriptor_table : m_mip_descriptor_tables) {
+        SafeRelease(std::move(mip_descriptor_table));
+    }
+
+    SafeRelease(std::move(m_depth_pyramid_sampler));
+    SafeRelease(std::move(m_depth_attachment_usage));
+
+    SafeRelease(std::move(m_generate_depth_pyramid));
+}
 
 void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
 {
@@ -154,25 +170,6 @@ void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
         SetDepthPyramidInGlobalDescriptorSet,
         m_depth_pyramid_view
     );
-}
-
-void DepthPyramidRenderer::Destroy()
-{
-    PUSH_RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet);
-
-    SafeRelease(std::move(m_depth_pyramid));
-    SafeRelease(std::move(m_depth_pyramid_view));
-    SafeRelease(std::move(m_depth_pyramid_mips));
-
-    for (auto &mip_descriptor_table : m_mip_descriptor_tables) {
-        SafeRelease(std::move(mip_descriptor_table));
-    }
-
-    SafeRelease(std::move(m_depth_pyramid_sampler));
-
-    SafeRelease(std::move(m_depth_attachment_usage));
-
-    m_is_rendered = false;
 }
 
 void DepthPyramidRenderer::Render(Frame *frame)

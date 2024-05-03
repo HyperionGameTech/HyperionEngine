@@ -221,9 +221,11 @@ public:
     /*! \brief Pop an item from the front of the linked list. The popped item is returned. */
     ValueType PopFront();
 
+    /*! \brief Erase an element by iterator.
+     *  \returns An iterator to the next element after the erased element. */
+    Iterator Erase(Iterator iter);
+
 #if 0
-    //! \brief Erase an element by iterator.
-    Iterator Erase(ConstIterator iter);
     //! \brief Erase an element by value. A Find() is performed, and if the result is not equal to End(),
     //  the element is removed.
     Iterator Erase(const T &value);
@@ -481,6 +483,42 @@ auto LinkedList<T>::PopFront() -> ValueType
     }
 
     return value;
+}
+
+template <class T>
+auto LinkedList<T>::Erase(Iterator iter) -> Iterator
+{
+    if (iter == End()) {
+        return End();
+    }
+
+    Node *node = iter.node;
+    Node *prev = node->previous;
+
+    if (prev) {
+        prev->next = node->next;
+    }
+
+    Node *next = node->next;
+
+    if (next) {
+        next->previous = prev;
+    }
+
+    if (node == m_head) {
+        m_head = next;
+    }
+
+    if (node == m_tail) {
+        m_tail = prev;
+    }
+
+    node->value.Destruct();
+    delete node;
+
+    --m_size;
+
+    return Iterator { next };
 }
 
 template <class T>

@@ -130,11 +130,22 @@ Scene::Scene(
 
 Scene::~Scene()
 {
+    DebugLog(LogType::Debug, "Destroy scene with ID %u (name: %s) from thread : %s\n", GetID().Value(), *GetName(), *ThreadID::Current().name);
+    
+    m_octree.SetEntityManager(nullptr);
+    m_octree.Clear();
+
     m_camera.Reset();
     m_tlas.Reset();
     m_environment.Reset();
 
-    m_root_node_proxy->SetScene(nullptr);
+    if (m_root_node_proxy.IsValid()) {
+        m_root_node_proxy->SetScene(nullptr);
+    }
+
+    // Move so destruction of components can check GetEntityManager() returns nullptr
+    RC<EntityManager> entity_manager = std::move(m_entity_manager);
+    entity_manager.Reset();
 
     HYP_SYNC_RENDER();
 }
@@ -408,12 +419,12 @@ void Scene::EnqueueRenderUpdates()
 {
     struct RENDER_COMMAND(UpdateSceneRenderData) : renderer::RenderCommand
     {
-        ID<Scene> id;
-        BoundingBox aabb;
-        float global_timer;
-        FogParams fog_params;
-        RenderEnvironment *render_environment;
-        SceneDrawProxy &draw_proxy;
+        ID<Scene>           id;
+        BoundingBox         aabb;
+        float               global_timer;
+        FogParams           fog_params;
+        RenderEnvironment   *render_environment;
+        SceneDrawProxy      &draw_proxy;
 
         RENDER_COMMAND(UpdateSceneRenderData)(
             ID<Scene> id,

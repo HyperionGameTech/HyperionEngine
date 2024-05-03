@@ -66,7 +66,7 @@ bool DeletionEntryBase::PerformDeletion(bool force)
 
 void SafeDeleter::PerformEnqueuedDeletions()
 {
-    if (uint32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
+    if (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
@@ -78,20 +78,28 @@ void SafeDeleter::PerformEnqueuedDeletions()
         for (auto it = deletion_entries.Begin(); it != deletion_entries.End(); ++it) {
             AssertThrow((*it)->PerformDeletion());
         
-            m_num_deletion_entries.Decrement(1u, MemoryOrder::RELAXED);
+            m_num_deletion_entries.Decrement(1, MemoryOrder::SEQUENTIAL);
         }
     }
 }
 
 void SafeDeleter::ForceDeleteAll()
 {
-    while (uint32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
-        Mutex::Guard guard(m_render_resource_deletion_mutex);
+    while (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::SEQUENTIAL)) {
+        Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
-        for (auto it = m_deletion_entries.Begin(); it != m_deletion_entries.End(); ++it) {
+        { // Critical section
+            Mutex::Guard guard(m_render_resource_deletion_mutex);
+
+            CollectAllEnqueuedItems(deletion_entries);
+        }
+
+        for (auto it = deletion_entries.Begin(); it != deletion_entries.End();) {
+            m_num_deletion_entries.Decrement(1, MemoryOrder::SEQUENTIAL);
+
             AssertThrow((*it)->PerformDeletion(true /* force */));
 
-            m_num_deletion_entries.Decrement(1u, MemoryOrder::RELAXED);
+            it = deletion_entries.Erase(it);
         }
     }
 }

@@ -32,10 +32,10 @@ Result Fence<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
 Result Fence<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_handle != VK_NULL_HANDLE);
-
-    vkDestroyFence(device->GetDevice(), m_handle, nullptr);
-    m_handle = VK_NULL_HANDLE;
+    if (m_handle != VK_NULL_HANDLE) {
+        vkDestroyFence(device->GetDevice(), m_handle, nullptr);
+        m_handle = VK_NULL_HANDLE;
+    }
 
     HYPERION_RETURN_OK;
 }

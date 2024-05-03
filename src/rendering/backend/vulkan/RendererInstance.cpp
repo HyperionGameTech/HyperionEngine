@@ -295,7 +295,6 @@ Result Instance<Platform::VULKAN>::Destroy()
 {
     Result result;
 
-    /* Wait for the GPU to finish, we need to be in an idle state. */
     HYPERION_PASS_ERRORS(m_device->Wait(), result);
 
     HYPERION_PASS_ERRORS(m_staging_buffer_pool.Destroy(m_device), result);
@@ -306,29 +305,24 @@ Result Instance<Platform::VULKAN>::Destroy()
 
     m_device->DestroyAllocator();
 
-    /* Destroy the vulkan swapchain */
     if (m_swapchain != nullptr) {
         HYPERION_PASS_ERRORS(m_swapchain->Destroy(m_device), result);
         delete m_swapchain;
         m_swapchain = nullptr;
     }
 
-    /* Destroy the surface from SDL */
     vkDestroySurfaceKHR(this->instance, m_surface, nullptr);
 
     m_device->Destroy();
     delete m_device;
     m_device = nullptr;
 
-    DebugLog(LogType::Debug, "Destroyed device!\n");
-
 #ifndef HYPERION_BUILD_RELEASE
     DestroyDebugUtilsMessengerEXT(this->instance, this->debug_messenger, nullptr);
 #endif
-    /* Destroy the Vulkan instance(this should always be last!) */
+
     vkDestroyInstance(this->instance, nullptr);
     this->instance = nullptr;
-    DebugLog(LogType::Debug, "Destroyed instance\n");
 
     return result;
 }

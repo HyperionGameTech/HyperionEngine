@@ -61,9 +61,9 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
 
-    Extent2D m_extent;
+    Extent2D                        m_extent;
 
-    FixedArray<Handle<Texture>, 4> m_image_outputs;
+    FixedArray<Handle<Texture>, 4>  m_image_outputs;
     
     GPUBufferRef                    m_uniform_buffer;
     

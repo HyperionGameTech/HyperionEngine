@@ -21,32 +21,31 @@ public:
     {
         struct TextureMapping
         {
-            Material::TextureKey key;
-            bool srgb = false;
-            FilterMode filter_mode = FilterMode::TEXTURE_FILTER_LINEAR;
+            Material::TextureKey    key;
+            bool                    srgb = false;
+            FilterMode              filter_mode = FilterMode::TEXTURE_FILTER_LINEAR;
         };
         
         struct TextureDef
         {
-            TextureMapping mapping;
-            String name;
+            TextureMapping  mapping;
+            String          name;
         };
 
         struct ParameterDef
         {
-            FixedArray<float, 4> values;
+            FixedArray<float, 4>    values { };
         };
 
         struct MaterialDef
         {
-            String tag;
-            Array<TextureDef> textures;
-            HashMap<Material::MaterialKey, ParameterDef> parameters;
+            String                                          tag;
+            Array<TextureDef>                               textures;
+            HashMap<Material::MaterialKey, ParameterDef>    parameters;
         };
 
-        String filepath;
-
-        Array<MaterialDef> materials;
+        String              filepath;
+        Array<MaterialDef>  materials;
     };
 
     virtual ~MTLMaterialLoader() = default;

@@ -40,7 +40,9 @@ PostFXPass::PostFXPass(
 {
 }
 
-PostFXPass::~PostFXPass() = default;
+PostFXPass::~PostFXPass()
+{
+}
 
 void PostFXPass::CreateDescriptors()
 {

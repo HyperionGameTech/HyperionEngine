@@ -274,6 +274,15 @@ public:
     const RC<VisibilityState> &GetVisibilityState() const
         { return m_visibility_state; }
 
+    /*! \brief Get the EntityManager the Octree is using to manage entities.
+     *  \returns The EntityManager the Octree is set to use */
+    const RC<EntityManager> &GetEntityManager() const
+        { return m_entity_manager; }
+
+    /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref{Scene} only
+     *  \internal */
+    void SetEntityManager(RC<EntityManager> entity_manager);
+
     BoundingBox &GetAABB()
         { return m_aabb; }
 

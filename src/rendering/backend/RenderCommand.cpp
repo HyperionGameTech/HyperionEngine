@@ -142,6 +142,10 @@ Result RenderCommands::FlushOrWait()
 
 void RenderCommands::Wait()
 {
+    if (Count() == 0) {
+        return;
+    }
+
     Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
 
     std::unique_lock lock(mtx);

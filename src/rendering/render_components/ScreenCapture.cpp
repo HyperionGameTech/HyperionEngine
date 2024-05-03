@@ -48,8 +48,6 @@ void ScreenCaptureRenderComponent::OnUpdate(GameCounter::TickUnit delta)
 
 void ScreenCaptureRenderComponent::OnRender(Frame *frame)
 {
-    auto &deferred_renderer = g_engine->GetDeferredRenderer();
-
     const FinalPass &final_pass = g_engine->GetFinalPass();
     const ImageRef &image_ref = final_pass.GetLastFrameImage();
     AssertThrow(image_ref.IsValid());

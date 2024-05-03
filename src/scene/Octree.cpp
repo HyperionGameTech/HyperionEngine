@@ -74,11 +74,24 @@ Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree
 
 Octree::~Octree()
 {
+    Clear();
+
     if (IsRoot()) {
         delete m_state;
     }
+}
 
-    AssertThrowMsg(m_nodes.Empty(), "Expected nodes to be emptied before octree destructor");
+void Octree::SetEntityManager(RC<EntityManager> entity_manager)
+{
+    m_entity_manager = std::move(entity_manager);
+
+    if (IsDivided()) {
+        for (Octant &octant : m_octants) {
+            AssertThrow(octant.octree != nullptr);
+
+            octant.octree->SetEntityManager(m_entity_manager);
+        }
+    }
 }
 
 void Octree::SetParent(Octree *parent)
@@ -1090,7 +1103,11 @@ void Octree::RebuildNodesHash(uint level)
         const HashCode entry_hash_code = item.GetHashCode();
         m_entry_hashes[0].Add(entry_hash_code);
 
-        Array<EntityTag> tags = m_entity_manager->GetTags(item.id);
+        Array<EntityTag> tags;
+        
+        if (m_entity_manager) {
+            tags = m_entity_manager->GetTags(item.id);
+        }
 
         for (uint i = 0; i < uint(tags.Size()); i++) {
             const uint num_combinations = (1u << i);

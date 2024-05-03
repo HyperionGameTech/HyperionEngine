@@ -470,10 +470,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 
     m_object_visibility->Bind(command_buffer, Pipeline::PushConstantData {
         .object_visibility_data = {
-            .batch_offset = 0,
-            .num_instances = num_instances,
-            .scene_id = uint32(scene_id.value),
-            .depth_pyramid_dimensions = Extent2D(g_engine->GetDeferredRenderer().GetDepthPyramidRenderer().GetExtent())
+            .batch_offset               = 0,
+            .num_instances              = num_instances,
+            .scene_id                   = uint32(scene_id.value),
+            .depth_pyramid_dimensions   = Extent2D(g_engine->GetDeferredRenderer()->GetDepthPyramidRenderer().GetExtent())
         }
     });
     
