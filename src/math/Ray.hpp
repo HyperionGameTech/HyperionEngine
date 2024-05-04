@@ -7,11 +7,11 @@
 #include <math/Vertex.hpp>
 #include <math/Transform.hpp>
 
-#include <HashCode.hpp>
-#include <Types.hpp>
-
 #include <core/containers/FlatSet.hpp>
 #include <core/utilities/Optional.hpp>
+
+#include <HashCode.hpp>
+#include <Types.hpp>
 
 #include <tuple>
 

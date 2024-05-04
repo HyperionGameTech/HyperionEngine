@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include <core/Core.hpp>
+#include <core/system/Debug.hpp>
 
 // #ifdef __MINGW32__
 // #undef _WIN32
@@ -746,102 +746,6 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
     // NULL terminate the string
     result[buffer_index] = 0;
 }
-
-#if 0
-
-/*! \brief How to use:
-    if buffer length is not known, pass nullptr for \ref{result}.
-    buffer_length will be set to the size needed for \ref{result}.
-    Next, call the function again, passing in the previously mentioned
-    value for \ref{buffer_length}. The resulting string will be written into the provided
-    param, \ref{result}, so it'll need to have \ref{buffer_length} bytes allocated to it. */
-void utf8_base64encode(const char *src, SizeType src_length, char *dst, SizeType dst_length)
-{
-    static const char *base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    SizeType buffer_index = 0;
-    SizeType buffer_length_remaining = dst_length - 1;
-
-    SizeType i = 0;
-    while (i < src_length) {
-        u8char bytes[3] = {0, 0, 0};
-        SizeType bytes_read = 0;
-
-        for (SizeType j = 0; j < 3; j++) {
-            if (i < src_length) {
-                bytes[j] = src[i++];
-                bytes_read++;
-            }
-        }
-
-        if (bytes_read) {
-            u32char buffer = 0;
-            for (SizeType j = 0; j < bytes_read; j++) {
-                buffer = (buffer << 8) | bytes[j];
-            }
-
-            for (SizeType j = 0; j < 4; j++) {
-                if (buffer_length_remaining) {
-                    dst[buffer_index++] = base64_chars[(buffer >> 18) & 0x3F];
-                    buffer <<= 6;
-                    buffer_length_remaining--;
-                }
-            }
-        }
-    }
-
-    if (buffer_length_remaining) {
-        dst[buffer_index++] = 0;
-    }
-}
-
-/*! \brief How to use:
-    if buffer length is not known, pass nullptr for \ref{result}.
-    buffer_length will be set to the size needed for \ref{result}.
-    Next, call the function again, passing in the previously mentioned
-    value for \ref{buffer_length}. The resulting string will be written into the provided
-    param, \ref{result}, so it'll need to have \ref{buffer_length} bytes allocated to it. */
-void utf8_base64decode(const char *src, SizeType src_length, char *dst, SizeType dst_length)
-{
-    static const char *base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    SizeType buffer_index = 0;
-    SizeType buffer_length_remaining = dst_length - 1;
-
-    SizeType i = 0;
-    while (i < src_length) {
-        u8char bytes[4] = {0, 0, 0, 0};
-        SizeType bytes_read = 0;
-
-        for (SizeType j = 0; j < 4; j++) {
-            if (i < src_length) {
-                bytes[j] = src[i++];
-                bytes_read++;
-            }
-        }
-
-        if (bytes_read) {
-            u32char buffer = 0;
-            for (SizeType j = 0; j < bytes_read; j++) {
-                buffer = (buffer << 6) | bytes[j];
-            }
-
-            for (SizeType j = 0; j < 3; j++) {
-                if (buffer_length_remaining) {
-                    dst[buffer_index++] = (buffer >> 16) & 0xFF;
-                    buffer <<= 8;
-                    buffer_length_remaining--;
-                }
-            }
-        }
-    }
-
-    if (buffer_length_remaining) {
-        dst[buffer_index++] = 0;
-    }
-}
-
-#endif
 
 } // namespace utf
 

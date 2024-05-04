@@ -3,7 +3,6 @@
 #ifndef HYPERION_CORE_ID_HPP
 #define HYPERION_CORE_ID_HPP
 
-#include <core/memory/RefCountedPtr.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/Defines.hpp>
 

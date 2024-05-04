@@ -3,9 +3,10 @@
 #ifndef HYPERION_OPTIONAL_HPP
 #define HYPERION_OPTIONAL_HPP
 
-#include <core/system/Debug.hpp>
-#include <Types.hpp>
 #include <core/utilities/ValueStorage.hpp>
+#include <core/system/Debug.hpp>
+
+#include <Types.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion {

@@ -8,6 +8,7 @@
 
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Variant.hpp>
+#include <core/Defines.hpp>
 
 #include <util/EnumOptions.hpp>
 #include <util/ByteUtil.hpp>
@@ -17,7 +18,6 @@
 #include <math/Transform.hpp>
 
 #include <HashCode.hpp>
-#include <core/Defines.hpp>
 #include <Types.hpp>
 
 #include <type_traits>

@@ -6,9 +6,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <iostream>
-#include <string.h>
-
 namespace hyperion {
 
 InputManager::InputManager()

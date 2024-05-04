@@ -9,10 +9,8 @@
 #include <core/ClassInfo.hpp>
 #include <core/ID.hpp>
 #include <core/Name.hpp>
-#include <core/Handle.hpp>
 #include <core/Defines.hpp>
 
-#include <core/containers/TypeMap.hpp>
 #include <core/containers/StaticString.hpp>
 
 #include <core/functional/Delegate.hpp>
@@ -22,7 +20,6 @@
 #include <rendering/backend/RendererInstance.hpp>
 
 #include <HashCode.hpp>
-#include <Constants.hpp>
 #include <Types.hpp>
 
 #include <atomic>

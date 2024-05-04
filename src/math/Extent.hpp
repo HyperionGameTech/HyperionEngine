@@ -6,6 +6,8 @@
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
 
+#include <core/system/Debug.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {

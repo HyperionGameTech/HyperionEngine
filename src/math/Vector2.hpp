@@ -13,7 +13,6 @@
 #include <ostream>
 #include <cmath>
 
-
 namespace hyperion {
 
 namespace math {

@@ -5,6 +5,7 @@
 
 #include <core/Base.hpp>
 #include <core/Name.hpp>
+#include <core/Handle.hpp>
 #include <core/threading/Mutex.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

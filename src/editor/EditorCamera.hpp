@@ -5,8 +5,6 @@
 
 #include <scene/camera/FirstPersonCamera.hpp>
 
-#include <math/Vector2.hpp>
-
 namespace hyperion {
 
 enum EditorCameraControllerMode

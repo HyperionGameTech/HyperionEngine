@@ -22,42 +22,6 @@ Matrix4 Matrix4::Translation(const Vec3f &translation)
     return mat;
 }
 
-#if 0
-Matrix4 Matrix4::Rotation(const Matrix4 &t)
-{
-    Matrix4 mat;
-    Matrix4 transform = t;
-
-    const float scale_x = 1.0f / Vec3f(transform.GetColumn(0)).Length();
-    const float scale_y = 1.0f / Vec3f(transform.GetColumn(1)).Length();
-    const float scale_z = 1.0f / Vec3f(transform.GetColumn(2)).Length();
-
-    mat[0] = {
-        transform[0][0] * scale_x,
-        transform[0][1] * scale_x,
-        transform[0][2] * scale_x,
-        0.0f
-    };
-
-    mat[1] = {
-        transform[1][0] * scale_y,
-        transform[1][1] * scale_y,
-        transform[1][2] * scale_y,
-        0.0f
-    };
-
-    mat[2] = {
-        transform[2][0] * scale_z,
-        transform[2][1] * scale_z,
-        transform[2][2] * scale_z,
-        0.0f
-    };
-
-    return mat;
-}
-
-#endif
-
 Matrix4 Matrix4::Rotation(const Quaternion &rotation)
 {
     Matrix4 mat;

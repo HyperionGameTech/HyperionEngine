@@ -14,7 +14,6 @@
 #include <Types.hpp>
 
 #include <mutex>
-#include <array>
 
 namespace hyperion {
 

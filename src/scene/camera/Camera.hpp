@@ -6,6 +6,7 @@
 #include <GameCounter.hpp>
 
 #include <core/containers/Queue.hpp>
+#include <core/Handle.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
@@ -134,9 +135,6 @@ public:
     Camera(float fov, int width, int height, float _near, float _far);
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera();
-
-    Handle<Framebuffer> &GetFramebuffer()
-        { return m_framebuffer; }
 
     const Handle<Framebuffer> &GetFramebuffer() const
         { return m_framebuffer; }

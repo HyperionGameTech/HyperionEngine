@@ -8,7 +8,6 @@
 #include <core/Containers.hpp>
 #include <core/IDGenerator.hpp>
 #include <core/ID.hpp>
-#include <core/Name.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
 

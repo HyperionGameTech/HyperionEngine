@@ -5,14 +5,11 @@
 
 #include <core/Containers.hpp>
 #include <core/ID.hpp>
-#include <core/Util.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderProxy.hpp>
-
-#include <core/system/Debug.hpp>
 
 #include <Types.hpp>
 

@@ -3,12 +3,12 @@
 #ifndef HYPERION_PROC_HPP
 #define HYPERION_PROC_HPP
 
-#include <Types.hpp>
-#include <Constants.hpp>
-#include <HashCode.hpp>
+#include <core/Defines.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/utilities/Variant.hpp>
-#include <core/Defines.hpp>
+
+#include <Types.hpp>
+#include <Constants.hpp>
 
 #include <type_traits>
 #include <cstddef>

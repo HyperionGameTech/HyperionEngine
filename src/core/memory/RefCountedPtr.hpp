@@ -4,13 +4,14 @@
 #define HYPERION_REF_COUNTED_PTR_HPP
 
 #include <core/Defines.hpp>
+
 #include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/memory/Any.hpp>
+#include <core/system/Debug.hpp>
+
 #include <Types.hpp>
 #include <Constants.hpp>
-#include <core/system/Debug.hpp>
 
 #include <atomic>
 #include <cstdlib>

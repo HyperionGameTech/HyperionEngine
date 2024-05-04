@@ -39,7 +39,6 @@ public:
         { return m_is_rendered; }
 
     void Create(AttachmentUsageRef depth_attachment_usage);
-    void Destroy();
 
     void Render(Frame *frame);
 

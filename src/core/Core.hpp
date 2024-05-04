@@ -3,10 +3,7 @@
 #ifndef HYP_CORE_CORE_HPP
 #define HYP_CORE_CORE_HPP
 
-#include <core/memory/Memory.hpp>
-#include <core/system/Debug.hpp>
 #include <core/Defines.hpp>
-#include <Types.hpp>
 
 #include <rendering/backend/Platform.hpp>
 

@@ -2,11 +2,11 @@
 
 #include <math/Matrix3.hpp>
 
-#include <core/Core.hpp>
+#include <core/memory/Memory.hpp>
 
 namespace hyperion {
 Matrix3::Matrix3()
-    : rows{
+    : rows {
         {1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, 1.0f}
@@ -16,7 +16,7 @@ Matrix3::Matrix3()
 
 Matrix3::Matrix3(const float *v)
 {
-    hyperion::Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
+    Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
 }
 
 Matrix3::Matrix3(const Matrix3 &other)
@@ -74,7 +74,7 @@ Matrix3 &Matrix3::Invert()
 
 Matrix3 &Matrix3::operator=(const Matrix3 &other)
 {
-    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
+    Memory::MemCpy(values, other.values, sizeof(values));
 
     return *this;
 }

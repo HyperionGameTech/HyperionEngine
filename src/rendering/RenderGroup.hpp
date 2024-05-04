@@ -22,10 +22,6 @@
 
 #include <Constants.hpp>
 
-#include <memory>
-#include <mutex>
-#include <vector>
-
 namespace hyperion {
 
 using renderer::CommandBuffer;

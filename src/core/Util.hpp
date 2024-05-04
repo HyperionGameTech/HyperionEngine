@@ -7,9 +7,6 @@
 #include <core/containers/StaticString.hpp>
 #include <core/Defines.hpp>
 
-#include <core/system/Debug.hpp>
-
-#include <Constants.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

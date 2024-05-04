@@ -82,14 +82,6 @@ public:
     HYP_FORCE_INLINE
     bool operator!=(const Matrix4 &other) const { return !operator==(other); }
 
-#pragma region deprecated
-    constexpr float operator()(int i, int j) const { return values[i * 4 + j]; }
-    constexpr float &operator()(int i, int j) { return values[i * 4 + j]; }
-
-    constexpr float At(int i, int j) const { return rows[i][j]; }
-    constexpr float &At(int i, int j) { return rows[i][j]; }
-#pragma endregion deprecated
-
     HYP_FORCE_INLINE
     constexpr Vec4f &operator[](uint row) { return rows[row]; }
 
