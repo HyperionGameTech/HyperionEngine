@@ -163,10 +163,10 @@ public:
 private:
     bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries);
 
-    Mutex                               m_render_resource_deletion_mutex;
-    AtomicVar<int32>                    m_num_deletion_entries { 0 };
+    Mutex                                       m_render_resource_deletion_mutex;
+    AtomicVar<int32>                            m_num_deletion_entries { 0 };
 
-    Array<UniquePtr<DeletionEntryBase>> m_deletion_entries;
+    LinkedList<UniquePtr<DeletionEntryBase>>    m_deletion_entries;
 };
 
 } // namespace hyperion

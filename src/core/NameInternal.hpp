@@ -13,13 +13,15 @@ class NameRegistry;
 
 using NameID = uint64;
 
+extern NameRegistry *g_name_registry;
+
 /*! \brief A name is a hashed string that is used to identify objects, components, and other entities in the engine.
  *  \details Names have their text components stored in a global registry and are internally.
  *  A \ref{Name} holds a 64 bit unsigned integer representing the hash, allowing for fast lookups and comparisons.
  *
  *  To create a name at compile time, use the \ref{HYP_NAME} macro.
  *  \code{.cpp}
- *  Name name = HYP_NAME("MyName");
+ *  Name name = HYP_NAME(MyName);
  *  \endcode
  *
  *  To create a name at runtime, use the \ref{CreateNameFromDynamicString} function.

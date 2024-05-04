@@ -5,8 +5,7 @@
 
 #include <core/functional/Proc.hpp>
 #include <core/containers/Array.hpp>
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/HashMap.hpp>
+#include <core/containers/FlatMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/IDGenerator.hpp>
@@ -139,7 +138,7 @@ public:
         const uint id = m_id_generator.NextID();
 
         Mutex::Guard guard(m_mutex);
-        m_procs.PushBack({ id, std::move(proc) });
+        m_procs.Insert({ id, RC<ProcType>::Construct(std::move(proc)) });
 
         return CreateDelegateHandler(id);
     }
@@ -173,10 +172,7 @@ public:
     {
         m_mutex.Lock();
 
-        const auto it = m_procs.FindIf([id](const auto &element)
-        {
-            return element.first == id;
-        });
+        const auto it = m_procs.Find(id);
 
         if (it == m_procs.End()) {
             m_mutex.Unlock();
@@ -201,9 +197,9 @@ public:
     template <class ... ArgTypes>
     ReturnType Broadcast(ArgTypes &&... args)
     {
-        Array<ProcType *> procs_array;
+        Array<RC<ProcType>> procs_array;
 
-        { // Copy pointers to procs_array for iteration without needing mutex lock
+        {
             Mutex::Guard guard(m_mutex);
 
             // If no handlers are bound, return a default constructed object or void
@@ -220,7 +216,7 @@ public:
             procs_array.Reserve(m_procs.Size());
 
             for (auto &it : m_procs) {
-                procs_array.PushBack(&it.second);
+                procs_array.PushBack(it.second);
             }
         }
 
@@ -232,13 +228,13 @@ public:
         for (auto it = begin; it != end; ++it) {
             if constexpr (!std::is_void_v<ReturnType>) {
                 if (it == begin) {
-                    result_storage.Construct((*(*it))((args)...));
+                    result_storage.Construct((**it)(args...));
 
                     continue;
                 }
             }
 
-            (*(*it))((args)...);
+            (**it)(args...);
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {
@@ -289,13 +285,13 @@ private:
         }));
     }
 
-    LinkedList<Pair<uint, ProcType>>    m_procs;
-    Mutex                               m_mutex;
+    FlatMap<uint, RC<ProcType>> m_procs;
+    Mutex                       m_mutex;
 
-    Array<DelegateHandler>              m_detached_handlers;
-    Mutex                               m_detached_handlers_mutex;
+    Array<DelegateHandler>      m_detached_handlers;
+    Mutex                       m_detached_handlers_mutex;
 
-    IDGenerator                         m_id_generator;
+    IDGenerator                 m_id_generator;
 };
 } // namespace functional
 

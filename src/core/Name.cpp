@@ -5,6 +5,8 @@
 
 namespace hyperion {
 
+NameRegistry *g_name_registry = nullptr;
+
 static ANSIString GenerateUUID()
 {
     static constexpr SizeType num_uuid_groups = 5;
@@ -32,9 +34,18 @@ static ANSIString GenerateUUID()
 
 NameRegistry *Name::GetRegistry()
 {
-    static NameRegistry registry;
+    static struct NameRegistryInitializer
+    {
+        NameRegistryInitializer()
+        {
+            if (!g_name_registry)
+            {
+                g_name_registry = new NameRegistry();
+            }
+        }
+    } initializer;
 
-    return &registry;
+    return g_name_registry;
 }
 
 Name Name::Unique()

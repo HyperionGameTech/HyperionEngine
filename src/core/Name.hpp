@@ -28,7 +28,7 @@ public:
 
 private:
     HashMap<NameID, ANSIString> m_name_map;
-    mutable Mutex              m_mutex;
+    mutable Mutex               m_mutex;
 };
 
 
