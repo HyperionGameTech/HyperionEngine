@@ -20,7 +20,7 @@ HYP_EXPORT UIObjectType UIObject_GetType(ManagedRefCountedPtr obj)
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
-        return UOT_UNKNOWN;
+        return UIObjectType::UNKNOWN;
     }
 
     return ui_object->GetType();
@@ -98,7 +98,7 @@ HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr ob
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
-        return UOA_TOP_LEFT;
+        return UIObjectAlignment::TOP_LEFT;
     }
 
     return ui_object->GetOriginAlignment();
@@ -120,7 +120,7 @@ HYP_EXPORT UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr ob
     RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
 
     if (!ui_object) {
-        return UOA_TOP_LEFT;
+        return UIObjectAlignment::TOP_LEFT;
     }
 
     return ui_object->GetParentAlignment();

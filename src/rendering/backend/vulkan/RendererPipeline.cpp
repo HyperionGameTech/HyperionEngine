@@ -12,64 +12,94 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-Pipeline<Platform::VULKAN>::Pipeline()
-    : pipeline(VK_NULL_HANDLE),
-      layout(VK_NULL_HANDLE),
-      push_constants { }
-{
-}
+#pragma region PipelinePlatformImpl
 
-Pipeline<Platform::VULKAN>::Pipeline(ShaderProgramRef<Platform::VULKAN> shader_program, DescriptorTableRef<Platform::VULKAN> descriptor_table)
-    : m_shader_program(std::move(shader_program)),
-      m_descriptor_table(std::move(descriptor_table)),
-      pipeline(VK_NULL_HANDLE),
-      layout(VK_NULL_HANDLE),
-      push_constants { }
+Array<VkDescriptorSetLayout> PipelinePlatformImpl<Platform::VULKAN>::GetDescriptorSetLayouts() const
 {
-}
-
-Pipeline<Platform::VULKAN>::~Pipeline()
-{
-    AssertThrowMsg(pipeline == VK_NULL_HANDLE, "Expected pipeline to have been destroyed");
-    AssertThrowMsg(layout == VK_NULL_HANDLE, "Expected layout to have been destroyed");
-}
-
-void Pipeline<Platform::VULKAN>::SetDescriptorTable(DescriptorTableRef<Platform::VULKAN> descriptor_table)
-{
-    m_descriptor_table = std::move(descriptor_table);
-}
-
-void Pipeline<Platform::VULKAN>::SetShaderProgram(ShaderProgramRef<Platform::VULKAN> shader_program)
-{
-    m_shader_program = std::move(shader_program);
-}
-
-Array<VkDescriptorSetLayout> Pipeline<Platform::VULKAN>::GetDescriptorSetLayouts() const
-{
-    AssertThrowMsg(m_descriptor_table.IsValid(), "Invalid DescriptorTable provided to Pipeline");
+    AssertThrowMsg(self->m_descriptor_table.IsValid(), "Invalid DescriptorTable provided to Pipeline");
 
     Array<VkDescriptorSetLayout> used_layouts;
-    used_layouts.Reserve(m_descriptor_table->GetSets()[0].Size());
+    used_layouts.Reserve(self->m_descriptor_table->GetSets()[0].Size());
 
-    for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
+    for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : self->m_descriptor_table->GetSets()[0]) {
         AssertThrow(descriptor_set != nullptr);
 
-        used_layouts.PushBack(descriptor_set->GetVkDescriptorSetLayout());
+        used_layouts.PushBack(descriptor_set->GetPlatformImpl().GetVkDescriptorSetLayout());
     }
 
     return used_layouts;
 }
 
+#pragma endregion PipelinePlatformImpl
+
+#pragma region Pipeline
+
+template <>
+Pipeline<Platform::VULKAN>::Pipeline()
+    : m_platform_impl { this }
+{
+}
+
+template <>
+Pipeline<Platform::VULKAN>::Pipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table)
+    : m_platform_impl { this },
+      m_shader(shader),
+      m_descriptor_table(descriptor_table)
+{
+}
+
+template <>
+Pipeline<Platform::VULKAN>::~Pipeline()
+{
+    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "Expected pipeline to have been destroyed");
+    AssertThrowMsg(m_platform_impl.layout == VK_NULL_HANDLE, "Expected layout to have been destroyed");
+}
+
+template <>
+Result Pipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+{
+    SafeRelease(std::move(m_descriptor_table));
+
+    if (m_platform_impl.handle != VK_NULL_HANDLE) {
+        vkDestroyPipeline(device->GetDevice(), m_platform_impl.handle, nullptr);
+        m_platform_impl.handle = VK_NULL_HANDLE;
+    }
+
+    if (m_platform_impl.layout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(device->GetDevice(), m_platform_impl.layout, nullptr);
+        m_platform_impl.layout = VK_NULL_HANDLE;
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+template <>
+bool Pipeline<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.handle != VK_NULL_HANDLE;
+}
+
+template <>
+void Pipeline<Platform::VULKAN>::SetDescriptorTable(const DescriptorTableRef<Platform::VULKAN> &descriptor_table)
+{
+    m_descriptor_table = descriptor_table;
+}
+
+template <>
+void Pipeline<Platform::VULKAN>::SetShader(const ShaderRef<Platform::VULKAN> &shader)
+{
+    m_shader = shader;
+}
+
+template <>
 void Pipeline<Platform::VULKAN>::SetPushConstants(const void *data, SizeType size)
 {
-    AssertThrow(size <= sizeof(push_constants));
+    AssertThrowMsg(size <= 128, "Push constant data size exceeds 128 bytes");
 
-    Memory::MemCpy(&push_constants, data, size);
-
-    if (size < sizeof(push_constants)) {
-        Memory::MemSet(&push_constants + size, 0, sizeof(push_constants) - size);
-    }
+    m_push_constants = PushConstantData(data, size);
 }
+
+#pragma endregion Pipeline
 
 } // namespace platform
 } // namespace renderer

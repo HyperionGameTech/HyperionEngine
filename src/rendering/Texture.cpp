@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/Texture.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
@@ -51,7 +52,7 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        if (image->GetGPUImage() == nullptr || !image->GetGPUImage()->IsCreated()) {
+        if (!image->IsCreated()) {
             HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance(), initial_state));
         }
 
@@ -207,17 +208,17 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
                     pass->End(&temp_frame);
                 }
 
-                const ImageRef &src_image = pass->GetAttachmentUsage(0)->GetAttachment()->GetImage();
+                const ImageRef &src_image = pass->GetAttachment(0)->GetImage();
                 const ByteBuffer src_image_byte_buffer = src_image->ReadBack(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
 
                 // Blit into mip level
-                dst_image->GetGPUImage()->InsertSubResourceBarrier(
+                dst_image->InsertSubResourceBarrier(
                     command_buffer,
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::COPY_DST
                 );
 
-                src_image->GetGPUImage()->InsertSubResourceBarrier(
+                src_image->InsertSubResourceBarrier(
                     command_buffer,
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::COPY_SRC
@@ -242,14 +243,14 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
                     )
                 );
 
-                src_image->GetGPUImage()->InsertSubResourceBarrier(
+                src_image->InsertSubResourceBarrier(
                     command_buffer,
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::SHADER_RESOURCE
                 );
 
                 // put this mip into readable state
-                dst_image->GetGPUImage()->InsertSubResourceBarrier(
+                dst_image->InsertSubResourceBarrier(
                     command_buffer,
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::SHADER_RESOURCE
@@ -257,7 +258,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
             }
 
             // all mip levels have been transitioned into this state
-            dst_image->GetGPUImage()->SetResourceState(
+            dst_image->SetResourceState(
                 renderer::ResourceState::SHADER_RESOURCE
             );
 
@@ -290,15 +291,13 @@ public:
 
         const Extent3D extent = m_image->GetExtent();
 
-        Handle<Shader> shader = g_shader_manager->GetOrCreate(
+        ShaderRef shader = g_shader_manager->GetOrCreate(
             HYP_NAME(GenerateMipmaps),
             ShaderProperties()
         );
 
-        AssertThrow(InitObject(shader));
-
         for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-            renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+            renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
             DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 

@@ -60,18 +60,18 @@ static bool ResizeIndirectDrawCommandsBuffer(
     if (staging_buffer->IsCreated()) {
         HYPERION_ASSERT_RESULT(staging_buffer->EnsureCapacity(
             g_engine->GetGPUDevice(),
-            indirect_buffer->size
+            indirect_buffer->Size()
         ));
     } else {
         HYPERION_ASSERT_RESULT(staging_buffer->Create(
             g_engine->GetGPUDevice(),
-            indirect_buffer->size
+            indirect_buffer->Size()
         ));
     }
 
     staging_buffer->Memset(
         g_engine->GetGPUDevice(),
-        staging_buffer->size,
+        staging_buffer->Size(),
         0x0 // fill buffer with zeros
     );
 
@@ -87,8 +87,8 @@ static bool ResizeIndirectDrawCommandsBuffer(
 
     indirect_buffer->CopyFrom(
         frame->GetCommandBuffer(),
-        staging_buffer.Get(),
-        staging_buffer->size
+        staging_buffer,
+        staging_buffer->Size()
     );
 
     indirect_buffer->InsertBarrier(
@@ -117,7 +117,7 @@ static bool ResizeInstancesBuffer(
     if (was_created_or_resized) {
         instance_buffer->Memset(
             g_engine->GetGPUDevice(),
-            instance_buffer->size,
+            instance_buffer->Size(),
             0x0
         );
     }
@@ -219,8 +219,8 @@ IndirectDrawState::IndirectDrawState()
 {
     // Allocate used buffers so they can be set in descriptor sets
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_indirect_buffers[frame_index] = MakeRenderObject<GPUBuffer>(renderer::IndirectBuffer());
-        m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(renderer::StorageBuffer());
+        m_indirect_buffers[frame_index] = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::INDIRECT_ARGS_BUFFER);
+        m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
         m_staging_buffers[frame_index] = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
     }
 }
@@ -312,7 +312,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
     // fill instances buffer with data of the meshes
     {
         AssertThrow(m_staging_buffers[frame_index].IsValid());
-        AssertThrow(m_staging_buffers[frame_index]->size >= sizeof(IndirectDrawCommand) * m_draw_commands.Size());
+        AssertThrow(m_staging_buffers[frame_index]->Size() >= sizeof(IndirectDrawCommand) * m_draw_commands.Size());
         
         m_staging_buffers[frame_index]->Copy(
             g_engine->GetGPUDevice(),
@@ -332,8 +332,8 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 
         m_indirect_buffers[frame_index]->CopyFrom(
             frame->GetCommandBuffer(),
-            m_staging_buffers[frame_index].Get(),
-            m_staging_buffers[frame_index]->size
+            m_staging_buffers[frame_index],
+            m_staging_buffers[frame_index]->Size()
         );
 
         m_indirect_buffers[frame_index]->InsertBarrier(
@@ -342,7 +342,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
         );
     }
 
-    AssertThrow(m_instance_buffers[frame_index]->size >= m_object_instances.Size() * sizeof(ObjectInstance));
+    AssertThrow(m_instance_buffers[frame_index]->Size() >= m_object_instances.Size() * sizeof(ObjectInstance));
 
     // update data for object instances (cpu - gpu)
     m_instance_buffers[frame_index]->Copy(
@@ -369,10 +369,10 @@ void IndirectRenderer::Create()
 {
     m_indirect_draw_state.Create();
 
-    Handle<Shader> object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
+    ShaderRef object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
     AssertThrow(object_visibility_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -388,7 +388,7 @@ void IndirectRenderer::Create()
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
     m_object_visibility = MakeRenderObject<renderer::ComputePipeline>(
-        object_visibility_shader->GetShaderProgram(),
+        object_visibility_shader,
         descriptor_table
     );
     
@@ -411,7 +411,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     const uint frame_index = frame->GetFrameIndex();
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
-    AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->size != 0);
+    AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);
 
     const uint num_instances = m_indirect_draw_state.GetInstances().Size();
     const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
@@ -468,14 +468,22 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         renderer::ResourceState::INDIRECT_ARG
     );
 
-    m_object_visibility->Bind(command_buffer, Pipeline::PushConstantData {
-        .object_visibility_data = {
-            .batch_offset               = 0,
-            .num_instances              = num_instances,
-            .scene_id                   = uint32(scene_id.value),
-            .depth_pyramid_dimensions   = Extent2D(g_engine->GetDeferredRenderer()->GetDepthPyramidRenderer().GetExtent())
-        }
-    });
+    struct alignas(128)
+    {
+        uint32  batch_offset;
+        uint32  num_instances;
+        uint32  scene_id;
+        Vec2u   depth_pyramid_dimensions;
+    } push_constants;
+
+    push_constants.batch_offset = 0;
+    push_constants.num_instances = num_instances;
+    push_constants.scene_id = scene_id.Value();
+    push_constants.depth_pyramid_dimensions = Extent2D(g_engine->GetDeferredRenderer()->GetDepthPyramidRenderer().GetExtent());
+
+    m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
+
+    m_object_visibility->Bind(command_buffer);
     
     m_object_visibility->Dispatch(command_buffer, Extent3D { num_batches, 1, 1 });
     

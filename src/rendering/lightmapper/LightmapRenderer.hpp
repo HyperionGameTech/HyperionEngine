@@ -15,7 +15,6 @@
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/Mesh.hpp>

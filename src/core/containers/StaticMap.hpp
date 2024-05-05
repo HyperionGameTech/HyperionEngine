@@ -6,7 +6,6 @@
 #include <core/Defines.hpp>
 
 #include <array>
-#include <utility>
 
 namespace hyperion {
 namespace containers {

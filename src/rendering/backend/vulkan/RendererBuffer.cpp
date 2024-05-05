@@ -11,8 +11,6 @@
 
 #include <core/system/Debug.hpp>
 
-#include <vector>
-#include <queue>
 #include <cstring>
 
 namespace hyperion {
@@ -21,13 +19,13 @@ namespace platform {
 
 #pragma region Helpers
 
-uint GPUMemory<Platform::VULKAN>::FindMemoryType(Device<Platform::VULKAN> *device, uint vk_type_filter, VkMemoryPropertyFlags properties)
+static uint FindMemoryType(Device<Platform::VULKAN> *device, uint vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
     vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
 
     for (uint i = 0; i < mem_properties.memoryTypeCount; i++) {
-        if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & vk_memory_property_flags) == vk_memory_property_flags) {
             DebugLog(LogType::Info, "Found Memory type [%d]!\n", i);
             return i;
         }
@@ -36,7 +34,7 @@ uint GPUMemory<Platform::VULKAN>::FindMemoryType(Device<Platform::VULKAN> *devic
     AssertThrowMsg(false, "Could not find suitable memory type!\n");
 }
 
-VkImageLayout GPUMemory<Platform::VULKAN>::GetImageLayout(ResourceState state)
+VkImageLayout GetVkImageLayout(ResourceState state)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -67,7 +65,7 @@ VkImageLayout GPUMemory<Platform::VULKAN>::GetImageLayout(ResourceState state)
     }
 }
 
-VkAccessFlags GPUMemory<Platform::VULKAN>::GetAccessMask(ResourceState state)
+VkAccessFlags GetVkAccessMask(ResourceState state)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -105,7 +103,7 @@ VkAccessFlags GPUMemory<Platform::VULKAN>::GetAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceState state, bool src, ShaderModuleType shader_type)
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shader_type = ShaderModuleType::UNSET)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -171,7 +169,7 @@ VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceSta
     }
 }
 
-static VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
+VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
 {
     switch (type) {
     case GPUBufferType::MESH_VERTEX_BUFFER:
@@ -215,7 +213,7 @@ static VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
     }
 }
 
-static VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
+VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
 {
     switch (type) {
     case GPUBufferType::MESH_VERTEX_BUFFER:
@@ -249,195 +247,119 @@ static VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
     }
 }
 
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
+{
+    switch (type) {
+    case GPUBufferType::MESH_VERTEX_BUFFER:
+        return 0;
+    case GPUBufferType::MESH_INDEX_BUFFER:
+        return 0;
+    case GPUBufferType::CONSTANT_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GPUBufferType::STORAGE_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GPUBufferType::ATOMIC_COUNTER:
+        return 0;
+    case GPUBufferType::STAGING_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+        return 0;
+    case GPUBufferType::SHADER_BINDING_TABLE:
+        return 0;
+    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return 0;
+    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return 0;
+    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+        return 0;
+    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+        return 0;
+    case GPUBufferType::SCRATCH_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    default:
+        HYP_THROW("Invalid gpu buffer type for allocation create flags");
+    }
+}
+
 #pragma endregion Helpers
 
-#pragma region GPUMemory
+// GPUMemory<Platform::VULKAN>::GPUMemory()
+//     : m_id(0),
+//       sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
+//       size(0),
+//       map(nullptr),
+//       resource_state(ResourceState::UNDEFINED),
+//       allocation(VK_NULL_HANDLE),
+//       m_is_created(false)
+// {
+//     static uint allocations = 0;
 
-GPUMemory<Platform::VULKAN>::Stats GPUMemory<Platform::VULKAN>::stats{};
+//     m_id = allocations++;
+// }
 
-GPUMemory<Platform::VULKAN>::GPUMemory()
-    : m_id(0),
-      sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
-      size(0),
-      map(nullptr),
-      resource_state(ResourceState::UNDEFINED),
-      allocation(VK_NULL_HANDLE),
-      m_is_created(false)
+// GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
+//     : m_id(other.m_id),
+//       sharing_mode(other.sharing_mode),
+//       size(other.size),
+//       map(other.map),
+//       resource_state(other.resource_state),
+//       allocation(other.allocation),
+//       m_is_created(other.m_is_created)
+// {
+//     other.m_id = 0;
+//     other.size = 0;
+//     other.map = nullptr;
+//     other.resource_state = ResourceState::UNDEFINED;
+//     other.allocation = VK_NULL_HANDLE;
+//     other.m_is_created = false;
+// }
+
+// GPUMemory<Platform::VULKAN>::~GPUMemory()
+// {
+// }
+
+#pragma region GPUBufferPlatformImpl
+
+void GPUBufferPlatformImpl<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device) const
 {
-    static uint allocations = 0;
-
-    m_id = allocations++;
+    vmaMapMemory(device->GetAllocator(), vma_allocation, &mapping);
 }
 
-GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
-    : m_id(other.m_id),
-      sharing_mode(other.sharing_mode),
-      size(other.size),
-      map(other.map),
-      resource_state(other.resource_state),
-      allocation(other.allocation),
-      m_is_created(other.m_is_created)
+void GPUBufferPlatformImpl<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device) const
 {
-    other.m_id = 0;
-    other.size = 0;
-    other.map = nullptr;
-    other.resource_state = ResourceState::UNDEFINED;
-    other.allocation = VK_NULL_HANDLE;
-    other.m_is_created = false;
+    vmaUnmapMemory(device->GetAllocator(), vma_allocation);
+    mapping = nullptr;
 }
 
-GPUMemory<Platform::VULKAN>::~GPUMemory()
-{
-}
-
-void GPUMemory<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device, void **ptr) const
-{
-    vmaMapMemory(device->GetAllocator(), allocation, ptr);
-}
-
-void GPUMemory<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device) const
-{
-    vmaUnmapMemory(device->GetAllocator(), allocation);
-    map = nullptr;
-}
-
-void GPUMemory<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value)
-{    
-    if (map == nullptr) {
-        Map(device, &map);
-    }
-
-    std::memset(map, value, count);
-}
-
-void GPUMemory<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr)
-{
-    if (map == nullptr) {
-        Map(device, &map);
-    }
-
-    Memory::MemCpy(map, ptr, count);
-}
-
-void GPUMemory<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr)
-{
-    if (map == nullptr) {
-        Map(device, &map);
-    }
-
-    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(map) + offset), ptr, count);
-}
-
-void GPUMemory<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const
-{
-    if (map == nullptr) {
-        Map(device, &map);
-        DebugLog(LogType::Warn, "Attempt to Read() from buffer but data has not been mapped previously\n");
-    }
-
-    Memory::MemCpy(out_ptr, map, count);
-}
-
-void GPUMemory<Platform::VULKAN>::Create()
-{
-    stats.IncMemoryUsage(size);
-
-    m_is_created = true;
-}
-
-void GPUMemory<Platform::VULKAN>::Destroy()
-{
-    if (m_is_created) {
-        stats.DecMemoryUsage(size);
-    }
-
-    m_is_created = false;
-}
-
-#pragma endregion GPUMemory
-
-#pragma region GPUBuffer
-
-GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
-    : GPUMemory<Platform::VULKAN>(),
-      type(type),
-      buffer(nullptr),
-      usage_flags(GetVkUsageFlags(type)),
-      vma_usage(GetVkMemoryUsage(type)),
-      vma_allocation_create_flags(VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT)
-{
-}
-
-GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBuffer &&other) noexcept
-    : GPUMemory<Platform::VULKAN>(static_cast<GPUMemory<Platform::VULKAN> &&>(std::move(other))),
-      type(other.type),
-      buffer(other.buffer),
-      usage_flags(other.usage_flags),
-      vma_usage(other.vma_usage),
-      vma_allocation_create_flags(other.vma_allocation_create_flags)
-{
-    other.buffer = VK_NULL_HANDLE;
-    other.usage_flags = 0;
-    other.vma_usage = VMA_MEMORY_USAGE_UNKNOWN;
-    other.vma_allocation_create_flags = 0;
-}
-
-GPUBuffer<Platform::VULKAN>::~GPUBuffer()
-{
-    AssertThrowMsg(buffer == VK_NULL_HANDLE, "buffer should have been destroyed!");
-}
-
-VkBufferCreateInfo GPUBuffer<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
+VkBufferCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
 {
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const uint32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    vk_buffer_info.size                     = size;
-    vk_buffer_info.usage                    = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    vk_buffer_info.pQueueFamilyIndices      = buffer_family_indices;
-    vk_buffer_info.queueFamilyIndexCount    = uint32(std::size(buffer_family_indices));
+    vk_buffer_info.size = size;
+    vk_buffer_info.usage = vk_buffer_usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vk_buffer_info.pQueueFamilyIndices = buffer_family_indices;
+    vk_buffer_info.queueFamilyIndexCount = ArraySize(buffer_family_indices);
 
     return vk_buffer_info;
 }
 
-VmaAllocationCreateInfo GPUBuffer<Platform::VULKAN>::GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const
+VmaAllocationCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const
 {
+    /* @TODO: Property debug names */
+    char debug_name_buffer[1024] = { 0 };
+    snprintf(debug_name_buffer, sizeof(debug_name_buffer), "Unnamed buffer %p", this);
+
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.flags = vma_allocation_create_flags;
     alloc_info.usage = vma_usage;
-    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(uint64(ID_MASK_BUFFER) | uint64(m_id)));
+    alloc_info.pUserData = debug_name_buffer;
 
     return alloc_info;
 }
 
-Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device<Platform::VULKAN> *device, SizeType size) const
-{
-    const auto create_info = GetBufferCreateInfo(device);
-    const auto alloc_info = GetAllocationCreateInfo(device);
-
-    return CheckCanAllocate(device, create_info, alloc_info, this->size);
-}
-
-uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
-{
-    AssertThrowMsg(
-        device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
-        "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!"
-    );
-
-    AssertThrow(buffer != VK_NULL_HANDLE);
-
-    VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
-    info.buffer = buffer;
-
-	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
-        device->GetDevice(),
-        &info
-    );
-}
-
-Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
+Result GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
     Device<Platform::VULKAN> *device,
     const VkBufferCreateInfo &buffer_create_info,
     const VmaAllocationCreateInfo &allocation_create_info,
@@ -448,7 +370,7 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
 
     Result result;
 
-    uint memory_type_index = UINT32_MAX;
+    uint32 memory_type_index = UINT32_MAX;
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
@@ -476,85 +398,225 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
     return result;
 }
 
+#pragma endregion GPUBufferPlatformImpl
+
+#pragma region GPUBuffer
+
+template <>
+void GPUBuffer<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value)
+{    
+    if (m_platform_impl.mapping == nullptr) {
+        m_platform_impl.Map(device);
+    }
+
+    Memory::MemSet(m_platform_impl.mapping, value, count);
+}
+
+template <>
+void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr)
+{
+    if (m_platform_impl.mapping == nullptr) {
+        m_platform_impl.Map(device);
+    }
+
+    Memory::MemCpy(m_platform_impl.mapping, ptr, count);
+}
+
+template <>
+void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr)
+{
+    if (m_platform_impl.mapping == nullptr) {
+        m_platform_impl.Map(device);
+    }
+
+    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_platform_impl.mapping) + offset), ptr, count);
+}
+
+template <>
+void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const
+{
+    if (m_platform_impl.mapping == nullptr) {
+        m_platform_impl.Map(device);
+        DebugLog(LogType::Warn, "Attempt to Read() from buffer but data has not been mapped previously\n");
+    }
+
+    Memory::MemCpy(out_ptr, m_platform_impl.mapping, count);
+}
+
+template <>
+GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
+    : m_platform_impl { this },
+      m_type(type),
+      m_resource_state(ResourceState::UNDEFINED)
+{
+}
+
+template <>
+GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBuffer &&other) noexcept
+    : m_platform_impl { this },
+      m_type(other.m_type),
+      m_resource_state(other.m_resource_state)
+{
+    m_platform_impl = std::move(other.m_platform_impl);
+    m_platform_impl.self = this;
+
+    other.m_platform_impl = { &other };
+    other.m_type = GPUBufferType::NONE;
+    other.m_resource_state = ResourceState::UNDEFINED;
+}
+
+template <>
+GPUBuffer<Platform::VULKAN>::~GPUBuffer()
+{
+    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "buffer should have been destroyed!");
+}
+
+template <>
+bool GPUBuffer<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.handle != VK_NULL_HANDLE;
+}
+
+template <>
+uint32 GPUBuffer<Platform::VULKAN>::Size() const
+{
+    return m_platform_impl.size;
+}
+
+template <>
+bool GPUBuffer<Platform::VULKAN>::IsCPUAccessible() const
+{
+    return m_platform_impl.vma_usage != VMA_MEMORY_USAGE_GPU_ONLY;
+}
+
+template <>
+Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device<Platform::VULKAN> *device, SizeType size) const
+{
+    const VkBufferCreateInfo create_info = m_platform_impl.GetBufferCreateInfo(device);
+    const VmaAllocationCreateInfo alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
+
+    return m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size);
+}
+
+template <>
+uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
+{
+    AssertThrowMsg(
+        device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!"
+    );
+
+    AssertThrow(m_platform_impl.handle != VK_NULL_HANDLE);
+
+    VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+    info.buffer = m_platform_impl.handle;
+
+	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
+        device->GetDevice(),
+        &info
+    );
+}
+
+template <>
 void GPUBuffer<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     ResourceState new_state
 ) const
 {
-    if (buffer == nullptr) {
+    if (!IsCreated()) {
         DebugLog(
             LogType::Warn,
-            "Attempt to insert a resource barrier but buffer was not defined\n"
+            "Attempt to insert a resource barrier but buffer was not created\n"
         );
 
         return;
     }
 
     VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetAccessMask(resource_state);
-    barrier.dstAccessMask = GetAccessMask(new_state);
-    barrier.buffer = buffer;
+    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.buffer = m_platform_impl.handle;
     barrier.offset = 0;
-    barrier.size = size;
+    barrier.size = m_platform_impl.size;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     vkCmdPipelineBarrier(
-        command_buffer->GetCommandBuffer(),
-        GetShaderStageMask(resource_state, true),
-        GetShaderStageMask(new_state, false),
+        command_buffer->GetPlatformImpl().command_buffer,
+        GetVkShaderStageMask(m_resource_state, true),
+        GetVkShaderStageMask(new_state, false),
         0,
         0, nullptr,
         1, &barrier,
         0, nullptr
     );
 
-    resource_state = new_state;
+    m_resource_state = new_state;
 }
 
+template <>
 void GPUBuffer<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     ResourceState new_state,
     ShaderModuleType shader_type
 ) const
 {
-    if (buffer == nullptr) {
+    if (!IsCreated()) {
         DebugLog(
             LogType::Warn,
-            "Attempt to insert a resource barrier but buffer was not defined\n"
+            "Attempt to insert a resource barrier but buffer was not created\n"
         );
 
         return;
     }
 
     VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetAccessMask(resource_state);
-    barrier.dstAccessMask = GetAccessMask(new_state);
-    barrier.buffer = buffer;
+    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.buffer = m_platform_impl.handle;
     barrier.offset = 0;
-    barrier.size = size;
+    barrier.size = m_platform_impl.size;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     vkCmdPipelineBarrier(
-        command_buffer->GetCommandBuffer(),
-        GetShaderStageMask(resource_state, true, shader_type),
-        GetShaderStageMask(new_state, false, shader_type),
+        command_buffer->GetPlatformImpl().command_buffer,
+        GetVkShaderStageMask(m_resource_state, true, shader_type),
+        GetVkShaderStageMask(new_state, false, shader_type),
         0,
         0, nullptr,
         1, &barrier,
         0, nullptr
     );
 
-    resource_state = new_state;
+    m_resource_state = new_state;
 }
 
+template <>
 void GPUBuffer<Platform::VULKAN>::CopyFrom(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const GPUBuffer *src_buffer,
     SizeType count
 )
 {
+    if (!IsCreated()) {
+        DebugLog(
+            LogType::Warn,
+            "Attempt to copy from buffer but dst buffer was not created\n"
+        );
+
+        return;
+    }
+
+    if (!src_buffer->IsCreated()) {
+        DebugLog(
+            LogType::Warn,
+            "Attempt to copy from buffer but src buffer was not created\n"
+        );
+
+        return;
+    }
+
     InsertBarrier(command_buffer, ResourceState::COPY_DST);
     src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
 
@@ -562,84 +624,42 @@ void GPUBuffer<Platform::VULKAN>::CopyFrom(
     region.size = count;
 
     vkCmdCopyBuffer(
-        command_buffer->GetCommandBuffer(),
-        src_buffer->buffer,
-        buffer,
+        command_buffer->GetPlatformImpl().command_buffer,
+        src_buffer->m_platform_impl.handle,
+        m_platform_impl.handle,
         1,
         &region
     );
 }
 
-Result GPUBuffer<Platform::VULKAN>::CopyStaged(
-    Instance<Platform::VULKAN> *instance,
-    const void *ptr,
-    SizeType count
-)
+template <>
+Result GPUBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    Device<Platform::VULKAN> *device = instance->GetDevice();
+    if (!IsCreated()) {
+        HYPERION_RETURN_OK;
+    }
 
-    return instance->GetStagingBufferPool().Use(device, [&](StagingBufferPool::Context &holder) {
-        auto commands = instance->GetSingleTimeCommands();
+    if (m_platform_impl.mapping != nullptr) {
+        m_platform_impl.Unmap(device);
+    }
 
-        auto *staging_buffer = holder.Acquire(count);
-        staging_buffer->Copy(device, count, ptr);
-        
-        commands.Push([&](CommandBuffer<Platform::VULKAN> *cmd) {
-            CopyFrom(cmd, staging_buffer, count);
-
-            HYPERION_RETURN_OK;
-        });
+    vmaDestroyBuffer(device->GetAllocator(), m_platform_impl.handle, m_platform_impl.vma_allocation);
     
-        return commands.Execute(device);
-    });
+    m_platform_impl = { this };
+    m_resource_state = ResourceState::UNDEFINED;
+
+    HYPERION_RETURN_OK;
 }
 
-Result GPUBuffer<Platform::VULKAN>::ReadStaged(
-    Instance<Platform::VULKAN> *instance,
-    SizeType count,
-    void *out_ptr
-) const
-{
-    Device<Platform::VULKAN> *device = instance->GetDevice();
-
-    return instance->GetStagingBufferPool().Use(device, [&](StagingBufferPool::Context &holder) {
-        auto commands = instance->GetSingleTimeCommands();
-
-        auto *staging_buffer = holder.Acquire(count);
-        
-        commands.Push([&](CommandBuffer<Platform::VULKAN> *cmd) {
-            staging_buffer->CopyFrom(
-                cmd,
-                this,
-                count
-            );
-
-            HYPERION_RETURN_OK;
-        });
-    
-        auto result = commands.Execute(device);
-
-        if (result) {
-            staging_buffer->Read(
-                device,
-                count,
-                out_ptr
-            );
-        }
-
-        return result;
-    });
-}
-
+template <>
 Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, SizeType size, SizeType alignment)
 {
-    if (buffer != nullptr) {
+    if (IsCreated()) {
         DebugLog(
             LogType::Warn,
-            "Create() called on a buffer (memory #%u) that has not been destroyed!\n"
+            "Create() called on a buffer that has not been destroyed!\n"
             "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
-            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...\n",
-            m_id
+            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...\n"
         );
 
 #ifdef HYP_DEBUG_MODE
@@ -649,29 +669,24 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
         HYPERION_BUBBLE_ERRORS(Destroy(device));
     }
 
-    this->size = size;
-
-    GPUMemory<Platform::VULKAN>::Create();
+    m_platform_impl.vk_buffer_usage_flags = GetVkUsageFlags(m_type);
+    m_platform_impl.vma_usage = GetVkMemoryUsage(m_type);
+    m_platform_impl.vma_allocation_create_flags = GetVkAllocationCreateFlags(m_type)
+        | VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+    m_platform_impl.size = size;
     
     if (size == 0) {
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(false, "Creating empty gpu buffer will result in errors!");
 #endif
+
         return { Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n" };
     }
 
-    DebugLog(
-        LogType::Debug,
-        "Allocating GPU buffer with flags:\t(buffer usage: %lu, alloc create: %lu, alloc usage: %lu)\n",
-        usage_flags,
-        vma_allocation_create_flags,
-        vma_usage
-    );
+    const auto create_info = m_platform_impl.GetBufferCreateInfo(device);
+    const auto alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
 
-    const auto create_info = GetBufferCreateInfo(device);
-    const auto alloc_info = GetAllocationCreateInfo(device);
-
-    HYPERION_BUBBLE_ERRORS(CheckCanAllocate(device, create_info, alloc_info, this->size));
+    HYPERION_BUBBLE_ERRORS(m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size));
 
     if (alignment != 0) {
         HYPERION_VK_CHECK_MSG(
@@ -680,8 +695,8 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
                 &create_info,
                 &alloc_info,
                 alignment,
-                &buffer,
-                &allocation,
+                &m_platform_impl.handle,
+                &m_platform_impl.vma_allocation,
                 nullptr
             ),
             "Failed to create aligned gpu buffer!"
@@ -692,8 +707,8 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
                 device->GetAllocator(),
                 &create_info,
                 &alloc_info,
-                &buffer,
-                &allocation,
+                &m_platform_impl.handle,
+                &m_platform_impl.vma_allocation,
                 nullptr
             ),
             "Failed to create gpu buffer!"
@@ -703,30 +718,7 @@ Result GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Siz
     HYPERION_RETURN_OK;
 }
 
-Result GPUBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    GPUMemory<Platform::VULKAN>::Destroy();
-
-    if (map != nullptr) {
-        Unmap(device);
-    }
-
-    vmaDestroyBuffer(device->GetAllocator(), buffer, allocation);
-    buffer = nullptr;
-    allocation = nullptr;
-
-    HYPERION_RETURN_OK;
-}
-
-Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
-    Device<Platform::VULKAN> *device,
-    SizeType minimum_size,
-    bool *out_size_changed
-)
-{
-    return EnsureCapacity(device, minimum_size, 0, out_size_changed);
-}
-
+template <>
 Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     Device<Platform::VULKAN> *device,
     SizeType minimum_size,
@@ -736,7 +728,7 @@ Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
 {
     Result result;
 
-    if (minimum_size <= size) {
+    if (minimum_size <= m_platform_impl.size) {
         if (out_size_changed != nullptr) {
             *out_size_changed = false;
         }
@@ -744,7 +736,7 @@ Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
         HYPERION_RETURN_OK;
     }
 
-    if (buffer != VK_NULL_HANDLE) {
+    if (m_platform_impl.handle != VK_NULL_HANDLE) {
         HYPERION_PASS_ERRORS(Destroy(device), result);
 
         if (!result) {
@@ -765,21 +757,17 @@ Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     return result;
 }
 
-#pragma endregion GPUBuffer
-
-#pragma region IndirectBuffer
-
 template <>
-void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer<Platform::VULKAN> *command_buffer, SizeType offset) const
+Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
+    Device<Platform::VULKAN> *device,
+    SizeType minimum_size,
+    bool *out_size_changed
+)
 {
-    vkCmdDispatchIndirect(
-        command_buffer->GetCommandBuffer(),
-        buffer,
-        offset
-    );
+    return EnsureCapacity(device, minimum_size, 0, out_size_changed);
 }
 
-#pragma endregion IndirectBuffer
+#pragma endregion GPUBuffer
 
 #pragma region ShaderBindingTableBuffer
 
@@ -790,280 +778,6 @@ ShaderBindingTableBuffer<Platform::VULKAN>::ShaderBindingTableBuffer()
 }
 
 #pragma endregion ShaderBindingTableBuffer
-
-#pragma region GPUImageMemory
-
-GPUImageMemory<Platform::VULKAN>::GPUImageMemory()
-    : GPUMemory<Platform::VULKAN>(),
-      image(VK_NULL_HANDLE),
-      is_image_owned(false)
-{
-}
-
-GPUImageMemory<Platform::VULKAN>::GPUImageMemory(GPUImageMemory &&other) noexcept
-    : GPUMemory<Platform::VULKAN>(static_cast<GPUMemory<Platform::VULKAN> &&>(std::move(other))),
-      sub_resources(std::move(other.sub_resources)),
-      image(other.image),
-      is_image_owned(other.is_image_owned)
-{
-    other.image = VK_NULL_HANDLE;
-    other.is_image_owned = false;
-}
-
-GPUImageMemory<Platform::VULKAN>::~GPUImageMemory()
-{
-    AssertThrowMsg(image == VK_NULL_HANDLE, "image should have been destroyed!");
-}
-
-void GPUImageMemory<Platform::VULKAN>::SetResourceState(ResourceState new_state)
-{
-    resource_state = new_state;
-
-    sub_resources.clear();
-}
-
-void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state,
-    ImageSubResourceFlagBits flags
-)
-{
-    InsertBarrier(
-        command_buffer,
-        ImageSubResource {
-            .flags = flags,
-            .num_layers = VK_REMAINING_ARRAY_LAYERS,
-            .num_levels = VK_REMAINING_MIP_LEVELS
-        },
-        new_state
-    );
-}
-
-void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const ImageSubResource &sub_resource,
-    ResourceState new_state
-)
-{
-    /* Clear any sub-resources that are in a separate state */
-    if (!sub_resources.empty()) {
-        sub_resources.clear();
-    }
-
-    if (image == nullptr) {
-        DebugLog(
-            LogType::Warn,
-            "Attempt to insert a resource barrier but image was not defined\n"
-        );
-
-        return;
-    }
-
-    const VkImageAspectFlags aspect_flag_bits = 
-        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageSubresourceRange range { };
-    range.aspectMask = aspect_flag_bits;
-    range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount = sub_resource.num_layers;
-    range.baseMipLevel = sub_resource.base_mip_level;
-    range.levelCount = sub_resource.num_levels;
-
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout = GetImageLayout(resource_state);
-    barrier.newLayout = GetImageLayout(new_state);
-    barrier.srcAccessMask = GetAccessMask(resource_state);
-    barrier.dstAccessMask = GetAccessMask(new_state);
-    barrier.image = image;
-    barrier.subresourceRange = range;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetCommandBuffer(),
-        GetShaderStageMask(resource_state, true),
-        GetShaderStageMask(new_state, false),
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    resource_state = new_state;
-}
-
-void GPUImageMemory<Platform::VULKAN>::InsertSubResourceBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const ImageSubResource &sub_resource,
-    ResourceState new_state
-)
-{
-    if (image == nullptr) {
-        DebugLog(
-            LogType::Warn,
-            "Attempt to insert a resource barrier but image was not defined\n"
-        );
-
-        return;
-    }
-
-    ResourceState prev_resource_state = resource_state;
-
-    auto it = sub_resources.find(sub_resource);
-
-    if (it != sub_resources.end()) {
-        prev_resource_state = it->second;
-    }
-
-    const VkImageAspectFlags aspect_flag_bits = 
-        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageSubresourceRange range{};
-    range.aspectMask = aspect_flag_bits;
-    range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount = sub_resource.num_layers;
-    range.baseMipLevel = sub_resource.base_mip_level;
-    range.levelCount = sub_resource.num_levels;
-
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout = GetImageLayout(prev_resource_state);
-    barrier.newLayout = GetImageLayout(new_state);
-    barrier.srcAccessMask = GetAccessMask(prev_resource_state);
-    barrier.dstAccessMask = GetAccessMask(new_state);
-    barrier.image = image;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange = range;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetCommandBuffer(),
-        GetShaderStageMask(prev_resource_state, true),
-        GetShaderStageMask(new_state, false),
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    sub_resources.emplace(sub_resource, new_state);
-}
-
-auto GPUImageMemory<Platform::VULKAN>::GetSubResourceState(const ImageSubResource &sub_resource) const -> ResourceState
-{
-    const auto it = sub_resources.find(sub_resource);
-
-    if (it == sub_resources.end()) {
-        return resource_state;
-    }
-
-    return it->second;
-}
-
-void GPUImageMemory<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
-{
-    sub_resources[sub_resource] = new_state;
-}
-
-Result GPUImageMemory<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, PlatformImage new_image)
-{
-    if (image != VK_NULL_HANDLE) {
-        DebugLog(
-            LogType::Warn,
-            "Create() called on an image (memory #%u) that has not been destroyed!\n"
-            "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
-            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...\n",
-            m_id
-        );
-
-#ifdef HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
-#endif
-
-        HYPERION_BUBBLE_ERRORS(Destroy(device));
-    }
-
-    image = new_image;
-    is_image_owned = false;
-
-    allocation = VK_NULL_HANDLE;
-
-    HYPERION_RETURN_OK;
-}
-
-Result GPUImageMemory<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, SizeType size, VkImageCreateInfo *image_info)
-{
-    if (image != VK_NULL_HANDLE) {
-        DebugLog(
-            LogType::Warn,
-            "Create() called on an image (memory #%u) that has not been destroyed!\n"
-            "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
-            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...\n",
-            m_id
-        );
-
-#ifdef HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
-#endif
-
-        HYPERION_BUBBLE_ERRORS(Destroy(device));
-    }
-
-    this->size = size;
-
-    GPUMemory<Platform::VULKAN>::Create();
-
-    VmaAllocationCreateInfo alloc_info { };
-    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-    alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(uint64(ID_MASK_IMAGE) | uint64(m_id)));
-
-    /*if ((uintptr_t)alloc_info.pUserData == 0x2000038D9) {
-        HYP_BREAKPOINT;
-    }*/
-
-    HYPERION_VK_CHECK_MSG(
-        vmaCreateImage(
-            device->GetAllocator(),
-            image_info,
-            &alloc_info,
-            &image,
-            &allocation,
-            nullptr
-        ),
-        "Failed to create gpu image!"
-    );
-
-    is_image_owned = true;
-
-    HYPERION_RETURN_OK;
-}
-
-Result GPUImageMemory<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    if (is_image_owned) {
-        GPUMemory<Platform::VULKAN>::Destroy();
-    }
-
-    if (map != nullptr) {
-        Unmap(device);
-    }
-
-    if (is_image_owned) {
-        vmaDestroyImage(device->GetAllocator(), image, allocation);
-    }
-
-    image = VK_NULL_HANDLE;
-    allocation = VK_NULL_HANDLE;
-
-    is_image_owned = false;
-
-    HYPERION_RETURN_OK;
-}
-
-#pragma endregion GPUImageMemory
 
 } // namespace platform
 } // namespace renderer

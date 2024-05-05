@@ -2,6 +2,7 @@
 
 #include <rendering/FinalPass.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -99,8 +100,6 @@ void CompositePass::CreateShader()
         HYP_NAME(Composite),
         final_output_props
     );
-
-    AssertThrow(InitObject(m_shader));
 }
 
 void CompositePass::Create()
@@ -133,12 +132,12 @@ void CompositePass::Render(Frame *frame)
 {
     uint frame_index = frame->GetFrameIndex();
 
-    GetFramebuffer()->BeginCapture(frame_index, frame->GetCommandBuffer());
+    GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
     HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
 
-    GetFramebuffer()->EndCapture(frame_index, frame->GetCommandBuffer());
+    GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame_index);
 }
 
 #pragma endregion CompositePass
@@ -194,59 +193,38 @@ void FinalPass::Create()
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-            ->SetElement(HYP_NAME(FinalOutputTexture), m_composite_pass.GetAttachmentUsage(0)->GetImageView());
+            ->SetElement(HYP_NAME(FinalOutputTexture), m_composite_pass.GetAttachment(0)->GetImageView());
     }
 
     FullScreenPass::CreateQuad();
 
-    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Blit));
-    AssertThrow(InitObject(shader));
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(Blit));
+    AssertThrow(shader.IsValid());
 
     uint iteration = 0;
 
-    m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
-        MakeRenderObject<Image>(renderer::FramebufferImage2D(
-            m_extent,
-            m_image_format,
-            nullptr
-        )),
-        renderer::RenderPassStage::PRESENT
-    ));
-
-    for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUDevice()));
-    }
-
     for (const ImageRef &image_ref : g_engine->GetGPUInstance()->GetSwapchain()->GetImages()) {
-        auto fbo = CreateObject<Framebuffer>(
+        FramebufferRef fbo = MakeRenderObject<renderer::Framebuffer>(
             m_extent,
             renderer::RenderPassStage::PRESENT,
             renderer::RenderPassMode::RENDER_PASS_INLINE
         );
-
-        ImageViewRef color_attachment_image_view = MakeRenderObject<renderer::ImageView>();
-        HYPERION_ASSERT_RESULT(color_attachment_image_view->Create(
-            g_engine->GetGPUDevice(),
-            image_ref.Get()
-        ));
-
-        SamplerRef color_attachment_sampler_ref = g_engine->GetPlaceholderData()->GetSamplerLinear();
-
-        AttachmentUsageRef color_attachment_usage = MakeRenderObject<renderer::AttachmentUsage>(
-            m_attachments[0],
-            std::move(color_attachment_image_view),
-            std::move(color_attachment_sampler_ref),
+        
+        AttachmentRef color_attachment = MakeRenderObject<renderer::Attachment>(
+            image_ref,
+            renderer::RenderPassStage::PRESENT,
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE
         );
 
-        color_attachment_usage->SetBinding(0);
-        HYPERION_ASSERT_RESULT(color_attachment_usage->Create(g_engine->GetGPUDevice()));
-        fbo->AddAttachmentUsage(color_attachment_usage);
+        color_attachment->SetBinding(0);
+        HYPERION_ASSERT_RESULT(color_attachment->Create(g_engine->GetGPUDevice()));
+
+        fbo->AddAttachment(color_attachment);
 
         if (iteration == 0) {
             m_render_group = CreateObject<RenderGroup>(
-                std::move(shader),
+                shader,
                 RenderableAttributeSet(
                     MeshAttributes {
                         .vertex_attributes = static_mesh_vertex_attributes
@@ -254,7 +232,8 @@ void FinalPass::Create()
                     MaterialAttributes {
                         .bucket = BUCKET_SWAPCHAIN
                     }
-                )
+                ),
+                RenderGroupFlags::NONE
             );
         }
 
@@ -281,10 +260,10 @@ void FinalPass::Create()
     // Create UI stuff
     InitObject(m_ui_texture);
 
-    Handle<Shader> render_texture_to_screen_shader = g_shader_manager->GetOrCreate(HYP_NAME(RenderTextureToScreen));
-    AssertThrow(InitObject(render_texture_to_screen_shader));
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(HYP_NAME(RenderTextureToScreen));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -341,17 +320,17 @@ void FinalPass::Render(Frame *frame)
     m_composite_pass.Render(frame);
 
     { // Copy result to store previous frame's color buffer
-        const ImageRef &source_image = m_composite_pass.GetAttachments()[0]->GetImage();
+        const ImageRef &source_image = m_composite_pass.GetAttachment(0)->GetImage();
 
-        source_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        m_last_frame_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+        source_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
+        m_last_frame_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
         m_last_frame_image->Blit(frame->GetCommandBuffer(), source_image);
 
-        source_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+        source_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     }
 
-    m_render_group->GetFramebuffers()[acquired_image_index]->BeginCapture(0, frame->GetCommandBuffer());
+    m_render_group->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer(), 0);
 
     pipeline->Bind(frame->GetCommandBuffer());
 
@@ -401,7 +380,7 @@ void FinalPass::Render(Frame *frame)
     }
 #endif
 
-    m_render_group->GetFramebuffers()[acquired_image_index]->EndCapture(0, frame->GetCommandBuffer());
+    m_render_group->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer(), 0);
 }
 
 #pragma endregion FinalPass

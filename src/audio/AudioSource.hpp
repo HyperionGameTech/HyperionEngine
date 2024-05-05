@@ -1,12 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_AUDIO_SOURCE_HPP
 #define HYPERION_AUDIO_SOURCE_HPP
 
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
 #include <math/Vector3.hpp>
-#include <Types.hpp>
 
+#include <Types.hpp>
 
 namespace hyperion {
 

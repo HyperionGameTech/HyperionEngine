@@ -11,20 +11,26 @@
 
 #include <rendering/DrawProxy.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
+
+#include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RendererStructs.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion::renderer {
 
 namespace platform {
+
 template <PlatformType PLATFORM>
 class Frame;
+
 } // namespace platform
 
 using Frame = platform::Frame<Platform::CURRENT>;
+
 } // namespace hyperion::renderer
 
 namespace hyperion {
@@ -35,6 +41,7 @@ class Entity;
 class RenderGroup;
 
 using renderer::Frame;
+using renderer::PushConstantData;
 
 enum PassType : uint
 {
@@ -109,36 +116,6 @@ private:
     FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
 };
 
-struct PushConstantData
-{
-    const void  *ptr = nullptr;
-    uint8       size = 0;
-
-    PushConstantData()
-        : ptr(nullptr),
-          size(0)
-    {
-    }
-
-    template <class T>
-    PushConstantData(const T *value)
-    {
-        static_assert(sizeof(T) <= 128, "sizeof(T) must be <= 128");
-
-        ptr = value;
-        size = sizeof(T);
-    }
-
-    PushConstantData(const PushConstantData &other)                 = default;
-    PushConstantData &operator=(const PushConstantData &other)      = default;
-    PushConstantData(PushConstantData &&other) noexcept             = default;
-    PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
-    ~PushConstantData()                                             = default;
-
-    explicit operator bool() const
-        { return ptr && size; }
-};
-
 class RenderList
 {
 public:
@@ -171,7 +148,7 @@ public:
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
     void UpdateOnRenderThread(
-        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 
@@ -190,7 +167,7 @@ public:
 
     void ExecuteDrawCalls(
         Frame *frame,
-        const Handle<Framebuffer> &framebuffer,
+        const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
@@ -207,7 +184,7 @@ public:
     void ExecuteDrawCalls(
         Frame *frame,
         const Handle<Camera> &camera,
-        const Handle<Framebuffer> &framebuffer,
+        const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }

@@ -4,7 +4,6 @@
 #define HYPERION_REF_COUNTED_PTR_HPP
 
 #include <core/Defines.hpp>
-
 #include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/memory/Memory.hpp>
@@ -960,11 +959,7 @@ public:
     RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
-        rc.m_ref = Base::m_ref;
-
-        if (Base::m_ref != &detail::RefCountedPtrBase<CountType>::null_ref__internal) {
-            ++Base::m_ref->strong_count;
-        }
+        rc.SetRefCountData_Internal(Base::m_ref, true);
 
         return rc;
     }

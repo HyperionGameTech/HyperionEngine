@@ -4,9 +4,10 @@
 #define HYPERION_UI_OBJECT_HPP
 
 #include <core/Base.hpp>
-#include <core/Containers.hpp>
+#include <core/containers/Array.hpp>
 #include <core/functional/Delegate.hpp>
 #include <core/utilities/UniqueID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
@@ -36,56 +37,58 @@ static inline Scene *GetScene(UIStageType *stage)
 
 // Used for interop with the C# UIObject class.
 // Ensure that the enum values match the C# UIObjectType enum.
-enum UIObjectType : uint32
+enum class UIObjectType : uint32
 {
-    UOT_UNKNOWN     = ~0u,
-    UOT_STAGE       = 0,
-    UOT_BUTTON      = 1,
-    UOT_TEXT        = 2,
-    UOT_PANEL       = 3,
-    UOT_IMAGE       = 4,
-    UOT_TAB_VIEW    = 5,
-    UOT_TAB         = 6,
-    UOT_GRID        = 7,
-    UOT_GRID_ROW    = 8,
-    UOT_GRID_COLUMN = 9,
-    UOT_MENU_BAR    = 10,
-    UOT_MENU_ITEM   = 11
+    UNKNOWN     = ~0u,
+    STAGE       = 0,
+    BUTTON      = 1,
+    TEXT        = 2,
+    PANEL       = 3,
+    IMAGE       = 4,
+    TAB_VIEW    = 5,
+    TAB         = 6,
+    GRID        = 7,
+    GRID_ROW    = 8,
+    GRID_COLUMN = 9,
+    MENU_BAR    = 10,
+    MENU_ITEM   = 11
 };
 
-enum UIObjectAlignment : uint32
+HYP_MAKE_ENUM_FLAGS(UIObjectType)
+
+enum class UIObjectAlignment : uint32
 {
-    UOA_TOP_LEFT        = 0,
-    UOA_TOP_RIGHT       = 1,
+    TOP_LEFT        = 0,
+    TOP_RIGHT       = 1,
 
-    UOA_CENTER          = 2,
+    CENTER          = 2,
 
-    UOA_BOTTOM_LEFT     = 3,
-    UOA_BOTTOM_RIGHT    = 4
+    BOTTOM_LEFT     = 3,
+    BOTTOM_RIGHT    = 4
 };
 
-using UIObjectFocusState = uint32;
-
-enum UIObjectFocusStateBits : UIObjectFocusState
+enum class UIObjectFocusState : uint32
 {
-    UOFS_NONE       = 0x0,
-    UOFS_HOVER      = 0x1,
-    UOFS_PRESSED    = 0x2,
-    UOFS_TOGGLED    = 0x4,
-    UOFS_FOCUSED    = 0x8
+    NONE    = 0x0,
+    HOVER   = 0x1,
+    PRESSED = 0x2,
+    TOGGLED = 0x4,
+    FOCUSED = 0x8
 };
 
-using UIObjectBorderFlags = uint32;
+HYP_MAKE_ENUM_FLAGS(UIObjectFocusState)
 
-enum UIObjectBorderFlagBits : UIObjectBorderFlags
+enum class UIObjectBorderFlags : uint32
 {
-    UOB_NONE    = 0x00,
-    UOB_TOP     = 0x01,
-    UOB_LEFT    = 0x02,
-    UOB_BOTTOM  = 0x04,
-    UOB_RIGHT   = 0x08,
-    UOB_ALL     = UOB_TOP | UOB_LEFT | UOB_BOTTOM | UOB_RIGHT
+    NONE    = 0x0,
+    TOP     = 0x1,
+    LEFT    = 0x2,
+    BOTTOM  = 0x4,
+    RIGHT   = 0x8,
+    ALL     = TOP | LEFT | BOTTOM | RIGHT
 };
+
+HYP_MAKE_ENUM_FLAGS(UIObjectBorderFlags)
 
 struct UIObjectSize
 {
@@ -324,10 +327,10 @@ public:
      *  \return The border flags of the UI object */
     [[nodiscard]]
     HYP_FORCE_INLINE
-    UIObjectBorderFlags GetBorderFlags() const
+    EnumFlags<UIObjectBorderFlags> GetBorderFlags() const
         { return m_border_flags; }
 
-    void SetBorderFlags(UIObjectBorderFlags border_flags);
+    void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
     UIObjectAlignment GetOriginAlignment() const;
     void SetOriginAlignment(UIObjectAlignment alignment);
@@ -398,10 +401,10 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    UIObjectFocusState GetFocusState() const
+    EnumFlags<UIObjectFocusState> GetFocusState() const
         { return m_focus_state; }
 
-    void SetFocusState(UIObjectFocusState focus_state);
+    void SetFocusState(EnumFlags<UIObjectFocusState> focus_state);
 
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject. */
@@ -443,32 +446,32 @@ protected:
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
 
-    UIStage             *m_parent;
+    UIStage                         *m_parent;
 
-    Name                m_name;
+    Name                            m_name;
 
-    Vec2i               m_position;
+    Vec2i                           m_position;
 
-    UIObjectSize        m_size;
-    Vec2i               m_actual_size;
+    UIObjectSize                    m_size;
+    Vec2i                           m_actual_size;
 
-    UIObjectSize        m_inner_size;
-    Vec2i               m_actual_inner_size;
+    UIObjectSize                    m_inner_size;
+    Vec2i                           m_actual_inner_size;
 
-    UIObjectSize        m_max_size;
-    Vec2i               m_actual_max_size;
+    UIObjectSize                    m_max_size;
+    Vec2i                           m_actual_max_size;
 
-    Vec2i               m_scroll_offset;
+    Vec2i                           m_scroll_offset;
 
-    Vec2i               m_padding;
+    Vec2i                           m_padding;
 
-    int                 m_depth; // manually set depth; otherwise defaults to the node's depth in the scene
+    int                             m_depth; // manually set depth; otherwise defaults to the node's depth in the scene
 
-    uint32              m_border_radius;
-    UIObjectBorderFlags m_border_flags;
+    uint32                          m_border_radius;
+    EnumFlags<UIObjectBorderFlags>  m_border_flags;
 
-    UIObjectAlignment   m_origin_alignment;
-    UIObjectAlignment   m_parent_alignment;
+    UIObjectAlignment               m_origin_alignment;
+    UIObjectAlignment               m_parent_alignment;
 
 private:
     void UpdateActualSizes();
@@ -477,18 +480,18 @@ private:
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda) const;
 
-    const UIObjectID    m_id;
-    const UIObjectType  m_type;
+    const UIObjectID                m_id;
+    const UIObjectType              m_type;
 
-    bool                m_is_init;
+    bool                            m_is_init;
 
-    UIObjectFocusState  m_focus_state;
+    EnumFlags<UIObjectFocusState>   m_focus_state;
 
-    bool                m_is_visible;
+    bool                            m_is_visible;
     
-    bool                m_accepts_focus;
+    bool                            m_accepts_focus;
 
-    NodeProxy           m_node_proxy;
+    NodeProxy                       m_node_proxy;
 };
 
 #pragma endregion UIObject

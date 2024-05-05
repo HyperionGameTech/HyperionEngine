@@ -68,18 +68,20 @@ DepthPyramidRenderer::~DepthPyramidRenderer()
     }
 
     SafeRelease(std::move(m_depth_pyramid_sampler));
-    SafeRelease(std::move(m_depth_attachment_usage));
+    SafeRelease(std::move(m_depth_attachment));
 
     SafeRelease(std::move(m_generate_depth_pyramid));
 }
 
-void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
+void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     
-    AssertThrow(m_depth_attachment_usage == nullptr);
+    AssertThrow(depth_attachment != nullptr);
+
     // AssertThrow(depth_attachment_usage->IsDepthAttachment());
-    m_depth_attachment_usage = std::move(depth_attachment_usage);
+    AssertThrow(m_depth_attachment == nullptr);
+    m_depth_attachment = depth_attachment;
 
     m_depth_pyramid_sampler = MakeRenderObject<renderer::Sampler>(
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
@@ -88,9 +90,6 @@ void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
     );
 
     HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(g_engine->GetGPUDevice()));
-
-    const renderer::Attachment *depth_attachment = m_depth_attachment_usage->GetAttachment();
-    AssertThrow(depth_attachment != nullptr);
 
     const ImageRef &depth_image = depth_attachment->GetImage();
     AssertThrow(depth_image.IsValid());
@@ -130,10 +129,10 @@ void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
         m_depth_pyramid_mips.PushBack(std::move(mip_image_view));
     }
 
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(GenerateDepthPyramid), { });
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(GenerateDepthPyramid), { });
     AssertThrow(shader.IsValid());
     
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     m_mip_descriptor_tables.Reserve(num_mip_levels);
 
@@ -149,7 +148,7 @@ void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
 
             if (mip_level == 0) {
                 // first mip level -- input is the actual depth image
-                depth_pyramid_descriptor_set->SetElement(HYP_NAME(InImage), m_depth_attachment_usage->GetImageView());
+                depth_pyramid_descriptor_set->SetElement(HYP_NAME(InImage), depth_attachment->GetImageView());
             } else {
                 depth_pyramid_descriptor_set->SetElement(HYP_NAME(InImage), m_depth_pyramid_mips[mip_level - 1]);
             }
@@ -163,7 +162,7 @@ void DepthPyramidRenderer::Create(AttachmentUsageRef depth_attachment_usage)
     }
 
     // use the first mip descriptor table to create the compute pipeline, since the descriptor set layout is the same for all mip levels
-    m_generate_depth_pyramid = MakeRenderObject<renderer::ComputePipeline>(shader->GetShaderProgram(), m_mip_descriptor_tables.Front());
+    m_generate_depth_pyramid = MakeRenderObject<renderer::ComputePipeline>(shader, m_mip_descriptor_tables.Front());
     DeferCreate(m_generate_depth_pyramid, g_engine->GetGPUDevice());
 
     PUSH_RENDER_COMMAND(
@@ -181,7 +180,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips.Size();
 
-    const Extent3D &image_extent = m_depth_attachment_usage->GetAttachment()->GetImage()->GetExtent();
+    const Extent3D &image_extent = m_depth_attachment->GetImage()->GetExtent();
     const Extent3D &depth_pyramid_extent = m_depth_pyramid->GetExtent();
 
     uint32 mip_width = image_extent.width,
@@ -191,7 +190,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
         // level 0 == write just-rendered depth image into mip 0
 
         // put the mip into writeable state
-        m_depth_pyramid->GetGPUImage()->InsertSubResourceBarrier(
+        m_depth_pyramid->InsertSubResourceBarrier(
             command_buffer,
             renderer::ImageSubResource { .base_mip_level = mip_level },
             renderer::ResourceState::UNORDERED_ACCESS
@@ -205,16 +204,22 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
         m_mip_descriptor_tables[mip_level]->Bind(frame, m_generate_depth_pyramid, { });
 
+        struct alignas(128)
+        {
+            Vec2u   mip_dimensions;
+            Vec2u   prev_mip_dimensions;
+            uint32  mip_level;
+        } depth_pyramid_data;
+
+        depth_pyramid_data.mip_dimensions = { mip_width, mip_height };
+        depth_pyramid_data.prev_mip_dimensions = { prev_mip_width, prev_mip_height };
+        depth_pyramid_data.mip_level = mip_level;
+
+        m_generate_depth_pyramid->SetPushConstants(&depth_pyramid_data, sizeof(depth_pyramid_data));
+
         // set push constant data for the current mip level
         m_generate_depth_pyramid->Bind(
-            command_buffer,
-            Pipeline::PushConstantData {
-                .depth_pyramid_data = {
-                    .mip_dimensions = renderer::ShaderVec2<uint32>(mip_width, mip_height),
-                    .prev_mip_dimensions = renderer::ShaderVec2<uint32>(prev_mip_width, prev_mip_height),
-                    .mip_level = mip_level
-                }
-            }
+            command_buffer
         );
         
         // dispatch to generate this mip level
@@ -228,7 +233,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
         );
 
         // put this mip into readable state
-        m_depth_pyramid->GetGPUImage()->InsertSubResourceBarrier(
+        m_depth_pyramid->InsertSubResourceBarrier(
             command_buffer,
             renderer::ImageSubResource { .base_mip_level = mip_level },
             renderer::ResourceState::SHADER_RESOURCE
@@ -236,7 +241,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
     }
 
     // all mip levels have been transitioned into this state
-    m_depth_pyramid->GetGPUImage()->SetResourceState(
+    m_depth_pyramid->SetResourceState(
         renderer::ResourceState::SHADER_RESOURCE
     );
 

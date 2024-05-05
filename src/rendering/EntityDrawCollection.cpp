@@ -23,18 +23,18 @@ static constexpr bool do_parallel_collection = true;
 
 struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 {
-    RC<EntityDrawCollection>                collection;
-    Array<RenderProxy>                      added_proxies;
-    Array<ID<Entity>>                       removed_proxies;
+    RC<EntityDrawCollection>            collection;
+    Array<RenderProxy>                  added_proxies;
+    Array<ID<Entity>>                   removed_proxies;
 
-    Handle<Framebuffer>                     framebuffer;
-    Optional<RenderableAttributeSet>        override_attributes;
+    FramebufferRef                      framebuffer;
+    Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups)(
         const RC<EntityDrawCollection> &collection,
         Array<RenderProxy> &&added_proxies,
         Array<ID<Entity>> &&removed_proxies,
-        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
         added_proxies(std::move(added_proxies)),
@@ -44,7 +44,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
     }
 
-    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override = default;
+    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override
+    {
+        SafeRelease(std::move(framebuffer));
+    }
 
     virtual Result operator()() override
     {
@@ -64,8 +67,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { }
             };
 
-            if (framebuffer.IsValid()) {
-                attributes.SetFramebufferID(framebuffer->GetID());
+            if (framebuffer != nullptr) {
+                attributes.SetFramebuffer(framebuffer);
             }
 
             if (override_attributes.HasValue()) {
@@ -104,6 +107,26 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
 
             if (!render_proxy_group.GetRenderGroup().IsValid()) {
+                DebugLog(LogType::Debug, "Creating RenderGroup for attributes:\n"
+                    "\tVertex Attributes: %llu\n"
+                    "\tBucket: %u\n"
+                    "\tShader Definition: %s  %llu\n"
+                    "\tFramebuffer: %llu\n"
+                    "\tCull Mode: %u\n"
+                    "\tFlags: %u\n"
+                    "\tDrawable layer: %u\n"
+                    "\tMesh name: %s\n"
+                    "\n",
+                    attributes.GetMeshAttributes().vertex_attributes.flag_mask,
+                    attributes.GetMaterialAttributes().bucket,
+                    *attributes.GetShaderDefinition().GetName(),
+                    attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
+                    attributes.GetFramebuffer().index,
+                    attributes.GetMaterialAttributes().cull_faces,
+                    attributes.GetMaterialAttributes().flags,
+                    attributes.GetDrawableLayer().layer_index,
+                    mesh.IsValid() ? *mesh->GetName() : "<None>");
+
                 // Create RenderGroup
                 Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
 
@@ -296,7 +319,7 @@ RenderList::~RenderList()
 {
 }
 
-void RenderList::UpdateOnRenderThread(const Handle<Framebuffer> &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+void RenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
@@ -420,7 +443,7 @@ void RenderList::ExecuteDrawCalls(
 
 void RenderList::ExecuteDrawCalls(
     Frame *frame,
-    const Handle<Framebuffer> &framebuffer,
+    const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
     PushConstantData push_constant
@@ -448,7 +471,7 @@ void RenderList::ExecuteDrawCalls(
 void RenderList::ExecuteDrawCalls(
     Frame *frame,
     const Handle<Camera> &camera,
-    const Handle<Framebuffer> &framebuffer,
+    const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
     PushConstantData push_constant
@@ -464,7 +487,7 @@ void RenderList::ExecuteDrawCalls(
     const uint frame_index = frame->GetFrameIndex();
 
     if (framebuffer) {
-        framebuffer->BeginCapture(frame_index, command_buffer);
+        framebuffer->BeginCapture(command_buffer, frame_index);
     }
 
     g_engine->GetRenderState().BindCamera(camera.Get());
@@ -482,15 +505,15 @@ void RenderList::ExecuteDrawCalls(
 
             AssertThrow(proxy_group.GetRenderGroup().IsValid());
 
-            if (framebuffer) {
+            if (framebuffer.IsValid()) {
                 AssertThrowMsg(
-                    attributes.GetFramebufferID() == framebuffer->GetID(),
-                    "Given Framebuffer's ID does not match RenderList item's framebuffer ID -- invalid data passed?"
+                    attributes.GetFramebuffer() == framebuffer,
+                    "Given Framebuffer does not match RenderList item's framebuffer -- invalid data passed?"
                 );
             }
 
             if (push_constant) {
-                proxy_group.GetRenderGroup()->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
+                proxy_group.GetRenderGroup()->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
             }
 
             if (use_draw_indirect && cull_data != nullptr) {
@@ -504,7 +527,7 @@ void RenderList::ExecuteDrawCalls(
     g_engine->GetRenderState().UnbindCamera();
 
     if (framebuffer) {
-        framebuffer->EndCapture(frame_index, command_buffer);
+        framebuffer->EndCapture(command_buffer, frame_index);
     }
 }
 

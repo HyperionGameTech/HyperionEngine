@@ -3,12 +3,7 @@
 #ifndef HYPERION_SCREEN_CAPTURE_HPP
 #define HYPERION_SCREEN_CAPTURE_HPP
 
-#include <rendering/PostFX.hpp>
-#include <rendering/RenderGroup.hpp>
-#include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
-#include <rendering/Buffers.hpp>
-#include <rendering/EnvProbe.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 

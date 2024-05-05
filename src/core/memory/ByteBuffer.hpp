@@ -6,9 +6,9 @@
 #include <core/containers/Array.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/memory/Memory.hpp>
+
 #include <HashCode.hpp>
 #include <Constants.hpp>
-
 #include <Types.hpp>
 
 namespace hyperion {

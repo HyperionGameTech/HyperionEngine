@@ -189,14 +189,14 @@
   </Type>
 
   <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
-    <DisplayString>{{ Index={index} Strong={_container->m_data.m_values[index].ref_count_strong.m_value} Weak={_container->m_data.m_values[index].ref_count_weak.m_value} }}</DisplayString>
+    <DisplayString>{{ ID={index} Strong={_container->m_data.m_values[index - 1].ref_count_strong.m_value} Weak={_container->m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
 
     <Expand>
-      <Item Name="[Strong]">(_container->m_data.m_values[index].ref_count_strong.m_value)</Item>
-      <Item Name="[Weak]">_container->m_data.m_values[index].ref_count_weak.m_value</Item>
+      <Item Name="[Strong]">(_container->m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
+      <Item Name="[Weak]">_container->m_data.m_values[index - 1].ref_count_weak.m_value</Item>
       <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
 
-      <ExpandedItem>($T1 *)(&amp;(_container->m_data.m_values[index]))</ExpandedItem>
+      <ExpandedItem>($T1 *)(&amp;(_container->m_data.m_values[index - 1].storage))</ExpandedItem>
     </Expand>
   </Type>
 

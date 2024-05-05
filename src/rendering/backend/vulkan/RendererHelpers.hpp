@@ -71,37 +71,8 @@ private:
     Array<Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &>>   m_functions;
     platform::FenceRef<Platform::VULKAN>                                        m_fence;
 
-    Result Begin(Device *device)
-    {
-        command_buffer = MakeRenderObject<platform::CommandBuffer<Platform::VULKAN>, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-        m_fence = MakeRenderObject<platform::Fence<Platform::VULKAN>, Platform::VULKAN>();
-
-        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, pool));
-
-        return command_buffer->Begin(device);
-    }
-
-    Result End(Device *device)
-    {
-        Result result;
-
-        HYPERION_PASS_ERRORS(command_buffer->End(device), result);
-
-        HYPERION_PASS_ERRORS(m_fence->Create(device), result);
-        HYPERION_PASS_ERRORS(m_fence->Reset(device), result);
-
-        // Submit to the queue
-        auto queue_graphics = device->GetQueue(family_indices.graphics_family.Get(), 0);
-
-        HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(queue_graphics, m_fence, nullptr), result);
-        
-        HYPERION_PASS_ERRORS(m_fence->WaitForGPU(device), result);
-        HYPERION_PASS_ERRORS(m_fence->Destroy(device), result);
-
-        HYPERION_PASS_ERRORS(command_buffer->Destroy(device), result);
-
-        return result;
-    }
+    Result Begin(Device *device);
+    Result End(Device *device);
 };
 
 } // namespace helpers

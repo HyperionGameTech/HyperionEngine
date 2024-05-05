@@ -245,9 +245,9 @@ void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D
             commands.Push([&](CommandBuffer *command_buffer)
             {
                 // put src image in state for copying from
-                image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+                image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
                 // put dst image in state for copying to
-                atlas->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+                atlas->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
                 //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
                 atlas->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
@@ -343,7 +343,6 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
             buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
             HYPERION_ASSERT_RESULT(buffer->Create(g_engine->GetGPUDevice(), buffer_size));
             buffer->SetResourceState(renderer::ResourceState::COPY_DST);
-            buffer->GetMapping(g_engine->GetGPUDevice());
 
             if (!result) {
                 return result;
@@ -353,13 +352,12 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
 
             AssertThrow(atlas);
             AssertThrow(atlas->GetImage());
-            AssertThrow(atlas->GetImage()->GetGPUImage());
 
             commands.Push([&](CommandBuffer *cmd)
             {
 
                 // put src image in state for copying from
-                atlas->GetImage()->GetGPUImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+                atlas->GetImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
                 
                 // put dst buffer in state for copying to
                 buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);

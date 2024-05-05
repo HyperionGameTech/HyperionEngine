@@ -21,7 +21,7 @@ class RaytracingPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
 {
 public:
     RaytracingPipeline();
-    RaytracingPipeline(ShaderProgramRef<Platform::VULKAN> shader, DescriptorTableRef<Platform::VULKAN> descriptor_table);
+    RaytracingPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table);
     RaytracingPipeline(const RaytracingPipeline &other)             = delete;
     RaytracingPipeline &operator=(const RaytracingPipeline &other)  = delete;
     ~RaytracingPipeline();
@@ -30,7 +30,7 @@ public:
     Result Destroy(Device<Platform::VULKAN> *device);
 
     void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
-    void SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const;
+    
     void TraceRays(
         Device<Platform::VULKAN> *device,
         CommandBuffer<Platform::VULKAN> *command_buffer,
@@ -54,7 +54,7 @@ private:
 
     using ShaderBindingTableMap = std::unordered_map<ShaderModuleType, ShaderBindingTableEntry>;
 
-    Result CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram<Platform::VULKAN> *shader_program);
+    Result CreateShaderBindingTables(Device<Platform::VULKAN> *device, Shader<Platform::VULKAN> *shader);
 
     Result CreateShaderBindingTableEntry(
         Device<Platform::VULKAN> *device,

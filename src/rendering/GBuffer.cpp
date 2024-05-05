@@ -1,13 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/DeferredSystem.hpp>
+#include <rendering/GBuffer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
-const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_resources = {
+const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resources = {
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_COLOR) }, // color
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_NORMALS) }, // normal
     GBufferResource { GBufferFormat(InternalFormat::RGBA8) }, // material
@@ -23,9 +24,9 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
 };
 
 static void AddOwnedAttachment(
+    uint binding,
     InternalFormat format,
-    Handle<Framebuffer> &framebuffer,
-    Array<AttachmentRef> &attachments,
+    FramebufferRef &framebuffer,
     Extent2D extent = Extent2D { 0, 0 }
 )
 {
@@ -33,63 +34,62 @@ static void AddOwnedAttachment(
         extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
-    auto attachment = MakeRenderObject<renderer::Attachment>(
-        MakeRenderObject<Image>(renderer::FramebufferImage2D(
-            extent,
-            format,
-            nullptr
-        )),
-        RenderPassStage::SHADER
-    );
+    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
+        extent,
+        format,
+        nullptr
+    ));
 
-    HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
-    attachments.PushBack(attachment);
+    HYPERION_ASSERT_RESULT(attachment_image->Create(g_engine->GetGPUInstance()->GetDevice()));
 
-    auto attachment_usage = MakeRenderObject<renderer::AttachmentUsage>(
-        attachment,
+    AttachmentRef attachment = MakeRenderObject<renderer::Attachment>(
+        attachment_image,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
+    
+    attachment->SetBinding(binding);
+    attachment->SetAllowBlending(true);
+    HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
 
-    // ALLOW alpha blending if a pipeline uses it, not neccessarily enabling it.
-    attachment_usage->SetAllowBlending(true);
-    HYPERION_ASSERT_RESULT(attachment_usage->Create(g_engine->GetGPUInstance()->GetDevice()));
-    framebuffer->AddAttachmentUsage(std::move(attachment_usage));
+    framebuffer->AddAttachment(std::move(attachment));
 }
 
 static void AddSharedAttachment(
-    uint attachment_index,
-    Handle<Framebuffer> &framebuffer,
-    Array<AttachmentRef> &attachments
+    uint binding,
+    FramebufferRef &framebuffer
 )
 {
-    auto &opaque_fbo = g_engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
-    AssertThrowMsg(opaque_fbo != nullptr, "Bucket framebuffers added in wrong order");
+    const FramebufferRef &opaque_fbo = g_engine->GetGBuffer().Get(BUCKET_OPAQUE).GetFramebuffer();
+    AssertThrowMsg(opaque_fbo.IsValid(), "Bucket framebuffers added in wrong order");
 
-    AssertThrow(attachment_index < opaque_fbo->GetAttachmentUsages().Size());
-
-    auto attachment_usage = MakeRenderObject<renderer::AttachmentUsage>(
-        opaque_fbo->GetAttachmentUsages()[attachment_index]->GetAttachment(),
+    const AttachmentRef &parent_attachment = opaque_fbo->GetAttachment(binding);
+    AssertThrow(parent_attachment.IsValid());
+    
+    AttachmentRef attachment = MakeRenderObject<renderer::Attachment>(
+        parent_attachment->GetImage(),
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::LOAD,
         renderer::StoreOperation::STORE
     );
 
-    attachment_usage->SetBinding(attachment_index);
-    attachment_usage->SetAllowBlending(false);
-    HYPERION_ASSERT_RESULT(attachment_usage->Create(g_engine->GetGPUInstance()->GetDevice()));
+    attachment->SetBinding(binding);
+    attachment->SetAllowBlending(false);
+    HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
 
-    framebuffer->AddAttachmentUsage(std::move(attachment_usage));
+    framebuffer->AddAttachment(attachment);
 }
 
 static InternalFormat GetImageFormat(GBufferResourceName resource)
 {
     InternalFormat color_format = InternalFormat::NONE;
 
-    if (const InternalFormat *format = DeferredSystem::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
+    if (const InternalFormat *format = GBuffer::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
         color_format = *format;
-    } else if (const TextureFormatDefault *default_format = DeferredSystem::gbuffer_resources[resource].format.TryGet<TextureFormatDefault>()) {
+    } else if (const TextureFormatDefault *default_format = GBuffer::gbuffer_resources[resource].format.TryGet<TextureFormatDefault>()) {
         color_format = g_engine->GetDefaultFormat(*default_format);   
-    } else if (const Array<InternalFormat> *default_formats = DeferredSystem::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>()) {
+    } else if (const Array<InternalFormat> *default_formats = GBuffer::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>()) {
         for (const InternalFormat format : *default_formats) {
             if (g_engine->GetGPUDevice()->GetFeatures().IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
                 color_format = format;
@@ -104,54 +104,61 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
     return color_format;
 }
 
-DeferredSystem::DeferredSystem()
+GBuffer::GBuffer()
 {
     for (SizeType i = 0; i < m_buckets.Size(); i++) {
         m_buckets[i].SetBucket(Bucket(i));
     }
 }
 
-void DeferredSystem::Create()
+void GBuffer::Create()
 {
     for (auto &bucket : m_buckets) {
         bucket.CreateFramebuffer();
     }
 }
 
-void DeferredSystem::Destroy()
+void GBuffer::Destroy()
 {
     for (auto &bucket : m_buckets) {
         bucket.Destroy();
     }
 }
 
-DeferredSystem::RenderGroupHolder::RenderGroupHolder()
+GBuffer::GBufferBucket::GBufferBucket()
 {
 }
 
-DeferredSystem::RenderGroupHolder::~RenderGroupHolder()
+GBuffer::GBufferBucket::~GBufferBucket()
 {
 }
 
-void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &render_group)
+const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourceName resource_name) const
 {
-    if (render_group->GetRenderableAttributes().GetFramebufferID()) {
-        Handle<Framebuffer> framebuffer(render_group->GetRenderableAttributes().GetFramebufferID());
+    AssertThrow(framebuffer != nullptr);
+    AssertThrow(uint(resource_name) < uint(GBUFFER_RESOURCE_MAX));
 
-        AssertThrowMsg(framebuffer.IsValid(), "Invalid framebuffer ID %u", render_group->GetRenderableAttributes().GetFramebufferID().Value());
+    return framebuffer->GetAttachment(uint(resource_name));
+}
 
-        render_group->AddFramebuffer(std::move(framebuffer));
+void GBuffer::GBufferBucket::AddRenderGroup(Handle<RenderGroup> &render_group)
+{
+    if (render_group->GetRenderableAttributes().GetFramebuffer().IsValid()) {
+        const FramebufferRef &framebuffer = render_group->GetRenderableAttributes().GetFramebuffer();
+        AssertThrowMsg(framebuffer != nullptr, "Invalid framebuffer");
+
+        render_group->AddFramebuffer(framebuffer);
     } else {
         AddFramebuffersToRenderGroup(render_group);
     }
 }
 
-void DeferredSystem::RenderGroupHolder::AddFramebuffersToRenderGroup(Handle<RenderGroup> &render_group)
+void GBuffer::GBufferBucket::AddFramebuffersToRenderGroup(Handle<RenderGroup> &render_group)
 {
-    render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+    render_group->AddFramebuffer(framebuffer);
 }
 
-void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
+void GBuffer::GBufferBucket::CreateFramebuffer()
 {
     renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
@@ -165,9 +172,9 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
     //     extent = {2000, 2000};//tmp
     // }
 
-    framebuffer = CreateObject<Framebuffer>(
+    framebuffer = MakeRenderObject<renderer::Framebuffer>(
         extent,
-        RenderPassStage::SHADER,
+        renderer::RenderPassStage::SHADER,
         mode
     );
 
@@ -175,26 +182,26 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
     if (bucket == BUCKET_UI) {
         AddOwnedAttachment(
+            0,
             InternalFormat::RGBA8_SRGB,
             framebuffer,
-            attachments,
             extent
         );
 
         // Needed for stencil
         AddOwnedAttachment(
+            1,
             InternalFormat::DEPTH_32F,
             framebuffer,
-            attachments,
             extent
         );
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets
         AddOwnedAttachment(
+            0,
             color_format,
             framebuffer,
-            attachments,
             extent
         );
 
@@ -205,9 +212,9 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
                 const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
                 AddOwnedAttachment(
+                    i,
                     format,
                     framebuffer,
-                    attachments,
                     extent
                 );
             }
@@ -216,23 +223,18 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
                     i,
-                    framebuffer,
-                    attachments
+                    framebuffer
                 );
             }
         }
     }
 
-    InitObject(framebuffer);
+    DeferCreate(framebuffer, g_engine->GetGPUDevice());
 }
 
-void DeferredSystem::RenderGroupHolder::Destroy()
+void GBuffer::GBufferBucket::Destroy()
 {
     framebuffer.Reset();
-
-    for (AttachmentRef &attachment : attachments) {
-        SafeRelease(std::move(attachment));
-    }
 }
 
 } // namespace hyperion

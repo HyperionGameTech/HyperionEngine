@@ -3,7 +3,11 @@
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <util/shader_compiler/ShaderCompiler.hpp>
+
 #include <core/system/Debug.hpp>
+
+#include <Engine.hpp>
 
 #include <algorithm>
 
@@ -11,44 +15,11 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-ShaderProgram<Platform::VULKAN>::ShaderProgram()
-    : m_entry_point_name("main")
+#pragma region ShaderPlatformImpl
+
+VkPipelineShaderStageCreateInfo ShaderPlatformImpl<Platform::VULKAN>::CreateShaderStage(const ShaderModule<Platform::VULKAN> &shader_module)
 {
-}
-
-ShaderProgram<Platform::VULKAN>::ShaderProgram(String entry_point_name)
-    : m_entry_point_name(std::move(entry_point_name))
-{
-}
-
-ShaderProgram<Platform::VULKAN>::~ShaderProgram()
-{
-}
-
-Result ShaderProgram<Platform::VULKAN>::AttachShader(Device<Platform::VULKAN> *device, ShaderModuleType type, const ShaderObject &shader_object)
-{
-    const ByteBuffer &spirv = shader_object.bytes;
-
-    VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    create_info.codeSize = spirv.Size();
-    create_info.pCode = reinterpret_cast<const uint32 *>(spirv.Data());
-
-    VkShaderModule shader_module;
-
-    HYPERION_VK_CHECK(vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &shader_module));
-
-    m_shader_modules.PushBack(ShaderModule<Platform::VULKAN>(type, m_entry_point_name, spirv, shader_module));
-
-    std::sort(m_shader_modules.Begin(), m_shader_modules.End());
-
-    HYPERION_RETURN_OK;
-}
-
-VkPipelineShaderStageCreateInfo
-ShaderProgram<Platform::VULKAN>::CreateShaderStage(const ShaderModule<Platform::VULKAN> &shader_module)
-{
-    VkPipelineShaderStageCreateInfo create_info{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-
+    VkPipelineShaderStageCreateInfo create_info { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
     create_info.module = shader_module.shader_module;
     create_info.pName = shader_module.entry_point_name.Data();
 
@@ -93,18 +64,90 @@ ShaderProgram<Platform::VULKAN>::CreateShaderStage(const ShaderModule<Platform::
         create_info.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
         break;
     default:
-        HYP_THROW("Shader type " + std::to_string(int(shader_module.type)) + " is currently unimplemented!");
+        HYP_THROW("Not implemented");
     }
 
     return create_info;
 }
 
-Result ShaderProgram<Platform::VULKAN>::CreateShaderGroups()
+#pragma endregion ShaderPlatformImpl
+
+#pragma region Shader
+
+template <>
+Shader<Platform::VULKAN>::Shader(const RC<CompiledShader> &compiled_shader)
+    : m_platform_impl { this },
+      m_compiled_shader(compiled_shader),
+      m_entry_point_name("main")
+{
+}
+
+template <>
+Shader<Platform::VULKAN>::~Shader()
+{
+}
+
+template <>
+bool Shader<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.vk_shader_stages.Size() != 0;
+}
+
+template <>
+Result Shader<Platform::VULKAN>::AttachSubShader(Device<Platform::VULKAN> *device, ShaderModuleType type, const ShaderObject &shader_object)
+{
+    const ByteBuffer &spirv = shader_object.bytes;
+
+    VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    create_info.codeSize = spirv.Size();
+    create_info.pCode = reinterpret_cast<const uint32 *>(spirv.Data());
+
+    VkShaderModule shader_module;
+
+    HYPERION_VK_CHECK(vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &shader_module));
+
+    m_shader_modules.PushBack(ShaderModule<Platform::VULKAN>(type, m_entry_point_name, spirv, shader_module));
+
+    std::sort(m_shader_modules.Begin(), m_shader_modules.End());
+
+    HYPERION_RETURN_OK;
+}
+
+template <>
+Result Shader<Platform::VULKAN>::AttachSubShaders()
+{
+    if (!m_compiled_shader) {
+        return { Result::RENDERER_ERR, "No compiled shader attached" };
+    }
+
+    if (!m_compiled_shader->IsValid()) {
+        return { Result::RENDERER_ERR, "Attached compiled shader is in invalid state" };
+    }
+
+    for (SizeType index = 0; index < m_compiled_shader->modules.Size(); index++) {
+        const ByteBuffer &byte_buffer = m_compiled_shader->modules[index];
+
+        if (byte_buffer.Empty()) {
+            continue;
+        }
+
+        HYPERION_BUBBLE_ERRORS(AttachSubShader(
+            g_engine->GetGPUInstance()->GetDevice(),
+            ShaderModuleType(index),
+            { byte_buffer }
+        ));
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+template <>
+Result Shader<Platform::VULKAN>::CreateShaderGroups()
 {
     m_shader_groups.Clear();
 
     for (SizeType i = 0; i < m_shader_modules.Size(); i++) {
-        const auto &shader_module = m_shader_modules[i];
+        const ShaderModule<Platform::VULKAN> &shader_module = m_shader_modules[i];
         
         switch (shader_module.type) {
         case ShaderModuleType::RAY_MISS: /* fallthrough */
@@ -144,16 +187,21 @@ Result ShaderProgram<Platform::VULKAN>::CreateShaderGroups()
     HYPERION_RETURN_OK;
 }
 
-Result ShaderProgram<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+template <>
+Result Shader<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
+    if (IsCreated()) {
+        HYPERION_RETURN_OK;
+    }
+
+    HYPERION_BUBBLE_ERRORS(AttachSubShaders());
+
     bool is_raytracing = false;
 
-    for (const auto &shader_module : m_shader_modules) {
-        is_raytracing = is_raytracing || shader_module.IsRaytracing();
+    for (const ShaderModule<Platform::VULKAN> &shader_module : m_shader_modules) {
+        is_raytracing |= shader_module.IsRaytracing();
 
-        auto stage = CreateShaderStage(shader_module);
-
-        m_shader_stages.PushBack(stage);
+        m_platform_impl.vk_shader_stages.PushBack(m_platform_impl.CreateShaderStage(shader_module));
     }
 
     if (is_raytracing) {
@@ -163,14 +211,23 @@ Result ShaderProgram<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     HYPERION_RETURN_OK;
 }
 
-Result ShaderProgram<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+template <>
+Result Shader<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    for (const auto &shader_module : m_shader_modules) {
+    if (!IsCreated()) {
+        HYPERION_RETURN_OK;
+    }
+
+    for (const ShaderModule<Platform::VULKAN> &shader_module : m_shader_modules) {
         vkDestroyShaderModule(device->GetDevice(), shader_module.shader_module, nullptr);
     }
 
+    m_shader_modules.Clear();
+
     HYPERION_RETURN_OK;
 }
+
+#pragma endregion Shader
 
 } // namespace platform
 } // namespace renderer

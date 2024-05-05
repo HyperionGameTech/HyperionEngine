@@ -10,7 +10,7 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
     : UIObject(parent, std::move(node_proxy), type)
 {
     SetBorderRadius(5);
-    SetBorderFlags(UOB_ALL);
+    SetBorderFlags(UIObjectBorderFlags::ALL);
 
     OnScroll.Bind([this](const UIMouseEventData &event_data) -> UIEventHandlerResult
     {
@@ -21,7 +21,7 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
 }
 
 UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UOT_PANEL)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::PANEL)
 {
 }
 

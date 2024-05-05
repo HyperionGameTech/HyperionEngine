@@ -1,11 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_LOADER_HPP
 #define HYPERION_LOADER_HPP
 
 #include <asset/ByteReader.hpp>
 #include <asset/BufferedByteReader.hpp>
-
-#include <vector>
 
 #define HYP_LOADER_BUFFER_SIZE 2048
 

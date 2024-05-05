@@ -3,6 +3,7 @@
 #include <rendering/ParticleSystem.hpp>
 
 #include <rendering/Buffers.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -73,7 +74,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
         // meaning we'd get some crazy high lifetimes
         particle_buffer->Memset(
             g_engine->GetGPUDevice(),
-            particle_buffer->size,
+            particle_buffer->Size(),
             0x0
         );
 
@@ -171,10 +172,13 @@ struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderComm
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (uint i = 0; i < uint(command_buffers[frame_index].Size()); i++) {
-                HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(
-                    g_engine->GetGPUInstance()->GetDevice(),
-                    g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[i]
-                ));
+                AssertThrow(command_buffers[frame_index][i].IsValid());
+
+#ifdef HYP_VULKAN
+                command_buffers[frame_index][i]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[i];
+#endif
+
+                HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(g_engine->GetGPUInstance()->GetDevice()));
             }
         }
 
@@ -250,9 +254,9 @@ void ParticleSpawner::CreateBuffers()
 void ParticleSpawner::CreateRenderGroup()
 {
     m_shader = g_shader_manager->GetOrCreate(HYP_NAME(Particle));
-    InitObject(m_shader);
+    AssertThrow(m_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -281,10 +285,11 @@ void ParticleSpawner::CreateRenderGroup()
                 .flags          = MaterialAttributes::RAF_DEPTH_TEST
             }
         ),
-        std::move(descriptor_table)
+        descriptor_table,
+        RenderGroupFlags::NONE
     );
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer>(g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
+    m_render_group->AddFramebuffer(g_engine->GetGBuffer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }
@@ -294,10 +299,10 @@ void ParticleSpawner::CreateComputePipelines()
     ShaderProperties properties;
     properties.Set("HAS_PHYSICS", m_params.has_physics);
 
-    Handle<Shader> update_particles_shader = g_shader_manager->GetOrCreate(HYP_NAME(UpdateParticles), properties);
-    InitObject(update_particles_shader);
+    ShaderRef update_particles_shader = g_shader_manager->GetOrCreate(HYP_NAME(UpdateParticles), properties);
+    AssertThrow(update_particles_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = update_particles_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -313,7 +318,7 @@ void ParticleSpawner::CreateComputePipelines()
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
     m_update_particles = MakeRenderObject<renderer::ComputePipeline>(
-        update_particles_shader->GetShaderProgram(),
+        update_particles_shader,
         descriptor_table
     );
 
@@ -368,7 +373,8 @@ void ParticleSystem::CreateBuffers()
 {
     m_staging_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
-    PUSH_RENDER_COMMAND(CreateParticleSystemBuffers,
+    PUSH_RENDER_COMMAND(
+        CreateParticleSystemBuffers,
         m_staging_buffer,
         m_quad_mesh
     );
@@ -406,8 +412,8 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     for (auto &spawner : m_particle_spawners) {
         const SizeType max_particles = spawner->GetParams().max_particles;
 
-        AssertThrow(spawner->GetIndirectBuffer()->size == sizeof(IndirectDrawCommand));
-        AssertThrow(spawner->GetParticleBuffer()->size >= sizeof(ParticleShaderData) * max_particles);
+        AssertThrow(spawner->GetIndirectBuffer()->Size() == sizeof(IndirectDrawCommand));
+        AssertThrow(spawner->GetParticleBuffer()->Size() >= sizeof(ParticleShaderData) * max_particles);
 
         spawner->GetIndirectBuffer()->InsertBarrier(
             frame->GetCommandBuffer(),
@@ -430,22 +436,30 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             continue;
         }
 
+        struct alignas(128)
+        {
+            Vec4f   origin;
+            float   spawn_radius;
+            float   randomness;
+            float   avg_lifespan;
+            uint32  max_particles;
+            float   max_particles_sqrt;
+            float   delta_time;
+            uint32  global_counter;
+        } push_constants;
+
+        push_constants.origin = Vec4f(spawner->GetParams().origin, spawner->GetParams().start_size);
+        push_constants.spawn_radius = spawner->GetParams().radius;
+        push_constants.randomness = spawner->GetParams().randomness;
+        push_constants.avg_lifespan = spawner->GetParams().lifespan;
+        push_constants.max_particles = uint32(max_particles);
+        push_constants.max_particles_sqrt = MathUtil::Sqrt(float(max_particles));
+        push_constants.delta_time = 0.016f; // TODO! Delta time for particles. we currentl don't have delta time for render thread.
+        push_constants.global_counter = m_counter;
+
+        spawner->GetComputePipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
+
         spawner->GetComputePipeline()->Bind(frame->GetCommandBuffer());
-
-        spawner->GetComputePipeline()->SetPushConstants(Pipeline::PushConstantData {
-            .particle_spawner_data = {
-                .origin             = ShaderVec4<float32>(Vector4(spawner->GetParams().origin, spawner->GetParams().start_size)),
-                .spawn_radius       = spawner->GetParams().radius,
-                .randomness         = spawner->GetParams().randomness,
-                .avg_lifespan       = spawner->GetParams().lifespan,
-                .max_particles      = uint32(max_particles),
-                .max_particles_sqrt = MathUtil::Sqrt(float(max_particles)),
-                .delta_time         = 0.016f, // TODO! Delta time for particles. we currentl don't have delta time for render thread.
-                .global_counter     = m_counter
-            }
-        });
-
-        spawner->GetComputePipeline()->SubmitPushConstants(frame->GetCommandBuffer());
 
         spawner->GetComputePipeline()->GetDescriptorTable()->Bind(
             frame,
@@ -504,7 +518,7 @@ void ParticleSystem::Render(Frame *frame)
 
             m_command_buffers[frame_index][batch_index]->Record(
                 g_engine->GetGPUDevice(),
-                pipeline->GetConstructionInfo().render_pass,
+                pipeline->GetRenderPass(),
                 [&](CommandBuffer *secondary)
                 {
                     pipeline->Bind(secondary);

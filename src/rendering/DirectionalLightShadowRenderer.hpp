@@ -4,7 +4,6 @@
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/PostFX.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EntityDrawCollection.hpp>

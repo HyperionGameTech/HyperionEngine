@@ -255,10 +255,10 @@ void SSRRenderer::CreateComputePipelines()
 
     // Write UVs pass
 
-    Handle<Shader> write_uvs_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties);
+    ShaderRef write_uvs_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties);
     AssertThrow(write_uvs_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef write_uvs_shader_descriptor_table = MakeRenderObject<renderer::DescriptorTable>(write_uvs_shader_descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -272,7 +272,7 @@ void SSRRenderer::CreateComputePipelines()
     DeferCreate(write_uvs_shader_descriptor_table, g_engine->GetGPUDevice());
 
     m_write_uvs = MakeRenderObject<renderer::ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties)->GetShaderProgram(),
+        g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
         write_uvs_shader_descriptor_table
     );
 
@@ -280,10 +280,10 @@ void SSRRenderer::CreateComputePipelines()
 
     // Sample pass
 
-    Handle<Shader> sample_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRSample), shader_properties);
+    ShaderRef sample_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRSample), shader_properties);
     AssertThrow(sample_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration sample_shader_descriptor_table_decl = sample_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration sample_shader_descriptor_table_decl = sample_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef sample_shader_descriptor_table = MakeRenderObject<renderer::DescriptorTable>(sample_shader_descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -298,7 +298,7 @@ void SSRRenderer::CreateComputePipelines()
     DeferCreate(sample_shader_descriptor_table, g_engine->GetGPUDevice());
 
     m_sample = MakeRenderObject<renderer::ComputePipeline>(
-        sample_shader->GetShaderProgram(),
+        sample_shader,
         sample_shader_descriptor_table
     );
 
@@ -332,8 +332,7 @@ void SSRRenderer::Render(Frame *frame)
 
     // PASS 1 -- write UVs
 
-    m_image_outputs[0]->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_image_outputs[0]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_write_uvs->Bind(command_buffer);
 
@@ -359,14 +358,12 @@ void SSRRenderer::Render(Frame *frame)
     });
 
     // transition the UV image back into read state
-    m_image_outputs[0]->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_image_outputs[0]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_image_outputs[1]->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_image_outputs[1]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_sample->Bind(command_buffer);
 
@@ -392,8 +389,7 @@ void SSRRenderer::Render(Frame *frame)
     });
 
     // transition sample image back into read state
-    m_image_outputs[1]->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_image_outputs[1]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
         m_temporal_blending->Render(frame);

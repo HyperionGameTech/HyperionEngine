@@ -8,7 +8,6 @@
 #include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
 #include <asset/serialization/fbom/marshals/MeshMarshal.hpp>
 #include <asset/serialization/fbom/marshals/MeshDataMarshal.hpp>
-#include <asset/serialization/fbom/marshals/ShaderMarshal.hpp>
 #include <asset/serialization/fbom/marshals/SubShaderMarshal.hpp>
 #include <asset/serialization/fbom/marshals/MaterialMarshal.hpp>
 #include <asset/serialization/fbom/marshals/TextureMarshal.hpp>
@@ -29,7 +28,6 @@ FBOM::FBOM()
     RegisterLoader<Entity>();
     RegisterLoader<Mesh>();
     RegisterLoader<MeshData>();
-    RegisterLoader<Shader>();
     RegisterLoader<SubShader>();
     RegisterLoader<Material>();
     RegisterLoader<Texture>();

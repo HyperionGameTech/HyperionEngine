@@ -45,116 +45,121 @@ template <PlatformType PLATFORM>
 class Instance;
 
 template <PlatformType PLATFORM>
+struct AttachmentPlatformImpl;
+
+template <PlatformType PLATFORM>
 class Attachment
 {
 public:
-    HYP_API Attachment(ImageRef<PLATFORM> image, RenderPassStage stage);
+    HYP_API Attachment(
+        const ImageRef<PLATFORM> &image,
+        RenderPassStage stage,
+        LoadOperation load_operation = LoadOperation::CLEAR,
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
+    );
     Attachment(const Attachment &other)             = delete;
     Attachment &operator=(const Attachment &other)  = delete;
     HYP_API ~Attachment();
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl()
+        { return m_platform_impl; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl() const
+        { return m_platform_impl; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ImageRef<PLATFORM> &GetImage() const
         { return m_image; }
 
-    RenderPassStage GetRenderPassStage() const
-        { return m_stage; }
-
-    InternalFormat GetFormat() const
-        { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
-
-    bool IsDepthAttachment() const
-        { return m_image ? m_image->IsDepthStencil() : false; }
-
-    HYP_API Result Create(Device<PLATFORM> *device);
-    HYP_API Result Destroy(Device<PLATFORM> *device);
-
-private:
-    ImageRef<PLATFORM>  m_image;
-    RenderPassStage     m_stage;
-};
-
-template <PlatformType PLATFORM>
-class AttachmentUsage
-{
-public:
-    HYP_API AttachmentUsage(
-        AttachmentRef<PLATFORM> attachment,
-        LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE,
-        BlendFunction blend_function = BlendFunction::None()
-    );
-
-    HYP_API AttachmentUsage(
-        AttachmentRef<PLATFORM> attachment,
-        ImageViewRef<PLATFORM> image_view,
-        SamplerRef<PLATFORM> sampler,
-        LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE,
-        BlendFunction blend_function = BlendFunction::None()
-    );
-
-    AttachmentUsage(const AttachmentUsage &other)               = delete;
-    AttachmentUsage &operator=(const AttachmentUsage &other)    = delete;
-    HYP_API ~AttachmentUsage();
-
-    const AttachmentRef<PLATFORM> &GetAttachment() const
-        { return m_attachment; }
-
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ImageViewRef<PLATFORM> &GetImageView() const
         { return m_image_view; }
 
-    const SamplerRef<PLATFORM> &GetSampler() const
-        { return m_sampler; }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    RenderPassStage GetRenderPassStage() const
+        { return m_stage; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    InternalFormat GetFormat() const
+        { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsDepthAttachment() const
+        { return m_image ? m_image->IsDepthStencil() : false; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     LoadOperation GetLoadOperation() const
         { return m_load_operation; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     StoreOperation GetStoreOperation() const
         { return m_store_operation; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const BlendFunction &GetBlendFunction() const
         { return m_blend_function; }
 
+    HYP_FORCE_INLINE
     void SetBlendFunction(const BlendFunction &blend_function)
         { m_blend_function = blend_function; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     uint GetBinding() const
         { return m_binding; }
     
+    HYP_FORCE_INLINE
     void SetBinding(uint binding)
         { m_binding = binding; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasBinding() const 
         { return m_binding != MathUtil::MaxSafeValue<uint>(); }
 
-    InternalFormat GetFormat() const;
-    bool IsDepthAttachment() const;
-
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool AllowBlending() const
         { return m_allow_blending; }
 
+    HYP_FORCE_INLINE
     void SetAllowBlending(bool allow_blending)
         { m_allow_blending = allow_blending; }
-    
+
+    HYP_API bool IsCreated() const;
+
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
 private:
-    AttachmentRef<PLATFORM> m_attachment;
-    ImageViewRef<PLATFORM>  m_image_view;
-    SamplerRef<PLATFORM>    m_sampler;
+    AttachmentPlatformImpl<PLATFORM>    m_platform_impl;
+
+    ImageRef<PLATFORM>                  m_image;
+    ImageViewRef<PLATFORM>              m_image_view;
+
+    RenderPassStage                     m_stage;
     
-    LoadOperation           m_load_operation;
-    StoreOperation          m_store_operation;
+    LoadOperation                       m_load_operation;
+    StoreOperation                      m_store_operation;
 
-    BlendFunction           m_blend_function;
+    BlendFunction                       m_blend_function;
 
-    uint                    m_binding = MathUtil::MaxSafeValue<uint>();
+    uint                                m_binding = MathUtil::MaxSafeValue<uint>();
 
-    bool                    m_image_view_owned = false;
-    bool                    m_sampler_owned = false;
-
-    bool                    m_allow_blending = true;
+    bool                                m_allow_blending = true;
 };
 
 } // namespace platform
@@ -171,7 +176,6 @@ namespace hyperion {
 namespace renderer {
 
 using Attachment = platform::Attachment<Platform::CURRENT>;
-using AttachmentUsage = platform::AttachmentUsage<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

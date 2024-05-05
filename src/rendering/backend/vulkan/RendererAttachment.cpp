@@ -76,141 +76,37 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
 
 #pragma endregion Helpers
 
-#pragma region AttachmentUsage
-
-AttachmentUsage<Platform::VULKAN>::AttachmentUsage(
-    AttachmentRef<Platform::VULKAN> attachment,
-    LoadOperation load_operation,
-    StoreOperation store_operation,
-    BlendFunction blend_function
-) : AttachmentUsage(
-        std::move(attachment),
-        MakeRenderObject<ImageView<Platform::VULKAN>>(),
-        MakeRenderObject<Sampler<Platform::VULKAN>>(),
-        load_operation,
-        store_operation,
-        blend_function
-    )
-{
-    m_image_view_owned = true;
-    m_sampler_owned = true;
-}
-
-AttachmentUsage<Platform::VULKAN>::AttachmentUsage(
-    AttachmentRef<Platform::VULKAN> attachment,
-    ImageViewRef<Platform::VULKAN> image_view,
-    SamplerRef<Platform::VULKAN> sampler,
-    LoadOperation load_operation,
-    StoreOperation store_operation,
-    BlendFunction blend_function
-) : m_attachment(std::move(attachment)),
-    m_load_operation(load_operation),
-    m_store_operation(store_operation),
-    m_blend_function(blend_function),
-    m_image_view(std::move(image_view)),
-    m_sampler(std::move(sampler)),
-    m_image_view_owned(false),
-    m_sampler_owned(false)
-{
-}
-
-AttachmentUsage<Platform::VULKAN>::~AttachmentUsage()
-{
-}
-
-InternalFormat AttachmentUsage<Platform::VULKAN>::GetFormat() const
-{
-    if (m_attachment == nullptr) {
-        DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
-
-        return InternalFormat::NONE;
-    }
-
-    return m_attachment->GetFormat();
-}
-
-bool AttachmentUsage<Platform::VULKAN>::IsDepthAttachment() const
-{
-    if (m_attachment == nullptr) {
-        DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
-
-        return false;
-    }
-
-    return m_attachment->IsDepthAttachment();
-}
-
-VkAttachmentDescription AttachmentUsage<Platform::VULKAN>::GetAttachmentDescription() const
-{
-    return VkAttachmentDescription {
-        .format         = helpers::ToVkFormat(m_attachment->GetFormat()),
-        .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = ToVkLoadOp(m_load_operation),
-        .storeOp        = ToVkStoreOp(m_store_operation),
-        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = GetInitialLayout(m_load_operation),
-        .finalLayout    = GetFinalLayout(m_attachment->GetRenderPassStage(), m_attachment->IsDepthAttachment())
-    };
-}
-
-VkAttachmentReference AttachmentUsage<Platform::VULKAN>::GetHandle() const
-{
-    if (!HasBinding()) {
-        DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", GetBinding());
-    }
-
-    const bool is_depth_attachment = m_attachment
-        ? m_attachment->IsDepthAttachment()
-        : false;
-
-    return VkAttachmentReference {
-        .attachment = GetBinding(),
-        .layout     = GetIntermediateLayout(is_depth_attachment)
-    };
-}
-
-Result AttachmentUsage<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
-{
-    AssertThrow(m_image_view != nullptr);
-    AssertThrow(m_sampler != nullptr);
-
-    if (m_image_view_owned) {
-        AssertThrowMsg(m_attachment != nullptr, "Cannot create ImageView for AttachmentUsage without a parent Attachment");
-
-        HYPERION_BUBBLE_ERRORS(m_image_view->Create(device, m_attachment->GetImage()));
-    }
-
-    if (m_sampler_owned) {
-        HYPERION_BUBBLE_ERRORS(m_sampler->Create(device));
-    }
-
-    HYPERION_RETURN_OK;
-}
-
-Result AttachmentUsage<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    SafeRelease(std::move(m_image_view));
-    SafeRelease(std::move(m_sampler));
-
-    HYPERION_RETURN_OK;
-}
-
-#pragma endregion AttachmentUsage
-
 #pragma region Attachment
 
 template <>
-Attachment<Platform::VULKAN>::Attachment(ImageRef<Platform::VULKAN> image, RenderPassStage stage)
-    : m_image(std::move(image)),
-      m_stage(stage)
+Attachment<Platform::VULKAN>::Attachment(
+    const ImageRef<Platform::VULKAN> &image,
+    RenderPassStage stage,
+    LoadOperation load_operation,
+    StoreOperation store_operation,
+    BlendFunction blend_function
+) : m_platform_impl { this },
+    m_image(image),
+    m_image_view(MakeRenderObject<ImageView<Platform::VULKAN>>()),
+    m_stage(stage),
+    m_load_operation(load_operation),
+    m_store_operation(store_operation),
+    m_blend_function(blend_function)
+
 {
 }
 
 template <>
 Attachment<Platform::VULKAN>::~Attachment()
 {
-    AssertThrowMsg(m_image == nullptr, "Image should have been deleted");
+    SafeRelease(std::move(m_image));
+    SafeRelease(std::move(m_image_view));
+}
+
+template <>
+bool Attachment<Platform::VULKAN>::IsCreated() const
+{
+    return m_image_view != nullptr && m_image_view->IsCreated();
 }
 
 template <>
@@ -218,26 +114,53 @@ Result Attachment<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_image != nullptr);
 
-    Result result;
+    if (!m_image->IsCreated()) {
+        return { Result::RENDERER_ERR, "Image is expected to be initialized before initializing attachment" };
+    }
 
-    HYPERION_BUBBLE_ERRORS(m_image->Create(device));
-
-    return result;
+    return m_image_view->Create(device, m_image);
 }
 
 template <>
 Result Attachment<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_image != nullptr);
-
-    Result result;
-
     SafeRelease(std::move(m_image));
+    SafeRelease(std::move(m_image_view));
 
-    return result;
+    HYPERION_RETURN_OK;
 }
 
 #pragma endregion Attachment
+
+#pragma region AttachmentPlatformImpl
+
+VkAttachmentDescription AttachmentPlatformImpl<Platform::VULKAN>::GetAttachmentDescription() const
+{
+    return VkAttachmentDescription {
+        .format         = helpers::ToVkFormat(self->GetFormat()),
+        .samples        = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp         = ToVkLoadOp(self->GetLoadOperation()),
+        .storeOp        = ToVkStoreOp(self->GetStoreOperation()),
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout  = GetInitialLayout(self->GetLoadOperation()),
+        .finalLayout    = GetFinalLayout(self->GetRenderPassStage(), self->IsDepthAttachment())
+    };
+}
+
+VkAttachmentReference AttachmentPlatformImpl<Platform::VULKAN>::GetHandle() const
+{
+    if (!self->HasBinding()) {
+        DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", self->GetBinding());
+    }
+
+    return VkAttachmentReference {
+        .attachment = self->GetBinding(),
+        .layout     = GetIntermediateLayout(self->IsDepthAttachment())
+    };
+}
+
+#pragma endregion AttachmentPlatformImpl
 
 } // namespace platform
 } // namespace renderer

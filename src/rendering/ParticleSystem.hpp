@@ -10,17 +10,17 @@
 
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>
+#include <math/BoundingSphere.hpp>
 
 #include <util/img/Bitmap.hpp>
 
-#include <rendering/RenderGroup.hpp>
-#include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <atomic>
@@ -89,7 +89,7 @@ private:
     GPUBufferRef            m_indirect_buffer;
     GPUBufferRef            m_noise_buffer;
     ComputePipelineRef      m_update_particles;
-    Handle<Shader>          m_shader;
+    ShaderRef               m_shader;
     Handle<RenderGroup>     m_render_group;
     Bitmap<1>               m_noise_map;
 };

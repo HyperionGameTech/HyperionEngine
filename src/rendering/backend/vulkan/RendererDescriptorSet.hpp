@@ -52,184 +52,41 @@ class CommandBuffer;
 struct VulkanDescriptorSetLayoutWrapper;
 
 template <>
-class DescriptorSet<Platform::VULKAN>
+struct DescriptorSetElementTypeInfo<Platform::VULKAN, GPUBuffer<Platform::VULKAN>>
 {
-public:
-    DescriptorSet(const DescriptorSetLayout<Platform::VULKAN> &layout);
-    DescriptorSet(const DescriptorSet &other)                 = delete;
-    DescriptorSet &operator=(const DescriptorSet &other)      = delete;
-    DescriptorSet(DescriptorSet &&other) noexcept             = delete;
-    DescriptorSet &operator=(DescriptorSet &&other) noexcept  = delete;
-    ~DescriptorSet();
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
+        | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
+        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER))
+        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+};
 
-    const DescriptorSetLayout<Platform::VULKAN> &GetLayout() const
-        { return m_layout; }
+template <>
+struct DescriptorSetElementTypeInfo<Platform::VULKAN, ImageView<Platform::VULKAN>>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
+        | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+};
 
-    Result Create(Device<Platform::VULKAN> *device);
-    Result Destroy(Device<Platform::VULKAN> *device);
-    Result Update(Device<Platform::VULKAN> *device);
+template <>
+struct DescriptorSetElementTypeInfo<Platform::VULKAN, Sampler<Platform::VULKAN>>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+};
 
-    bool HasElement(Name name) const;
+template <>
+struct DescriptorSetElementTypeInfo<Platform::VULKAN, TopLevelAccelerationStructure<Platform::VULKAN>>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
+};
 
-    void SetElement(Name name, const GPUBufferRef<Platform::VULKAN> &ref);
-    void SetElement(Name name, uint index, const GPUBufferRef<Platform::VULKAN> &ref);
-    void SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<Platform::VULKAN> &ref);
-    
-    void SetElement(Name name, const ImageViewRef<Platform::VULKAN> &ref);
-    void SetElement(Name name, uint index, const ImageViewRef<Platform::VULKAN> &ref);
-    
-    void SetElement(Name name, const SamplerRef<Platform::VULKAN> &ref);
-    void SetElement(Name name, uint index, const SamplerRef<Platform::VULKAN> &ref);
-    
-    void SetElement(Name name, const TLASRef<Platform::VULKAN> &ref);
-    void SetElement(Name name, uint index, const TLASRef<Platform::VULKAN> &ref);
-
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
-
-    DescriptorSetRef<Platform::VULKAN> Clone() const;
+template <>
+struct DescriptorSetPlatformImpl<Platform::VULKAN>
+{
+    DescriptorSet<Platform::VULKAN>         *self = nullptr;
+    VkDescriptorSet                         handle = VK_NULL_HANDLE;
+    RC<VulkanDescriptorSetLayoutWrapper>    vk_layout_wrapper;
 
     VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
-
-private:
-    template <class T>
-    DescriptorSetElement<Platform::VULKAN> &SetElement(Name name, uint index, const T &ref)
-    {
-        const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
-        AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
-
-        // Type check
-        static const uint32 mask = DescriptorSetElementTypeInfo<typename T::Type>::mask;
-        AssertThrowMsg(mask & (1u << uint32(layout_element->type)), "Layout type for %s does not match given type", name.LookupString());
-
-        // Range check
-        AssertThrowMsg(
-            index < layout_element->count,
-            "Index %u out of range for element %s with count %u",
-            index,
-            name.LookupString(),
-            layout_element->count
-        );
-
-        // Buffer type check, to make sure the buffer type is allowed for the given element
-        if constexpr (std::is_same_v<typename T::Type, GPUBuffer<Platform::VULKAN>>) {
-            if (ref != nullptr) {
-                const GPUBufferType buffer_type = ref->GetBufferType();
-
-                AssertThrowMsg(
-                    (descriptor_set_element_type_to_buffer_type[uint(layout_element->type)] & (1u << uint(buffer_type))),
-                    "Buffer type %u is not in the allowed types for element %s",
-                    uint(buffer_type),
-                    name.LookupString()
-                );
-
-                if (layout_element->size != 0 && layout_element->size != ~0u) {
-                    const uint remainder = ref->size % layout_element->size;
-
-                    AssertThrowMsg(
-                        remainder == 0,
-                        "Buffer size (%llu) is not a multiplier of layout size (%llu) for element %s",
-                        ref->size,
-                        layout_element->size,
-                        name.LookupString()
-                    );
-                }
-            }
-        }
-
-        auto it = m_elements.Find(name);
-
-        if (it == m_elements.End()) {
-            it = m_elements.Insert({
-                name,
-                DescriptorSetElement<Platform::VULKAN> { }
-            }).first;
-        }
-
-        DescriptorSetElement<Platform::VULKAN> &element = it->second;
-
-        auto element_it = element.values.Find(index);
-
-        if (element_it == element.values.End()) {
-            element_it = element.values.Insert({
-                index,
-                NormalizedType<T>(ref)
-            }).first;
-        } else {
-            T *current_value = element_it->second.TryGet<T>();
-
-            if (current_value) {
-                SafeRelease(std::move(*current_value));
-            }
-
-            element_it->second.Set<NormalizedType<T>>(ref);
-        }
-
-        // Mark the range as dirty so that it will be updated in the next update
-        element.dirty_range |= { index, index + 1 };
-
-        return element;
-    }
-
-    template <class T>
-    void PrefillElements(Name name, uint count, const Optional<T> &placeholder_value = { })
-    {
-        bool is_bindless = false;
-
-        if (count == ~0u) {
-            count = max_bindless_resources;
-            is_bindless = true;
-        }
-
-        const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
-        AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
-
-        if (is_bindless) {
-            AssertThrowMsg(
-                layout_element->IsBindless(),
-                "-1 given as count to prefill elements, yet %s is not specified as bindless in layout",
-                name.LookupString()
-            );
-        }
-
-        auto it = m_elements.Find(name);
-
-        if (it == m_elements.End()) {
-            it = m_elements.Insert({
-                name,
-                DescriptorSetElement<Platform::VULKAN> { }
-            }).first;
-        }
-
-        DescriptorSetElement<Platform::VULKAN> &element = it->second;
-
-        // // Set buffer_size, only used in the case of buffer elements
-        // element.buffer_size = layout_element->size;
-        
-        element.values.Clear();
-        element.values.Reserve(count);
-
-        for (uint i = 0; i < count; i++) {
-            if (placeholder_value.HasValue()) {
-                element.values.Set(i, placeholder_value.Get());
-            } else {
-                element.values.Set(i, T { });
-            }
-        }
-
-        element.dirty_range = { 0, count };
-    }
-
-    DescriptorSetLayout<Platform::VULKAN>                   m_layout;
-    HashMap<Name, DescriptorSetElement<Platform::VULKAN>>   m_elements;
-
-    RC<VulkanDescriptorSetLayoutWrapper>                    m_vk_layout_wrapper;
-
-    VkDescriptorSet                                         m_vk_descriptor_set;
 };
 
 template <>

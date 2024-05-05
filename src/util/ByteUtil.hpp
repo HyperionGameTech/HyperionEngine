@@ -19,14 +19,15 @@ struct alignas(2) float16
 
     float16() = default;
     
-    float16(float value)
+    float16(float float_value)
     {
         static constexpr uint32 sign_mask = 0x80000000;
         static constexpr uint32 exp_mask = 0x7F800000;
         static constexpr uint32 frac_mask = 0x007FFFFF;
 
-        uint32 float_bits = *reinterpret_cast<uint32 *>(&value);
-        uint32 sign = (float_bits & sign_mask) >> 16;
+        const uint32 float_bits = *reinterpret_cast<uint32 *>(&float_value);
+        const uint32 sign = (float_bits & sign_mask) >> 16;
+
         int32 exponent = (float_bits & exp_mask) >> 23;
         uint32 fraction = float_bits & frac_mask;
 

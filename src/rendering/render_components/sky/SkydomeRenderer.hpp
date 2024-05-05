@@ -5,7 +5,6 @@
 
 #include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
 

@@ -7,11 +7,8 @@
 #include <core/containers/Array.hpp>
 #include <core/utilities/Pair.hpp>
 #include <core/containers/ContainerBase.hpp>
-#include <HashCode.hpp>
 
-#include <algorithm>
-#include <vector>
-#include <utility>
+#include <HashCode.hpp>
 
 namespace hyperion {
 namespace containers {

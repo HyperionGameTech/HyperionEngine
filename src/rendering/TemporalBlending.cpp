@@ -55,7 +55,7 @@ TemporalBlending::TemporalBlending(
     InternalFormat image_format,
     TemporalBlendTechnique technique,
     TemporalBlendFeedback feedback,
-    const Handle<Framebuffer> &input_framebuffer
+    const FramebufferRef &input_framebuffer
 ) : m_extent(extent),
     m_image_format(image_format),
     m_technique(technique),
@@ -82,8 +82,8 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
+    SafeRelease(std::move(m_input_framebuffer));
     SafeRelease(std::move(m_perform_blending));
-
     SafeRelease(std::move(m_descriptor_table));
 
     for (auto &image_output : m_image_outputs) {
@@ -94,8 +94,10 @@ TemporalBlending::~TemporalBlending()
 
 void TemporalBlending::Create()
 {
-    InitObject(m_input_framebuffer);
-
+    if (m_input_framebuffer.IsValid()) {
+        DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
+    }
+    
     CreateImageOutputs();
     CreateDescriptorSets();
     CreateComputePipelines();
@@ -151,19 +153,19 @@ void TemporalBlending::CreateImageOutputs()
 
 void TemporalBlending::CreateDescriptorSets()
 {
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), GetShaderProperties());
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     m_descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        if (m_input_framebuffer) {
-            AssertThrowMsg(m_input_framebuffer->GetAttachmentUsages().Size() != 0, "No attachment refs on input framebuffer!");
+        if (m_input_framebuffer.IsValid()) {
+            AssertThrowMsg(m_input_framebuffer->GetAttachmentMap()->Size() != 0, "No attachment refs on input framebuffer!");
         }
 
-        const ImageViewRef input_image_view = m_input_framebuffer ? m_input_framebuffer->GetAttachmentUsages()[0]->GetImageView() : m_input_image_views[frame_index];
+        const ImageViewRef input_image_view = m_input_framebuffer ? m_input_framebuffer->GetAttachment(0)->GetImageView() : m_input_image_views[frame_index];
         AssertThrow(input_image_view != nullptr);
 
         // input image
@@ -174,7 +176,8 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(HYP_NAME(PrevImage), m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view);
 
         m_descriptor_table->GetDescriptorSet(HYP_NAME(TemporalBlendingDescriptorSet), frame_index)
-            ->SetElement(HYP_NAME(VelocityImage), g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+            ->SetElement(HYP_NAME(VelocityImage), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         m_descriptor_table->GetDescriptorSet(HYP_NAME(TemporalBlendingDescriptorSet), frame_index)
             ->SetElement(HYP_NAME(SamplerLinear), g_engine->GetPlaceholderData()->GetSamplerLinear());
@@ -196,11 +199,11 @@ void TemporalBlending::CreateComputePipelines()
 {
     AssertThrow(m_descriptor_table.IsValid());
 
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), GetShaderProperties());
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
     m_perform_blending = MakeRenderObject<renderer::ComputePipeline>(
-        shader->GetShaderProgram(),
+        shader,
         m_descriptor_table
     );
 
@@ -212,8 +215,7 @@ void TemporalBlending::CreateComputePipelines()
 
 void TemporalBlending::Render(Frame *frame)
 {   
-    m_image_outputs[frame->GetFrameIndex()].image->GetGPUImage()
-        ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_image_outputs[frame->GetFrameIndex()].image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
 
@@ -225,8 +227,8 @@ void TemporalBlending::Render(Frame *frame)
 
     push_constants.output_dimensions = Extent2D(extent);
     push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
+        g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
     );
 
     push_constants.blending_frame_counter = m_blending_frame_counter;
@@ -261,8 +263,7 @@ void TemporalBlending::Render(Frame *frame)
     );
 
     // set it to be able to be used as texture2D for next pass, or outside of this
-    m_image_outputs[frame->GetFrameIndex()].image->GetGPUImage()
-        ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_image_outputs[frame->GetFrameIndex()].image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
     m_blending_frame_counter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blending_frame_counter + 1

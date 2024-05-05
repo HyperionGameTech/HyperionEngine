@@ -155,6 +155,8 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
 
 Camera::~Camera()
 {
+    SafeRelease(std::move(m_framebuffer));
+
     // Sync render commands to prevent dangling pointers to this
     HYP_SYNC_RENDER();
 }
@@ -167,7 +169,10 @@ void Camera::Init()
 
     BasicObject::Init();
 
-    //AssertThrowMsg(m_width > 0 && m_width < 100000 && m_width > 0 && m_height < 100000, "Invalid camera size");
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+    {
+        SafeRelease(std::move(m_framebuffer));
+    }));
 
     m_draw_proxy = CameraDrawProxy {
         .view = m_view_mat,
@@ -183,18 +188,14 @@ void Camera::Init()
         .frustum = m_frustum
     };
 
-    InitObject(m_framebuffer);
+    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 
     SetReady(true);
 }
 
-void Camera::SetFramebuffer(const Handle<Framebuffer> &framebuffer)
+void Camera::SetFramebuffer(const FramebufferRef &framebuffer)
 {
     m_framebuffer = framebuffer;
-
-    if (IsInitCalled()) {
-        InitObject(m_framebuffer);
-    }
 }
 
 void Camera::SetTranslation(const Vec3f &translation)

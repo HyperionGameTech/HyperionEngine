@@ -8,10 +8,10 @@
 namespace hyperion {
 
 UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UOT_BUTTON)
+    : UIObject(parent, std::move(node_proxy), UIObjectType::BUTTON)
 {
     SetBorderRadius(5);
-    SetBorderFlags(UOB_ALL);
+    SetBorderFlags(UIObjectBorderFlags::ALL);
 }
 
 void UIButton::Init()
@@ -19,8 +19,8 @@ void UIButton::Init()
     UIObject::Init();
 
     auto text_element = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 16, UIObjectSize::PIXEL }));
-    text_element->SetParentAlignment(UIObjectAlignment::UOA_CENTER);
-    text_element->SetOriginAlignment(UIObjectAlignment::UOA_CENTER);
+    text_element->SetParentAlignment(UIObjectAlignment::CENTER);
+    text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
     text_element->SetText(m_text);
 

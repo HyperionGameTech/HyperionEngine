@@ -5,7 +5,6 @@
 
 #include <core/Base.hpp>
 
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 

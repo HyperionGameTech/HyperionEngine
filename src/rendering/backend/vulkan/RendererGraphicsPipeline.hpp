@@ -26,67 +26,31 @@ namespace renderer {
 namespace platform {
 
 template <PlatformType PLATFORM>
-class FramebufferObject;
+class Framebuffer;
 
 template <PlatformType PLATFORM>
 class RenderPass;
 
 template <>
-class GraphicsPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
+struct GraphicsPipelinePlatformImpl<Platform::VULKAN>
 {
-public:
-    struct ConstructionInfo
-    {
-        VertexAttributeSet                              vertex_attributes;
+    GraphicsPipeline<Platform::VULKAN>  *self = nullptr;
 
-        Topology                                        topology = Topology::TRIANGLES;
-        FaceCullMode                                    cull_mode = FaceCullMode::BACK;
-        FillMode                                        fill_mode = FillMode::FILL;
-        BlendFunction                                   blend_function = BlendFunction::None();
+    Array<VkDynamicState>               vk_dynamic_states;
 
-        bool                                            depth_test = true;
-        bool                                            depth_write = true;
-
-        ShaderProgram<Platform::VULKAN>                 *shader = nullptr;
-        RenderPassRef<Platform::VULKAN>                 render_pass;
-        Array<FramebufferObjectRef<Platform::VULKAN>>   fbos;
-
-        StencilFunction                                 stencil_function;
-    };
-
-    GraphicsPipeline();
-    GraphicsPipeline(ShaderProgramRef<Platform::VULKAN> shader, DescriptorTableRef<Platform::VULKAN> descriptor_table);
-    GraphicsPipeline(const GraphicsPipeline &other) = delete;
-    GraphicsPipeline &operator=(const GraphicsPipeline &other) = delete;
-    ~GraphicsPipeline();
+    VkViewport                          vk_viewport;
+    VkRect2D                            vk_scissor;
 
     void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
     void SetScissor(int x, int y, uint32 width, uint32 height);
 
-    Result Create(Device<Platform::VULKAN> *device, ConstructionInfo &&construction_info);
-    Result Destroy(Device<Platform::VULKAN> *device);
-    
-    void Bind(CommandBuffer<Platform::VULKAN> *cmd);
-    void SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const;
+    void BuildVertexAttributes(
+        const VertexAttributeSet &attribute_set,
+        Array<VkVertexInputAttributeDescription> &out_vk_vertex_attributes,
+        Array<VkVertexInputBindingDescription> &out_vk_vertex_binding_descriptions
+    );
 
-    const ConstructionInfo &GetConstructionInfo() const
-        { return m_construction_info; }
-
-private:
-    Result Rebuild(Device<Platform::VULKAN> *device);
     void UpdateDynamicStates(VkCommandBuffer cmd);
-    Array<VkVertexInputAttributeDescription> BuildVertexAttributes(const VertexAttributeSet &attribute_set);
-
-    Array<VkDynamicState>                       m_dynamic_states;
-
-    VkViewport                                  viewport;
-    VkRect2D                                    scissor;
-
-    Array<VkVertexInputBindingDescription>      vertex_binding_descriptions { };
-    Array<VkVertexInputAttributeDescription>    vertex_attributes{};
-
-    ConstructionInfo                            m_construction_info;
-
 };
 
 } // namsepace platform

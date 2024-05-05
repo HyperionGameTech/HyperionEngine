@@ -18,7 +18,6 @@ using renderer::Image;
 using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
-using renderer::AttachmentUsage;
 
 class DepthPyramidRenderer
 {
@@ -38,22 +37,22 @@ public:
     bool IsRendered() const
         { return m_is_rendered; }
 
-    void Create(AttachmentUsageRef depth_attachment_usage);
+    void Create(const AttachmentRef &depth_attachment);
 
     void Render(Frame *frame);
 
 private:
-    AttachmentUsageRef                                          m_depth_attachment_usage;
+    AttachmentRef               m_depth_attachment;
 
-    ImageRef                                                    m_depth_pyramid;
-    ImageViewRef                                                m_depth_pyramid_view;
-    Array<ImageViewRef>                                         m_depth_pyramid_mips;
-    Array<DescriptorTableRef>                                   m_mip_descriptor_tables;
-    SamplerRef                                                  m_depth_pyramid_sampler;
+    ImageRef                    m_depth_pyramid;
+    ImageViewRef                m_depth_pyramid_view;
+    Array<ImageViewRef>         m_depth_pyramid_mips;
+    Array<DescriptorTableRef>   m_mip_descriptor_tables;
+    SamplerRef                  m_depth_pyramid_sampler;
 
-    ComputePipelineRef                                          m_generate_depth_pyramid;
+    ComputePipelineRef          m_generate_depth_pyramid;
 
-    bool m_is_rendered;
+    bool                        m_is_rendered;
 };
 
 } // namespace hyperion

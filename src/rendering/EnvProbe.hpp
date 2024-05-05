@@ -13,10 +13,8 @@
 #include <rendering/DrawProxy.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/backend/RenderCommand.hpp>
 
-#include <rendering/backend/RendererAttachment.hpp>
-#include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 
 #include <GameCounter.hpp>
 #include <HashCode.hpp>
@@ -28,9 +26,6 @@ struct RenderCommand_CreateCubemapBuffers;
 struct RenderCommand_DestroyCubemapRenderPass;
 
 class Framebuffer;
-
-using renderer::Attachment;
-using renderer::Image;
 
 enum EnvProbeBindingSlot : uint
 {
@@ -150,7 +145,7 @@ public:
         const BoundingBox &aabb,
         const Extent2D &dimensions,
         EnvProbeType env_probe_type,
-        Handle<Shader> custom_shader
+        const ShaderRef &custom_shader
     );
 
     EnvProbe(const EnvProbe &other)             = delete;
@@ -267,31 +262,31 @@ private:
     void CreateShader();
     void CreateFramebuffer();
 
-    Handle<Scene>                                       m_parent_scene;
-    BoundingBox                                         m_aabb;
-    Extent2D                                            m_dimensions;
-    EnvProbeType                                        m_env_probe_type;
+    Handle<Scene>           m_parent_scene;
+    BoundingBox             m_aabb;
+    Extent2D                m_dimensions;
+    EnvProbeType            m_env_probe_type;
 
-    float                                               m_camera_near;
-    float                                               m_camera_far;
+    float                   m_camera_near;
+    float                   m_camera_far;
 
-    Handle<Texture>                                     m_texture;
-    Handle<Framebuffer>                                 m_framebuffer;
-    Handle<Shader>                                      m_shader;
-    Handle<Camera>                                      m_camera;
-    RenderList                                          m_render_list;
+    Handle<Texture>         m_texture;
+    FramebufferRef          m_framebuffer;
+    ShaderRef               m_shader;
+    Handle<Camera>          m_camera;
+    RenderList              m_render_list;
 
-    Matrix4                                             m_projection_matrix;
-    FixedArray<Matrix4, 6>                              m_view_matrices;
+    Matrix4                 m_projection_matrix;
+    FixedArray<Matrix4, 6>  m_view_matrices;
 
-    EnvProbeIndex                                       m_bound_index;
+    EnvProbeIndex           m_bound_index;
 
-    Bitset                                              m_visibility_bits;
+    Bitset                  m_visibility_bits;
 
-    bool                                                m_needs_update;
-    AtomicVar<bool>                                     m_is_rendered;
-    AtomicVar<int32>                                    m_needs_render_counter;
-    HashCode                                            m_octant_hash_code;
+    bool                    m_needs_update;
+    AtomicVar<bool>         m_is_rendered;
+    AtomicVar<int32>        m_needs_render_counter;
+    HashCode                m_octant_hash_code;
 };
 
 } // namespace hyperion

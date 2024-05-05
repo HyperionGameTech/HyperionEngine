@@ -15,7 +15,6 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/RenderGroup.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -113,7 +112,7 @@ public:
 private:
     void UpdateDrawCommands();
 
-    Handle<Shader>                                      m_shader;
+    ShaderRef                                           m_shader;
     Handle<RenderGroup>                                 m_render_group;
 
     FixedArray<Handle<Mesh>, uint(DebugDrawShape::MAX)> m_shapes;

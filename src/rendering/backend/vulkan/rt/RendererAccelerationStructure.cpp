@@ -347,14 +347,14 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
             build_scratch_size = MathUtil::NextMultiple(build_sizes_info.buildScratchSize, scratch_buffer_alignment);
             update_scratch_size = MathUtil::NextMultiple(build_sizes_info.updateScratchSize, scratch_buffer_alignment);
 
-            AssertThrow(m_buffer->size >= acceleration_structure_size);
+            AssertThrow(m_buffer->Size() >= acceleration_structure_size);
         }
 
         // to be sure it's zeroed out
         m_buffer->Memset(device, acceleration_structure_size, 0x0);
 
         VkAccelerationStructureCreateInfoKHR create_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
-        create_info.buffer = m_buffer->buffer;
+        create_info.buffer = m_buffer->GetPlatformImpl().handle;
         create_info.size = acceleration_structure_size;
         create_info.type = ToVkAccelerationStructureType(type);
 
@@ -402,7 +402,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
     }
 
     // zero out scratch buffer
-    m_scratch_buffer->Memset(device, m_scratch_buffer->size, 0);
+    m_scratch_buffer->Memset(device, m_scratch_buffer->Size(), 0);
 
     geometry_info.dstAccelerationStructure = m_acceleration_structure;
     geometry_info.srcAccelerationStructure = (update && !was_rebuilt) ? m_acceleration_structure : VK_NULL_HANDLE;
@@ -430,7 +430,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
     commands.Push([&](const CommandBufferRef_VULKAN &command_buffer)
     {
         device->GetFeatures().dyn_functions.vkCmdBuildAccelerationStructuresKHR(
-            command_buffer->GetCommandBuffer(),
+            command_buffer->GetPlatformImpl().command_buffer,
             uint32(range_info_ptrs.size()),
             &geometry_info,
             range_info_ptrs.data()
@@ -700,11 +700,11 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::CreateOrRebuildInstances
 
     AssertThrow(m_instances_buffer != nullptr);
 
-    if (m_instances_buffer->size != instances_buffer_size) {
+    if (m_instances_buffer->Size() != instances_buffer_size) {
         DebugLog(
             LogType::Debug,
             "Resizing TLAS instances buffer from %llu to %llu\n",
-            m_instances_buffer->size,
+            m_instances_buffer->Size(),
             instances_buffer_size
         );
 
@@ -763,7 +763,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::UpdateInstancesBuffer(In
     const SizeType instances_size = instances.Size() * sizeof(VkAccelerationStructureInstanceKHR);
 
     AssertThrow(m_instances_buffer != nullptr);
-    AssertThrow(m_instances_buffer->size >= instances_size);
+    AssertThrow(m_instances_buffer->Size() >= instances_size);
 
     m_instances_buffer->Copy(
         device,
@@ -793,7 +793,7 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::CreateMeshDescriptionsBu
     ));
 
     // zero out buffer
-    m_mesh_descriptions_buffer->Memset(device, m_mesh_descriptions_buffer->size, 0x0);
+    m_mesh_descriptions_buffer->Memset(device, m_mesh_descriptions_buffer->Size(), 0x0);
 
     if (m_blas.Empty()) {
         // no need to update the data inside
@@ -813,7 +813,7 @@ template <>
 Result TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescriptionsBuffer(Instance<Platform::VULKAN> *instance, uint first, uint last)
 {
     AssertThrow(m_mesh_descriptions_buffer != nullptr);
-    AssertThrow(m_mesh_descriptions_buffer->size >= sizeof(MeshDescription) * m_blas.Size());
+    AssertThrow(m_mesh_descriptions_buffer->Size() >= sizeof(MeshDescription) * m_blas.Size());
     AssertThrow(first < m_blas.Size());
     AssertThrow(last <= m_blas.Size());
 

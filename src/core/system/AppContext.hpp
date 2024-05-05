@@ -10,6 +10,7 @@
 #include <core/functional/Delegate.hpp>
 #include <core/filesystem/FilePath.hpp>
 #include <core/system/ArgParse.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/backend/Platform.hpp>
@@ -32,23 +33,23 @@ using Instance = platform::Instance<Platform::CURRENT>;
 
 } // namespace renderer
 
-namespace sys {
-
-using WindowFlags = uint32;
-
-enum WindowFlagBits : WindowFlags
+enum class WindowFlags : uint32
 {
-    WINDOW_FLAGS_NONE       = 0x0,
-    WINDOW_FLAGS_HEADLESS   = 0x1,
-    WINDOW_FLAGS_NO_GFX     = 0x2,
-    WINDOW_FLAGS_HIGH_DPI   = 0x4
+    NONE        = 0x0,
+    HEADLESS    = 0x1,
+    NO_GFX      = 0x2,
+    HIGH_DPI    = 0x4
 };
+
+HYP_MAKE_ENUM_FLAGS(WindowFlags)
+
+namespace sys {
 
 struct WindowOptions
 {
     ANSIString  title;
     Vec2u       size;
-    WindowFlags flags = WINDOW_FLAGS_NONE;
+    WindowFlags flags = WindowFlags::NONE;
 };
 
 enum SystemEventType
@@ -365,7 +366,6 @@ using sys::MouseButtonMask;
 using sys::MouseState;
 
 using sys::WindowOptions;
-using sys::WindowFlags;
 
 using sys::SystemEvent;
 using sys::SystemEventType;

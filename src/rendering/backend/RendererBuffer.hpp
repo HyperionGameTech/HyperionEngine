@@ -6,9 +6,12 @@
 #include <core/Defines.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <Types.hpp>
+
+#include <unordered_set>
 
 namespace hyperion {
 namespace renderer {
@@ -67,18 +70,109 @@ template <PlatformType PLATFORM>
 class CommandBuffer;
 
 template <PlatformType PLATFORM>
+class Instance;
+
+template <PlatformType PLATFORM>
 class Device;
 
 template <PlatformType PLATFORM>
-class GPUMemory {};
+struct GPUBufferPlatformImpl;
 
 template <PlatformType PLATFORM>
-class GPUImageMemory : public GPUMemory<PLATFORM> {};
-
-template <PlatformType PLATFORM>
-class GPUBuffer : public GPUMemory<PLATFORM>
+class GPUBuffer
 {
-    GPUBuffer(GPUBufferType) { /* dummy */ }
+public:
+    HYP_API GPUBuffer(GPUBufferType type);
+
+    GPUBuffer(const GPUBuffer &other)                   = delete;
+    GPUBuffer &operator=(const GPUBuffer &other)        = delete;
+
+    HYP_API GPUBuffer(GPUBuffer &&other) noexcept;
+    GPUBuffer &operator=(GPUBuffer &&other) noexcept    = delete;
+
+    HYP_API ~GPUBuffer();
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl()
+        { return m_platform_impl; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
+        { return m_platform_impl; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    GPUBufferType GetBufferType() const
+        { return m_type; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ResourceState GetResourceState() const
+        { return m_resource_state; }
+
+    HYP_FORCE_INLINE
+    void SetResourceState(ResourceState resource_state)
+        { m_resource_state = resource_state; }
+
+    HYP_API bool IsCreated() const;
+    HYP_API bool IsCPUAccessible() const;
+    HYP_API uint32 Size() const;
+
+    HYP_API void InsertBarrier(
+        CommandBuffer<PLATFORM> *command_buffer,
+        ResourceState new_state
+    ) const;
+
+    HYP_API void InsertBarrier(
+        CommandBuffer<PLATFORM> *command_buffer,
+        ResourceState new_state,
+        ShaderModuleType shader_type
+    ) const;
+
+    HYP_API void CopyFrom(
+        CommandBuffer<PLATFORM> *command_buffer,
+        const GPUBuffer *src_buffer,
+        SizeType count
+    );
+
+    HYP_API Result CheckCanAllocate(Device<PLATFORM> *device, SizeType size) const;
+
+    HYP_API uint64 GetBufferDeviceAddress(Device<PLATFORM> *device) const;
+
+    HYP_API Result Create(
+        Device<PLATFORM> *device,
+        SizeType buffer_size,
+        SizeType buffer_alignment = 0
+    );
+    HYP_API Result Destroy(Device<PLATFORM> *device);
+
+    HYP_API Result EnsureCapacity(
+        Device<PLATFORM> *device,
+        SizeType minimum_size,
+        bool *out_size_changed = nullptr
+    );
+
+    HYP_API Result EnsureCapacity(
+        Device<PLATFORM> *device,
+        SizeType minimum_size,
+        SizeType alignment,
+        bool *out_size_changed = nullptr
+    );
+
+    HYP_API void Memset(Device<PLATFORM> *device, SizeType count, ubyte value);
+
+    HYP_API void Copy(Device<PLATFORM> *device, SizeType count, const void *ptr);
+    HYP_API void Copy(Device<PLATFORM> *device, SizeType offset, SizeType count, const void *ptr);
+
+    HYP_API void Read(Device<PLATFORM> *device, SizeType count, void *out_ptr) const;
+    
+private:
+    GPUBufferPlatformImpl<PLATFORM> m_platform_impl;
+
+    GPUBufferType                   m_type;
+    mutable ResourceState           m_resource_state;
 };
 
 template <PlatformType PLATFORM>
@@ -206,8 +300,6 @@ public:
 namespace hyperion {
 namespace renderer {
 
-using GPUMemory = platform::GPUMemory<Platform::CURRENT>;
-using GPUImageMemory = platform::GPUImageMemory<Platform::CURRENT>;
 using GPUBuffer = platform::GPUBuffer<Platform::CURRENT>;
 using UniformBuffer = platform::UniformBuffer<Platform::CURRENT>;
 using StorageBuffer = platform::StorageBuffer<Platform::CURRENT>;

@@ -4,6 +4,7 @@
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
@@ -19,11 +20,13 @@
 
 #include <audio/AudioManager.hpp>
 
+#include <core/system/StackDump.hpp>
+
 namespace hyperion {
 
 using renderer::Attachment;
 using renderer::ImageView;
-using renderer::FramebufferObject;
+using renderer::Framebuffer;
 using renderer::FillMode;
 using renderer::GPUBufferType;
 using renderer::GPUBuffer;
@@ -279,7 +282,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_material_descriptor_set_manager.Initialize();
 
-    m_deferred_system.Create();
+    m_gbuffer.Create();
 
     // has to be after we create framebuffers
     m_debug_drawer.Create();
@@ -373,7 +376,7 @@ void Engine::FinalizeStop()
         );
     }
 
-    m_deferred_system.Destroy();
+    m_gbuffer.Destroy();
 
     m_deferred_renderer->Destroy();
     m_deferred_renderer.Reset();
@@ -463,7 +466,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
     const ShaderDefinition &shader_definition = renderable_attributes.GetShaderDefinition();
     AssertThrowMsg(shader_definition, "Shader definition is unset");
 
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(shader_definition);
+    ShaderRef shader = g_shader_manager->GetOrCreate(shader_definition);
 
     if (!shader) {
         DebugLog(
@@ -475,66 +478,58 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
     }
 
     // create a RenderGroup with the given params
-    auto renderer_group = CreateObject<RenderGroup>(
-        std::move(shader),
+    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+        shader,
         renderable_attributes
     );
 
     DebugLog(
         LogType::Debug,
-        "Created RenderGroup for RenderableAttributeSet with hash %llu from thread %s\n",
+        "Created RenderGroup for RenderableAttributeSet with hash %llu from thread %s\nStack:\n%s\n",
         renderable_attributes.GetHashCode().Value(),
-        Threads::CurrentThreadID().name.LookupString()
+        Threads::CurrentThreadID().name.LookupString(),
+        StackDump().ToString().Data()
     );
 
     std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRenderGroupInternal(renderer_group, false);
+    AddRenderGroupInternal(render_group, false);
 
-    return renderer_group;
+    return render_group;
 }
 
-// Handle<RenderGroup> Engine::CreateRenderGroup(
-//     const Handle<Shader> &shader,
-//     const RenderableAttributeSet &renderable_attributes
-// )
-// {
-
-//     if (!shader) {
-//         DebugLog(
-//             LogType::Error,
-//             "Shader is empty; Cannot create RenderGroup.\n"
-//         );
-
-//         return Handle<RenderGroup>::empty;
-//     }
-
-
-// }
-
 Handle<RenderGroup> Engine::CreateRenderGroup(
-    const Handle<Shader> &shader,
+    const ShaderRef &shader,
     const RenderableAttributeSet &renderable_attributes,
-    DescriptorTableRef descriptor_table
+    const DescriptorTableRef &descriptor_table
 )
 {
-    if (!shader) {
+    if (!shader.IsValid()) {
         DebugLog(
             LogType::Error,
             "Shader is empty; Cannot create RenderGroup.\n"
+        );
+
+        return Handle<RenderGroup>::empty;
+    }
+
+    if (!shader->GetCompiledShader()) {
+        DebugLog(
+            LogType::Error,
+            "Shader is not compiled; Cannot create RenderGroup.\n"
         );
 
         return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.SetShaderDefinition(shader->GetCompiledShader().GetDefinition());
+    new_renderable_attributes.SetShaderDefinition(shader->GetCompiledShader()->GetDefinition());
     
     // create a RenderGroup with the given params
     Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
-        Handle<Shader>(shader),
+        shader,
         new_renderable_attributes,
-        std::move(descriptor_table)
+        descriptor_table
     );
 
     return render_group;
@@ -562,7 +557,7 @@ void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cach
         );
     }
 
-    m_deferred_system
+    m_gbuffer
         .Get(render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
         .AddRenderGroup(render_group);
 }

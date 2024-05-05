@@ -265,6 +265,52 @@ struct StencilFunction
         { return HashCode::GetHashCode(value); }
 };
 
+struct PushConstantData
+{
+    ubyte   data[128];
+    uint    size;
+
+    PushConstantData()
+        : data { 0 },
+          size(0)
+    {
+    }
+
+    PushConstantData(const void *ptr, SizeType size)
+        : size(size)
+    {
+        AssertThrowMsg(size <= 128, "Push constant data size exceeds 128 bytes");
+
+        Memory::MemCpy(&data[0], ptr, size);
+    }
+
+    template <class T>
+    PushConstantData(const T *value)
+        : size(sizeof(T))
+    {
+        static_assert(sizeof(T) <= 128, "Push constant data size exceeds 128 bytes");
+        static_assert(std::is_trivial_v<T>, "T must be a trivial type");
+        static_assert(std::is_standard_layout_v<T>, "T must be a standard layout type");
+
+        Memory::MemCpy(&data[0], value, sizeof(T));
+    }
+
+    PushConstantData(const PushConstantData &other)                 = default;
+    PushConstantData &operator=(const PushConstantData &other)      = default;
+    PushConstantData(PushConstantData &&other) noexcept             = default;
+    PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
+    ~PushConstantData()                                             = default;
+
+    const void *Data() const
+        { return data; }
+
+    uint Size() const
+        { return size; }
+
+    explicit operator bool() const
+        { return size != 0; }
+};
+
 } // namespace hyperion::renderer
 
 #if HYP_VULKAN
@@ -320,6 +366,18 @@ struct ImageSubResource
             && num_layers == other.num_layers
             && base_mip_level == other.base_mip_level
             && num_levels == other.num_levels;
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(flags);
+        hc.Add(base_array_layer);
+        hc.Add(num_layers);
+        hc.Add(base_mip_level);
+        hc.Add(num_levels);
+
+        return hc;
     }
 };
 
@@ -604,25 +662,5 @@ protected:
 
 } // namespace renderer
 } // namespace hyperion
-
-namespace std {
-
-template <>
-struct hash<hyperion::renderer::ImageSubResource>
-{
-    size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
-    {
-        ::hyperion::HashCode hc;
-        hc.Add(sub_resource.flags);
-        hc.Add(sub_resource.base_array_layer);
-        hc.Add(sub_resource.num_layers);
-        hc.Add(sub_resource.base_mip_level);
-        hc.Add(sub_resource.num_levels);
-
-        return hc.Value();
-    }
-};
-
-} // namespace std
 
 #endif

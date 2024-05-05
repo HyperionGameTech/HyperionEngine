@@ -20,7 +20,6 @@
 namespace hyperion {
 
 using renderer::Device;
-using renderer::GPUImageMemory;
 
 class DeletionEntryBase
 {

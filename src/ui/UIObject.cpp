@@ -31,24 +31,26 @@
 
 namespace hyperion {
 
-enum UIObjectIterationResult : uint8
+enum class UIObjectIterationResult : uint8
 {
-    UI_OBJECT_ITERATION_RESULT_CONTINUE = 0,
-    UI_OBJECT_ITERATION_RESULT_STOP
+    CONTINUE = 0,
+    STOP
 };
 
-enum UIObjectFlags : uint32
+enum class UIObjectFlags : uint32
 {
-    UI_OBJECT_FLAG_NONE                 = 0x0,
-    UI_OBJECT_FLAG_BORDER_TOP_LEFT      = 0x1,
-    UI_OBJECT_FLAG_BORDER_TOP_RIGHT     = 0x2,
-    UI_OBJECT_FLAG_BORDER_BOTTOM_LEFT   = 0x4,
-    UI_OBJECT_FLAG_BORDER_BOTTOM_RIGHT  = 0x8
+    NONE                = 0x0,
+    BORDER_TOP_LEFT     = 0x1,
+    BORDER_TOP_RIGHT    = 0x2,
+    BORDER_BOTTOM_LEFT  = 0x4,
+    BORDER_BOTTOM_RIGHT = 0x8
 };
+
+HYP_MAKE_ENUM_FLAGS(UIObjectFlags)
 
 struct UIObjectMeshData
 {
-    uint32 focus_state = UOFS_NONE;
+    uint32 focus_state = uint32(UIObjectFocusState::NONE);
     uint32 width = 0u;
     uint32 height = 0u;
     uint32 additional_data = 0u;
@@ -93,15 +95,15 @@ UIObject::UIObject(UIObjectType type)
     : m_type(type),
       m_parent(nullptr),
       m_is_init(false),
-      m_origin_alignment(UOA_TOP_LEFT),
-      m_parent_alignment(UOA_TOP_LEFT),
+      m_origin_alignment(UIObjectAlignment::TOP_LEFT),
+      m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
       m_border_radius(5),
-      m_border_flags(UOB_NONE),
-      m_focus_state(UOFS_NONE),
+      m_border_flags(UIObjectBorderFlags::NONE),
+      m_focus_state(UIObjectFocusState::NONE),
       m_is_visible(true),
       m_accepts_focus(true)
 {
@@ -259,22 +261,22 @@ void UIObject::UpdatePosition(bool update_children)
     Vec2f offset_position(m_position);
 
     switch (m_origin_alignment) {
-    case UOA_TOP_LEFT:
+    case UIObjectAlignment::TOP_LEFT:
         // no offset
         break;
-    case UOA_TOP_RIGHT:
+    case UIObjectAlignment::TOP_RIGHT:
         offset_position -= Vec2f(float(m_actual_inner_size.x), 0.0f);
 
         break;
-    case UOA_CENTER:
+    case UIObjectAlignment::CENTER:
         offset_position -= Vec2f(float(m_actual_inner_size.x) * 0.5f, float(m_actual_inner_size.y) * 0.5f);
 
         break;
-    case UOA_BOTTOM_LEFT:
+    case UIObjectAlignment::BOTTOM_LEFT:
         offset_position -= Vec2f(0.0f, float(m_actual_inner_size.y));
 
         break;
-    case UOA_BOTTOM_RIGHT:
+    case UIObjectAlignment::BOTTOM_RIGHT:
         offset_position -= Vec2f(float(m_actual_inner_size.x), float(m_actual_inner_size.y));
 
         break;
@@ -286,23 +288,23 @@ void UIObject::UpdatePosition(bool update_children)
         const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
 
         switch (m_parent_alignment) {
-        case UOA_TOP_LEFT:
+        case UIObjectAlignment::TOP_LEFT:
             offset_position += parent_padding;
 
             break;
-        case UOA_TOP_RIGHT:
+        case UIObjectAlignment::TOP_RIGHT:
             offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
 
             break;
-        case UOA_CENTER:
+        case UIObjectAlignment::CENTER:
             offset_position += Vec2f(float(parent_actual_size.x) * 0.5f, float(parent_actual_size.y) * 0.5f);
 
             break;
-        case UOA_BOTTOM_LEFT:
+        case UIObjectAlignment::BOTTOM_LEFT:
             offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
 
             break;
-        case UOA_BOTTOM_RIGHT:
+        case UIObjectAlignment::BOTTOM_RIGHT:
             offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
 
             break;
@@ -337,7 +339,7 @@ void UIObject::UpdatePosition(bool update_children)
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdatePosition(false);
 
-            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+            return UIObjectIterationResult::CONTINUE;
         });
     }
 }
@@ -435,7 +437,7 @@ void UIObject::UpdateSize(bool update_children)
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateSize(false);
 
-            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+            return UIObjectIterationResult::CONTINUE;
         });
     }
 }
@@ -470,7 +472,7 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset)
     UpdatePosition();
 }
 
-void UIObject::SetFocusState(UIObjectFocusState focus_state)
+void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
 {
     m_focus_state = focus_state;
 
@@ -517,7 +519,7 @@ void UIObject::Focus()
         return;
     }
 
-    if (GetFocusState() & UOFS_FOCUSED) {
+    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
         return;
     }
 
@@ -525,7 +527,7 @@ void UIObject::Focus()
         return;
     }
 
-    SetFocusState(GetFocusState() | UOFS_FOCUSED);
+    SetFocusState(GetFocusState() | UIObjectFocusState::FOCUSED);
 
     // Note: Calling `SetFocusedObject` between `SetFocusState` and `OnGainFocus` is intentional
     // as `SetFocusedObject` calls `Blur()` on any previously focused object (which may include a parent of this object)
@@ -537,8 +539,8 @@ void UIObject::Focus()
 
 void UIObject::Blur(bool blur_children)
 {
-    if (GetFocusState() & UOFS_FOCUSED) {
-        SetFocusState(GetFocusState() & ~UOFS_FOCUSED);
+    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
+        SetFocusState(GetFocusState() & ~UIObjectFocusState::FOCUSED);
         OnLoseFocus(UIMouseEventData { });
     }
 
@@ -547,7 +549,7 @@ void UIObject::Blur(bool blur_children)
         {
             child->Blur(false);
 
-            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+            return UIObjectIterationResult::CONTINUE;
         });
     }
 
@@ -569,7 +571,7 @@ void UIObject::SetBorderRadius(uint32 border_radius)
     UpdateMeshData();
 }
 
-void UIObject::SetBorderFlags(uint32 border_flags)
+void UIObject::SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags)
 {
     m_border_flags = border_flags;
 
@@ -620,7 +622,7 @@ void UIObject::SetIsVisible(bool is_visible)
 
 bool UIObject::HasFocus(bool include_children) const
 {
-    if (GetFocusState() & UOFS_FOCUSED) {
+    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
         return true;
     }
 
@@ -637,10 +639,10 @@ bool UIObject::HasFocus(bool include_children) const
         if (child->HasFocus(false)) {
             has_focus = true;
 
-            return UI_OBJECT_ITERATION_RESULT_STOP;
+            return UIObjectIterationResult::STOP;
         }
 
-        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+        return UIObjectIterationResult::CONTINUE;
     });
 
     return has_focus;
@@ -737,10 +739,10 @@ RC<UIObject> UIObject::FindChildUIObject(Name name) const
         if (child->GetName() == name) {
             found_object = child;
 
-            return UI_OBJECT_ITERATION_RESULT_STOP;
+            return UIObjectIterationResult::STOP;
         }
 
-        return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+        return UIObjectIterationResult::CONTINUE;
     });
 
     return found_object;
@@ -965,7 +967,7 @@ void UIObject::UpdateMeshData()
     ui_object_mesh_data.width = m_actual_size.x;
     ui_object_mesh_data.height = m_actual_size.y;
     ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
-        | ((m_border_flags & 0xFu) << 8u);
+        | ((uint32(m_border_flags) & 0xFu) << 8u);
 
     // @FIXME userdata on mesh component
     // mesh_component->user_data.Set(ui_object_mesh_data);
@@ -986,7 +988,7 @@ void UIObject::UpdateMaterial(bool update_children)
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateMaterial(false);
 
-            return UI_OBJECT_ITERATION_RESULT_CONTINUE;
+            return UIObjectIterationResult::CONTINUE;
         });
     }
 
@@ -1140,7 +1142,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda) const
                     const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object);
 
                     // stop iterating if stop was set to true
-                    if (iteration_result == UI_OBJECT_ITERATION_RESULT_STOP) {
+                    if (iteration_result == UIObjectIterationResult::STOP) {
                         return;
                     }
                 }

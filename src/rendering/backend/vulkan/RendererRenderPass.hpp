@@ -30,12 +30,12 @@ template <PlatformType PLATFORM>
 class GraphicsPipeline;
 
 template <PlatformType PLATFORM>
-class FramebufferObject;
+class Framebuffer;
 
 template <>
 class RenderPass<Platform::VULKAN>
 {
-    friend class FramebufferObject<Platform::VULKAN>;
+    friend class Framebuffer<Platform::VULKAN>;
     friend class GraphicsPipeline<Platform::VULKAN>;
 
 public:
@@ -60,18 +60,18 @@ public:
     uint NumMultiviewLayers() const
         { return m_num_multiview_layers; }
 
-    void AddAttachmentUsage(AttachmentUsageRef<Platform::VULKAN> attachment_usage);
-    bool RemoveAttachmentUsage(const AttachmentRef<Platform::VULKAN> &attachment);
+    void AddAttachment(AttachmentRef<Platform::VULKAN> attachment);
+    bool RemoveAttachment(const AttachmentRef<Platform::VULKAN> &attachment);
 
-    auto &GetAttachmentUsages() { return m_render_pass_attachment_usages; }
-    const auto &GetAttachmentUsages() const { return m_render_pass_attachment_usages; }
+    auto &GetAttachments() { return m_render_pass_attachments; }
+    const auto &GetAttachments() const { return m_render_pass_attachments; }
 
     VkRenderPass GetHandle() const { return m_handle; }
 
     Result Create(Device<Platform::VULKAN> *device);
     Result Destroy(Device<Platform::VULKAN> *device);
 
-    void Begin(CommandBuffer<Platform::VULKAN> *cmd, FramebufferObject<Platform::VULKAN> *framebuffer);
+    void Begin(CommandBuffer<Platform::VULKAN> *cmd, Framebuffer<Platform::VULKAN> *framebuffer, uint frame_index);
     void End(CommandBuffer<Platform::VULKAN> *cmd);
 
 private:
@@ -80,18 +80,18 @@ private:
     void AddDependency(const VkSubpassDependency &dependency)
         { m_dependencies.PushBack(dependency); }
 
-    RenderPassStage                             m_stage;
-    RenderPassMode                              m_mode;
-    uint                                        m_num_multiview_layers;
+    RenderPassStage                         m_stage;
+    RenderPassMode                          m_mode;
+    uint                                    m_num_multiview_layers;
 
-    Vec4f                                       m_clear_color;
+    Vec4f                                   m_clear_color;
 
-    Array<AttachmentUsageRef<Platform::VULKAN>> m_render_pass_attachment_usages;
+    Array<AttachmentRef<Platform::VULKAN>>  m_render_pass_attachments;
 
-    Array<VkSubpassDependency>                  m_dependencies;
-    Array<VkClearValue>                         m_vk_clear_values;
+    Array<VkSubpassDependency>              m_dependencies;
+    Array<VkClearValue>                     m_vk_clear_values;
 
-    VkRenderPass                                m_handle;
+    VkRenderPass                            m_handle;
 };
 
 } // namespace platform

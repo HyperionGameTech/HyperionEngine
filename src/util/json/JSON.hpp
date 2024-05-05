@@ -3,8 +3,6 @@
 #ifndef HYPERION_JSON_HPP
 #define HYPERION_JSON_HPP
 
-#include <asset/ByteReader.hpp>
-
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>

@@ -2,6 +2,7 @@
 
 #include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/UIComponent.hpp>
@@ -19,27 +20,25 @@ namespace hyperion {
 
 using renderer::Result;
 
-
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 {
-    RC<EntityDrawCollection>                collection;
-    Array<RenderProxy>                      added_proxies;
-    Array<ID<Entity>>                       removed_proxies;
+    RC<EntityDrawCollection>            collection;
+    Array<RenderProxy>                  added_proxies;
+    Array<ID<Entity>>                   removed_proxies;
 
-    Array<ID<Entity>>                       proxy_ordering;
+    Array<ID<Entity>>                   proxy_ordering;
 
-    Handle<Framebuffer>                     framebuffer;
-    Optional<RenderableAttributeSet>        override_attributes;
+    FramebufferRef                      framebuffer;
+    Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
         const RC<EntityDrawCollection> &collection,
         Array<RenderProxy> &&added_proxies,
         Array<ID<Entity>> &&removed_proxies,
         const Array<ID<Entity>> &proxy_ordering,
-        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
         added_proxies(std::move(added_proxies)),
@@ -56,8 +55,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         RenderableAttributeSet attributes = entity_attributes;
 
+        // @FIXME: This is going to be quite slow, adding a reference for each item.
         if (framebuffer.IsValid()) {
-            attributes.SetFramebufferID(framebuffer->GetID());
+            attributes.SetFramebuffer(framebuffer);
         }
 
         if (override_attributes.HasValue()) {
@@ -226,7 +226,7 @@ void UIRenderList::PushEntityToRender(ID<Entity> entity, const RenderProxy &prox
     m_proxy_ordering.PushBack(entity);
 }
 
-void UIRenderList::UpdateOnRenderThread(const Handle<Framebuffer> &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
@@ -310,10 +310,10 @@ void UIRenderList::ExecuteDrawCalls(Frame *frame) const
 
     AssertThrowMsg(m_camera.IsValid(), "Cannot render with invalid Camera");
 
-    const Handle<Framebuffer> &framebuffer = m_camera->GetFramebuffer();
+    const FramebufferRef &framebuffer = m_camera->GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
-    framebuffer->BeginCapture(frame_index, command_buffer);
+    framebuffer->BeginCapture(command_buffer, frame_index);
 
     g_engine->GetRenderState().BindCamera(m_camera.Get());
 
@@ -343,10 +343,10 @@ void UIRenderList::ExecuteDrawCalls(Frame *frame) const
 
         AssertThrow(proxy_group.GetRenderGroup().IsValid());
 
-        if (framebuffer) {
+        if (framebuffer.IsValid()) {
             AssertThrowMsg(
-                attributes.GetFramebufferID() == framebuffer->GetID(),
-                "Given Framebuffer's ID does not match RenderList item's framebuffer ID -- invalid data passed?"
+                attributes.GetFramebuffer() == framebuffer,
+                "Given Framebuffer does not match RenderList item's framebuffer -- invalid data passed?"
             );
         }
 
@@ -355,7 +355,7 @@ void UIRenderList::ExecuteDrawCalls(Frame *frame) const
 
     g_engine->GetRenderState().UnbindCamera();
 
-    framebuffer->EndCapture(frame_index, command_buffer);
+    framebuffer->EndCapture(command_buffer, frame_index);
 }
 
 #pragma endregion UIRenderList
@@ -370,6 +370,8 @@ UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
 
 UIRenderer::~UIRenderer()
 {
+    SafeRelease((std::move(m_framebuffer)));
+
     g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
@@ -387,14 +389,14 @@ void UIRenderer::Init()
     m_render_list.SetCamera(m_ui_stage->GetScene()->GetCamera());
 
     g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
-        m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage(),
-        m_framebuffer->GetAttachmentUsages()[0]->GetImageView()
+        m_framebuffer->GetAttachment(0)->GetImage(),
+        m_framebuffer->GetAttachment(0)->GetImageView()
     ));
 }
 
 void UIRenderer::CreateFramebuffer()
 {
-    m_framebuffer = g_engine->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
+    m_framebuffer = g_engine->GetGBuffer()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
 // called from game thread

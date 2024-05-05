@@ -9,6 +9,7 @@
 #include <core/Name.hpp>
 #include <core/Containers.hpp>
 #include <core/IDGenerator.hpp>
+#include <HashCode.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 
@@ -290,6 +291,8 @@ public:
 
     static const RenderObjectHandle_Strong unset;
 
+    static const RenderObjectHandle_Strong &Null();
+
     static RenderObjectHandle_Strong FromIndex(uint index)
     {
         RenderObjectHandle_Strong handle;
@@ -305,6 +308,22 @@ public:
     RenderObjectHandle_Strong()
         : index(0)
     {
+    }
+
+    RenderObjectHandle_Strong(std::nullptr_t)
+        : index(0)
+    {
+    }
+
+    RenderObjectHandle_Strong &operator=(std::nullptr_t)
+    {
+        if (index != 0) {
+            _container->DecRefStrong(index - 1);
+        }
+
+        index = 0;
+
+        return *this;
     }
 
     RenderObjectHandle_Strong(const RenderObjectHandle_Strong &other)
@@ -455,11 +474,28 @@ public:
         return _container->GetDebugName(index - 1);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(TypeNameWithoutNamespace<T>().GetHashCode());
+        hc.Add(index);
+
+        return hc;
+    }
+
     uint index;
 };
 
 template <class T, PlatformType PLATFORM>
 const RenderObjectHandle_Strong<T, PLATFORM> RenderObjectHandle_Strong<T, PLATFORM>::unset = RenderObjectHandle_Strong<T, PLATFORM>();
+
+template <class T, PlatformType PLATFORM>
+const RenderObjectHandle_Strong<T, PLATFORM> &RenderObjectHandle_Strong<T, PLATFORM>::Null()
+{
+    return unset;
+}
 
 
 template <class T, PlatformType PLATFORM>
@@ -554,9 +590,9 @@ public:
             return RenderObjectHandle_Strong<T, PLATFORM>::unset;
         }
 
-        _container->IncRefStrong(index - 1);
-
-        return RenderObjectHandle_Strong<T, PLATFORM>::FromIndex(index);
+        return _container->GetRefCountStrong(index - 1) != 0
+            ? RenderObjectHandle_Strong<T, PLATFORM>::FromIndex(index)
+            : RenderObjectHandle_Strong<T, PLATFORM>::unset;
     }
 
     [[nodiscard]]
@@ -745,14 +781,13 @@ DEF_RENDER_PLATFORM_OBJECT(CommandBuffer,                                   2048
 DEF_RENDER_PLATFORM_OBJECT(ComputePipeline,                                 4096);
 DEF_RENDER_PLATFORM_OBJECT(GraphicsPipeline,                                4096);
 DEF_RENDER_PLATFORM_OBJECT(RaytracingPipeline,                              128);
-DEF_RENDER_PLATFORM_OBJECT(FramebufferObject,                               8192);
+DEF_RENDER_PLATFORM_OBJECT(Framebuffer,                               8192);
 DEF_RENDER_PLATFORM_OBJECT(RenderPass,                                      8192);
-DEF_RENDER_PLATFORM_OBJECT(ShaderProgram,                                   2048);
+DEF_RENDER_PLATFORM_OBJECT(Shader,                                   2048);
 DEF_RENDER_PLATFORM_OBJECT(AccelerationGeometry,                            8192);
 DEF_RENDER_PLATFORM_OBJECT(Fence,                                           16);
 DEF_RENDER_PLATFORM_OBJECT(Frame,                                           16);
 DEF_RENDER_PLATFORM_OBJECT(Attachment,                                      4096);
-DEF_RENDER_PLATFORM_OBJECT(AttachmentUsage,                                 8192);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorSet,                                   16384);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorTable,                                 4096);
 DEF_RENDER_PLATFORM_OBJECT_NAMED(BLAS, BottomLevelAccelerationStructure,    65536);
@@ -767,14 +802,13 @@ DEF_CURRENT_PLATFORM_RENDER_OBJECT(CommandBuffer);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(ComputePipeline);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(GraphicsPipeline);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(RaytracingPipeline);
-DEF_CURRENT_PLATFORM_RENDER_OBJECT(FramebufferObject);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(Framebuffer);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(RenderPass);
-DEF_CURRENT_PLATFORM_RENDER_OBJECT(ShaderProgram);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(Shader);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(AccelerationGeometry);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Fence);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Frame);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Attachment);
-DEF_CURRENT_PLATFORM_RENDER_OBJECT(AttachmentUsage);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(DescriptorSet);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(DescriptorTable);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(BLAS);

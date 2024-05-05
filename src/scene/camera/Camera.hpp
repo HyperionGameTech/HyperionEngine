@@ -136,10 +136,10 @@ public:
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera();
 
-    const Handle<Framebuffer> &GetFramebuffer() const
+    const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
 
-    void SetFramebuffer(const Handle<Framebuffer> &framebuffer);
+    void SetFramebuffer(const FramebufferRef &framebuffer);
 
     CameraController *GetCameraController() const
         { return m_camera_controller.Get(); }
@@ -288,7 +288,7 @@ protected:
 
     RC<CameraController>    m_camera_controller;
 
-    Handle<Framebuffer>     m_framebuffer;
+    FramebufferRef          m_framebuffer;
 
     Vec3f                   m_translation, m_next_translation, m_direction, m_up;
     Matrix4                 m_view_mat, m_proj_mat;

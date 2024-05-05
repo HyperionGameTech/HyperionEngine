@@ -22,10 +22,8 @@ public:
     const FBOMType &GetLoadableType() const { return m_loadable_type; }
 
 protected:
-    FBOMType m_loadable_type;
+    FBOMType    m_loadable_type;
 };
-
-using FBOMDeserialized = std::shared_ptr<FBOMLoadable>;
 
 } // namespace hyperion::fbom
 

@@ -368,7 +368,6 @@ void EnvGrid::OnRemoved()
     m_camera.Reset();
     m_render_list.Reset();
     m_ambient_shader.Reset();
-    m_framebuffer.Reset();
 
     PUSH_RENDER_COMMAND(
         SetElementInGlobalDescriptorSet,
@@ -377,6 +376,7 @@ void EnvGrid::OnRemoved()
         g_engine->GetPlaceholderData()->GetImageView3D1x1x1R8()
     );
 
+    SafeRelease(std::move(m_framebuffer));
     SafeRelease(std::move(m_clear_sh));
     SafeRelease(std::move(m_compute_sh));
     SafeRelease(std::move(m_reduce_sh));
@@ -403,7 +403,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
-                .shader_definition  = m_ambient_shader->GetCompiledShader().GetDefinition(),
+                .shader_definition  = m_ambient_shader->GetCompiledShader()->GetDefinition(),
                 .cull_faces         = FaceCullMode::BACK
             }
         ),
@@ -602,11 +602,11 @@ void EnvGrid::CreateVoxelGridData()
     AssertThrowMsg(m_framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
     AssertThrowMsg(m_framebuffer->GetAttachmentMap()->Size() >= 3, "Framebuffer must have at least 3 attachments (color, normals, distances)");
 
-    Handle<Shader> voxelize_probe_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_VOXELIZE" }});
-    Handle<Shader> offset_voxel_grid_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_OFFSET" }});
-    Handle<Shader> clear_voxels_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_ClearProbeVoxels));
+    ShaderRef voxelize_probe_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_VOXELIZE" }});
+    ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_OFFSET" }});
+    ShaderRef clear_voxels_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_ClearProbeVoxels));
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -615,9 +615,9 @@ void EnvGrid::CreateVoxelGridData()
         DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(VoxelizeProbeDescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InColorImage), m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(InNormalsImage), m_framebuffer->GetAttachmentUsages()[1]->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(InDepthImage), m_framebuffer->GetAttachmentUsages()[2]->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InColorImage), m_framebuffer->GetAttachment(0)->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InNormalsImage), m_framebuffer->GetAttachment(1)->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InDepthImage), m_framebuffer->GetAttachment(2)->GetImageView());
         descriptor_set->SetElement(HYP_NAME(SamplerLinear), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(HYP_NAME(SamplerNearest), g_engine->GetPlaceholderData()->GetSamplerNearest());
         descriptor_set->SetElement(HYP_NAME(EnvGridBuffer), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids.GetBuffer(frame_index));
@@ -631,7 +631,7 @@ void EnvGrid::CreateVoxelGridData()
 
     { // Compute shader to clear the voxel grid at a specific position
         m_clear_voxels = MakeRenderObject<renderer::ComputePipeline>(
-            clear_voxels_shader->GetShaderProgram(),
+            clear_voxels_shader,
             descriptor_table
         );
 
@@ -640,7 +640,7 @@ void EnvGrid::CreateVoxelGridData()
 
     { // Compute shader to voxelize a probe into voxel grid
         m_voxelize_probe = MakeRenderObject<renderer::ComputePipeline>(
-            voxelize_probe_shader->GetShaderProgram(),
+            voxelize_probe_shader,
             descriptor_table
         );
 
@@ -649,7 +649,7 @@ void EnvGrid::CreateVoxelGridData()
 
     { // Compute shader to 'offset' the voxel grid
         m_offset_voxel_grid = MakeRenderObject<renderer::ComputePipeline>(
-            offset_voxel_grid_shader->GetShaderProgram(),
+            offset_voxel_grid_shader,
             descriptor_table
         );
 
@@ -657,10 +657,10 @@ void EnvGrid::CreateVoxelGridData()
     }
 
     { // Compute shader to generate mipmaps for voxel grid
-        Handle<Shader> generate_voxel_grid_mipmaps_shader = g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap));
+        ShaderRef generate_voxel_grid_mipmaps_shader = g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap));
         AssertThrow(generate_voxel_grid_mipmaps_shader.IsValid());
 
-        renderer::DescriptorTableDeclaration generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+        renderer::DescriptorTableDeclaration generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         const uint num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
@@ -699,7 +699,7 @@ void EnvGrid::CreateVoxelGridData()
         }
 
         m_generate_voxel_grid_mipmaps = MakeRenderObject<renderer::ComputePipeline>(
-            generate_voxel_grid_mipmaps_shader->GetShaderProgram(),
+            generate_voxel_grid_mipmaps_shader,
             m_generate_voxel_grid_mipmaps_descriptor_tables[0]
         );
 
@@ -722,18 +722,18 @@ void EnvGrid::CreateSHData()
         );
     }
 
-    FixedArray<Handle<Shader>, 4> shaders = {
+    FixedArray<ShaderRef, 4> shaders = {
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_REDUCE" }}),
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }})
     };
 
-    for (const Handle<Shader> &shader : shaders) {
+    for (const ShaderRef &shader : shaders) {
         AssertThrow(shader.IsValid());
     }
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shaders[0]->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     m_compute_sh_descriptor_tables.Resize(sh_num_levels);
     
@@ -761,28 +761,28 @@ void EnvGrid::CreateSHData()
     }
 
     m_clear_sh = MakeRenderObject<renderer::ComputePipeline>(
-        shaders[0]->GetShaderProgram(),
+        shaders[0],
         m_compute_sh_descriptor_tables[0]
     );
 
     DeferCreate(m_clear_sh, g_engine->GetGPUDevice());
 
     m_compute_sh = MakeRenderObject<renderer::ComputePipeline>(
-        shaders[1]->GetShaderProgram(),
+        shaders[1],
         m_compute_sh_descriptor_tables[0]
     );
 
     DeferCreate(m_compute_sh, g_engine->GetGPUDevice());
 
     m_reduce_sh = MakeRenderObject<renderer::ComputePipeline>(
-        shaders[2]->GetShaderProgram(),
+        shaders[2],
         m_compute_sh_descriptor_tables[0]
     );
 
     DeferCreate(m_reduce_sh, g_engine->GetGPUDevice());
 
     m_finalize_sh = MakeRenderObject<renderer::ComputePipeline>(
-        shaders[3]->GetShaderProgram(),
+        shaders[3],
         m_compute_sh_descriptor_tables[0]
     );
 
@@ -802,26 +802,23 @@ void EnvGrid::CreateShader()
         shader_properties
     );
 
-    InitObject(m_ambient_shader);
+    AssertThrow(m_ambient_shader.IsValid());
 }
 
 void EnvGrid::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer>(
+    m_framebuffer = MakeRenderObject<renderer::Framebuffer>(
         framebuffer_dimensions,
-        RenderPassStage::SHADER,
+        renderer::RenderPassStage::SHADER,
         renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
     );
 
     m_framebuffer->AddAttachment(
         0,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            framebuffer_dimensions,
-            ambient_probe_format,
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        ambient_probe_format,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
@@ -829,12 +826,9 @@ void EnvGrid::CreateFramebuffer()
     // Normals
     m_framebuffer->AddAttachment(
         1,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            framebuffer_dimensions,
-            InternalFormat::RG16F,
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        InternalFormat::RG16F,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
@@ -842,29 +836,23 @@ void EnvGrid::CreateFramebuffer()
     // Distance Moments
     m_framebuffer->AddAttachment(
         2,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            framebuffer_dimensions,
-            InternalFormat::RG16F,
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        InternalFormat::RG16F,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
     m_framebuffer->AddAttachment(
         3,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            framebuffer_dimensions,
-            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
-    InitObject(m_framebuffer);
+    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 }
 
 void EnvGrid::RenderEnvProbe(
@@ -901,8 +889,8 @@ void EnvGrid::RenderEnvProbe(
         g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
 
-    const ImageRef &framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
-    const ImageViewRef &framebuffer_image_view = m_framebuffer->GetAttachmentUsages()[0]->GetImageView();
+    const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
+    const ImageViewRef &framebuffer_image_view = m_framebuffer->GetAttachment(0)->GetImageView();
 
     switch (GetEnvGridType()) {
     case ENV_GRID_TYPE_SH:
@@ -1129,8 +1117,12 @@ void EnvGrid::OffsetVoxelGrid(
 
     push_constants.offset = { offset.x, offset.y, offset.z, 0 };
 
-    m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
+    m_offset_voxel_grid->SetPushConstants(&push_constants, sizeof(push_constants));
+
+    m_offset_voxel_grid->Bind(frame->GetCommandBuffer());
+    
     m_offset_voxel_grid->GetDescriptorTable()->Bind(
         frame,
         m_offset_voxel_grid,
@@ -1144,7 +1136,6 @@ void EnvGrid::OffsetVoxelGrid(
         }
     );
 
-    m_offset_voxel_grid->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
     m_offset_voxel_grid->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
@@ -1154,7 +1145,7 @@ void EnvGrid::OffsetVoxelGrid(
         }
     );
 
-    m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void EnvGrid::VoxelizeProbe(
@@ -1172,7 +1163,7 @@ void EnvGrid::VoxelizeProbe(
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
 
-    const ImageRef &color_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+    const ImageRef &color_image = m_framebuffer->GetAttachment(0)->GetImage();
     const Extent2D cubemap_dimensions = Extent2D(color_image->GetExtent());
 
     struct alignas(128)
@@ -1194,12 +1185,16 @@ void EnvGrid::VoxelizeProbe(
     push_constants.cubemap_dimensions = { cubemap_dimensions.width, cubemap_dimensions.height, 0, 0 };
     push_constants.world_position = Vec4f(probe->GetDrawProxy().world_position, 1.0f);
 
-    color_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    color_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
-    // m_probe_data_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    // m_probe_data_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     if (false) {   // Clear our voxel grid at the start of each probe
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+        m_clear_voxels->SetPushConstants(&push_constants, sizeof(push_constants));
+
+        m_clear_voxels->Bind(frame->GetCommandBuffer());
 
         m_clear_voxels->GetDescriptorTable()->Bind(
             frame,
@@ -1214,7 +1209,6 @@ void EnvGrid::VoxelizeProbe(
             }
         );
 
-        m_clear_voxels->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
         m_clear_voxels->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
@@ -1226,7 +1220,10 @@ void EnvGrid::VoxelizeProbe(
     }
 
     { // Voxelize probe
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+        m_voxelize_probe->SetPushConstants(&push_constants, sizeof(push_constants));
+        m_voxelize_probe->Bind(frame->GetCommandBuffer());
 
         m_voxelize_probe->GetDescriptorTable()->Bind(
             frame,
@@ -1241,7 +1238,6 @@ void EnvGrid::VoxelizeProbe(
             }
         );
 
-        m_voxelize_probe->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
         m_voxelize_probe->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
@@ -1254,7 +1250,7 @@ void EnvGrid::VoxelizeProbe(
 
     { // Generate mipmaps for the voxel grid
 
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
         const uint num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
         const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
@@ -1280,7 +1276,7 @@ void EnvGrid::VoxelizeProbe(
 
             if (mip_level != 0) {
                 // put the mip into writeable state
-                m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+                m_voxel_grid_texture->GetImage()->InsertSubResourceBarrier(
                     frame->GetCommandBuffer(),
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::UNORDERED_ACCESS
@@ -1308,7 +1304,7 @@ void EnvGrid::VoxelizeProbe(
             );
 
             // put this mip into readable state
-            m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+            m_voxel_grid_texture->GetImage()->InsertSubResourceBarrier(
                 frame->GetCommandBuffer(),
                 renderer::ImageSubResource { .base_mip_level = mip_level },
                 renderer::ResourceState::SHADER_RESOURCE
@@ -1316,12 +1312,12 @@ void EnvGrid::VoxelizeProbe(
         }
 
         // all mip levels have been transitioned into this state
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->SetResourceState(
+        m_voxel_grid_texture->GetImage()->SetResourceState(
             renderer::ResourceState::SHADER_RESOURCE
         );
     }
 
-    // m_probe_data_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    // m_probe_data_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

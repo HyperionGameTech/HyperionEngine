@@ -12,62 +12,6 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateShaderProgram) : renderer::RenderCommand
-{
-    ShaderProgramRef    shader_program;
-    CompiledShader      compiled_shader;
-
-    RENDER_COMMAND(CreateShaderProgram)(
-        const ShaderProgramRef &shader_program,
-        const CompiledShader &compiled_shader
-    ) : shader_program(shader_program),
-        compiled_shader(compiled_shader)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateShaderProgram)() override = default;
-
-    virtual Result operator()() override
-    {
-        if (!compiled_shader.IsValid()) {
-            return { Result::RENDERER_ERR, "Invalid compiled shader" };
-        }
-
-        for (SizeType index = 0; index < compiled_shader.modules.Size(); index++) {
-            const auto &byte_buffer = compiled_shader.modules[index];
-
-            if (byte_buffer.Empty()) {
-                continue;
-            }
-
-            HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
-                g_engine->GetGPUInstance()->GetDevice(),
-                ShaderModuleType(index),
-                { byte_buffer }
-            ));
-        }
-
-        return shader_program->Create(g_engine->GetGPUDevice());
-    }
-};
-
-struct RENDER_COMMAND(DestroyShaderProgram) : renderer::RenderCommand
-{
-    ShaderProgramRef shader_program;
-
-    RENDER_COMMAND(DestroyShaderProgram)(const ShaderProgramRef &shader_program)
-        : shader_program(shader_program)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(DestroyShaderProgram)() = default;
-
-    virtual Result operator()() override
-    {
-        return shader_program->Destroy(g_engine->GetGPUDevice());
-    }
-};
-
 struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : renderer::RenderCommand
 {
     GPUBufferRef sh_grid_buffer;
@@ -198,64 +142,6 @@ void ShaderGlobals::Destroy()
     spherical_harmonics_grid.Destroy();
 }
 
-Shader::Shader()
-    : BasicObject(),
-      m_shader_program(MakeRenderObject<ShaderProgram>())
-{
-}
-
-Shader::Shader(const CompiledShader &compiled_shader)
-    : BasicObject(),
-      m_compiled_shader(compiled_shader),
-      m_shader_program(MakeRenderObject<ShaderProgram>())
-{
-}
-
-Shader::~Shader()
-{
-    if (IsInitCalled()) {
-        SetReady(false);
-    }
-
-    SafeRelease(std::move(m_shader_program));
-}
-
-void Shader::Init()
-{
-    if (IsInitCalled()) {
-        return;
-    }
-
-    BasicObject::Init();
-
-    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
-    {
-        SafeRelease(std::move(m_shader_program));
-    }));
-
-    if (!m_compiled_shader.IsValid()) {
-        return;
-    }
-
-    PUSH_RENDER_COMMAND(
-        CreateShaderProgram,
-        m_shader_program,
-        m_compiled_shader
-    );
-
-    SetReady(true);
-}
-
-void Shader::SetCompiledShader(const CompiledShader &compiled_shader)
-{
-    m_compiled_shader = compiled_shader;
-}
-
-void Shader::SetCompiledShader(CompiledShader &&compiled_shader)
-{
-    m_compiled_shader = std::move(compiled_shader);
-}
-
 // ShaderManagerSystem
 
 ShaderManagerSystem *ShaderManagerSystem::GetInstance()
@@ -263,7 +149,7 @@ ShaderManagerSystem *ShaderManagerSystem::GetInstance()
     return g_shader_manager;
 }
 
-Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
+ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 {
     const auto EnsureContainsProperties = [](const ShaderProperties &expected, const ShaderProperties &received) -> bool
     {
@@ -286,16 +172,16 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
         const auto it = m_map.Find(definition);
 
         if (it != m_map.End()) {
-            if (Handle<Shader> handle = it->second.Lock()) {
-                if (EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetProperties())) {
-                    return handle;
+            if (ShaderRef shader = it->second.Lock()) {
+                if (EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetProperties())) {
+                    return shader;
                 } else {
                     DebugLog(
                         LogType::Error,
                         "Loaded shader from cache (Name: %s, Properties: %s) does not contain the requested properties!\n\tRequested: %s\n",
-                        definition.GetName().LookupString(),
-                        handle->GetCompiledShader().GetProperties().ToString().Data(),
-                        definition.GetProperties().ToString().Data()
+                        *definition.GetName().LookupString(),
+                        *shader->GetCompiledShader()->GetProperties().ToString(),
+                        *definition.GetProperties().ToString()
                     );
 
                     // remove bad value from cache
@@ -322,24 +208,21 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     DebugLog(LogType::Debug, "Creating shader '%s'\n", *definition.GetName());
 
-    Handle<Shader> handle = CreateObject<Shader>();
-    handle->SetName(definition.GetName());
-    handle->SetCompiledShader(std::move(compiled_shader));
+    ShaderRef shader = MakeRenderObject<renderer::Shader>(RC<CompiledShader>(new CompiledShader(std::move(compiled_shader))));
+    DeferCreate(shader, g_engine->GetGPUDevice());
 
     DebugLog(LogType::Debug, "Shader '%s' created\n", *definition.GetName());
 
 #ifdef HYP_DEBUG_MODE
-    AssertThrow(EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetDefinition().GetProperties()));
+    AssertThrow(EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));
 #endif
 
-    InitObject(handle);
+    m_map.Set(definition, shader);
 
-    m_map.Set(definition, handle);
-
-    return handle;
+    return shader;
 }
 
-Handle<Shader> ShaderManagerSystem::GetOrCreate(
+ShaderRef ShaderManagerSystem::GetOrCreate(
     Name name,
     const ShaderProperties &props
 )

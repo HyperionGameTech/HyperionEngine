@@ -189,8 +189,8 @@ private:
     Handle<Camera>              m_camera;
     RenderList                  m_render_list;
 
-    Handle<Shader>              m_ambient_shader;
-    Handle<Framebuffer>         m_framebuffer;
+    ShaderRef                   m_ambient_shader;
+    FramebufferRef              m_framebuffer;
 
     EnvProbeCollection          m_env_probe_collection;
 

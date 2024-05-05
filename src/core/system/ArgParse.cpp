@@ -10,7 +10,7 @@ namespace sys {
 void ArgParse::Add(
     String name,
     String shorthand,
-    ArgFlags flags,
+    EnumFlags<ArgFlags> flags,
     CommandLineArgumentType type,
     CommandLineArgumentValue default_value
 )
@@ -44,7 +44,7 @@ void ArgParse::Add(
 void ArgParse::Add(
     String name,
     String shorthand,
-    ArgFlags flags,
+    EnumFlags<ArgFlags> flags,
     Optional<Array<String>> enum_values,
     CommandLineArgumentValue default_value
 )
@@ -59,7 +59,7 @@ void ArgParse::Add(
             std::move(name),
             shorthand.Empty() ? Optional<String>() : std::move(shorthand),
             flags,
-            CLAT_ENUM,
+            CommandLineArgumentType::ENUM,
             std::move(default_value),
             std::move(enum_values)
         };
@@ -71,7 +71,7 @@ void ArgParse::Add(
         std::move(name),
         shorthand.Empty() ? Optional<String>() : std::move(shorthand),
         flags,
-        CLAT_ENUM,
+        CommandLineArgumentType::ENUM,
         std::move(default_value),
         std::move(enum_values)
     });
@@ -101,9 +101,9 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
         const CommandLineArgumentType type = argument_definition.type;
 
         switch (type) {
-        case CLAT_STRING:
+        case CommandLineArgumentType::STRING:
             return CommandLineArgumentValue { str };
-        case CLAT_INT: {
+        case CommandLineArgumentType::INTEGER: {
             int i = 0;
 
             if (!StringUtil::Parse(str, &i)) {
@@ -112,7 +112,7 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
 
             return CommandLineArgumentValue { i };
         }
-        case CLAT_FLOAT: {
+        case CommandLineArgumentType::FLOAT: {
             float f = 0.0f;
 
             if (!StringUtil::Parse(str, &f)) {
@@ -121,9 +121,9 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
 
             return CommandLineArgumentValue { f };
         }
-        case CLAT_BOOL:
+        case CommandLineArgumentType::BOOLEAN:
             return CommandLineArgumentValue { str == "true" };
-        case CLAT_ENUM: {
+        case CommandLineArgumentType::ENUM: {
             const Array<String> *enum_values = argument_definition.enum_values.TryGet();
 
             if (!enum_values) {
@@ -185,7 +185,7 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
             continue;
         }
 
-        if (it->type == CLAT_BOOL) {
+        if (it->type == CommandLineArgumentType::BOOLEAN) {
             result.result.values.PushBack({ arg, CommandLineArgumentValue { true } });
 
             continue;
@@ -221,7 +221,7 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
             continue;
         }
 
-        if (def.flags & ARG_FLAGS_REQUIRED) {
+        if (def.flags & ArgFlags::REQUIRED) {
             result.ok = false;
             result.message = "Missing required argument: " + def.name;
 

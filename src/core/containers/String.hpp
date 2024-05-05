@@ -4,19 +4,19 @@
 #define HYPERION_STRING_HPP
 
 #include <math/MathUtil.hpp>
-#include <util/UTF8.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/Memory.hpp>
+#include <core/Defines.hpp>
+
+#include <util/UTF8.hpp>
+
 #include <Types.hpp>
 #include <Constants.hpp>
 #include <HashCode.hpp>
-#include <core/Defines.hpp>
 
-#include <algorithm>
-#include <utility>
 #include <type_traits>
 
 namespace hyperion {
@@ -33,8 +33,7 @@ enum StringType : int
 };
 
 namespace detail {
-
-/*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
+    
 using namespace ::utf;
 
 template <class CharType>
@@ -78,7 +77,7 @@ struct StringTypeImpl<WIDE_CHAR>
     using WidestCharType = wchar_t;
 };
 
-
+/*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 template <int string_type>
 class String : Array<typename StringTypeImpl<string_type>::CharType, 64u>
 {
@@ -136,6 +135,7 @@ public:
     String &operator=(String &&other) noexcept;
     
     template <int other_string_type, std::enable_if_t<other_string_type != string_type, int> = 0>
+    HYP_FORCE_INLINE
     String &operator=(const String<other_string_type> &other)
     {
         Clear();
@@ -152,6 +152,7 @@ public:
     String operator+(CharType ch) const;
     
     template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
+    HYP_FORCE_INLINE
     String operator+(U32Char ch) const
         { return String(*this) += ch; }
     
@@ -160,6 +161,7 @@ public:
     String &operator+=(CharType ch);
     
     template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
+    HYP_FORCE_INLINE
     String &operator+=(U32Char ch)
         { Append(ch); return *this; }
 
@@ -176,7 +178,8 @@ public:
      *
      * \ref{index} must be less than \ref{Size()}.
      */
-    [[nodiscard]] const CharType operator[](SizeType index) const;
+    [[nodiscard]]
+    const CharType operator[](SizeType index) const;
 
     /*! \brief Get a char from the String at the given index.
      * For UTF-8 strings, the character is encoded as a 32-bit value.
@@ -184,66 +187,108 @@ public:
      *
      * \ref{index} must be less than \ref{Length()}.
      */
-    [[nodiscard]] WidestCharType GetChar(SizeType index) const;
+    [[nodiscard]]
+    WidestCharType GetChar(SizeType index) const;
 
     /*! \brief Return the data size in characters. Note, UTF-8 strings can have a shorter length than size. */
-    [[nodiscard]] SizeType Size() const { return Base::Size() - 1; /* for NT char */ }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType Size() const
+        { return Base::Size() - 1; /* for NT char */ }
 
     /*! \brief Return the length of the string in characters. Note, UTF-8 strings can have a shorter length than size. */
-    [[nodiscard]] SizeType Length() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType Length() const
         { return m_length; }
 
     /*! \brief Access the raw data of the string.
         \note For UTF-8 strings, ensure proper care is taken when accessing the data, as indexing via a character index may not
-              yield a valid character.
-    */
-    [[nodiscard]] typename Base::ValueType *Data()
+              yield a valid character. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    typename Base::ValueType *Data()
         { return Base::Data(); }
 
-    [[nodiscard]] const typename Base::ValueType *Data() const
+    /*! \brief Access the raw data of the string.
+        \note For UTF-8 strings, ensure proper care is taken when accessing the data, as indexing via a character index may not
+              yield a valid character. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const typename Base::ValueType *Data() const
         { return Base::Data(); }
 
-    [[nodiscard]] typename Base::ValueType &Front()
+    /*! \brief Dereference operator overload to return the raw data of the string. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    operator const CharType *() const
+        { return Base::Data(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    typename Base::ValueType &Front()
         { return Base::Front(); }
 
-    [[nodiscard]] const typename Base::ValueType &Front() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const typename Base::ValueType &Front() const
         { return Base::Front(); }
 
-    [[nodiscard]] typename Base::ValueType &Back()
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    typename Base::ValueType &Back()
         { return Base::GetBuffer()[Base::m_size - 2]; /* for NT char */ }
 
-    [[nodiscard]] const typename Base::ValueType &Back() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const typename Base::ValueType &Back() const
         { return Base::GetBuffer()[Base::m_size - 2]; /* for NT char */ }
 
     /*! \brief Check if the string contains the given character. */
-    [[nodiscard]] bool Contains(const CharType &ch) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Contains(const CharType &ch) const
         { return ch != CharType { 0 } && Base::Contains(ch); }
 
     /*! \brief Check if the string contains the given string. */
-    [[nodiscard]] bool Contains(const String &str) const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Contains(const String &str) const
         { return FindIndex(str) != not_found; }
 
     /*! \brief Find the index of the first occurrence of the character in the string.
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    [[nodiscard]] SizeType FindIndex(const String &str) const;
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    SizeType FindIndex(const String &str) const;
 
     /*! \brief Check if the string is empty. */
-    [[nodiscard]] bool Empty() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Empty() const
         { return Size() == 0; }
 
     /*! \brief Check if the string contains any characters. */
-    [[nodiscard]] bool Any() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Any() const
         { return Size() != 0; }
 
     /*! \brief Check if the string contains multi-byte characters. */
-    [[nodiscard]] bool HasMultiByteChars() const { return Size() > Length(); }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HasMultiByteChars() const
+        { return Size() > Length(); }
 
     /*! \brief Reserve space for the string. \ref{capacity} + 1 is used, to make space for the null character. */
+    HYP_FORCE_INLINE
     void Reserve(SizeType capacity)
         { Base::Reserve(capacity + 1); }
 
-    void Refit() { Base::Refit(); }
+    HYP_FORCE_INLINE
+    void Refit()
+        { Base::Refit(); }
 
     void Append(const String &other);
     void Append(String &&other);
@@ -251,6 +296,7 @@ public:
     void Append(CharType value);
     
     template <class LargeCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<LargeCharType, CharType> && (std::is_same_v<LargeCharType, u32char> || std::is_same_v<LargeCharType, u16char> || std::is_same_v<LargeCharType, wchar_t>), int>>
+    HYP_FORCE_INLINE
     void Append(LargeCharType ch)
     {
         char parts[4] = { '\0' };
@@ -280,6 +326,7 @@ public:
     String ReplaceAll(const String &search, const String &replace) const;
 
     template <class ... SeparatorType>
+    [[nodiscard]]
     Array<String> Split(SeparatorType ... separators) const 
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separator_values { WidestCharType(separators)... };
@@ -366,6 +413,7 @@ public:
     }
 
     template <class Container>
+    [[nodiscard]]
     static String Join(const Container &container, WidestCharType separator)
     {
         String result;
@@ -396,6 +444,7 @@ public:
         return result;
     }
 
+    [[nodiscard]]
     static String Base64Encode(const Array<ubyte> &bytes)
     {
         static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -426,6 +475,7 @@ public:
         return out;
     }
 
+    [[nodiscard]]
     static Array<ubyte> Base64Decode(const String &in)
     {
         static const int lookup_table[] = {
@@ -485,6 +535,7 @@ public:
         return out;
     }
 
+    [[nodiscard]]
     String<UTF8> ToUTF8() const
     {
         if constexpr (is_utf8) {
@@ -542,6 +593,7 @@ public:
     }
 
     template <class Integral>
+    [[nodiscard]]
     static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, String>
     ToString(Integral value)
     {
@@ -565,13 +617,19 @@ public:
         return result;
     }
     
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static String ToString(const String &value)
         { return value; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     static String ToString(String &&value)
         { return value; }
 
-    [[nodiscard]] HashCode GetHashCode() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
         { return HashCode::GetHashCode(Data()); }
 
 protected:

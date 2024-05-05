@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/HBAO.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <Engine.hpp>
 
@@ -70,8 +71,8 @@ void HBAO::Create()
     PUSH_RENDER_COMMAND(
         AddHBAOFinalImagesToGlobalDescriptorSet,
         FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_hbao_pass->GetAttachmentUsage(0)->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_hbao_pass->GetAttachmentUsage(0)->GetImageView()
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_hbao_pass->GetAttachment(0)->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_hbao_pass->GetAttachment(0)->GetImageView()
         }
     );
 }
@@ -88,14 +89,12 @@ void HBAO::CreatePass()
     ShaderProperties shader_properties;
     shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
 
-    Handle<Shader> hbao_shader = g_shader_manager->GetOrCreate(
+    ShaderRef hbao_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(HBAO),
         shader_properties
     );
 
-    g_engine->InitObject(hbao_shader);
-
-    renderer::DescriptorTableDeclaration descriptor_table_decl = hbao_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = hbao_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());

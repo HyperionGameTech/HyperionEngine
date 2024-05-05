@@ -27,7 +27,6 @@ using renderer::ImageView;
 using renderer::StorageImage;
 using renderer::Sampler;
 using renderer::Device;
-using renderer::AttachmentUsage;
 using renderer::Result;
 using renderer::RaytracingPipeline;
 using renderer::RTUpdateStateFlags;
@@ -87,7 +86,7 @@ private:
     
     FixedArray<uint32, max_frames_in_flight>            m_updates;
 
-    Handle<Shader>                                      m_shader;
+    ShaderRef                                           m_shader;
 
     Handle<Texture>                                     m_texture;
     UniquePtr<TemporalBlending>                         m_temporal_blending;

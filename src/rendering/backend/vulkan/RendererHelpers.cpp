@@ -128,6 +128,43 @@ VkImageViewType ToVkImageViewType(ImageType type, bool is_array)
     AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
 }
 
+#pragma region SingleTimeCommands
+
+Result SingleTimeCommands::Begin(Device *device)
+{
+    m_fence = MakeRenderObject<platform::Fence<Platform::VULKAN>, Platform::VULKAN>();
+
+    command_buffer = MakeRenderObject<platform::CommandBuffer<Platform::VULKAN>, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
+    command_buffer->GetPlatformImpl().command_pool = pool;
+    HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
+
+    return command_buffer->Begin(device);
+}
+
+Result SingleTimeCommands::End(Device *device)
+{
+    Result result;
+
+    HYPERION_PASS_ERRORS(command_buffer->End(device), result);
+
+    HYPERION_PASS_ERRORS(m_fence->Create(device), result);
+    HYPERION_PASS_ERRORS(m_fence->Reset(device), result);
+
+    // Submit to the queue
+    platform::DeviceQueue<Platform::VULKAN> &queue_graphics = device->GetGraphicsQueue();
+
+    HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&queue_graphics, m_fence, nullptr), result);
+    
+    HYPERION_PASS_ERRORS(m_fence->WaitForGPU(device), result);
+    HYPERION_PASS_ERRORS(m_fence->Destroy(device), result);
+
+    HYPERION_PASS_ERRORS(command_buffer->Destroy(device), result);
+
+    return result;
+}
+
+#pragma endregion SingleTimeCommands
+
 } // namespace renderer
 } // namespace helpers
 } // namespace hyperion

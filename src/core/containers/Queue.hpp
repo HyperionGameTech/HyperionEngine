@@ -5,16 +5,13 @@
 
 #include <core/containers/Array.hpp>
 #include <core/Defines.hpp>
-#include <Types.hpp>
 
-#include <algorithm>
-#include <utility>
+#include <Types.hpp>
 
 namespace hyperion {
 namespace containers {
 
-/*! \brief FILO queue based on Array<T> class.
-    \details About 30% faster than std::queue in my tests. */
+/*! \brief FILO queue based on Array<T> class. */
 template <class T>
 class Queue : Array<T>
 {

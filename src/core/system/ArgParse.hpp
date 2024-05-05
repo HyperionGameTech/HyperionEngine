@@ -9,22 +9,31 @@
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
-
+#include <core/utilities/EnumFlags.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {
+
+enum class ArgFlags : uint32
+{
+    NONE        = 0x0,
+    REQUIRED    = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(ArgFlags)
+
+enum class CommandLineArgumentType
+{
+    STRING = 1,
+    INTEGER,
+    FLOAT,
+    BOOLEAN,
+    ENUM
+};
+
 namespace sys {
 
 using CommandLineArgumentValue = Variant<String, int, float, bool>;
-
-enum CommandLineArgumentType
-{
-    CLAT_STRING = 1,
-    CLAT_INT,
-    CLAT_FLOAT,
-    CLAT_BOOL,
-    CLAT_ENUM
-};
 
 class ArgParse;
 
@@ -84,14 +93,6 @@ public:
             { return ok; }
     };
 
-    using ArgFlags = uint32;
-
-    enum ArgFlagBits : ArgFlags
-    {
-        ARG_FLAGS_NONE      = 0x0,
-        ARG_FLAGS_REQUIRED  = 0x1
-    };
-
     struct ArgumentDefinition
     {
         String                      name;
@@ -106,8 +107,8 @@ public:
     HYP_API void Add(
         String name,
         String shorthand = String::empty,
-        ArgFlags flags = ARG_FLAGS_NONE,
-        CommandLineArgumentType type = CLAT_STRING,
+        EnumFlags<ArgFlags> flags = ArgFlags::NONE,
+        CommandLineArgumentType type = CommandLineArgumentType::STRING,
         CommandLineArgumentValue default_value = { }
     );
 
@@ -115,7 +116,7 @@ public:
     HYP_API void Add(
         String name,
         String shorthand = String::empty,
-        ArgFlags flags = ARG_FLAGS_NONE,
+        EnumFlags<ArgFlags> flags = ArgFlags::NONE,
         Optional<Array<String>> enum_values = { },
         CommandLineArgumentValue = { }
     );
@@ -133,7 +134,6 @@ using sys::ArgParse;
 
 using sys::CommandLineArguments;
 using sys::CommandLineArgumentValue;
-using sys::CommandLineArgumentType;
 
 } // namespace hyperion
 

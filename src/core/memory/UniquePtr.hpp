@@ -4,9 +4,7 @@
 #define HYPERION_UNIQUE_PTR_HPP
 
 #include <core/Defines.hpp>
-
 #include <core/utilities/TypeID.hpp>
-
 #include <core/memory/Memory.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Any.hpp>

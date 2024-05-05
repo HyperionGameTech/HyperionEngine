@@ -358,7 +358,7 @@ void Material::EnqueueTextureUpdate(TextureKey key)
     );
 }
 
-void Material::SetShader(Handle<Shader> shader)
+void Material::SetShader(const ShaderRef &shader)
 {
     if (IsStatic()) {
         DebugLog(LogType::Warn, "Setting shader on static material with ID #%u (name: %s)\n", GetID().Value(), GetName().LookupString());
@@ -369,14 +369,14 @@ void Material::SetShader(Handle<Shader> shader)
     }
 
     if (m_shader.IsValid()) {
-        g_safe_deleter->SafeRelease(std::move(m_shader));
+        SafeRelease(std::move(m_shader));
     }
 
     m_render_attributes.shader_definition = shader.IsValid()
-        ? shader->GetCompiledShader().GetDefinition()
+        ? shader->GetCompiledShader()->GetDefinition()
         : ShaderDefinition { };
 
-    m_shader = std::move(shader);
+    m_shader = shader;
 
     if (IsInitCalled()) {
         m_mutation_state |= DataMutationState::DIRTY;

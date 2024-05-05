@@ -25,8 +25,8 @@ RaytracingPipeline<Platform::VULKAN>::RaytracingPipeline()
 {
 }
 
-RaytracingPipeline<Platform::VULKAN>::RaytracingPipeline(ShaderProgramRef<Platform::VULKAN> shader_program, DescriptorTableRef<Platform::VULKAN> descriptor_table)
-    : Pipeline<Platform::VULKAN>(std::move(shader_program), std::move(descriptor_table))
+RaytracingPipeline<Platform::VULKAN>::RaytracingPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table)
+    : Pipeline<Platform::VULKAN>(shader, descriptor_table)
 {
 }
 
@@ -38,7 +38,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         return {Result::RENDERER_ERR, "Raytracing is not supported on this device"};
     }
 
-    AssertThrow(m_shader_program != nullptr);
+    AssertThrow(m_shader != nullptr);
 
     Result result;
 
@@ -47,7 +47,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
 
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-    Array<VkDescriptorSetLayout> used_layouts = GetDescriptorSetLayouts();
+    Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
 
     DebugLog(
         LogType::Debug,
@@ -78,11 +78,11 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         }
     };
 
-    layout_info.pushConstantRangeCount = uint32(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = ArraySize(push_constant_ranges);
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_PASS_ERRORS(
-        vkCreatePipelineLayout(device->GetDevice(), &layout_info, VK_NULL_HANDLE, &layout),
+        vkCreatePipelineLayout(device->GetDevice(), &layout_info, VK_NULL_HANDLE, &m_platform_impl.layout),
         result
     );
 
@@ -94,8 +94,8 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
 
     VkRayTracingPipelineCreateInfoKHR pipeline_info{VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR};
 
-    const auto &stages = m_shader_program->GetShaderStages();
-    const auto &shader_groups = m_shader_program->GetShaderGroups();
+    const Array<VkPipelineShaderStageCreateInfo> &stages = m_shader->GetPlatformImpl().vk_shader_stages;
+    const Array<ShaderGroup<Platform::VULKAN>> &shader_groups = m_shader->GetShaderGroups();
 
     Array<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
     shader_group_create_infos.Resize(shader_groups.Size());
@@ -104,13 +104,13 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 
-    pipeline_info.stageCount            = uint32(stages.Size());
-    pipeline_info.pStages               = stages.Data();
-    pipeline_info.groupCount            = uint32(shader_group_create_infos.Size());
-    pipeline_info.pGroups               = shader_group_create_infos.Data();
-    pipeline_info.layout                = layout;
-    pipeline_info.basePipelineHandle    = VK_NULL_HANDLE;
-    pipeline_info.basePipelineIndex     = -1;
+    pipeline_info.stageCount = uint32(stages.Size());
+    pipeline_info.pStages = stages.Data();
+    pipeline_info.groupCount = uint32(shader_group_create_infos.Size());
+    pipeline_info.pGroups = shader_group_create_infos.Data();
+    pipeline_info.layout = m_platform_impl.layout;
+    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+    pipeline_info.basePipelineIndex = -1;
     
     HYPERION_VK_PASS_ERRORS(
         device->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(
@@ -120,7 +120,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
             1,
             &pipeline_info,
             VK_NULL_HANDLE,
-            &pipeline
+            &m_platform_impl.handle
         ),
         result
     );
@@ -131,7 +131,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         return result;
     }
 
-    HYPERION_PASS_ERRORS(CreateShaderBindingTables(device, m_shader_program), result);
+    HYPERION_PASS_ERRORS(CreateShaderBindingTables(device, m_shader), result);
     
     if (!result) {
         HYPERION_IGNORE_ERRORS(Destroy(device));
@@ -139,17 +139,11 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         return result;
     }
 
-    m_is_created = true;
-
     HYPERION_RETURN_OK;
 }
 
 Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    DebugLog(LogType::Debug, "Destroying raytracing pipeline\n");
-
-    m_is_created = false;
-
     SafeRelease(std::move(m_descriptor_table));
 
     Result result;
@@ -158,14 +152,14 @@ Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *d
         HYPERION_PASS_ERRORS(it.second.buffer->Destroy(device), result);
     }
 
-    if (pipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(device->GetDevice(), pipeline, VK_NULL_HANDLE);
-        pipeline = VK_NULL_HANDLE;
+    if (m_platform_impl.handle != VK_NULL_HANDLE) {
+        vkDestroyPipeline(device->GetDevice(), m_platform_impl.handle, VK_NULL_HANDLE);
+        m_platform_impl.handle = VK_NULL_HANDLE;
     }
     
-    if (layout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(device->GetDevice(), layout, VK_NULL_HANDLE);
-        layout = VK_NULL_HANDLE;
+    if (m_platform_impl.layout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(device->GetDevice(), m_platform_impl.layout, VK_NULL_HANDLE);
+        m_platform_impl.layout = VK_NULL_HANDLE;
     }
 
     return result;
@@ -174,22 +168,21 @@ Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *d
 void RaytracingPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *command_buffer)
 {
     vkCmdBindPipeline(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        pipeline
+        m_platform_impl.handle
     );
-}
-
-void RaytracingPipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const
-{
-    vkCmdPushConstants(
-        cmd->GetCommandBuffer(),
-        layout,
-        push_constant_stage_flags,
-        0,
-        static_cast<uint32>(sizeof(push_constants)),
-        &push_constants
-    );
+    
+    if (m_push_constants) {
+        vkCmdPushConstants(
+            command_buffer->GetPlatformImpl().command_buffer,
+            m_platform_impl.layout,
+            push_constant_stage_flags,
+            0,
+            m_push_constants.Size(),
+            m_push_constants.Data()
+        );
+    }
 }
 
 void RaytracingPipeline<Platform::VULKAN>::TraceRays(
@@ -199,7 +192,7 @@ void RaytracingPipeline<Platform::VULKAN>::TraceRays(
 ) const
 {
     device->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         &m_shader_binding_table_entries.ray_gen,
         &m_shader_binding_table_entries.ray_miss,
         &m_shader_binding_table_entries.closest_hit,
@@ -208,25 +201,25 @@ void RaytracingPipeline<Platform::VULKAN>::TraceRays(
     );
 }
 
-Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram<Platform::VULKAN> *shader_program)
+Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Platform::VULKAN> *device, Shader<Platform::VULKAN> *shader)
 {
-    const auto &shader_groups = shader_program->GetShaderGroups();
+    const Array<ShaderGroup<Platform::VULKAN>> &shader_groups = shader->GetShaderGroups();
 
     const auto &features = device->GetFeatures();
     const auto &properties = features.GetRaytracingPipelineProperties();
 
     const uint32 handle_size = properties.shaderGroupHandleSize;
     const uint32 handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
-    const uint32 table_size = static_cast<uint32>(shader_groups.Size()) * handle_size_aligned;
+    const uint32 table_size = uint32(shader_groups.Size()) * handle_size_aligned;
 
     ByteBuffer shader_handle_storage(table_size);
 
     HYPERION_VK_CHECK(features.dyn_functions.vkGetRayTracingShaderGroupHandlesKHR(
         device->GetDevice(),
-        pipeline,
+        m_platform_impl.handle,
         0,
-        static_cast<uint32>(shader_groups.Size()),
-        static_cast<uint32>(shader_handle_storage.Size()),
+        uint32(shader_groups.Size()),
+        uint32(shader_handle_storage.Size()),
         shader_handle_storage.Data()
     ));
 

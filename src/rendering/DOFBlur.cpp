@@ -14,8 +14,8 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    auto blur_horizontal_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurDirection), ShaderProperties({ "DIRECTION_HORIZONTAL" }));
-    AssertThrow(InitObject(blur_horizontal_shader));
+    ShaderRef blur_horizontal_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurDirection), ShaderProperties({ "DIRECTION_HORIZONTAL" }));
+    AssertThrow(blur_horizontal_shader.IsValid());
 
     m_blur_horizontal_pass.Reset(new FullScreenPass(
         blur_horizontal_shader,
@@ -25,8 +25,8 @@ void DOFBlur::Create()
 
     m_blur_horizontal_pass->Create();
 
-    auto blur_vertical_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurDirection), ShaderProperties({ "DIRECTION_VERTICAL" }));
-    AssertThrow(InitObject(blur_vertical_shader));
+    ShaderRef blur_vertical_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurDirection), ShaderProperties({ "DIRECTION_VERTICAL" }));
+    AssertThrow(blur_vertical_shader.IsValid());
 
     m_blur_vertical_pass.Reset(new FullScreenPass(
         blur_vertical_shader,
@@ -36,8 +36,8 @@ void DOFBlur::Create()
 
     m_blur_vertical_pass->Create();
 
-    auto blur_mix_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurMix));
-    AssertThrow(InitObject(blur_mix_shader));
+    ShaderRef blur_mix_shader = g_shader_manager->GetOrCreate(HYP_NAME(DOFBlurMix));
+    AssertThrow(blur_mix_shader.IsValid());
 
     m_blur_mix_pass.Reset(new FullScreenPass(
         blur_mix_shader,

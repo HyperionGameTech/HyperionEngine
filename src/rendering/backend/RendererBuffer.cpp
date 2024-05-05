@@ -24,7 +24,7 @@ StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
             LogType::Debug,
             "Requested staging buffer of size %llu, reusing existing staging buffer of size %llu\n",
             required_size,
-            staging_buffer->size
+            staging_buffer->Size()
         );
 #endif
     } else {

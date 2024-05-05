@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-using renderer::ShaderProgram;
+using renderer::Shader;
 using renderer::ShaderObject;
 using renderer::ShaderModule;
 using renderer::StorageBuffer;

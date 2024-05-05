@@ -102,9 +102,10 @@ void TemporalAA::CreateImages()
 
 void TemporalAA::CreateComputePipelines()
 {
-    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalAA));
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalAA));
+    AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     auto descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -121,10 +122,10 @@ void TemporalAA::CreateComputePipelines()
         descriptor_set->SetElement(HYP_NAME(InColorTexture), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
         descriptor_set->SetElement(HYP_NAME(InPrevColorTexture), (*textures[(frame_index + 1) % 2])->GetImageView());
 
-        descriptor_set->SetElement(HYP_NAME(InVelocityTexture), g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(HYP_NAME(InVelocityTexture), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(HYP_NAME(InDepthTexture), g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(HYP_NAME(InDepthTexture), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
     
         descriptor_set->SetElement(HYP_NAME(SamplerLinear), g_engine->GetPlaceholderData()->GetSamplerLinear());
@@ -139,7 +140,7 @@ void TemporalAA::CreateComputePipelines()
     );
 
     m_compute_taa = MakeRenderObject<renderer::ComputePipeline>(
-        shader->GetShaderProgram(),
+        shader,
         descriptor_table
     );
 
@@ -164,8 +165,7 @@ void TemporalAA::Render(Frame *frame)
 
     Handle<Texture> &active_texture = *textures[frame->GetFrameIndex() % 2];
 
-    active_texture->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    active_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     struct alignas(128) {
         ShaderVec2<uint32>  dimensions;
@@ -175,8 +175,8 @@ void TemporalAA::Render(Frame *frame)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
+        g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
     );
     push_constants.camera_near_far = Vector2(camera.clip_near, camera.clip_far);
 
@@ -194,8 +194,7 @@ void TemporalAA::Render(Frame *frame)
         }
     );
     
-    active_texture->GetImage()->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    active_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

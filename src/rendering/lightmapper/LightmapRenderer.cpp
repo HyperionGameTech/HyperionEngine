@@ -103,13 +103,10 @@ void LightmapPathTracer::Create()
         break;
     }
 
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(LightmapPathTracer), shader_properties);
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(LightmapPathTracer), shader_properties);
+    AssertThrow(shader.IsValid());
 
-    if (!InitObject(shader)) {
-        return;
-    }
-
-    renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -134,7 +131,7 @@ void LightmapPathTracer::Create()
     );
 
     m_raytracing_pipeline = MakeRenderObject<RaytracingPipeline>(
-        shader->GetShaderProgram(),
+        shader,
         descriptor_table
     );
 

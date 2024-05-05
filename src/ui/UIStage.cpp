@@ -27,7 +27,7 @@
 namespace hyperion {
 
 UIStage::UIStage()
-    : UIObject(UOT_STAGE),
+    : UIObject(UIObjectType::STAGE),
       m_surface_size { 1000, 1000 }
 {
     SetName(HYP_NAME(Stage));
@@ -276,7 +276,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                             continue;
                         }
 
-                        ui_object->SetFocusState(ui_object->GetFocusState() | UOFS_HOVER);
+                        ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
                         event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
                             .position   = mouse_screen,
@@ -299,7 +299,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                 if (ray_test_results_it == ray_test_results.End()) {
                     if (auto other_ui_object = GetUIObjectForEntity(*it)) {
-                        other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UOFS_HOVER);
+                        other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                         other_ui_object->OnMouseLeave(UIMouseEventData {
                             .position   = mouse_screen,
@@ -347,7 +347,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     m_mouse_held_times.Set(ui_object->GetEntity(), 0.0f);
 
-                    ui_object->SetFocusState(ui_object->GetFocusState() | UOFS_PRESSED);
+                    ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
                     event_handler_result |= ui_object->OnMouseDown(UIMouseEventData {
                         .position   = mouse_screen,
@@ -408,7 +408,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         for (auto &it : m_mouse_held_times) {
             // trigger mouse up
             if (auto ui_object = GetUIObjectForEntity(it.first)) {
-                ui_object->SetFocusState(ui_object->GetFocusState() & ~UOFS_PRESSED);
+                ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                 event_handler_result |= ui_object->OnMouseUp(UIMouseEventData {
                     .position   = mouse_screen,

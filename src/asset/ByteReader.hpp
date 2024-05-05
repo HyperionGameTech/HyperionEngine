@@ -1,21 +1,18 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef BYTE_READER_HPP
 #define BYTE_READER_HPP
 
 #include <math/MathUtil.hpp>
 #include <core/memory/ByteBuffer.hpp>
+#include <core/Core.hpp>
 #include <core/Util.hpp>
 #include <Types.hpp>
-
-#include <fstream>
-#include <core/Core.hpp>
 
 namespace hyperion {
 class ByteReader
 {
 public:
-    using Bytes = std::vector<ubyte>;
-
     virtual ~ByteReader() = default;
 
     template <typename T>

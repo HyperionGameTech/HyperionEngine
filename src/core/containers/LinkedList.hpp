@@ -5,13 +5,11 @@
 
 #include <core/containers/ContainerBase.hpp>
 #include <core/Defines.hpp>
-#include <Types.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/system/Debug.hpp>
-#include <HashCode.hpp>
 
-#include <algorithm>
-#include <utility>
+#include <HashCode.hpp>
+#include <Types.hpp>
 
 namespace hyperion {
 

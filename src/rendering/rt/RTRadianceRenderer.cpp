@@ -176,7 +176,7 @@ void RTRadianceRenderer::Render(Frame *frame)
         }
     );
 
-    m_texture->GetImage()->GetGPUImage()->InsertBarrier(
+    m_texture->GetImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
@@ -194,7 +194,7 @@ void RTRadianceRenderer::Render(Frame *frame)
         }
     );
 
-    m_texture->GetImage()->GetGPUImage()->InsertBarrier(
+    m_texture->GetImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );
@@ -267,11 +267,9 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
         m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTRadiance));
     }
 
-    if (!InitObject(m_shader)) {
-        return;
-    }
+    AssertThrow(m_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -295,7 +293,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
     );
 
     m_raytracing_pipeline = MakeRenderObject<RaytracingPipeline>(
-        m_shader->GetShaderProgram(),
+        m_shader,
         descriptor_table
     );
 

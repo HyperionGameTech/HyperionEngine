@@ -356,9 +356,8 @@ public:
     }
 
     /*! \brief Read one instance of the given template type, using sizeof(T).
-     * @param ptr The pointer to T, where the read memory will be written.
-     * @returns The number of bytes read
-     */
+     *  \param ptr The pointer to T, where the read memory will be written.
+     *  \returns The number of bytes read */
     template <class T>
     SizeType Read(T *ptr)
     {

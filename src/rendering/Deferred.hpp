@@ -16,19 +16,10 @@
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
 
-#include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSampler.hpp>
-
 namespace hyperion {
 
 using renderer::Frame;
-using renderer::Image;
-using renderer::ImageView;
-using renderer::Sampler;
 using renderer::Device;
-using renderer::AttachmentUsage;
 
 class IndirectDrawState;
 class RenderEnvironment;
@@ -66,7 +57,7 @@ public:
 private:
     const bool                                              m_is_indirect_pass;
 
-    FixedArray<Handle<Shader>, uint(LightType::MAX)>        m_direct_light_shaders;
+    FixedArray<ShaderRef, uint(LightType::MAX)>      m_direct_light_shaders;
     FixedArray<Handle<RenderGroup>, uint(LightType::MAX)>   m_direct_light_render_groups;
 
     Handle<Texture>                                         m_ltc_matrix_texture;
@@ -157,11 +148,8 @@ public:
     const DepthPyramidRenderer &GetDepthPyramidRenderer() const
         { return m_dpr; }
 
-    AttachmentUsage *GetCombinedResult()
-        { return m_combine_pass->GetAttachmentUsage(0); }
-
-    const AttachmentUsage *GetCombinedResult() const
-        { return m_combine_pass->GetAttachmentUsage(0); }
+    const AttachmentRef &GetCombinedResult() const
+        { return m_combine_pass->GetAttachment(0); }
 
     const Handle<Texture> &GetMipChain() const
         { return m_mip_chain; }
@@ -200,8 +188,8 @@ private:
     UniquePtr<HBAO>                                     m_hbao;
     UniquePtr<TemporalAA>                               m_temporal_aa;
 
-    Handle<Framebuffer>                                 m_opaque_fbo;
-    Handle<Framebuffer>                                 m_translucent_fbo;
+    FramebufferRef                                      m_opaque_fbo;
+    FramebufferRef                                      m_translucent_fbo;
 
     UniquePtr<FullScreenPass>                           m_combine_pass;
 

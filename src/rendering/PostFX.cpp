@@ -10,12 +10,12 @@ namespace hyperion {
 
 
 PostFXPass::PostFXPass(InternalFormat image_format)
-    : FullScreenPass(Handle<Shader>(), image_format)
+    : FullScreenPass(nullptr, image_format)
 {
 }
 
 PostFXPass::PostFXPass(
-    const Handle<Shader> &shader,
+    const ShaderRef &shader,
     InternalFormat image_format
 ) : PostFXPass(
         shader,
@@ -27,7 +27,7 @@ PostFXPass::PostFXPass(
 }
 
 PostFXPass::PostFXPass(
-    const Handle<Shader> &shader,
+    const ShaderRef &shader,
     PostProcessingStage stage,
     uint effect_index,
     InternalFormat image_format
@@ -48,7 +48,7 @@ void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    if (!m_framebuffer->GetAttachmentUsages().Empty()) {
+    if (m_framebuffer->GetAttachmentMap()->Size() != 0) {
         if (m_effect_index == ~0u) {
             DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
 
@@ -61,7 +61,7 @@ void PostFXPass::CreateDescriptors()
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
+                ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachment(0)->GetImageView());
         }
     }
 }
@@ -72,7 +72,7 @@ PostProcessingEffect::PostProcessingEffect(
     InternalFormat image_format
 ) : BasicObject(),
     m_pass(
-        Handle<Shader>(),
+        nullptr,
         stage,
         effect_index,
         image_format
@@ -102,7 +102,6 @@ void PostProcessingEffect::Init()
     BasicObject::Init();
 
     m_shader = CreateShader();
-    InitObject(m_shader);
 
     m_pass.SetShader(m_shader);
     m_pass.Create();
@@ -112,10 +111,15 @@ void PostProcessingEffect::Init()
 
 void PostProcessingEffect::RenderEffect(Frame *frame, uint slot)
 {
-    m_pass.SetPushConstants({
-        .post_fx_data = { (slot << 1) | uint(m_pass.GetStage()) }
-    });
+    struct alignas(128)
+    {
+        uint32  current_effect_index_stage; // 31bits for index, 1 bit for stage
+    } push_constants;
 
+    push_constants.current_effect_index_stage = (slot << 1) | uint32(m_pass.GetStage());
+
+    m_pass.SetPushConstants(&push_constants, sizeof(push_constants));
+    
     m_pass.Record(frame->GetFrameIndex());
     m_pass.Render(frame);
 }

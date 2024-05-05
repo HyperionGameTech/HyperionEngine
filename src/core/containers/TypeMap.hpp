@@ -7,10 +7,10 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FlatSet.hpp>
 #include <core/utilities/TypeID.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>
-#include <core/Defines.hpp>
 
 namespace hyperion {
 namespace containers {

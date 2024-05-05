@@ -11,45 +11,50 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
+template <>
 Sampler<Platform::VULKAN>::Sampler(FilterMode min_filter_mode, FilterMode mag_filter_mode, WrapMode wrap_mode)
-    : m_sampler(VK_NULL_HANDLE),
+    : m_platform_impl { this, VK_NULL_HANDLE },
       m_min_filter_mode(min_filter_mode),
       m_mag_filter_mode(mag_filter_mode),
       m_wrap_mode(wrap_mode)
 {
 }
 
+template <>
 Sampler<Platform::VULKAN>::Sampler(Sampler<Platform::VULKAN> &&other) noexcept
-    : m_sampler(other.m_sampler),
+    : m_platform_impl { this, other.m_platform_impl.handle },
       m_min_filter_mode(other.m_min_filter_mode),
       m_mag_filter_mode(other.m_mag_filter_mode),
       m_wrap_mode(other.m_wrap_mode)
 {
-    other.m_sampler = VK_NULL_HANDLE;
+    other.m_platform_impl.handle = VK_NULL_HANDLE;
 }
 
+template <>
 Sampler<Platform::VULKAN> &Sampler<Platform::VULKAN>::operator=(Sampler<Platform::VULKAN> &&other) noexcept
 {
-    AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");
+    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "sampler should have been destroyed");
 
-    m_sampler = other.m_sampler;
+    m_platform_impl.handle = other.m_platform_impl.handle;
     m_min_filter_mode = other.m_min_filter_mode;
     m_mag_filter_mode = other.m_mag_filter_mode;
     m_wrap_mode = other.m_wrap_mode;
 
-    other.m_sampler = VK_NULL_HANDLE;
+    other.m_platform_impl.handle = VK_NULL_HANDLE;
 
     return *this;
 }
 
+template <>
 Sampler<Platform::VULKAN>::~Sampler()
 {
-    AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");
+    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "sampler should have been destroyed");
 }
 
+template <>
 Result Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_sampler == VK_NULL_HANDLE);
+    AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
 
     VkSamplerCreateInfo sampler_info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     sampler_info.magFilter = helpers::ToVkFilter(m_mag_filter_mode);
@@ -102,18 +107,19 @@ Result Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         sampler_info.pNext = &reduction_info;
     }
 
-    if (vkCreateSampler(device->GetDevice(), &sampler_info, nullptr, &m_sampler) != VK_SUCCESS) {
+    if (vkCreateSampler(device->GetDevice(), &sampler_info, nullptr, &m_platform_impl.handle) != VK_SUCCESS) {
         return { Result::RENDERER_ERR, "Failed to create sampler!" };
     }
 
     HYPERION_RETURN_OK;
 }
 
+template <>
 Result Sampler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    if (m_sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(device->GetDevice(), m_sampler, nullptr);
-        m_sampler = VK_NULL_HANDLE;
+    if (m_platform_impl.handle != VK_NULL_HANDLE) {
+        vkDestroySampler(device->GetDevice(), m_platform_impl.handle, nullptr);
+        m_platform_impl.handle = VK_NULL_HANDLE;
     }
 
     HYPERION_RETURN_OK;

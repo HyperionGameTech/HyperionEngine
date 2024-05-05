@@ -174,7 +174,7 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
 #pragma region UIText
 
 UIText::UIText(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UOT_TEXT),
+    : UIObject(parent, std::move(node_proxy), UIObjectType::TEXT),
       m_text("No text set"),
       m_text_color(Vec4f { 0.0f, 0.0f, 0.0f, 1.0f })
 {

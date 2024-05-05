@@ -5,6 +5,7 @@
 
 #include <core/containers/Array.hpp>
 #include <math/MathUtil.hpp>
+
 #include <Types.hpp>
 
 #include <ostream>

@@ -32,7 +32,6 @@ void ScreenCaptureRenderComponent::Init()
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
     HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetImage()->GetByteSize()));
     m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
-    m_buffer->GetMapping(g_engine->GetGPUDevice());
 }
 
 void ScreenCaptureRenderComponent::InitGame()
@@ -59,22 +58,22 @@ void ScreenCaptureRenderComponent::OnRender(Frame *frame)
     
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
-    image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+    image_ref->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
 
     switch (m_screen_capture_mode) {
     case ScreenCaptureMode::TO_TEXTURE:
-        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
         m_texture->GetImage()->Blit(
             command_buffer,
             image_ref
         );
 
-        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
         break;
     case ScreenCaptureMode::TO_BUFFER:
-        AssertThrow(m_buffer.IsValid() && m_buffer->size >= image_ref->GetByteSize());
+        AssertThrow(m_buffer.IsValid() && m_buffer->Size() >= image_ref->GetByteSize());
 
         m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 

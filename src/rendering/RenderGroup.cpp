@@ -24,20 +24,20 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 {
     GraphicsPipelineRef                 pipeline;
     RenderPassRef                       render_pass;
-    Array<FramebufferObjectRef>         framebuffers;
+    Array<FramebufferRef>         framebuffers;
     RenderGroup::AsyncCommandBuffers    command_buffers;
     RenderableAttributeSet              attributes;
 
     RENDER_COMMAND(CreateGraphicsPipeline)(
-        GraphicsPipelineRef pipeline,
-        RenderPassRef render_pass,
-        Array<FramebufferObjectRef> framebuffers,
-        RenderGroup::AsyncCommandBuffers command_buffers,
+        const GraphicsPipelineRef &pipeline,
+        const RenderPassRef &render_pass,
+        const Array<FramebufferRef> &framebuffers,
+        const RenderGroup::AsyncCommandBuffers &command_buffers,
         const RenderableAttributeSet &attributes
-    ) : pipeline(std::move(pipeline)),
-        render_pass(std::move(render_pass)),
-        framebuffers(std::move(framebuffers)),
-        command_buffers(std::move(command_buffers)),
+    ) : pipeline(pipeline),
+        render_pass(render_pass),
+        framebuffers(framebuffers),
+        command_buffers(command_buffers),
         attributes(attributes)
     {
     }
@@ -46,10 +46,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        DebugLog(LogType::Debug, "Create GraphicsPipeline %s\n", pipeline.GetName().LookupString());
-
-        AssertThrow(pipeline->GetDescriptorTable().IsValid());
-
+#if 0
         DebugLog(LogType::Debug, "Descriptor table has %u sets:\n", pipeline->GetDescriptorTable()->GetSets().Size());
 
         for (const auto &set : pipeline->GetDescriptorTable()->GetSets()[0]) {
@@ -59,36 +56,32 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
                 DebugLog(LogType::Debug, "\t\t%s %u %u\n", it.first.LookupString(), it.second.type, it.second.binding);
             }
         }
+#endif
 
-        renderer::GraphicsPipeline::ConstructionInfo construction_info {
-            .vertex_attributes  = attributes.GetMeshAttributes().vertex_attributes,
-            .topology           = attributes.GetMeshAttributes().topology,
-            .cull_mode          = attributes.GetMaterialAttributes().cull_faces,
-            .fill_mode          = attributes.GetMaterialAttributes().fill_mode,
-            .blend_function     = attributes.GetMaterialAttributes().blend_function,
-            .depth_test         = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_TEST),
-            .depth_write        = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_WRITE),
-            .render_pass        = render_pass,
-            .stencil_function   = attributes.GetMaterialAttributes().stencil_function
-        };
-
-        for (FramebufferObjectRef &framebuffer : framebuffers) {
-            construction_info.fbos.PushBack(std::move(framebuffer));
-        }
+        pipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertex_attributes);
+        pipeline->SetTopology(attributes.GetMeshAttributes().topology);
+        pipeline->SetCullMode(attributes.GetMaterialAttributes().cull_faces);
+        pipeline->SetFillMode(attributes.GetMaterialAttributes().fill_mode);
+        pipeline->SetBlendFunction(attributes.GetMaterialAttributes().blend_function);
+        pipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencil_function);
+        pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_TEST));
+        pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_WRITE));
+        pipeline->SetRenderPass(render_pass);
+        pipeline->SetFramebuffers(framebuffers);
 
         for (uint i = 0; i < max_frames_in_flight; i++) {
             for (uint j = 0; j < uint(command_buffers[i].Size()); j++) {
-                HYPERION_BUBBLE_ERRORS(command_buffers[i][j]->Create(
-                    g_engine->GetGPUInstance()->GetDevice(),
-                    g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[j]
-                ));
+                AssertThrow(command_buffers[i][j].IsValid());
+
+#ifdef HYP_VULKAN
+                command_buffers[i][j]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[j];
+#endif
+
+                HYPERION_BUBBLE_ERRORS(command_buffers[i][j]->Create(g_engine->GetGPUInstance()->GetDevice()));
             }
         }
 
-        return pipeline->Create(
-            g_engine->GetGPUDevice(),
-            std::move(construction_info)
-        );
+        return pipeline->Create(g_engine->GetGPUDevice());
     }
 };
 
@@ -117,30 +110,33 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
 #pragma region RenderGroup
 
 RenderGroup::RenderGroup(
-    Handle<Shader> shader,
-    const RenderableAttributeSet &renderable_attributes
+    const ShaderRef &shader,
+    const RenderableAttributeSet &renderable_attributes,
+    EnumFlags<RenderGroupFlags> flags
 ) : BasicObject(),
-    m_shader(std::move(shader)),
+    m_flags(flags),
+    m_shader(shader),
     m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>()),
     m_renderable_attributes(renderable_attributes)
 {
     if (m_shader != nullptr) {
-        m_pipeline->SetShaderProgram(m_shader->GetShaderProgram());
+        m_pipeline->SetShader(m_shader);
     }
 }
 
 RenderGroup::RenderGroup(
-    Handle<Shader> shader,
+    const ShaderRef &shader,
     const RenderableAttributeSet &renderable_attributes,
-    DescriptorTableRef descriptor_table
+    const DescriptorTableRef &descriptor_table,
+    EnumFlags<RenderGroupFlags> flags
 ) : BasicObject(),
-    // Using old version with descriptor sets
-    m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>(ShaderProgramRef::unset, std::move(descriptor_table))),
-    m_shader(std::move(shader)),
+    m_flags(flags),
+    m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>(ShaderRef::unset, descriptor_table)),
+    m_shader(shader),
     m_renderable_attributes(renderable_attributes)
 {
     if (m_shader != nullptr) {
-        m_pipeline->SetShaderProgram(m_shader->GetShaderProgram());
+        m_pipeline->SetShader(m_shader);
     }
 }
 
@@ -163,12 +159,9 @@ RenderGroup::~RenderGroup()
     SafeRelease(std::move(m_pipeline));
 }
 
-void RenderGroup::RemoveFramebuffer(ID<Framebuffer> id)
+void RenderGroup::RemoveFramebuffer(const FramebufferRef &framebuffer)
 {
-    const auto it = m_fbos.FindIf([&](const Handle<Framebuffer> &item)
-    {
-        return item.GetID() == id;
-    });
+    const auto it = m_fbos.Find(framebuffer);
 
     if (it == m_fbos.End()) {
         return;
@@ -193,7 +186,7 @@ void RenderGroup::Init()
         
         m_shader.Reset();
 
-        m_fbos.Clear();
+        SafeRelease(std::move(m_fbos));
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             SafeRelease(std::move(m_command_buffers[frame_index]));
@@ -206,18 +199,20 @@ void RenderGroup::Init()
 
     DebugLog(LogType::Info, "Init RenderGroup with ID: #%u\n", GetID().Value());
 
-    m_indirect_renderer.Reset(new IndirectRenderer());
-    m_indirect_renderer->Create();
+    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
+        m_indirect_renderer.Reset(new IndirectRenderer());
+        m_indirect_renderer->Create();
+    }
 
-    AssertThrow(m_fbos.Any());
+    AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to render group");
 
-    for (auto &fbo : m_fbos) {
+    for (const FramebufferRef &fbo : m_fbos) {
         AssertThrow(fbo.IsValid());
-        InitObject(fbo);
+        
+        DeferCreate(fbo, g_engine->GetGPUDevice());
     }
 
     AssertThrow(m_shader.IsValid());
-    InitObject(m_shader);
 
     for (uint i = 0; i < max_frames_in_flight; i++) {
         for (CommandBufferRef &command_buffer : m_command_buffers[i]) {
@@ -225,43 +220,35 @@ void RenderGroup::Init()
         }
     }
 
-    
     RenderPassRef render_pass;
-    
-    Array<FramebufferObjectRef> framebuffers;
-    framebuffers.Reserve(m_fbos.Size());
 
     for (auto &fbo : m_fbos) {
         if (!render_pass.IsValid()) {
             render_pass = fbo->GetRenderPass();
         }
-
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            framebuffers.PushBack(fbo->GetFramebuffer(frame_index));
-        }
     }
 
-    m_pipeline->SetShaderProgram(m_shader->GetShaderProgram());
+    m_pipeline->SetShader(m_shader);
 
     if (!m_pipeline->GetDescriptorTable().IsValid()) {
-        renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+        renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
         AssertThrow(descriptor_table != nullptr);
         DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-        m_pipeline->SetDescriptorTable(std::move(descriptor_table));
+        m_pipeline->SetDescriptorTable(descriptor_table);
     }
 
     AssertThrow(m_pipeline->GetDescriptorTable().IsValid());
 
-    m_pipeline.SetName(CreateNameFromDynamicString(ANSIString("GraphicsPipeline_") + m_shader->GetCompiledShader().GetName().LookupString()));
+    m_pipeline.SetName(CreateNameFromDynamicString(ANSIString("GraphicsPipeline_") + m_shader->GetCompiledShader()->GetName().LookupString()));
 
     PUSH_RENDER_COMMAND(
         CreateGraphicsPipeline, 
         m_pipeline,
         render_pass,
-        std::move(framebuffers),
+        m_fbos,
         m_command_buffers,
         m_renderable_attributes
     );
@@ -275,7 +262,9 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
     AssertReady();
 
-    m_indirect_renderer->GetDrawState().ResetDrawState();
+    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
+        m_indirect_renderer->GetDrawState().ResetDrawState();
+    }
 
     m_divided_draw_calls = { };
 
@@ -312,10 +301,13 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
     previous_draw_state.Reset();
 
     // register draw calls for indirect rendering
-    for (DrawCall &draw_call : m_draw_state.draw_calls) {
-        DrawCommandData draw_command_data;
-        m_indirect_renderer->GetDrawState().PushDrawCall(draw_call, draw_command_data);
-        draw_call.draw_command_index = draw_command_data.draw_command_index;
+    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
+        for (DrawCall &draw_call : m_draw_state.draw_calls) {
+            DrawCommandData draw_command_data;
+            m_indirect_renderer->GetDrawState().PushDrawCall(draw_call, draw_command_data);
+
+            draw_call.draw_command_index = draw_command_data.draw_command_index;
+        }
     }
 
     // m_entity_draw_datas.Clear();
@@ -324,6 +316,10 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
 {
     if constexpr (!use_draw_indirect) {
+        return;
+    }
+
+    if ((m_flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) != (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) {
         return;
     }
 
@@ -430,7 +426,7 @@ RenderAll(
 
                 command_buffers[frame_index][index]->Record(
                     g_engine->GetGPUDevice(),
-                    pipeline->GetConstructionInfo().render_pass,
+                    pipeline->GetRenderPass(),
                     [&](CommandBuffer *secondary)
                     {
                         pipeline->Bind(secondary);
@@ -523,7 +519,7 @@ RenderAll(
             command_buffers[frame_index][command_buffer_index]
                 ->Record(
                     g_engine->GetGPUDevice(),
-                    pipeline->GetConstructionInfo().render_pass,
+                    pipeline->GetRenderPass(),
                     [&](CommandBuffer *secondary)
                     {
                         pipeline->Bind(secondary);
@@ -708,7 +704,7 @@ void RendererProxy::Bind(Frame *frame)
     CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
+    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetRenderPass());
 
     m_render_group->m_pipeline->Bind(command_buffer);
 }

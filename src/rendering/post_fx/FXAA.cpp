@@ -23,7 +23,7 @@ void FXAAEffect::OnRemoved()
 {
 }
 
-Handle<Shader> FXAAEffect::CreateShader()
+ShaderRef FXAAEffect::CreateShader()
 {
     return g_shader_manager->GetOrCreate(HYP_NAME(FXAA));
 }

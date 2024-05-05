@@ -75,25 +75,22 @@ void RenderPass<Platform::VULKAN>::CreateDependencies()
     }
 }
 
-void RenderPass<Platform::VULKAN>::AddAttachmentUsage(AttachmentUsageRef<Platform::VULKAN> attachment_usage)
+void RenderPass<Platform::VULKAN>::AddAttachment(AttachmentRef<Platform::VULKAN> attachment)
 {
-    m_render_pass_attachment_usages.PushBack(std::move(attachment_usage));
+    m_render_pass_attachments.PushBack(std::move(attachment));
 }
 
-bool RenderPass<Platform::VULKAN>::RemoveAttachmentUsage(const AttachmentRef<Platform::VULKAN> &attachment)
+bool RenderPass<Platform::VULKAN>::RemoveAttachment(const AttachmentRef<Platform::VULKAN> &attachment)
 {
-    const auto it = m_render_pass_attachment_usages.FindIf([&attachment](const AttachmentUsageRef<Platform::VULKAN> &item)
-    {
-        return item->GetAttachment() == attachment;
-    });
+    const auto it = m_render_pass_attachments.Find(attachment);
 
-    if (it == m_render_pass_attachment_usages.End()) {
+    if (it == m_render_pass_attachments.End()) {
         return false;
     }
 
     SafeRelease(std::move(*it));
 
-    m_render_pass_attachment_usages.Erase(it);
+    m_render_pass_attachments.Erase(it);
 
     return true;
 }
@@ -103,7 +100,7 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     CreateDependencies();
 
     Array<VkAttachmentDescription> attachment_descriptions;
-    attachment_descriptions.Reserve(m_render_pass_attachment_usages.Size());
+    attachment_descriptions.Reserve(m_render_pass_attachments.Size());
 
     VkAttachmentReference depth_attachment_usage { };
     Array<VkAttachmentReference> color_attachment_usages;
@@ -114,24 +111,24 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 
     uint next_binding = 0;
 
-    for (const AttachmentUsageRef<Platform::VULKAN> &attachment_usage : m_render_pass_attachment_usages) {
-        if (!attachment_usage->HasBinding()) { // no binding has manually been set so we make one
-            attachment_usage->SetBinding(next_binding);
+    for (const AttachmentRef<Platform::VULKAN> &attachment : m_render_pass_attachments) {
+        if (!attachment->HasBinding()) { // no binding has manually been set so we make one
+            attachment->SetBinding(next_binding);
         }
 
-        next_binding = attachment_usage->GetBinding() + 1;
+        next_binding = attachment->GetBinding() + 1;
 
-        attachment_descriptions.PushBack(attachment_usage->GetAttachmentDescription());
+        attachment_descriptions.PushBack(attachment->GetPlatformImpl().GetAttachmentDescription());
 
-        if (attachment_usage->IsDepthAttachment()) {
-            depth_attachment_usage = attachment_usage->GetHandle();
+        if (attachment->IsDepthAttachment()) {
+            depth_attachment_usage = attachment->GetPlatformImpl().GetHandle();
             subpass_description.pDepthStencilAttachment = &depth_attachment_usage;
 
             m_vk_clear_values.PushBack(VkClearValue {
                 .depthStencil = { 1.0f, 0 }
             });
         } else {
-            color_attachment_usages.PushBack(attachment_usage->GetHandle());
+            color_attachment_usages.PushBack(attachment->GetPlatformImpl().GetHandle());
 
             m_vk_clear_values.PushBack(VkClearValue {
                 .color = {
@@ -146,25 +143,25 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         }
     }
 
-    subpass_description.colorAttachmentCount    = uint32(color_attachment_usages.Size());
-    subpass_description.pColorAttachments       = color_attachment_usages.Data();
+    subpass_description.colorAttachmentCount = uint32(color_attachment_usages.Size());
+    subpass_description.pColorAttachments = color_attachment_usages.Data();
 
     // Create the actual renderpass
     VkRenderPassCreateInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    render_pass_info.attachmentCount    = uint32(attachment_descriptions.Size());
-    render_pass_info.pAttachments       = attachment_descriptions.Data();
-    render_pass_info.subpassCount       = 1;
-    render_pass_info.pSubpasses         = &subpass_description;
-    render_pass_info.dependencyCount    = uint32(m_dependencies.Size());
-    render_pass_info.pDependencies      = m_dependencies.Data();
+    render_pass_info.attachmentCount = uint32(attachment_descriptions.Size());
+    render_pass_info.pAttachments = attachment_descriptions.Data();
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subpass_description;
+    render_pass_info.dependencyCount = uint32(m_dependencies.Size());
+    render_pass_info.pDependencies = m_dependencies.Data();
 
     uint32 multiview_view_mask = 0;
     uint32 multiview_correlation_mask = 0;
 
     VkRenderPassMultiviewCreateInfo multiview_info { VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
-    multiview_info.subpassCount         = 1;
-    multiview_info.pViewMasks           = &multiview_view_mask;
-    multiview_info.pCorrelationMasks    = &multiview_correlation_mask;
+    multiview_info.subpassCount = 1;
+    multiview_info.pViewMasks = &multiview_view_mask;
+    multiview_info.pCorrelationMasks = &multiview_correlation_mask;
     multiview_info.correlationMaskCount = 1;
 
     if (IsMultiview()) {
@@ -188,22 +185,22 @@ Result RenderPass<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
     vkDestroyRenderPass(device->GetDevice(), m_handle, nullptr);
     m_handle = nullptr;
 
-    SafeRelease(std::move(m_render_pass_attachment_usages));
+    SafeRelease(std::move(m_render_pass_attachments));
 
     return result;
 }
 
-void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, FramebufferObject<Platform::VULKAN> *framebuffer)
+void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, Framebuffer<Platform::VULKAN> *framebuffer, uint frame_index)
 {
-    AssertThrow(framebuffer != nullptr && framebuffer->GetHandle() != nullptr);
+    AssertThrow(framebuffer != nullptr && framebuffer->GetPlatformImpl().handles[frame_index] != nullptr);
 
     VkRenderPassBeginInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-    render_pass_info.renderPass         = m_handle;
-    render_pass_info.framebuffer        = framebuffer->GetHandle();
-    render_pass_info.renderArea.offset  = { 0, 0 };
-    render_pass_info.renderArea.extent  = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
-    render_pass_info.clearValueCount    = uint32(m_vk_clear_values.Size());
-    render_pass_info.pClearValues       = m_vk_clear_values.Data();
+    render_pass_info.renderPass = m_handle;
+    render_pass_info.framebuffer = framebuffer->GetPlatformImpl().handles[frame_index];
+    render_pass_info.renderArea.offset = { 0, 0 };
+    render_pass_info.renderArea.extent = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
+    render_pass_info.clearValueCount = uint32(m_vk_clear_values.Size());
+    render_pass_info.pClearValues = m_vk_clear_values.Data();
 
     VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE;
 
@@ -216,12 +213,12 @@ void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, F
         break;
     }
 
-    vkCmdBeginRenderPass(cmd->GetCommandBuffer(), &render_pass_info, contents);
+    vkCmdBeginRenderPass(cmd->GetPlatformImpl().command_buffer, &render_pass_info, contents);
 }
 
 void RenderPass<Platform::VULKAN>::End(CommandBuffer<Platform::VULKAN> *cmd)
 {
-    vkCmdEndRenderPass(cmd->GetCommandBuffer());
+    vkCmdEndRenderPass(cmd->GetPlatformImpl().command_buffer);
 }
 
 } // namespace platform

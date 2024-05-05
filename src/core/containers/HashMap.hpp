@@ -3,9 +3,10 @@
 #ifndef HYPERION_HASH_MAP_HPP
 #define HYPERION_HASH_MAP_HPP
 
-#include <HashCode.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/ContainerBase.hpp>
+
+#include <HashCode.hpp>
 
 namespace hyperion {
 

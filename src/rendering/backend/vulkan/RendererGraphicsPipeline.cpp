@@ -83,27 +83,11 @@ static VkCompareOp ToVkCompareOp(StencilCompareOp compare_op)
 
 #pragma endregion Helpers
 
-GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline()
-    : Pipeline<Platform::VULKAN>(),
-      viewport { },
-      scissor { }
-{
-}
+#pragma region GraphicsPipelinePlatformImpl
 
-GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline(ShaderProgramRef<Platform::VULKAN> shader_program, DescriptorTableRef<Platform::VULKAN> descriptor_table)
-    : Pipeline<Platform::VULKAN>(std::move(shader_program), std::move(descriptor_table)),
-      viewport { },
-      scissor { }
+void GraphicsPipelinePlatformImpl<Platform::VULKAN>::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth)
 {
-}
-
-GraphicsPipeline<Platform::VULKAN>::~GraphicsPipeline()
-{
-}
-
-void GraphicsPipeline<Platform::VULKAN>::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth)
-{
-    VkViewport *vp = &this->viewport;
+    VkViewport *vp = &vk_viewport;
     vp->x = x;
     vp->y = y;
     vp->width = width;
@@ -112,19 +96,23 @@ void GraphicsPipeline<Platform::VULKAN>::SetViewport(float x, float y, float wid
     vp->maxDepth = max_depth;
 }
 
-void GraphicsPipeline<Platform::VULKAN>::SetScissor(int x, int y, uint32_t width, uint32_t height)
+void GraphicsPipelinePlatformImpl<Platform::VULKAN>::SetScissor(int x, int y, uint32_t width, uint32_t height)
 {
-    this->scissor.offset = {x, y};
-    this->scissor.extent = {width, height};
+    vk_scissor.offset = { x, y };
+    vk_scissor.extent = { width, height };
 }
 
-void GraphicsPipeline<Platform::VULKAN>::UpdateDynamicStates(VkCommandBuffer cmd)
+void GraphicsPipelinePlatformImpl<Platform::VULKAN>::UpdateDynamicStates(VkCommandBuffer cmd)
 {
-    vkCmdSetViewport(cmd, 0, 1, &this->viewport);
-    vkCmdSetScissor(cmd, 0, 1, &this->scissor);
+    vkCmdSetViewport(cmd, 0, 1, &vk_viewport);
+    vkCmdSetScissor(cmd, 0, 1, &vk_scissor);
 }
 
-Array<VkVertexInputAttributeDescription> GraphicsPipeline<Platform::VULKAN>::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
+void GraphicsPipelinePlatformImpl<Platform::VULKAN>::BuildVertexAttributes(
+    const VertexAttributeSet &attribute_set,
+    Array<VkVertexInputAttributeDescription> &out_vk_vertex_attributes,
+    Array<VkVertexInputBindingDescription> &out_vk_vertex_binding_descriptions
+)
 {
     static constexpr VkFormat size_to_format[] = {
         VK_FORMAT_UNDEFINED,
@@ -137,98 +125,97 @@ Array<VkVertexInputAttributeDescription> GraphicsPipeline<Platform::VULKAN>::Bui
     FlatMap<uint32, uint32> binding_sizes { };
 
     const Array<VertexAttribute::Type> attribute_types = attribute_set.BuildAttributes();
-    this->vertex_attributes.Resize(attribute_types.Size());
+    out_vk_vertex_attributes.Resize(attribute_types.Size());
 
     for (SizeType i = 0; i < attribute_types.Size(); i++) {
         const VertexAttribute &attribute = VertexAttribute::mapping[attribute_types[i]];
 
-        this->vertex_attributes[i] = VkVertexInputAttributeDescription {
-            .location = attribute.location,
-            .binding = attribute.binding,
-            .format = size_to_format[attribute.size / sizeof(float)],
-            .offset = binding_sizes[attribute.binding]
+        out_vk_vertex_attributes[i] = VkVertexInputAttributeDescription {
+            .location   = attribute.location,
+            .binding    = attribute.binding,
+            .format     = size_to_format[attribute.size / sizeof(float)],
+            .offset     = binding_sizes[attribute.binding]
         };
 
         binding_sizes[attribute.binding] += attribute.size;
     }
 
-    this->vertex_binding_descriptions.Clear();
-    this->vertex_binding_descriptions.Reserve(binding_sizes.Size());
+    out_vk_vertex_binding_descriptions.Clear();
+    out_vk_vertex_binding_descriptions.Reserve(binding_sizes.Size());
 
     for (const auto &it : binding_sizes) {
-        this->vertex_binding_descriptions.PushBack(VkVertexInputBindingDescription {
-            .binding = it.first,
-            .stride = it.second,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+        out_vk_vertex_binding_descriptions.PushBack(VkVertexInputBindingDescription {
+            .binding    = it.first,
+            .stride     = it.second,
+            .inputRate  = VK_VERTEX_INPUT_RATE_VERTEX
         });
     }
-
-    return this->vertex_attributes;
 }
 
-void GraphicsPipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const
+#pragma endregion GraphicsPipelinePlatformImpl
+
+#pragma region GraphicsPipeline
+
+template <>
+GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline()
+    : Pipeline<Platform::VULKAN>(),
+      m_platform_impl { this }
 {
-    vkCmdPushConstants(
-        cmd->GetCommandBuffer(),
-        layout,
-        VK_SHADER_STAGE_ALL_GRAPHICS,
-        0, sizeof(push_constants),
-        &push_constants
-    );
 }
 
+template <>
+GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table)
+    : Pipeline<Platform::VULKAN>(shader, descriptor_table),
+      m_platform_impl { this }
+{
+}
+
+template <>
+GraphicsPipeline<Platform::VULKAN>::~GraphicsPipeline()
+{
+}
+
+template <>
 void GraphicsPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd)
 {
-    UpdateDynamicStates(cmd->GetCommandBuffer());
+    m_platform_impl.UpdateDynamicStates(cmd->GetPlatformImpl().command_buffer);
 
-    vkCmdBindPipeline(cmd->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+    vkCmdBindPipeline(
+        cmd->GetPlatformImpl().command_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        Pipeline<Platform::VULKAN>::m_platform_impl.handle
+    );
 
-    SubmitPushConstants(cmd);
-}
-
-Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, ConstructionInfo &&construction_info)
-{
-    m_construction_info = std::move(construction_info);
-
-    AssertThrow(m_shader_program != nullptr);
-    AssertThrow(!m_construction_info.fbos.Empty());
-
-    const uint32_t width = m_construction_info.fbos[0]->GetWidth();
-    const uint32_t height = m_construction_info.fbos[0]->GetHeight();
-
-    SetScissor(0, 0, width, height);
-    SetViewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-
-    m_dynamic_states = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    Result rebuild_result = Rebuild(device);
-
-    if (!rebuild_result) {
-        return rebuild_result;
+    if (m_push_constants) {
+        vkCmdPushConstants(
+            cmd->GetPlatformImpl().command_buffer,
+            Pipeline<Platform::VULKAN>::m_platform_impl.layout,
+            VK_SHADER_STAGE_ALL_GRAPHICS,
+            0,
+            m_push_constants.Size(),
+            m_push_constants.Data()
+        );
     }
-
-    m_is_created = true;
-
-    HYPERION_RETURN_OK;
 }
 
+template <>
 Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *device)
 {
-    BuildVertexAttributes(m_construction_info.vertex_attributes);
+    Array<VkVertexInputAttributeDescription> vk_vertex_attributes;
+    Array<VkVertexInputBindingDescription> vk_vertex_binding_descriptions;
+    
+    m_platform_impl.BuildVertexAttributes(vertex_attributes, vk_vertex_attributes, vk_vertex_binding_descriptions);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-    vertex_input_info.vertexBindingDescriptionCount = uint32(vertex_binding_descriptions.Size());
-    vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions.Data();
-    vertex_input_info.vertexAttributeDescriptionCount = uint32(vertex_attributes.Size());
-    vertex_input_info.pVertexAttributeDescriptions = vertex_attributes.Data();
+    vertex_input_info.vertexBindingDescriptionCount = uint32(vk_vertex_binding_descriptions.Size());
+    vertex_input_info.pVertexBindingDescriptions = vk_vertex_binding_descriptions.Data();
+    vertex_input_info.vertexAttributeDescriptionCount = uint32(vk_vertex_attributes.Size());
+    vertex_input_info.pVertexAttributeDescriptions = vk_vertex_attributes.Data();
 
     VkPipelineInputAssemblyStateCreateInfo input_asm_info { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     input_asm_info.primitiveRestartEnable = VK_FALSE;
 
-    switch (m_construction_info.topology) {
+    switch (topology) {
     case Topology::TRIANGLES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         break;
@@ -252,11 +239,11 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     }
 
     VkPipelineViewportStateCreateInfo viewport_state { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-    VkViewport viewports[] = { viewport };
+    VkViewport viewports[] = { m_platform_impl.vk_viewport };
     viewport_state.viewportCount = 1;
     viewport_state.pViewports = viewports;
 
-    VkRect2D scissors[] = { scissor };
+    VkRect2D scissors[] = { m_platform_impl.vk_scissor };
     viewport_state.scissorCount = 1;
     viewport_state.pScissors = scissors;
 
@@ -265,7 +252,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    switch (m_construction_info.cull_mode) {
+    switch (cull_mode) {
     case FaceCullMode::BACK:
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         break;
@@ -277,7 +264,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         break;
     }
 
-    switch (m_construction_info.fill_mode) {
+    switch (fill_mode) {
     case FillMode::LINE:
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.lineWidth = 1.0f; //2.5f; // have to set VK_DYNAMIC_STATE_LINE_WIDTH and wideLines feature to use any non-1.0 value
@@ -302,12 +289,10 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
     Array<VkPipelineColorBlendAttachmentState> color_blend_attachments;
-    color_blend_attachments.Reserve(m_construction_info.render_pass->GetAttachmentUsages().Size());
+    color_blend_attachments.Reserve(render_pass->GetAttachments().Size());
 
-    const BlendFunction blend_function = m_construction_info.blend_function;
-
-    for (const AttachmentUsageRef<Platform::VULKAN> &attachment_usage : m_construction_info.render_pass->GetAttachmentUsages()) {
-        if (attachment_usage->IsDepthAttachment()) {
+    for (const AttachmentRef<Platform::VULKAN> &attachment : render_pass->GetAttachments()) {
+        if (attachment->IsDepthAttachment()) {
             continue;
         }
 
@@ -338,15 +323,15 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     color_blending.blendConstants[3] = 0.0f;
 
     VkPipelineDynamicStateCreateInfo dynamic_state { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    dynamic_state.dynamicStateCount = uint32(m_dynamic_states.Size());
-    dynamic_state.pDynamicStates = m_dynamic_states.Data();
+    dynamic_state.dynamicStateCount = uint32(m_platform_impl.vk_dynamic_states.Size());
+    dynamic_state.pDynamicStates = m_platform_impl.vk_dynamic_states.Data();
 
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
     
     AssertThrowMsg(m_descriptor_table.IsValid(), "No descriptor table set for pipeline");
-    Array<VkDescriptorSetLayout> used_layouts = GetDescriptorSetLayouts();
+    Array<VkDescriptorSetLayout> used_layouts = Pipeline<Platform::VULKAN>::m_platform_impl.GetDescriptorSetLayouts();
     
     DebugLog(
         LogType::Debug,
@@ -381,14 +366,14 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &this->layout),
+        vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.layout),
         "Failed to create graphics pipeline layout"
     );
 
     /* Depth / stencil */
     VkPipelineDepthStencilStateCreateInfo depth_stencil { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-    depth_stencil.depthTestEnable = m_construction_info.depth_test;
-    depth_stencil.depthWriteEnable = m_construction_info.depth_write;
+    depth_stencil.depthTestEnable = depth_test;
+    depth_stencil.depthWriteEnable = depth_write;
     depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depth_stencil.depthBoundsTestEnable = VK_FALSE;
     depth_stencil.minDepthBounds = 0.0f; // Optional
@@ -397,17 +382,17 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     depth_stencil.front = {};
     depth_stencil.back = {};
 
-    if (m_construction_info.stencil_function.IsSet()) {
+    if (stencil_function.IsSet()) {
         depth_stencil.stencilTestEnable = VK_TRUE;
 
         depth_stencil.back = {
-            .failOp      = ToVkStencilOp(m_construction_info.stencil_function.fail_op),
-            .passOp      = ToVkStencilOp(m_construction_info.stencil_function.pass_op),
-            .depthFailOp = ToVkStencilOp(m_construction_info.stencil_function.depth_fail_op),
-            .compareOp   = ToVkCompareOp(m_construction_info.stencil_function.compare_op),
-            .compareMask = m_construction_info.stencil_function.mask,
-            .writeMask   = m_construction_info.stencil_function.mask,
-            .reference   = m_construction_info.stencil_function.value
+            .failOp      = ToVkStencilOp(stencil_function.fail_op),
+            .passOp      = ToVkStencilOp(stencil_function.pass_op),
+            .depthFailOp = ToVkStencilOp(stencil_function.depth_fail_op),
+            .compareOp   = ToVkCompareOp(stencil_function.compare_op),
+            .compareMask = stencil_function.mask,
+            .writeMask   = stencil_function.mask,
+            .reference   = stencil_function.value
         };
 
         depth_stencil.front = depth_stencil.back;
@@ -415,24 +400,24 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
     VkGraphicsPipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
-    auto &stages = m_shader_program->GetShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo> &stages = m_shader->GetPlatformImpl().vk_shader_stages;
     AssertThrowMsg(stages.Any(), "No shader stages found");
 
-    pipeline_info.stageCount          = uint32(stages.Size());
-    pipeline_info.pStages             = stages.Data();
-    pipeline_info.pVertexInputState   = &vertex_input_info;
+    pipeline_info.stageCount = uint32(stages.Size());
+    pipeline_info.pStages = stages.Data();
+    pipeline_info.pVertexInputState = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_asm_info;
-    pipeline_info.pViewportState      = &viewport_state;
+    pipeline_info.pViewportState = &viewport_state;
     pipeline_info.pRasterizationState = &rasterizer;
-    pipeline_info.pMultisampleState   = &multisampling;
-    pipeline_info.pDepthStencilState  = &depth_stencil;
-    pipeline_info.pColorBlendState    = &color_blending;
-    pipeline_info.pDynamicState       = &dynamic_state;
-    pipeline_info.layout              = layout;
-    pipeline_info.renderPass          = m_construction_info.render_pass->GetHandle();
-    pipeline_info.subpass             = 0; /* Index of the subpass */
-    pipeline_info.basePipelineHandle  = VK_NULL_HANDLE;
-    pipeline_info.basePipelineIndex   = -1;
+    pipeline_info.pMultisampleState = &multisampling;
+    pipeline_info.pDepthStencilState= &depth_stencil;
+    pipeline_info.pColorBlendState = &color_blending;
+    pipeline_info.pDynamicState = &dynamic_state;
+    pipeline_info.layout = Pipeline<Platform::VULKAN>::m_platform_impl.layout;
+    pipeline_info.renderPass = render_pass->GetHandle();
+    pipeline_info.subpass = 0; /* Index of the subpass */
+    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+    pipeline_info.basePipelineIndex = -1;
 
     float specialization_info_data = 0.0f;
 
@@ -445,43 +430,49 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         .pData         = &specialization_info_data
     };
 
-    // if (m_construction_info.render_pass->IsMultiview()) {
-    //     AssertThrowMsg(m_construction_info.multiview_index != ~0u, "Multiview index not set but renderpass is multiview");
-
-    //     specialization_info_data = static_cast<float>(m_construction_info.multiview_index);
-
-    //     // create specialization info for each shader stage
-    //     for (auto &stage : stages) {
-    //         stage.pSpecializationInfo = &specialization_info;
-    //     }
-    // }
-
     HYPERION_VK_CHECK_MSG(
-        vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &this->pipeline),
+        vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.handle),
         "Failed to create graphics pipeline"
     );
 
     HYPERION_RETURN_OK;
 }
 
-Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+template <>
+Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
-    m_is_created = false;
-    
-    SafeRelease(std::move(m_descriptor_table));
+    AssertThrow(m_shader != nullptr);
+    AssertThrow(!fbos.Empty());
 
-    VkDevice render_device = device->GetDevice();
+    const uint32 width = fbos[0]->GetWidth();
+    const uint32 height = fbos[0]->GetHeight();
 
-    m_construction_info.fbos.Clear();
+    m_platform_impl.SetScissor(0, 0, width, height);
+    m_platform_impl.SetViewport(0.0f, 0.0f, float(width), float(height));
 
-    vkDestroyPipeline(render_device, this->pipeline, nullptr);
-    this->pipeline = nullptr;
+    m_platform_impl.vk_dynamic_states = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
 
-    vkDestroyPipelineLayout(render_device, this->layout, nullptr);
-    this->layout = nullptr;
+    Result rebuild_result = Rebuild(device);
+
+    if (!rebuild_result) {
+        return rebuild_result;
+    }
 
     HYPERION_RETURN_OK;
 }
+
+template <>
+Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+{
+    fbos.Clear();
+
+    return Pipeline<Platform::VULKAN>::Destroy(device);
+}
+
+#pragma endregion GraphicsPipeline
 
 } // namespace platform
 } // namespace renderer

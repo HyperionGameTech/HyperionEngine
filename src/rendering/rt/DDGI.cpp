@@ -238,9 +238,9 @@ void DDGI::Destroy()
 void DDGI::CreatePipelines()
 {
     m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbe));
-    InitObject(m_shader);
+    AssertThrow(m_shader.IsValid());
 
-    const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef raytracing_pipeline_descriptor_table = MakeRenderObject<renderer::DescriptorTable>(raytracing_pipeline_descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -262,28 +262,28 @@ void DDGI::CreatePipelines()
     // Create raytracing pipeline
 
     m_pipeline = MakeRenderObject<RaytracingPipeline>(
-        m_shader->GetShaderProgram(),
+        m_shader,
         raytracing_pipeline_descriptor_table
     );
 
     DeferCreate(m_pipeline, g_engine->GetGPUDevice());
 
-    Handle<Shader> update_irradiance_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateIrradiance));
-    Handle<Shader> update_depth_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateDepth));
-    Handle<Shader> copy_border_texels_irradiance_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsIrradiance));
-    Handle<Shader> copy_border_texels_depth_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsDepth));
+    ShaderRef update_irradiance_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateIrradiance));
+    ShaderRef update_depth_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateDepth));
+    ShaderRef copy_border_texels_irradiance_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsIrradiance));
+    ShaderRef copy_border_texels_depth_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsDepth));
 
-    Pair<Handle<Shader>, ComputePipelineRef &> shaders[] = {
+    Pair<ShaderRef, ComputePipelineRef &> shaders[] = {
         { update_irradiance_shader, m_update_irradiance },
         { update_depth_shader, m_update_depth },
         { copy_border_texels_irradiance_shader, m_copy_border_texels_irradiance },
         { copy_border_texels_depth_shader, m_copy_border_texels_depth }
     };
 
-    for (auto &it : shaders) {
-        InitObject(it.first);
+    for (const Pair<ShaderRef, ComputePipelineRef &> &it : shaders) {
+        AssertThrow(it.first.IsValid());
         
-        const DescriptorTableDeclaration descriptor_table_decl = it.first->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+        const DescriptorTableDeclaration descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -301,7 +301,7 @@ void DDGI::CreatePipelines()
         DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
         it.second = MakeRenderObject<renderer::ComputePipeline>(
-            it.first->GetShaderProgram(),
+            it.first,
             descriptor_table
         );
 
@@ -446,21 +446,6 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
     }
 }
 
-void DDGI::SubmitPushConstants(CommandBuffer *command_buffer)
-{
-    m_random_generator.Next();
-
-    Memory::MemCpy(
-        m_pipeline->push_constants.probe_data.matrix,
-        m_random_generator.matrix.values,
-        sizeof(m_pipeline->push_constants.probe_data.matrix)
-    );
-
-    m_pipeline->push_constants.probe_data.time = m_time++;
-
-    m_pipeline->SubmitPushConstants(command_buffer);
-}
-
 void DDGI::UpdateUniforms(Frame *frame)
 {
     const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
@@ -496,10 +481,20 @@ void DDGI::RenderProbes(Frame *frame)
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
 
+    m_random_generator.Next();
+
+    struct alignas(128)
+    {
+        Matrix4 matrix;
+        uint32  time;
+    } push_constants;
+
+    push_constants.matrix = m_random_generator.matrix;
+    push_constants.time = m_time++;
+
+    m_pipeline->SetPushConstants(&push_constants, sizeof(push_constants));
     m_pipeline->Bind(frame->GetCommandBuffer());
     
-    SubmitPushConstants(frame->GetCommandBuffer());
-
     m_pipeline->GetDescriptorTable()->Bind(
         frame,
         m_pipeline,
@@ -536,12 +531,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     const auto probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_irradiance_image->GetGPUImage()->InsertBarrier(
+    m_irradiance_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
 
-    m_depth_image->GetGPUImage()->InsertBarrier(
+    m_depth_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
@@ -603,12 +598,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
     );
     
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
-    m_irradiance_image->GetGPUImage()->InsertBarrier(
+    m_irradiance_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
 
-    m_depth_image->GetGPUImage()->InsertBarrier(
+    m_depth_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
@@ -670,12 +665,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
         }
     );
 
-    m_irradiance_image->GetGPUImage()->InsertBarrier(
+    m_irradiance_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );
 
-    m_depth_image->GetGPUImage()->InsertBarrier(
+    m_depth_image->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );

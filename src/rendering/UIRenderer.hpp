@@ -5,7 +5,6 @@
 
 #include <core/Base.hpp>
 
-#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 
@@ -41,7 +40,7 @@ public:
     );
 
     void UpdateOnRenderThread(
-        const Handle<Framebuffer> &framebuffer = Handle<Framebuffer>::empty,
+        const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 
@@ -79,10 +78,10 @@ private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }
 
-    RC<UIStage>                     m_ui_stage;
-    Handle<Framebuffer>             m_framebuffer;
-    Handle<Shader>                  m_shader;
-    UIRenderList                    m_render_list;
+    RC<UIStage>     m_ui_stage;
+    FramebufferRef  m_framebuffer;
+    ShaderRef       m_shader;
+    UIRenderList    m_render_list;
 };
 
 } // namespace hyperion

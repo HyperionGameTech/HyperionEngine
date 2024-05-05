@@ -21,7 +21,7 @@ public:
     virtual void OnRemoved() override;
 
 protected:
-    virtual Handle<Shader> CreateShader() override;
+    virtual ShaderRef CreateShader() override;
 };
 
 } // namespace hyperion

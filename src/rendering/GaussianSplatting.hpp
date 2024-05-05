@@ -12,13 +12,12 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <rendering/RenderGroup.hpp>
-#include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -102,7 +101,7 @@ private:
     ComputePipelineRef              m_sort_splats;
     ComputePipelineRef              m_sort_splats_transpose;
     Array<DescriptorTableRef>       m_sort_stage_descriptor_tables;
-    Handle<Shader>                  m_shader;
+    ShaderRef                       m_shader;
     Handle<RenderGroup>             m_render_group;
 
     // inefficient cpu-based sort, just to test

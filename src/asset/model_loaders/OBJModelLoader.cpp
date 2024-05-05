@@ -352,6 +352,8 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             Topology::TRIANGLES
         );
 
+        mesh->SetName(CreateNameFromDynamicString(obj_mesh.tag));
+
         if (!has_normals) {
             mesh->CalculateNormals();
         }

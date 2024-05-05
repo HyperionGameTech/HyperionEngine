@@ -3,6 +3,7 @@
 #include <rendering/debug/DebugDrawer.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -37,9 +38,9 @@ void DebugDrawer::Create()
         )
     );
 
-    AssertThrow(InitObject(m_shader));
+    AssertThrow(m_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
     AssertThrow(descriptor_table != nullptr);
@@ -70,7 +71,7 @@ void DebugDrawer::Create()
     );
 
     if (m_render_group) {
-        g_engine->GetDeferredSystem()
+        g_engine->GetGBuffer()
             .Get(m_render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
             .AddFramebuffersToRenderGroup(m_render_group);
 

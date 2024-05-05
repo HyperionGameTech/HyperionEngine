@@ -9,7 +9,7 @@
 
 #include <rendering/PostFX.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/DeferredSystem.hpp>
+#include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DefaultFormats.hpp>
@@ -170,13 +170,13 @@ public:
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    DeferredSystem &GetDeferredSystem()
-        { return m_deferred_system; }
+    GBuffer &GetGBuffer()
+        { return m_gbuffer; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const DeferredSystem &GetDeferredSystem() const
-        { return m_deferred_system; }
+    const GBuffer &GetGBuffer() const
+        { return m_gbuffer; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -279,9 +279,9 @@ public:
     
     /*! \brief Create a RenderGroup using defined set of DescriptorSets. The result will not be cached. */
     Handle<RenderGroup> CreateRenderGroup(
-        const Handle<Shader> &shader,
+        const ShaderRef &shader,
         const RenderableAttributeSet &renderable_attributes,
-        DescriptorTableRef descriptor_table
+        const DescriptorTableRef &descriptor_table
     );
 
     void AddRenderGroup(Handle<RenderGroup> &render_group);
@@ -369,7 +369,7 @@ private:
     HashMap<TextureFormatDefault, InternalFormat>           m_texture_format_defaults;
 
     UniquePtr<DeferredRenderer>                             m_deferred_renderer;
-    DeferredSystem                                          m_deferred_system;
+    GBuffer                                                 m_gbuffer;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_group_mapping;
     std::mutex                                              m_render_group_mapping_mutex;
 

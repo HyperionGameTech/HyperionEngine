@@ -30,14 +30,14 @@ Result FrameHandler<Platform::VULKAN>::CreateFrames(
 )
 {
     for (uint i = 0; i < m_frames.Size(); i++) {
-        auto command_buffer = MakeRenderObject<renderer::CommandBuffer, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-
         VkCommandPool pool = queue->command_pools[0];
         AssertThrow(pool != VK_NULL_HANDLE);
+        
+        CommandBufferRef<Platform::VULKAN> command_buffer = MakeRenderObject<renderer::CommandBuffer, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
+        command_buffer->GetPlatformImpl().command_pool = pool;
+        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
 
-        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, pool));
-
-        auto frame = MakeRenderObject<renderer::Frame, Platform::VULKAN>(i);
+        FrameRef<Platform::VULKAN> frame = MakeRenderObject<renderer::Frame, Platform::VULKAN>(i);
 
         HYPERION_BUBBLE_ERRORS(frame->Create(
             device,
@@ -58,19 +58,19 @@ Result FrameHandler<Platform::VULKAN>::PrepareFrame(
 {
     const FrameRef<Platform::VULKAN> &frame = GetCurrentFrame();
 
-    VkResult fence_result;
+    frame->GetFence()->WaitForGPU(device, true);
 
-    frame->GetFence()->WaitForGPU(device, true, &fence_result);
+    const VkResult vk_fence_result = frame->GetFence()->GetPlatformImpl().last_frame_result;
 
-    if (fence_result == VK_SUBOPTIMAL_KHR || fence_result == VK_ERROR_OUT_OF_DATE_KHR) {
-        DebugLog(LogType::Debug, "Waiting -- image result was %d\n", fence_result);
+    if (vk_fence_result == VK_SUBOPTIMAL_KHR || vk_fence_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        DebugLog(LogType::Debug, "Waiting -- image result was %d\n", vk_fence_result);
 
         vkDeviceWaitIdle(device->GetDevice());
 
         /* TODO: regenerate framebuffers and swapchain */
     }
 
-    HYPERION_VK_CHECK(fence_result);
+    HYPERION_VK_CHECK(vk_fence_result);
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset(device));
 
     HYPERION_BUBBLE_ERRORS(m_next_image(device, swapchain, frame, &m_acquired_image_index));

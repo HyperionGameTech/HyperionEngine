@@ -36,17 +36,17 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
 {
     uint32 sdl_flags = 0;
 
-    if (!(window_options.flags & WINDOW_FLAGS_NO_GFX)) {
+    if (!(window_options.flags & WindowFlags::NO_GFX)) {
 #if HYP_VULKAN
         sdl_flags |= SDL_WINDOW_VULKAN;
 #endif
     }
 
-    if (window_options.flags & WINDOW_FLAGS_HIGH_DPI) {
+    if (window_options.flags & WindowFlags::HIGH_DPI) {
         sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
     }
 
-    if (window_options.flags & WINDOW_FLAGS_HEADLESS) {
+    if (window_options.flags & WindowFlags::HEADLESS) {
         sdl_flags |= SDL_WINDOW_HIDDEN;
     } else {
         sdl_flags |= SDL_WINDOW_SHOWN;

@@ -3,12 +3,11 @@
 #ifndef HYPERION_FULL_SCREEN_PASS_HPP
 #define HYPERION_FULL_SCREEN_PASS_HPP
 
-#include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -21,19 +20,17 @@
 
 namespace hyperion {
 
-using renderer::Attachment;
 using renderer::Frame;
 using renderer::CommandBuffer;
 using renderer::Image;
 using renderer::ImageView;
 using renderer::Pipeline;
+using renderer::PushConstantData;
 
 class Engine;
 
 class HYP_API FullScreenPass
 {
-    using PushConstantData = Pipeline::PushConstantData;
-
 public:
     FullScreenPass();
 
@@ -43,14 +40,14 @@ public:
     );
 
     FullScreenPass(
-        const Handle<Shader> &shader,
+        const ShaderRef &shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
         Extent2D extent = Extent2D { 0, 0 }
     );
 
     FullScreenPass(
-        const Handle<Shader> &shader,
-        DescriptorTableRef descriptor_table,
+        const ShaderRef &shader,
+        const DescriptorTableRef &descriptor_table,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
         Extent2D extent = Extent2D { 0, 0 }
     );
@@ -65,22 +62,19 @@ public:
     InternalFormat GetFormat() const
         { return m_image_format; }
 
-    const AttachmentUsageRef &GetAttachmentUsage(uint attachment_index) const
-        { return GetFramebuffer()->GetAttachmentUsages()[attachment_index]; }
-
-    const Array<AttachmentRef> &GetAttachments() const
-        { return m_attachments; }
+    const AttachmentRef &GetAttachment(uint attachment_index) const
+        { return GetFramebuffer()->GetAttachment(attachment_index); }
 
     const CommandBufferRef &GetCommandBuffer(uint index) const
         { return m_command_buffers[index]; }
 
-    const Handle<Framebuffer> &GetFramebuffer() const
+    const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
 
-    const Handle<Shader> &GetShader() const
+    const ShaderRef &GetShader() const
         { return m_shader; }
 
-    void SetShader(const Handle<Shader> &shader);
+    void SetShader(const ShaderRef &shader);
 
     const Handle<Mesh> &GetQuadMesh() const
         { return m_full_screen_quad; }
@@ -98,15 +92,7 @@ public:
         { m_push_constant_data = pc; }
 
     void SetPushConstants(const void *ptr, SizeType size)
-    {
-        AssertThrow(size <= sizeof(m_push_constant_data));
-
-        Memory::MemCpy(&m_push_constant_data, ptr, size);
-
-        if (size < sizeof(m_push_constant_data)) {
-            Memory::MemSet(&m_push_constant_data + size, 0, sizeof(m_push_constant_data) - size);
-        }
-    }
+        { SetPushConstants(PushConstantData(ptr, size)); }
 
     const BlendFunction &GetBlendFunction() const
         { return m_blend_function; }
@@ -137,13 +123,11 @@ protected:
     void CreateQuad();
 
     FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
-    Handle<Framebuffer>                                 m_framebuffer;
-    Handle<Shader>                                      m_shader;
+    FramebufferRef                                      m_framebuffer;
+    ShaderRef                                           m_shader;
     Handle<RenderGroup>                                 m_render_group;
     Handle<Mesh>                                        m_full_screen_quad;
     Extent2D                                            m_extent;
-
-    Array<AttachmentRef>                                m_attachments;
 
     PushConstantData                                    m_push_constant_data;
 

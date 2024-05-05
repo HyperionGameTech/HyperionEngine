@@ -11,44 +11,9 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-ImageView<Platform::VULKAN>::ImageView()
-    : m_image_view(VK_NULL_HANDLE),
-      m_num_faces(1),
-      m_is_created(false)
-{
-}
+#pragma region ImageViewPlatformImpl
 
-ImageView<Platform::VULKAN>::ImageView(ImageView<Platform::VULKAN> &&other) noexcept
-    : m_image_view(other.m_image_view),
-      m_num_faces(other.m_num_faces),
-      m_is_created(other.m_is_created)
-{
-    other.m_image_view = VK_NULL_HANDLE;
-    other.m_num_faces = 1;
-    other.m_is_created = false;
-}
-
-ImageView<Platform::VULKAN> &ImageView<Platform::VULKAN>::operator=(ImageView<Platform::VULKAN> &&other) noexcept
-{
-    m_image_view = other.m_image_view;
-    m_num_faces = other.m_num_faces;
-    m_is_created = other.m_is_created;
-
-    other.m_image_view = VK_NULL_HANDLE;
-    other.m_num_faces = 1;
-    other.m_is_created = false;
-
-    return *this;
-}
-
-ImageView<Platform::VULKAN>::~ImageView()
-{
-    if (m_is_created) {
-        AssertThrowMsg(m_image_view == VK_NULL_HANDLE, "image view should have been destroyed");
-    }
-}
-
-Result ImageView<Platform::VULKAN>::Create(
+Result ImageViewPlatformImpl<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
     VkImage image,
     VkFormat format,
@@ -60,7 +25,7 @@ Result ImageView<Platform::VULKAN>::Create(
     uint num_faces
 )
 {
-    m_num_faces = num_faces;
+    self->m_num_faces = num_faces;
 
     VkImageViewCreateInfo view_info { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
     view_info.image = image;
@@ -76,21 +41,78 @@ Result ImageView<Platform::VULKAN>::Create(
     view_info.subresourceRange.baseMipLevel = mipmap_layer;
     view_info.subresourceRange.levelCount = num_mipmaps;
     view_info.subresourceRange.baseArrayLayer = face_layer;
-    view_info.subresourceRange.layerCount = m_num_faces;
+    view_info.subresourceRange.layerCount = num_faces;
 
     // AssertThrowMsg(mipmap_layer < num_mipmaps, "mipmap layer out of bounds");
     // AssertThrowMsg(face_layer < m_num_faces, "face layer out of bounds");
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateImageView(device->GetDevice(), &view_info, nullptr, &m_image_view),
+        vkCreateImageView(device->GetDevice(), &view_info, nullptr, &handle),
         "Failed to create image view"
     );
-
-    m_is_created = true;
 
     HYPERION_RETURN_OK;
 }
 
+Result ImageViewPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+{
+    if (handle != VK_NULL_HANDLE) {
+        vkDestroyImageView(device->GetDevice(), handle, nullptr);
+        handle = VK_NULL_HANDLE;
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+#pragma endregion ImageViewPlatformImpl
+
+#pragma region ImageView
+
+template <>
+ImageView<Platform::VULKAN>::ImageView()
+    : m_platform_impl { this },
+      m_num_faces(1)
+{
+}
+
+template <>
+ImageView<Platform::VULKAN>::ImageView(ImageView<Platform::VULKAN> &&other) noexcept
+    : m_num_faces(other.m_num_faces)
+{
+    m_platform_impl = std::move(other.m_platform_impl);
+    m_platform_impl.self = this;
+    other.m_platform_impl = { &other };
+
+    other.m_num_faces = 1;
+}
+
+template <>
+ImageView<Platform::VULKAN> &ImageView<Platform::VULKAN>::operator=(ImageView<Platform::VULKAN> &&other) noexcept
+{
+    m_platform_impl = std::move(other.m_platform_impl);
+    m_platform_impl.self = this;
+    other.m_platform_impl = { &other };
+
+    m_num_faces = other.m_num_faces;
+
+    other.m_num_faces = 1;
+
+    return *this;
+}
+
+template <>
+ImageView<Platform::VULKAN>::~ImageView()
+{
+    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "image view should have been destroyed");
+}
+
+template <>
+bool ImageView<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.handle != VK_NULL_HANDLE;
+}
+
+template <>
 Result ImageView<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
     const Image<Platform::VULKAN> *image,
@@ -101,11 +123,11 @@ Result ImageView<Platform::VULKAN>::Create(
 )
 {
     AssertThrow(image != nullptr);
-    AssertThrow(image->GetGPUImage() != nullptr);
+    AssertThrow(image->GetPlatformImpl().handle != VK_NULL_HANDLE);
 
-    return Create(
+    return m_platform_impl.Create(
         device,
-        image->GetGPUImage()->image,
+        image->GetPlatformImpl().handle,
         helpers::ToVkFormat(image->GetTextureFormat()),
         helpers::ToVkImageAspect(image->GetTextureFormat()),
         helpers::ToVkImageViewType(image->GetType(), image->IsTextureArray()),
@@ -116,17 +138,18 @@ Result ImageView<Platform::VULKAN>::Create(
     );
 }
 
+template <>
 Result ImageView<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
     const Image<Platform::VULKAN> *image
 )
 {
     AssertThrow(image != nullptr);
-    AssertThrow(image->GetGPUImage() != nullptr);
+    AssertThrow(image->GetPlatformImpl().handle != VK_NULL_HANDLE);
 
-    return Create(
+    return m_platform_impl.Create(
         device,
-        image->GetGPUImage()->image,
+        image->GetPlatformImpl().handle,
         helpers::ToVkFormat(image->GetTextureFormat()),
         helpers::ToVkImageAspect(image->GetTextureFormat()),
         helpers::ToVkImageViewType(image->GetType(), image->IsTextureArray()),
@@ -137,15 +160,13 @@ Result ImageView<Platform::VULKAN>::Create(
     );
 }
 
+template <>
 Result ImageView<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    vkDestroyImageView(device->GetDevice(), m_image_view, nullptr);
-    m_image_view = nullptr;
-
-    m_is_created = false;
-
-    HYPERION_RETURN_OK;
+    return m_platform_impl.Destroy(device);
 }
+
+#pragma endregion ImageView
 
 } // namespace platform
 } // namespace renderer

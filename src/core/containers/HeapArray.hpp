@@ -4,12 +4,11 @@
 #define HYPERION_HEAP_ARRAY_HPP
 
 #include <core/containers/ContainerBase.hpp>
-#include <math/MathUtil.hpp>
 #include <core/Defines.hpp>
-#include <Types.hpp>
 
-#include <algorithm>
-#include <utility>
+#include <math/MathUtil.hpp>
+
+#include <Types.hpp>
 
 namespace hyperion {
 namespace containers {

@@ -8,9 +8,9 @@
 #include <core/Containers.hpp>
 
 #include <rendering/Shader.hpp>
-#include <rendering/Framebuffer.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -24,8 +24,6 @@ using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
-using renderer::AttachmentUsage;
-;
 using renderer::Result;
 
 class Engine;
@@ -83,7 +81,7 @@ public:
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const Handle<Framebuffer> &input_framebuffer
+        const FramebufferRef &input_framebuffer
     );
 
     TemporalBlending(
@@ -136,7 +134,7 @@ private:
     FixedArray<ImageViewRef, max_frames_in_flight>  m_input_image_views;
     FixedArray<ImageOutput, max_frames_in_flight>   m_image_outputs;
 
-    Handle<Framebuffer>                             m_input_framebuffer;
+    FramebufferRef                                  m_input_framebuffer;
 };
 
 } // namespace hyperion

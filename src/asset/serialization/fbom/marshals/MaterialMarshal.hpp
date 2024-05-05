@@ -77,8 +77,10 @@ public:
             }
         }
 
-        if (const auto &shader = in_object.GetShader()) {
-            out.AddChild(*shader, FBOM_OBJECT_FLAGS_EXTERNAL);
+        if (const ShaderRef &shader = in_object.GetShader()) {
+            if (shader.IsValid()) {
+                // @TODO serialize the shader
+            }
         }
 
         out.SetProperty(
@@ -153,7 +155,7 @@ public:
 
         uint texture_index = 0;
 
-        Handle<Shader> shader = g_shader_manager->GetOrCreate(
+        ShaderRef shader = g_shader_manager->GetOrCreate(
             HYP_NAME(Forward),
             ShaderProperties()
         );
@@ -170,8 +172,6 @@ public:
                         ++texture_index;
                     }
                 }
-            } else if (node.GetType().IsOrExtends("Shader")) {
-                shader = node.deserialized.Get<Shader>();
             }
         }
 

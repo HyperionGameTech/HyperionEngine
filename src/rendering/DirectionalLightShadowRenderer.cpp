@@ -14,6 +14,10 @@ namespace hyperion {
 
 using renderer::Image;
 using renderer::StorageImage2D;
+using renderer::RenderPassStage;
+using renderer::RenderPassMode;
+using renderer::LoadOperation;
+using renderer::StoreOperation;
 
 static const InternalFormat shadow_map_formats[uint(ShadowMode::MAX)] = {
     InternalFormat::R32F,   // STANDARD
@@ -204,14 +208,12 @@ void ShadowPass::CreateShader()
         HYP_NAME(Shadows),
         properties
     );
-
-    InitObject(m_shader);
 }
 
 void ShadowPass::CreateFramebuffer()
 {
     /* Add the filters' renderpass */
-    m_framebuffer = CreateObject<Framebuffer>(
+    m_framebuffer = MakeRenderObject<renderer::Framebuffer>(
         GetExtent(),
         RenderPassStage::SHADER,
         RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
@@ -220,54 +222,27 @@ void ShadowPass::CreateFramebuffer()
     // Set clear color to infinity for shadow maps
     m_framebuffer->GetRenderPass()->SetClearColor(MathUtil::Infinity<Vec4f>());
 
-    { // depth, depth^2 texture (for variance shadow map)
-        auto attachment = MakeRenderObject<Attachment>(
-            MakeRenderObject<Image>(renderer::FramebufferImage2D(
-                GetExtent(),
-                GetFormat(),
-                FilterMode::TEXTURE_FILTER_NEAREST,
-                FilterMode::TEXTURE_FILTER_NEAREST
-            )),
-            RenderPassStage::SHADER
-        );
+    // depth, depth^2 texture (for variance shadow map)
+    m_framebuffer->AddAttachment(
+        0,
+        GetFormat(),
+        ImageType::TEXTURE_TYPE_2D,
+        RenderPassStage::SHADER,
+        LoadOperation::CLEAR,
+        StoreOperation::STORE
+    );
 
-        DeferCreate(attachment, g_engine->GetGPUInstance()->GetDevice());
-        m_attachments.PushBack(attachment);
+    // standard depth texture
+    m_framebuffer->AddAttachment(
+        1,
+        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        ImageType::TEXTURE_TYPE_2D,
+        RenderPassStage::SHADER,
+        LoadOperation::CLEAR,
+        StoreOperation::STORE
+    );
 
-        auto attachment_usage = MakeRenderObject<AttachmentUsage>(
-            attachment,
-            LoadOperation::CLEAR,
-            StoreOperation::STORE
-        );
-
-        DeferCreate(attachment_usage, g_engine->GetGPUInstance()->GetDevice());
-        m_framebuffer->AddAttachmentUsage(std::move(attachment_usage));
-    }
-
-    { // standard depth texture
-        auto attachment = MakeRenderObject<Attachment>(
-            MakeRenderObject<Image>(renderer::FramebufferImage2D(
-                GetExtent(),
-                g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-                nullptr
-            )),
-            RenderPassStage::SHADER
-        );
-
-        DeferCreate(attachment, g_engine->GetGPUInstance()->GetDevice());
-        m_attachments.PushBack(attachment);
-
-        auto attachment_usage = MakeRenderObject<AttachmentUsage>(
-            attachment,
-            LoadOperation::CLEAR,
-            StoreOperation::STORE
-        );
-
-        DeferCreate(attachment_usage, g_engine->GetGPUInstance()->GetDevice());
-        m_framebuffer->AddAttachmentUsage(std::move(attachment_usage));
-    }
-
-    InitObject(m_framebuffer);
+    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 }
 
 void ShadowPass::CreateDescriptors()
@@ -308,10 +283,10 @@ void ShadowPass::CreateShadowMap()
 
 void ShadowPass::CreateCombineShadowMapsPass()
 {
-    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(CombineShadowMaps), {{ "STAGE_DYNAMICS" }});
-    g_engine->InitObject(shader);
+    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(CombineShadowMaps), {{ "STAGE_DYNAMICS" }});
+    AssertThrow(shader.IsValid());
 
-    DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -331,10 +306,10 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
 void ShadowPass::CreateComputePipelines()
 {
-    Handle<Shader> blur_shadow_map_shader = g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap));
+    ShaderRef blur_shadow_map_shader = g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap));
     AssertThrow(blur_shadow_map_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader().GetDescriptorUsages().BuildDescriptorTable();
+    renderer::DescriptorTableDeclaration descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<renderer::DescriptorTable>(descriptor_table_decl);
 
@@ -344,14 +319,14 @@ void ShadowPass::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(BlurShadowMapDescriptorSet), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InputTexture), m_framebuffer->GetAttachmentUsages().Front()->GetImageView());
+        descriptor_set->SetElement(HYP_NAME(InputTexture), m_framebuffer->GetAttachment(0)->GetImageView());
         descriptor_set->SetElement(HYP_NAME(OutputTexture), m_shadow_map_all->GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
 
     m_blur_shadow_map_pipeline = MakeRenderObject<renderer::ComputePipeline>(
-        blur_shadow_map_shader->GetShaderProgram(),
+        blur_shadow_map_shader,
         descriptor_table
     );
 
@@ -410,7 +385,7 @@ void ShadowPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    Image *framebuffer_image = m_attachments.Front()->GetImage();
+    const ImageRef &framebuffer_image = GetFramebuffer()->GetAttachment(0)->GetImage();
 
     if (framebuffer_image == nullptr) {
         return;
@@ -439,16 +414,16 @@ void ShadowPass::Render(Frame *frame)
             );
 
             // copy static framebuffer image
-            framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            m_shadow_map_statics->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+            m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
             m_shadow_map_statics->GetImage()->Blit(
                 command_buffer,
                 framebuffer_image
             );
 
-            framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-            m_shadow_map_statics->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
         }
 
         { // Render dynamics
@@ -465,57 +440,59 @@ void ShadowPass::Render(Frame *frame)
             );
 
             // copy dynamic framebuffer image
-            framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            m_shadow_map_dynamics->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+            m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
             m_shadow_map_dynamics->GetImage()->Blit(
                 command_buffer,
                 framebuffer_image
             );
 
-            framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-            m_shadow_map_dynamics->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
         }
     }
 
     g_engine->GetRenderState().UnbindScene();
 
     { // Combine static and dynamic shadow maps
-        const AttachmentRef &attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachmentUsages()[0]->GetAttachment();
+        const AttachmentRef &attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment.IsValid());
 
         m_combine_shadow_maps_pass->Record(frame->GetFrameIndex());
         m_combine_shadow_maps_pass->Render(frame);
 
         // Copy combined shadow map to the final shadow map
-        attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        m_shadow_map_all->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        attachment->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
         m_shadow_map_all->GetImage()->Blit(
             command_buffer,
             attachment->GetImage()
         );
 
-        attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-        m_shadow_map_dynamics->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        attachment->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 
     if (m_shadow_mode == ShadowMode::VSM) {
+        struct alignas(128)
+        {
+            Vec2u   image_dimensions;
+        } push_constants;
+
+        push_constants.image_dimensions = Vec2u(m_framebuffer->GetExtent());
+
+        m_blur_shadow_map_pipeline->SetPushConstants(&push_constants, sizeof(push_constants));
+
         // blur the image using compute shader
-        m_blur_shadow_map_pipeline->Bind(
-            command_buffer,
-            Pipeline::PushConstantData {
-                .blur_shadow_map_data = {
-                    .image_dimensions = Vec2u(m_framebuffer->GetExtent())
-                }
-            }
-        );
+        m_blur_shadow_map_pipeline->Bind(command_buffer);
 
         // bind descriptor set containing info needed to blur
         m_blur_shadow_map_pipeline->GetDescriptorTable()->Bind(frame, m_blur_shadow_map_pipeline, { });
 
         // put our shadow map in a state for writing
-        m_shadow_map_all->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_shadow_map_pipeline->Dispatch(
             command_buffer,
@@ -527,7 +504,7 @@ void ShadowPass::Render(Frame *frame)
         );
 
         // put shadow map back into readable state
-        m_shadow_map_all->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 
@@ -582,7 +559,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
         MaterialAttributes {
-            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition(),
+            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
             .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );

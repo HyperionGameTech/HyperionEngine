@@ -4,12 +4,11 @@
 #define HYPERION_RENDERER_HPP
 
 #include <core/Containers.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/ID.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/Shader.hpp>
-#include <rendering/Framebuffer.hpp>
-#include <rendering/backend/RenderObject.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
@@ -19,6 +18,8 @@
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <Constants.hpp>
 
@@ -74,24 +75,36 @@ private:
     RenderGroup *m_render_group;
 };
 
+enum class RenderGroupFlags : uint32
+{
+    NONE                = 0x0,
+    OCCLUSION_CULLING   = 0x1,
+    INDIRECT_RENDERING  = 0x2,
+
+    DEFAULT             = OCCLUSION_CULLING | INDIRECT_RENDERING
+};
+
+HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
+
 class HYP_API RenderGroup
     : public BasicObject<STUB_CLASS(RenderGroup)>
 {
-    friend class Engine;
-    friend class Entity;
     friend class RendererProxy;
+
 public:
     using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
 
     RenderGroup(
-        Handle<Shader> shader,
-        const RenderableAttributeSet &renderable_attributes
+        const ShaderRef &shader,
+        const RenderableAttributeSet &renderable_attributes,
+        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT
     );
 
     RenderGroup(
-        Handle<Shader> shader,
+        const ShaderRef &shader,
         const RenderableAttributeSet &renderable_attributes,
-        DescriptorTableRef descriptor_table
+        const DescriptorTableRef &descriptor_table,
+        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT
     );
 
     RenderGroup(const RenderGroup &other)               = delete;
@@ -101,18 +114,18 @@ public:
     const GraphicsPipelineRef &GetPipeline() const
         { return m_pipeline; }
 
-    const Handle<Shader> &GetShader() const
+    const ShaderRef &GetShader() const
         { return m_shader; }
 
     const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
-    void AddFramebuffer(Handle<Framebuffer> framebuffer)
+    void AddFramebuffer(FramebufferRef framebuffer)
         { m_fbos.PushBack(std::move(framebuffer)); }
 
-    void RemoveFramebuffer(ID<Framebuffer> id);
+    void RemoveFramebuffer(const FramebufferRef &framebuffer);
 
-    const Array<Handle<Framebuffer>> &GetFramebuffers() const
+    const Array<FramebufferRef> &GetFramebuffers() const
         { return m_fbos; }
 
     /*! \brief Collect drawable objects, then run the culling compute shader
@@ -141,14 +154,16 @@ private:
         uint scene_index
     );
 
+    EnumFlags<RenderGroupFlags>                         m_flags;
+
     GraphicsPipelineRef                                 m_pipeline;
 
-    Handle<Shader>                                      m_shader;
+    ShaderRef                                           m_shader;
     RenderableAttributeSet                              m_renderable_attributes;
 
     RC<IndirectRenderer>                                m_indirect_renderer;
 
-    Array<Handle<Framebuffer>>                          m_fbos;
+    Array<FramebufferRef>                         m_fbos;
 
     // for each frame in flight - have an array of command buffers to use
     // for async command buffer recording.

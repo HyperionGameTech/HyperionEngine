@@ -1309,8 +1309,8 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
             const GPUBufferRef &gpu_buffer_ref = screen_capture->GetBuffer();
 
             if (gpu_buffer_ref.IsValid()) {
-                if (m_screen_buffer.Size() != gpu_buffer_ref->size) {
-                    m_screen_buffer.SetSize(gpu_buffer_ref->size);
+                if (m_screen_buffer.Size() != gpu_buffer_ref->Size()) {
+                    m_screen_buffer.SetSize(gpu_buffer_ref->Size());
                 }
 
                 gpu_buffer_ref->Read(Engine::GetInstance()->GetGPUDevice(), m_screen_buffer.Size(), m_screen_buffer.Data());

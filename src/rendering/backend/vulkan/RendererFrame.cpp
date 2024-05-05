@@ -91,7 +91,7 @@ template <>
 Result Frame<Platform::VULKAN>::Submit(DeviceQueue<Platform::VULKAN> *queue)
 {
     return m_command_buffer->SubmitPrimary(
-        queue->queue,
+        queue,
         m_queue_submit_fence,
         &m_present_semaphores
     );

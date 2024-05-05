@@ -7,14 +7,13 @@
 #include <core/containers/ThreadSafeContainer.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderGroup.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
 #include <Types.hpp>
@@ -41,18 +40,22 @@ public:
     PostFXPass(
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
     PostFXPass(
-        const Handle<Shader> &shader,
+        const ShaderRef &shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
     PostFXPass(
-        const Handle<Shader> &shader,
+        const ShaderRef &shader,
         PostProcessingStage stage,
         uint effect_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
     PostFXPass(const PostFXPass &) = delete;
     PostFXPass &operator=(const PostFXPass &) = delete;
+
     virtual ~PostFXPass();
 
     virtual void CreateDescriptors() override;
@@ -80,17 +83,26 @@ public:
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;
     virtual ~PostProcessingEffect();
 
-    PostFXPass &GetPass() { return m_pass; }
-    const PostFXPass &GetPass() const { return m_pass; }
+    PostFXPass &GetPass()
+        { return m_pass; }
 
-    Handle<Shader> &GetShader() { return m_shader; }
-    const Handle<Shader> &GetShader() const { return m_shader; }
+    const PostFXPass &GetPass() const
+        { return m_pass; }
 
-    PostProcessingStage GetStage() const { return m_pass.GetStage(); }
-    uint GetEffectIndex() const { return m_pass.GetEffectIndex(); }
+    const ShaderRef &GetShader() const
+        { return m_shader; }
 
-    bool IsEnabled() const { return m_is_enabled; }
-    void SetIsEnabled(bool is_enabled) { m_is_enabled = is_enabled; }
+    PostProcessingStage GetStage() const
+        { return m_pass.GetStage(); }
+
+    uint GetEffectIndex() const
+        { return m_pass.GetEffectIndex(); }
+
+    bool IsEnabled() const
+        { return m_is_enabled; }
+
+    void SetIsEnabled(bool is_enabled)
+        { m_is_enabled = is_enabled; }
 
     void Init();
 
@@ -100,13 +112,13 @@ public:
     virtual void RenderEffect(Frame *frame, uint slot);
 
 protected:
-    virtual Handle<Shader> CreateShader() = 0;
+    virtual ShaderRef CreateShader() = 0;
 
-    PostFXPass m_pass;
+    PostFXPass  m_pass;
 
 private:
-    Handle<Shader>  m_shader;
-    bool            m_is_enabled;
+    ShaderRef   m_shader;
+    bool        m_is_enabled;
 };
 
 class HYP_API PostProcessing

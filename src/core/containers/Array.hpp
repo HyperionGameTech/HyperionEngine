@@ -6,15 +6,15 @@
 #include <core/containers/ContainerBase.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Pair.hpp>
-#include <core/Defines.hpp>
-#include <core/memory/Memory.hpp>
 #include <core/utilities/ValueStorage.hpp>
-
+#include <core/memory/Memory.hpp>
 #include <core/system/Debug.hpp>
+#include <core/Defines.hpp>
+
+#include <math/MathUtil.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>
-#include <math/MathUtil.hpp>
 
 #include <algorithm>
 #include <utility>

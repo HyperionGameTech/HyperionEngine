@@ -146,7 +146,6 @@ private:
     void CreateUniformBuffer();
     void CreateStorageBuffers();
     void UpdateUniforms(Frame *frame);
-    void SubmitPushConstants(CommandBuffer *command_buffer);
 
     DDGIInfo                                    m_grid_info;
     Array<Probe>                                m_probes;
@@ -158,7 +157,7 @@ private:
     ComputePipelineRef                          m_copy_border_texels_irradiance;
     ComputePipelineRef                          m_copy_border_texels_depth;
 
-    Handle<Shader>                              m_shader;
+    ShaderRef                                   m_shader;
 
     RaytracingPipelineRef                       m_pipeline;
 

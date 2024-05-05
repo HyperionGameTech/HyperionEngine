@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef BYTE_WRITER_HPP
 #define BYTE_WRITER_HPP
 
@@ -6,6 +7,7 @@
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 #include <core/filesystem/FilePath.hpp>
+
 #include <Types.hpp>
 
 #include <type_traits>

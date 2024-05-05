@@ -5,14 +5,13 @@
 
 #include <core/containers/Array.hpp>
 #include <core/Defines.hpp>
-#include <Types.hpp>
 
-#include <algorithm>
-#include <utility>
+#include <Types.hpp>
 
 namespace hyperion {
 namespace containers {
 
+/*! \brief FIFO stack based on Array<T> class. */
 template <class T>
 class Stack : Array<T>
 {

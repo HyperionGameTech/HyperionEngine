@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <Game.hpp>
-#include <core/threading/GameThread.hpp>
-#include <core/threading/Threads.hpp>
 
 #include <Engine.hpp>
 
+#include <core/threading/GameThread.hpp>
+#include <core/threading/Threads.hpp>
 #include <core/system/Debug.hpp>
 
 #include <dotnet/DotNetSystem.hpp>

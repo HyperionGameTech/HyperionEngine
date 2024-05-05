@@ -12,7 +12,7 @@ namespace hyperion {
 #pragma region UIGridColumn
 
 UIGridColumn::UIGridColumn(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UOT_GRID_COLUMN)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_COLUMN)
 {
 }
 
@@ -26,7 +26,7 @@ void UIGridColumn::Init()
 #pragma region UIGridRow
 
 UIGridRow::UIGridRow(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UOT_GRID_ROW)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_ROW)
 {
 }
 
@@ -132,7 +132,7 @@ void UIGridRow::UpdateSize(bool update_children)
 #pragma region UIGrid
 
 UIGrid::UIGrid(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UOT_GRID),
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID),
       m_num_columns(12)
 {
 }

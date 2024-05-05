@@ -135,6 +135,19 @@ struct VulkanDescriptorSetLayoutWrapper
 
 #pragma endregion Vulkan struct wrappers
 
+#pragma region DescriptorSetPlatformImpl
+
+VkDescriptorSetLayout DescriptorSetPlatformImpl<Platform::VULKAN>::GetVkDescriptorSetLayout() const
+{
+    if (!vk_layout_wrapper) {
+        return VK_NULL_HANDLE;
+    }
+
+    return vk_layout_wrapper->vk_layout;
+}
+
+#pragma endregion DescriptorSetPlatformImpl
+
 #pragma region DescriptorSetLayout
 
 template <>
@@ -247,9 +260,10 @@ DescriptorSetRef<Platform::VULKAN> DescriptorSetLayout<Platform::VULKAN>::Create
 
 #pragma region DescriptorSet
 
+template <>
 DescriptorSet<Platform::VULKAN>::DescriptorSet(const DescriptorSetLayout<Platform::VULKAN> &layout)
-    : m_layout(layout),
-      m_vk_descriptor_set(VK_NULL_HANDLE)
+    : m_platform_impl { this, VK_NULL_HANDLE },
+      m_layout(layout)
 {
     // Initial layout of elements
     for (auto &it : m_layout.GetElements()) {
@@ -285,51 +299,15 @@ DescriptorSet<Platform::VULKAN>::DescriptorSet(const DescriptorSetLayout<Platfor
     }
 }
 
+template <>
 DescriptorSet<Platform::VULKAN>::~DescriptorSet()
 {
 }
 
-Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
-{
-    AssertThrow(m_vk_descriptor_set == VK_NULL_HANDLE);
-
-    m_vk_layout_wrapper = device->GetDescriptorSetManager()->GetOrCreateVkDescriptorSetLayout(device, m_layout);
-
-    Result result = Result { };
-
-    HYPERION_PASS_ERRORS(
-        device->GetDescriptorSetManager()->CreateDescriptorSet(device, m_vk_layout_wrapper, m_vk_descriptor_set),
-        result
-    );
-
-    if (!result) {
-        return result;
-    }
-
-    HYPERION_PASS_ERRORS(
-        Update(device),
-        result
-    );
-
-    return result;
-}
-
-Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    if (m_vk_descriptor_set != VK_NULL_HANDLE) {
-        device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_vk_descriptor_set);
-        m_vk_descriptor_set = VK_NULL_HANDLE;
-    }
-
-    // Release reference to layout
-    m_vk_layout_wrapper.Reset();
-
-    return Result { };
-}
-
+template <>
 Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_vk_descriptor_set != VK_NULL_HANDLE);
+    AssertThrow(m_platform_impl.handle != VK_NULL_HANDLE);
 
     Array<VulkanDescriptorElementInfo> descriptor_element_infos;
 
@@ -369,12 +347,12 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
                     AssertThrowMsg(layout_element->size != 0, "Buffer size not set for dynamic buffer element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
                 }
 
-                AssertThrowMsg(ref->buffer != VK_NULL_HANDLE, "Invalid buffer for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
+                AssertThrowMsg(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
                 
                 descriptor_element_info.buffer_info = VkDescriptorBufferInfo {
-                    .buffer = ref->buffer,
+                    .buffer = ref->GetPlatformImpl().handle,
                     .offset = 0,
-                    .range  = layout_has_size ? layout_element->size : ref->size
+                    .range  = layout_has_size ? layout_element->size : ref->Size()
                 };
             } else if (value_it->second.Is<ImageViewRef<Platform::VULKAN>>()) {
                 const bool is_storage_image = layout_element->type == DescriptorSetElementType::IMAGE_STORAGE;
@@ -382,21 +360,21 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
                 const ImageViewRef<Platform::VULKAN> &ref = value_it->second.Get<ImageViewRef<Platform::VULKAN>>();
                 AssertThrowMsg(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
 
-                AssertThrowMsg(ref->GetImageView() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
+                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
 
                 descriptor_element_info.image_info = VkDescriptorImageInfo {
                     .sampler        = VK_NULL_HANDLE,
-                    .imageView      = ref->GetImageView(),
+                    .imageView      = ref->GetPlatformImpl().handle,
                     .imageLayout    = is_storage_image ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                 };
             } else if (value_it->second.Is<SamplerRef<Platform::VULKAN>>()) {
                 const SamplerRef<Platform::VULKAN> &ref = value_it->second.Get<SamplerRef<Platform::VULKAN>>();
                 AssertThrowMsg(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
 
-                AssertThrowMsg(ref->GetSampler() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
+                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
 
                 descriptor_element_info.image_info = VkDescriptorImageInfo {
-                    .sampler        = ref->GetSampler(),
+                    .sampler        = ref->GetPlatformImpl().handle,
                     .imageView      = VK_NULL_HANDLE,
                     .imageLayout    = VK_IMAGE_LAYOUT_UNDEFINED
                 };
@@ -429,7 +407,7 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
         VkWriteDescriptorSet &write = vk_write_descriptor_sets[i];
         
         write = VkWriteDescriptorSet { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-        write.dstSet = m_vk_descriptor_set;
+        write.dstSet = m_platform_impl.handle;
         write.dstBinding = descriptor_element_info.binding;
         write.dstArrayElement = descriptor_element_info.index;
         write.descriptorCount = 1;
@@ -460,70 +438,122 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
     return Result { };
 }
 
+template <>
+Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+{
+    AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
+
+    m_platform_impl.vk_layout_wrapper = device->GetDescriptorSetManager()->GetOrCreateVkDescriptorSetLayout(device, m_layout);
+
+    Result result = Result { };
+
+    HYPERION_PASS_ERRORS(
+        device->GetDescriptorSetManager()->CreateDescriptorSet(device, m_platform_impl.vk_layout_wrapper, m_platform_impl.handle),
+        result
+    );
+
+    if (!result) {
+        return result;
+    }
+
+    HYPERION_PASS_ERRORS(
+        Update(device),
+        result
+    );
+
+    return result;
+}
+
+template <>
+Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+{
+    if (m_platform_impl.handle != VK_NULL_HANDLE) {
+        device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_platform_impl.handle);
+        m_platform_impl.handle = VK_NULL_HANDLE;
+    }
+
+    // Release reference to layout
+    m_platform_impl.vk_layout_wrapper.Reset();
+
+    return Result { };
+}
+
+template <>
 bool DescriptorSet<Platform::VULKAN>::HasElement(Name name) const
 {
     return m_elements.Find(name) != m_elements.End();
 }
 
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const GPUBufferRef<Platform::VULKAN> &ref)
-{
-    SetElement(name, 0, ref);
-}
-
+template <>
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const GPUBufferRef<Platform::VULKAN> &ref)
 {
     SetElement<GPUBufferRef<Platform::VULKAN>>(name, index, ref);
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<Platform::VULKAN> &ref)
 {
     SetElement<GPUBufferRef<Platform::VULKAN>>(name, index, ref);
 }
 
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const ImageViewRef<Platform::VULKAN> &ref)
+template <>
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const GPUBufferRef<Platform::VULKAN> &ref)
 {
     SetElement(name, 0, ref);
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const ImageViewRef<Platform::VULKAN> &ref)
 {
     SetElement<ImageViewRef<Platform::VULKAN>>(name, index, ref);
 }
 
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const SamplerRef<Platform::VULKAN> &ref)
+template <>
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const ImageViewRef<Platform::VULKAN> &ref)
 {
     SetElement(name, 0, ref);
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const SamplerRef<Platform::VULKAN> &ref)
 {
     SetElement<SamplerRef<Platform::VULKAN>>(name, index, ref);
 }
 
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const TLASRef<Platform::VULKAN> &ref)
+template <>
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const SamplerRef<Platform::VULKAN> &ref)
 {
     SetElement(name, 0, ref);
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const TLASRef<Platform::VULKAN> &ref)
 {
     SetElement<TLASRef<Platform::VULKAN>>(name, index, ref);
 }
 
+template <>
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const TLASRef<Platform::VULKAN> &ref)
+{
+    SetElement(name, 0, ref);
+}
+
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, uint bind_index) const
 {
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         0,
         nullptr
     );
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
 {
     Array<uint> offsets_flat;
@@ -539,31 +569,33 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
     }
 
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         uint32(offsets_flat.Size()),
         offsets_flat.Data()
     );
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, uint bind_index) const
 {
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_COMPUTE,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         0,
         nullptr
     );
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
 {
     Array<uint> offsets_flat;
@@ -579,31 +611,33 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
     }
 
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_COMPUTE,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         uint32(offsets_flat.Size()),
         offsets_flat.Data()
     );
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, uint bind_index) const
 {
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         0,
         nullptr
     );
 }
 
+template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
 {
     Array<uint> offsets_flat;
@@ -619,17 +653,18 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
     }
 
     vkCmdBindDescriptorSets(
-        command_buffer->GetCommandBuffer(),
+        command_buffer->GetPlatformImpl().command_buffer,
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        pipeline->layout,
+        pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
         bind_index,
         1,
-        &m_vk_descriptor_set,
+        &m_platform_impl.handle,
         uint32(offsets_flat.Size()),
         offsets_flat.Data()
     );
 }
 
+template <>
 DescriptorSetRef<Platform::VULKAN> DescriptorSet<Platform::VULKAN>::Clone() const
 {
 #ifdef HYP_DEBUG_MODE
@@ -642,15 +677,6 @@ DescriptorSetRef<Platform::VULKAN> DescriptorSet<Platform::VULKAN>::Clone() cons
 #else
     return MakeRenderObject<DescriptorSet<Platform::VULKAN>>(GetLayout());
 #endif
-}
-
-VkDescriptorSetLayout DescriptorSet<Platform::VULKAN>::GetVkDescriptorSetLayout() const
-{
-    if (!m_vk_layout_wrapper) {
-        return VK_NULL_HANDLE;
-    }
-
-    return m_vk_layout_wrapper->vk_layout;
 }
 
 #pragma endregion DescriptorSet

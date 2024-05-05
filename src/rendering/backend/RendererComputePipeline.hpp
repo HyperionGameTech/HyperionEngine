@@ -5,6 +5,12 @@
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererPipeline.hpp>
+#include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererSwapchain.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererShader.hpp>
+#include <rendering/backend/RenderObject.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -14,6 +20,24 @@ namespace platform {
 template <PlatformType PLATFORM>
 class ComputePipeline : public Pipeline<PLATFORM>
 {
+public:
+    ComputePipeline();
+    ComputePipeline(const ShaderRef<PLATFORM> &shader, const DescriptorTableRef<PLATFORM> &descriptor_table);
+    ComputePipeline(const ComputePipeline &other)               = delete;
+    ComputePipeline &operator=(const ComputePipeline &other)    = delete;
+    ~ComputePipeline();
+
+    Result Create(Device<PLATFORM> *device);
+    Result Destroy(Device<PLATFORM> *device);
+
+    void Bind(CommandBuffer<PLATFORM> *command_buffer) const;
+
+    void Dispatch(CommandBuffer<PLATFORM> *command_buffer, Extent3D group_size) const;
+    void DispatchIndirect(
+        CommandBuffer<PLATFORM> *command_buffer,
+        const IndirectBuffer<PLATFORM> *indirect,
+        SizeType offset = 0
+    ) const;
 };
 
 } // namespace platform

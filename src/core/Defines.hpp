@@ -255,7 +255,7 @@
 
 #define HYP_WAIT_IDLE() \
     do { \
-        /* do nothing :) */ \
+        asm volatile("" ::: "memory"); \
     } while (0) \
 
 // conditionals

@@ -56,7 +56,11 @@ Result AsyncCompute<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     }
     
     for (CommandBufferRef<Platform::VULKAN> &command_buffer : m_command_buffers) {
-        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, queue->command_pools[0]));
+        AssertThrow(command_buffer.IsValid());
+
+        command_buffer->GetPlatformImpl().command_pool = queue->command_pools[0];
+
+        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
     }
     
     for (FenceRef<Platform::VULKAN> &fence : m_fences) {
@@ -73,9 +77,9 @@ Result AsyncCompute<Platform::VULKAN>::Submit(Device<Platform::VULKAN> *device, 
 
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->End(device));
 
-    const DeviceQueue<Platform::VULKAN> &compute_queue = device->GetComputeQueue();
+    DeviceQueue<Platform::VULKAN> &compute_queue = device->GetComputeQueue();
 
-    return m_command_buffers[frame_index]->SubmitPrimary(compute_queue.queue, m_fences[frame_index], nullptr);
+    return m_command_buffers[frame_index]->SubmitPrimary(&compute_queue, m_fences[frame_index], nullptr);
 }
 
 template <>

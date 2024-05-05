@@ -304,10 +304,10 @@ public:
     DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
-    const Handle<Shader> &GetShader() const
+    const ShaderRef &GetShader() const
         { return m_shader; }
 
-    void SetShader(Handle<Shader> shader);
+    void SetShader(const ShaderRef &shader);
 
     ParameterTable &GetParameters()
         { return m_parameters; }
@@ -528,7 +528,7 @@ private:
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
 
-    Handle<Shader>                                      m_shader;
+    ShaderRef                                           m_shader;
 
     ParameterTable                                      m_parameters;
     TextureSet                                          m_textures;

@@ -18,7 +18,6 @@
 #include <Constants.hpp>
 #include <Types.hpp>
 
-#include <memory>
 #include <mutex>
 
 #define HYP_RENDER_OBJECT_OFFSET(cls, index) \

@@ -68,27 +68,6 @@ struct RENDER_COMMAND(UnbindEnvProbe) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyCubemapRenderPass) : renderer::RenderCommand
-{
-    EnvProbe &env_probe;
-
-    RENDER_COMMAND(DestroyCubemapRenderPass)(EnvProbe &env_probe)
-        : env_probe(env_probe)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(DestroyCubemapRenderPass)() override = default;
-
-    virtual Result operator()() override
-    {
-        Result result;
-
-        // empty
-
-        return result;
-    }
-};
-
 #pragma endregion Render commands
 
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
@@ -157,7 +136,7 @@ EnvProbe::EnvProbe(
     aabb,
     dimensions,
     env_probe_type,
-    Handle<Shader>::empty
+    nullptr
 )
 {
 }
@@ -167,13 +146,13 @@ EnvProbe::EnvProbe(
     const BoundingBox &aabb,
     const Extent2D &dimensions,
     EnvProbeType env_probe_type,
-    Handle<Shader> custom_shader
+    const ShaderRef &custom_shader
 ) : BasicObject(),
     m_parent_scene(parent_scene),
     m_aabb(aabb),
     m_dimensions(dimensions),
     m_env_probe_type(env_probe_type),
-    m_shader(std::move(custom_shader)),
+    m_shader(custom_shader),
     m_camera_near(0.001f),
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
@@ -200,17 +179,7 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 
 EnvProbe::~EnvProbe()
 {
-    m_render_list.Reset();
-    m_camera.Reset();
-
-    if (m_framebuffer) {
-        PUSH_RENDER_COMMAND(DestroyCubemapRenderPass, *this);
-    }
-    
-    m_texture.Reset();
-    m_shader.Reset();
-
-    HYP_SYNC_RENDER();
+    SafeRelease(std::move(m_framebuffer));
 }
 
 void EnvProbe::Init()
@@ -220,6 +189,16 @@ void EnvProbe::Init()
     }
 
     BasicObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+    {
+        m_render_list.Reset();
+        m_camera.Reset();
+        m_texture.Reset();
+        m_shader.Reset();
+
+        SafeRelease(std::move(m_framebuffer));
+    }));
 
     m_draw_proxy = EnvProbeDrawProxy {
         .id = GetID(),
@@ -286,8 +265,6 @@ void EnvProbe::CreateShader()
 {
     // If a custom shader is provided, use that instead.
     if (m_shader.IsValid()) {
-        InitObject(m_shader);
-
         return;
     }
 
@@ -319,15 +296,13 @@ void EnvProbe::CreateShader()
     default:
         AssertThrow(false);
     }
-
-    InitObject(m_shader);
 }
 
 void EnvProbe::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer>(
+    m_framebuffer = MakeRenderObject<renderer::Framebuffer>(
         m_dimensions,
-        RenderPassStage::SHADER,
+        renderer::RenderPassStage::SHADER,
         renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
     );
@@ -340,29 +315,23 @@ void EnvProbe::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         0,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            m_dimensions,
-            format,
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        format,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
     m_framebuffer->AddAttachment(
         1,
-        MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            m_dimensions,
-            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            nullptr
-        )),
-        RenderPassStage::SHADER,
+        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        ImageType::TEXTURE_TYPE_CUBEMAP,
+        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
-    InitObject(m_framebuffer);
+    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 }
 
 void EnvProbe::EnqueueBind() const
@@ -431,7 +400,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 RenderableAttributeSet(
                     MeshAttributes { },
                     MaterialAttributes {
-                        .shader_definition  = m_shader->GetCompiledShader().GetDefinition(),
+                        .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
                         .blend_function     = BlendFunction::AlphaBlending(),
                         .cull_faces         = FaceCullMode::NONE
                     }
@@ -448,7 +417,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 RenderableAttributeSet(
                     MeshAttributes { },
                     MaterialAttributes {
-                        .shader_definition  = m_shader->GetCompiledShader().GetDefinition(),
+                        .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
                         .blend_function     = BlendFunction::AlphaBlending(),
                         .cull_faces         = FaceCullMode::NONE
                     }
@@ -563,10 +532,10 @@ void EnvProbe::Render(Frame *frame)
         g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
 
-    const ImageRef &framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+    const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
     m_texture->GetImage()->Blit(command_buffer, framebuffer_image);
 
@@ -577,8 +546,8 @@ void EnvProbe::Render(Frame *frame)
         );
     }
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     m_is_rendered.Set(true, MemoryOrder::RELEASE);
 

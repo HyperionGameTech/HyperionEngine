@@ -94,12 +94,6 @@ void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> 
     m_images.Resize(image_count);
 
     for (uint32 i = 0; i < image_count; i++) {
-        UniquePtr<GPUImageMemory<Platform::VULKAN>> gpu_image_memory(new GPUImageMemory<Platform::VULKAN>());
-        HYPERION_ASSERT_RESULT(gpu_image_memory->Create(
-            device,
-            vk_images[i]
-        ));
-
         m_images[i] = MakeRenderObject<Image<Platform::VULKAN>>(
             Extent3D { extent.width, extent.height, 1 },
             image_format,
@@ -110,7 +104,10 @@ void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> 
             IMAGE_FLAGS_NONE
         );
 
-        HYPERION_ASSERT_RESULT(m_images[i]->Create(std::move(gpu_image_memory)));
+        m_images[i]->GetPlatformImpl().handle = vk_images[i];
+        m_images[i]->GetPlatformImpl().is_handle_owned = false;
+
+        HYPERION_ASSERT_RESULT(m_images[i]->Create(device));
     }
 }
 
