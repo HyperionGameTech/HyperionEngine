@@ -409,33 +409,12 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     Array<RC<UIObject>> objects;
     m_ui_stage->CollectObjects(objects);
-
-    /*std::sort(objects.Begin(), objects.End(), [](const RC<UIObject> &lhs, const RC<UIObject> &rhs)
-    {
-        AssertThrow(lhs != nullptr);
-        AssertThrow(lhs->GetNode() != nullptr);
-
-        AssertThrow(rhs != nullptr);
-        AssertThrow(rhs->GetNode() != nullptr);
-
-        return lhs->GetNode()->GetWorldTranslation().z < rhs->GetNode()->GetWorldTranslation().z;
-    });*/
-
-    // // Set layer first as it updates material
-    // for (uint i = 0; i < objects.Size(); i++) {
-    //     const RC<UIObject> &object = objects[i];
-    //     AssertThrow(object != nullptr);
-
-    //     object->SetDrawableLayer(DrawableLayer(0, i));
-    // }
-
+    
     m_render_list.ResetOrdering();
 
     for (uint i = 0; i < objects.Size(); i++) {
         const RC<UIObject> &object = objects[i];
         AssertThrow(object != nullptr);
-
-        // object->SetDrawableLayer(DrawableLayer(0, i));
 
         const NodeProxy &node = object->GetNode();
         AssertThrow(node.IsValid());

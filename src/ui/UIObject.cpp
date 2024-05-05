@@ -477,26 +477,6 @@ void UIObject::SetFocusState(UIObjectFocusState focus_state)
     UpdateMeshData();
 }
 
-DrawableLayer UIObject::GetDrawableLayer() const
-{
-    // const NodeProxy &node = GetNode();
-
-    // return DrawableLayer(0, GetComputedDepth());
-
-    return m_drawable_layer;
-}
-
-void UIObject::SetDrawableLayer(DrawableLayer layer)
-{
-    if (m_drawable_layer == layer) {
-        return;
-    }
-
-    m_drawable_layer = layer;
-
-    UpdateMaterial(false);
-}
-
 int UIObject::GetComputedDepth() const
 {
     if (m_depth != 0) {
@@ -520,7 +500,6 @@ void UIObject::SetDepth(int depth)
     m_depth = MathUtil::Clamp(depth, UIStage::min_depth, UIStage::max_depth + 1);
 
     UpdatePosition();
-    UpdateMaterial(); // Update material to change z-layer
 }
 
 void UIObject::SetAcceptsFocus(bool accepts_focus)
@@ -713,7 +692,6 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
 
     ui_object->UpdateSize();
     ui_object->UpdatePosition();
-    ui_object->UpdateMaterial(); // for z-layer
 }
 
 bool UIObject::RemoveChildUIObject(UIObject *ui_object)
@@ -741,7 +719,6 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             if (removed) {
                 ui_object->UpdateSize();
                 ui_object->UpdatePosition();
-                ui_object->UpdateMaterial(); // for z-layer
 
                 return true;
             }
@@ -821,10 +798,7 @@ Handle<Material> UIObject::GetMaterial() const
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.0f, 0.005f, 0.015f, 0.95f } }
-        }/*,
-        {
-            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, g_asset_manager->Load<Texture>("textures/dummy.jpg") }
-        }*/
+        }
     );
 }
 
@@ -863,10 +837,10 @@ const UIObject *UIObject::GetParentUIObject() const
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    // TEMP
                     if (ui_component->ui_object.Is<UIStage>()) {
                         return nullptr;
                     }
+
                     return ui_component->ui_object.Get();
                 }
             }
@@ -1079,23 +1053,17 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
     const ID<Entity> entity = m_node_proxy->GetEntity();
 
     if (entity.IsValid()) {
-        MeshComponent *mesh_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
-        TransformComponent *transform_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<TransformComponent>(entity);
-        BoundingBoxComponent *bounding_box_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity);
+        UIComponent *ui_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
 
-        if (mesh_component != nullptr && transform_component != nullptr && bounding_box_component != nullptr) {
-            UIComponent *ui_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
-
-            if (ui_component && ui_component->ui_object) {
-                // Visibility affects all child nodes as well, so return from here.
-                if (!ui_component->ui_object->IsVisible()) {
-                    return;
-                }
-
-                AssertThrow(ui_component->ui_object->GetNode().IsValid());
-
-                proc(ui_component->ui_object);
+        if (ui_component && ui_component->ui_object) {
+            // Visibility affects all child nodes as well, so return from here.
+            if (!ui_component->ui_object->IsVisible()) {
+                return;
             }
+
+            AssertThrow(ui_component->ui_object->GetNode().IsValid());
+
+            proc(ui_component->ui_object);
         }
     }
 
@@ -1128,8 +1096,6 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
     });*/
 
     for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
-        proc(it.second);
-
         it.second->CollectObjects(proc);
     }
 }

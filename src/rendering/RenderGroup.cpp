@@ -418,7 +418,7 @@ RenderAll(
 
     // AtomicVar<uint32> num_rendered_objects { 0u };
 
-    if constexpr (Parallel) {
+    if (Parallel && divided_draw_calls.Size() > 1) {
         ParallelForEach(divided_draw_calls, num_batches, TaskThreadPoolName::THREAD_POOL_RENDER,
             [&](Span<const DrawCall> draw_calls, uint index, uint)
             {

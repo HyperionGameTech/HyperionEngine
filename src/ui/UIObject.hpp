@@ -267,11 +267,6 @@ public:
      *  \param scroll_offset The scroll offset of the UI object */
     void SetScrollOffset(Vec2i scroll_offset);
 
-    /*! \brief Get the DrawableLayer of the UI object, based on its depth and parent index.
-     *  The DrawableLayer of the UI object is used to determine the rendering order of the object in the scene.
-     *  \return The DrawableLayer of the UI object */
-    DrawableLayer GetDrawableLayer() const;
-
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
      *  \return The depth of the UI object */
@@ -476,8 +471,6 @@ protected:
     UIObjectAlignment   m_parent_alignment;
 
 private:
-    void SetDrawableLayer(DrawableLayer layer);
-
     void UpdateActualSizes();
     void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool is_inner = false);
 
@@ -496,8 +489,6 @@ private:
     bool                m_accepts_focus;
 
     NodeProxy           m_node_proxy;
-
-    DrawableLayer       m_drawable_layer;
 };
 
 #pragma endregion UIObject

@@ -278,14 +278,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                         ui_object->SetFocusState(ui_object->GetFocusState() | UOFS_HOVER);
 
-                        DebugLog(LogType::Debug,
-                            "Mouse hover on object: %s, DrawableLayer: %u\tDepth: %d\t%z: %f\n",
-                            ui_object->GetName().LookupString(),
-                            ui_object->GetDrawableLayer().layer_index,
-                            ui_object->GetDepth(),
-                            ui_object->GetNode()->GetWorldTranslation().z
-                        );
-
                         event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
                             .position   = mouse_screen,
                             .button     = event.GetMouseButton(),
