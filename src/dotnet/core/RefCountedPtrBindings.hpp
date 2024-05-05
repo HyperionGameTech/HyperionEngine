@@ -53,7 +53,7 @@ static inline ManagedRefCountedPtr CreateManagedRefCountedPtr(const RC<T> &ref_c
 template <class T>
 static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
-    auto *ref_count_data = reinterpret_cast<typename memory::detail::RefCountedPtrBase<>::RefCountDataType *>(managed_ref_counted_ptr.address);
+    auto *ref_count_data = reinterpret_cast<typename memory::detail::RefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;
@@ -68,7 +68,7 @@ static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref
 template <class T>
 static inline Weak<T> GetWeakRefCountedPtrFromManaged(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
-    auto *ref_count_data = reinterpret_cast<typename memory::detail::WeakRefCountedPtrBase<>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
+    auto *ref_count_data = reinterpret_cast<typename memory::detail::WeakRefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;

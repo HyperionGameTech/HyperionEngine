@@ -14,6 +14,11 @@
 
 namespace hyperion {
 
+// @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
+// this only happens in the case that the scene in question is destructing and
+// this Node is held on a component that the EntityManager has.
+// In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
+
 Node::Node(
     const String &name,
     const Transform &local_transform
@@ -478,8 +483,10 @@ void Node::LockTransform()
 
     // set entity to static
     if (m_entity.IsValid()) {
-        m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
-        m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        if (const RC<EntityManager> &entity_manager = m_scene->GetEntityManager()) {
+            entity_manager->AddTag<EntityTag::STATIC>(m_entity);
+            entity_manager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        }
     }
 
     for (auto &child : m_child_nodes) {
@@ -522,11 +529,11 @@ void Node::SetEntity(ID<Entity> entity)
     }
 
     // Remove the NodeLinkComponent from the old entity
-    if (m_entity.IsValid()) {
+    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
     }
 
-    if (entity.IsValid()) {
+    if (entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_entity = entity;
 
         if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
@@ -598,7 +605,7 @@ void Node::UpdateWorldTransform()
 
     m_world_aabb = m_local_aabb * m_world_transform;
 
-    if (m_entity.IsValid()) {
+    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(m_entity);
         m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
 
@@ -658,7 +665,7 @@ void Node::RefreshEntityTransform()
 {
     m_local_aabb = BoundingBox::Empty();
 
-    if (m_entity.IsValid()) {
+    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
             m_local_aabb = bounding_box_component->local_aabb;
         } else {

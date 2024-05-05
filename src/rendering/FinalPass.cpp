@@ -37,6 +37,12 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
     {
         g_safe_deleter->SafeRelease(std::move(final_pass.m_ui_texture));
 
+        if (g_engine->IsShuttingDown()) {
+            // Don't set if the engine is in a shutdown state,
+            // pipeline may already have been deleted.
+            HYPERION_RETURN_OK;
+        }
+
         if (final_pass.m_render_texture_to_screen_pass != nullptr) {
             const DescriptorTableRef &descriptor_table = final_pass.m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable();
             AssertThrow(descriptor_table.IsValid());
@@ -50,7 +56,7 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
         }
 
         // Set frames to be dirty so the descriptor sets get updated before we render the UI
-        final_pass.m_dirty_frame_indices = 0xFFu;
+        final_pass.m_dirty_frame_indices = (1u << max_frames_in_flight) - 1;
         final_pass.m_ui_texture = std::move(texture);
 
         HYPERION_RETURN_OK;

@@ -158,6 +158,13 @@ void Scene::Init()
     
     BasicObject::Init();
 
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+    {
+        m_environment.Reset();
+        // since environment is now reset
+        m_is_non_world_scene = true;
+    }));
+
     InitObject(m_camera);
     m_render_list.SetCamera(m_camera);
 
@@ -171,8 +178,7 @@ void Scene::Init()
         }
 
         InitObject(m_tlas);
-
-        // TODO: Environment should be on World?
+        
         m_environment->Init();
 
         if (m_tlas) {

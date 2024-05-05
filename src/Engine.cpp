@@ -279,14 +279,15 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_material_descriptor_set_manager.Initialize();
 
-    m_render_list_container.Create();
+    m_deferred_system.Create();
 
     // has to be after we create framebuffers
     m_debug_drawer.Create();
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
-    m_final_pass.Create();
+    m_final_pass.Reset(new FinalPass);
+    m_final_pass->Create();
 
     Compile();
 }
@@ -346,7 +347,7 @@ void Engine::FinalizeStop()
 {
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
-    m_is_stopping = true;
+    m_is_shutting_down.Set(true, MemoryOrder::SEQUENTIAL);
     m_is_render_loop_active = false;
 
     DebugLog(
@@ -372,12 +373,13 @@ void Engine::FinalizeStop()
         );
     }
 
-    m_render_list_container.Destroy();
+    m_deferred_system.Destroy();
 
     m_deferred_renderer->Destroy();
     m_deferred_renderer.Reset();
 
-    m_final_pass.Destroy();
+    m_final_pass->Destroy();
+    m_final_pass.Reset();
 
     m_debug_drawer.Destroy();
 
@@ -435,7 +437,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     RenderDeferred(frame);
 
-    m_final_pass.Render(frame);
+    m_final_pass->Render(frame);
 
     HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
 
@@ -527,17 +529,15 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
     new_renderable_attributes.SetShaderDefinition(shader->GetCompiledShader().GetDefinition());
-
-    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.GetMaterialAttributes().bucket);
-
+    
     // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
+    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         new_renderable_attributes,
         std::move(descriptor_table)
     );
 
-    return renderer_instance;
+    return render_group;
 }
 
 void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
@@ -562,7 +562,7 @@ void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cach
         );
     }
 
-    m_render_list_container
+    m_deferred_system
         .Get(render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
         .AddRenderGroup(render_group);
 }

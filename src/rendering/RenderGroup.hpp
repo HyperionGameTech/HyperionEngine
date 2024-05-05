@@ -107,8 +107,8 @@ public:
     const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
-    void AddFramebuffer(Handle<Framebuffer> &&fbo)
-        { m_fbos.PushBack(std::move(fbo)); }
+    void AddFramebuffer(Handle<Framebuffer> framebuffer)
+        { m_fbos.PushBack(std::move(framebuffer)); }
 
     void RemoveFramebuffer(ID<Framebuffer> id);
 
@@ -141,31 +141,31 @@ private:
         uint scene_index
     );
 
-    GraphicsPipelineRef m_pipeline;
+    GraphicsPipelineRef                                 m_pipeline;
 
-    Handle<Shader> m_shader;
-    RenderableAttributeSet m_renderable_attributes;
+    Handle<Shader>                                      m_shader;
+    RenderableAttributeSet                              m_renderable_attributes;
 
-    RC<IndirectRenderer> m_indirect_renderer;
+    RC<IndirectRenderer>                                m_indirect_renderer;
 
-    Array<Handle<Framebuffer>> m_fbos;
+    Array<Handle<Framebuffer>>                          m_fbos;
 
     // for each frame in flight - have an array of command buffers to use
     // for async command buffer recording.
-    AsyncCommandBuffers m_command_buffers;
+    AsyncCommandBuffers                                 m_command_buffers;
 
     // cache so we don't allocate every frame
-    Array<Span<const DrawCall>> m_divided_draw_calls;
+    Array<Span<const DrawCall>>                         m_divided_draw_calls;
 
     // cycle through command buffers, so you can call Render()
     // multiple times in a single pass, only running into issues if you
     // try to call it more than num_async_rendering_command_buffers
     // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
-    uint m_command_buffer_index = 0u;
+    uint                                                m_command_buffer_index = 0u;
 
-    FlatMap<uint, BufferTicket<EntityInstanceBatch>> m_entity_batches;
+    FlatMap<uint, BufferTicket<EntityInstanceBatch>>    m_entity_batches;
 
-    DrawCallCollection m_draw_state;
+    DrawCallCollection                                  m_draw_state;
 };
 
 } // namespace hyperion

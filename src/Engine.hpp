@@ -171,12 +171,12 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     DeferredSystem &GetDeferredSystem()
-        { return m_render_list_container; }
+        { return m_deferred_system; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
     const DeferredSystem &GetDeferredSystem() const
-        { return m_render_list_container; }
+        { return m_deferred_system; }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -240,13 +240,8 @@ public:
     
     [[nodiscard]]
     HYP_FORCE_INLINE
-    FinalPass &GetFinalPass()
-        { return m_final_pass; }
-    
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const FinalPass &GetFinalPass() const
-        { return m_final_pass; }
+    FinalPass *GetFinalPass() const
+        { return m_final_pass.Get(); }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -272,6 +267,11 @@ public:
     HYP_FORCE_INLINE
     const EngineDelegates &GetDelegates() const
         { return m_delegates; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsShuttingDown() const
+        { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 
     Handle<RenderGroup> CreateRenderGroup(
         const RenderableAttributeSet &renderable_attributes
@@ -369,7 +369,7 @@ private:
     HashMap<TextureFormatDefault, InternalFormat>           m_texture_format_defaults;
 
     UniquePtr<DeferredRenderer>                             m_deferred_renderer;
-    DeferredSystem                                          m_render_list_container;
+    DeferredSystem                                          m_deferred_system;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_group_mapping;
     std::mutex                                              m_render_group_mapping_mutex;
 
@@ -383,13 +383,13 @@ private:
 
     DebugDrawer                                             m_debug_drawer;
 
-    FinalPass                                               m_final_pass;
+    UniquePtr<FinalPass>                                    m_final_pass;
 
     CrashHandler                                            m_crash_handler;
 
     EngineDelegates                                         m_delegates;
 
-    bool                                                    m_is_stopping { false };
+    AtomicVar<bool>                                         m_is_shutting_down { false };
     bool                                                    m_is_render_loop_active { false };
 };
 

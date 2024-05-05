@@ -9,8 +9,6 @@
 #include <Types.hpp>
 
 #include <type_traits>
-#include <fstream>
-#include <string>
 
 namespace hyperion {
 
@@ -69,7 +67,7 @@ public:
         WriteBytes(str, len);
     }
 
-    virtual std::streampos Position() const = 0;
+    virtual SizeType Position() const = 0;
     virtual void Close() = 0;
 
 protected:
@@ -83,9 +81,9 @@ public:
 
     virtual ~MemoryByteWriter() override = default;
 
-    virtual std::streampos Position() const override
+    virtual SizeType Position() const override
     {
-        return std::streampos(m_pos);
+        return m_pos;
     }
 
     virtual void Close() override { }
@@ -108,18 +106,18 @@ private:
 class FileByteWriter : public ByteWriter
 {
 public:
-    FileByteWriter(const FilePath &filepath, std::streampos begin = 0)
+    FileByteWriter(const FilePath &filepath)
     {
-        file = new std::ofstream(filepath.Data(), std::ofstream::out | std::ofstream::binary);
+        m_file = fopen(filepath.Data(), "wb");
     }
 
     FileByteWriter(const FileByteWriter &other)             = delete;
     FileByteWriter &operator=(const FileByteWriter &other)  = delete;
 
     FileByteWriter(FileByteWriter &&other) noexcept
-        : file(other.file)
+        : m_file(other.m_file)
     {
-        other.file = nullptr;
+        other.m_file = nullptr;
     }
 
     FileByteWriter &operator=(FileByteWriter &&other) noexcept
@@ -128,46 +126,55 @@ public:
             return *this;
         }
 
-        delete file;
+        if (m_file != nullptr) {
+            fclose(m_file);
+        }
 
-        file = other.file;
-        other.file = nullptr;
+        m_file = other.m_file;
+        other.m_file = nullptr;
 
         return *this;
     }
 
     virtual ~FileByteWriter() override
     {
-        delete file;
+        if (m_file != nullptr) {
+            fclose(m_file);
+        }
     }
 
-    virtual std::streampos Position() const override
+    virtual SizeType Position() const override
     {
-        AssertThrow(file != nullptr);
+        if (m_file == nullptr) {
+            return 0;
+        }
 
-        return file->tellp();
+        return ftell(m_file);
     }
 
     virtual void Close() override
     {
-        if (!file) {
+        if (m_file == nullptr) {
             return;
         }
 
-        file->close();
+        fclose(m_file);
+        m_file = nullptr;
     }
 
     bool IsOpen() const
-        { return file != nullptr && file->is_open(); }
+        { return m_file != nullptr; }
 
 private:
-    std::ofstream *file;
+    FILE    *m_file;
 
     virtual void WriteBytes(const char *ptr, SizeType size) override
     {
-        AssertThrow(file != nullptr);
+        if (m_file == nullptr) {
+            return;
+        }
 
-        file->write(ptr, size);
+        fwrite(ptr, 1, size, m_file);
     }
 };
 }

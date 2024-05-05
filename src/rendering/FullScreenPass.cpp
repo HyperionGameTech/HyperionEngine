@@ -215,6 +215,7 @@ void FullScreenPass::Destroy()
     }
 
     SafeRelease(std::move(m_attachments));
+    m_attachments.Clear();
 
     m_framebuffer.Reset();
     m_render_group.Reset();

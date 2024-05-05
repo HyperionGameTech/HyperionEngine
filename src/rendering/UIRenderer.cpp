@@ -370,7 +370,7 @@ UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
 
 UIRenderer::~UIRenderer()
 {
-    g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
+    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
 void UIRenderer::Init()
@@ -386,7 +386,7 @@ void UIRenderer::Init()
 
     m_render_list.SetCamera(m_ui_stage->GetScene()->GetCamera());
 
-    g_engine->GetFinalPass().SetUITexture(CreateObject<Texture>(
+    g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
         m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage(),
         m_framebuffer->GetAttachmentUsages()[0]->GetImageView()
     ));
@@ -402,7 +402,7 @@ void UIRenderer::InitGame() { }
 
 void UIRenderer::OnRemoved()
 {
-    g_engine->GetFinalPass().SetUITexture(Handle<Texture>::empty);
+    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)

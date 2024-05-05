@@ -3,6 +3,10 @@
 #ifndef HYPERION_POST_FX_HPP
 #define HYPERION_POST_FX_HPP
 
+#include <core/containers/TypeMap.hpp>
+#include <core/containers/ThreadSafeContainer.hpp>
+#include <core/threading/Threads.hpp>
+
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -10,13 +14,10 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Buffers.hpp>
 
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/ThreadSafeContainer.hpp>
-#include <core/threading/Threads.hpp>
-#include <Types.hpp>
-
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+
+#include <Types.hpp>
 
 #include <utility>
 

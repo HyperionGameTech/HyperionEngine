@@ -86,6 +86,8 @@ RenderEnvironment::~RenderEnvironment()
 
     PUSH_RENDER_COMMAND(RemoveAllRenderComponents, std::move(m_render_components));
 
+    // @TODO Call ComponentRemoved() for all components pending addition as well
+
     if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
         std::lock_guard guard(m_render_component_mutex);
 

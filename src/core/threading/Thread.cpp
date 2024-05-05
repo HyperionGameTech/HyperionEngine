@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <core/threading/Thread.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/Defines.hpp>

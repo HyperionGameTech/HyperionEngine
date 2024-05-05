@@ -210,6 +210,7 @@ Attachment<Platform::VULKAN>::Attachment(ImageRef<Platform::VULKAN> image, Rende
 template <>
 Attachment<Platform::VULKAN>::~Attachment()
 {
+    AssertThrowMsg(m_image == nullptr, "Image should have been deleted");
 }
 
 template <>

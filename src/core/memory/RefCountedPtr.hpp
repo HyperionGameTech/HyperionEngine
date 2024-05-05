@@ -33,10 +33,13 @@ namespace detail {
 template <class CountType>
 class WeakRefCountedPtrBase;
 
-template <class CountType = std::atomic<uint>>
+template <class CountType>
 class EnableRefCountedPtrFromThisBase;
 
-template <class CountType = std::atomic<uint>>
+template <class CountType>
+class RefCountedPtrBase;
+
+template <class CountType>
 struct RefCountData
 {
     void        *value;
@@ -74,7 +77,7 @@ struct RefCountData
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>) {
             dtor = [](void *ptr)
             {
-                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(nullptr, false);
+                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
 
                 Memory::Delete<T>(ptr);
             };
@@ -94,7 +97,7 @@ struct RefCountData
 
             dtor = [](void *ptr)
             {
-                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(nullptr, false);
+                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
 
                 Memory::Delete<T>(ptr);
             };
@@ -125,24 +128,27 @@ struct RefCountData
     }
 };
 
-template <class CountType = std::atomic<uint>>
+template <class CountType>
 class RefCountedPtrBase
 {
     friend class WeakRefCountedPtrBase<CountType>;
 
 public:
     using RefCountDataType = RefCountData<CountType>;
+    
+    static const RefCountDataType null_ref__internal;
 
     RefCountedPtrBase()
-        : m_ref(nullptr)
+        : m_ref(const_cast<RefCountDataType *>(&null_ref__internal))
     {
     }
 
 protected:
+
     RefCountedPtrBase(const RefCountedPtrBase &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref) {
+        if (m_ref != &null_ref__internal) {
             IncRefCount();
         }
     }
@@ -157,7 +163,7 @@ protected:
 
         m_ref = other.m_ref;
 
-        if (m_ref) {
+        if (m_ref != &null_ref__internal) {
             IncRefCount();
         }
 
@@ -167,7 +173,9 @@ protected:
     RefCountedPtrBase(RefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-        other.m_ref = nullptr;
+        /// NOTE: Cast away constness -- modifying / dereferencing null_ref__internal
+        /// of any type is already ill-formed
+        other.m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
     }
 
     RefCountedPtrBase &operator=(RefCountedPtrBase &&other) noexcept
@@ -179,7 +187,7 @@ protected:
         DropRefCount();
 
         m_ref = other.m_ref;
-        other.m_ref = nullptr;
+        other.m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
 
         return *this;
     }
@@ -193,15 +201,15 @@ public:
 
     HYP_FORCE_INLINE
     void *Get() const
-        { return m_ref ? m_ref->value : nullptr; }
+        { return m_ref->value; }
     
     HYP_FORCE_INLINE
     explicit operator bool() const
-        { return Get() != nullptr; }
+        { return m_ref->value != nullptr; }
     
     HYP_FORCE_INLINE
     bool operator!() const
-        { return Get() == nullptr; }
+        { return m_ref->value == nullptr; }
     
     HYP_FORCE_INLINE
     bool operator==(const RefCountedPtrBase &other) const
@@ -221,7 +229,7 @@ public:
     
     HYP_FORCE_INLINE
     TypeID GetTypeID() const
-        { return m_ref ? m_ref->type_id : TypeID::ForType<void>(); }
+        { return m_ref->type_id; }
 
     /*! \brief Creates a new RefCountedPtr of T from the existing RefCountedPtr.
      * If the types are not exact AND T is not equal to void,
@@ -245,7 +253,7 @@ public:
         RefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
 
-        if (m_ref) {
+        if (m_ref != &null_ref__internal) {
             IncRefCount();
         }
 
@@ -269,7 +277,7 @@ public:
         DropRefCount();
         m_ref = ref;
 
-        if (inc_ref && m_ref != nullptr) {
+        if (inc_ref && m_ref != &null_ref__internal) {
             IncRefCount();
         }
     }
@@ -280,7 +288,7 @@ public:
     RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
-        m_ref = nullptr;
+        m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
 
         return ref;
     }
@@ -295,7 +303,7 @@ protected:
     void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(m_ref != nullptr);
+        AssertThrow(m_ref != nullptr && m_ref != &null_ref__internal);
 #endif
 
         if constexpr (std::is_integral_v<CountType>) {
@@ -308,7 +316,10 @@ protected:
     HYP_FORCE_INLINE
     void DropRefCount()
     {
-        if (m_ref) {
+        if (m_ref != &null_ref__internal) {
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(m_ref != nullptr);
+#endif
             if constexpr (std::is_integral_v<CountType>) {
                 if (--m_ref->strong_count == 0u) {
                     m_ref->Destruct();
@@ -327,28 +338,37 @@ protected:
                 }
             }
 
-            m_ref = nullptr;
+            m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
         }
     }
 
-    RefCountDataType *m_ref;
+    RefCountDataType    *m_ref;
 };
 
-template <class CountType = std::atomic<uint>>
+template <class CountType>
+const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::null_ref__internal = {
+    nullptr,
+    TypeID::ForType<void>(),
+    { },
+    { },
+    nullptr
+};
+
+template <class CountType>
 class WeakRefCountedPtrBase
 {
 public:
     using RefCountDataType = RefCountData<CountType>;
 
     WeakRefCountedPtrBase()
-        : m_ref(nullptr)
+        : m_ref(const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal))
     {
     }
 
     WeakRefCountedPtrBase(const RefCountedPtrBase<CountType> &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
     }
@@ -356,7 +376,7 @@ public:
     WeakRefCountedPtrBase(const WeakRefCountedPtrBase &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
     }
@@ -367,7 +387,7 @@ public:
 
         m_ref = other.m_ref;
 
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
 
@@ -380,7 +400,7 @@ public:
 
         m_ref = other.m_ref;
 
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
 
@@ -390,7 +410,7 @@ public:
     WeakRefCountedPtrBase(WeakRefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-        other.m_ref = nullptr;
+        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
     }
 
     WeakRefCountedPtrBase &operator=(WeakRefCountedPtrBase &&other) noexcept
@@ -398,7 +418,7 @@ public:
         DropRefCount();
 
         m_ref = other.m_ref;
-        other.m_ref = nullptr;
+        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
 
         return *this;
     }
@@ -410,15 +430,15 @@ public:
 
     HYP_FORCE_INLINE
     void *Get() const
-        { return m_ref ? m_ref->value : nullptr; }
+        { return m_ref->value; }
     
     HYP_FORCE_INLINE
     explicit operator bool() const
-        { return Get() != nullptr; }
+        { return m_ref->value != nullptr; }
     
     HYP_FORCE_INLINE
     bool operator!() const
-        { return Get() == nullptr; }
+        { return m_ref->value == nullptr; }
     
     HYP_FORCE_INLINE
     bool operator==(const RefCountedPtrBase<CountType> &other) const
@@ -446,7 +466,7 @@ public:
     
     HYP_FORCE_INLINE
     TypeID GetTypeID() const
-        { return m_ref ? m_ref->type_id : TypeID::ForType<void>(); }
+        { return m_ref->type_id; }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE
@@ -459,7 +479,7 @@ public:
     RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
-        m_ref = nullptr;
+        m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
 
         return ref;
     }
@@ -482,7 +502,7 @@ public:
         WeakRefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
 
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
 
@@ -501,7 +521,7 @@ public:
         DropRefCount();
         m_ref = ref;
 
-        if (inc_ref && m_ref != nullptr) {
+        if (inc_ref && m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             IncRefCount();
         }
     }
@@ -516,7 +536,7 @@ protected:
     void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(m_ref != nullptr);
+        AssertThrow(m_ref != nullptr && m_ref != &RefCountedPtrBase<CountType>::null_ref__internal);
 #endif
 
         if constexpr (std::is_integral_v<CountType>) {
@@ -529,7 +549,7 @@ protected:
     HYP_FORCE_INLINE
     void DropRefCount()
     {
-        if (m_ref) {
+        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
             if constexpr (std::is_integral_v<CountType>) {
                 if (--m_ref->weak_count == 0u) {
                     if (m_ref->strong_count == 0u) {
@@ -544,11 +564,11 @@ protected:
                 }
             }
 
-            m_ref = nullptr;
+            m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
         }
     }
 
-    RefCountDataType *m_ref;
+    RefCountDataType    *m_ref;
 };
 
 } // namespace detail
@@ -665,7 +685,7 @@ public:
 
     HYP_FORCE_INLINE
     T *Get() const
-        { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
+        { return static_cast<T *>(Base::m_ref->value); }
 
     HYP_FORCE_INLINE
     T *operator->() const
@@ -934,7 +954,7 @@ public:
 
     HYP_FORCE_INLINE
     T *Get() const
-        { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
+        { return static_cast<T *>(Base::m_ref->value); }
     
     HYP_FORCE_INLINE
     RefCountedPtr<T, CountType> Lock() const
@@ -942,7 +962,7 @@ public:
         RefCountedPtr<T, CountType> rc;
         rc.m_ref = Base::m_ref;
 
-        if (Base::m_ref) {
+        if (Base::m_ref != &detail::RefCountedPtrBase<CountType>::null_ref__internal) {
             ++Base::m_ref->strong_count;
         }
 

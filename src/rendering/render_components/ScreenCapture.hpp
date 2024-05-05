@@ -41,7 +41,11 @@ class HYP_API ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptur
 
 public:
     ScreenCaptureRenderComponent(Name name, const Extent2D window_size, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
-    virtual ~ScreenCaptureRenderComponent() = default;
+    ScreenCaptureRenderComponent(const ScreenCaptureRenderComponent &other)                 = delete;
+    ScreenCaptureRenderComponent &operator=(const ScreenCaptureRenderComponent &other)      = delete;
+    ScreenCaptureRenderComponent(ScreenCaptureRenderComponent &&other) noexcept             = delete;
+    ScreenCaptureRenderComponent &operator=(ScreenCaptureRenderComponent &&other) noexcept  = delete;
+    virtual ~ScreenCaptureRenderComponent() override;
 
     const GPUBufferRef &GetBuffer() const
         { return m_buffer; }

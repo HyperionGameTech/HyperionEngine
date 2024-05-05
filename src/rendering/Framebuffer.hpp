@@ -31,10 +31,10 @@ struct AttachmentDef
 
 struct HYP_API AttachmentMap
 {
-    using Iterator      = typename FlatMap<uint, AttachmentDef>::Iterator;
+    using Iterator = typename FlatMap<uint, AttachmentDef>::Iterator;
     using ConstIterator = typename FlatMap<uint, AttachmentDef>::ConstIterator;
 
-    FlatMap<uint, AttachmentDef> attachments;
+    FlatMap<uint, AttachmentDef>    attachments;
 
     void AddAttachment(
         uint binding,
@@ -63,11 +63,14 @@ struct HYP_API AttachmentMap
     SizeType Size() const
         { return attachments.Size(); }
 
-    AttachmentDef &At(uint binding)
+    const AttachmentDef &GetAttachmentDef(uint binding) const
         { return attachments.At(binding); }
 
-    const AttachmentDef &At(uint binding) const
-        { return attachments.At(binding); }
+    const AttachmentRef &GetAttachment(uint binding) const
+        { return attachments.At(binding).attachment; }
+
+    const AttachmentUsageRef &GetAttachmentUsage(uint binding) const
+        { return attachments.At(binding).attachment_usage; }
 
     HYP_DEF_STL_BEGIN_END(
         attachments.Begin(),

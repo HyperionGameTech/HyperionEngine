@@ -52,6 +52,14 @@ void Framebuffer::Init()
     }
 
     BasicObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+    {
+        m_attachment_map.Reset();
+
+        SafeRelease(std::move(m_framebuffers));
+        SafeRelease(std::move(m_render_pass));
+    }));
     
     for (auto &it : m_attachment_map->attachments) {
         const uint binding = it.first;
@@ -95,6 +103,8 @@ void Framebuffer::Init()
 void Framebuffer::AddAttachmentUsage(AttachmentUsageRef attachment_usage)
 {
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        AssertThrow(m_framebuffers[frame_index].IsValid());
+
         m_framebuffers[frame_index]->AddAttachmentUsage(attachment_usage);
     }
 
@@ -104,6 +114,8 @@ void Framebuffer::AddAttachmentUsage(AttachmentUsageRef attachment_usage)
 void Framebuffer::RemoveAttachmentUsage(const AttachmentRef &attachment)
 {
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        AssertThrow(m_framebuffers[frame_index].IsValid());
+
         m_framebuffers[frame_index]->RemoveAttachmentUsage(attachment);
     }
 

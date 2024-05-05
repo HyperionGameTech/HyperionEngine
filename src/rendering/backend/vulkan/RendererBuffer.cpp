@@ -1017,8 +1017,12 @@ Result GPUImageMemory<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device
     GPUMemory<Platform::VULKAN>::Create();
 
     VmaAllocationCreateInfo alloc_info { };
-    alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     alloc_info.pUserData = reinterpret_cast<void *>(uintptr_t(uint64(ID_MASK_IMAGE) | uint64(m_id)));
+
+    /*if ((uintptr_t)alloc_info.pUserData == 0x2000038D9) {
+        HYP_BREAKPOINT;
+    }*/
 
     HYPERION_VK_CHECK_MSG(
         vmaCreateImage(

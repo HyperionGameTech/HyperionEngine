@@ -152,23 +152,22 @@ RenderGroup::~RenderGroup()
     
     m_shader.Reset();
 
+    m_fbos.Clear();
+
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         SafeRelease(std::move(m_command_buffers[frame_index]));
     }
 
     m_command_buffers = { };
 
-    for (auto &fbo : m_fbos) {
-        fbo.Reset();
-    }
-
     SafeRelease(std::move(m_pipeline));
 }
 
 void RenderGroup::RemoveFramebuffer(ID<Framebuffer> id)
 {
-    const auto it = m_fbos.FindIf([&](const auto &item) {
-        return item->GetID() == id;
+    const auto it = m_fbos.FindIf([&](const Handle<Framebuffer> &item)
+    {
+        return item.GetID() == id;
     });
 
     if (it == m_fbos.End()) {
@@ -194,15 +193,13 @@ void RenderGroup::Init()
         
         m_shader.Reset();
 
+        m_fbos.Clear();
+
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             SafeRelease(std::move(m_command_buffers[frame_index]));
         }
 
         m_command_buffers = { };
-
-        for (auto &fbo : m_fbos) {
-            fbo.Reset();
-        }
 
         SafeRelease(std::move(m_pipeline));
     }));

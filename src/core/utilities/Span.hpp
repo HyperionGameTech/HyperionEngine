@@ -30,8 +30,32 @@ struct Span
     {
     }
 
+    template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
+    Span(const Span<OtherT> &other)
+        : first(other.first),
+          last(other.last)
+    {
+    }
+
     Span &operator=(const Span &other)
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
+        first = other.first;
+        last = other.last;
+
+        return *this;
+    }
+
+    template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
+    Span &operator=(const Span<OtherT> &other)
+    {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         first = other.first;
         last = other.last;
 
@@ -46,8 +70,37 @@ struct Span
         other.last = nullptr;
     }
 
+    template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
+    Span(Span<OtherT> &&other) noexcept
+        : first(other.first),
+          last(other.last)
+    {
+        other.first = nullptr;
+        other.last = nullptr;
+    }
+
     Span &operator=(Span &&other) noexcept
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
+        first = other.first;
+        last = other.last;
+
+        other.first = nullptr;
+        other.last = nullptr;
+
+        return *this;
+    }
+
+    template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
+    Span &operator=(Span<OtherT> &&other) noexcept
+    {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         first = other.first;
         last = other.last;
 

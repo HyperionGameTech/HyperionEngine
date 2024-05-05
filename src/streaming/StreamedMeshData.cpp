@@ -8,15 +8,9 @@
 
 namespace hyperion {
 
-RC<StreamedMeshData> StreamedMeshData::FromMeshData(const MeshData &mesh_data)
+RC<StreamedMeshData> StreamedMeshData::FromMeshData(MeshData mesh_data)
 {
-    MemoryByteWriter writer;
-
-    fbom::FBOMWriter serializer;
-    serializer.Append(mesh_data);
-    serializer.Emit(&writer);
-
-    return RC<StreamedMeshData>::Construct(RC<StreamedData>(new MemoryStreamedData(writer.GetBuffer())));
+    return RC<StreamedMeshData>::Construct(std::move(mesh_data));
 }
 
 StreamedMeshData::StreamedMeshData()
@@ -24,6 +18,20 @@ StreamedMeshData::StreamedMeshData()
       m_mesh_data({ }),
       m_mesh_data_loaded(false)
 {
+}
+
+StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
+{
+    MemoryByteWriter writer;
+
+    fbom::FBOMWriter serializer;
+    serializer.Append(mesh_data);
+    serializer.Emit(&writer);
+
+    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
+
+    m_mesh_data = std::move(mesh_data);
+    m_mesh_data_loaded = true;
 }
 
 StreamedMeshData::StreamedMeshData(RC<StreamedData> streamed_data)
@@ -74,10 +82,7 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
     m_mesh_data = { };
     m_mesh_data_loaded = false;
 
-    uint32 num_vertices = 0;
-    uint32 num_indices = 0;
-
-    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer)));
+    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer.ToByteView())));
 
     if (!reader.IsOpen()) {
         return;
@@ -92,29 +97,6 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
     }
 
     m_mesh_data = std::move(*object.Get<MeshData>());
-
-#if 0
-    // read magic number
-    uint64 magic = 0;
-    reader.Read<uint64>(&magic);
-
-    if (magic == engine_binary_magic_number) {
-        reader.Read<uint32>(&num_vertices);
-        m_mesh_data.vertices.Resize(num_vertices);
-        reader.Read(m_mesh_data.vertices.Data(), num_vertices * sizeof(Vertex));
-
-        reader.Read<uint32>(&num_indices);
-        m_mesh_data.indices.Resize(num_indices);
-        reader.Read(m_mesh_data.indices.Data(), num_indices * sizeof(uint32));
-    } else {
-        DebugLog(
-            LogType::Warn,
-            "StreamedMeshData: Magic number mismatch, expected %llu, got %llu\n",
-            engine_binary_magic_number,
-            magic
-        );
-    }
-#endif
 
     m_mesh_data_loaded = true;
 }

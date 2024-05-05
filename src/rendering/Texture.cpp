@@ -87,6 +87,12 @@ struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
+        // If shutting down, skip removing the resource here,
+        // render data may have already been destroyed
+        if (g_engine->IsShuttingDown()) {
+            HYPERION_RETURN_OK;
+        }
+
         if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             g_engine->GetRenderData()->textures.RemoveResource(id);
         }

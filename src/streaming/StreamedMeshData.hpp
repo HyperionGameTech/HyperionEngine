@@ -23,9 +23,10 @@ struct MeshData
 class HYP_API StreamedMeshData : public StreamedData
 {
 public:
-    static RC<StreamedMeshData> FromMeshData(const MeshData &);
+    static RC<StreamedMeshData> FromMeshData(MeshData);
     
     StreamedMeshData();
+    StreamedMeshData(MeshData &&mesh_data);
     StreamedMeshData(RC<StreamedData> streamed_data);
     StreamedMeshData(const StreamedMeshData &other)                 = default;
     StreamedMeshData &operator=(const StreamedMeshData &other)      = default;
