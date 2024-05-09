@@ -3,17 +3,15 @@
 #include <core/system/AppContext.hpp>
 #include <core/system/Debug.hpp>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <core/system/SystemEvent.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+
 namespace hyperion {
 namespace sys {
-
-SDL_Event *SystemEvent::GetInternalEvent() {
-    return &(this->sdl_event);
-}
 
 ApplicationWindow::ApplicationWindow(ANSIString title, Vec2u size)
     : m_title(std::move(title)),
@@ -87,7 +85,7 @@ void SDLApplicationWindow::SetMousePosition(int x, int y)
 MouseState SDLApplicationWindow::GetMouseState()
 {
     MouseState mouse_state { };
-    mouse_state.mask = SDL_GetMouseState(&mouse_state.x, &mouse_state.y);
+    mouse_state.mask = SDL_GetMouseState(&mouse_state.position.x, &mouse_state.position.y);
 
     return mouse_state;
 }

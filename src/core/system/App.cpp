@@ -1,5 +1,6 @@
 #include <core/system/App.hpp>
 #include <core/system/AppContext.hpp>
+#include <core/system/SystemEvent.hpp>
 
 #include <Game.hpp>
 

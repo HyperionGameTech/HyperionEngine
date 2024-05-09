@@ -5,6 +5,7 @@
 #include <ui/UIButton.hpp>
 
 #include <input/InputManager.hpp>
+#include <input/Mouse.hpp>
 
 #include <Engine.hpp>
 
@@ -293,7 +294,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
 
     menu_item->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
-        if (data.button == MouseButtonName::MBN_LEFT)
+        if (data.button == MouseButton::LEFT)
         {
             const uint menu_item_index = GetMenuItemIndex(name);
 

@@ -4,12 +4,14 @@
 #define HYPERION_ECS_UI_COMPONENT_HPP
 
 #include <core/functional/Proc.hpp>
-#include <core/utilities/Optional.hpp>
 #include <core/containers/String.hpp>
 #include <core/memory/RefCountedPtr.hpp>
+#include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
-
 #include <core/Name.hpp>
+
+#include <input/Mouse.hpp>
+
 #include <math/Vector2.hpp>
 
 namespace hyperion {
@@ -18,10 +20,10 @@ class UIObject;
 
 struct UIMouseEventData
 {
-    Vec2f   position;
-    int     button = 0;
-    bool    is_down = false;
-    Vec2i   wheel;
+    Vec2f       position;
+    MouseButton button = MouseButton::INVALID;
+    bool        is_down = false;
+    Vec2i       wheel;
 };
 
 using UIEventHandlerResult = uint32;

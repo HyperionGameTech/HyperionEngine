@@ -34,6 +34,7 @@
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
 #include <core/net/Socket.hpp>
+#include <core/system/SystemEvent.hpp>
 
 #include <Game.hpp>
 
@@ -1111,7 +1112,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 #endif
 
         // shoot bullet on mouse button left
-        if (event.GetMouseButton() == MouseButtonName::MBN_LEFT) {
+        if (event.GetMouseButton() == MouseButton::LEFT) {
 #if 0
             const Vec3f &camera_position = m_scene->GetCamera()->GetTranslation();
             const Vec3f &camera_direction = m_scene->GetCamera()->GetDirection();
@@ -1168,7 +1169,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 
 #if 0
     if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
-        if (event.GetMouseButton() == MouseButtonName::MBN_LEFT) {
+        if (event.GetMouseButton() == MouseButton::LEFT) {
             const auto &mouse_position = GetInputManager()->GetMousePosition();
 
             const int mouse_x = mouse_position.GetX();

@@ -6,6 +6,7 @@
 
 #include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
+#include <core/system/SystemEvent.hpp>
 #include <core/system/Debug.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
@@ -250,7 +251,6 @@ void Game::OnInputEvent(const SystemEvent &event)
     }
     case SystemEventType::EVENT_FILE_DROP:
     {
-
         break;
     }
     default:

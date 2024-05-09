@@ -3,6 +3,7 @@
 #include <input/InputManager.hpp>
 
 #include <core/system/AppContext.hpp>
+#include <core/system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -71,8 +72,8 @@ void InputManager::UpdateMousePosition()
 
     const MouseState mouse_state = m_window->GetMouseState();
 
-    m_mouse_position.x.store(mouse_state.x, std::memory_order_relaxed);
-    m_mouse_position.y.store(mouse_state.y, std::memory_order_relaxed);
+    m_mouse_position.x.store(mouse_state.position.x, std::memory_order_relaxed);
+    m_mouse_position.y.store(mouse_state.position.y, std::memory_order_relaxed);
 }
 
 void InputManager::UpdateWindowSize()
@@ -97,10 +98,10 @@ void InputManager::SetKey(int key, bool pressed)
     }
 }
 
-void InputManager::SetMouseButton(int btn, bool pressed)
+void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 {
-    if (btn >= 0 && btn < NUM_MOUSE_BUTTONS) {
-        m_input_state.mouse_button_states[btn].is_pressed.store(pressed, std::memory_order_relaxed);
+    if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
+        m_input_state.mouse_button_states[int(btn)].is_pressed.store(pressed, std::memory_order_relaxed);
     }
 }
 
@@ -132,10 +133,10 @@ bool InputManager::IsKeyStateChanged(int key, bool *previous_key_state)
     return false;
 }
 
-bool InputManager::IsButtonDown(int btn) const
+bool InputManager::IsButtonDown(MouseButton btn) const
 {
-    if (btn >= 0 && btn < NUM_MOUSE_BUTTONS) {
-        return m_input_state.mouse_button_states[btn].is_pressed.load(std::memory_order_relaxed);
+    if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
+        return m_input_state.mouse_button_states[int(btn)].is_pressed.load(std::memory_order_relaxed);
     }
 
     return false;

@@ -109,10 +109,10 @@ public:
     void KeyUp(int key)
         { SetKey(key, false); }
 
-    void MouseButtonDown(int btn)
+    void MouseButtonDown(MouseButton btn)
         { SetMouseButton(btn, true); }
 
-    void MouseButtonUp(int btn)
+    void MouseButtonUp(MouseButton btn)
         { SetMouseButton(btn, false); }
 
     HYP_API void UpdateMousePosition();
@@ -120,10 +120,14 @@ public:
 
     HYP_API bool IsKeyStateChanged(int key, bool *previous_key_state);
     HYP_API bool IsKeyDown(int key) const;
-    bool IsKeyUp(int key) const { return !IsKeyDown(key); }
 
-    HYP_API bool IsButtonDown(int btn) const;  
-    bool IsButtonUp(int btn) const { return !IsButtonDown(btn); }
+    bool IsKeyUp(int key) const
+        { return !IsKeyDown(key); }
+
+    HYP_API bool IsButtonDown(MouseButton btn) const;
+
+    bool IsButtonUp(MouseButton btn) const
+        { return !IsButtonDown(btn); }
 
     ApplicationWindow *GetWindow() const
         { return m_window; }
@@ -139,7 +143,7 @@ private:
     ApplicationWindow   *m_window;
 
     HYP_API void SetKey(int key, bool pressed);
-    HYP_API void SetMouseButton(int btn, bool pressed);
+    HYP_API void SetMouseButton(MouseButton btn, bool pressed);
 };
 
 } // namespace hyperion
