@@ -1,8 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/DirectionalLightShadowRenderer.hpp>
-
 #include <rendering/RenderEnvironment.hpp>
+
+#include <rendering/backend/RendererComputePipeline.hpp>
+#include <rendering/backend/RendererShader.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -12,8 +15,6 @@
 
 namespace hyperion {
 
-using renderer::Image;
-using renderer::StorageImage2D;
 using renderer::RenderPassStage;
 using renderer::RenderPassMode;
 using renderer::LoadOperation;
@@ -80,8 +81,8 @@ struct RENDER_COMMAND(UnsetShadowMapInGlobalDescriptorSet) : renderer::RenderCom
 
 struct RENDER_COMMAND(CreateShadowMapImage) : renderer::RenderCommand
 {
-    ImageRef shadow_map_image;
-    ImageViewRef shadow_map_image_view;
+    ImageRef        shadow_map_image;
+    ImageViewRef    shadow_map_image_view;
 
     RENDER_COMMAND(CreateShadowMapImage)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view)
         : shadow_map_image(shadow_map_image),
@@ -169,6 +170,32 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(SetShadowRenderPassFlags) : renderer::RenderCommand
+{
+    ShadowPass                          *shadow_pass;
+    EnumFlags<ShadowRenderPassFlags>    add_flags;
+    EnumFlags<ShadowRenderPassFlags>    remove_flags;
+
+    RENDER_COMMAND(SetShadowRenderPassFlags)(
+        ShadowPass *shadow_pass,
+        EnumFlags<ShadowRenderPassFlags> add_flags,
+        EnumFlags<ShadowRenderPassFlags> remove_flags = ShadowRenderPassFlags::NONE
+    ) : shadow_pass(shadow_pass),
+        add_flags(add_flags),
+        remove_flags(remove_flags)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(SetShadowRenderPassFlags)() override = default;
+
+    virtual Result operator()() override
+    {
+        shadow_pass->SetFlags((shadow_pass->GetFlags() | add_flags) & ~remove_flags);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 #pragma region ShadowPass
@@ -177,7 +204,8 @@ ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, Shado
     : FullScreenPass(shadow_map_formats[uint(shadow_mode)], extent),
       m_parent_scene(parent_scene),
       m_shadow_mode(shadow_mode),
-      m_shadow_map_index(~0u)
+      m_shadow_map_index(~0u),
+      m_flags(ShadowRenderPassFlags::NONE)
 {
 }
 
@@ -341,19 +369,6 @@ void ShadowPass::Create()
     CreateDescriptors();
     CreateCombineShadowMapsPass();
     CreateComputePipelines();
-
-    {
-        m_camera = CreateObject<Camera>(GetExtent().width, GetExtent().height);
-
-        m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
-        m_camera->SetFramebuffer(m_framebuffer);
-
-        InitObject(m_camera);
-        
-        m_render_list_statics.SetCamera(m_camera);
-        m_render_list_dynamics.SetCamera(m_camera);
-    }
-
     CreateCommandBuffers();
 
     HYP_SYNC_RENDER(); // force init stuff
@@ -361,7 +376,6 @@ void ShadowPass::Create()
 
 void ShadowPass::Destroy()
 {
-    m_camera.Reset();
     m_render_list_statics.Reset();
     m_render_list_dynamics.Reset();
     m_parent_scene.Reset();
@@ -398,9 +412,7 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
-        const bool needs_statics_rerender = m_camera->GetPreviousViewMatrix() != m_camera->GetViewMatrix();
-
-        if (needs_statics_rerender) {
+        if (m_flags & ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS) {
             m_render_list_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
@@ -424,6 +436,8 @@ void ShadowPass::Render(Frame *frame)
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
             m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+
+            m_flags &= ~ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS;
         }
 
         { // Render dynamics
@@ -533,9 +547,16 @@ void DirectionalLightShadowRenderer::Init()
     AssertThrow(IsValidComponent());
 
     m_shadow_pass.Reset(new ShadowPass(Handle<Scene>(GetParent()->GetScene()->GetID()), m_resolution, m_shadow_mode));
-
     m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
     m_shadow_pass->Create();
+
+    m_camera = CreateObject<Camera>(m_resolution.width, m_resolution.height);
+    m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
+    m_camera->SetFramebuffer(m_shadow_pass->GetFramebuffer());
+    InitObject(m_camera);
+
+    m_shadow_pass->GetRenderListStatics().SetCamera(m_camera);
+    m_shadow_pass->GetRenderListDynamics().SetCamera(m_camera);
 }
 
 // called from game thread
@@ -549,12 +570,12 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertThrow(m_shadow_pass != nullptr);
-    AssertThrow(m_shadow_pass->GetCamera().IsValid());
     AssertThrow(m_shadow_pass->GetShader().IsValid());
 
-    m_shadow_pass->GetCamera()->Update(delta);
+    m_camera->Update(delta);
 
-    GetParent()->GetScene()->GetOctree().CalculateVisibility(m_shadow_pass->GetCamera());
+    Octree &octree = GetParent()->GetScene()->GetOctree();
+    octree.CalculateVisibility(m_camera);
 
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
@@ -564,36 +585,44 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         }
     );
 
-    const bool needs_statics_rerender = m_shadow_pass->GetCamera()->GetPreviousViewMatrix() != m_shadow_pass->GetCamera()->GetViewMatrix();
+    Octree const *fitting_octant = &octree;
+    octree.GetFittingOctant(m_aabb, fitting_octant);
+    
+    const HashCode octant_hash_statics = fitting_octant->GetEntryListHash<EntityTag::STATIC>()
+        .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
+
+    // Need to re-render static objects if octant's statics hash code has changed,
+    // or if camera view has cached
+    bool needs_statics_rerender = false;
+    needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
+    needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
 
     if (needs_statics_rerender) {
+        DebugLog(LogType::Debug, "Re-render shadow statics\n");
+
         GetParent()->GetScene()->CollectStaticEntities(
             m_shadow_pass->GetRenderListStatics(),
-            m_shadow_pass->GetCamera(),
+            m_camera,
             renderable_attribute_set
+        );
+
+        m_cached_view_matrix = m_camera->GetViewMatrix();
+        m_cached_octant_hash_code_statics = octant_hash_statics;
+
+        PUSH_RENDER_COMMAND(
+            SetShadowRenderPassFlags,
+            m_shadow_pass.Get(),
+            ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS
         );
     }
 
     GetParent()->GetScene()->CollectDynamicEntities(
         m_shadow_pass->GetRenderListDynamics(),
-        m_shadow_pass->GetCamera(),
+        m_camera,
         renderable_attribute_set
     );
-}
 
-void DirectionalLightShadowRenderer::OnRender(Frame *frame)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    AssertThrow(m_shadow_pass != nullptr);
-
-    m_shadow_pass->Render(frame);
-}
-
-void DirectionalLightShadowRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
-{
-    AssertThrow(m_shadow_pass != nullptr);
-
+    // Render data update
     ShadowFlags flags = SHADOW_FLAGS_NONE;
 
     switch (m_shadow_pass->GetShadowMode()) {
@@ -613,12 +642,21 @@ void DirectionalLightShadowRenderer::SetCameraData(const ShadowMapCameraData &ca
     PUSH_RENDER_COMMAND(
         UpdateShadowMapRenderData,
         m_shadow_pass->GetShadowMapIndex(),
-        camera_data.view,
-        camera_data.projection,
-        camera_data.aabb,
+        m_camera->GetViewMatrix(),
+        m_camera->GetProjectionMatrix(),
+        m_aabb,
         m_shadow_pass->GetExtent(),
         flags
     );
+}
+
+void DirectionalLightShadowRenderer::OnRender(Frame *frame)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertThrow(m_shadow_pass != nullptr);
+
+    m_shadow_pass->Render(frame);
 }
 
 void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)

@@ -106,7 +106,7 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
             const Vec3f &center = transform_component.transform.GetTranslation();
             const Vec3f light_direction = light_component.light->GetPosition().Normalized() * -1.0f;
 
-            const Handle<Camera> &shadow_camera = shadow_renderer->GetPass()->GetCamera();
+            const Handle<Camera> &shadow_camera = shadow_renderer->GetCamera();
 
             if (!shadow_camera) {
                 continue;
@@ -131,16 +131,9 @@ void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter:
 
             light_component.light->SetShadowMapIndex(shadow_renderer->GetComponentIndex());
 
-            shadow_renderer->GetPass()->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
+            shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
 
-            // shadow_renderer->GetPass()->GetCamera()->Update(delta);
-            // entity_manager.GetScene()->GetOctree().CalculateVisibility(shadow_renderer->GetPass()->GetCamera().Get());
-
-            shadow_renderer->SetCameraData({
-                shadow_camera->GetViewMatrix(),
-                shadow_camera->GetProjectionMatrix(),
-                aabb
-            });
+            shadow_renderer->SetAABB(aabb);
 
             break;
         }

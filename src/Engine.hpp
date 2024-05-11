@@ -16,12 +16,13 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RenderCommand.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -29,12 +30,6 @@
 #include <core/containers/TypeMap.hpp>
 #include <core/functional/Delegate.hpp>
 #include <core/ObjectPool.hpp>
-
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSampler.hpp>
-#include <rendering/backend/RendererSemaphore.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <rendering/CrashHandler.hpp>
 

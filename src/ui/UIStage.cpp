@@ -385,6 +385,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.Find(ui_object->GetEntity());
 
                     if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End()) {
+                        if ((mouse_button_pressed_states_it->second.mouse_buttons & event.GetMouseButtons()) == event.GetMouseButtons()) {
+                            // already holding buttons, go to next
+                            continue;
+                        }
+
                         mouse_button_pressed_states_it->second.mouse_buttons |= event.GetMouseButtons();
                     } else {
                         mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object->GetEntity(), {
@@ -419,6 +424,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
     case SystemEventType::EVENT_MOUSEBUTTON_UP: {
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
+
+        DebugLog(LogType::Debug, "Mouse button up %u\n", uint32(event.GetMouseButtons()));
 
         for (auto &it : m_mouse_button_pressed_states) {
             const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RC<UIObject> &ui_object)

@@ -189,22 +189,28 @@ void HyperionEditorImpl::CreateMainPanel()
 
     ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const UIMouseEventData &event)
     {
-        if (event.mouse_buttons & MouseButtonState::RIGHT) {
-            CameraController *camera_controller = m_camera->GetCameraController();
+        CameraController *camera_controller = m_camera->GetCameraController();
+        
+        const Vec2f delta = (event.position - event.previous_position) * 150.0f;
 
-            if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-                const Vec2f mouse = (event.position - event.previous_position) * 150.0f;
-                
-                DebugLog(LogType::Debug, "mx: %f, my: %f\n", mouse.x, mouse.y);
+        const Vec3f dir_cross_y = m_camera->GetDirection().Cross(m_camera->GetUpVector());
 
-                const Vec3f dir_cross_y = m_camera->GetDirection().Cross(m_camera->GetUpVector());
+        if (event.mouse_buttons & MouseButtonState::LEFT) {
+            const Vec2i delta_sign = Vec2i(MathUtil::Sign(delta));
 
-                m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(mouse.x));
-                m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(mouse.y));
+            if (event.mouse_buttons & MouseButtonState::RIGHT) {
+                m_camera->SetNextTranslation(m_camera->GetTranslation() + dir_cross_y * 0.1f * float(-delta_sign.y));
+            } else {
+                m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(delta.x));
 
-                if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
-                    m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(-mouse.y));
-                }
+                m_camera->SetNextTranslation(m_camera->GetTranslation() + m_camera->GetDirection() * 0.1f * float(-delta_sign.y));
+            }
+        } else if (event.mouse_buttons & MouseButtonState::RIGHT) {
+            m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(delta.x));
+            m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(delta.y));
+
+            if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
+                m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(-delta.y));
             }
         }
 
@@ -213,16 +219,8 @@ void HyperionEditorImpl::CreateMainPanel()
             const Vec2i size = ui_image->GetActualSize();
             const Vec2i window_size = { m_camera->GetWidth(), m_camera->GetHeight() };
 
-            DebugLog(LogType::Debug, "Current position: %f, %f\n", event.position.x, event.position.y);
-            DebugLog(LogType::Debug, "Prev position: %f, %f\n", event.previous_position.x, event.previous_position.y);
-
-            const Vec2i next_position = Vec2i(position + event.previous_position * Vec2f(size));
-            DebugLog(LogType::Debug, "Next position: %d, %d\n", next_position.x, next_position.y);
-            // DebugLog(LogType::Debug, "Image size: %d, %d\n", size.x, size.y);
-            // DebugLog(LogType::Debug, "Offset position: %f, %f\n", position.x, position.y);
-
-            event.input_manager->SetMousePosition(//Vec2i(position + Vec2f(size) * 0.5f));
-                Vec2i(position + event.previous_position * Vec2f(size)));
+            // Set mouse position to previous position to keep it stationary while rotating
+            event.input_manager->SetMousePosition(Vec2i(position + event.previous_position * Vec2f(size)));
         }
 
         return UIEventHandlerResult::OK;
@@ -235,11 +233,8 @@ void HyperionEditorImpl::CreateMainPanel()
         auto *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-            if (event.mouse_buttons & MouseButtonState::RIGHT) {
-                editor_camera_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
-            } else {
-                editor_camera_controller->SetMode(EditorCameraControllerMode::FOCUSED);
-            }
+            editor_camera_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
+            // @TODO Set to FOCUSED if an object was selected.
         }
 
         return UIEventHandlerResult::OK;
@@ -446,6 +441,7 @@ void HyperionEditor::Init()
     // temp
     auto batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->LoadAsync();
     auto results = batch->AwaitResults();
 
@@ -455,6 +451,23 @@ void HyperionEditor::Init()
     node.LockTransform();
 
     GetScene()->GetRoot().AddChild(node);
+
+    if (auto zombie = results["zombie"].Get<Node>()) {
+        zombie.Scale(0.25f);
+        auto zombie_entity = zombie[0].GetEntity();
+
+        m_scene->GetRoot().AddChild(zombie);
+
+        if (zombie_entity.IsValid()) {
+            if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
+                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+            }
+        }
+
+        zombie.SetName("zombie");
+    }
 }
 
 void HyperionEditor::Teardown()

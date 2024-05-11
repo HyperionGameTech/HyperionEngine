@@ -3,6 +3,8 @@
 #ifndef HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
+#include <core/utilities/EnumFlags.hpp>
+
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
@@ -10,6 +12,7 @@
 #include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <math/BoundingBox.hpp>
 
@@ -21,8 +24,14 @@
 namespace hyperion {
 
 using renderer::Frame;
-using renderer::Image;
-using renderer::ImageView;
+
+enum class ShadowRenderPassFlags : uint32
+{
+    NONE                    = 0x0,
+    RERENDER_STATIC_OBJECTS = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(ShadowRenderPassFlags)
 
 struct ShadowMapCameraData
 {
@@ -38,8 +47,6 @@ public:
     ShadowPass(const ShadowPass &other)             = delete;
     ShadowPass &operator=(const ShadowPass &other)  = delete;
     virtual ~ShadowPass();
-
-    const Handle<Camera> &GetCamera() const { return m_camera; }
 
     const Handle<Light> &GetLight() const { return m_light; }
 
@@ -79,6 +86,12 @@ public:
     const Handle<Texture> &GetShadowMap() const
         { return m_shadow_map_all; }
 
+    EnumFlags<ShadowRenderPassFlags> GetFlags() const
+        { return m_flags; }
+
+    void SetFlags(EnumFlags<ShadowRenderPassFlags> flags)
+        { m_flags = flags; }
+
     void CreateShader();
     virtual void CreateFramebuffer() override;
     virtual void CreateDescriptors() override;
@@ -92,21 +105,22 @@ private:
     void CreateCombineShadowMapsPass();
     void CreateComputePipelines();
 
-    Handle<Scene>                   m_parent_scene;
-    Handle<Light>                   m_light;
-    ShadowMode                      m_shadow_mode;
-    Handle<Camera>                  m_camera;
-    RenderList                      m_render_list_statics;
-    RenderList                      m_render_list_dynamics;
-    Vector3                         m_origin;
-    uint                            m_shadow_map_index;
+    Handle<Scene>                       m_parent_scene;
+    Handle<Light>                       m_light;
+    ShadowMode                          m_shadow_mode;
+    RenderList                          m_render_list_statics;
+    RenderList                          m_render_list_dynamics;
+    Vec3f                               m_origin;
+    uint                                m_shadow_map_index;
     
-    Handle<Texture>                 m_shadow_map_statics;
-    Handle<Texture>                 m_shadow_map_dynamics;
-    Handle<Texture>                 m_shadow_map_all;
+    Handle<Texture>                     m_shadow_map_statics;
+    Handle<Texture>                     m_shadow_map_dynamics;
+    Handle<Texture>                     m_shadow_map_all;
 
-    UniquePtr<FullScreenPass>       m_combine_shadow_maps_pass;
-    ComputePipelineRef              m_blur_shadow_map_pipeline;
+    UniquePtr<FullScreenPass>           m_combine_shadow_maps_pass;
+    ComputePipelineRef                  m_blur_shadow_map_pipeline;
+
+    EnumFlags<ShadowRenderPassFlags>    m_flags;
 };
 
 class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>
@@ -117,9 +131,17 @@ public:
     DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
     virtual ~DirectionalLightShadowRenderer();
 
-    ShadowPass *GetPass() const { return m_shadow_pass.Get(); }
+    ShadowPass *GetPass() const
+        { return m_shadow_pass.Get(); }
 
-    void SetCameraData(const ShadowMapCameraData &camera_data);
+    const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
+    const BoundingBox &GetAABB() const
+        { return m_aabb; }
+
+    void SetAABB(const BoundingBox &aabb)
+        { m_aabb = aabb; }
 
     void Init();     // init on render thread
     void InitGame(); // init on game thread
@@ -133,6 +155,12 @@ private:
     UniquePtr<ShadowPass>   m_shadow_pass;
     Extent2D                m_resolution;
     ShadowMode              m_shadow_mode;
+
+    Handle<Camera>          m_camera;
+    BoundingBox             m_aabb;
+
+    HashCode                m_cached_octant_hash_code_statics;
+    Matrix4                 m_cached_view_matrix;
 };
 
 } // namespace hyperion

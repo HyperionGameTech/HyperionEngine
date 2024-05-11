@@ -365,6 +365,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
     Octree const *octree = &m_parent_scene->GetOctree();
     m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree);
+    
     HashCode octant_hash;
     
     if (OnlyCollectStaticEntities()) {

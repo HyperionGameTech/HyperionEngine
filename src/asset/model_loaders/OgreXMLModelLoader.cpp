@@ -247,7 +247,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         mesh->CalculateTangents();
         InitObject(mesh);
 
-        auto vertex_attributes = mesh->GetVertexAttributes();
+        VertexAttributeSet vertex_attributes = mesh->GetVertexAttributes();
         
         ShaderProperties shader_properties(vertex_attributes);
 
@@ -277,13 +277,13 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             scene->GetEntityManager()->AddComponent(
                 entity,
                 AnimationComponent {
-                    // {
-                    //     .animation_index = 0,
-                    //     .status = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
-                    //     .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
-                    //     .speed = 1.0f,
-                    //     .current_time = 0.0f
-                    // }
+                    {
+                        .animation_index = 0,
+                        .status = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
+                        .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
+                        .speed = 1.0f,
+                        .current_time = 0.0f
+                    }
                 }
             );
         }

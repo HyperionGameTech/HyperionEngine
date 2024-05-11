@@ -20,7 +20,7 @@ class Camera;
 
 struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
 {
-    Camera *camera;
+    Camera          *camera;
     CameraDrawProxy draw_proxy;
 
     RENDER_COMMAND(UpdateCameraDrawProxy)(Camera *camera, const CameraDrawProxy &draw_proxy)
@@ -36,15 +36,15 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
         camera->m_draw_proxy = draw_proxy;
 
         g_engine->GetRenderData()->cameras.Set(camera->GetID().ToIndex(), CameraShaderData {
-            .view = draw_proxy.view,
-            .projection = draw_proxy.projection,
-            .previous_view = draw_proxy.previous_view,
-            .dimensions = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 1 },
-            .camera_position = Vec4f(draw_proxy.position, 1.0f),
-            .camera_direction = Vec4f(draw_proxy.position, 1.0f),
-            .camera_near = draw_proxy.clip_near,
-            .camera_far = draw_proxy.clip_far,
-            .camera_fov = draw_proxy.fov
+            .view               = draw_proxy.view,
+            .projection         = draw_proxy.projection,
+            .previous_view      = draw_proxy.previous_view,
+            .dimensions         = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 1 },
+            .camera_position    = Vec4f(draw_proxy.position, 1.0f),
+            .camera_direction   = Vec4f(draw_proxy.position, 1.0f),
+            .camera_near        = draw_proxy.clip_near,
+            .camera_far         = draw_proxy.clip_far,
+            .camera_fov         = draw_proxy.fov
         });
         
         HYPERION_RETURN_OK;
@@ -196,17 +196,17 @@ void Camera::Init()
     }));
 
     m_draw_proxy = CameraDrawProxy {
-        .view = m_view_mat,
-        .projection = m_proj_mat,
-        .previous_view = m_previous_view_matrix,
-        .position = m_translation,
-        .direction = m_direction,
-        .up = m_up,
-        .dimensions = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
-        .clip_near = m_near,
-        .clip_far = m_far,
-        .fov = m_fov,
-        .frustum = m_frustum
+        .view           = m_view_mat,
+        .projection     = m_proj_mat,
+        .previous_view  = m_previous_view_matrix,
+        .position       = m_translation,
+        .direction      = m_direction,
+        .up             = m_up,
+        .dimensions     = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
+        .clip_near      = m_near,
+        .clip_far       = m_far,
+        .fov            = m_fov,
+        .frustum        = m_frustum
     };
 
     DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
@@ -246,8 +246,6 @@ void Camera::SetNextTranslation(const Vec3f &translation)
 void Camera::SetDirection(const Vec3f &direction)
 {
     m_direction = direction;
-    
-    m_previous_view_matrix = m_view_mat;
 
     if (m_camera_controller != nullptr) {
         m_camera_controller->SetDirection(direction);
@@ -260,8 +258,6 @@ void Camera::SetDirection(const Vec3f &direction)
 void Camera::SetUpVector(const Vec3f &up)
 {
     m_up = up;
-    
-    m_previous_view_matrix = m_view_mat;
 
     if (m_camera_controller != nullptr) {
         m_camera_controller->SetUpVector(up);
@@ -380,23 +376,25 @@ void Camera::Update(GameCounter::TickUnit dt)
     PUSH_RENDER_COMMAND(UpdateCameraDrawProxy, 
         this,
         CameraDrawProxy {
-            .view = m_view_mat,
-            .projection = m_proj_mat,
-            .previous_view = m_previous_view_matrix,
-            .position = m_translation,
-            .direction = m_direction,
-            .up = m_up,
-            .dimensions = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
-            .clip_near = m_near,
-            .clip_far = m_far,
-            .fov = m_fov,
-            .frustum = m_frustum
+            .view           = m_view_mat,
+            .projection     = m_proj_mat,
+            .previous_view  = m_previous_view_matrix,
+            .position       = m_translation,
+            .direction      = m_direction,
+            .up             = m_up,
+            .dimensions     = Extent2D { uint(MathUtil::Abs(m_width)), uint(MathUtil::Abs(m_height)) },
+            .clip_near      = m_near,
+            .clip_far       = m_far,
+            .fov            = m_fov,
+            .frustum        = m_frustum
         }
     );
 }
 
 void Camera::UpdateViewMatrix()
 {
+    m_previous_view_matrix = m_view_mat;
+
     if (m_camera_controller) {
         m_camera_controller->UpdateViewMatrix();
     }
@@ -411,6 +409,8 @@ void Camera::UpdateProjectionatrix()
 
 void Camera::UpdateMatrices()
 {
+    m_previous_view_matrix = m_view_mat;
+
     if (m_camera_controller) {
         m_camera_controller->UpdateViewMatrix();
         m_camera_controller->UpdateProjectionMatrix();

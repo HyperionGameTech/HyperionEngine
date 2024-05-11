@@ -7,10 +7,10 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
-#include <rendering/backend/RendererFeatures.hpp>
-#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererInstance.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <Game.hpp>
 #include <core/threading/GameThread.hpp>
