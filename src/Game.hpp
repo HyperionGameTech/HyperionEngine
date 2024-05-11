@@ -66,6 +66,7 @@ public:
     HYP_API virtual void OnFrameEnd(Frame *frame);
 
     HYP_API virtual void HandleEvent(SystemEvent &&event) final;
+    HYP_API virtual void PushEvent(SystemEvent &&event) final;
     HYP_API virtual void OnInputEvent(const SystemEvent &event);
 
 protected:

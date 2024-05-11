@@ -237,6 +237,9 @@ public:
     Vec2i GetPosition() const;
     void SetPosition(Vec2i position);
 
+    Vec2f GetOffsetPosition() const;
+    Vec2f GetAbsolutePosition() const;
+
     UIObjectSize GetSize() const;
     void SetSize(UIObjectSize size);
 
@@ -414,6 +417,11 @@ public:
      *  \param out_objects The array to store the collected UIObjects in. */
     void CollectObjects(Array<RC<UIObject>> &out_objects) const;
 
+    /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
+     *  \param coords The screen coordinates to transform.
+     *  \return The relative coordinates within the UIObject. */
+    Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
+
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDown;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseUp;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDrag;
@@ -452,6 +460,7 @@ protected:
     Name                            m_name;
 
     Vec2i                           m_position;
+    Vec2f                           m_offset_position;
 
     UIObjectSize                    m_size;
     Vec2i                           m_actual_size;
@@ -475,6 +484,8 @@ protected:
     UIObjectAlignment               m_parent_alignment;
 
 private:
+    void ComputeOffsetPosition();
+
     void UpdateActualSizes();
     void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool is_inner = false);
 

@@ -247,6 +247,22 @@ void UIObject::SetPosition(Vec2i position)
     UpdateMeshData();
 }
 
+Vec2f UIObject::GetOffsetPosition() const
+{
+    return m_offset_position;
+}
+
+Vec2f UIObject::GetAbsolutePosition() const
+{
+    if (const NodeProxy &node = GetNode()) {
+        const Vec3f world_translation = node->GetWorldTranslation();
+
+        return { world_translation.x, world_translation.y };
+    }
+
+    return Vec2f::Zero();
+}
+
 void UIObject::UpdatePosition(bool update_children)
 {
     if (!IsInit()) {
@@ -259,60 +275,9 @@ void UIObject::UpdatePosition(bool update_children)
         return;
     }
 
-    Vec2f offset_position(m_position);
+    ComputeOffsetPosition();
 
-    switch (m_origin_alignment) {
-    case UIObjectAlignment::TOP_LEFT:
-        // no offset
-        break;
-    case UIObjectAlignment::TOP_RIGHT:
-        offset_position -= Vec2f(float(m_actual_inner_size.x), 0.0f);
-
-        break;
-    case UIObjectAlignment::CENTER:
-        offset_position -= Vec2f(float(m_actual_inner_size.x) * 0.5f, float(m_actual_inner_size.y) * 0.5f);
-
-        break;
-    case UIObjectAlignment::BOTTOM_LEFT:
-        offset_position -= Vec2f(0.0f, float(m_actual_inner_size.y));
-
-        break;
-    case UIObjectAlignment::BOTTOM_RIGHT:
-        offset_position -= Vec2f(float(m_actual_inner_size.x), float(m_actual_inner_size.y));
-
-        break;
-    }
-
-    // where to position the object relative to its parent
-    if (const UIObject *parent_ui_object = GetParentUIObject()) {
-        const Vec2f parent_padding(parent_ui_object->GetPadding());
-        const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
-
-        switch (m_parent_alignment) {
-        case UIObjectAlignment::TOP_LEFT:
-            offset_position += parent_padding;
-
-            break;
-        case UIObjectAlignment::TOP_RIGHT:
-            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
-
-            break;
-        case UIObjectAlignment::CENTER:
-            offset_position += Vec2f(float(parent_actual_size.x) * 0.5f, float(parent_actual_size.y) * 0.5f);
-
-            break;
-        case UIObjectAlignment::BOTTOM_LEFT:
-            offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
-
-            break;
-        case UIObjectAlignment::BOTTOM_RIGHT:
-            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
-
-            break;
-        }
-    }
-    
-    offset_position -= Vec2f(m_scroll_offset);
+    const Vec2f offset_position = m_offset_position - Vec2f(m_scroll_offset);
 
     float z_value = 1.0f;
 
@@ -949,6 +914,64 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
 }
 
+void UIObject::ComputeOffsetPosition()
+{
+    Vec2f offset_position(m_position);
+
+    switch (m_origin_alignment) {
+    case UIObjectAlignment::TOP_LEFT:
+        // no offset
+        break;
+    case UIObjectAlignment::TOP_RIGHT:
+        offset_position -= Vec2f(float(m_actual_inner_size.x), 0.0f);
+
+        break;
+    case UIObjectAlignment::CENTER:
+        offset_position -= Vec2f(float(m_actual_inner_size.x) * 0.5f, float(m_actual_inner_size.y) * 0.5f);
+
+        break;
+    case UIObjectAlignment::BOTTOM_LEFT:
+        offset_position -= Vec2f(0.0f, float(m_actual_inner_size.y));
+
+        break;
+    case UIObjectAlignment::BOTTOM_RIGHT:
+        offset_position -= Vec2f(float(m_actual_inner_size.x), float(m_actual_inner_size.y));
+
+        break;
+    }
+
+    // where to position the object relative to its parent
+    if (const UIObject *parent_ui_object = GetParentUIObject()) {
+        const Vec2f parent_padding(parent_ui_object->GetPadding());
+        const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
+
+        switch (m_parent_alignment) {
+        case UIObjectAlignment::TOP_LEFT:
+            offset_position += parent_padding;
+
+            break;
+        case UIObjectAlignment::TOP_RIGHT:
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
+
+            break;
+        case UIObjectAlignment::CENTER:
+            offset_position += Vec2f(float(parent_actual_size.x) * 0.5f, float(parent_actual_size.y) * 0.5f);
+
+            break;
+        case UIObjectAlignment::BOTTOM_LEFT:
+            offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
+
+            break;
+        case UIObjectAlignment::BOTTOM_RIGHT:
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
+
+            break;
+        }
+    }
+
+    m_offset_position = offset_position;
+}
+
 void UIObject::UpdateMeshData()
 {
     Scene *scene = GetScene();
@@ -1109,6 +1132,14 @@ void UIObject::CollectObjects(Array<RC<UIObject>> &out_objects) const
     {
         out_objects.PushBack(ui_object);
     });
+}
+
+Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
+{
+    const Vec2i actual_size = GetActualSize();
+    const Vec2f absolute_position = GetAbsolutePosition();
+    
+    return (Vec2f(coords) - absolute_position) / Vec2f(actual_size);
 }
 
 template <class Lambda>

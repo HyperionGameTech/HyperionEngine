@@ -337,7 +337,7 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         return;
     }
 
-    Optional<Pair<ID<Mesh>, StreamedDataRef<StreamedMeshData>>> streamed_mesh_data { };
+    Optional<Pair<ID<Mesh>, StreamedDataRef<StreamedMeshData>>> streamed_mesh_data_refs { };
 
     uint ray_index = 0;
 
@@ -360,15 +360,15 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
             continue;
         }
 
-        if (!streamed_mesh_data.HasValue() || streamed_mesh_data->first != mesh.GetID()) {
-            streamed_mesh_data.Set({
+        if (!streamed_mesh_data_refs.HasValue() || streamed_mesh_data_refs->first != mesh.GetID()) {
+            streamed_mesh_data_refs.Set({
                 mesh.GetID(),
                 mesh->GetStreamedMeshData()->AcquireRef()
             });
         }
 
         // Convert UV to world space
-        const MeshData &mesh_data = streamed_mesh_data->second->GetMeshData();
+        const MeshData &mesh_data = streamed_mesh_data_refs->second->GetMeshData();
 
         AssertThrowMsg(
             uv.triangle_index * 3 + 2 < mesh_data.indices.Size(),
@@ -558,7 +558,10 @@ void LightmapRenderer::InitGame()
                 continue;
             }
 
-            if (ideal_triangles_per_job != 0 && num_triangles + streamed_mesh_data->GetMeshData().indices.Size() / 3 > ideal_triangles_per_job) {
+            auto ref = streamed_mesh_data->AcquireRef();
+            const MeshData &mesh_data = ref->GetMeshData();
+
+            if (ideal_triangles_per_job != 0 && num_triangles + mesh_data.indices.Size() / 3 > ideal_triangles_per_job) {
                 if (lightmap_entities.Any()) {
                     UniquePtr<LightmapJob> job(new LightmapJob(m_parent->GetScene(), std::move(lightmap_entities), std::move(triangle_cache)));
 
@@ -572,9 +575,6 @@ void LightmapRenderer::InitGame()
             // On CPU, we need to cache the triangles for ray tracing
             if (m_trace_mode == LIGHTMAP_TRACE_MODE_CPU) {
                 const Matrix4 &transform_matrix = transform_component.transform.GetMatrix();
-
-                auto ref = streamed_mesh_data->AcquireRef();
-                const MeshData &mesh_data = ref->GetMeshData();
 
                 const Matrix4 normal_matrix = transform_matrix.Inverted().Transpose();
 
@@ -612,7 +612,7 @@ void LightmapRenderer::InitGame()
                 transform_component.transform.GetMatrix()
             });
 
-            num_triangles += streamed_mesh_data->GetMeshData().indices.Size() / 3;
+            num_triangles += mesh_data.indices.Size() / 3;
         }
 
         if (lightmap_entities.Any()) {

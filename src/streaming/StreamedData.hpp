@@ -126,11 +126,14 @@ public:
 
     virtual bool IsNull() const = 0;
     virtual bool IsInMemory() const = 0;
-    virtual void Unpage() = 0;
-    virtual const ByteBuffer &Load() const = 0;
+    virtual void Unpage() final;
+    virtual const ByteBuffer &Load() const final;
 
-private:
-    AtomicVar<uint> m_use_count { 0u };
+protected:
+    virtual const ByteBuffer &Load_Internal() const = 0;
+    virtual void Unpage_Internal() = 0;
+
+    mutable AtomicVar<int>  m_use_count { 0 };
 };
 
 class HYP_API NullStreamedData : public StreamedData
@@ -148,8 +151,10 @@ public:
 
     virtual bool IsNull() const override;
     virtual bool IsInMemory() const override;
-    virtual void Unpage() override;
-    virtual const ByteBuffer &Load() const override;
+
+protected:
+    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Unpage_Internal() override;
 
 private:
     ByteBuffer  m_byte_buffer;
@@ -174,10 +179,11 @@ public:
 
     virtual bool IsNull() const override;
     virtual bool IsInMemory() const override;
-    virtual void Unpage() override;
-    virtual const ByteBuffer &Load() const override;
 
 protected:
+    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Unpage_Internal() override;
+    
     HashCode            m_hash_code;
     mutable bool        m_is_in_memory;
     mutable ByteBuffer  m_byte_buffer;
@@ -201,8 +207,10 @@ public:
 
     virtual bool IsNull() const override;
     virtual bool IsInMemory() const override;
-    virtual void Unpage() override;
-    virtual const ByteBuffer &Load() const override;
+
+protected:
+    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Unpage_Internal() override;
 
 protected:
     FilePath                        m_filepath;

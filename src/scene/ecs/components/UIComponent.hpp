@@ -18,10 +18,13 @@
 namespace hyperion {
 
 class UIObject;
+class InputManager;
 
 struct UIMouseEventData
 {
+    InputManager                *input_manager = nullptr;
     Vec2f                       position;
+    Vec2f                       previous_position;
     EnumFlags<MouseButtonState> mouse_buttons = MouseButtonState::NONE;
     bool                        is_down = false;
     Vec2i                       wheel;

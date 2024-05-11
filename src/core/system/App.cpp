@@ -25,19 +25,19 @@ void App::Launch(Game *game, const CommandLineArguments &arguments)
 
     Engine::GetInstance()->InitializeGame(game);
 
-    RunGameLoop(game);
+    RunMainLoop(game);
 
     hyperion::ShutdownApplication();
 }
 
-void App::RunGameLoop(Game *game)
+void App::RunMainLoop(Game *game)
 {
     SystemEvent event;
 
     while (Engine::GetInstance()->IsRenderLoopActive()) {
         // input manager stuff
         while (m_app_context->PollEvent(event)) {
-            game->HandleEvent(std::move(event));
+            game->PushEvent(std::move(event));
         }
 
         Engine::GetInstance()->RenderNextFrame(game);

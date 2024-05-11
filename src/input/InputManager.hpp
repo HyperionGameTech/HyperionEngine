@@ -91,16 +91,19 @@ public:
 
     HYP_API void CheckEvent(SystemEvent *event);
 
-    const Scalar2D<true> &GetMousePosition() const
+    const Vec2i &GetMousePosition() const
         { return m_mouse_position; }
+
+    HYP_API void SetMousePosition(Vec2i position);
+
+    const Vec2i &GetPreviousMousePosition() const
+        { return m_previous_mouse_position; }
 
     Scalar2D<true> &GetWindowSize()
         { return m_window_size; }
 
     const Scalar2D<true> &GetWindowSize() const
         { return m_window_size; }
-
-    HYP_API void SetMousePosition(Vec2i position);
 
     void KeyDown(int key)
         { SetKey(key, true); }
@@ -137,7 +140,8 @@ public:
 
 private:
     InputState          m_input_state;
-    Scalar2D<true>      m_mouse_position;
+    Vec2i               m_mouse_position;
+    Vec2i               m_previous_mouse_position;
     Scalar2D<true>      m_window_size;
 
     ApplicationWindow   *m_window;

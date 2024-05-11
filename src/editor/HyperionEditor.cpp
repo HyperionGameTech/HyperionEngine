@@ -193,30 +193,36 @@ void HyperionEditorImpl::CreateMainPanel()
             CameraController *camera_controller = m_camera->GetCameraController();
 
             if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-                const Vec2f mouse_position = event.position + 0.5f;
-                const Vec2i mouse_position_i = Vec2i { int(mouse_position.x * float(m_camera->GetWidth())), int(mouse_position.y * float(m_camera->GetHeight())) };
+                const Vec2f mouse = (event.position - event.previous_position) * 150.0f;
+                
+                DebugLog(LogType::Debug, "mx: %f, my: %f\n", mouse.x, mouse.y);
 
-                DebugLog(LogType::Debug, "mx: %d, my: %d\n", mouse_position_i.x, mouse_position_i.y);
+                const Vec3f dir_cross_y = m_camera->GetDirection().Cross(m_camera->GetUpVector());
 
-                if (m_scene) {
-                    if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
-                        controller->PushCommand(CameraCommand {
-                            .command = CameraCommand::CAMERA_COMMAND_MAG,
-                            .mag_data = {
-                                .mouse_x    = mouse_position_i.x,
-                                .mouse_y    = mouse_position_i.y
-                            }
-                        });
-                    }
+                m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(mouse.x));
+                m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(mouse.y));
+
+                if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
+                    m_camera->Rotate(dir_cross_y, MathUtil::DegToRad(-mouse.y));
                 }
             }
         }
 
         if (m_camera->GetCameraController()->IsMouseLocked()) {
-            const Vec2i position = ui_image->GetPosition();
+            const Vec2f position = ui_image->GetAbsolutePosition();
             const Vec2i size = ui_image->GetActualSize();
+            const Vec2i window_size = { m_camera->GetWidth(), m_camera->GetHeight() };
 
-            g_engine->GetAppContext()->GetCurrentWindow()->SetMousePosition(position + size / 2);
+            DebugLog(LogType::Debug, "Current position: %f, %f\n", event.position.x, event.position.y);
+            DebugLog(LogType::Debug, "Prev position: %f, %f\n", event.previous_position.x, event.previous_position.y);
+
+            const Vec2i next_position = Vec2i(position + event.previous_position * Vec2f(size));
+            DebugLog(LogType::Debug, "Next position: %d, %d\n", next_position.x, next_position.y);
+            // DebugLog(LogType::Debug, "Image size: %d, %d\n", size.x, size.y);
+            // DebugLog(LogType::Debug, "Offset position: %f, %f\n", position.x, position.y);
+
+            event.input_manager->SetMousePosition(//Vec2i(position + Vec2f(size) * 0.5f));
+                Vec2i(position + event.previous_position * Vec2f(size)));
         }
 
         return UIEventHandlerResult::OK;

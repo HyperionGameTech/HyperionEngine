@@ -41,9 +41,11 @@ public:
 
     virtual bool IsNull() const override;
     virtual bool IsInMemory() const override;
-    virtual void Unpage() override;
-    virtual const ByteBuffer &Load() const override;
 
+protected:
+    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Unpage_Internal() override;
+    
 private:
     void LoadMeshData(const ByteBuffer &byte_buffer) const;
 

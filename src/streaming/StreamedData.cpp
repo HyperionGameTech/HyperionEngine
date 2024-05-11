@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-// StreamedDataRefBase
+#pragma region StreamedDataRefBase
 
 StreamedDataRefBase::StreamedDataRefBase(RC<StreamedData> &&owner)
     : m_owner(std::move(owner))
@@ -42,19 +42,13 @@ StreamedDataRefBase &StreamedDataRefBase::operator=(const StreamedDataRefBase &o
     }
 
     if (m_owner != nullptr) {
-        if (m_owner->m_use_count.Decrement(1u, MemoryOrder::ACQUIRE_RELEASE) == 1) {
-            m_owner->Unpage();
-        }
+        m_owner->Unpage();
     }
 
     m_owner = other.m_owner;
 
     if (m_owner != nullptr) {
-        m_owner->m_use_count.Increment(1u, MemoryOrder::RELAXED);
-
-        if (!m_owner->IsInMemory()) {
-            (void)m_owner->Load();
-        }
+        (void)m_owner->Load();
     }
 
     return *this;
@@ -73,9 +67,7 @@ StreamedDataRefBase &StreamedDataRefBase::operator=(StreamedDataRefBase &&other)
     }
 
     if (m_owner != nullptr) {
-        if (m_owner->m_use_count.Decrement(1u, MemoryOrder::ACQUIRE_RELEASE) == 1) {
-            m_owner->Unpage();
-        }
+        m_owner->Unpage();
     }
 
     m_owner = other.m_owner;
@@ -87,13 +79,34 @@ StreamedDataRefBase &StreamedDataRefBase::operator=(StreamedDataRefBase &&other)
 StreamedDataRefBase::~StreamedDataRefBase()
 {
     if (m_owner != nullptr) {
-        if (m_owner->m_use_count.Decrement(1u, MemoryOrder::ACQUIRE_RELEASE) == 1) {
-            m_owner->Unpage();
-        }
+        m_owner->Unpage();
     }
 }
 
-// NullStreamedData
+#pragma endregion StreamedDataRefBase
+
+#pragma region StreamedData
+
+const ByteBuffer &StreamedData::Load() const
+{
+    m_use_count.Increment(1, MemoryOrder::RELAXED);
+
+    return Load_Internal();
+}
+
+void StreamedData::Unpage()
+{
+    const int use_count = StreamedData::m_use_count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+    AssertThrow(use_count > 0);
+
+    if (use_count == 1) {
+        Unpage_Internal();
+    }
+}
+
+#pragma endregion StreamedData
+
+#pragma region NullStreamedData
 
 bool NullStreamedData::IsNull() const
 {
@@ -105,24 +118,26 @@ bool NullStreamedData::IsInMemory() const
     return false;
 }
 
-void NullStreamedData::Unpage()
+void NullStreamedData::Unpage_Internal()
 {
     // Do nothing
 }
 
-const ByteBuffer &NullStreamedData::Load() const
+const ByteBuffer &NullStreamedData::Load_Internal() const
 {
     return m_byte_buffer;
 }
 
-// MemoryStreamedData
+#pragma endregion NullStreamedData
+
+#pragma region MemoryStreamedData
 
 MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer)
     : m_byte_buffer(byte_buffer),
       m_is_in_memory(true),
       m_hash_code { 0 }
 {
-    
+    m_hash_code = m_byte_buffer.GetHashCode();
 }
 
 MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer)
@@ -130,6 +145,7 @@ MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer)
       m_is_in_memory(true),
       m_hash_code { 0 }
 {
+    m_hash_code = m_byte_buffer.GetHashCode();
 }
 
 MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept
@@ -163,7 +179,7 @@ bool MemoryStreamedData::IsInMemory() const
     return m_is_in_memory;
 }
 
-void MemoryStreamedData::Unpage()
+void MemoryStreamedData::Unpage_Internal()
 {
     if (!m_is_in_memory) {
         return;
@@ -179,8 +195,10 @@ void MemoryStreamedData::Unpage()
     m_is_in_memory = false;
 }
 
-const ByteBuffer &MemoryStreamedData::Load() const
+const ByteBuffer &MemoryStreamedData::Load_Internal() const
 {
+    StreamedData::m_use_count.Increment(1, MemoryOrder::RELAXED);
+
     if (!m_is_in_memory) {
         const auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
 
@@ -190,7 +208,9 @@ const ByteBuffer &MemoryStreamedData::Load() const
     return m_byte_buffer;
 }
 
-// FileStreamedData
+#pragma endregion MemoryStreamedData
+
+#pragma region FileStreamedData
 
 FileStreamedData::FileStreamedData(const FilePath &filepath)
     : m_filepath(filepath)
@@ -222,13 +242,15 @@ bool FileStreamedData::IsInMemory() const
     return m_byte_buffer.HasValue();
 }
 
-void FileStreamedData::Unpage()
+void FileStreamedData::Unpage_Internal()
 {
-    m_byte_buffer = ByteBuffer(0, nullptr);
+    m_byte_buffer = { };
 }
 
-const ByteBuffer &FileStreamedData::Load() const
+const ByteBuffer &FileStreamedData::Load_Internal() const
 {
+    StreamedData::m_use_count.Increment(1, MemoryOrder::RELAXED);
+
     if (!m_byte_buffer.HasValue()) {
         BufferedByteReader reader(m_filepath);
         m_byte_buffer.Set(reader.ReadBytes());
@@ -236,5 +258,7 @@ const ByteBuffer &FileStreamedData::Load() const
     
     return m_byte_buffer.Get();
 }
+
+#pragma endregion FileStreamedData
 
 } // namespace hyperion

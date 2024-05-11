@@ -90,6 +90,8 @@ void Game::Init_Internal()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
+    SystemEvent event;
+
     Logic(delta);
     
     if (m_ui_stage) {
@@ -134,6 +136,8 @@ void Game::Teardown()
 
 void Game::RequestStop()
 {
+    Threads::AssertOnThread(~ThreadName::THREAD_GAME);
+
     // Stop game thread and wait for it to finish
     if (m_game_thread != nullptr) {
         DebugLog(
@@ -160,33 +164,39 @@ void Game::RequestStop()
 
 void Game::HandleEvent(SystemEvent &&event)
 {
+    Threads::AssertOnThread(ThreadName::THREAD_INPUT);
+
     if (m_input_manager == nullptr) {
         return;
     }
 
     m_input_manager->CheckEvent(&event);
 
-    switch (event.GetType()) {
-    case SystemEventType::EVENT_SHUTDOWN:
+    OnInputEvent(std::move(event));
+}
+
+void Game::PushEvent(SystemEvent &&event)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_MAIN);
+
+    if (event.GetType() == SystemEventType::EVENT_SHUTDOWN) {
         RequestStop();
 
-        break;
-    default:
-        if (m_game_thread->IsRunning()) {
-            m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable
-            {
-                OnInputEvent(event);
-            });
-        }
+        return;
+    }
 
-        break;
+    if (m_game_thread->IsRunning()) {
+        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable
+        {
+            HandleEvent(std::move(event));
+        });
     }
 }
 
 void Game::OnInputEvent(const SystemEvent &event)
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
+    Threads::AssertOnThread(ThreadName::THREAD_INPUT);
+    
     // forward to UI
     if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event) & UIEventHandlerResult::STOP_BUBBLING) {
         // ui handled the event
@@ -220,25 +230,21 @@ void Game::OnInputEvent(const SystemEvent &event)
     case SystemEventType::EVENT_MOUSEMOTION:
     {
         if (m_input_manager->GetWindow()->HasMouseFocus()) {
-            const auto &mouse_position = m_input_manager->GetMousePosition();
-
-            const int mouse_x = mouse_position.x.load(),
-                mouse_y = mouse_position.y.load();
-
+            const Vec2i mouse_position = m_input_manager->GetMousePosition();
             const Vec2u window_size = m_input_manager->GetWindow()->GetDimensions();
 
-            const float mx = (float(mouse_x) - float(window_size.x) * 0.5f) / (float(window_size.x));
-            const float my = (float(mouse_y) - float(window_size.y) * 0.5f) / (float(window_size.y));
+            const float mx = (float(mouse_position.x) - float(window_size.x) * 0.5f) / (float(window_size.x));
+            const float my = (float(mouse_position.y) - float(window_size.y) * 0.5f) / (float(window_size.y));
             
             if (m_scene) {
                 if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
                     controller->PushCommand(CameraCommand {
                         .command = CameraCommand::CAMERA_COMMAND_MAG,
                         .mag_data = {
-                            .mouse_x = mouse_x,
-                            .mouse_y = mouse_y,
-                            .mx = mx,
-                            .my = my
+                            .mouse_x    = mouse_position.x,
+                            .mouse_y    = mouse_position.y,
+                            .mx         = mx,
+                            .my         = my
                         }
                     });
 

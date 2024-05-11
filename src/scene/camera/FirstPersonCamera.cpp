@@ -53,12 +53,12 @@ void FirstPersonCameraController::UpdateLogic(double dt)
 
     m_dir_cross_y = m_camera->GetDirection().Cross(m_camera->GetUpVector());
 
-    m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(m_mag.x * mouse_sensitivity));
-    m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(m_mag.y * mouse_sensitivity));
+    // m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(m_mag.x * mouse_sensitivity));
+    // m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(m_mag.y * mouse_sensitivity));
 
-    if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
-        m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(-m_mag.y * mouse_sensitivity));
-    }
+    // if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
+    //     m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(-m_mag.y * mouse_sensitivity));
+    // }
 
     m_prev_mouse_x = m_mouse_x;
     m_prev_mouse_y = m_mouse_y;

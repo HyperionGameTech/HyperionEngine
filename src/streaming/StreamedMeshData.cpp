@@ -21,6 +21,9 @@ StreamedMeshData::StreamedMeshData()
 }
 
 StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
+    : m_streamed_data(nullptr),
+      m_mesh_data({ }),
+      m_mesh_data_loaded(false)
 {
     MemoryByteWriter writer;
 
@@ -32,6 +35,9 @@ StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
 
     m_mesh_data = std::move(mesh_data);
     m_mesh_data_loaded = true;
+
+    // Increment use count since it is already in memory
+    StreamedData::m_use_count.Increment(1, MemoryOrder::RELAXED);
 }
 
 StreamedMeshData::StreamedMeshData(RC<StreamedData> streamed_data)
@@ -55,7 +61,7 @@ bool StreamedMeshData::IsInMemory() const
         && m_mesh_data_loaded;
 }
 
-void StreamedMeshData::Unpage()
+void StreamedMeshData::Unpage_Internal()
 {
     m_mesh_data = { };
     m_mesh_data_loaded = false;
@@ -67,12 +73,15 @@ void StreamedMeshData::Unpage()
     m_streamed_data->Unpage();
 }
 
-const ByteBuffer &StreamedMeshData::Load() const
+const ByteBuffer &StreamedMeshData::Load_Internal() const
 {
     AssertThrow(m_streamed_data != nullptr);
 
     const ByteBuffer &byte_buffer = m_streamed_data->Load();
-    LoadMeshData(byte_buffer);
+
+    if (!m_mesh_data_loaded) {
+        LoadMeshData(byte_buffer);
+    }
 
     return byte_buffer;
 }
@@ -97,16 +106,11 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
     }
 
     m_mesh_data = std::move(*object.Get<MeshData>());
-
     m_mesh_data_loaded = true;
 }
 
 const MeshData &StreamedMeshData::GetMeshData() const
 {
-    if (!IsInMemory()) {
-        (void)Load();
-    }
-
     return m_mesh_data;
 }
 

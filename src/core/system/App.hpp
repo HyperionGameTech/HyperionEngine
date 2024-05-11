@@ -32,7 +32,7 @@ protected:
     virtual RC<AppContext> InitAppContext(const CommandLineArguments &arguments);
 
 private:
-    void RunGameLoop(Game *game);
+    void RunMainLoop(Game *game);
 
     RC<AppContext>  m_app_context;
 };

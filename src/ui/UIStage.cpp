@@ -216,6 +216,12 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
     RayTestResults ray_test_results;
 
+    const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
+
+    const Vec2i mouse_position = input_manager->GetMousePosition();
+    const Vec2i previous_mouse_position = input_manager->GetPreviousMousePosition();
+    const Vec2f mouse_screen = Vec2f(mouse_position) / Vec2f(window_size);
+
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
         // check intersects with objects on mouse movement.
@@ -223,17 +229,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         // if the mouse is on them, signal mouse movement
 
         // project a ray into the scene and test if it hits any objects
-
-        const auto &mouse_position = input_manager->GetMousePosition();
-        const int mouse_x = mouse_position.x.load();
-        const int mouse_y = mouse_position.y.load();
-
-        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
-        const Vec2f mouse_screen(
-            float(mouse_x) / float(window_size.x),
-            float(mouse_y) / float(window_size.y)
-        );
 
         const EnumFlags<MouseButtonState> mouse_buttons = input_manager->GetButtonStates();
 
@@ -245,9 +240,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     // signal mouse drag
                     if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
                         mouse_drag_event_handler_result |= ui_object->OnMouseDrag(UIMouseEventData {
-                            .position       = mouse_screen,
-                            .mouse_buttons  = mouse_buttons,
-                            .is_down        = true
+                            .input_manager      = input_manager,
+                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .mouse_buttons      = mouse_buttons,
+                            .is_down            = true
                         });
 
                         if (mouse_drag_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
@@ -283,9 +280,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     if (m_hovered_entities.Contains(ui_object->GetEntity())) {
                         // Already hovered, trigger mouse move event instead
                         mouse_move_event_handler_result |= ui_object->OnMouseMove(UIMouseEventData {
-                            .position       = mouse_screen,
-                            .mouse_buttons  = mouse_buttons,
-                            .is_down        = false
+                            .input_manager      = input_manager,
+                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .mouse_buttons      = mouse_buttons,
+                            .is_down            = false
                         });
 
                         if (mouse_move_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
@@ -312,9 +311,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
                         // Already hovered, trigger mouse move event instead
                         event_handler_result |= ui_object->OnMouseMove(UIMouseEventData {
-                            .position       = mouse_screen,
-                            .mouse_buttons  = mouse_buttons,
-                            .is_down        = false
+                            .input_manager      = input_manager,
+                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .mouse_buttons      = mouse_buttons,
+                            .is_down            = false
                         });
 
                         continue;
@@ -323,9 +324,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
                     mouse_hover_event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
-                        .position       = mouse_screen,
-                        .mouse_buttons  = mouse_buttons,
-                        .is_down        = false
+                        .input_manager      = input_manager,
+                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .mouse_buttons      = mouse_buttons,
+                        .is_down            = false
                     });
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
@@ -342,13 +345,15 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             });
 
             if (ray_test_results_it == ray_test_results.End()) {
-                if (auto other_ui_object = GetUIObjectForEntity(*it)) {
+                if (RC<UIObject> other_ui_object = GetUIObjectForEntity(*it)) {
                     other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     other_ui_object->OnMouseLeave(UIMouseEventData {
-                        .position       = mouse_screen,
-                        .mouse_buttons  = event.GetMouseButtons(),
-                        .is_down        = false
+                        .input_manager      = input_manager,
+                        .position           = other_ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = other_ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .mouse_buttons      = event.GetMouseButtons(),
+                        .is_down            = false
                     });
                 }
 
@@ -363,17 +368,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN: {
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
-
-        const auto &mouse_position = input_manager->GetMousePosition();
-        const auto mouse_x = mouse_position.x.load();
-        const auto mouse_y = mouse_position.y.load();
-
-        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
-        const Vec2f mouse_screen(
-            float(mouse_x) / float(window_size.x),
-            float(mouse_y) / float(window_size.y)
-        );
 
         UIObject *focused_object = nullptr;
 
@@ -402,9 +396,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
                     event_handler_result |= ui_object->OnMouseDown(UIMouseEventData {
-                        .position       = mouse_screen,
-                        .mouse_buttons  = mouse_button_pressed_states_it->second.mouse_buttons,
-                        .is_down        = true
+                        .input_manager      = input_manager,
+                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .mouse_buttons      = mouse_button_pressed_states_it->second.mouse_buttons,
+                        .is_down            = true
                     });
 
                     if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
@@ -421,17 +417,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         break;
     }
     case SystemEventType::EVENT_MOUSEBUTTON_UP: {
-        const auto &mouse_position = input_manager->GetMousePosition();
-        const auto mouse_x = mouse_position.x.load();
-        const auto mouse_y = mouse_position.y.load();
-
-        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
-        const Vec2f mouse_screen(
-            float(mouse_x) / float(window_size.x),
-            float(mouse_y) / float(window_size.y)
-        );
-
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
@@ -445,9 +430,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 // trigger click
                 if (const RC<UIObject> &ui_object = *ray_test_results_it) {
                     event_handler_result |= ui_object->OnClick(UIMouseEventData {
-                        .position       = mouse_screen,
-                        .mouse_buttons  = event.GetMouseButtons(),
-                        .is_down        = false
+                        .input_manager      = input_manager,
+                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .mouse_buttons      = event.GetMouseButtons(),
+                        .is_down            = false
                     });
 
                     if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
@@ -459,13 +446,15 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         for (auto &it : m_mouse_button_pressed_states) {
             // trigger mouse up
-            if (auto ui_object = GetUIObjectForEntity(it.first)) {
+            if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                 event_handler_result |= ui_object->OnMouseUp(UIMouseEventData {
-                    .position       = mouse_screen,
-                    .mouse_buttons  = it.second.mouse_buttons,
-                    .is_down        = false
+                    .input_manager      = input_manager,
+                    .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                    .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .mouse_buttons      = it.second.mouse_buttons,
+                    .is_down            = false
                 });
             }
         }
@@ -475,20 +464,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         break;
     }
     case SystemEventType::EVENT_MOUSESCROLL: {
-        const auto &mouse_position = input_manager->GetMousePosition();
-        const auto mouse_x = mouse_position.x.load();
-        const auto mouse_y = mouse_position.y.load();
-
         int wheel_x;
         int wheel_y;
         event.GetMouseWheel(&wheel_x, &wheel_y);
 
         const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
-        const Vec2f mouse_screen(
-            float(mouse_x) / float(window_size.x),
-            float(mouse_y) / float(window_size.y)
-        );
 
         Array<RC<UIObject>> ray_test_results;
 
@@ -508,10 +488,12 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         }
 
                         event_handler_result |= ui_object->OnScroll(UIMouseEventData {
-                            .position       = mouse_screen,
-                            .mouse_buttons  = event.GetMouseButtons(),
-                            .is_down        = false,
-                            .wheel          = Vec2i { wheel_x, wheel_y }
+                            .input_manager      = input_manager,
+                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .mouse_buttons      = event.GetMouseButtons(),
+                            .is_down            = false,
+                            .wheel              = Vec2i { wheel_x, wheel_y }
                         });
 
                         if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {

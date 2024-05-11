@@ -119,8 +119,7 @@ struct RENDER_COMMAND(SetStreamedMeshData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-Pair<Array<Vertex>, Array<uint32>>
-Mesh::CalculateIndices(const Array<Vertex> &vertices)
+Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &vertices)
 {
     std::unordered_map<Vertex, uint32> index_map;
 
@@ -159,8 +158,8 @@ Mesh::Mesh()
       m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
       m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
       m_mesh_attributes {
-          .vertex_attributes = static_mesh_vertex_attributes,
-          .topology = Topology::TRIANGLES
+          .vertex_attributes    = static_mesh_vertex_attributes,
+          .topology             = Topology::TRIANGLES
       },
       m_aabb(BoundingBox::Empty())
 {
@@ -174,8 +173,8 @@ Mesh::Mesh(
     m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
     m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
     m_mesh_attributes {
-        .vertex_attributes = vertex_attributes,
-        .topology = topology
+        .vertex_attributes  = vertex_attributes,
+        .topology           = topology
     },
     m_streamed_mesh_data(std::move(streamed_mesh_data)),
     m_aabb(BoundingBox::Empty())
@@ -219,13 +218,16 @@ Mesh::Mesh(
         .vertex_attributes = vertex_attributes,
         .topology = topology
     },
-    m_streamed_mesh_data(StreamedMeshData::FromMeshData({
+    m_streamed_mesh_data(new StreamedMeshData(MeshData {
         std::move(vertices),
         std::move(indices)
     })),
     m_aabb(BoundingBox::Empty())
 {
-    m_indices_count = m_streamed_mesh_data->GetMeshData().indices.Size();
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    const MeshData &mesh_data = ref->GetMeshData();
+
+    m_indices_count = mesh_data.indices.Size();
 
     CalculateAABB();
 }
@@ -644,7 +646,7 @@ void Mesh::CalculateNormals(bool weighted)
 
     normals.clear();
 
-    m_streamed_mesh_data = StreamedMeshData::FromMeshData(std::move(mesh_data));
+    m_streamed_mesh_data.Reset(new StreamedMeshData(std::move(mesh_data)));
 }
 
 void Mesh::CalculateTangents()
@@ -655,7 +657,8 @@ void Mesh::CalculateTangents()
         return;
     }
 
-    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    MeshData mesh_data = ref->GetMeshData();
 
     struct TangentBitangentPair
     {
@@ -735,7 +738,8 @@ void Mesh::InvertNormals()
         return;
     }
 
-    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
+    auto ref = m_streamed_mesh_data->AcquireRef();
+    MeshData mesh_data = ref->GetMeshData();
 
     for (Vertex &vertex : mesh_data.vertices) {
         vertex.SetNormal(vertex.GetNormal() * -1.0f);

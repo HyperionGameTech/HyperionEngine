@@ -69,21 +69,22 @@ void InputManager::SetMousePosition(Vec2i position)
         return;
     }
 
+    m_previous_mouse_position = m_mouse_position;
+    m_mouse_position = position;
+    
     m_window->SetMousePosition(position);
 }
 
 void InputManager::UpdateMousePosition()
 {
-    //Threads::AssertOnThread(ThreadName::THREAD_INPUT);
+    Threads::AssertOnThread(ThreadName::THREAD_INPUT);
     
     if (!m_window) {
         return;
     }
 
-    const Vec2i mouse_position = m_window->GetMousePosition();
-
-    m_mouse_position.x.store(mouse_position.x, std::memory_order_relaxed);
-    m_mouse_position.y.store(mouse_position.y, std::memory_order_relaxed);
+    m_previous_mouse_position = m_mouse_position;
+    m_mouse_position = m_window->GetMousePosition();
 }
 
 void InputManager::UpdateWindowSize()

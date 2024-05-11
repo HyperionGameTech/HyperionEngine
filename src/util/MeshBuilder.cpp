@@ -242,9 +242,9 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
 
     auto mesh_data_ref = streamed_mesh_data->AcquireRef();
 
-    Array<Vertex> new_vertices(mesh_data_ref->GetMeshData().vertices);
+    const Matrix4 normal_matrix = transform.GetMatrix().Inverted().Transposed();
 
-    const auto normal_matrix = transform.GetMatrix().Inverted().Transposed();
+    Array<Vertex> new_vertices = mesh_data_ref->GetMeshData().vertices;
 
     for (Vertex &vertex : new_vertices) {
         vertex.SetPosition(transform.GetMatrix() * vertex.GetPosition());
@@ -253,13 +253,9 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
         vertex.SetBitangent(normal_matrix * vertex.GetBitangent());
     }
 
-    RC<StreamedMeshData> new_streamed_mesh_data = StreamedMeshData::FromMeshData(MeshData {
-        std::move(new_vertices),
-        mesh_data_ref->GetMeshData().indices
-    });
-
     return CreateObject<Mesh>(
-        std::move(new_streamed_mesh_data),
+        std::move(new_vertices),
+        mesh_data_ref->GetMeshData().indices,
         mesh->GetTopology(),
         mesh->GetVertexAttributes()
     );
@@ -283,12 +279,12 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
     AssertThrow(streamed_mesh_datas[0] != nullptr);
     AssertThrow(streamed_mesh_datas[1] != nullptr);
 
-    RC<StreamedMeshData> streamed_mesh_data_refs[] = {
-        streamed_mesh_datas[0],
-        streamed_mesh_datas[1]
+    StreamedDataRef<StreamedMeshData> streamed_mesh_data_refs[] = {
+        streamed_mesh_datas[0]->AcquireRef(),
+        streamed_mesh_datas[1]->AcquireRef()
     };
 
-    const auto merged_vertex_attributes = a->GetVertexAttributes() | b->GetVertexAttributes();
+    const VertexAttributeSet merged_vertex_attributes = a->GetVertexAttributes() | b->GetVertexAttributes();
 
     Array<Vertex> all_vertices;
     all_vertices.Resize(streamed_mesh_data_refs[0]->GetMeshData().vertices.Size() + streamed_mesh_data_refs[1]->GetMeshData().vertices.Size());
@@ -312,8 +308,8 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
     }
 
     return CreateObject<Mesh>(
-        all_vertices,
-        all_indices,
+        std::move(all_vertices),
+        std::move(all_indices),
         a->GetTopology(),
         merged_vertex_attributes
     );

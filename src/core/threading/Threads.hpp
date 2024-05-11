@@ -22,7 +22,7 @@ enum ThreadName : ThreadMask
     THREAD_MAIN     = 0x01u,
     THREAD_RENDER   = THREAD_MAIN, // for now
     THREAD_GAME     = 0x04u,
-    THREAD_INPUT    = THREAD_MAIN, // for now
+    THREAD_INPUT    = THREAD_GAME,
     THREAD_TERRAIN  = 0x08u,
 
     THREAD_TASK_0   = 0x10u,

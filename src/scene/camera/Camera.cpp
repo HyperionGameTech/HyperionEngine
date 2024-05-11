@@ -253,8 +253,8 @@ void Camera::SetDirection(const Vec3f &direction)
         m_camera_controller->SetDirection(direction);
     }
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    // UpdateViewMatrix();
+    // UpdateViewProjectionMatrix();
 }
 
 void Camera::SetUpVector(const Vec3f &up)
@@ -267,8 +267,8 @@ void Camera::SetUpVector(const Vec3f &up)
         m_camera_controller->SetUpVector(up);
     }
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    // UpdateViewMatrix();
+    // UpdateViewProjectionMatrix();
 }
 
 void Camera::Rotate(const Vec3f &axis, float radians)
@@ -276,10 +276,10 @@ void Camera::Rotate(const Vec3f &axis, float radians)
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
     
-    m_previous_view_matrix = m_view_mat;
+    // m_previous_view_matrix = m_view_mat;
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    // UpdateViewMatrix();
+    // UpdateViewProjectionMatrix();
 }
 
 void Camera::SetViewMatrix(const Matrix4 &view_mat)
