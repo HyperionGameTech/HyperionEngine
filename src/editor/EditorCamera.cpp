@@ -6,24 +6,22 @@ namespace hyperion {
 
 EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
-      m_mode(ECM_INACTIVE)
+      m_mode(EditorCameraControllerMode::INACTIVE)
 {
 }
 
 void EditorCameraController::SetMode(EditorCameraControllerMode mode)
 {
-    if (m_mode == mode) {
-        return;
-    }
-
     m_mode = mode;
 
-    switch (m_mode) {
-    case ECM_INACTIVE:
-        // FirstPersonCameraController::SetMode(FPCCM_MOUSE_FREE);
+    switch (mode) {
+    case EditorCameraControllerMode::INACTIVE:
+    case EditorCameraControllerMode::FOCUSED: // fallthrough
+        FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode::MOUSE_FREE);
         break;
-    case ECM_FOCUSED:
-        // FirstPersonCameraController::SetMode(FPCCM_MOUSE_LOCKED);
+    case EditorCameraControllerMode::MOUSE_LOCKED:
+        FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode::MOUSE_LOCKED);
+
         break;
     }
 }
@@ -38,7 +36,7 @@ void EditorCameraController::RespondToCommand(const CameraCommand &command, Game
     switch (command.command) {
     case CameraCommand::CAMERA_COMMAND_MAG:
     case CameraCommand::CAMERA_COMMAND_MOVEMENT: // fallthrough
-        if (m_mode == ECM_INACTIVE) {
+        if (m_mode == EditorCameraControllerMode::INACTIVE) {
             // Don't handle command
             return;
         }

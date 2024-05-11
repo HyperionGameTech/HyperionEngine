@@ -30,10 +30,20 @@ void InputManager::CheckEvent(SystemEvent *event)
         KeyUp(event->GetNormalizedKeyCode());
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
-        MouseButtonDown(event->GetMouseButton());
+        for (Pair<Bitset::BitIndex, bool> it : Bitset(event->GetMouseButtons())) {
+            if (it.second) {
+                MouseButtonDown(MouseButton(it.first));
+            }
+        }
+        
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_UP:
-        MouseButtonUp(event->GetMouseButton());
+        for (Pair<Bitset::BitIndex, bool> it : Bitset(event->GetMouseButtons())) {
+            if (it.second) {
+                MouseButtonUp(MouseButton(it.first));
+            }
+        }
+
         break;
     case SystemEventType::EVENT_MOUSEMOTION:
         UpdateMousePosition();
@@ -53,13 +63,13 @@ void InputManager::CheckEvent(SystemEvent *event)
     }
 }
 
-void InputManager::SetMousePosition(int x, int y)
+void InputManager::SetMousePosition(Vec2i position)
 {
     if (!m_window) {
         return;
     }
 
-    m_window->SetMousePosition(x, y);
+    m_window->SetMousePosition(position);
 }
 
 void InputManager::UpdateMousePosition()
@@ -70,10 +80,10 @@ void InputManager::UpdateMousePosition()
         return;
     }
 
-    const MouseState mouse_state = m_window->GetMouseState();
+    const Vec2i mouse_position = m_window->GetMousePosition();
 
-    m_mouse_position.x.store(mouse_state.position.x, std::memory_order_relaxed);
-    m_mouse_position.y.store(mouse_state.position.y, std::memory_order_relaxed);
+    m_mouse_position.x.store(mouse_position.x, std::memory_order_relaxed);
+    m_mouse_position.y.store(mouse_position.y, std::memory_order_relaxed);
 }
 
 void InputManager::UpdateWindowSize()
@@ -93,41 +103,21 @@ void InputManager::UpdateWindowSize()
 void InputManager::SetKey(int key, bool pressed)
 {
     if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-        const bool prev_value = m_input_state.key_states[key].is_pressed.exchange(pressed, std::memory_order_relaxed);
-        m_input_state.last_key_states[key].is_pressed.store(prev_value, std::memory_order_relaxed);
+        m_input_state.last_key_states[key] = pressed;
     }
 }
 
 void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 {
     if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
-        m_input_state.mouse_button_states[int(btn)].is_pressed.store(pressed, std::memory_order_relaxed);
+        m_input_state.mouse_button_states[int(btn)] = pressed;
     }
 }
 
 bool InputManager::IsKeyDown(int key) const
 {
     if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-        return m_input_state.key_states[key].is_pressed.load(std::memory_order_relaxed);
-    }
-
-    return false;
-}
-
-bool InputManager::IsKeyStateChanged(int key, bool *previous_key_state)
-{
-    AssertThrow(previous_key_state != nullptr);
-
-    const bool previous_value = *previous_key_state;
-
-    if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-        bool is_pressed = m_input_state.key_states[key].is_pressed.load(std::memory_order_relaxed);
-
-        *previous_key_state = is_pressed;
-
-        return is_pressed != previous_value;
-    } else {
-        *previous_key_state = false;
+        return m_input_state.key_states[key];
     }
 
     return false;
@@ -136,10 +126,23 @@ bool InputManager::IsKeyStateChanged(int key, bool *previous_key_state)
 bool InputManager::IsButtonDown(MouseButton btn) const
 {
     if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
-        return m_input_state.mouse_button_states[int(btn)].is_pressed.load(std::memory_order_relaxed);
+        return m_input_state.mouse_button_states[int(btn)];
     }
 
     return false;
+}
+
+EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
+{
+    EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
+
+    for (uint i = 0; i < NUM_MOUSE_BUTTONS; i++) {
+        if (m_input_state.mouse_button_states[i]) {
+            state |= MouseButtonState(1u << i);
+        }
+    }
+
+    return state;
 }
 
 } // namespace hyperion

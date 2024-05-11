@@ -9,26 +9,25 @@
 
 namespace hyperion {
 
-enum FirstPersonCameraControllerMode
+enum class FirstPersonCameraControllerMode
 {
-    FPCCM_MOUSE_LOCKED,
-    FPCCM_MOUSE_FREE
+    MOUSE_LOCKED,
+    MOUSE_FREE
 };
 
 class HYP_API FirstPersonCameraController : public PerspectiveCameraController
 {
 public:
-    FirstPersonCameraController(FirstPersonCameraControllerMode mode = FPCCM_MOUSE_FREE);
+    FirstPersonCameraController(FirstPersonCameraControllerMode mode = FirstPersonCameraControllerMode::MOUSE_FREE);
     virtual ~FirstPersonCameraController() = default;
     
     FirstPersonCameraControllerMode GetMode() const
         { return m_mode; }
 
-    void SetMode(FirstPersonCameraControllerMode mode)
-        { m_mode = mode; }
+    void SetMode(FirstPersonCameraControllerMode mode);
 
     virtual bool IsMouseLocked() const override
-        { return m_mode == FPCCM_MOUSE_LOCKED; }
+        { return m_mode == FirstPersonCameraControllerMode::MOUSE_LOCKED; }
 
     virtual void UpdateLogic(double dt) override;
 
@@ -37,17 +36,17 @@ protected:
 
     FirstPersonCameraControllerMode m_mode;
 
-    Vector3 m_move_deltas,
-            m_dir_cross_y;
+    Vec3f                           m_move_deltas;
+    Vec3f                           m_dir_cross_y;
 
-    float m_mouse_x,
-          m_mouse_y,
-          m_prev_mouse_x,
-          m_prev_mouse_y;
+    float                           m_mouse_x;
+    float                           m_mouse_y;
+    float                           m_prev_mouse_x;
+    float                           m_prev_mouse_y;
     
-    Vector2 m_mag,
-            m_desired_mag,
-            m_prev_mag;
+    Vec2f                           m_mag;
+    Vec2f                           m_desired_mag;
+    Vec2f                           m_prev_mag;
 };
 } // namespace hyperion
 

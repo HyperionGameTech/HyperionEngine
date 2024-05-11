@@ -24,17 +24,21 @@ public:
     Bone &operator=(const Bone &other) = delete;
     ~Bone();
 
-    Vector3 GetOffsetTranslation() const;
+    Vec3f GetOffsetTranslation() const;
     Quaternion GetOffsetRotation() const;
 
-    const Keyframe &GetKeyframe() const { return m_keyframe; }
+    const Keyframe &GetKeyframe() const
+        { return m_keyframe; }
+
     void SetKeyframe(const Keyframe &keyframe);
 
     void ClearPose();
 
-    const Matrix4 &GetBoneMatrix() const { return m_bone_matrix; }
+    const Matrix4 &GetBoneMatrix() const
+        { return m_bone_matrix; }
 
-    void SetBindingTransform(const Transform &transform) { m_binding_transform = transform; }
+    void SetBindingTransform(const Transform &transform)
+        { m_binding_transform = transform; }
 
     void SetToBindingPose();
     void StoreBindingPose();
@@ -44,14 +48,14 @@ public:
 
     void UpdateBoneTransform();
 
-    Transform m_binding_transform;
-    Transform m_pose_transform;
+    Transform   m_binding_transform;
+    Transform   m_pose_transform;
 
-    Vector3 m_world_bone_translation;
-    Vector3 m_inv_binding_translation;
+    Vec3f       m_world_bone_translation;
+    Vec3f       m_inv_binding_translation;
 
-    Quaternion m_world_bone_rotation;
-    Quaternion m_inv_binding_rotation;
+    Quaternion  m_world_bone_rotation;
+    Quaternion  m_inv_binding_rotation;
 
 private:
     void SetSkeleton(Skeleton *skeleton);

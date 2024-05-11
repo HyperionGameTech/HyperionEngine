@@ -161,13 +161,13 @@ void UIObject::Init()
             if (!ui_object->GetEntity().IsValid()) {
                 DebugLog(LogType::Warn, "Entity invalid for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UEHR_ERR;
+                return UIEventHandlerResult::ERROR;
             }
 
             if (!ui_object->GetScene()) {
                 DebugLog(LogType::Warn, "Scene invalid for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UEHR_ERR;
+                return UIEventHandlerResult::ERROR;
             }
 
             ScriptComponent *script_component = ui_object->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(ui_object->GetEntity());
@@ -176,13 +176,13 @@ void UIObject::Init()
                 // DebugLog(LogType::Info, "[%s] No Script component for UIObject with name: %s\n", method_name.Data(), *ui_object->GetName());
 
                 // No script component, do not call.
-                return UEHR_OK;
+                return UIEventHandlerResult::OK;
             }
 
             if (!script_component->object) {
                 DebugLog(LogType::Warn, "Script component has no object for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UEHR_ERR;
+                return UIEventHandlerResult::ERROR;
             }
             
             if (dotnet::Class *class_ptr = script_component->object->GetClass()) {
@@ -192,7 +192,7 @@ void UIObject::Init()
                         // Stubbed method, do not bother calling it
                         DebugLog(LogType::Info, "Stubbed method %s for UI object with name: %s\n", method_name.Data(), *ui_object->GetName());
 
-                        return UEHR_OK;
+                        return UIEventHandlerResult::OK;
                     }
 
                     return script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr);
@@ -201,13 +201,14 @@ void UIObject::Init()
 
             DebugLog(LogType::Error, "Failed to call method %s for UI object with name: %s\n", method_name.Data(), *ui_object->GetName());
 
-            return UEHR_ERR;
+            return UIEventHandlerResult::ERROR;
         }
     };
 
     OnMouseHover.Bind(ScriptedDelegate { this, "OnMouseHover" }).Detach();
     OnMouseLeave.Bind(ScriptedDelegate { this, "OnMouseLeave" }).Detach();
     OnMouseDrag.Bind(ScriptedDelegate { this, "OnMouseDrag" }).Detach();
+    OnMouseMove.Bind(ScriptedDelegate { this, "OnMouseMove" }).Detach();
     OnMouseUp.Bind(ScriptedDelegate { this, "OnMouseUp" }).Detach();
     OnMouseDown.Bind(ScriptedDelegate { this, "OnMouseDown" }).Detach();
     OnGainFocus.Bind(ScriptedDelegate { this, "OnGainFocus" }).Detach();

@@ -419,6 +419,7 @@ public:
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDrag;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseHover;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseLeave;
+    Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseMove;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnGainFocus;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnLoseFocus;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnScroll;

@@ -59,8 +59,18 @@ struct EnumFlags
 
     [[nodiscard]]
     HYP_FORCE_INLINE
+    constexpr bool operator==(Enum rhs) const
+        { return *this == EnumFlags<Enum>(rhs); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     constexpr bool operator!=(const EnumFlags &other) const
         { return value != other.value; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    constexpr bool operator!=(Enum rhs) const
+        { return *this != EnumFlags<Enum>(rhs); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -151,11 +161,15 @@ struct EnumFlags
         { return (value & static_cast<UnderlyingType>(flag)) != 0; }
 };
 
+// Unary ~
+
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
 constexpr EnumFlags<Enum> operator~(Enum lhs)
 {
     return EnumFlags<Enum>(~static_cast<typename EnumFlags<Enum>::UnderlyingType>(lhs));
 }
+
+// Binary bitwise operators
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
 constexpr EnumFlags<Enum> operator|(Enum lhs, EnumFlags<Enum> rhs)
@@ -167,6 +181,12 @@ template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFl
 constexpr EnumFlags<Enum> operator|(Enum lhs, Enum rhs)
 {
     return EnumFlags<Enum>(lhs) | EnumFlags<Enum>(rhs);
+}
+
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
+EnumFlags<Enum> &operator|=(EnumFlags<Enum> lhs, Enum rhs)
+{
+    return lhs |= EnumFlags<Enum>(rhs);
 }
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
@@ -182,6 +202,12 @@ constexpr EnumFlags<Enum> operator&(Enum lhs, Enum rhs)
 }
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
+EnumFlags<Enum> &operator&=(EnumFlags<Enum> lhs, Enum rhs)
+{
+    return lhs &= EnumFlags<Enum>(rhs);
+}
+
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
 constexpr EnumFlags<Enum> operator^(Enum lhs, EnumFlags<Enum> rhs)
 {
     return EnumFlags<Enum>(lhs) ^ rhs;
@@ -191,6 +217,12 @@ template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFl
 constexpr EnumFlags<Enum> operator^(Enum lhs, Enum rhs)
 {
     return EnumFlags<Enum>(lhs) ^ EnumFlags<Enum>(rhs);
+}
+
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
+EnumFlags<Enum> &operator^=(EnumFlags<Enum> lhs, Enum rhs)
+{
+    return lhs ^= EnumFlags<Enum>(rhs);
 }
 
 } // namespace hyperion

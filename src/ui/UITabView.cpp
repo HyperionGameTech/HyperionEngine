@@ -152,16 +152,16 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
 
     tab->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
-        if (data.button == MouseButton::LEFT)
+        if (data.mouse_buttons == MouseButtonState::LEFT)
         {
             const uint tab_index = GetTabIndex(name);
 
             SetSelectedTabIndex(tab_index);
 
-            return UEHR_STOP_BUBBLING;
+            return UIEventHandlerResult::STOP_BUBBLING;
         }
 
-        return UEHR_OK;
+        return UIEventHandlerResult::OK;
     }).Detach();
 
     AddChildUIObject(tab);

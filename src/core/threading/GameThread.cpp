@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/threading/GameThread.hpp>
+#include <core/Defines.hpp>
+
+#include <math/MathUtil.hpp>
+
 #include <Engine.hpp>
 #include <Game.hpp>
 #include <GameCounter.hpp>
-#include <core/Defines.hpp>
-#include <math/MathUtil.hpp>
 
 #define HYP_GAME_THREAD_LOCKED 1
 

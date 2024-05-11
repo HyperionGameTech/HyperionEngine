@@ -157,9 +157,9 @@ Bitset &Bitset::operator^=(const Bitset &other)
     return *this;
 }
 
-void Bitset::Set(uint32 index, bool value)
+void Bitset::Set(BitIndex index, bool value)
 {
-    const uint32 bit_index = GetBlockIndex(index);
+    const BitIndex bit_index = GetBlockIndex(index);
 
     if (bit_index >= m_blocks.Size()) {
         if (!value) {
@@ -215,40 +215,40 @@ Bitset &Bitset::Resize(uint32 num_bits)
     return *this;
 }
 
-uint64 Bitset::FirstSetBitIndex() const
+Bitset::BitIndex Bitset::FirstSetBitIndex() const
 {
     for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++) {
         if (m_blocks[block_index] != 0) {
 #ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = __builtin_ffsll(m_blocks[block_index]) - 1;
+            const uint32 bit_index = __builtin_ffs(m_blocks[block_index]) - 1;
 #elif defined(HYP_MSVC)
             unsigned long bit_index = 0;
-            _BitScanForward64(&bit_index, m_blocks[block_index]);
+            _BitScanForward(&bit_index, m_blocks[block_index]);
 #endif
 
             return (block_index * Bitset::num_bits_per_block) + bit_index;
         }
     }
 
-    return -1; // No set bit found
+    return BitIndex(-1); // No set bit found
 }
 
-uint64 Bitset::LastSetBitIndex() const
+Bitset::BitIndex Bitset::LastSetBitIndex() const
 {
     for (uint32 block_index = m_blocks.Size(); block_index != 0; --block_index) {
         if (m_blocks[block_index - 1] != 0) {
 #ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clzll(m_blocks[block_index - 1]) - 1;
+            const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clz(m_blocks[block_index - 1]) - 1;
 #elif defined(HYP_MSVC)
             unsigned long bit_index = 0;
-            _BitScanReverse64(&bit_index, m_blocks[block_index - 1]);
+            _BitScanReverse(&bit_index, m_blocks[block_index - 1]);
 #endif
     
             return ((block_index - 1) * Bitset::num_bits_per_block) + bit_index;
         }
     }
 
-    return -1; // No set bit found
+    return BitIndex(-1); // No set bit found
 }
 
 std::ostream &operator<<(std::ostream &os, const Bitset &bitset)

@@ -23,13 +23,15 @@ class Bitset
 public:
     using BlockType = uint32;
 
+    using BitIndex = uint64;
+
     static constexpr uint32 num_preallocated_blocks = 2;
     static constexpr uint32 num_bits_per_block = sizeof(BlockType) * CHAR_BIT;
 
 private:
     [[nodiscard]]
     HYP_FORCE_INLINE
-    static constexpr uint32 GetBlockIndex(uint32 bit)
+    static constexpr uint32 GetBlockIndex(BitIndex bit)
         { return bit / CHAR_BIT / sizeof(BlockType); }
     
     [[nodiscard]]
@@ -37,8 +39,59 @@ private:
     static constexpr uint32 GetBitMask(uint32 bit)
         { return 1ull << (bit & (num_bits_per_block - 1)); }
 
+    template <bool IsConst>
+    struct IteratorBase
+    {
+        std::conditional_t<IsConst, const BlockType *, BlockType *> ptr;
+        BitIndex                                                    bit_index;
+
+        [[nodiscard]]
+        HYP_FORCE_INLINE
+        Pair<BitIndex, bool> operator*() const
+        {
+            const BlockType *offset_ptr = (ptr + GetBlockIndex(bit_index));
+            const uint32 mask = GetBitMask(bit_index);
+
+            return { bit_index, bool((*offset_ptr) & mask) };
+        }
+
+        HYP_FORCE_INLINE
+        IteratorBase<IsConst> &operator++()
+        {
+            ++bit_index;
+
+            return *this;
+        }
+
+        HYP_FORCE_INLINE
+        IteratorBase<IsConst> operator++(int) const
+        {
+            return { ptr, bit_index + 1 };
+        }
+
+        [[nodiscard]]
+        HYP_FORCE_INLINE
+        bool operator==(const IteratorBase<IsConst> &other) const
+            { return ptr == other.ptr && bit_index == other.bit_index; }
+
+        [[nodiscard]]
+        HYP_FORCE_INLINE
+        bool operator!=(const IteratorBase<IsConst> &other) const
+            { return ptr != other.ptr || bit_index != other.bit_index; }
+    };
+
 public:
     friend std::ostream &operator<<(std::ostream &os, const Bitset &bitset);
+
+    struct ConstIterator : IteratorBase<true>
+    {
+    };
+
+    struct Iterator : IteratorBase<false>
+    {
+        operator ConstIterator() const
+            { return { ptr, bit_index }; }
+    };
 
     HYP_API Bitset();
 
@@ -95,18 +148,18 @@ public:
 
     /*! \brief Returns the index of the first set bit. If no bit is set, -1 is returned.
         \returns The index of the first set bit. */
-    HYP_API uint64 FirstSetBitIndex() const;
+    HYP_API BitIndex FirstSetBitIndex() const;
 
     /*! \brief Returns the index of the last set bit. If no bit is set, -1 is returned.
         \returns The index of the last set bit. */
-    HYP_API uint64 LastSetBitIndex() const;
+    HYP_API BitIndex LastSetBitIndex() const;
 
     /*! \brief Get the value of the bit at the given index.
         \param index The index of the bit to get.
         \returns True if the bit is set, false otherwise. */
     [[nodiscard]]
     HYP_FORCE_INLINE
-    bool Get(uint32 index) const
+    bool Get(BitIndex index) const
     {
         const uint32 block_index = GetBlockIndex(index);
 
@@ -119,13 +172,13 @@ public:
         \returns True if the bit is set, false otherwise. */
     [[nodiscard]]
     HYP_FORCE_INLINE
-    bool Test(uint32 index) const
+    bool Test(BitIndex index) const
         { return Get(index); }
 
     /*! \brief Set the value of the bit at the given index.
         \param index The index of the bit to set.
         \param value True to set the bit, false to unset the bit. */
-    HYP_API void Set(uint32 index, bool value);
+    HYP_API void Set(BitIndex index, bool value);
 
     /*! \brief Clear the entire bitset.
      *  \details The bitset is cleared by setting it to its default state,
@@ -232,6 +285,46 @@ public:
 
         return hc;
     }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Iterator Begin()
+        { return { m_blocks.Data(), 0 }; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Iterator End()
+        { return { m_blocks.Data(), LastSetBitIndex() + 1 }; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ConstIterator Begin() const
+        { return { m_blocks.Data(), 0 }; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ConstIterator End() const
+        { return { m_blocks.Data(), LastSetBitIndex() + 1 }; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Iterator begin()
+        { return Begin(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Iterator end()
+        { return End(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ConstIterator begin() const
+        { return Begin(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ConstIterator end() const
+        { return End(); }
 
 private:
     HYP_FORCE_INLINE

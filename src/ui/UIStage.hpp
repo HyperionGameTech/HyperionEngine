@@ -18,6 +18,8 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/FullScreenPass.hpp>
 
+#include <input/Mouse.hpp>
+
 #include <math/Transform.hpp>
 
 #include <GameCounter.hpp>
@@ -38,6 +40,12 @@ namespace hyperion {
 
 class UIButton;
 class FontAtlas;
+
+struct UIObjectPressedState
+{
+    EnumFlags<MouseButtonState> mouse_buttons = MouseButtonState::NONE;
+    float                       held_time = 0.0f;
+};
 
 class HYP_API UIStage : public UIObject
 {
@@ -133,7 +141,7 @@ public:
         return ui_object.Cast<T>();
     }
 
-    UIEventHandlerResult OnInputEvent(
+    EnumFlags<UIEventHandlerResult> OnInputEvent(
         InputManager *input_manager,
         const SystemEvent &event
     );
@@ -176,18 +184,18 @@ private:
 
     bool Remove(ID<Entity> entity);
 
-    Vec2i                       m_surface_size;
+    Vec2i                                       m_surface_size;
 
-    Handle<Scene>               m_scene;
+    Handle<Scene>                               m_scene;
 
-    RC<FontAtlas>               m_default_font_atlas;
+    RC<FontAtlas>                               m_default_font_atlas;
 
-    HashMap<ID<Entity>, float>  m_mouse_held_times;
-    FlatSet<ID<Entity>>         m_hovered_entities;
+    FlatMap<ID<Entity>, UIObjectPressedState>   m_mouse_button_pressed_states;
+    FlatSet<ID<Entity>>                         m_hovered_entities;
 
-    Weak<UIObject>              m_focused_object;
+    Weak<UIObject>                              m_focused_object;
 
-    DelegateHandler             m_on_current_window_changed_handler;
+    DelegateHandler                             m_on_current_window_changed_handler;
 };
 
 } // namespace hyperion

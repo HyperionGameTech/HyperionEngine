@@ -184,33 +184,72 @@ void HyperionEditorImpl::CreateMainPanel()
     // scene_tab_content_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
 
-    auto scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
-    auto ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UITab> scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+    RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
-    ui_image->OnMouseDown.Bind([this](...)
+    ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const UIMouseEventData &event)
     {
-        DebugLog(LogType::Debug, "Game element gain focus\n");
+        if (event.mouse_buttons & MouseButtonState::RIGHT) {
+            CameraController *camera_controller = m_camera->GetCameraController();
 
-        auto *camera_controller = m_camera->GetCameraController();
+            if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
+                const Vec2f mouse_position = event.position + 0.5f;
+                const Vec2i mouse_position_i = Vec2i { int(mouse_position.x * float(m_camera->GetWidth())), int(mouse_position.y * float(m_camera->GetHeight())) };
 
-        if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-            editor_camera_controller->SetMode(ECM_FOCUSED);
+                DebugLog(LogType::Debug, "mx: %d, my: %d\n", mouse_position_i.x, mouse_position_i.y);
+
+                if (m_scene) {
+                    if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+                        controller->PushCommand(CameraCommand {
+                            .command = CameraCommand::CAMERA_COMMAND_MAG,
+                            .mag_data = {
+                                .mouse_x    = mouse_position_i.x,
+                                .mouse_y    = mouse_position_i.y
+                            }
+                        });
+                    }
+                }
+            }
         }
 
-        return UEHR_OK;
+        if (m_camera->GetCameraController()->IsMouseLocked()) {
+            const Vec2i position = ui_image->GetPosition();
+            const Vec2i size = ui_image->GetActualSize();
+
+            g_engine->GetAppContext()->GetCurrentWindow()->SetMousePosition(position + size / 2);
+        }
+
+        return UIEventHandlerResult::OK;
     }).Detach();
 
-    ui_image->OnMouseUp.Bind([this](...)
+    ui_image->OnMouseDown.Bind([this](const UIMouseEventData &event)
     {
-        DebugLog(LogType::Debug, "Game element lose focus\n");
+        DebugLog(LogType::Debug, "Game element gain focus, buttons: %u\n", uint32(event.mouse_buttons));
 
         auto *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
-            editor_camera_controller->SetMode(ECM_INACTIVE);
+            if (event.mouse_buttons & MouseButtonState::RIGHT) {
+                editor_camera_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
+            } else {
+                editor_camera_controller->SetMode(EditorCameraControllerMode::FOCUSED);
+            }
         }
 
-        return UEHR_OK;
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    ui_image->OnMouseUp.Bind([this](const UIMouseEventData &event)
+    {
+        DebugLog(LogType::Debug, "Game element lose focus, buttons: %u\n", uint32(event.mouse_buttons));
+
+        auto *camera_controller = m_camera->GetCameraController();
+
+        if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
+            editor_camera_controller->SetMode(EditorCameraControllerMode::INACTIVE);
+        }
+
+        return UIEventHandlerResult::OK;
     }).Detach();
 
     ui_image->SetTexture(m_scene_texture);

@@ -6,6 +6,8 @@
 
 #include <rendering/ShaderGlobals.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -71,6 +73,8 @@ static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
     return jitter_matrix;
 }
 
+#pragma region CameraController
+
 CameraController::CameraController(CameraType type)
     : m_camera(nullptr),
       m_type(type),
@@ -103,6 +107,23 @@ void CameraController::UpdateCommandQueue(GameCounter::TickUnit dt)
 
     m_command_queue_count = 0;
 }
+
+void CameraController::SetMouseLocked(bool mouse_locked)
+{
+    if (!g_engine->GetAppContext()) {
+        return;
+    }
+
+    if (!g_engine->GetAppContext()->GetCurrentWindow()) {
+        return;
+    }
+
+    g_engine->GetAppContext()->GetCurrentWindow()->SetMouseLocked(mouse_locked);
+}
+
+#pragma endregion CameraController
+
+#pragma region Camera
 
 Camera::Camera()
     : Camera(128, 128)
@@ -397,5 +418,7 @@ void Camera::UpdateMatrices()
 
     UpdateViewProjectionMatrix();
 }
+
+#pragma endregion Camera
 
 } // namespace hyperion

@@ -7,6 +7,7 @@
 #define NUM_MOUSE_BUTTONS 3
 
 #include <core/containers/FlatMap.hpp>
+#include <core/containers/Bitset.hpp>
 #include <core/system/AppContext.hpp>
 
 #include <math/Vector2.hpp>
@@ -65,19 +66,17 @@ struct Scalar2D<false>
 
 struct InputState
 {
-    struct KeyState
-    {
-        std::atomic_bool is_pressed{false};
-    };
+    bool    key_states[NUM_KEYBOARD_KEYS];
+    bool    last_key_states[NUM_KEYBOARD_KEYS];
 
-    struct MouseButtonState
-    {
-        std::atomic_bool is_pressed{false};
-    };
+    bool    mouse_button_states[int(MouseButton::MAX)];
 
-    KeyState            key_states[NUM_KEYBOARD_KEYS];
-    KeyState            last_key_states[NUM_KEYBOARD_KEYS];
-    MouseButtonState    mouse_button_states[NUM_MOUSE_BUTTONS];
+    InputState()
+        : key_states { false },
+          last_key_states { false },
+          mouse_button_states { false }
+    {
+    }
 };
 
 class InputManager
@@ -101,7 +100,7 @@ public:
     const Scalar2D<true> &GetWindowSize() const
         { return m_window_size; }
 
-    HYP_API void SetMousePosition(int x, int y);
+    HYP_API void SetMousePosition(Vec2i position);
 
     void KeyDown(int key)
         { SetKey(key, true); }
@@ -118,13 +117,14 @@ public:
     HYP_API void UpdateMousePosition();
     HYP_API void UpdateWindowSize();
 
-    HYP_API bool IsKeyStateChanged(int key, bool *previous_key_state);
     HYP_API bool IsKeyDown(int key) const;
 
     bool IsKeyUp(int key) const
         { return !IsKeyDown(key); }
 
     HYP_API bool IsButtonDown(MouseButton btn) const;
+
+    HYP_API EnumFlags<MouseButtonState> GetButtonStates() const;
 
     bool IsButtonUp(MouseButton btn) const
         { return !IsButtonDown(btn); }

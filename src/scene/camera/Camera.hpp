@@ -14,6 +14,7 @@
 #include <math/Frustum.hpp>
 
 #include <rendering/DrawProxy.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 
 #include <atomic>
 #include <mutex>
@@ -32,7 +33,8 @@ enum class CameraType
 
 struct CameraCommand
 {
-    enum {
+    enum
+    {
         CAMERA_COMMAND_NONE,
         CAMERA_COMMAND_MAG,
         CAMERA_COMMAND_SCROLL,
@@ -75,6 +77,7 @@ class Camera;
 class HYP_API CameraController
 {
     friend class Camera;
+
 public:
     CameraController(CameraType type);
     virtual ~CameraController() = default;
@@ -102,6 +105,8 @@ protected:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {}
 
     void UpdateCommandQueue(GameCounter::TickUnit dt);
+
+    void SetMouseLocked(bool mouse_locked);
 
     Camera                  *m_camera;
 

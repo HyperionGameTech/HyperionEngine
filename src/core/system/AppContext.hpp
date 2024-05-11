@@ -64,8 +64,8 @@ public:
     ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
     virtual ~ApplicationWindow() = default;
 
-    virtual void SetMousePosition(int x, int y) = 0;
-    virtual MouseState GetMouseState() = 0;
+    virtual void SetMousePosition(Vec2i position) = 0;
+    virtual Vec2i GetMousePosition() const = 0;
 
     virtual Vec2u GetDimensions() const = 0;
 
@@ -86,8 +86,8 @@ public:
     SDLApplicationWindow(ANSIString title, Vec2u size);
     virtual ~SDLApplicationWindow() override;
 
-    virtual void SetMousePosition(int x, int y) override;
-    virtual MouseState GetMouseState() override;
+    virtual void SetMousePosition(Vec2i position) override;
+    virtual Vec2i GetMousePosition() const override;
 
     virtual Vec2u GetDimensions() const override;
 

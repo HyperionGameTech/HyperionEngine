@@ -7,10 +7,11 @@
 
 namespace hyperion {
 
-enum EditorCameraControllerMode
+enum class EditorCameraControllerMode
 {
-    ECM_INACTIVE,
-    ECM_FOCUSED
+    INACTIVE,
+    FOCUSED,
+    MOUSE_LOCKED
 };
 
 class HYP_API EditorCameraController : public FirstPersonCameraController
@@ -25,6 +26,9 @@ public:
     void SetMode(EditorCameraControllerMode mode);
 
     virtual void UpdateLogic(double dt) override;
+
+    virtual bool IsMouseLocked() const override
+        { return m_mode == EditorCameraControllerMode::MOUSE_LOCKED; }
 
 protected:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) override;

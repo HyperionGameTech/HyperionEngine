@@ -111,8 +111,8 @@ void UIStage::Update(GameCounter::TickUnit delta)
 {
     m_scene->Update(delta);
 
-    for (auto &it : m_mouse_held_times) {
-        it.second += delta;
+    for (auto &it : m_mouse_button_pressed_states) {
+        it.second.held_time += delta;
     }
 }
 
@@ -207,12 +207,12 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
     m_focused_object = ui_object;
 }
 
-UIEventHandlerResult UIStage::OnInputEvent(
+EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
     InputManager *input_manager,
     const SystemEvent &event
 )
 {
-    UIEventHandlerResult event_handler_result = UEHR_OK;
+    EnumFlags<UIEventHandlerResult> event_handler_result = UIEventHandlerResult::OK;
 
     RayTestResults ray_test_results;
 
@@ -225,10 +225,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
         // project a ray into the scene and test if it hits any objects
 
         const auto &mouse_position = input_manager->GetMousePosition();
-        const auto mouse_x = mouse_position.x.load();
-        const auto mouse_y = mouse_position.y.load();
-        
-        const bool is_mouse_button_down = input_manager->IsButtonDown(event.GetMouseButton());
+        const int mouse_x = mouse_position.x.load();
+        const int mouse_y = mouse_position.y.load();
 
         const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
 
@@ -237,82 +235,126 @@ UIEventHandlerResult UIStage::OnInputEvent(
             float(mouse_y) / float(window_size.y)
         );
 
-        if (is_mouse_button_down) { // mouse drag event
-            for (auto &it : m_mouse_held_times) {
-                if (it.second >= 0.05f) {
+        const EnumFlags<MouseButtonState> mouse_buttons = input_manager->GetButtonStates();
+
+        if (mouse_buttons != MouseButtonState::NONE) { // mouse drag event
+            EnumFlags<UIEventHandlerResult> mouse_drag_event_handler_result = UIEventHandlerResult::OK;
+
+            for (const Pair<ID<Entity>, UIObjectPressedState> &it : m_mouse_button_pressed_states) {
+                if (it.second.held_time >= 0.05f) {
                     // signal mouse drag
-                    if (auto ui_object = GetUIObjectForEntity(it.first)) {
-                        event_handler_result |= ui_object->OnMouseDrag(UIMouseEventData {
-                            .position   = mouse_screen,
-                            .button     = event.GetMouseButton(),
-                            .is_down    = true
+                    if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
+                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag(UIMouseEventData {
+                            .position       = mouse_screen,
+                            .mouse_buttons  = mouse_buttons,
+                            .is_down        = true
                         });
 
-                        if (event_handler_result & UEHR_STOP_BUBBLING) {
+                        if (mouse_drag_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                             break;
                         }
                     }
                 }
             }
-        } else {
-            Array<RC<UIObject>> ray_test_results;
 
-            if (TestRay(mouse_screen, ray_test_results)) {
-                UIObject *first_hit = nullptr;
+            break;
+        }
 
-                for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                    if (const RC<UIObject> &ui_object = *it) {
-                        if (first_hit) {
-                            // We don't want to check the current object if it's not a child of the first hit object,
-                            // since it would be behind the first hit object.
-                            if (!first_hit->IsOrHasParent(ui_object)) {
-                                continue;
-                            }
-                        } else {
-                            first_hit = ui_object;
-                        }
+        Array<RC<UIObject>> ray_test_results;
 
-                        if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
-                            // Already hovered, skip
+        if (TestRay(mouse_screen, ray_test_results)) {
+            UIObject *first_hit = nullptr;
+
+            EnumFlags<UIEventHandlerResult> mouse_hover_event_handler_result = UIEventHandlerResult::OK;
+            EnumFlags<UIEventHandlerResult> mouse_move_event_handler_result = UIEventHandlerResult::OK;
+
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+                if (const RC<UIObject> &ui_object = *it) {
+                    if (first_hit) {
+                        // We don't want to check the current object if it's not a child of the first hit object,
+                        // since it would be behind the first hit object.
+                        if (!first_hit->IsOrHasParent(ui_object)) {
                             continue;
                         }
+                    } else {
+                        first_hit = ui_object;
+                    }
 
-                        ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
-
-                        event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
-                            .position   = mouse_screen,
-                            .button     = event.GetMouseButton(),
-                            .is_down    = false
+                    if (m_hovered_entities.Contains(ui_object->GetEntity())) {
+                        // Already hovered, trigger mouse move event instead
+                        mouse_move_event_handler_result |= ui_object->OnMouseMove(UIMouseEventData {
+                            .position       = mouse_screen,
+                            .mouse_buttons  = mouse_buttons,
+                            .is_down        = false
                         });
 
-                        if (event_handler_result & UEHR_STOP_BUBBLING) {
+                        if (mouse_move_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                             break;
                         }
                     }
                 }
             }
 
-            for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
-                const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RC<UIObject> &ui_object)
-                {
-                    return ui_object->GetEntity() == entity;
-                });
+            first_hit = nullptr;
 
-                if (ray_test_results_it == ray_test_results.End()) {
-                    if (auto other_ui_object = GetUIObjectForEntity(*it)) {
-                        other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
-
-                        other_ui_object->OnMouseLeave(UIMouseEventData {
-                            .position   = mouse_screen,
-                            .button     = event.GetMouseButton(),
-                            .is_down    = false
-                        });
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+                if (const RC<UIObject> &ui_object = *it) {
+                    if (first_hit) {
+                        // We don't want to check the current object if it's not a child of the first hit object,
+                        // since it would be behind the first hit object.
+                        if (!first_hit->IsOrHasParent(ui_object)) {
+                            continue;
+                        }
+                    } else {
+                        first_hit = ui_object;
                     }
 
-                    it = m_hovered_entities.Erase(it);
-                } else {
-                    ++it;
+                    if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
+                        // Already hovered, trigger mouse move event instead
+                        event_handler_result |= ui_object->OnMouseMove(UIMouseEventData {
+                            .position       = mouse_screen,
+                            .mouse_buttons  = mouse_buttons,
+                            .is_down        = false
+                        });
+
+                        continue;
+                    }
+
+                    ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
+
+                    mouse_hover_event_handler_result |= ui_object->OnMouseHover(UIMouseEventData {
+                        .position       = mouse_screen,
+                        .mouse_buttons  = mouse_buttons,
+                        .is_down        = false
+                    });
+
+                    if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                        break;
+                    }
                 }
+            }
+        }
+
+        for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
+            const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RC<UIObject> &ui_object)
+            {
+                return ui_object->GetEntity() == entity;
+            });
+
+            if (ray_test_results_it == ray_test_results.End()) {
+                if (auto other_ui_object = GetUIObjectForEntity(*it)) {
+                    other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
+
+                    other_ui_object->OnMouseLeave(UIMouseEventData {
+                        .position       = mouse_screen,
+                        .mouse_buttons  = event.GetMouseButtons(),
+                        .is_down        = false
+                    });
+                }
+
+                it = m_hovered_entities.Erase(it);
+            } else {
+                ++it;
             }
         }
 
@@ -346,17 +388,26 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         focused_object = ui_object.Get();
                     }
 
-                    m_mouse_held_times.Set(ui_object->GetEntity(), 0.0f);
+                    auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.Find(ui_object->GetEntity());
+
+                    if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End()) {
+                        mouse_button_pressed_states_it->second.mouse_buttons |= event.GetMouseButtons();
+                    } else {
+                        mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object->GetEntity(), {
+                            event.GetMouseButtons(),
+                            0.0f
+                        }).first;
+                    }
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
                     event_handler_result |= ui_object->OnMouseDown(UIMouseEventData {
-                        .position   = mouse_screen,
-                        .button     = event.GetMouseButton(),
-                        .is_down    = true
+                        .position       = mouse_screen,
+                        .mouse_buttons  = mouse_button_pressed_states_it->second.mouse_buttons,
+                        .is_down        = true
                     });
 
-                    if (event_handler_result & UEHR_STOP_BUBBLING) {
+                    if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
                     }
                 }
@@ -384,7 +435,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
-        for (auto &it : m_mouse_held_times) {
+        for (auto &it : m_mouse_button_pressed_states) {
             const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RC<UIObject> &ui_object)
             {
                 return ui_object->GetEntity() == entity;
@@ -394,32 +445,32 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 // trigger click
                 if (const RC<UIObject> &ui_object = *ray_test_results_it) {
                     event_handler_result |= ui_object->OnClick(UIMouseEventData {
-                        .position   = mouse_screen,
-                        .button     = event.GetMouseButton(),
-                        .is_down    = false
+                        .position       = mouse_screen,
+                        .mouse_buttons  = event.GetMouseButtons(),
+                        .is_down        = false
                     });
 
-                    if (event_handler_result & UEHR_STOP_BUBBLING) {
+                    if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
                     }
                 }
             }
         }
 
-        for (auto &it : m_mouse_held_times) {
+        for (auto &it : m_mouse_button_pressed_states) {
             // trigger mouse up
             if (auto ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                 event_handler_result |= ui_object->OnMouseUp(UIMouseEventData {
-                    .position   = mouse_screen,
-                    .button     = event.GetMouseButton(),
-                    .is_down    = false
+                    .position       = mouse_screen,
+                    .mouse_buttons  = it.second.mouse_buttons,
+                    .is_down        = false
                 });
             }
         }
 
-        m_mouse_held_times.Clear();
+        m_mouse_button_pressed_states.Clear();
 
         break;
     }
@@ -457,13 +508,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         }
 
                         event_handler_result |= ui_object->OnScroll(UIMouseEventData {
-                            .position   = mouse_screen,
-                            .button     = event.GetMouseButton(),
-                            .is_down    = input_manager->IsButtonDown(event.GetMouseButton()),
-                            .wheel      = Vec2i { wheel_x, wheel_y }
+                            .position       = mouse_screen,
+                            .mouse_buttons  = event.GetMouseButtons(),
+                            .is_down        = false,
+                            .wheel          = Vec2i { wheel_x, wheel_y }
                         });
 
-                        if (event_handler_result & UEHR_STOP_BUBBLING) {
+                        if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                             break;
                         }
                     }

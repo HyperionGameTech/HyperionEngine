@@ -8,6 +8,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/Name.hpp>
 
 #include <input/Mouse.hpp>
@@ -20,22 +21,22 @@ class UIObject;
 
 struct UIMouseEventData
 {
-    Vec2f       position;
-    MouseButton button = MouseButton::INVALID;
-    bool        is_down = false;
-    Vec2i       wheel;
+    Vec2f                       position;
+    EnumFlags<MouseButtonState> mouse_buttons = MouseButtonState::NONE;
+    bool                        is_down = false;
+    Vec2i                       wheel;
 };
 
-using UIEventHandlerResult = uint32;
-
-enum UIEventHandlerResultBits : UIEventHandlerResult
+enum class UIEventHandlerResult : uint32
 {
-    UEHR_ERR            = 0x1u << 31u,
-    UEHR_OK             = 0x0,
+    ERROR           = 0x1u << 31u,
+    OK              = 0x0,
 
     // Stop bubbling the event up the hierarchy
-    UEHR_STOP_BUBBLING  = 0x1
+    STOP_BUBBLING   = 0x1
 };
+
+HYP_MAKE_ENUM_FLAGS(UIEventHandlerResult)
 
 struct UIComponent
 {

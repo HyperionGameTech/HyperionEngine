@@ -173,7 +173,7 @@ public:
         return key;
     }
 
-    MouseButton GetMouseButton() const;
+    EnumFlags<MouseButtonState> GetMouseButtons() const;
 
     void GetMouseWheel(int *x, int *y) const
         { *x = sdl_event.wheel.x; *y = sdl_event.wheel.y; }

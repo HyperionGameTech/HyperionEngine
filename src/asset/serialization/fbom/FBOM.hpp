@@ -66,7 +66,8 @@ enum FBOMDataLocation
 
 struct FBOMStaticData
 {
-    enum {
+    enum
+    {
         FBOM_STATIC_DATA_NONE = 0x00,
         FBOM_STATIC_DATA_OBJECT = 0x01,
         FBOM_STATIC_DATA_TYPE = 0x02,

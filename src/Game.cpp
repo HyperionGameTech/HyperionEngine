@@ -188,10 +188,12 @@ void Game::OnInputEvent(const SystemEvent &event)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     // forward to UI
-    if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event) & UEHR_STOP_BUBBLING) {
+    if (m_ui_stage->OnInputEvent(m_input_manager.Get(), event) & UIEventHandlerResult::STOP_BUBBLING) {
         // ui handled the event
         return;
     }
+
+    return; // temp
 
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSESCROLL:
@@ -241,7 +243,7 @@ void Game::OnInputEvent(const SystemEvent &event)
                     });
 
                     if (controller->IsMouseLocked()) {
-                        m_input_manager->SetMousePosition(window_size.x / 2, window_size.y / 2);
+                        m_input_manager->SetMousePosition(Vec2i { int(window_size.x / 2), int(window_size.y / 2) });
                     }
                 }
             }

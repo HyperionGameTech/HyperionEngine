@@ -77,17 +77,17 @@ VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
 }
 #endif
 
-void SDLApplicationWindow::SetMousePosition(int x, int y)
+void SDLApplicationWindow::SetMousePosition(Vec2i position)
 {
-    SDL_WarpMouseInWindow(window, x, y);
+    SDL_WarpMouseInWindow(window, position.x, position.y);
 }
 
-MouseState SDLApplicationWindow::GetMouseState()
+Vec2i SDLApplicationWindow::GetMousePosition() const
 {
-    MouseState mouse_state { };
-    mouse_state.mask = SDL_GetMouseState(&mouse_state.position.x, &mouse_state.position.y);
+    Vec2i position;
+    SDL_GetMouseState(&position.x, &position.y);
 
-    return mouse_state;
+    return position;
 }
 
 Vec2u SDLApplicationWindow::GetDimensions() const

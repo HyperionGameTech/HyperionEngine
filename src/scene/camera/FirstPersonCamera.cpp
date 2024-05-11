@@ -20,24 +20,34 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
 {
 }
 
-void FirstPersonCameraController::UpdateLogic(double dt)
+void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
 {
+    if (m_mode == mode) {
+        return;
+    }
+
+    if (m_mode == FirstPersonCameraControllerMode::MOUSE_LOCKED) {
+        CameraController::SetMouseLocked(false);
+    }
+
+    m_mode = mode;
+
     switch (m_mode) {
-    case FPCCM_MOUSE_LOCKED:
-        m_desired_mag = Vec2f {
-            m_mouse_x - (float(m_camera->GetWidth()) / 2.0f),
-            m_mouse_y - (float(m_camera->GetHeight()) / 2.0f)
-        };
+    case FirstPersonCameraControllerMode::MOUSE_FREE:
         break;
-    case FPCCM_MOUSE_FREE:
-        m_desired_mag = Vec2f {
-            m_mouse_x - m_prev_mouse_x,
-            m_mouse_y - m_prev_mouse_y
-        };
+    case FirstPersonCameraControllerMode::MOUSE_LOCKED:
+        CameraController::SetMouseLocked(true);
 
         break;
     }
-    
+}
+
+void FirstPersonCameraController::UpdateLogic(double dt)
+{
+    m_desired_mag = Vec2f {
+        m_mouse_x - m_prev_mouse_x,
+        m_mouse_y - m_prev_mouse_y
+    };
     
     m_mag.Lerp(m_desired_mag, MathUtil::Min(1.0f, 1.0f - mouse_blending));
 
@@ -73,6 +83,15 @@ void FirstPersonCameraController::UpdateLogic(double dt)
                 1.0f
             )
         );
+    }
+
+
+    switch (m_mode) {
+    case FirstPersonCameraControllerMode::MOUSE_LOCKED:
+        m_prev_mouse_x = m_camera->GetWidth() / 2;
+        m_prev_mouse_y = m_camera->GetHeight() / 2;
+
+        break;
     }
 }
 

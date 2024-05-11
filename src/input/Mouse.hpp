@@ -6,20 +6,30 @@
 
 namespace hyperion {
 
-enum class MouseButton : int
+enum class MouseButton : uint32
 {
-    INVALID = -1,
+    INVALID = ~0u,
     LEFT = 0,
     MIDDLE,
     RIGHT,
+    
+    MAX
 };
 
-HYP_MAKE_ENUM_FLAGS(MouseButton)
+enum class MouseButtonState : uint32
+{
+    NONE    = 0x0,
+    LEFT    = 1u << uint32(MouseButton::LEFT),
+    MIDDLE  = 1u << uint32(MouseButton::MIDDLE),
+    RIGHT   = 1u << uint32(MouseButton::RIGHT)
+};
+
+HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 
 struct MouseState
 {
-    EnumFlags<MouseButton>  mask;
-    Vec2i                   position;
+    EnumFlags<MouseButtonState> mask;
+    Vec2i                       position;
 };
 
 } // namespace hyperion

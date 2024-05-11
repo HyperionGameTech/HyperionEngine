@@ -57,19 +57,23 @@ struct HashBucket
         Iterator operator++(int) const
             { return Iterator { bucket, element->next }; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
+        [[nodiscard]]
+        HYP_FORCE_INLINE
         bool operator==(const ConstIterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
+        [[nodiscard]]
+        HYP_FORCE_INLINE
         bool operator!=(const ConstIterator &other) const
             { return element != other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
+        [[nodiscard]]
+        HYP_FORCE_INLINE
         bool operator==(const Iterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
+        [[nodiscard]]
+        HYP_FORCE_INLINE
         bool operator!=(const Iterator &other) const
             { return element != other.element; }
 

@@ -147,16 +147,16 @@ void UIMenuItem::UpdateDropDownMenu()
             if (item_ptr == nullptr) {
                 DebugLog(LogType::Warn, "Could not find drop down menu item with name %s\n", *name);
 
-                return UEHR_ERR;
+                return UIEventHandlerResult::ERROR;
             }
 
             if (!item_ptr->action.IsValid()) {
-                return UEHR_OK;
+                return UIEventHandlerResult::OK;
             }
 
             item_ptr->action();
 
-            return UEHR_OK; // bubble up to container so it can close
+            return UIEventHandlerResult::OK; // bubble up to container so it can close
         }).Detach();
 
         drop_down_menu_item->GetTextElement()->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
@@ -202,7 +202,7 @@ void UIMenuBar::Init()
         // Lose focus of the container (otherwise hovering over other menu items will cause the menu strips to reappear)
         Blur();
 
-        return UEHR_STOP_BUBBLING;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     m_container->OnLoseFocus.Bind([this](const UIMouseEventData &data) -> UIEventHandlerResult
@@ -212,7 +212,7 @@ void UIMenuBar::Init()
             SetSelectedMenuItemIndex(~0u);
         }
 
-        return UEHR_OK;
+        return UIEventHandlerResult::OK;
     }).Detach();
 
     AddChildUIObject(m_container);
@@ -289,12 +289,12 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
             SetSelectedMenuItemIndex(menu_item_index);
         }
 
-        return UEHR_OK;
+        return UIEventHandlerResult::OK;
     }).Detach();
 
     menu_item->OnClick.Bind([this, name](const UIMouseEventData &data) -> UIEventHandlerResult
     {
-        if (data.button == MouseButton::LEFT)
+        if (data.mouse_buttons == MouseButtonState::LEFT)
         {
             const uint menu_item_index = GetMenuItemIndex(name);
 
@@ -306,10 +306,10 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
                 SetSelectedMenuItemIndex(menu_item_index);
             }
 
-            return UEHR_STOP_BUBBLING;
+            return UIEventHandlerResult::STOP_BUBBLING;
         }
 
-        return UEHR_OK;
+        return UIEventHandlerResult::OK;
     }).Detach();
 
     AddChildUIObject(menu_item);

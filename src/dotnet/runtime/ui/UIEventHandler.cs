@@ -62,6 +62,12 @@ namespace Hyperion
         }
 
         [Hyperion.ScriptMethodStub]
+        public virtual UIEventHandlerResult OnMouseMove()
+        {
+            return UIEventHandlerResult.Ok;
+        }
+
+        [Hyperion.ScriptMethodStub]
         public virtual UIEventHandlerResult OnGainFocus()
         {
             return UIEventHandlerResult.Ok;
