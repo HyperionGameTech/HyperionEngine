@@ -7,10 +7,10 @@
 namespace hyperion {
 Matrix3::Matrix3()
     : rows {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f}
-    }
+          { 1.0f, 0.0f, 0.0f },
+          { 0.0f, 1.0f, 0.0f },
+          { 0.0f, 0.0f, 1.0f }
+      }
 {
 }
 
@@ -50,8 +50,8 @@ Matrix3 &Matrix3::Transpose()
 
 Matrix3 Matrix3::Inverted() const
 {
-    float det = Determinant();
-    float inv_det = 1.0 / det;
+    const float det = Determinant();
+    const float inv_det = 1.0f / det;
 
     Matrix3 result;
     result[0][0] = (rows[1][1] * rows[2][2] - rows[2][1] * rows[1][2]) * inv_det;

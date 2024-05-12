@@ -4,6 +4,17 @@
 
 namespace hyperion {
 
+static const FixedArray<Vec4f, 8> frustum_corners_ndc {
+    Vec4f { -1.0f, -1.0f, 0.0f, 1.0f },
+    Vec4f { -1.0f,  1.0f, 0.0f, 1.0f },
+    Vec4f {  1.0f,  1.0f, 0.0f, 1.0f },
+    Vec4f {  1.0f, -1.0f, 0.0f, 1.0f },
+    Vec4f { -1.0f, -1.0f, 1.0f, 1.0f },
+    Vec4f { -1.0f,  1.0f, 1.0f, 1.0f },
+    Vec4f {  1.0f,  1.0f, 1.0f, 1.0f },
+    Vec4f {  1.0f, -1.0f, 1.0f, 1.0f }
+};
+
 Frustum::Frustum()
 {
 }
@@ -96,19 +107,8 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
 
     const Matrix4 clip_to_world = view_proj.Inverted();
 
-    static const FixedArray<Vec3f, 8> corners_ndc {
-        Vec3f { -1, -1, 0 },
-        Vec3f { -1,  1, 0 },
-        Vec3f {  1,  1, 0 },
-        Vec3f {  1, -1, 0 },
-        Vec3f { -1, -1, 1 },
-        Vec3f { -1,  1, 1 },
-        Vec3f {  1,  1, 1 },
-        Vec3f {  1, -1, 1 }
-    };
-
     for (uint i = 0; i < 8; i++) {
-        Vec4f corner = clip_to_world * Vec4f(corners_ndc[i], 1.0f);
+        Vec4f corner = clip_to_world * frustum_corners_ndc[i];
         corner /= corner.w;
 
         m_corners[i] = corner.GetXYZ();

@@ -83,7 +83,7 @@ Quaternion::Quaternion(const Matrix4 &m)
     }
 }
 
-Quaternion::Quaternion(const Vector3 &euler)
+Quaternion::Quaternion(const Vec3f &euler)
 {
     const float x_over2 = MathUtil::DegToRad(euler.x) * 0.5f;
     const float y_over2 = MathUtil::DegToRad(euler.y) * 0.5f;
@@ -102,9 +102,9 @@ Quaternion::Quaternion(const Vector3 &euler)
     w = cos_y_over2 * cos_x_over2 * cos_z_over2 + sin_y_over2 * sin_x_over2 * sin_z_over2;
 }
 
-Quaternion::Quaternion(const Vector3 &axis, float radians)
+Quaternion::Quaternion(const Vec3f &axis, float radians)
 {
-    Vector3 tmp(axis);
+    Vec3f tmp(axis);
 
     if (tmp.Length() != 1) {
         tmp.Normalize();
@@ -159,7 +159,7 @@ Quaternion &Quaternion::operator*=(const Quaternion &other)
     return *this;
 }
 
-Quaternion &Quaternion::operator+=(const Vector3 &vec)
+Quaternion &Quaternion::operator+=(const Vec3f &vec)
 {
     Quaternion q(vec.x, vec.y, vec.z, 0.0);
     q *= *this;
@@ -170,9 +170,9 @@ Quaternion &Quaternion::operator+=(const Vector3 &vec)
     return *this;
 }
 
-Vector3 Quaternion::operator*(const Vector3 &vec) const
+Vec3f Quaternion::operator*(const Vec3f &vec) const
 {
-    Vector3 result;
+    Vec3f result;
     result.x = w * w * vec.x + 2 * y * w * vec.z - 2 * z * w * vec.y + x * x * vec.x
         + 2 * y * x * vec.y + 2 * z * x * vec.z - z * z * vec.x - y * y * vec.x;
     result.y = 2 * x * y * vec.x + y * y * vec.y + 2 * z * y * vec.z + 2 * w * z
@@ -263,22 +263,26 @@ float Quaternion::Roll() const
 {
     const int pole = GimbalPole();
 
-    return pole == 0 ? atan2(2.0f * (w * z + y * x), 1.0f - 2.0f * (x * x + z * z)) : pole * 2.0f * atan2(y, w);
+    return pole == 0
+        ? atan2(2.0f * (w * z + y * x), 1.0f - 2.0f * (x * x + z * z))
+        : float(pole) * 2.0f * atan2(y, w);
 }
 
 float Quaternion::Pitch() const
 {
     const int pole = GimbalPole();
 
-    return pole == 0 ?
-        std::asin(MathUtil::Clamp(2.0f * (w * x - z * y), -1.0f, 1.0f)) :
-        pole * MathUtil::pi<float> * 0.5f;
+    return pole == 0
+        ? MathUtil::Arcsin(MathUtil::Clamp(2.0f * (w * x - z * y), -1.0f, 1.0f))
+        : float(pole) * MathUtil::pi<float> * 0.5f;
 }
 
 float Quaternion::Yaw() const
 {
     int pole = GimbalPole();
-    return pole == 0 ? atan2(2.0f * (y * w + x * z), 1.0f - 2.0f * (y * y + x * x)) : 0.0f;
+    return pole == 0
+        ? atan2(2.0f * (y * w + x * z), 1.0f - 2.0f * (y * y + x * x))
+        : 0.0f;
 }
 
 Quaternion Quaternion::Identity()
@@ -286,23 +290,23 @@ Quaternion Quaternion::Identity()
     return Quaternion(0.0, 0.0, 0.0, 1.0);
 }
 
-Quaternion Quaternion::LookAt(const Vector3 &direction, const Vector3 &up)
+Quaternion Quaternion::LookAt(const Vec3f &direction, const Vec3f &up)
 {
-    const Vector3 z = direction.Normalized();
-    const Vector3 x = up.Cross(direction).Normalized();
-    const Vector3 y = direction.Cross(x).Normalized();
+    const Vec3f z = direction.Normalized();
+    const Vec3f x = up.Cross(direction).Normalized();
+    const Vec3f y = direction.Cross(x).Normalized();
 
-    Vector4 rows[] = {
-        Vector4(x, 0.0f),
-        Vector4(y, 0.0f),
-        Vector4(z, 0.0f),
-        Vector4::UnitW()
+    Vec4f rows[] = {
+        Vec4f(x, 0.0f),
+        Vec4f(y, 0.0f),
+        Vec4f(z, 0.0f),
+        Vec4f::UnitW()
     };
 
     return Quaternion(Matrix4(rows));
 }
 
-Quaternion Quaternion::AxisAngles(const Vector3 &axis, float radians)
+Quaternion Quaternion::AxisAngles(const Vec3f &axis, float radians)
 {
     return Quaternion(axis, radians);
 }

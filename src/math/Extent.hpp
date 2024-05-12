@@ -190,7 +190,7 @@ struct Extent3D
     {
     }
 
-    explicit Extent3D(const Vector3 &extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit Extent3D(const Vec3f &extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(uint32(extent.x)),
           height(uint32(extent.y)),
           depth(uint32(extent.z))
@@ -345,7 +345,7 @@ struct Extent3D
         };
     }
 
-    explicit operator Vector3() const
+    explicit operator Vec3f() const
     {
         return {
             float(width),

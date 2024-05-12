@@ -15,12 +15,14 @@ class HYP_API Matrix3
 {
     friend std::ostream &operator<<(std::ostream &os, const Matrix3 &mat);
 public:
-    union {
-        Vector3 rows[3];
+    union
+    {
+        Vec3f   rows[3];
 
-        struct {
-            float values[9];
-            float _pad[3];
+        struct
+        {
+            float   values[9];
+            float   _pad[3];
         };
     };
 
@@ -43,9 +45,10 @@ public:
     Matrix3 &operator*=(float scalar);
 
     bool operator==(const Matrix3 &other) const
-    {  return &values[0] == &other.values[0] || !memcmp(values, other.values, std::size(values) * sizeof(values[0])); }
-
-    bool operator!=(const Matrix3 &other) const { return !operator==(other); }
+        { return &values[0] == &other.values[0] || !memcmp(values, other.values, std::size(values) * sizeof(values[0])); }
+    
+    bool operator!=(const Matrix3 &other) const
+        { return !operator==(other); }
 
 #pragma region deprecated
     float operator()(int i, int j) const;
@@ -55,8 +58,11 @@ public:
     float &At(int i, int j);
 #pragma endregion deprecated
 
-    constexpr Vector3 &operator[](uint row) { return rows[row]; }
-    constexpr const Vector3 &operator[](uint row) const { return rows[row]; }
+    constexpr Vec3f &operator[](uint row)
+        { return rows[row]; }
+
+    constexpr const Vec3f &operator[](uint row) const
+        { return rows[row]; }
 
     static Matrix3 Zeros();
     static Matrix3 Ones();

@@ -31,7 +31,7 @@ struct HYP_API Ray
 
     bool operator==(const Ray &other) const
     {
-        return position  == other.position
+        return position == other.position
             && direction == other.direction;
     }
 

@@ -3,13 +3,8 @@
 #ifndef HYPERION_ECS_UI_COMPONENT_HPP
 #define HYPERION_ECS_UI_COMPONENT_HPP
 
-#include <core/functional/Proc.hpp>
-#include <core/containers/String.hpp>
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/Name.hpp>
 
 #include <input/Mouse.hpp>
 
@@ -32,7 +27,7 @@ struct UIMouseEventData
 
 enum class UIEventHandlerResult : uint32
 {
-    ERROR           = 0x1u << 31u,
+    ERR             = 0x1u << 31u,
     OK              = 0x0,
 
     // Stop bubbling the event up the hierarchy

@@ -24,7 +24,7 @@ void UIMenuItem::Init()
 {
     UIPanel::Init();
 
-    auto text_element = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 14, UIObjectSize::PIXEL }));
+    RC<UIText> text_element = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 14, UIObjectSize::PIXEL }));
     text_element->SetParentAlignment(UIObjectAlignment::CENTER);
     text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -33,7 +33,7 @@ void UIMenuItem::Init()
 
     AddChildUIObject(text_element);
 
-    auto drop_down_menu = m_parent->CreateUIObject<UIPanel>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_DropDownMenu"), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
+    RC<UIPanel> drop_down_menu = m_parent->CreateUIObject<UIPanel>(CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_DropDownMenu"), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::GROW }));
     drop_down_menu->SetAcceptsFocus(false);
     drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -122,7 +122,7 @@ void UIMenuItem::UpdateDropDownMenu()
     for (const DropDownMenuItem &item : m_drop_down_menu_items) {
         const Name drop_down_menu_item_name = CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_" + ANSIString(item.name.LookupString()));
 
-        auto drop_down_menu_item = m_drop_down_menu->FindChildUIObject(drop_down_menu_item_name).Cast<UIButton>();
+        RC<UIButton> drop_down_menu_item = m_drop_down_menu->FindChildUIObject(drop_down_menu_item_name).Cast<UIButton>();
 
         if (drop_down_menu_item != nullptr) {
             offset += { 0, drop_down_menu_item->GetActualSize().y };
@@ -147,7 +147,7 @@ void UIMenuItem::UpdateDropDownMenu()
             if (item_ptr == nullptr) {
                 DebugLog(LogType::Warn, "Could not find drop down menu item with name %s\n", *name);
 
-                return UIEventHandlerResult::ERROR;
+                return UIEventHandlerResult::ERR;
             }
 
             if (!item_ptr->action.IsValid()) {

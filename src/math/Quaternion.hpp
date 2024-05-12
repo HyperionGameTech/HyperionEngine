@@ -19,8 +19,8 @@ struct alignas(16) HYP_API Quaternion
     Quaternion();
     Quaternion(float x, float y, float z, float w);
     explicit Quaternion(const Matrix4 &mat);
-    explicit Quaternion(const Vector3 &euler);
-    Quaternion(const Vector3 &axis, float radians);
+    explicit Quaternion(const Vec3f &euler);
+    Quaternion(const Vec3f &axis, float radians);
     Quaternion(const Quaternion &other);
 
     float GetX() const { return x; }
@@ -39,8 +39,8 @@ struct alignas(16) HYP_API Quaternion
     Quaternion &operator=(const Quaternion &other);
     Quaternion operator*(const Quaternion &other) const;
     Quaternion &operator*=(const Quaternion &other);
-    Quaternion &operator+=(const Vector3 &vec);
-    Vector3 operator*(const Vector3 &vec) const;
+    Quaternion &operator+=(const Vec3f &vec);
+    Vec3f operator*(const Vector3 &vec) const;
 
     float Length() const;
     float LengthSquared() const;
@@ -54,8 +54,8 @@ struct alignas(16) HYP_API Quaternion
     float Yaw() const;
 
     static Quaternion Identity();
-    static Quaternion LookAt(const Vector3 &direction, const Vector3 &up);
-    static Quaternion AxisAngles(const Vector3 &axis, float radians);
+    static Quaternion LookAt(const Vec3f &direction, const Vec3f &up);
+    static Quaternion AxisAngles(const Vec3f &axis, float radians);
 };
 } // namespace hyperion
 

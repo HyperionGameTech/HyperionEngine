@@ -1432,10 +1432,10 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
                     additional_params.PushBack("row_major");
                 }
 
-                result.processed_source += "layout(" + std_version + ", set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : "") + ") " + parse_result.remaining + "\n";
+                result.processed_source += "layout(" + std_version + ", set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
                 break;
             default:
-                result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : "") + ") " + parse_result.remaining + "\n";
+                result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
                 break;
             }
 

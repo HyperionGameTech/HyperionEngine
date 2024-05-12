@@ -161,13 +161,13 @@ void UIObject::Init()
             if (!ui_object->GetEntity().IsValid()) {
                 DebugLog(LogType::Warn, "Entity invalid for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UIEventHandlerResult::ERROR;
+                return UIEventHandlerResult::ERR;
             }
 
             if (!ui_object->GetScene()) {
                 DebugLog(LogType::Warn, "Scene invalid for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UIEventHandlerResult::ERROR;
+                return UIEventHandlerResult::ERR;
             }
 
             ScriptComponent *script_component = ui_object->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(ui_object->GetEntity());
@@ -182,7 +182,7 @@ void UIObject::Init()
             if (!script_component->object) {
                 DebugLog(LogType::Warn, "Script component has no object for UIObject with name: %s\n", *ui_object->GetName());
 
-                return UIEventHandlerResult::ERROR;
+                return UIEventHandlerResult::ERR;
             }
             
             if (dotnet::Class *class_ptr = script_component->object->GetClass()) {
@@ -201,7 +201,7 @@ void UIObject::Init()
 
             DebugLog(LogType::Error, "Failed to call method %s for UI object with name: %s\n", method_name.Data(), *ui_object->GetName());
 
-            return UIEventHandlerResult::ERROR;
+            return UIEventHandlerResult::ERR;
         }
     };
 

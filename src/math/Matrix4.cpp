@@ -177,10 +177,10 @@ Matrix4::Matrix4()
 
 Matrix4::Matrix4(const Matrix3 &matrix3)
     : rows {
-        { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
-        { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
-        { matrix3.rows[2][0], matrix3.rows[2][1], matrix3.rows[2][2], 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f }
+          { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
+          { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
+          { matrix3.rows[2][0], matrix3.rows[2][1], matrix3.rows[2][2], 0.0f },
+          { 0.0f, 0.0f, 0.0f, 1.0f }
       }
 {
 }
@@ -223,14 +223,25 @@ Matrix4 &Matrix4::Transpose()
 
 Matrix4 Matrix4::Transposed() const
 {
-    const float v[4][4] = {
-        { rows[0][0], rows[1][0], rows[2][0], rows[3][0] },
-        { rows[0][1], rows[1][1], rows[2][1], rows[3][1] },
-        { rows[0][2], rows[1][2], rows[2][2], rows[3][2] },
-        { rows[0][3], rows[1][3], rows[2][3], rows[3][3] }
-    };
+    Matrix4 transposed(*this);
+    transposed.rows[0][0] = rows[0][0];
+    transposed.rows[0][1] = rows[1][0];
+    transposed.rows[0][2] = rows[2][0];
+    transposed.rows[0][3] = rows[3][0];
+    transposed.rows[1][0] = rows[0][1];
+    transposed.rows[1][1] = rows[1][1];
+    transposed.rows[1][2] = rows[2][1];
+    transposed.rows[1][3] = rows[3][1];
+    transposed.rows[2][0] = rows[0][2];
+    transposed.rows[2][1] = rows[1][2];
+    transposed.rows[2][2] = rows[2][2];
+    transposed.rows[2][3] = rows[3][2];
+    transposed.rows[3][0] = rows[0][3];
+    transposed.rows[3][1] = rows[1][3];
+    transposed.rows[3][2] = rows[2][3];
+    transposed.rows[3][3] = rows[3][3];
 
-    return Matrix4(reinterpret_cast<const float *>(v));
+    return transposed;
 }
 
 Matrix4 &Matrix4::Invert()
