@@ -58,6 +58,11 @@ struct RefCountData
     }
 #endif
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HasValue() const
+        { return value != nullptr; }
+
     auto UseCount() const
     {
         if constexpr (std::is_integral_v<CountType>) {
@@ -147,9 +152,7 @@ protected:
     RefCountedPtrBase(const RefCountedPtrBase &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref != &null_ref__internal) {
-            IncRefCount();
-        }
+        IncRefCount();
     }
 
     RefCountedPtrBase &operator=(const RefCountedPtrBase &other)
@@ -162,9 +165,7 @@ protected:
 
         m_ref = other.m_ref;
 
-        if (m_ref != &null_ref__internal) {
-            IncRefCount();
-        }
+        IncRefCount();
 
         return *this;
     }
@@ -251,10 +252,8 @@ public:
     {
         RefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
-
-        if (m_ref != &null_ref__internal) {
-            IncRefCount();
-        }
+        
+        IncRefCount();
 
         return rc;
     }
@@ -276,7 +275,7 @@ public:
         DropRefCount();
         m_ref = ref;
 
-        if (inc_ref && m_ref != &null_ref__internal) {
+        if (inc_ref) {
             IncRefCount();
         }
     }
@@ -302,8 +301,12 @@ protected:
     void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(m_ref != nullptr && m_ref != &null_ref__internal);
+        AssertThrow(m_ref != nullptr);
 #endif
+
+        if (!m_ref->HasValue()) {
+            return;
+        }
 
         if constexpr (std::is_integral_v<CountType>) {
             ++m_ref->strong_count;
@@ -315,7 +318,7 @@ protected:
     HYP_FORCE_INLINE
     void DropRefCount()
     {
-        if (m_ref != &null_ref__internal) {
+        if (m_ref->HasValue()) {
 #ifdef HYP_DEBUG_MODE
             AssertThrow(m_ref != nullptr);
 #endif
@@ -367,17 +370,13 @@ public:
     WeakRefCountedPtrBase(const RefCountedPtrBase<CountType> &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
-            IncRefCount();
-        }
+        IncRefCount();
     }
 
     WeakRefCountedPtrBase(const WeakRefCountedPtrBase &other)
         : m_ref(other.m_ref)
     {
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
-            IncRefCount();
-        }
+        IncRefCount();
     }
 
     WeakRefCountedPtrBase &operator=(const RefCountedPtrBase<CountType> &other)
@@ -385,10 +384,8 @@ public:
         DropRefCount();
 
         m_ref = other.m_ref;
-
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
-            IncRefCount();
-        }
+        
+        IncRefCount();
 
         return *this;
     }
@@ -399,9 +396,7 @@ public:
 
         m_ref = other.m_ref;
 
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
-            IncRefCount();
-        }
+        IncRefCount();
 
         return *this;
     }
@@ -500,10 +495,8 @@ public:
     {
         WeakRefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
-
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
-            IncRefCount();
-        }
+        
+        IncRefCount();
 
         return rc;
     }
@@ -520,7 +513,7 @@ public:
         DropRefCount();
         m_ref = ref;
 
-        if (inc_ref && m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
+        if (inc_ref) {
             IncRefCount();
         }
     }
@@ -535,8 +528,12 @@ protected:
     void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(m_ref != nullptr && m_ref != &RefCountedPtrBase<CountType>::null_ref__internal);
+        AssertThrow(m_ref != nullptr);
 #endif
+
+        if (!m_ref->HasValue()) {
+            return;
+        }
 
         if constexpr (std::is_integral_v<CountType>) {
             ++m_ref->weak_count;
@@ -548,7 +545,7 @@ protected:
     HYP_FORCE_INLINE
     void DropRefCount()
     {
-        if (m_ref != &RefCountedPtrBase<CountType>::null_ref__internal) {
+        if (m_ref->HasValue()) {
             if constexpr (std::is_integral_v<CountType>) {
                 if (--m_ref->weak_count == 0u) {
                     if (m_ref->strong_count == 0u) {
