@@ -464,16 +464,16 @@ void EnvProbe::Render(Frame *frame)
         return;
     }
 
-    if (!NeedsRender()) {
-        return;
-    }
+    //if (!NeedsRender()) {
+    //    return;
+    //}
 
     AssertThrow(m_texture.IsValid());
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 
-    auto result = renderer::Result { };
+    Result result { };
 
     EnvProbeIndex probe_index;
 

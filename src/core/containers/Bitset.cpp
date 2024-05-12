@@ -226,11 +226,11 @@ Bitset::BitIndex Bitset::FirstSetBitIndex() const
             _BitScanForward(&bit_index, m_blocks[block_index]);
 #endif
 
-            return (block_index * Bitset::num_bits_per_block) + bit_index;
+            return (block_index * num_bits_per_block) + bit_index;
         }
     }
 
-    return BitIndex(-1); // No set bit found
+    return not_found;
 }
 
 Bitset::BitIndex Bitset::LastSetBitIndex() const
@@ -244,11 +244,11 @@ Bitset::BitIndex Bitset::LastSetBitIndex() const
             _BitScanReverse(&bit_index, m_blocks[block_index - 1]);
 #endif
     
-            return ((block_index - 1) * Bitset::num_bits_per_block) + bit_index;
+            return ((block_index - 1) * num_bits_per_block) + bit_index;
         }
     }
 
-    return BitIndex(-1); // No set bit found
+    return not_found;
 }
 
 std::ostream &operator<<(std::ostream &os, const Bitset &bitset)

@@ -103,8 +103,7 @@ struct VulkanDescriptorSetLayoutWrapper
         VkDescriptorSetLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
         layout_info.pBindings = bindings.Data();
         layout_info.bindingCount = uint32(bindings.Size());
-        layout_info.flags = 0;
-        layout_info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        layout_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         layout_info.pNext = &extended_info;
 
         HYPERION_VK_CHECK(vkCreateDescriptorSetLayout(

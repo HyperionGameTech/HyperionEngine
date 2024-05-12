@@ -5,22 +5,11 @@
 
 #include <core/utilities/Optional.hpp>
 #include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <HashCode.hpp>
 #include <Types.hpp>
-
-#include <math/Vector2.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
-#include <math/Matrix4.hpp>
 
 #include <vulkan/vulkan.h>
 
-#include <cstdint>
-#include <algorithm>
-#include <set>
 #include <memory>
-#include <utility>
 
 namespace hyperion {
 namespace renderer {

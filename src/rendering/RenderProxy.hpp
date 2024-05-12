@@ -31,6 +31,32 @@ struct RenderProxy
     Matrix4             model_matrix;
     Matrix4             previous_model_matrix;
     BoundingBox         aabb;
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const RenderProxy &other) const
+    {
+        return entity == other.entity
+            && mesh == other.mesh
+            && material == other.material
+            && skeleton == other.skeleton
+            && model_matrix == other.model_matrix
+            && previous_model_matrix == other.previous_model_matrix
+            && aabb == other.aabb;
+    }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(const RenderProxy &other) const
+    {
+        return entity != other.entity
+            || mesh != other.mesh
+            || material != other.material
+            || skeleton != other.skeleton
+            || model_matrix != other.model_matrix
+            || previous_model_matrix != other.previous_model_matrix
+            || aabb != other.aabb;
+    }
 };
 
 /*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */

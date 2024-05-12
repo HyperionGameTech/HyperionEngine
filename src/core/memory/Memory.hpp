@@ -42,10 +42,8 @@ public:
             return *lhs == *rhs
                 && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
         }
-        else
-        {
-            return StrCmp(lhs, rhs) == 0;
-        }
+
+        return StrCmp(lhs, rhs) == 0;
     }
 
     static char *StrCpy(char *dest, const char *src, SizeType length = 0)

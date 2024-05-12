@@ -177,7 +177,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    constexpr HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(m_begin, m_end);
     }

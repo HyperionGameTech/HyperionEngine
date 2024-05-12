@@ -13,19 +13,30 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
         iter = m_proxies.Find(entity);
     }
 
-    if (iter != m_proxies.End()) {
-        g_safe_deleter->SafeRelease(std::move(iter->second));
+    bool changed = false;
 
-        iter->second = proxy;
+    if (iter != m_proxies.End()) {
+        if (proxy != iter->second) {
+            g_safe_deleter->SafeRelease(std::move(iter->second));
+
+            iter->second = proxy;
+
+            changed = true;
+        }
     } else {
         iter = m_proxies.Insert(entity, proxy).first;
+
+        changed = true;
     }
 
     m_next_entities.Set(entity.ToIndex(), true);
-    m_changed_entities.Set(entity.ToIndex(), true);
 
     if (m_next_entities.NumBits() > m_previous_entities.NumBits()) {
         m_previous_entities.Resize(m_next_entities.NumBits());
+    }
+
+    if (changed) {
+        m_changed_entities.Set(entity.ToIndex(), true);
     }
 }
 
@@ -70,9 +81,9 @@ void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool 
 
     out_entities.Reserve(newly_added_bits.Count());
 
-    SizeType first_set_bit_index;
+    Bitset::BitIndex first_set_bit_index;
 
-    while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != -1) {
+    while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
         const ID<Entity> id = ID<Entity>::FromIndex(first_set_bit_index);
 
         auto it = m_proxies.Find(id);
@@ -100,9 +111,9 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
     { // Remove proxies for removed bits
         Bitset removed_bits = GetRemovedEntities();
 
-        SizeType first_set_bit_index;
+        Bitset::BitIndex first_set_bit_index;
 
-        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1) {
+        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found) {
             const ID<Entity> entity = ID<Entity>::FromIndex(first_set_bit_index);
 
             const auto it = m_proxies.Find(entity);

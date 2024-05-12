@@ -28,6 +28,8 @@ public:
     static constexpr uint32 num_preallocated_blocks = 2;
     static constexpr uint32 num_bits_per_block = sizeof(BlockType) * CHAR_BIT;
 
+    static constexpr BitIndex not_found = BitIndex(-1);
+
 private:
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -98,11 +100,11 @@ public:
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
     HYP_API explicit Bitset(uint64 value);
 
-    Bitset(const Bitset &other)                 = default;
-    Bitset &operator=(const Bitset &other)      = default;
+    Bitset(const Bitset &other)                         = default;
+    Bitset &operator=(const Bitset &other)              = default;
     HYP_API Bitset(Bitset &&other) noexcept;
     HYP_API Bitset &operator=(Bitset &&other) noexcept;
-    ~Bitset()                                   = default;
+    ~Bitset()                                           = default;
 
     [[nodiscard]]
     HYP_FORCE_INLINE

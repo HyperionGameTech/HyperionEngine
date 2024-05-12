@@ -52,6 +52,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     virtual Result operator()() override
     {
         // Clear out all proxy groups and recreate them
+
+        // @FIXME Remove this -- causing issues, but we need a way to tell what objects were removed
         collection->ClearProxyGroups();
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
@@ -492,6 +494,8 @@ void RenderList::ExecuteDrawCalls(
 
     g_engine->GetRenderState().BindCamera(camera.Get());
 
+    uint32 num_rendered_proxies = 0;
+
     for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
         for (const auto &it : proxy_groups) {
             const RenderableAttributeSet &attributes = it.first;
@@ -521,8 +525,12 @@ void RenderList::ExecuteDrawCalls(
             } else {
                 proxy_group.GetRenderGroup()->PerformRendering(frame);
             }
+
+            num_rendered_proxies += it.second.GetRenderProxies().Size();
         }
     }
+
+    DebugLog(LogType::Debug, "Rendered %u proxies\n", num_rendered_proxies);
 
     g_engine->GetRenderState().UnbindCamera();
 

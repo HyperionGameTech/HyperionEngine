@@ -228,6 +228,8 @@ void Scene::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     // Rebuild any octants that have had structural changes
+    // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
+    // stored on VisibilityStateComponent.
     m_octree.PerformUpdates();
 
     m_octree.NextVisibilityState();

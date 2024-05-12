@@ -119,7 +119,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         if (was_busy) {
             DebugLog(
                 LogType::Warn,
-                "On task thread %s: All other task threads busy; Executing task inline",
+                "On task thread %s: All other task threads busy; Executing task inline\n",
                 current_thread_id.name.LookupString()
             );
 

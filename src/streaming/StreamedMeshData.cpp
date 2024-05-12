@@ -35,9 +35,6 @@ StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
 
     m_mesh_data = std::move(mesh_data);
     m_mesh_data_loaded = true;
-
-    // Increment use count since it is already in memory
-    StreamedData::m_use_count.Increment(1, MemoryOrder::RELAXED);
 }
 
 StreamedMeshData::StreamedMeshData(RC<StreamedData> streamed_data)
