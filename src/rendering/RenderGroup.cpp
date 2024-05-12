@@ -64,8 +64,8 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
         pipeline->SetFillMode(attributes.GetMaterialAttributes().fill_mode);
         pipeline->SetBlendFunction(attributes.GetMaterialAttributes().blend_function);
         pipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencil_function);
-        pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_TEST));
-        pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RAF_DEPTH_WRITE));
+        pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_TEST));
+        pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_WRITE));
         pipeline->SetRenderPass(render_pass);
         pipeline->SetFramebuffers(framebuffers);
 

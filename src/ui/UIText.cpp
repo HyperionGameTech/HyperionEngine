@@ -276,7 +276,7 @@ Handle<Material> UIText::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RAF_NONE
+            .flags              = MaterialAttributeFlags::NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, m_text_color }

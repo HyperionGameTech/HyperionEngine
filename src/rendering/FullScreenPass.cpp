@@ -175,7 +175,7 @@ void FullScreenPass::CreatePipeline()
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
             .blend_function = m_blend_function,
-            .flags          = MaterialAttributes::RAF_NONE
+            .flags          = MaterialAttributeFlags::NONE
         }
     ));
 }

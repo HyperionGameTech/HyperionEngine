@@ -1,4 +1,4 @@
-﻿// #include "SampleStreamer.hpp"
+﻿#include "SampleStreamer.hpp"
 
 #include <editor/HyperionEditor.hpp>
 
@@ -49,7 +49,8 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    HyperionEditor editor;
+    // HyperionEditor editor;
+    SampleStreamer editor;
     App app;
 
     ArgParse arg_parse;

@@ -762,7 +762,7 @@ Handle<Material> UIObject::GetMaterial() const
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributes::RAF_NONE
+            .flags              = MaterialAttributeFlags::NONE
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f { 0.0f, 0.005f, 0.015f, 0.95f } }

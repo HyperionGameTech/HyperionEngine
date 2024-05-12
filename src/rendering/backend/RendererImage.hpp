@@ -400,7 +400,7 @@ public:
     void SetIsAttachmentTexture(bool is_attachment_texture)
         { m_is_attachment_texture = is_attachment_texture; }
 
-    const StreamedData *GetStreamedData() const
+    StreamedData *GetStreamedData() const
         { return m_streamed_data.Get(); }
 
     bool HasAssignedImageData() const

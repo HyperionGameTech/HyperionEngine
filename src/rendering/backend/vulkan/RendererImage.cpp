@@ -49,6 +49,8 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
     
     if (self->HasAssignedImageData()) {
         const ByteBuffer byte_buffer = self->GetStreamedData()->Load();
+        AssertThrow(byte_buffer.Size() == size);
+
         ByteBuffer new_byte_buffer(new_size);
 
         for (uint i = 0; i < num_faces; i++) {
@@ -59,6 +61,8 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
                 &new_byte_buffer.Data()[i * new_face_offset_step]
             );
         }
+
+        self->GetStreamedData()->Unpage();
 
         self->m_streamed_data.Reset(new MemoryStreamedData(std::move(new_byte_buffer)));
     }

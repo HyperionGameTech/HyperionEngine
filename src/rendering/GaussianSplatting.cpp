@@ -522,7 +522,7 @@ void GaussianSplattingInstance::CreateRenderGroup()
                 .bucket         = Bucket::BUCKET_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces     = FaceCullMode::NONE,
-                .flags          = MaterialAttributes::RAF_NONE
+                .flags          = MaterialAttributeFlags::NONE
             }
         ),
         descriptor_table,

@@ -354,46 +354,6 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    // const auto profile_results = Profile::RunInterleved(
-    //     {
-    //         new Profile([]()
-    //         {
-    //             HashMap<Vec3f, int> hash_map;
-    //             for (uint i = 0; i < 30; i++) {
-    //                 hash_map.Insert({ Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) }, i * 100 });
-    //             }
-    //             for (uint i = 0; i < 30; i++) {
-    //                 auto key = Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) };
-
-    //                 auto &value = hash_map[key];
-    //                 value *= 100;
-    //             }
-    //         }),
-    //         new Profile([]()
-    //         {
-    //             FlatMap<Vec3f, int> flat_map;
-    //             for (uint i = 0; i < 30; i++) {
-    //                 flat_map.Insert({ Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) }, i * 100 });
-    //             }
-    //             for (uint i = 0; i < 30; i++) {
-    //                 auto key = Vec3f { float((300-i) * 3), float((300-i) * 3 + 1), float((300-i) * 3 + 2) };
-
-    //                 auto &value = flat_map[key];
-    //                 value *= 100;
-    //             }
-    //         })
-    //     },
-    //     8,
-    //     2500,
-    //     2500
-    // );
-
-    // DebugLog(LogType::Debug, "Profile results:\n");
-    // DebugLog(LogType::Debug, "\tfirst: %f\n", profile_results[0]);
-    // DebugLog(LogType::Debug, "\tsecond: %f\n", profile_results[1]);
-
-    // HYP_BREAKPOINT;
-
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 
     GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(EditorUIRenderer), GetUIStage());
@@ -412,31 +372,31 @@ void HyperionEditor::Init()
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());
     m_impl->Initialize();
 
-    // add sun
-    auto sun = CreateObject<Light>(DirectionalLight(
-        Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
-        Color(1.0f),
-        4.0f
-    ));
+    // // add sun
+    // auto sun = CreateObject<Light>(DirectionalLight(
+    //     Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
+    //     Color(1.0f),
+    //     4.0f
+    // ));
 
-    InitObject(sun);
+    // InitObject(sun);
 
-    auto sun_node = m_scene->GetRoot().AddChild();
-    sun_node.SetName("Sun");
+    // auto sun_node = m_scene->GetRoot().AddChild();
+    // sun_node.SetName("Sun");
 
-    auto sun_entity = m_scene->GetEntityManager()->AddEntity();
-    sun_node.SetEntity(sun_entity);
-    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
+    // auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+    // sun_node.SetEntity(sun_entity);
+    // sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
-    m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
-        sun
-    });
+    // m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
+    //     sun
+    // });
 
-    m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
-        .mode       = ShadowMode::PCF,
-        .radius     = 18.0f,
-        .resolution = { 2048, 2048 }
-    });
+    // m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
+    //     .mode       = ShadowMode::PCF,
+    //     .radius     = 18.0f,
+    //     .resolution = { 2048, 2048 }
+    // });
 
     {
         
@@ -475,6 +435,74 @@ void HyperionEditor::Init()
         }
     }
 
+
+    {
+        Array<Handle<Light>> point_lights;
+
+        point_lights.PushBack(CreateObject<Light>(PointLight(
+           Vector3(0.0f, 1.5f, 2.0f),
+           Color(0.0f, 1.0f, 0.0f),
+           10.0f,
+           15.0f
+        )));
+
+        for (auto &light : point_lights) {
+            auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
+                Transform(
+                    light->GetPosition(),
+                    Vec3f(1.0f),
+                    Quaternion::Identity()
+                )
+            });
+
+            m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
+                light
+            });
+        }
+    }
+
+    // { // add test area light
+    //     auto light = CreateObject<Light>(RectangleLight(
+    //         Vec3f(0.0f, 1.25f, 0.0f),
+    //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
+    //         Vec2f(2.0f, 2.0f),
+    //         Color(1.0f, 0.0f, 0.0f),
+    //         1.0f
+    //     ));
+
+    //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
+    //         {
+    //            .shader_definition = ShaderDefinition {
+    //                 HYP_NAME(Forward),
+    //                 ShaderProperties(static_mesh_vertex_attributes)
+    //             },
+    //            .bucket = Bucket::BUCKET_OPAQUE
+    //         },
+    //         {
+    //         }
+    //     ));
+    //     AssertThrow(light->GetMaterial().IsValid());
+
+    //     InitObject(light);
+
+    //     auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
+
+    //     m_scene->GetEntityManager()->AddComponent(area_light_entity, TransformComponent {
+    //         Transform(
+    //             light->GetPosition(),
+    //             Vec3f(1.0f),
+    //             Quaternion::Identity()
+    //         )
+    //     });
+
+    //     m_scene->GetEntityManager()->AddComponent(area_light_entity, LightComponent {
+    //         light
+    //     });
+    // }
 
     // temp
     auto batch = AssetManager::GetInstance()->CreateBatch();
@@ -530,7 +558,7 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
         if (test_model) {
             if (test_model->IsTransformLocked()) {
                 test_model->UnlockTransform();
-                test_model->Translate(Vec3f { 0.0f });
+                test_model->Translate(Vec3f { 0.01f });
             } else {
                 test_model->LockTransform();
             }

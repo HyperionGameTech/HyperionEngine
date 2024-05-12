@@ -390,6 +390,8 @@ void DeferredPass::Record(uint frame_index)
                             ->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
+                    DebugLog(LogType::Debug, "Render light %u\tType: %u\n", light_id.Value(), uint32(light_type));
+
                     m_full_screen_quad->Render(cmd);
                 }
             }
@@ -477,7 +479,7 @@ void EnvGridPass::Create()
             .fill_mode      = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributes::RAF_NONE
+            .flags          = MaterialAttributeFlags::NONE
         }
     );
 
@@ -761,7 +763,7 @@ void ReflectionProbePass::Create()
             .fill_mode      = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributes::RAF_NONE
+            .flags          = MaterialAttributeFlags::NONE
         }
     );
 

@@ -427,32 +427,32 @@ public:
     /*! \brief Get whether depth writing is enabled for this Material.
      *  \return True if depth writing is enabled, false otherwise. */
     bool IsDepthWriteEnabled() const
-        { return bool(m_render_attributes.flags & MaterialAttributes::RAF_DEPTH_WRITE); }
+        { return bool(m_render_attributes.flags & MaterialAttributeFlags::DEPTH_WRITE); }
 
     /*! \brief Set whether depth writing is enabled for this Material.
      *  \param is_depth_write_enabled True if depth writing is enabled, false otherwise. */
     void SetIsDepthWriteEnabled(bool is_depth_write_enabled)
     {
         if (is_depth_write_enabled) {
-            m_render_attributes.flags |= MaterialAttributes::RAF_DEPTH_WRITE;
+            m_render_attributes.flags |= MaterialAttributeFlags::DEPTH_WRITE;
         } else {
-            m_render_attributes.flags &= ~MaterialAttributes::RAF_DEPTH_WRITE;
+            m_render_attributes.flags &= ~MaterialAttributeFlags::DEPTH_WRITE;
         }
     }
 
     /*! \brief Get whether depth testing is enabled for this Material.
      *  \return True if depth testing is enabled, false otherwise. */
     bool IsDepthTestEnabled() const
-        { return bool(m_render_attributes.flags & MaterialAttributes::RAF_DEPTH_TEST); }
+        { return bool(m_render_attributes.flags & MaterialAttributeFlags::DEPTH_TEST); }
 
     /*! \brief Set whether depth testing is enabled for this Material.
      *  \param is_depth_test_enabled True if depth testing is enabled, false otherwise. */
     void SetIsDepthTestEnabled(bool is_depth_test_enabled)
     {
         if (is_depth_test_enabled) {
-            m_render_attributes.flags |= MaterialAttributes::RAF_DEPTH_TEST;
+            m_render_attributes.flags |= MaterialAttributeFlags::DEPTH_TEST;
         } else {
-            m_render_attributes.flags &= ~MaterialAttributes::RAF_DEPTH_TEST;
+            m_render_attributes.flags &= ~MaterialAttributeFlags::DEPTH_TEST;
         }
     }
 

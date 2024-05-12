@@ -5,6 +5,7 @@
 
 #include <Constants.hpp>
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <type_traits>
 
@@ -159,6 +160,11 @@ struct EnumFlags
     HYP_FORCE_INLINE
     constexpr bool operator[](EnumType flag) const
         { return (value & static_cast<UnderlyingType>(flag)) != 0; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    constexpr HashCode GetHashCode() const
+        { return HashCode::GetHashCode(value); }
 };
 
 // Unary ~

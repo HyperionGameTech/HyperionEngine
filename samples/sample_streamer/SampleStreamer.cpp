@@ -247,7 +247,7 @@ void SampleStreamer::Init()
     ));*/
     m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
-    if (true) {
+    if (false) {
         auto gun = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
 
         if (gun) {
@@ -479,7 +479,7 @@ void SampleStreamer::Init()
         });
     }
 
-    { // add test area light
+    if (false) { // add test area light
         auto light = CreateObject<Light>(RectangleLight(
             Vec3f(0.0f, 1.25f, 0.0f),
             Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
@@ -529,7 +529,7 @@ void SampleStreamer::Init()
         auto batch = AssetManager::GetInstance()->CreateBatch();
         batch->Add("test_model", "models/sponza/sponza.obj");//pica_pica/pica_pica.obj");////living_room/living_room.obj");//
         batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
+        // batch->Add("cart", "models/coffee_cart/coffee_cart.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -560,13 +560,13 @@ void SampleStreamer::Init()
                         { Material::MATERIAL_KEY_METALNESS, 0.0f },
                         { Material::MATERIAL_KEY_ROUGHNESS, 0.1f },
                         { Material::MATERIAL_KEY_TRANSMISSION, 0.9f }
-                    },
-                    {
-                        {
-                            Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
-                            AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
-                        }
                     }
+                    // {
+                    //     {
+                    //         Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
+                    //         AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
+                    //     }
+                    // }
                 )
             });
 

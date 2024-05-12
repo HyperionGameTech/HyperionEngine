@@ -7,6 +7,8 @@
 #include <rendering/Shader.hpp>
 
 #include <core/Defines.hpp>
+#include <core/utilities/EnumFlags.hpp>
+
 #include <Types.hpp>
 #include <HashCode.hpp>
 
@@ -87,24 +89,26 @@ struct alignas(uint32) DrawableLayer
     }
 };
 
+
+
+enum class MaterialAttributeFlags : uint32
+{
+    NONE        = 0x0,
+    DEPTH_WRITE = 0x1,
+    DEPTH_TEST  = 0x2
+};
+
+HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
+
 struct MaterialAttributes
 {
-    using MaterialFlags = uint32;
-
-    enum MaterialFlagBits : MaterialFlags
-    {
-        RAF_NONE        = 0x0,
-        RAF_DEPTH_WRITE = 0x1,
-        RAF_DEPTH_TEST  = 0x2
-    };
-
-    ShaderDefinition    shader_definition;
-    Bucket              bucket = Bucket::BUCKET_OPAQUE;
-    FillMode            fill_mode = FillMode::FILL;
-    BlendFunction       blend_function = BlendFunction::None();
-    FaceCullMode        cull_faces = FaceCullMode::BACK;
-    MaterialFlags       flags = RAF_DEPTH_WRITE | RAF_DEPTH_TEST;
-    StencilFunction     stencil_function;
+    ShaderDefinition                    shader_definition;
+    Bucket                              bucket = Bucket::BUCKET_OPAQUE;
+    FillMode                            fill_mode = FillMode::FILL;
+    BlendFunction                       blend_function = BlendFunction::None();
+    FaceCullMode                        cull_faces = FaceCullMode::BACK;
+    EnumFlags<MaterialAttributeFlags>   flags = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST;
+    StencilFunction                     stencil_function;
 
     [[nodiscard]]
     HYP_FORCE_INLINE

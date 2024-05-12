@@ -3,6 +3,8 @@
 #include <streaming/StreamedData.hpp>
 #include <streaming/DataStore.hpp>
 
+#include <core/threading/TaskSystem.hpp>
+
 #include <core/containers/StaticString.hpp>
 
 #include <asset/BufferedByteReader.hpp>
@@ -191,13 +193,14 @@ void MemoryStreamedData::Unpage_Internal()
     }
 
     m_hash_code = m_byte_buffer.GetHashCode();
-
-    auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
-    data_store.Write(String::ToString(m_hash_code.Value()), m_byte_buffer);
-
-    m_byte_buffer = ByteBuffer(0, nullptr);
-
     m_is_in_memory = false;
+
+    // Enqueue task to write file to disk
+    TaskSystem::GetInstance().ScheduleTask([byte_buffer = std::move(m_byte_buffer), hash_code = m_hash_code]
+    {
+        auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
+        data_store.Write(String::ToString(hash_code.Value()), byte_buffer);
+    });
 }
 
 const ByteBuffer &MemoryStreamedData::Load_Internal() const

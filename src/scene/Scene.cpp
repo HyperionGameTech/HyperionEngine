@@ -114,8 +114,8 @@ Scene::Scene(
     m_entity_manager->AddSystem<EntityMeshDirtyStateSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
-    m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
+    m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();
     m_entity_manager->AddSystem<SkySystem>();
