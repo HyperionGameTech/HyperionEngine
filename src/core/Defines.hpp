@@ -256,8 +256,8 @@
 #define HYP_WAIT_IDLE() \
     do { \
         volatile int x = 0; \
-        x++; \
-    } while (0) \
+        x = x + 1; \
+    } while (0)
 
 // conditionals
 

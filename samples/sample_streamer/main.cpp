@@ -49,8 +49,8 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    // HyperionEditor editor;
-    SampleStreamer editor;
+    HyperionEditor editor;
+    // SampleStreamer editor;
     App app;
 
     ArgParse arg_parse;

@@ -464,6 +464,8 @@ void EnvProbe::Render(Frame *frame)
         return;
     }
 
+    // @FIXME!
+
     //if (!NeedsRender()) {
     //    return;
     //}

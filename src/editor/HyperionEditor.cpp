@@ -372,98 +372,98 @@ void HyperionEditor::Init()
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());
     m_impl->Initialize();
 
-    // // add sun
-    // auto sun = CreateObject<Light>(DirectionalLight(
-    //     Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
-    //     Color(1.0f),
-    //     4.0f
-    // ));
+    // add sun
+    auto sun = CreateObject<Light>(DirectionalLight(
+        Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
+        Color(1.0f),
+        4.0f
+    ));
 
-    // InitObject(sun);
+    InitObject(sun);
 
-    // auto sun_node = m_scene->GetRoot().AddChild();
-    // sun_node.SetName("Sun");
+    auto sun_node = m_scene->GetRoot().AddChild();
+    sun_node.SetName("Sun");
 
-    // auto sun_entity = m_scene->GetEntityManager()->AddEntity();
-    // sun_node.SetEntity(sun_entity);
-    // sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
+    auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+    sun_node.SetEntity(sun_entity);
+    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
-    // m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
-    //     sun
-    // });
+    m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
+        sun
+    });
 
-    // m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
-    //     .mode       = ShadowMode::PCF,
-    //     .radius     = 18.0f,
-    //     .resolution = { 2048, 2048 }
-    // });
+    m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
+        .mode       = ShadowMode::PCF,
+        .radius     = 18.0f,
+        .resolution = { 2048, 2048 }
+    });
 
-    {
+    // if (false) {
         
 
-        Array<Handle<Light>> point_lights;
+    //     Array<Handle<Light>> point_lights;
 
-        point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(-5.0f, 0.5f, 0.0f),
-            Color(1.0f, 0.0f, 0.0f),
-            1.0f,
-            5.0f
-        )));
-        point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(5.0f, 2.0f, 0.0f),
-            Color(0.0f, 1.0f, 0.0f),
-            1.0f,
-            15.0f
-        )));
+    //     point_lights.PushBack(CreateObject<Light>(PointLight(
+    //         Vector3(-5.0f, 0.5f, 0.0f),
+    //         Color(1.0f, 0.0f, 0.0f),
+    //         1.0f,
+    //         5.0f
+    //     )));
+    //     point_lights.PushBack(CreateObject<Light>(PointLight(
+    //         Vector3(5.0f, 2.0f, 0.0f),
+    //         Color(0.0f, 1.0f, 0.0f),
+    //         1.0f,
+    //         15.0f
+    //     )));
 
-        for (auto &light : point_lights) {
-            auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+    //     for (auto &light : point_lights) {
+    //         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
-                Transform(
-                    light->GetPosition(),
-                    Vec3f(1.0f),
-                    Quaternion::Identity()
-                )
-            });
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
+    //             Transform(
+    //                 light->GetPosition(),
+    //                 Vec3f(1.0f),
+    //                 Quaternion::Identity()
+    //             )
+    //         });
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
-                light
-            });
-        }
-    }
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
+    //             light
+    //         });
+    //     }
+    // }
 
 
-    {
-        Array<Handle<Light>> point_lights;
+    // {
+    //     Array<Handle<Light>> point_lights;
 
-        point_lights.PushBack(CreateObject<Light>(PointLight(
-           Vector3(0.0f, 1.5f, 2.0f),
-           Color(0.0f, 1.0f, 0.0f),
-           10.0f,
-           15.0f
-        )));
+    //     point_lights.PushBack(CreateObject<Light>(PointLight(
+    //        Vector3(0.0f, 1.5f, 2.0f),
+    //        Color(0.0f, 1.0f, 0.0f),
+    //        10.0f,
+    //        15.0f
+    //     )));
 
-        for (auto &light : point_lights) {
-            auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+    //     for (auto &light : point_lights) {
+    //         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
-                Transform(
-                    light->GetPosition(),
-                    Vec3f(1.0f),
-                    Quaternion::Identity()
-                )
-            });
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
+    //             Transform(
+    //                 light->GetPosition(),
+    //                 Vec3f(1.0f),
+    //                 Quaternion::Identity()
+    //             )
+    //         });
 
-            m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
-                light
-            });
-        }
-    }
+    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
+    //             light
+    //         });
+    //     }
+    // }
 
     // { // add test area light
     //     auto light = CreateObject<Light>(RectangleLight(

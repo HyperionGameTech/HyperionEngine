@@ -105,6 +105,26 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
+    FlatMap<ID<Entity>, RenderProxy> &GetRenderProxies()
+        { return m_proxies; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const FlatMap<ID<Entity>, RenderProxy> &GetRenderProxies() const
+        { return m_proxies; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    FlatMap<ID<Entity>, RenderProxy> &GetChangedRenderProxies()
+        { return m_changed_proxies; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const FlatMap<ID<Entity>, RenderProxy> &GetChangedRenderProxies() const
+        { return m_changed_proxies; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Bitset GetAddedEntities() const
         { return m_next_entities & ~m_previous_entities; }
 
@@ -118,9 +138,10 @@ public:
     const Bitset &GetChangedEntities() const
         { return m_changed_entities; }
 
-
 private:
-    HashMap<ID<Entity>, RenderProxy>    m_proxies;
+    FlatMap<ID<Entity>, RenderProxy>    m_proxies;
+    FlatMap<ID<Entity>, RenderProxy>    m_changed_proxies;
+
     Bitset                              m_previous_entities;
     Bitset                              m_next_entities;
     Bitset                              m_changed_entities;

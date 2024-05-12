@@ -107,7 +107,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         for (const ID<Entity> entity : proxy_ordering)
         {
-            const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
+            RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
 
             if (!proxy) {
                 continue;

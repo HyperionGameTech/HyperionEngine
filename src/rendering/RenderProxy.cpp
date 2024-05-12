@@ -7,36 +7,30 @@ extern HYP_API SafeDeleter *g_safe_deleter;
 
 void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
 {
-    HashMap<ID<Entity>, RenderProxy>::Iterator iter = m_proxies.End();
+    FlatMap<ID<Entity>, RenderProxy>::Iterator iter = m_proxies.End();
 
     if (HasProxyForEntity(entity)) {
         iter = m_proxies.Find(entity);
     }
 
-    bool changed = false;
-
     if (iter != m_proxies.End()) {
         if (proxy != iter->second) {
-            g_safe_deleter->SafeRelease(std::move(iter->second));
+            if (m_previous_entities.Test(entity.ToIndex())) {
+                // Mark as changed if it is found in the previous iteration
+                m_changed_proxies.Insert({ entity, std::move(iter->second) });
+                m_changed_entities.Set(entity.ToIndex(), true);
+            }
 
             iter->second = proxy;
-
-            changed = true;
         }
     } else {
         iter = m_proxies.Insert(entity, proxy).first;
-
-        changed = true;
     }
 
     m_next_entities.Set(entity.ToIndex(), true);
 
     if (m_next_entities.NumBits() > m_previous_entities.NumBits()) {
         m_previous_entities.Resize(m_next_entities.NumBits());
-    }
-
-    if (changed) {
-        m_changed_entities.Set(entity.ToIndex(), true);
     }
 }
 
@@ -141,6 +135,7 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
     }
 
     m_changed_entities.Clear();
+    m_changed_proxies.Clear();
 }
 
 } // namespace hyperion

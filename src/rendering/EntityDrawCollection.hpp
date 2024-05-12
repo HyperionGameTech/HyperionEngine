@@ -84,7 +84,8 @@ public:
     void ClearProxies();
 
     void AddRenderProxy(const RenderProxy &render_proxy);
-    
+    bool RemoveRenderProxy(const RenderProxy &render_proxy);
+
     const Array<RenderProxy> &GetRenderProxies() const
         { return m_render_proxies; }
 
@@ -99,9 +100,6 @@ public:
 class EntityDrawCollection
 {
 public:
-    void AddRenderProxy(ThreadType thread_type, const RenderableAttributeSet &attributes, const RenderProxy &proxy);
-    void AddRenderProxy(const RenderableAttributeSet &attributes, const RenderProxy &proxy);
-
     void ClearProxyGroups(bool reset_render_groups = false);
     void RemoveEmptyProxyGroups();
 
@@ -112,7 +110,7 @@ public:
     const RenderProxyList &GetProxyList(ThreadType) const;
 
 private:
-    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>   m_proxy_groups;
+    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
     FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
 };
 
