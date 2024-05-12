@@ -749,7 +749,7 @@ NodeProxy Node::FindChildByName(const String &name) const
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child->GetEntity().IsValid()) {
+            if (!child) {
                 continue;
             }
 

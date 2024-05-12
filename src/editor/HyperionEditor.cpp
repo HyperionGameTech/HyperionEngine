@@ -31,6 +31,7 @@
 
 // temp
 #include <util/Profile.hpp>
+#include <core/system/SystemEvent.hpp>
 
 namespace hyperion {
 namespace editor {
@@ -522,6 +523,19 @@ void HyperionEditor::Logic(GameCounter::TickUnit delta)
 void HyperionEditor::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
+
+    if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_M) {
+        NodeProxy test_model = m_scene->FindNodeByName("test_model");
+
+        if (test_model) {
+            if (test_model->IsTransformLocked()) {
+                test_model->UnlockTransform();
+                test_model->Translate(Vec3f { 0.0f });
+            } else {
+                test_model->LockTransform();
+            }
+        }
+    }
 }
 
 void HyperionEditor::OnFrameEnd(Frame *frame)

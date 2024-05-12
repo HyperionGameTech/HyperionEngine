@@ -60,7 +60,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager
     if (visibility_state_component.octant_id != OctantID::Invalid()) {
         Octree &octree = entity_manager.GetScene()->GetOctree();
 
-        const Octree::Result remove_result = octree.Remove(entity, false);
+        const Octree::Result remove_result = octree.Remove(entity);
 
         if (!remove_result) {
             DebugLog(LogType::Warn, "Failed to remove entity %u from octree: %s\n", entity.Value(), remove_result.message);

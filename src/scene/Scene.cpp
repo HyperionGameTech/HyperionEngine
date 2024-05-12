@@ -114,8 +114,8 @@ Scene::Scene(
     m_entity_manager->AddSystem<EntityMeshDirtyStateSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
-    m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
+    m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();
     m_entity_manager->AddSystem<SkySystem>();
@@ -226,18 +226,16 @@ void Scene::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertReady();
-
+    
     // Rebuild any octants that have had structural changes
     // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
     // stored on VisibilityStateComponent.
     m_octree.PerformUpdates();
-
     m_octree.NextVisibilityState();
 
-    if (m_camera) {
+    if (m_camera.IsValid()) {
         m_camera->Update(delta);
 
-        // update octree visibility states using the camera
         m_octree.CalculateVisibility(m_camera);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {

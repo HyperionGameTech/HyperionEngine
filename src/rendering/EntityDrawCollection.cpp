@@ -62,11 +62,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const ID<Entity> entity = proxy.entity;
 
             Handle<Mesh> &mesh = proxy.mesh;
+            AssertThrow(mesh.IsValid());
+
             Handle<Material> &material = proxy.material;
+            AssertThrow(material.IsValid());
 
             RenderableAttributeSet attributes {
-                mesh.IsValid() ? mesh->GetMeshAttributes() : MeshAttributes { },
-                material.IsValid() ? material->GetRenderAttributes() : MaterialAttributes { }
+                mesh->GetMeshAttributes(),
+                material->GetRenderAttributes()
             };
 
             if (framebuffer != nullptr) {
@@ -131,8 +134,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
                 // Create RenderGroup
                 Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
-
-                DebugLog(LogType::Debug, "Create render group %llu (#%u)\n", attributes.GetHashCode().Value(), render_group.GetID().Value());
 
 #ifdef HYP_DEBUG_MODE
                 if (!render_group.IsValid()) {

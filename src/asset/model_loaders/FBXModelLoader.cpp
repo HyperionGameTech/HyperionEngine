@@ -1316,7 +1316,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     .bucket = Bucket::BUCKET_OPAQUE
                 });
 
-                const Handle<Scene> &detached_scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
+                Handle<Scene> detached_scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
 
                 const ID<Entity> entity = detached_scene->GetEntityManager()->AddEntity();
 

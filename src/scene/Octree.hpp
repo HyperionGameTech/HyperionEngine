@@ -314,7 +314,10 @@ public:
     {
         const uint32 mask = ((tags == EntityTag::NONE ? 0 : (1u << (uint32(tags) - 1))) | ...);
 
-        return HashCode(m_entry_hashes[mask]).Add(m_invalidation_marker);
+        return HashCode::GetHashCode(GetOctantID())
+            .Add(GetAABB())
+            .Add(HashCode(m_entry_hashes[mask]))
+            .Add(m_invalidation_marker);
     }
 
     /*! \brief Get a hashcode of all entities currently in this Octant that match the mask tag (child octants affect this too)
@@ -323,12 +326,15 @@ public:
     {
         AssertThrow(entity_tag_mask < m_entry_hashes.Size());
 
-        return HashCode(m_entry_hashes[entity_tag_mask]).Add(m_invalidation_marker);
+        return HashCode::GetHashCode(GetOctantID())
+            .Add(GetAABB())
+            .Add(HashCode(m_entry_hashes[entity_tag_mask]))
+            .Add(m_invalidation_marker);
     }
         
     void Clear();
     InsertResult Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild = false);
-    Result Remove(ID<Entity> id, bool allow_rebuild);
+    Result Remove(ID<Entity> id, bool allow_rebuild = false);
     
     /*! \brief Update the entry in the octree. 
      * \param id The ID of the entity to update

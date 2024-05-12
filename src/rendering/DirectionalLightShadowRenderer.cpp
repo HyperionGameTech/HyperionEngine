@@ -598,7 +598,10 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
 
     if (needs_statics_rerender) {
-        DebugLog(LogType::Debug, "Re-render shadow statics\n");
+        DebugLog(LogType::Debug, "Should re-render shadow statics with light dir: %f, %f, %f\n",
+            m_camera->GetDirection().x,
+            m_camera->GetDirection().y,
+            m_camera->GetDirection().z);
 
         GetParent()->GetScene()->CollectStaticEntities(
             m_shadow_pass->GetRenderListStatics(),

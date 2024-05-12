@@ -1054,7 +1054,7 @@ void Octree::NextVisibilityState()
 
 void Octree::CalculateVisibility(const Handle<Camera> &camera)
 {
-    if (camera == nullptr) {
+    if (!camera.IsValid()) {
         return;
     }
 
@@ -1136,13 +1136,10 @@ void Octree::RebuildNodesHash(uint level)
             AssertThrow(octant.octree != nullptr);
 
             octant.octree->RebuildNodesHash(level + 1);
-
-            // for (uint i = 0; i < uint(m_entry_hashes.Size()); i++) {
-            //     m_entry_hashes[i].Add(octant.octree->GetEntryListHash(i));
-            // }
         }
     }
 
+    // Update parent to include this
     if (m_parent) {
         for (uint i = 0; i < uint(m_entry_hashes.Size()); i++) {
             m_parent->m_entry_hashes[i].Add(m_entry_hashes[i]);

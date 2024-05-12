@@ -89,7 +89,16 @@ public:
 
             AddBoneAssignment(vertex_index, {bone_index, bone_weight});
         } else if (name == "submesh") {
-            m_model.submeshes.PushBack({ });
+            String name = String("submesh_") + String::ToString(m_model.submeshes.Size());
+
+            if (auto name_it = attributes.Find("material"); name_it != attributes.End()) {
+                name = name_it->second;
+            }
+
+            m_model.submeshes.PushBack({
+                name,
+                Array<uint32> { }
+            });
         } else if (name == "vertex") {
             /* no-op */
         }  else {
@@ -213,14 +222,14 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         }
     }
 
-    for (auto &sub_mesh : model.submeshes) {
+    for (SubMesh &sub_mesh : model.submeshes) {
         if (sub_mesh.indices.Empty()) {
             DebugLog(LogType::Info, "Ogre XML parser: Skipping submesh with empty indices\n");
 
             continue;
         }
 
-        const Handle<Scene> &scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
+        Handle<Scene> scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID());
 
         const ID<Entity> entity = scene->GetEntityManager()->AddEntity();
 
@@ -247,11 +256,9 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         mesh->CalculateTangents();
         InitObject(mesh);
 
-        VertexAttributeSet vertex_attributes = mesh->GetVertexAttributes();
-        
-        ShaderProperties shader_properties(vertex_attributes);
+        ShaderProperties shader_properties(mesh->GetVertexAttributes());
 
-        Handle<Material> material = CreateObject<Material>(HYP_NAME(ogrexml_material));
+        Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())));
         material->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties));
         InitObject(material);
 
@@ -278,11 +285,11 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
                 entity,
                 AnimationComponent {
                     {
-                        .animation_index = 0,
-                        .status = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
-                        .loop_mode = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
-                        .speed = 1.0f,
-                        .current_time = 0.0f
+                        .animation_index    = 0,
+                        .status             = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
+                        .loop_mode          = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
+                        .speed              = 1.0f,
+                        .current_time       = 0.0f
                     }
                 }
             );

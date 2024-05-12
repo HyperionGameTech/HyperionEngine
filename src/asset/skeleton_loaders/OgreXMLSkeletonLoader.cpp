@@ -189,7 +189,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
     OgreXMLSkeletonSAXHandler handler(&state, object);
 
     xml::SAXParser parser(&handler);
-    auto sax_result = parser.Parse(&state.stream);
+    xml::SAXParser::Result sax_result = parser.Parse(&state.stream);
 
     if (!sax_result) {
         return { { LoaderResult::Status::ERR, sax_result.message }, UniquePtr<void>() };
@@ -250,7 +250,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
         (*skeleton_handle)->AddAnimation(std::move(animation));
     }
 
-    if (auto *root_bone = (*skeleton_handle)->GetRootBone()) {
+    if (Bone *root_bone = (*skeleton_handle)->GetRootBone()) {
         root_bone->SetToBindingPose();
 
         root_bone->CalculateBoneRotation();

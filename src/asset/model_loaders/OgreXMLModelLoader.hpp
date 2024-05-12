@@ -19,7 +19,8 @@ public:
     {
         struct SubMesh
         {
-            Array<Mesh::Index> indices;
+            String          name;
+            Array<uint32>   indices;
         };
 
         struct BoneAssignment
@@ -30,9 +31,9 @@ public:
 
         String                                  filepath;
 
-        Array<Vector3>                          positions;
-        Array<Vector3>                          normals;
-        Array<Vector2>                          texcoords;
+        Array<Vec3f>                            positions;
+        Array<Vec3f>                            normals;
+        Array<Vec2f>                            texcoords;
 
         Array<Vertex>                           vertices;
 
