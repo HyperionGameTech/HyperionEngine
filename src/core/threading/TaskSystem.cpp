@@ -119,9 +119,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         if (was_busy) {
             DebugLog(
                 LogType::Warn,
-                "On task thread %s: All other task threads busy while enqueuing a batch from within another task thread! "
-                "The task will instead be executed inline on the current task thread."
-                "\n\tReduce usage of batching within batches?\n",
+                "On task thread %s: All other task threads busy; Executing task inline",
                 current_thread_id.name.LookupString()
             );
 

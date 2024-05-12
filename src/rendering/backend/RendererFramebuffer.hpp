@@ -208,12 +208,12 @@ public:
     HYP_API void EndCapture(CommandBuffer<PLATFORM> *command_buffer, uint frame_index);
 
 private:
-    FramebufferPlatformImpl<PLATFORM> m_platform_impl;
+    FramebufferPlatformImpl<PLATFORM>   m_platform_impl;
 
-    Extent2D                                m_extent;
+    Extent2D                            m_extent;
 
-    RenderPassRef<PLATFORM>                 m_render_pass;
-    RC<AttachmentMap<PLATFORM>>             m_attachment_map;
+    RenderPassRef<PLATFORM>             m_render_pass;
+    RC<AttachmentMap<PLATFORM>>         m_attachment_map;
 };
 
 } // namespace platform

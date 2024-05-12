@@ -54,7 +54,6 @@ using renderer::SemaphoreChain;
 using renderer::Image;
 
 class Engine;
-class Framebuffer;
 class Game;
 class GameThread;
 class ShaderGlobals;

@@ -485,10 +485,9 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 
     DebugLog(
         LogType::Debug,
-        "Created RenderGroup for RenderableAttributeSet with hash %llu from thread %s\nStack:\n%s\n",
+        "Created RenderGroup for RenderableAttributeSet with hash %llu from thread %s\n",
         renderable_attributes.GetHashCode().Value(),
-        Threads::CurrentThreadID().name.LookupString(),
-        StackDump().ToString().Data()
+        Threads::CurrentThreadID().name.LookupString()
     );
 
     std::lock_guard guard(m_render_group_mapping_mutex);

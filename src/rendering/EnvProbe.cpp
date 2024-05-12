@@ -112,6 +112,7 @@ void EnvProbe::UpdateRenderData(
         .flags              = GetDrawProxy().flags,
         .camera_near        = GetDrawProxy().camera_near,
         .camera_far         = GetDrawProxy().camera_far,
+        .dimensions         = m_dimensions,
         .position_in_grid   = grid_slot != ~0u
             ? Vec4i {
                   int32(grid_slot % grid_size.width),
@@ -307,11 +308,15 @@ void EnvProbe::CreateFramebuffer()
         6
     );
 
-    InternalFormat format = reflection_probe_format;
+    InternalFormat format = InternalFormat::NONE;
 
-    if (IsShadowProbe()) {
+    if (IsReflectionProbe() || IsSkyProbe()) {
+        format = reflection_probe_format;
+    } else if (IsShadowProbe()) {
         format = shadow_probe_format;
     }
+
+    AssertThrowMsg(format != InternalFormat::NONE, "Invalid attachment format for EnvProbe");
 
     m_framebuffer->AddAttachment(
         0,

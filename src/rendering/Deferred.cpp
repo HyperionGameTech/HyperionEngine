@@ -266,9 +266,7 @@ void DeferredPass::Create()
         },
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
-            .blend_function = m_is_indirect_pass
-                ? BlendFunction::None()
-                : BlendFunction::Additive()
+            .blend_function = m_is_indirect_pass ? BlendFunction::None() : BlendFunction::Additive()
         }
     );
 
