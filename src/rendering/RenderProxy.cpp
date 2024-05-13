@@ -117,12 +117,8 @@ RenderProxy *RenderProxyList::GetProxyForEntity(ID<Entity> entity)
 void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
 {
     { // Remove proxies for removed bits
-        Bitset removed_bits = GetRemovedEntities();
-
-        Bitset::BitIndex first_set_bit_index;
-
-        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found) {
-            const ID<Entity> entity = ID<Entity>::FromIndex(first_set_bit_index);
+        for (Bitset::BitIndex index : GetRemovedEntities()) {
+            const ID<Entity> entity = ID<Entity>::FromIndex(index);
 
             const auto it = m_proxies.Find(entity);
 
@@ -131,8 +127,6 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
 
                 m_proxies.Erase(it);
             }
-
-            removed_bits.Set(first_set_bit_index, false);
         }
     }
 

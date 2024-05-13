@@ -558,8 +558,6 @@ void RenderList::ExecuteDrawCalls(
 
     g_engine->GetRenderState().BindCamera(camera.Get());
 
-    uint32 num_rendered_proxies = 0;
-
     for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
         for (const auto &it : proxy_groups) {
             const RenderableAttributeSet &attributes = it.first;
@@ -589,13 +587,8 @@ void RenderList::ExecuteDrawCalls(
             } else {
                 proxy_group.GetRenderGroup()->PerformRendering(frame);
             }
-
-            num_rendered_proxies += it.second.GetRenderProxies().Size();
         }
     }
-
-    if (frame->GetFrameIndex() % max_frames_in_flight == 0)
-        DebugLog(LogType::Debug, "Rendered %u proxies, bucket bits = %u\n", num_rendered_proxies, bucket_bits.ToUInt32());
 
     g_engine->GetRenderState().UnbindCamera();
 
