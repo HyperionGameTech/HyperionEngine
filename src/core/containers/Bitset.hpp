@@ -44,23 +44,18 @@ private:
     template <bool IsConst>
     struct IteratorBase
     {
-        std::conditional_t<IsConst, const BlockType *, BlockType *> ptr;
-        BitIndex                                                    bit_index;
+        std::conditional_t<IsConst, const Bitset *, Bitset *>   ptr;
+        BitIndex                                                bit_index;
 
         [[nodiscard]]
         HYP_FORCE_INLINE
-        Pair<BitIndex, bool> operator*() const
-        {
-            const BlockType *offset_ptr = (ptr + GetBlockIndex(bit_index));
-            const uint32 mask = GetBitMask(bit_index);
-
-            return { bit_index, bool((*offset_ptr) & mask) };
-        }
+        BitIndex operator*() const
+            { return bit_index; }
 
         HYP_FORCE_INLINE
         IteratorBase<IsConst> &operator++()
         {
-            ++bit_index;
+            bit_index = ptr->NextSetBitIndex(bit_index + 1);
 
             return *this;
         }
@@ -68,7 +63,7 @@ private:
         HYP_FORCE_INLINE
         IteratorBase<IsConst> operator++(int) const
         {
-            return { ptr, bit_index + 1 };
+            return { ptr, ptr->NextSetBitIndex(bit_index + 1) };
         }
 
         [[nodiscard]]
@@ -81,7 +76,7 @@ private:
         bool operator!=(const IteratorBase<IsConst> &other) const
             { return ptr != other.ptr || bit_index != other.bit_index; }
     };
-
+    
 public:
     friend std::ostream &operator<<(std::ostream &os, const Bitset &bitset);
 
@@ -155,6 +150,11 @@ public:
     /*! \brief Returns the index of the last set bit. If no bit is set, -1 is returned.
         \returns The index of the last set bit. */
     HYP_API BitIndex LastSetBitIndex() const;
+
+    /*! \brief Returns the index of the next set bit after or including the given index.
+        \param offset The index to start searching from.
+        \returns The index of the next set bit after the given index. */
+    HYP_API BitIndex NextSetBitIndex(BitIndex offset) const;
 
     /*! \brief Get the value of the bit at the given index.
         \param index The index of the bit to get.
@@ -291,22 +291,22 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     Iterator Begin()
-        { return { m_blocks.Data(), 0 }; }
+        { return { this, FirstSetBitIndex() }; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     Iterator End()
-        { return { m_blocks.Data(), LastSetBitIndex() + 1 }; }
+        { return { this, not_found }; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     ConstIterator Begin() const
-        { return { m_blocks.Data(), 0 }; }
+        { return { this, FirstSetBitIndex() }; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     ConstIterator End() const
-        { return { m_blocks.Data(), LastSetBitIndex() + 1 }; }
+        { return { this, not_found }; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE

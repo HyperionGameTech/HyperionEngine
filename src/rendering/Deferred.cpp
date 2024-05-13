@@ -390,8 +390,6 @@ void DeferredPass::Record(uint frame_index)
                             ->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
-                    DebugLog(LogType::Debug, "Render light %u\tType: %u\n", light_id.Value(), uint32(light_type));
-
                     m_full_screen_quad->Render(cmd);
                 }
             }

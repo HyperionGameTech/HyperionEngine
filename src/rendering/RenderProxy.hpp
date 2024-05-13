@@ -5,6 +5,7 @@
 
 #include <core/ID.hpp>
 #include <core/utilities/UserData.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/containers/Bitset.hpp>
 #include <core/containers/FlatMap.hpp>
 
@@ -60,10 +61,10 @@ struct RenderProxy
 };
 
 /*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */
-enum RenderProxyListAdvanceAction : uint32
+enum class RenderProxyListAdvanceAction : uint32
 {
-    RPLAA_CLEAR,    //! Clear the 'next' entities, so on next iteration, any entities that have not been re-added are marked for removal.
-    RPLAA_PERSIST,  //! Copy the previous entities over to next. To remove entities, `RemoveProxy` needs to be manually called.
+    CLEAR,    //! Clear the 'next' entities, so on next iteration, any entities that have not been re-added are marked for removal.
+    PERSIST   //! Copy the previous entities over to next. To remove entities, `RemoveProxy` needs to be manually called.
 };
 
 class RenderProxyList
@@ -72,7 +73,7 @@ public:
     void Add(ID<Entity> entity, const RenderProxy &proxy);
 
     /*! \brief Mark to keep a proxy from the previous iteration for this iteration.
-     *  Usable when \ref{Advance} is called with \ref{RPLAA_CLEAR}. Returns true if the
+     *  Usable when \ref{Advance} is called with \ref{RenderProxyListAdvanceAction::CLEAR}. Returns true if the
      *  proxy was successfully taken from the previous iteration, false otherwise.
      *  \param entity The entity to keep the proxy from the previous iteration for
      *  \returns Whether or not the proxy could be taken from the previous iteration */

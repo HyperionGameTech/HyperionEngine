@@ -15,11 +15,12 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
 
     if (iter != m_proxies.End()) {
         if (proxy != iter->second) {
-            if (m_previous_entities.Test(entity.ToIndex())) {
-                // Mark as changed if it is found in the previous iteration
-                m_changed_proxies.Insert({ entity, std::move(iter->second) });
-                m_changed_entities.Set(entity.ToIndex(), true);
-            }
+            // Sanity check
+            AssertThrow(!m_changed_proxies.Contains(entity));
+
+            // Mark as changed if it is found in the previous iteration
+            m_changed_proxies.Insert({ entity, std::move(iter->second) });
+            m_changed_entities.Set(entity.ToIndex(), true);
 
             iter->second = proxy;
         }
@@ -47,6 +48,19 @@ bool RenderProxyList::MarkToKeep(ID<Entity> entity)
 
 void RenderProxyList::MarkToRemove(ID<Entity> entity)
 {
+    // if (HasProxyForEntity(entity)) {
+    //     const auto it = m_proxies.Find(entity);
+
+    //     if (it != m_proxies.End()) {
+    //         // Sanity check
+    //         AssertThrow(!m_changed_proxies.Contains(entity));
+
+    //         // Mark as changed if it is found in the previous iteration
+    //         m_changed_proxies.Insert({ entity, std::move(it->second) });
+    //         m_changed_entities.Set(entity.ToIndex(), true);
+    //     }
+    // }
+
     m_next_entities.Set(entity.ToIndex(), false);
 }
 
@@ -123,19 +137,26 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
     }
 
     switch (action) {
-    case RPLAA_CLEAR:
+    case RenderProxyListAdvanceAction::CLEAR:
         // Next state starts out zeroed out -- and next call to Advance will remove proxies for these objs
         m_previous_entities = std::move(m_next_entities);
 
         break;
-    case RPLAA_PERSIST:
+    case RenderProxyListAdvanceAction::PERSIST:
         m_previous_entities = m_next_entities;
 
         break;
     }
 
-    m_changed_entities.Clear();
-    m_changed_proxies.Clear();
+    if (m_changed_entities.Count() != 0) {
+        // Release changed proxies (previous values)
+        for (auto &it : m_changed_proxies) {
+            g_safe_deleter->SafeRelease(std::move(it.second));
+        }
+
+        m_changed_entities.Clear();
+        m_changed_proxies.Clear();
+    }
 }
 
 } // namespace hyperion

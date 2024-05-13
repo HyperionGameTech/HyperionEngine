@@ -159,20 +159,20 @@ Bitset &Bitset::operator^=(const Bitset &other)
 
 void Bitset::Set(BitIndex index, bool value)
 {
-    const BitIndex bit_index = GetBlockIndex(index);
+    const uint32 block_index = GetBlockIndex(index);
 
-    if (bit_index >= m_blocks.Size()) {
+    if (block_index >= m_blocks.Size()) {
         if (!value) {
             return; // not point setting if it's already unset.
         }
 
-        m_blocks.Resize(bit_index + 1);
+        m_blocks.Resize(block_index + 1);
     }
 
     if (value) {
-        m_blocks[bit_index] |= GetBitMask(index);
+        m_blocks[block_index] |= GetBitMask(index);
     } else {
-        m_blocks[bit_index] &= ~GetBitMask(index);
+        m_blocks[block_index] &= ~GetBitMask(index);
     }
 }
 
@@ -246,6 +246,31 @@ Bitset::BitIndex Bitset::LastSetBitIndex() const
     
             return ((block_index - 1) * num_bits_per_block) + bit_index;
         }
+    }
+
+    return not_found;
+}
+
+Bitset::BitIndex Bitset::NextSetBitIndex(BitIndex offset) const
+{
+    const uint32 block_index = GetBlockIndex(offset);
+
+    uint32 mask = ~(GetBitMask(offset) - 1);
+    
+    for (uint32 i = block_index; i < m_blocks.Size(); i++) {
+        if ((m_blocks[i] & mask) != 0) {
+#ifdef HYP_CLANG_OR_GCC
+            const uint32 bit_index = __builtin_ffs(m_blocks[i] & mask) - 1;
+#elif defined(HYP_MSVC)
+            unsigned long bit_index = 0;
+            _BitScanForward(&bit_index, m_blocks[i] & mask);
+#endif
+
+            return (i * num_bits_per_block) + bit_index;
+        }
+
+        // use all bits in next iteration of loop
+        mask = ~0u;
     }
 
     return not_found;

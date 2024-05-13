@@ -102,104 +102,113 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
+    void AddRenderProxy(RenderProxyList &proxy_list, const RenderProxy &proxy, const RenderableAttributeSet &attributes, PassType pass_type)
+    {
+        const ID<Entity> entity = proxy.entity;
+
+        // Add proxy to group
+        RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
+
+        if (!render_proxy_group.GetRenderGroup().IsValid()) {
+            DebugLog(LogType::Debug, "Creating RenderGroup for attributes:\n"
+                "\tVertex Attributes: %llu\n"
+                "\tBucket: %u\n"
+                "\tShader Definition: %s  %llu\n"
+                "\tFramebuffer: %llu\n"
+                "\tCull Mode: %u\n"
+                "\tFlags: %u\n"
+                "\tDrawable layer: %u\n"
+                "\n",
+                attributes.GetMeshAttributes().vertex_attributes.flag_mask,
+                attributes.GetMaterialAttributes().bucket,
+                *attributes.GetShaderDefinition().GetName(),
+                attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
+                attributes.GetFramebuffer().index,
+                attributes.GetMaterialAttributes().cull_faces,
+                attributes.GetMaterialAttributes().flags,
+                attributes.GetDrawableLayer().layer_index);
+
+            // Create RenderGroup
+            Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
+            InitObject(render_group);
+
+            render_proxy_group.SetRenderGroup(render_group);
+        }
+
+        render_proxy_group.AddRenderProxy(proxy);
+
+        proxy_list.Add(entity, std::move(proxy));
+    }
+
+    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, PassType pass_type)
+    {
+        bool removed = false;
+
+        for (auto &proxy_groups : collection->GetProxyGroups()) {
+            for (auto &it : proxy_groups) {
+                removed |= it.second.RemoveRenderProxy(entity);
+            }
+        }
+
+        proxy_list.MarkToRemove(entity);
+
+        return removed;
+    }
+
     virtual Result operator()() override
     {
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (const auto &it : changed_proxies) {
-            // Remove changed proxies from existing groups
-            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(it.second);
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            const ID<Entity> entity = it.first;
+            const RenderProxy &proxy = it.second;
 
-            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
-
-            if (!render_proxy_group.RemoveRenderProxy(it.second)) {
-                DebugLog(LogType::Warn, "Render proxy changed but was not found in group!\n");
-            }
-        }
-
-        for (const ID<Entity> &entity : removed_proxies) {
-            proxy_list.MarkToRemove(entity);
-
-            RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
-            AssertThrowMsg(proxy != nullptr, "Render proxy was removed but was not found in existing render list!");
-
-            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
-
-            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
-
-            if (!render_proxy_group.RemoveRenderProxy(*proxy)) {
-                DebugLog(LogType::Warn, "Render proxy was removed but was not found in group!");
-            }
-        }
-
-        for (RenderProxy &proxy : added_proxies) {
-            const ID<Entity> entity = proxy.entity;
-
-            Handle<Mesh> &mesh = proxy.mesh;
+            const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
 
-            Handle<Material> &material = proxy.material;
+            const Handle<Material> &material = proxy.material;
+            AssertThrow(material.IsValid());
+
+            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
+            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            
+            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
+        }
+
+        for (const RenderProxy &proxy : added_proxies) {
+            const Handle<Mesh> &mesh = proxy.mesh;
+            AssertThrow(mesh.IsValid());
+
+            const Handle<Material> &material = proxy.material;
             AssertThrow(material.IsValid());
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
 
-            // Add proxy to group
-            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
+            AddRenderProxy(proxy_list, proxy, attributes, pass_type);
+        }
 
-            if (!render_proxy_group.GetRenderGroup().IsValid()) {
-                DebugLog(LogType::Debug, "Creating RenderGroup for attributes:\n"
-                    "\tVertex Attributes: %llu\n"
-                    "\tBucket: %u\n"
-                    "\tShader Definition: %s  %llu\n"
-                    "\tFramebuffer: %llu\n"
-                    "\tCull Mode: %u\n"
-                    "\tFlags: %u\n"
-                    "\tDrawable layer: %u\n"
-                    "\tMesh name: %s\n"
-                    "\n",
-                    attributes.GetMeshAttributes().vertex_attributes.flag_mask,
-                    attributes.GetMaterialAttributes().bucket,
-                    *attributes.GetShaderDefinition().GetName(),
-                    attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
-                    attributes.GetFramebuffer().index,
-                    attributes.GetMaterialAttributes().cull_faces,
-                    attributes.GetMaterialAttributes().flags,
-                    attributes.GetDrawableLayer().layer_index,
-                    mesh.IsValid() ? *mesh->GetName() : "<None>");
+        for (const ID<Entity> &entity : removed_proxies) {
+            const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
+            AssertThrow(proxy != nullptr);
 
-                // Create RenderGroup
-                Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
-                InitObject(render_group);
+            const Handle<Mesh> &mesh = proxy->mesh;
+            AssertThrow(mesh.IsValid());
 
-                render_proxy_group.SetRenderGroup(render_group);
-            }
+            const Handle<Material> &material = proxy->material;
+            AssertThrow(material.IsValid());
 
-            proxy_list.Add(entity, std::move(proxy));
+            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
+            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+
+            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
         }
 
         DebugLog(LogType::Debug, "Added Proxies: %llu\n", proxy_list.GetAddedEntities().Count());
         DebugLog(LogType::Debug, "Removed Proxies: %llu\n", proxy_list.GetRemovedEntities().Count());
         DebugLog(LogType::Debug, "Changed Proxies: %llu\n", proxy_list.GetChangedEntities().Count());
 
-        proxy_list.Advance(RPLAA_PERSIST);
-
-        // // Clear out all proxy groups and recreate them
-        // collection->ClearProxyGroups();
-
-        // // @TODO : make it so only proxies that were added/removed need to be added to the group.
-        // // this will require knowing what proxies to remove and readd to a new group, if neccesssay 
-        // for (Pair<ID<Entity>, RenderProxy> &it : proxy_list.GetRenderProxies()) {
-        //     const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(it.second);
-        //     const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
-
-        //     // Add proxy to group
-        //     RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
-        //     AssertThrow(render_proxy_group.GetRenderGroup().IsValid());
-        //     render_proxy_group.AddRenderProxy(&it.second);
-        // }
+        proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
         
         // Clear out groups that are no longer used
         collection->RemoveEmptyProxyGroups();
@@ -258,9 +267,12 @@ void RenderProxyGroup::AddRenderProxy(const RenderProxy &render_proxy)
     m_render_proxies.PushBack(render_proxy);
 }
 
-bool RenderProxyGroup::RemoveRenderProxy(const RenderProxy &render_proxy)
+bool RenderProxyGroup::RemoveRenderProxy(ID<Entity> entity)
 {
-    const auto it = m_render_proxies.Find(render_proxy);
+    const auto it = m_render_proxies.FindIf([entity](const RenderProxy &item)
+    {
+        return item.entity == entity;
+    });
 
     if (it == m_render_proxies.End()) {
         return false;
@@ -376,7 +388,7 @@ void RenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const O
     proxy_list.GetRemovedEntities(removed_proxies);
 
     Array<RenderProxy *> added_proxies_ptrs;
-    proxy_list.GetAddedEntities(added_proxies_ptrs);
+    proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
 
     FlatMap<ID<Entity>, RenderProxy> changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
 
@@ -407,7 +419,7 @@ void RenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const O
         );
     }
 
-    proxy_list.Advance(RPLAA_CLEAR);
+    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void RenderList::PushEntityToRender(
@@ -582,7 +594,8 @@ void RenderList::ExecuteDrawCalls(
         }
     }
 
-    DebugLog(LogType::Debug, "Rendered %u proxies, bucket bits = %u\n", num_rendered_proxies, bucket_bits.ToUInt32());
+    if (frame->GetFrameIndex() % max_frames_in_flight == 0)
+        DebugLog(LogType::Debug, "Rendered %u proxies, bucket bits = %u\n", num_rendered_proxies, bucket_bits.ToUInt32());
 
     g_engine->GetRenderState().UnbindCamera();
 

@@ -190,7 +190,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             proxy_list.MarkToRemove(entity);
         }
 
-        proxy_list.Advance(RPLAA_PERSIST);
+        proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
 
         BuildProxyGroupsInOrder();
 
@@ -239,6 +239,8 @@ void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const
     Array<RenderProxy *> added_proxies_ptrs;
     proxy_list.GetAddedEntities(added_proxies_ptrs, true);
 
+    // @TODO Changed
+
     if (added_proxies_ptrs.Any() || removed_proxies.Any()) {
         Array<RenderProxy> added_proxies;
         added_proxies.Resize(added_proxies_ptrs.Size());
@@ -261,7 +263,7 @@ void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const
         );
     }
 
-    proxy_list.Advance(RPLAA_CLEAR);
+    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void UIRenderList::CollectDrawCalls(Frame *frame)

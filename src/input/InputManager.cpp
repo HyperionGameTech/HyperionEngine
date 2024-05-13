@@ -30,18 +30,14 @@ void InputManager::CheckEvent(SystemEvent *event)
         KeyUp(event->GetNormalizedKeyCode());
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
-        for (Pair<Bitset::BitIndex, bool> it : Bitset(event->GetMouseButtons())) {
-            if (it.second) {
-                MouseButtonDown(MouseButton(it.first));
-            }
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons())) {
+            MouseButtonDown(MouseButton(index));
         }
         
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_UP:
-        for (Pair<Bitset::BitIndex, bool> it : Bitset(event->GetMouseButtons())) {
-            if (it.second) {
-                MouseButtonUp(MouseButton(it.first));
-            }
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons())) {
+            MouseButtonUp(MouseButton(index));
         }
 
         break;
