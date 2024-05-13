@@ -48,19 +48,6 @@ bool RenderProxyList::MarkToKeep(ID<Entity> entity)
 
 void RenderProxyList::MarkToRemove(ID<Entity> entity)
 {
-    // if (HasProxyForEntity(entity)) {
-    //     const auto it = m_proxies.Find(entity);
-
-    //     if (it != m_proxies.End()) {
-    //         // Sanity check
-    //         AssertThrow(!m_changed_proxies.Contains(entity));
-
-    //         // Mark as changed if it is found in the previous iteration
-    //         m_changed_proxies.Insert({ entity, std::move(it->second) });
-    //         m_changed_entities.Set(entity.ToIndex(), true);
-    //     }
-    // }
-
     m_next_entities.Set(entity.ToIndex(), false);
 }
 

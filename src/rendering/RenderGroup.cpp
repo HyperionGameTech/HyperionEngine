@@ -24,7 +24,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 {
     GraphicsPipelineRef                 pipeline;
     RenderPassRef                       render_pass;
-    Array<FramebufferRef>         framebuffers;
+    Array<FramebufferRef>               framebuffers;
     RenderGroup::AsyncCommandBuffers    command_buffers;
     RenderableAttributeSet              attributes;
 

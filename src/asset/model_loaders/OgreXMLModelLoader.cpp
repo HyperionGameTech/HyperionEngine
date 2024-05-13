@@ -249,11 +249,11 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             Topology::TRIANGLES
         );
 
-        if (model.normals.Empty()) {
+        // if (model.normals.Empty()) {
             mesh->CalculateNormals();
-        }
+        // }
 
-        mesh->CalculateTangents();
+        // mesh->CalculateTangents();
         InitObject(mesh);
 
         ShaderProperties shader_properties(mesh->GetVertexAttributes());

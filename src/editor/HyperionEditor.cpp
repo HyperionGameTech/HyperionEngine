@@ -394,7 +394,7 @@ void HyperionEditor::Init()
 
     m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
         .mode       = ShadowMode::PCF,
-        .radius     = 18.0f,
+        .radius     = 35.0f,
         .resolution = { 2048, 2048 }
     });
 
@@ -508,6 +508,7 @@ void HyperionEditor::Init()
     auto batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    batch->Add("house", "models/house.obj");
     batch->LoadAsync();
     auto results = batch->AwaitResults();
 
@@ -516,7 +517,10 @@ void HyperionEditor::Init()
     node.SetName("test_model");
     node.LockTransform();
 
-    GetScene()->GetRoot().AddChild(node);
+    if (auto house = results["house"].Get<Node>()) {
+        house.Scale(0.25f);
+        m_scene->GetRoot().AddChild(house);
+    }
 
     if (auto zombie = results["zombie"].Get<Node>()) {
         zombie.Scale(0.25f);
@@ -534,6 +538,8 @@ void HyperionEditor::Init()
 
         zombie.SetName("zombie");
     }
+
+    GetScene()->GetRoot().AddChild(node);
 }
 
 void HyperionEditor::Teardown()
@@ -556,12 +562,9 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
         NodeProxy test_model = m_scene->FindNodeByName("test_model");
 
         if (test_model) {
-            if (test_model->IsTransformLocked()) {
-                test_model->UnlockTransform();
-                test_model->Translate(Vec3f { 0.01f });
-            } else {
-                test_model->LockTransform();
-            }
+            test_model->UnlockTransform();
+            test_model->Translate(Vec3f { 0.01f });
+            test_model->LockTransform();
         }
     }
 }

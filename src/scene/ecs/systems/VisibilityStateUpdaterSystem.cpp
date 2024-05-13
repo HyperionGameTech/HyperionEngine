@@ -86,9 +86,12 @@ void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCo
 
         visibility_state_component.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
 
+        // if entity is not in the octree, try to insert it
         if (visibility_state_component.octant_id == OctantID::Invalid()) {
-            // entity was not in the octree, try to insert it
+
             if (!bounding_box_component.world_aabb.IsValid()) {
+                visibility_state_component.visibility_state = nullptr;
+
                 continue;
             }
 

@@ -252,7 +252,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    switch (cull_mode) {
+    switch (m_face_cull_mode) {
     case FaceCullMode::BACK:
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         break;
@@ -262,6 +262,8 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     case FaceCullMode::NONE:
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         break;
+    default:
+        return { Result::RENDERER_ERR, "Invalid value for face cull mode!" };
     }
 
     switch (fill_mode) {
@@ -296,7 +298,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
             continue;
         }
 
-        const bool blend_enabled = blend_function != BlendFunction::None();
+        const bool blend_enabled = attachment->AllowBlending() && blend_function != BlendFunction::None();
 
         static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };

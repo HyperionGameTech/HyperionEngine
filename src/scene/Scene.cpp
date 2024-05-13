@@ -254,7 +254,7 @@ void Scene::Update(GameCounter::TickUnit delta)
     EnqueueRenderUpdates();
 }
 
-void Scene::CollectEntities(
+RenderListCollectionResult Scene::CollectEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
@@ -263,8 +263,8 @@ void Scene::CollectEntities(
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
-    if (!camera) {
-        return;
+    if (!camera.IsValid()) {
+        return { };
     }
 
     const ID<Camera> camera_id = camera.GetID();
@@ -303,13 +303,13 @@ void Scene::CollectEntities(
         );
     }
 
-    render_list.UpdateOnRenderThread(
+    return render_list.UpdateOnRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
 }
 
-void Scene::CollectDynamicEntities(
+RenderListCollectionResult Scene::CollectDynamicEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
@@ -318,8 +318,8 @@ void Scene::CollectDynamicEntities(
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
-    if (!camera) {
-        return;
+    if (!camera.IsValid()) {
+        return { };
     }
 
     const ID<Camera> camera_id = camera.GetID();
@@ -359,13 +359,13 @@ void Scene::CollectDynamicEntities(
         );
     }
 
-    render_list.UpdateOnRenderThread(
+    return render_list.UpdateOnRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
 }
 
-void Scene::CollectStaticEntities(
+RenderListCollectionResult Scene::CollectStaticEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
@@ -374,8 +374,8 @@ void Scene::CollectStaticEntities(
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
-    if (!camera) {
-        return;
+    if (!camera.IsValid()) {
+        return { };
     }
 
     const ID<Camera> camera_id = camera.GetID();
@@ -415,7 +415,7 @@ void Scene::CollectStaticEntities(
         );
     }
 
-    render_list.UpdateOnRenderThread(
+    return render_list.UpdateOnRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );

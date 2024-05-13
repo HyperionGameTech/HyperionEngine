@@ -4,6 +4,7 @@
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/threading/Notifier.hpp>
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Light.hpp>
@@ -24,14 +25,6 @@
 namespace hyperion {
 
 using renderer::Frame;
-
-enum class ShadowRenderPassFlags : uint32
-{
-    NONE                    = 0x0,
-    RERENDER_STATIC_OBJECTS = 0x1
-};
-
-HYP_MAKE_ENUM_FLAGS(ShadowRenderPassFlags)
 
 struct ShadowMapCameraData
 {
@@ -86,11 +79,8 @@ public:
     const Handle<Texture> &GetShadowMap() const
         { return m_shadow_map_all; }
 
-    EnumFlags<ShadowRenderPassFlags> GetFlags() const
-        { return m_flags; }
-
-    void SetFlags(EnumFlags<ShadowRenderPassFlags> flags)
-        { m_flags = flags; }
+    Notifier &GetShouldRerenderStaticObjectsNotifier()
+        { return m_should_rerender_static_objects; }
 
     void CreateShader();
     virtual void CreateFramebuffer() override;
@@ -120,7 +110,7 @@ private:
     UniquePtr<FullScreenPass>           m_combine_shadow_maps_pass;
     ComputePipelineRef                  m_blur_shadow_map_pipeline;
 
-    EnumFlags<ShadowRenderPassFlags>    m_flags;
+    Notifier                            m_should_rerender_static_objects;
 };
 
 class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>

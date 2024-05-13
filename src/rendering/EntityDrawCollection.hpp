@@ -114,6 +114,19 @@ private:
     FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
 };
 
+struct RenderListCollectionResult
+{
+    uint32  num_added_entities = 0;
+    uint32  num_removed_entities = 0;
+    uint32  num_changed_entities = 0;
+
+    /*! \brief Returns true if any proxies have been added, removed or changed. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool NeedsUpdate() const
+        { return num_added_entities != 0 || num_removed_entities != 0 || num_changed_entities != 0; }
+};
+
 class RenderList
 {
 public:
@@ -145,7 +158,7 @@ public:
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
-    void UpdateOnRenderThread(
+    RenderListCollectionResult UpdateOnRenderThread(
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );

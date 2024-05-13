@@ -167,21 +167,21 @@ public:
     */
     HYP_API void Update(GameCounter::TickUnit delta);
 
-    HYP_API void CollectEntities(
+    HYP_API RenderListCollectionResult CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    HYP_API void CollectDynamicEntities(
+    HYP_API RenderListCollectionResult CollectDynamicEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    HYP_API void CollectStaticEntities(
+    HYP_API RenderListCollectionResult CollectStaticEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },

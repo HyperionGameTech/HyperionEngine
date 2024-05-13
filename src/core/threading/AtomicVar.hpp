@@ -75,6 +75,7 @@ public:
     AtomicVar &operator=(AtomicVar &&other) noexcept    = delete;
     ~AtomicVar()                                        = default;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T Get(MemoryOrder order) const
         { return m_value.load(detail::ToCxxMemoryOrder(order)); }
@@ -82,6 +83,10 @@ public:
     HYP_FORCE_INLINE
     void Set(T value, MemoryOrder order)
         { m_value.store(value, detail::ToCxxMemoryOrder(order)); }
+
+    HYP_FORCE_INLINE
+    T Exchange(T new_value, MemoryOrder order)
+        { return m_value.exchange(new_value, detail::ToCxxMemoryOrder(order)); }
 
     HYP_FORCE_INLINE
     T Increment(T amount, MemoryOrder order)

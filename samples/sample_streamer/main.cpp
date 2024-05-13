@@ -49,19 +49,6 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    // Bitset bs(0b1101011010001ull);
-    // bs.Set(1000, true);
-
-    // Bitset::BitIndex bit_index = Bitset::not_found;
-
-    // do {
-    //     bit_index = bs.NextSetBitIndex(bit_index + 1);
-
-    //     DebugLog(LogType::Debug, "Bit index: %llu\n", bit_index);
-    // } while (bit_index != Bitset::not_found);
-
-    // HYP_BREAKPOINT;
-
     HyperionEditor editor;
     // SampleStreamer editor;
     App app;

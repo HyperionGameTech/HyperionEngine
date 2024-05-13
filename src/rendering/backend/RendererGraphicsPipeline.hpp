@@ -58,11 +58,11 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     FaceCullMode GetCullMode() const
-        { return cull_mode; }
+        { return m_face_cull_mode; }
 
     HYP_FORCE_INLINE
     void SetCullMode(FaceCullMode face_cull_mode)
-        { this->cull_mode = face_cull_mode; }
+        { m_face_cull_mode = face_cull_mode; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -140,7 +140,7 @@ protected:
     VertexAttributeSet                      vertex_attributes;
 
     Topology                                topology = Topology::TRIANGLES;
-    FaceCullMode                            cull_mode = FaceCullMode::BACK;
+    FaceCullMode                            m_face_cull_mode = FaceCullMode::BACK;
     FillMode                                fill_mode = FillMode::FILL;
     BlendFunction                           blend_function = BlendFunction::None();
 

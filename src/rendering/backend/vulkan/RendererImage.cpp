@@ -37,18 +37,17 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 
     const uint num_faces = self->NumFaces();
     const uint size = self->m_size;
+    const uint face_offset_step = size / num_faces;
 
-    const uint8 bpp = self->GetBPP();
+    const uint8 bpp = self->m_bpp;
 
     const Extent3D extent = self->GetExtent();
-
-    const uint face_offset_step = size / num_faces;
 
     const uint new_size = num_faces * new_bpp * extent.width * extent.height * extent.depth;
     const uint new_face_offset_step = new_size / num_faces;
     
     if (self->HasAssignedImageData()) {
-        const ByteBuffer byte_buffer = self->GetStreamedData()->Load();
+        const ByteBuffer &byte_buffer = self->GetStreamedData()->Load();
         AssertThrow(byte_buffer.Size() == size);
 
         ByteBuffer new_byte_buffer(new_size);
@@ -71,7 +70,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
     self->m_bpp = new_bpp;
     self->m_size = new_size;
 
-    *out_format = helpers::ToVkFormat(format);
+    *out_format = helpers::ToVkFormat(self->m_format);
 
     HYPERION_RETURN_OK;
 }

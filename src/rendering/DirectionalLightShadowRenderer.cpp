@@ -170,32 +170,6 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(SetShadowRenderPassFlags) : renderer::RenderCommand
-{
-    ShadowPass                          *shadow_pass;
-    EnumFlags<ShadowRenderPassFlags>    add_flags;
-    EnumFlags<ShadowRenderPassFlags>    remove_flags;
-
-    RENDER_COMMAND(SetShadowRenderPassFlags)(
-        ShadowPass *shadow_pass,
-        EnumFlags<ShadowRenderPassFlags> add_flags,
-        EnumFlags<ShadowRenderPassFlags> remove_flags = ShadowRenderPassFlags::NONE
-    ) : shadow_pass(shadow_pass),
-        add_flags(add_flags),
-        remove_flags(remove_flags)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(SetShadowRenderPassFlags)() override = default;
-
-    virtual Result operator()() override
-    {
-        shadow_pass->SetFlags((shadow_pass->GetFlags() | add_flags) & ~remove_flags);
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 #pragma endregion Render commands
 
 #pragma region ShadowPass
@@ -204,8 +178,7 @@ ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, Shado
     : FullScreenPass(shadow_map_formats[uint(shadow_mode)], extent),
       m_parent_scene(parent_scene),
       m_shadow_mode(shadow_mode),
-      m_shadow_map_index(~0u),
-      m_flags(ShadowRenderPassFlags::NONE)
+      m_shadow_map_index(~0u)
 {
 }
 
@@ -412,7 +385,7 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
-        if (m_flags & ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS) {
+        if (m_should_rerender_static_objects.Consume()) {
             m_render_list_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
@@ -436,8 +409,6 @@ void ShadowPass::Render(Frame *frame)
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
             m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-            m_flags &= ~ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS;
         }
 
         { // Render dynamics
@@ -580,8 +551,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
         MaterialAttributes {
-            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition()
+            // .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );
 
@@ -593,31 +564,35 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     // Need to re-render static objects if octant's statics hash code has changed,
     // or if camera view has cached
-    bool needs_statics_rerender = false;
-    needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
-    needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
+    // bool needs_statics_rerender = false;
+    // needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
+    // needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
 
-    if (needs_statics_rerender) {
-        DebugLog(LogType::Debug, "Should re-render shadow statics with light dir: %f, %f, %f\n",
-            m_camera->GetDirection().x,
-            m_camera->GetDirection().y,
-            m_camera->GetDirection().z);
+    // if (needs_statics_rerender) {
+    //     DebugLog(LogType::Debug, "Should re-render shadow statics with light dir: %f, %f, %f\n",
+    //         m_camera->GetDirection().x,
+    //         m_camera->GetDirection().y,
+    //         m_camera->GetDirection().z);
 
-        GetParent()->GetScene()->CollectStaticEntities(
+        // m_cached_view_matrix = m_camera->GetViewMatrix();
+        // m_cached_octant_hash_code_statics = octant_hash_statics;
+
+        RenderListCollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
             m_shadow_pass->GetRenderListStatics(),
             m_camera,
             renderable_attribute_set
         );
 
-        m_cached_view_matrix = m_camera->GetViewMatrix();
-        m_cached_octant_hash_code_statics = octant_hash_statics;
 
-        PUSH_RENDER_COMMAND(
-            SetShadowRenderPassFlags,
-            m_shadow_pass.Get(),
-            ShadowRenderPassFlags::RERENDER_STATIC_OBJECTS
-        );
-    }
+        if (statics_collection_result.NeedsUpdate() || m_cached_view_matrix != m_camera->GetViewMatrix()) {
+            DebugLog(LogType::Debug, "statics collection result: %u, %u, %u\n", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
+            
+            m_cached_view_matrix = m_camera->GetViewMatrix();
+
+            // Force static objects to re-render for a few frames
+            m_shadow_pass->GetShouldRerenderStaticObjectsNotifier().Notify(3);
+        }
+    // }
 
     GetParent()->GetScene()->CollectDynamicEntities(
         m_shadow_pass->GetRenderListDynamics(),

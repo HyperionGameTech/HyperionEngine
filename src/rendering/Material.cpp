@@ -159,11 +159,12 @@ Material::ParameterTable Material::DefaultParameters()
 Material::Material()
     : BasicObject(),
       m_render_attributes {
-        .shader_definition = ShaderDefinition {
-            HYP_NAME(Forward),
-            static_mesh_vertex_attributes
-        },
-        .bucket = Bucket::BUCKET_OPAQUE
+        .shader_definition  = ShaderDefinition { HYP_NAME(Forward), static_mesh_vertex_attributes },
+        .bucket             = Bucket::BUCKET_OPAQUE,
+        .fill_mode          = FillMode::FILL,
+        .blend_function     = BlendFunction::None(),
+        .cull_faces         = FaceCullMode::BACK,
+        .flags              = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST
       },
       m_is_dynamic(false),
       m_mutation_state(DataMutationState::CLEAN)

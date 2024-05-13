@@ -50,7 +50,11 @@ static void AddOwnedAttachment(
     );
     
     attachment->SetBinding(binding);
-    attachment->SetAllowBlending(true);
+
+    // if (!attachment_image->IsDepthStencil()) {
+    //     attachment->SetAllowBlending(true);
+    // }
+
     HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
 
     framebuffer->AddAttachment(std::move(attachment));

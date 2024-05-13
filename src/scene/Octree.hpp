@@ -314,9 +314,7 @@ public:
     {
         const uint32 mask = ((tags == EntityTag::NONE ? 0 : (1u << (uint32(tags) - 1))) | ...);
 
-        return HashCode::GetHashCode(GetOctantID())
-            .Add(GetAABB())
-            .Add(HashCode(m_entry_hashes[mask]))
+        return HashCode(m_entry_hashes[mask])
             .Add(m_invalidation_marker);
     }
 
@@ -326,9 +324,7 @@ public:
     {
         AssertThrow(entity_tag_mask < m_entry_hashes.Size());
 
-        return HashCode::GetHashCode(GetOctantID())
-            .Add(GetAABB())
-            .Add(HashCode(m_entry_hashes[entity_tag_mask]))
+        return HashCode(m_entry_hashes[entity_tag_mask])
             .Add(m_invalidation_marker);
     }
         
