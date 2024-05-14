@@ -7,6 +7,7 @@
 #include <core/utilities/EnumFlags.hpp>
 
 #include <input/Mouse.hpp>
+#include <input/Keyboard.hpp>
 
 #include <math/Vector2.hpp>
 
@@ -23,6 +24,12 @@ struct UIMouseEventData
     EnumFlags<MouseButtonState> mouse_buttons = MouseButtonState::NONE;
     bool                        is_down = false;
     Vec2i                       wheel;
+};
+
+struct UIKeyEventData
+{
+    InputManager    *input_manager = nullptr;
+    KeyCode         key_code = KeyCode::UNKNOWN;
 };
 
 enum class UIEventHandlerResult : uint32

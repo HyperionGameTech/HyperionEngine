@@ -90,5 +90,17 @@ namespace Hyperion
         {
             return UIEventHandlerResult.Ok;
         }
+
+        [Hyperion.ScriptMethodStub]
+        public virtual UIEventHandlerResult OnKeyDown()
+        {
+            return UIEventHandlerResult.Ok;
+        }
+
+        [Hyperion.ScriptMethodStub]
+        public virtual UIEventHandlerResult OnKeyUp()
+        {
+            return UIEventHandlerResult.Ok;
+        }
     }
 }

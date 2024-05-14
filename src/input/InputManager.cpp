@@ -97,24 +97,24 @@ void InputManager::UpdateWindowSize()
     m_window_size.y.store(window_size.y, std::memory_order_relaxed);
 }
 
-void InputManager::SetKey(int key, bool pressed)
+void InputManager::SetKey(KeyCode key, bool pressed)
 {
-    if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-        m_input_state.last_key_states[key] = pressed;
+    if (uint32(key) < NUM_KEYBOARD_KEYS) {
+        m_input_state.last_key_states[uint32(key)] = pressed;
     }
 }
 
 void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 {
-    if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
-        m_input_state.mouse_button_states[int(btn)] = pressed;
+    if (uint32(btn) < NUM_MOUSE_BUTTONS) {
+        m_input_state.mouse_button_states[uint32(btn)] = pressed;
     }
 }
 
-bool InputManager::IsKeyDown(int key) const
+bool InputManager::IsKeyDown(KeyCode key) const
 {
-    if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-        return m_input_state.key_states[key];
+    if (uint32(key) < NUM_KEYBOARD_KEYS) {
+        return m_input_state.key_states[uint32(key)];
     }
 
     return false;
@@ -122,8 +122,8 @@ bool InputManager::IsKeyDown(int key) const
 
 bool InputManager::IsButtonDown(MouseButton btn) const
 {
-    if (int(btn) >= 0 && int(btn) < NUM_MOUSE_BUTTONS) {
-        return m_input_state.mouse_button_states[int(btn)];
+    if (uint32(btn) < NUM_MOUSE_BUTTONS) {
+        return m_input_state.mouse_button_states[uint32(btn)];
     }
 
     return false;

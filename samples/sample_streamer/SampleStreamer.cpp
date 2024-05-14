@@ -1055,25 +1055,25 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
     const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
 
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
-        if (event.GetKeyCode() == KeyCode::KEY_ARROW_LEFT) {
+        if (event.GetKeyCode() == KeyCode::ARROW_LEFT) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
                 sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(-0.1f, 0.0f, 0.0f)).Normalized());
             }
-        } else if (event.GetKeyCode() == KeyCode::KEY_ARROW_RIGHT) {
+        } else if (event.GetKeyCode() == KeyCode::ARROW_RIGHT) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
                 sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(0.1f, 0.0f, 0.0f)).Normalized());
             }
-        } else if (event.GetKeyCode() == KeyCode::KEY_ARROW_UP) {
+        } else if (event.GetKeyCode() == KeyCode::ARROW_UP) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {
                 sun_node.SetWorldTranslation((sun_node.GetWorldTranslation() + Vec3f(0.0f, 0.1f, 0.0f)).Normalized());
             }
-        } else if (event.GetKeyCode() == KeyCode::KEY_ARROW_DOWN) {
+        } else if (event.GetKeyCode() == KeyCode::ARROW_DOWN) {
             auto sun_node = m_scene->GetRoot().Select("Sun");
 
             if (sun_node) {

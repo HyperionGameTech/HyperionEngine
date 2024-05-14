@@ -400,7 +400,7 @@ void Camera::UpdateViewMatrix()
     }
 }
 
-void Camera::UpdateProjectionatrix()
+void Camera::UpdateProjectionMatrix()
 {
     if (m_camera_controller) {
         m_camera_controller->UpdateProjectionMatrix();

@@ -785,7 +785,7 @@ const Handle<Mesh> &UIObject::GetMesh() const
     return Handle<Mesh>::empty;
 }
 
-const UIObject *UIObject::GetParentUIObject() const
+RC<UIObject> UIObject::GetParentUIObject() const
 {
     Scene *scene = GetScene();
 
@@ -809,7 +809,7 @@ const UIObject *UIObject::GetParentUIObject() const
                         return nullptr;
                     }
 
-                    return ui_component->ui_object.Get();
+                    return ui_component->ui_object;
                 }
             }
         }
@@ -850,7 +850,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     Vec2i parent_padding = { 0, 0 };
     Vec2i self_padding = { 0, 0 };
 
-    const UIObject *parent_ui_object = GetParentUIObject();
+    const RC<UIObject> parent_ui_object = GetParentUIObject();
 
     if (is_inner) {
         parent_size = GetActualSize();
@@ -941,7 +941,7 @@ void UIObject::ComputeOffsetPosition()
     }
 
     // where to position the object relative to its parent
-    if (const UIObject *parent_ui_object = GetParentUIObject()) {
+    if (const RC<UIObject> parent_ui_object = GetParentUIObject()) {
         const Vec2f parent_padding(parent_ui_object->GetPadding());
         const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
 

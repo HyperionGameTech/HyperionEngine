@@ -381,6 +381,11 @@ public:
     [[nodiscard]]
     bool IsOrHasParent(const UIObject *other) const;
 
+    /*! \brief Get the parent UIObject to this object, if one exists.
+     *  \returns A pointer to the parent UIObject or nullptr if none exists. */
+    [[nodiscard]]
+    RC<UIObject> GetParentUIObject() const;
+
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
@@ -432,6 +437,8 @@ public:
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnLoseFocus;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnScroll;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnClick;
+    Delegate<UIEventHandlerResult, const UIKeyEventData &>      OnKeyDown;
+    Delegate<UIEventHandlerResult, const UIKeyEventData &>      OnKeyUp;
 
 protected:
     /*! \brief Sets the NodeProxy for this UIObject.
@@ -447,8 +454,6 @@ protected:
     virtual Handle<Material> GetMaterial() const;
 
     const Handle<Mesh> &GetMesh() const;
-
-    const UIObject *GetParentUIObject() const;
 
     void SetLocalAABB(const BoundingBox &aabb);
 

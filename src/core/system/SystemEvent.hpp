@@ -2,6 +2,7 @@
 #define HYPERION_SYSTEM_EVENT_HPP
 
 #include <input/Mouse.hpp>
+#include <input/Keyboard.hpp>
 
 #include <core/utilities/Variant.hpp>
 #include <core/filesystem/FilePath.hpp>
@@ -38,81 +39,6 @@ enum SystemWindowEventType
 
     EVENT_WINDOW_CLOSE          = SDL_WINDOWEVENT_CLOSE,
     EVENT_WINDOW_MINIMIZED      = SDL_WINDOWEVENT_MINIMIZED,
-};
-
-enum KeyCode : uint16
-{
-    KEY_UNKNOWN = uint16(-1),
-
-    KEY_A = 'A',
-    KEY_B,
-    KEY_C,
-    KEY_D,
-    KEY_E,
-    KEY_F,
-    KEY_G,
-    KEY_H,
-    KEY_I,
-    KEY_J,
-    KEY_K,
-    KEY_L,
-    KEY_M,
-    KEY_N,
-    KEY_O,
-    KEY_P,
-    KEY_Q,
-    KEY_R,
-    KEY_S,
-    KEY_T,
-    KEY_U,
-    KEY_V,
-    KEY_W,
-    KEY_X,
-    KEY_Y,
-    KEY_Z,
-
-    KEY_0 = '0',
-    KEY_1,
-    KEY_2,
-    KEY_3,
-    KEY_4,
-    KEY_5,
-    KEY_6,
-    KEY_7,
-    KEY_8,
-    KEY_9,
-
-    KEY_F1 = 58, // SDL_SCANCODE_F1,
-    KEY_F2,
-    KEY_F3,
-    KEY_F4,
-    KEY_F5,
-    KEY_F6,
-    KEY_F7,
-    KEY_F8,
-    KEY_F9,
-    KEY_F10,
-    KEY_F11,
-    KEY_F12,
-
-    KEY_LEFT_SHIFT = 225, // SDL_SCANCODE_LSHIFT,
-    KEY_LEFT_CTRL = 224, // SDL_SCANCODE_LCTRL,
-    KEY_LEFT_ALT = 226, // SDL_SCANCODE_LALT
-    KEY_RIGHT_SHIFT = 229, // SDL_SCANCODE_RSHIFT,
-    KEY_RIGHT_CTRL = 228, // SDL_SCANCODE_RCTRL,
-    KEY_RIGHT_ALT = 230, // SDL_SCANCODE_RALT
-
-    KEY_SPACE = 44, // SDL_SCANCODE_SPACE,
-    KEY_PERIOD = 46,
-    KEY_RETURN = 257,
-    KEY_TAB = 258,
-    KEY_BACKSPACE = 259,
-    KEY_CAPSLOCK = 280,
-
-    KEY_ARROW_RIGHT = 79,
-    KEY_ARROW_LEFT = 80,
-    KEY_ARROW_DOWN = 81,
-    KEY_ARROW_UP = 82,
 };
 
 class HYP_API SystemEvent
@@ -166,8 +92,8 @@ public:
         KeyCode key = GetKeyCode();
         
         /* Set all letters to uppercase */
-        if (key >= 'a' && key <= 'z') {
-            key = KeyCode('A' + (key - 'a'));
+        if (uint32(key) >= 'a' && uint32(key) <= 'z') {
+            key = KeyCode('A' + (uint32(key) - 'a'));
         }
 
         return key;
@@ -204,7 +130,6 @@ private:
 
 } // namespace sys
 
-using sys::KeyCode;
 using sys::SystemEvent;
 using sys::SystemEventType;
 using sys::SystemWindowEventType;

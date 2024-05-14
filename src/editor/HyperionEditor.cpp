@@ -41,10 +41,12 @@ namespace editor {
 class HyperionEditorImpl
 {
 public:
-    HyperionEditorImpl(const Handle<Scene> &scene, const Handle<Camera> &camera, const RC<UIStage> &ui_stage)
+    HyperionEditorImpl(const Handle<Scene> &scene, const Handle<Camera> &camera, InputManager *input_manager, const RC<UIStage> &ui_stage)
         : m_scene(scene),
           m_camera(camera),
-          m_ui_stage(ui_stage)
+          m_input_manager(input_manager),
+          m_ui_stage(ui_stage),
+          m_editor_camera_enabled(false)
     {
     }
 
@@ -67,16 +69,21 @@ public:
 
     void Initialize();
 
+    void UpdateEditorCamera(GameCounter::TickUnit delta);
+
 private:
     void CreateFontAtlas();
     void CreateMainPanel();
     void CreateInitialState();
 
-    Handle<Scene>   m_scene;
-    Handle<Camera>  m_camera;
-    RC<UIStage>     m_ui_stage;
-    Handle<Texture> m_scene_texture;
-    RC<UIObject>    m_main_panel;
+    Handle<Scene>       m_scene;
+    Handle<Camera>      m_camera;
+    InputManager        *m_input_manager;
+    RC<UIStage>         m_ui_stage;
+    Handle<Texture>     m_scene_texture;
+    RC<UIObject>        m_main_panel;
+
+    bool                m_editor_camera_enabled;
 };
 
 void HyperionEditorImpl::CreateFontAtlas()
@@ -229,13 +236,10 @@ void HyperionEditorImpl::CreateMainPanel()
 
     ui_image->OnMouseDown.Bind([this](const UIMouseEventData &event)
     {
-        DebugLog(LogType::Debug, "Game element gain focus, buttons: %u\n", uint32(event.mouse_buttons));
-
-        auto *camera_controller = m_camera->GetCameraController();
+        CameraController *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
             editor_camera_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
-            // @TODO Set to FOCUSED if an object was selected.
         }
 
         return UIEventHandlerResult::OK;
@@ -243,9 +247,7 @@ void HyperionEditorImpl::CreateMainPanel()
 
     ui_image->OnMouseUp.Bind([this](const UIMouseEventData &event)
     {
-        DebugLog(LogType::Debug, "Game element lose focus, buttons: %u\n", uint32(event.mouse_buttons));
-
-        auto *camera_controller = m_camera->GetCameraController();
+        CameraController *camera_controller = m_camera->GetCameraController();
 
         if (EditorCameraController *editor_camera_controller = dynamic_cast<EditorCameraController *>(camera_controller)) {
             editor_camera_controller->SetMode(EditorCameraControllerMode::INACTIVE);
@@ -253,6 +255,52 @@ void HyperionEditorImpl::CreateMainPanel()
 
         return UIEventHandlerResult::OK;
     }).Detach();
+
+    /*ui_image->OnKeyDown.Bind([this](const UIKeyEventData &event)
+    {
+        DebugLog(LogType::Debug, "Got keydown event, keycode = %u\n", event.key_code);
+        if (event.key_code == KeyCode::KEY_W || event.key_code == KeyCode::KEY_S || event.key_code == KeyCode::KEY_A || event.key_code == KeyCode::KEY_D) {
+            CameraController *camera_controller = m_camera->GetCameraController();
+
+            Vec3f translation = m_camera->GetTranslation();
+
+            const Vec3f direction = m_camera->GetDirection();
+            const Vec3f dir_cross_y = direction.Cross(m_camera->GetUpVector());
+
+            if (event.key_code == KeyCode::KEY_W) {
+                translation += direction * 0.01f;
+            }
+            if (event.key_code == KeyCode::KEY_S) {
+                translation -= direction * 0.01f;
+            }
+            if (event.key_code == KeyCode::KEY_A) {
+                translation += dir_cross_y * 0.01f;
+            }
+            if (event.key_code == KeyCode::KEY_D) {
+                translation -= dir_cross_y * 0.01f;
+            }
+
+            camera_controller->SetNextTranslation(translation);
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        }
+
+        return UIEventHandlerResult::OK;
+    }).Detach();*/
+
+    ui_image->OnGainFocus.Bind([this](const UIMouseEventData &event)
+    {
+        m_editor_camera_enabled = true;
+
+        return UIEventHandlerResult::OK;
+    });
+
+    ui_image->OnLoseFocus.Bind([this](const UIMouseEventData &event)
+    {
+        m_editor_camera_enabled = false;
+
+        return UIEventHandlerResult::OK;
+    });
 
     ui_image->SetTexture(m_scene_texture);
     scene_tab->GetContents()->AddChildUIObject(ui_image);
@@ -337,6 +385,35 @@ void HyperionEditorImpl::Initialize()
     // DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
 }
 
+void HyperionEditorImpl::UpdateEditorCamera(GameCounter::TickUnit delta)
+{
+    if (!m_editor_camera_enabled) {
+        return;
+    }
+
+    CameraController *camera_controller = m_camera->GetCameraController();
+
+    Vec3f translation = m_camera->GetTranslation();
+
+    const Vec3f direction = m_camera->GetDirection();
+    const Vec3f dir_cross_y = direction.Cross(m_camera->GetUpVector());
+
+    if (m_input_manager->IsKeyDown(KeyCode::KEY_W)) {
+        translation += direction * 0.01f;
+    }
+    if (m_input_manager->IsKeyDown(KeyCode::KEY_S)) {
+        translation -= direction * 0.01f;
+    }
+    if (m_input_manager->IsKeyDown(KeyCode::KEY_A)) {
+        translation += dir_cross_y * 0.01f;
+    }
+    if (m_input_manager->IsKeyDown(KeyCode::KEY_D)) {
+        translation -= dir_cross_y * 0.01f;
+    }
+
+    camera_controller->SetNextTranslation(translation);
+}
+
 #pragma endregion HyperionEditorImpl
 
 #pragma region HyperionEditor
@@ -368,7 +445,7 @@ void HyperionEditor::Init()
 
     auto screen_capture_component = GetScene()->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(EditorSceneCapture), window_size);
 
-    m_impl = new HyperionEditorImpl(GetScene(), GetScene()->GetCamera(), GetUIStage());
+    m_impl = new HyperionEditorImpl(GetScene(), GetScene()->GetCamera(), m_input_manager.Get(), GetUIStage());
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());
     m_impl->Initialize();
 
@@ -551,7 +628,7 @@ void HyperionEditor::Teardown()
     
 void HyperionEditor::Logic(GameCounter::TickUnit delta)
 {
-
+    m_impl->UpdateEditorCamera(delta);
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent &event)

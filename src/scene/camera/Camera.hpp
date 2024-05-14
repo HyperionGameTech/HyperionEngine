@@ -88,10 +88,10 @@ public:
     virtual bool IsMouseLocked() const
         { return false; }
 
-    virtual void SetTranslation(const Vector3 &translation) { }
-    virtual void SetNextTranslation(const Vector3 &translation) { }
-    virtual void SetDirection(const Vector3 &direction) { }
-    virtual void SetUpVector(const Vector3 &up) { }
+    virtual void SetTranslation(const Vec3f &translation) { }
+    virtual void SetNextTranslation(const Vec3f &translation) { }
+    virtual void SetDirection(const Vec3f &direction) { }
+    virtual void SetUpVector(const Vec3f &up) { }
 
     virtual void OnAdded(Camera *camera) = 0;
 
@@ -288,7 +288,7 @@ public:
 
 protected:
     void UpdateViewMatrix();
-    void UpdateProjectionatrix();
+    void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();
 
     RC<CameraController>    m_camera_controller;

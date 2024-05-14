@@ -512,6 +512,48 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         break;
     }
+    case SystemEventType::EVENT_KEYDOWN: {
+        const KeyCode key_code = event.GetNormalizedKeyCode();
+
+        RC<UIObject> ui_object = m_focused_object.Lock();
+
+        while (ui_object != nullptr) {
+            event_handler_result |= ui_object->OnKeyDown(UIKeyEventData {
+                .input_manager  = input_manager,
+                .key_code       = key_code
+            });
+
+            m_keyed_down_objects[key_code].PushBack(ui_object);
+
+            if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                break;
+            }
+
+            ui_object = ui_object->GetParentUIObject();
+        }
+
+        break;
+    }
+    case SystemEventType::EVENT_KEYUP: {
+        const KeyCode key_code = event.GetNormalizedKeyCode();
+
+        const auto keyed_down_objects_it = m_keyed_down_objects.Find(key_code);
+
+        if (keyed_down_objects_it != m_keyed_down_objects.End()) {
+            for (const Weak<UIObject> &weak_ui_object : keyed_down_objects_it->second) {
+                if (RC<UIObject> ui_object = weak_ui_object.Lock()) {
+                    ui_object->OnKeyUp(UIKeyEventData {
+                        .input_manager  = input_manager,
+                        .key_code       = key_code
+                    });
+                }
+            }
+        }
+
+        m_keyed_down_objects.Erase(keyed_down_objects_it);
+
+        break;
+    }
     default:
         break;
     }

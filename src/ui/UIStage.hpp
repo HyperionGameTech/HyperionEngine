@@ -19,6 +19,7 @@
 #include <rendering/FullScreenPass.hpp>
 
 #include <input/Mouse.hpp>
+#include <input/Keyboard.hpp>
 
 #include <math/Transform.hpp>
 
@@ -192,6 +193,7 @@ private:
 
     FlatMap<ID<Entity>, UIObjectPressedState>   m_mouse_button_pressed_states;
     FlatSet<ID<Entity>>                         m_hovered_entities;
+    HashMap<KeyCode, Array<Weak<UIObject>>>     m_keyed_down_objects;
 
     Weak<UIObject>                              m_focused_object;
 

@@ -10,6 +10,6 @@ using namespace hyperion;
 extern "C" {
 HYP_EXPORT bool InputManager_IsKeyDown(InputManager *input_manager, uint16 key)
 {
-    return input_manager->IsKeyDown(key);
+    return input_manager->IsKeyDown(KeyCode(key));
 }
 } // extern "C"

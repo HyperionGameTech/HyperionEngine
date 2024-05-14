@@ -12,6 +12,8 @@
 
 #include <math/Vector2.hpp>
 
+#include <input/Keyboard.hpp>
+
 #include <atomic>
 
 namespace hyperion {
@@ -105,10 +107,10 @@ public:
     const Scalar2D<true> &GetWindowSize() const
         { return m_window_size; }
 
-    void KeyDown(int key)
+    void KeyDown(KeyCode key)
         { SetKey(key, true); }
 
-    void KeyUp(int key)
+    void KeyUp(KeyCode key)
         { SetKey(key, false); }
 
     void MouseButtonDown(MouseButton btn)
@@ -120,9 +122,9 @@ public:
     HYP_API void UpdateMousePosition();
     HYP_API void UpdateWindowSize();
 
-    HYP_API bool IsKeyDown(int key) const;
+    HYP_API bool IsKeyDown(KeyCode key) const;
 
-    bool IsKeyUp(int key) const
+    bool IsKeyUp(KeyCode key) const
         { return !IsKeyDown(key); }
 
     HYP_API bool IsButtonDown(MouseButton btn) const;
@@ -146,7 +148,7 @@ private:
 
     ApplicationWindow   *m_window;
 
-    HYP_API void SetKey(int key, bool pressed);
+    HYP_API void SetKey(KeyCode key, bool pressed);
     HYP_API void SetMouseButton(MouseButton btn, bool pressed);
 };
 
