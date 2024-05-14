@@ -76,9 +76,16 @@ public:
             if (attributes.Size() != 3) {
                 DebugLog(LogType::Warn, "Ogre XML parser: `face` tag expected to have 3 attributes.\n");
             }
+            
+            FlatMap<String, uint32> face_elements;
+            face_elements.Reserve(attributes.Size());
 
-            for (auto &it : attributes) {
-                LastSubMesh().indices.PushBack(StringUtil::Parse<Mesh::Index>(it.second));
+            for (const Pair<String, String> &it : attributes) {
+                face_elements.Insert({ it.first, StringUtil::Parse<uint32>(it.second) });
+            }
+
+            for (const Pair<String, uint32> &it : face_elements) {
+                LastSubMesh().indices.PushBack(it.second);
             }
         } else if (name == "skeletonlink") {
             m_model.skeleton_name = attributes.At("name");

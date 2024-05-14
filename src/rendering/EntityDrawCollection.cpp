@@ -297,14 +297,14 @@ void RenderProxyGroup::SetRenderGroup(const Handle<RenderGroup> &render_group)
 
 #pragma region EntityDrawCollection
 
-FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups()
+FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups()
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     return m_proxy_groups;
 }
 
-const FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups() const
+const FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups() const
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
@@ -448,7 +448,7 @@ void RenderList::CollectDrawCalls(
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    using IteratorType = ArrayMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
 
     Array<IteratorType> iterators;
 

@@ -594,13 +594,14 @@ void HyperionEditor::Init()
     node.SetName("test_model");
     node.LockTransform();
 
-    if (auto house = results["house"].Get<Node>()) {
-        house.Scale(0.25f);
-        m_scene->GetRoot().AddChild(house);
-    }
+    // if (auto house = results["house"].Get<Node>()) {
+    //     house.Scale(0.25f);
+    //     m_scene->GetRoot().AddChild(house);
+    // }
 
     if (auto zombie = results["zombie"].Get<Node>()) {
-        zombie.Scale(0.25f);
+        zombie.Scale(0.05f);
+        zombie.Translate(Vec3f(0, -0.5f, -1.0f));
         auto zombie_entity = zombie[0].GetEntity();
 
         m_scene->GetRoot().AddChild(zombie);

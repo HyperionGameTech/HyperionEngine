@@ -764,6 +764,10 @@ struct ShaderDefinition
         { return GetHashCode() != other.GetHashCode(); }
 
     HYP_FORCE_INLINE
+    bool operator<(const ShaderDefinition &other) const
+        { return GetHashCode() < other.GetHashCode(); }
+
+    HYP_FORCE_INLINE
     explicit operator HashedShaderDefinition() const
         { return HashedShaderDefinition { name, properties.GetPropertySetHashCode(), properties.GetRequiredVertexAttributes() }; }
 
