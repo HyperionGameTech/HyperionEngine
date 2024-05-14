@@ -4,6 +4,7 @@
 #define HYPERION_ENTITY_DRAW_COLLECTION_HPP
 
 #include <core/containers/FlatMap.hpp>
+#include <core/containers/ArrayMap.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/ID.hpp>
 
@@ -103,14 +104,14 @@ public:
     void ClearProxyGroups(bool reset_render_groups = false);
     void RemoveEmptyProxyGroups();
 
-    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();
-    const FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups() const;
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();
+    const FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups() const;
 
     RenderProxyList &GetProxyList(ThreadType);
     const RenderProxyList &GetProxyList(ThreadType) const;
 
 private:
-    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>   m_proxy_groups;
     FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
 };
 
