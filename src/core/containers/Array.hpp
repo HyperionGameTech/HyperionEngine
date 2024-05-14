@@ -253,9 +253,9 @@ public:
         }
 
         // set item at index
-        GetStorage()[m_size++].Construct(std::forward<Args>(args)...);
-
-        return Back();
+        ValueStorage<T> &storage_element = GetStorage()[m_size++];
+        storage_element.Construct(std::forward<Args>(args)...);
+        return storage_element.Get();
     }
 
     /*! \brief Construct an item in place at the front of the array.
@@ -294,9 +294,9 @@ public:
 
         --m_start_offset;
 
-        Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, std::forward<Args>(args)...);
-
-        return Front();
+        ValueStorage<T> &storage_element = GetStorage()[m_start_offset];
+        storage_element.Construct(std::forward<Args>(args)...);
+        return storage_element.Get();
     }
 
     /*! \brief Shift the array to the left by {count} times */
@@ -885,9 +885,9 @@ auto Array<T, NumInlineBytes>::PushBack(const ValueType &value) -> ValueType&
     }
 
     // set item at index
-    Memory::Construct<T>(&GetStorage()[m_size++].data_buffer, value);
-
-    return Back();
+    ValueStorage<T> &storage_element = GetStorage()[m_size++];
+    storage_element.Construct(value);
+    return storage_element.Get();
 }
 
 template <class T, SizeType NumInlineBytes>
@@ -902,9 +902,9 @@ auto Array<T, NumInlineBytes>::PushBack(ValueType &&value) -> ValueType&
     }
 
     // set item at index
-    Memory::Construct<T>(&GetStorage()[m_size++].data_buffer, std::forward<ValueType>(value));
-
-    return Back();
+    ValueStorage<T> &storage_element = GetStorage()[m_size++];
+    storage_element.Construct(std::move(value));
+    return storage_element.Get();
 }
 
 template <class T, SizeType NumInlineBytes>
@@ -986,9 +986,9 @@ auto Array<T, NumInlineBytes>::PushFront(ValueType &&value) -> ValueType&
     // in-place
     --m_start_offset;
 
-    Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, std::move(value));
-
-    return Front();
+    ValueStorage<T> &storage_element = GetStorage()[m_start_offset];
+    storage_element.Construct(std::move(value));
+    return storage_element.Get();
 }
 
 template <class T, SizeType NumInlineBytes>
