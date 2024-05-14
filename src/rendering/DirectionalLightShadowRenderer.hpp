@@ -4,7 +4,7 @@
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/utilities/EnumFlags.hpp>
-#include <core/threading/Notifier.hpp>
+#include <core/threading/ThreadSignal.hpp>
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Light.hpp>
@@ -79,8 +79,8 @@ public:
     const Handle<Texture> &GetShadowMap() const
         { return m_shadow_map_all; }
 
-    Notifier &GetShouldRerenderStaticObjectsNotifier()
-        { return m_should_rerender_static_objects; }
+    ThreadSignal &GetShouldRerenderStaticObjectsSignal()
+        { return m_should_rerender_static_objects_signal; }
 
     void CreateShader();
     virtual void CreateFramebuffer() override;
@@ -110,7 +110,7 @@ private:
     UniquePtr<FullScreenPass>           m_combine_shadow_maps_pass;
     ComputePipelineRef                  m_blur_shadow_map_pipeline;
 
-    Notifier                            m_should_rerender_static_objects;
+    ThreadSignal                        m_should_rerender_static_objects_signal;
 };
 
 class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>

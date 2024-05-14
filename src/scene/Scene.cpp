@@ -375,7 +375,11 @@ RenderListCollectionResult Scene::CollectStaticEntities(
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     if (!camera.IsValid()) {
-        return { };
+        // if camera is invalid, update without adding any entities
+        return render_list.UpdateOnRenderThread(
+            camera->GetFramebuffer(),
+            override_attributes
+        );
     }
 
     const ID<Camera> camera_id = camera.GetID();

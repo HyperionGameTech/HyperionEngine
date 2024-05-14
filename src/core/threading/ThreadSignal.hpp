@@ -1,5 +1,5 @@
-#ifndef HYPERION_NOTIFIER_HPP
-#define HYPERION_NOTIFIER_HPP
+#ifndef HYPERION_THREAD_SIGNAL_HPP
+#define HYPERION_THREAD_SIGNAL_HPP
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Thread.hpp>
@@ -8,20 +8,20 @@
 namespace hyperion {
 namespace threading {
 
-struct Notifier
+struct ThreadSignal
 {
     using ValueType = uint32;
 
-    Notifier(ValueType initial_value = ValueType())
+    ThreadSignal(ValueType initial_value = ValueType())
         : value(initial_value)
     {
     }
 
-    Notifier(const Notifier &other)                 = delete;
-    Notifier &operator=(const Notifier &other)      = delete;
-    Notifier(Notifier &&other) noexcept             = delete;
-    Notifier &operator=(Notifier &&other) noexcept  = delete;
-    ~Notifier()                                     = default;
+    ThreadSignal(const ThreadSignal &other)                 = delete;
+    ThreadSignal &operator=(const ThreadSignal &other)      = delete;
+    ThreadSignal(ThreadSignal &&other) noexcept             = delete;
+    ThreadSignal &operator=(ThreadSignal &&other) noexcept  = delete;
+    ~ThreadSignal()                                         = default;
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -30,7 +30,7 @@ struct Notifier
         ValueType current_value = value.Get(MemoryOrder::ACQUIRE);
 
         if (current_value) {
-            value.Decrement(1, MemoryOrder::RELAXED);
+            value.Decrement(1, MemoryOrder::RELEASE);
 
             return true;
         }
@@ -48,7 +48,7 @@ struct Notifier
 
 } // namespace threading
 
-using threading::Notifier;
+using threading::ThreadSignal;
 
 } // namespace hyperion
 

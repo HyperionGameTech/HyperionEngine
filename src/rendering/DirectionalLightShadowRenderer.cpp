@@ -343,8 +343,6 @@ void ShadowPass::Create()
     CreateCombineShadowMapsPass();
     CreateComputePipelines();
     CreateCommandBuffers();
-
-    HYP_SYNC_RENDER(); // force init stuff
 }
 
 void ShadowPass::Destroy()
@@ -385,7 +383,7 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
-        if (m_should_rerender_static_objects.Consume()) {
+        if (m_should_rerender_static_objects_signal.Consume()) {
             m_render_list_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
@@ -551,8 +549,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
         MaterialAttributes {
-            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition()
-            // .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );
 
@@ -583,14 +581,13 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
             renderable_attribute_set
         );
 
-
         if (statics_collection_result.NeedsUpdate() || m_cached_view_matrix != m_camera->GetViewMatrix()) {
             DebugLog(LogType::Debug, "statics collection result: %u, %u, %u\n", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
             
             m_cached_view_matrix = m_camera->GetViewMatrix();
 
             // Force static objects to re-render for a few frames
-            m_shadow_pass->GetShouldRerenderStaticObjectsNotifier().Notify(3);
+            m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(10);
         }
     // }
 

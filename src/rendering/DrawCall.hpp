@@ -92,17 +92,17 @@ struct DrawCallCollection
     HashMap<uint64, Array<SizeType>>    index_map;
 
     DrawCallCollection() = default;
-    DrawCallCollection(const DrawCallCollection &other)             = delete;
-    DrawCallCollection &operator=(const DrawCallCollection &other)  = delete;
+    DrawCallCollection(const DrawCallCollection &other)                 = delete;
+    DrawCallCollection &operator=(const DrawCallCollection &other)      = delete;
 
     DrawCallCollection(DrawCallCollection &&other) noexcept;
-    DrawCallCollection &operator=(DrawCallCollection &&other) noexcept;
+    DrawCallCollection &operator=(DrawCallCollection &&other) noexcept  = delete;
 
     ~DrawCallCollection();
 
     void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy);
     DrawCall *TakeDrawCall(DrawCallID id);
-    void Reset();
+    void ResetDrawCalls();
 };
 
 } // namespace hyperion

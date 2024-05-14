@@ -31,19 +31,9 @@ DrawCallCollection::DrawCallCollection(DrawCallCollection &&other) noexcept
 {
 }
 
-DrawCallCollection &DrawCallCollection::operator=(DrawCallCollection &&other) noexcept
-{
-    Reset();
-
-    draw_calls = std::move(other.draw_calls);
-    index_map = std::move(other.index_map);
-
-    return *this;
-}
-
 DrawCallCollection::~DrawCallCollection()
 {
-    Reset();
+    ResetDrawCalls();
 }
 
 void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy)
@@ -125,7 +115,7 @@ DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
     return nullptr;
 }
 
-void DrawCallCollection::Reset()
+void DrawCallCollection::ResetDrawCalls()
 {
     for (const DrawCall &draw_call : draw_calls) {
         if (draw_call.batch_index) {
