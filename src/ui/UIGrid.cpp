@@ -206,20 +206,24 @@ void UIGrid::Init()
 
 void UIGrid::AddChildUIObject(UIObject *ui_object)
 {
-    if (m_rows.Empty()) {
-        AddRow();
+    RC<UIGridColumn> column;
+
+    for (const RC<UIGridRow> &row : m_rows) {
+        if (!row) {
+            continue;
+        }
+
+        column = row->FindEmptyColumn();
+
+        if (column != nullptr) {
+            column->AddChildUIObject(ui_object);
+
+            return;
+        }
     }
 
-    RC<UIGridColumn> column = m_rows.Back()->FindEmptyColumn();
-
-    if (!column) {
-        AddRow();
-
-        column = m_rows.Back()->FindEmptyColumn();
-    }
-
-    AssertThrow(column != nullptr);
-
+    AddRow();
+    column = m_rows.Back()->FindEmptyColumn();
     column->AddChildUIObject(ui_object);
 }
 

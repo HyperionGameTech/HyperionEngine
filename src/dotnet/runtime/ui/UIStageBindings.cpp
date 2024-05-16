@@ -8,6 +8,7 @@
 #include <ui/UITabView.hpp>
 #include <ui/UIGrid.hpp>
 #include <ui/UIMenuBar.hpp>
+#include <ui/UIDockableContainer.hpp>
 
 #include <dotnet/core/RefCountedPtrBindings.hpp>
 #include <dotnet/runtime/ManagedHandle.hpp>
@@ -85,6 +86,8 @@ DEF_CREATE_UI_OBJECT(UIGridRow)
 DEF_CREATE_UI_OBJECT(UIGridColumn)
 DEF_CREATE_UI_OBJECT(UIMenuBar)
 DEF_CREATE_UI_OBJECT(UIMenuItem)
+DEF_CREATE_UI_OBJECT(UIDockableItem)
+DEF_CREATE_UI_OBJECT(UIDockableContainer)
 
 #undef DEF_CREATE_UI_OBJECT
 

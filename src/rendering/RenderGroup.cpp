@@ -298,7 +298,7 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
         m_draw_state.PushDrawCall(batch_index, draw_call_id, render_proxy);
     }
 
-    previous_draw_state.Reset();
+    previous_draw_state.ResetDrawCalls();
 
     // register draw calls for indirect rendering
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
@@ -309,8 +309,6 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
             draw_call.draw_command_index = draw_command_data.draw_command_index;
         }
     }
-
-    // m_entity_draw_datas.Clear();
 }
 
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)

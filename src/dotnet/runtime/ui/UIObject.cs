@@ -17,7 +17,9 @@ namespace Hyperion
         GridRow = 8,
         GridColumn = 9,
         MenuBar = 10,
-        MenuItem = 11
+        MenuItem = 11,
+        DockableContainer = 12,
+        DockableItem = 13
     }
 
     public enum UIEventHandlerResult : uint

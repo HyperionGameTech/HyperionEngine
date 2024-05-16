@@ -883,7 +883,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
         out_actual_size.y -= parent_padding.y * 2;
     }
 
-    if (in_size.GetAllFlags() & UIObjectSize::GROW) {
+    if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
         Vec2i dynamic_size;
 
         if (const NodeProxy &node = GetNode(); node->GetLocalAABB().IsFinite() && node->GetLocalAABB().IsValid()) {
@@ -899,12 +899,12 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
             };
         }
 
-        if (in_size.GetFlagsX() & UIObjectSize::GROW) {
+        if (in_size.GetFlagsX() & UIObjectSize::AUTO) {
             out_actual_size.x = dynamic_size.x;
             out_actual_size.x += self_padding.x * 2;
         }
 
-        if (in_size.GetFlagsY() & UIObjectSize::GROW) {
+        if (in_size.GetFlagsY() & UIObjectSize::AUTO) {
             out_actual_size.y = dynamic_size.y;
             out_actual_size.y += self_padding.y * 2;
         }

@@ -28,6 +28,7 @@
 #include <ui/UIMenuBar.hpp>
 #include <ui/UIGrid.hpp>
 #include <ui/UIImage.hpp>
+#include <ui/UIDockableContainer.hpp>
 
 // temp
 #include <util/Profile.hpp>
@@ -181,16 +182,7 @@ void HyperionEditorImpl::CreateMainPanel()
     tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     m_main_panel->AddChildUIObject(tab_view);
 
-    auto scene_tab_content_grid = GetUIStage()->CreateUIObject<UIGrid>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    scene_tab_content_grid->SetNumColumns(3);
-    scene_tab_content_grid->SetNumRows(5);
-
-    // auto scene_tab_content_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Scene_Tab_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 30, UIObjectSize::PIXEL }));
-    // scene_tab_content_text->SetText("grid test 1234567");
-    // scene_tab_content_text->SetParentAlignment(UIObjectAlignment::CENTER);
-    // scene_tab_content_text->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-    // scene_tab_content_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
-
+    auto scene_tab_content_grid = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     RC<UITab> scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
     RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
@@ -303,7 +295,12 @@ void HyperionEditorImpl::CreateMainPanel()
     });
 
     ui_image->SetTexture(m_scene_texture);
-    scene_tab->GetContents()->AddChildUIObject(ui_image);
+    scene_tab_content_grid->AddChildUIObject(ui_image, UIDockableItemPosition::CENTER);
+
+    RC<UIPanel> scene_graph = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Graph_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    scene_tab_content_grid->AddChildUIObject(scene_graph, UIDockableItemPosition::LEFT);
+
+    scene_tab->GetContents()->AddChildUIObject(scene_tab_content_grid);
 
     auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
 
@@ -312,7 +309,7 @@ void HyperionEditorImpl::CreateMainPanel()
         // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
         // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
         game_tab_content_button->SetText(String("Hello ") + String::ToString(i));
-        game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::GROW }));
+        game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
     }
 
@@ -359,7 +356,7 @@ void HyperionEditorImpl::Initialize()
     CreateMainPanel();
     CreateInitialState();
 
-    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::GROW }, { 18, UIObjectSize::PIXEL }));
+    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 18, UIObjectSize::PIXEL }));
     // ui_text->SetText("Hi hello");
     // ui_text->SetParentAlignment(UIObjectAlignment::CENTER);
     // ui_text->SetOriginAlignment(UIObjectAlignment::CENTER);

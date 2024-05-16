@@ -79,6 +79,22 @@ namespace Hyperion
                     UIStage_CreateUIObject_UIMenuItem(rc, ref name, ref position, ref size, attachToRoot, out outPtr);
                     return outPtr;
                 }
+            },
+            {
+                typeof(UIDockableItem), (RefCountedPtr rc, Name name, Vec2i position, Vec2i size, bool attachToRoot) =>
+                {
+                    RefCountedPtr outPtr = new RefCountedPtr();
+                    UIStage_CreateUIObject_UIDockableItem(rc, ref name, ref position, ref size, attachToRoot, out outPtr);
+                    return outPtr;
+                }
+            },
+            {
+                typeof(UIDockableContainer), (RefCountedPtr rc, Name name, Vec2i position, Vec2i size, bool attachToRoot) =>
+                {
+                    RefCountedPtr outPtr = new RefCountedPtr();
+                    UIStage_CreateUIObject_UIDockableContainer(rc, ref name, ref position, ref size, attachToRoot, out outPtr);
+                    return outPtr;
+                }
             }
         };
 
@@ -166,5 +182,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "UIStage_CreateUIObject_UIMenuItem")]
         private static extern void UIStage_CreateUIObject_UIMenuItem(RefCountedPtr rc, [MarshalAs(UnmanagedType.LPStruct)] ref Name name, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i position, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i size, bool attachToRoot, [Out] out RefCountedPtr outPtr);
+
+        [DllImport("hyperion", EntryPoint = "UIStage_CreateUIObject_UIDockableItem")]
+        private static extern void UIStage_CreateUIObject_UIDockableItem(RefCountedPtr rc, [MarshalAs(UnmanagedType.LPStruct)] ref Name name, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i position, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i size, bool attachToRoot, [Out] out RefCountedPtr outPtr);
+
+        [DllImport("hyperion", EntryPoint = "UIStage_CreateUIObject_UIDockableContainer")]
+        private static extern void UIStage_CreateUIObject_UIDockableContainer(RefCountedPtr rc, [MarshalAs(UnmanagedType.LPStruct)] ref Name name, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i position, [MarshalAs(UnmanagedType.LPStruct)] ref Vec2i size, bool attachToRoot, [Out] out RefCountedPtr outPtr);
     }
 }

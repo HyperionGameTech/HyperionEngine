@@ -39,19 +39,21 @@ static inline Scene *GetScene(UIStageType *stage)
 // Ensure that the enum values match the C# UIObjectType enum.
 enum class UIObjectType : uint32
 {
-    UNKNOWN     = ~0u,
-    STAGE       = 0,
-    BUTTON      = 1,
-    TEXT        = 2,
-    PANEL       = 3,
-    IMAGE       = 4,
-    TAB_VIEW    = 5,
-    TAB         = 6,
-    GRID        = 7,
-    GRID_ROW    = 8,
-    GRID_COLUMN = 9,
-    MENU_BAR    = 10,
-    MENU_ITEM   = 11
+    UNKNOWN             = ~0u,
+    STAGE               = 0,
+    BUTTON              = 1,
+    TEXT                = 2,
+    PANEL               = 3,
+    IMAGE               = 4,
+    TAB_VIEW            = 5,
+    TAB                 = 6,
+    GRID                = 7,
+    GRID_ROW            = 8,
+    GRID_COLUMN         = 9,
+    MENU_BAR            = 10,
+    MENU_ITEM           = 11,
+    DOCKABLE_CONTAINER  = 12,
+    DOCKABLE_ITEM       = 13
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
@@ -96,10 +98,12 @@ struct UIObjectSize
 
     enum FlagBits : Flags
     {
-        GROW     = 0x04,
+        AUTO     = 0x04,
 
         PIXEL    = 0x10,
         PERCENT  = 0x20,
+
+        FLEX     = 0x40,
 
         DEFAULT  = PIXEL
     };

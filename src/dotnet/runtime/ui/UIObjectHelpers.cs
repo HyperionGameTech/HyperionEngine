@@ -41,6 +41,10 @@ namespace Hyperion
                 return new UIMenuBar(rc);
             case UIObjectType.MenuItem:
                 return new UIMenuItem(rc);
+            case UIObjectType.DockableItem:
+                return new UIDockableItem(rc);
+            case UIObjectType.DockableContainer:
+                return new UIDockableContainer(rc);
             default:
                 throw new Exception("Unknown UIObjectType!");
             }
