@@ -78,9 +78,6 @@ void UIDockableContainer::UpdateLayout()
     m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetSize(UIObjectSize({ container_size.x - (m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetActualSize().x + m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetActualSize().x), UIObjectSize::PIXEL }, { container_size.y - (m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y + m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y), UIObjectSize::PIXEL }));
 
 
-    // m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetPosition(Vec2i { 0, 0 });
-    // m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetSize(UIObjectSize({ container_size.x, UIObjectSize::PIXEL }, { container_size.y, UIObjectSize::PIXEL }));
-
     DebugLog(LogType::Debug, "Container size: %d,%d\n", container_size.x, container_size.y);
     DebugLog(LogType::Debug, "Top size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y);
     DebugLog(LogType::Debug, "Bottom size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y);

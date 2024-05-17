@@ -70,6 +70,7 @@ public:
     virtual ~UITabView() override                       = default;
 
     virtual void Init() override;
+    virtual void UpdateSize(bool update_children = true) override;
 
     /*! \brief Gets the index of the selected tab.
      * 

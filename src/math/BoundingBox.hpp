@@ -125,6 +125,11 @@ public:
     HYP_FORCE_INLINE
     bool IsValid() const
         { return min.x <= max.x && min.y <= max.y && min.z <= max.z; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsZero() const
+        { return min == Vec3f::Zero() && max == Vec3f::Zero(); }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -143,6 +148,13 @@ public:
     static BoundingBox Empty()
     {
         return BoundingBox(MathUtil::MaxSafeValue<Vec3f>(), MathUtil::MinSafeValue<Vec3f>());
+    }
+    
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static BoundingBox Zero()
+    {
+        return BoundingBox(Vec3f::Zero(), Vec3f::Zero());
     }
     
     [[nodiscard]]

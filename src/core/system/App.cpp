@@ -56,7 +56,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
 
     Vec2u resolution = { 1280, 720 };
 
-    EnumFlags<WindowFlags> window_flags = WindowFlags::NONE;
+    EnumFlags<WindowFlags> window_flags = WindowFlags::HIGH_DPI;
 
     if (arguments["Headless"].Is<bool>()) {
         if (arguments["Headless"].Get<bool>()) {

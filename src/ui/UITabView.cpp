@@ -21,7 +21,9 @@ void UITab::Init()
 {
     UIPanel::Init();
 
-    auto title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(*m_name) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+    SetAABB(GetMesh()->GetAABB());
+
+    RC<UIText> title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(*m_name) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
     title_text->SetParentAlignment(UIObjectAlignment::CENTER);
     title_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     title_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -82,6 +84,8 @@ void UITabView::Init()
 
     UIPanel::Init();
 
+    SetAABB(GetMesh()->GetAABB());
+
     m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(TabContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     m_container->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
     m_container->SetBorderRadius(5);
@@ -90,6 +94,13 @@ void UITabView::Init()
     AddChildUIObject(m_container);
 
     SetSelectedTabIndex(0);
+}
+
+void UITabView::UpdateSize(bool update_children)
+{
+    UIPanel::UpdateSize(update_children);
+
+    UpdateTabSizes();
 }
 
 void UITabView::SetSelectedTabIndex(uint index)
@@ -145,7 +156,7 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    auto tab = m_parent->CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+    RC<UITab> tab = m_parent->CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
     tab->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     tab->SetTitle(title);
@@ -243,15 +254,15 @@ void UITabView::UpdateTabSizes()
 
     const Vec2i actual_size = GetActualSize();
 
-    const int relative_tab_width = 100;///int(100.0f * (1.0f / float(m_tabs.Size())));
+    const int relative_tab_width = int(100.0f * (1.0f / float(m_tabs.Size())));
 
     int offset = 0;
 
     for (SizeType i = 0; i < m_tabs.Size(); i++) {
-        m_tabs[i]->SetSize(UIObjectSize({ relative_tab_width, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+        m_tabs[i]->SetSize(UIObjectSize({ relative_tab_width, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         m_tabs[i]->SetPosition(Vec2i { offset, 0 });
 
-        offset += relative_tab_width;//m_tabs[i]->GetActualSize().x;
+        offset += m_tabs[i]->GetActualSize().x;
     }
 }
 

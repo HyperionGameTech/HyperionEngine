@@ -320,6 +320,7 @@ void UIObject::SetSize(UIObjectSize size)
     m_size = size;
 
     UpdateSize();
+    UpdatePosition();
     UpdateMeshData();
 }
 
@@ -333,6 +334,7 @@ void UIObject::SetInnerSize(UIObjectSize size)
     m_inner_size = size;
 
     UpdateSize();
+    UpdatePosition();
     UpdateMeshData();
 }
 
@@ -346,6 +348,7 @@ void UIObject::SetMaxSize(UIObjectSize size)
     m_max_size = size;
 
     UpdateSize();
+    UpdatePosition();
     UpdateMeshData();
 }
 
@@ -746,7 +749,7 @@ void UIObject::SetAABB(const BoundingBox &aabb)
             node->UnlockTransform();
         }
 
-        node->SetEntityAABB(aabb);
+        node->SetEntityAABB(aabb, /* update_immediate */ true);
 
         if (transform_locked) {
             node->LockTransform();

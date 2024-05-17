@@ -567,6 +567,56 @@ void Node::SetEntity(ID<Entity> entity)
     }
 }
 
+void Node::SetEntityAABB(const BoundingBox &aabb, bool update_immediate)
+{
+    if (m_entity_aabb == aabb && !update_immediate) {
+        return;
+    }
+
+    m_entity_aabb = aabb;
+
+    if (update_immediate) {
+        Node *parent = this;
+
+        while (parent->GetParent() != nullptr) {
+            parent = parent->GetParent();
+        }
+
+        parent->UpdateAABBs();
+    }
+}
+
+BoundingBox Node::GetLocalAABB() const
+{
+    BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
+
+    for (const NodeProxy &child : GetChildren()) {
+        if (!child.IsValid()) {
+            continue;
+        }
+
+        aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+    }
+
+    return aabb;
+}
+
+BoundingBox Node::GetWorldAABB() const
+{
+    BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
+    aabb *= m_world_transform;
+
+    for (const NodeProxy &child : GetChildren()) {
+        if (!child.IsValid()) {
+            continue;
+        }
+
+        aabb.Extend(child->GetWorldAABB());
+    }
+
+    return aabb;
+}
+
 void Node::UpdateWorldTransform()
 {
     if (m_transform_locked) {
@@ -601,25 +651,17 @@ void Node::UpdateWorldTransform()
         m_world_transform = m_local_transform;
     }
 
-    m_local_aabb = m_entity_aabb;
-    m_world_aabb = m_entity_aabb * m_world_transform;
-
     if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(m_entity);
         m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
 
-        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+        if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
             transform_component->transform = m_world_transform;
         } else {
             m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
                 m_world_transform
             });
         }
-    }
-
-    if (m_parent_node != nullptr) {
-        m_parent_node->m_local_aabb.Extend(m_local_aabb * m_local_transform);
-        m_parent_node->m_world_aabb.Extend(m_world_aabb);
     }
 
     if (m_world_transform == transform_before) {
@@ -629,6 +671,20 @@ void Node::UpdateWorldTransform()
     for (auto &node : m_child_nodes) {
         AssertThrow(node != nullptr);
         node->UpdateWorldTransform();
+    }
+}
+
+void Node::UpdateAABBs()
+{
+    m_local_aabb = m_entity_aabb;
+    m_world_aabb = m_entity_aabb * m_world_transform;
+
+    for (NodeProxy &node : m_child_nodes) {
+        AssertThrow(node != nullptr);
+        node->UpdateAABBs();
+
+        m_local_aabb.Extend(node->GetLocalAABB() * node->GetLocalTransform());
+        m_world_aabb.Extend(node->GetWorldAABB());
     }
 }
 
@@ -666,13 +722,13 @@ void Node::RefreshEntityTransform()
     m_entity_aabb = BoundingBox::Empty();
 
     if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
-        if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
+        if (BoundingBoxComponent *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
             m_entity_aabb = bounding_box_component->local_aabb;
         } else {
             m_entity_aabb = BoundingBox::Empty();
         }
 
-        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+        if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
             transform_component->transform = m_world_transform;
         } else {
             m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
@@ -680,8 +736,6 @@ void Node::RefreshEntityTransform()
             });
         }
     }
-
-    UpdateWorldTransform();
 }
 
 bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const

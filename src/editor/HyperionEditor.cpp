@@ -305,14 +305,15 @@ void HyperionEditorImpl::CreateMainPanel()
 
     dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
 
-    RC<UIPanel> scene_graph = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Graph_Panel), Vec2i { 0, 0 }, UIObjectSize({ 250, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    RC<UIPanel> scene_graph = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Graph_Panel), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
     dockable_container->AddChildUIObject(scene_graph, UIDockableItemPosition::LEFT);
 
-    RC<UIPanel> properties_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Properties_panel), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    RC<UIPanel> properties_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Properties_panel), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
     dockable_container->AddChildUIObject(properties_panel, UIDockableItemPosition::RIGHT);
 
-    RC<UIPanel> top_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Top_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    RC<UIPanel> top_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Top_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     dockable_container->AddChildUIObject(top_panel, UIDockableItemPosition::TOP);
+
     RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
     dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
 

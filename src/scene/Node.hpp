@@ -345,29 +345,29 @@ public:
     const BoundingBox &GetEntityAABB() const
         { return m_entity_aabb; }
 
-    /*! \brief Set the underlying entity AABB of the Node. Used for marshaling data */
-    void SetEntityAABB(const BoundingBox &aabb)
-        { m_entity_aabb = aabb; UpdateWorldTransform(); }
+    /*! \brief Set the underlying entity AABB of the Node. Used for marshaling data
+    *   \param aabb The entity bounding box to set
+    *   \param update_immediate If true, updates the parents' bounding boxes immediately to reflect the change. */
+    void SetEntityAABB(const BoundingBox &aabb, bool update_immediate = false);
 
     /*! \brief \returns The local-space (model) of the node's aabb. */
-    const BoundingBox &GetLocalAABB() const
-        { return m_local_aabb; }
+    BoundingBox GetLocalAABB() const;
 
     /*! \brief Set the local-space AABB of the Node. Used for marshaling data */
     void SetLocalAABB(const BoundingBox &aabb)
-        { m_local_aabb = aabb; UpdateWorldTransform(); }
+        { m_local_aabb = aabb; }
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
      */
-    const BoundingBox &GetWorldAABB() const
-        { return m_world_aabb; }
+    BoundingBox GetWorldAABB() const;
 
     /*! \brief Set the world-space AABB of the Node. Used for marshaling data */
     void SetWorldAABB(const BoundingBox &aabb)
-        { m_world_aabb = aabb; UpdateWorldTransform(); }
+        { m_world_aabb = aabb; }
 
     void UpdateWorldTransform();
+    void UpdateAABBs();
 
     void RefreshEntityTransform();
 
