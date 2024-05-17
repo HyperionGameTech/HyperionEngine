@@ -69,6 +69,14 @@ struct alignas(alignment) UserData
 
     ~UserData()                                 = default;
 
+    [[nodiscard]]
+    bool operator==(const UserData &other) const
+        { return Memory::MemCmp(data.GetRawPointer(), other.data.GetRawPointer(), size) == 0; }
+
+    [[nodiscard]]
+    bool operator!=(const UserData &other) const
+        { return Memory::MemCmp(data.GetRawPointer(), other.data.GetRawPointer(), size) != 0; }
+
     template <class T>
     HYP_FORCE_INLINE
     void Set(const T &value)
@@ -103,7 +111,20 @@ struct alignas(alignment) UserData
     [[nodiscard]]
     HYP_FORCE_INLINE
     const T &ReinterpretAs() const
-        { return const_cast<UserData *>(this)->ReinterpretAs<T>(); } 
+        { return const_cast<UserData *>(this)->ReinterpretAs<T>(); }
+
+    /*! \brief Constructs a new UserData of this type from a pointer to a raw byte buffer.
+     *  Proper care must be taken when using this method. You must ensure that the byte buffer matches
+     *  in size or else a read access violation will occur.
+     *  Also, proper care must be taken to ensure type safety. For instance, don't marshal in an object of
+     *  any struct/class type that is non-trival or non-standard layout. */
+    [[nodiscard]]
+    static UserData<size, alignment> InternFromBytes(const ubyte *bytes)
+    {
+        UserData<size, alignment> result;
+        Memory::MemCpy(result.data.GetRawPointer(), bytes, size);
+        return result;
+    }
 };
 } // namespace utilities
 

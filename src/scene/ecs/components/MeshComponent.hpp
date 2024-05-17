@@ -36,11 +36,11 @@ struct MeshComponent
     MeshComponentFlags      flags = MESH_COMPONENT_FLAG_DIRTY;
 
     Matrix4                 previous_model_matrix;
+
+    MeshComponentUserData   user_data;
 };
 
-constexpr auto x = sizeof(MeshComponent);
-
-static_assert(sizeof(MeshComponent) == 96, "MeshComponent size must match C# struct size");
+static_assert(sizeof(MeshComponent) == 112, "MeshComponent size must match C# struct size");
 
 } // namespace hyperion
 

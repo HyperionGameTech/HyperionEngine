@@ -25,13 +25,14 @@ class Entity;
 
 struct RenderProxy
 {
-    ID<Entity>          entity;
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Handle<Skeleton>    skeleton;
-    Matrix4             model_matrix;
-    Matrix4             previous_model_matrix;
-    BoundingBox         aabb;
+    ID<Entity>                              entity;
+    Handle<Mesh>                            mesh;
+    Handle<Material>                        material;
+    Handle<Skeleton>                        skeleton;
+    Matrix4                                 model_matrix;
+    Matrix4                                 previous_model_matrix;
+    BoundingBox                             aabb;
+    UserData<sizeof(Vec4u), alignof(Vec4u)> user_data;
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -43,7 +44,8 @@ struct RenderProxy
             && skeleton == other.skeleton
             && model_matrix == other.model_matrix
             && previous_model_matrix == other.previous_model_matrix
-            && aabb == other.aabb;
+            && aabb == other.aabb
+            && user_data == other.user_data;
     }
     
     [[nodiscard]]
@@ -56,7 +58,8 @@ struct RenderProxy
             || skeleton != other.skeleton
             || model_matrix != other.model_matrix
             || previous_model_matrix != other.previous_model_matrix
-            || aabb != other.aabb;
+            || aabb != other.aabb
+            || user_data != other.user_data;
     }
 };
 

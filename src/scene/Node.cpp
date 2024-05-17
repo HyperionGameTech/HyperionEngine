@@ -527,6 +527,11 @@ void Node::SetLocalTransform(const Transform &transform)
     UpdateWorldTransform();
 }
 
+Transform Node::GetRelativeTransform(const Transform &parent_transform) const
+{
+    return parent_transform.GetInverse() * m_world_transform;
+}
+
 void Node::SetEntity(ID<Entity> entity)
 {
     if (m_entity == entity) {
@@ -586,16 +591,16 @@ void Node::SetEntityAABB(const BoundingBox &aabb, bool update_immediate)
     }
 }
 
-BoundingBox Node::GetLocalAABB() const
+BoundingBox Node::GetLocalAABB(bool include_entity_aabb) const
 {
-    BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
+    BoundingBox aabb = (include_entity_aabb && m_entity_aabb.IsValid()) ? m_entity_aabb : BoundingBox::Zero();
 
     for (const NodeProxy &child : GetChildren()) {
         if (!child.IsValid()) {
             continue;
         }
 
-        aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+        aabb.Extend(child->GetLocalAABB(true) * child->GetLocalTransform());
     }
 
     return aabb;

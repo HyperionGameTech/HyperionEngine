@@ -21,23 +21,41 @@ public:
     Transform(const Vector3 &translation, const Vector3 &scale, const Quaternion &rotation);
     Transform(const Transform &other);
 
-    const Vector3 &GetTranslation() const { return m_translation; }
+    const Vector3 &GetTranslation() const
+        { return m_translation; }
+
     /** returns a reference to the translation - if modified, you must call UpdateMatrix(). */
-    Vector3 &GetTranslation() { return m_translation; }
-    void SetTranslation(const Vector3 &translation) { m_translation = translation; UpdateMatrix(); }
+    Vector3 &GetTranslation()
+        { return m_translation; }
 
-    const Vector3 &GetScale() const { return m_scale; }
+    void SetTranslation(const Vector3 &translation)
+        { m_translation = translation; UpdateMatrix(); }
+
+    const Vector3 &GetScale() const
+        { return m_scale; }
+
     /** returns a reference to the scale - if modified, you must call UpdateMatrix(). */
-    Vector3 &GetScale() { return m_scale; }
-    void SetScale(const Vector3 &scale) { m_scale = scale; UpdateMatrix(); }
+    Vector3 &GetScale()
+        { return m_scale; }
 
-    const Quaternion &GetRotation() const { return m_rotation; }
+    void SetScale(const Vector3 &scale)
+        { m_scale = scale; UpdateMatrix(); }
+
+    const Quaternion &GetRotation() const
+        { return m_rotation; }
+
     /** returns a reference to the rotation - if modified, you must call UpdateMatrix(). */
-    Quaternion &GetRotation() { return m_rotation; }
-    void SetRotation(const Quaternion &rotation) { m_rotation = rotation; UpdateMatrix(); }
+    Quaternion &GetRotation()
+        { return m_rotation; }
+
+    void SetRotation(const Quaternion &rotation)
+        { m_rotation = rotation; UpdateMatrix(); }
 
     void UpdateMatrix();
-    const Matrix4 &GetMatrix() const { return m_matrix; }
+    const Matrix4 &GetMatrix() const
+        { return m_matrix; }
+
+    Transform GetInverse() const;
 
     Transform operator*(const Transform &other) const;
     Transform &operator*=(const Transform &other);
@@ -45,6 +63,8 @@ public:
     bool operator==(const Transform &other) const
         { return m_matrix == other.m_matrix; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

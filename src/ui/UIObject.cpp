@@ -219,6 +219,8 @@ void UIObject::Init()
     // set `m_is_init` to true before calling `UpdatePosition` and `UpdateSize` to allow them to run
     m_is_init = true;
 
+    // SetAABB(BoundingBox::Zero());
+
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
@@ -366,39 +368,7 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    BoundingBox aabb = node->GetEntityAABB();
-
-    // If we have a mesh, set the AABB to the mesh's AABB
-    if (!aabb.IsValid() || !aabb.IsFinite()) {
-        if (const Handle<Mesh> &mesh = GetMesh()) {
-            aabb = mesh->GetAABB();
-
-            SetAABB(aabb);
-        }
-    }
-
-    if (!aabb.IsFinite() || !aabb.IsValid()) {
-        DebugLog(
-            LogType::Warn, "AABB is invalid or not finite for UI object: %s\tBounding box: [%f, %f, %f], [%f, %f, %f]\n",
-            m_name.LookupString(),
-            aabb.min.x, aabb.min.y, aabb.min.z,
-            aabb.max.x, aabb.max.y, aabb.max.z
-        );
-
-        return;
-    }
-
-    const Vec3f aabb_extent = aabb.GetExtent();
-
-    node->UnlockTransform();
-
-    node->SetWorldScale(Vec3f {
-        float(m_actual_size.x) / MathUtil::Max(aabb_extent.x, MathUtil::epsilon_f),
-        float(m_actual_size.y) / MathUtil::Max(aabb_extent.y, MathUtil::epsilon_f),
-        1.0f
-    });
-
-    node->LockTransform();
+    SetAABB(CalculateAABB());
 
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
@@ -409,6 +379,11 @@ void UIObject::UpdateSize(bool update_children)
             return UIObjectIterationResult::CONTINUE;
         });
     }
+
+    // // @TODO Investigate this.. auto needs recalculation
+    // if (m_size.GetAllFlags() & UIObjectSize::AUTO) {
+    //     UpdateActualSizes();
+    // }
 }
 
 Vec2i UIObject::GetScrollOffset() const
@@ -756,8 +731,8 @@ void UIObject::SetAABB(const BoundingBox &aabb)
         }
     }
 
-    UpdateSize();
-    UpdatePosition();
+    // UpdateSize();
+    // UpdatePosition();
 
     Scene *scene = GetScene();
 
@@ -767,6 +742,11 @@ void UIObject::SetAABB(const BoundingBox &aabb)
 
     BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
     bounding_box_component.local_aabb = aabb;
+}
+
+BoundingBox UIObject::CalculateAABB() const
+{
+    return { Vec3f::Zero(), Vec3f(float(m_actual_size.x), float(m_actual_size.y), 0.0f) };
 }
 
 Handle<Material> UIObject::GetMaterial() const
@@ -902,8 +882,14 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
         Vec2i dynamic_size;
 
-        if (const NodeProxy &node = GetNode(); node->GetLocalAABB().IsFinite() && node->GetLocalAABB().IsValid()) {
-            const Vec3f extent = node->GetLocalAABB().GetExtent();
+        BoundingBox node_aabb = BoundingBox::Empty();
+
+        if (const NodeProxy &node = GetNode()) {
+            node_aabb = node->GetLocalAABB();
+        }
+
+        if (node_aabb.IsFinite() && node_aabb.IsValid()) {
+            const Vec3f extent = node_aabb.GetExtent();
 
             Vec2f ratios;
             ratios.x = extent.x / MathUtil::Max(extent.y, MathUtil::epsilon_f);
@@ -1009,8 +995,7 @@ void UIObject::UpdateMeshData()
     ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
         | ((uint32(m_border_flags) & 0xFu) << 8u);
 
-    // @FIXME userdata on mesh component
-    // mesh_component->user_data.Set(ui_object_mesh_data);
+    mesh_component->user_data.Set(ui_object_mesh_data);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 

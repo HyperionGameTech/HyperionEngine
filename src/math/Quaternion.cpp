@@ -223,6 +223,11 @@ Quaternion &Quaternion::Invert()
     return *this;
 }
 
+Quaternion Quaternion::Inverse() const
+{
+    return Quaternion(*this).Invert();
+}
+
 Quaternion &Quaternion::Slerp(const Quaternion &to, float amt)
 {
     float cos_half_theta = w * to.w + x * to.x + y * to.y + z * to.z;

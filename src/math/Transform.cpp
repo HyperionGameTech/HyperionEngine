@@ -45,11 +45,20 @@ Transform::Transform(const Transform &other)
 
 void Transform::UpdateMatrix()
 {
-    const auto t = Matrix4::Translation(m_translation);
-    const auto r = Matrix4::Rotation(m_rotation);
-    const auto s = Matrix4::Scaling(m_scale);
+    const Matrix4 t = Matrix4::Translation(m_translation);
+    const Matrix4 r = Matrix4::Rotation(m_rotation);
+    const Matrix4 s = Matrix4::Scaling(m_scale);
 
     m_matrix = t * r * s;
+}
+
+Transform Transform::GetInverse() const
+{
+    return {
+        -m_translation,
+        Vec3f(1.0f) / m_scale,
+        m_rotation.Inverse()
+    };
 }
 
 Transform Transform::operator*(const Transform &other) const

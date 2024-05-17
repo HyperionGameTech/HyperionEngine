@@ -110,6 +110,7 @@ public:
         { return false; }
 
 protected:
+    virtual BoundingBox CalculateAABB() const override;
     virtual Handle<Material> GetMaterial() const override;
 
     virtual void UpdateSize(bool update_children = true) override;
@@ -124,6 +125,9 @@ protected:
     Vec4f           m_text_color;
 
     UITextOptions   m_options;
+
+private:
+    BoundingBox     m_text_aabb;
 };
 
 } // namespace hyperion

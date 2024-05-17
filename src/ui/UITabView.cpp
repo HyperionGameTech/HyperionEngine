@@ -21,8 +21,6 @@ void UITab::Init()
 {
     UIPanel::Init();
 
-    SetAABB(GetMesh()->GetAABB());
-
     RC<UIText> title_text = m_parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString(*m_name) + "_Title"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
     title_text->SetParentAlignment(UIObjectAlignment::CENTER);
     title_text->SetOriginAlignment(UIObjectAlignment::CENTER);
@@ -83,8 +81,6 @@ void UITabView::Init()
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     UIPanel::Init();
-
-    SetAABB(GetMesh()->GetAABB());
 
     m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(TabContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     m_container->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);

@@ -341,6 +341,11 @@ public:
         SetLocalRotation(Quaternion(m_parent_node->GetWorldRotation()).Invert() * rotation);
     }
 
+    /*! \brief Get the relative transform of this Node to the given parent transform.
+     * \param parent_transform The parent transform to calculate the relative transform to.
+     * \returns The relative transform of this Node to the given parent transform. */
+    Transform GetRelativeTransform(const Transform &parent_transform) const;
+
     /*! \brief \returns The underlying entity AABB for this node. */
     const BoundingBox &GetEntityAABB() const
         { return m_entity_aabb; }
@@ -350,8 +355,10 @@ public:
     *   \param update_immediate If true, updates the parents' bounding boxes immediately to reflect the change. */
     void SetEntityAABB(const BoundingBox &aabb, bool update_immediate = false);
 
-    /*! \brief \returns The local-space (model) of the node's aabb. */
-    BoundingBox GetLocalAABB() const;
+    /*! \brief \returns The local-space (model) of the node's aabb.
+     *  \param include_entity_aabb If true, includes the Node's Entity AABB in the calculation.
+     *  If false, returns only the AABBs of the child nodes, relative to this node. */
+    BoundingBox GetLocalAABB(bool include_entity_aabb = true) const;
 
     /*! \brief Set the local-space AABB of the Node. Used for marshaling data */
     void SetLocalAABB(const BoundingBox &aabb)

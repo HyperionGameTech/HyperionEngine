@@ -175,7 +175,7 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<UIMenuItem> view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "View");
     view_menu_item->AddDropDownMenuItem({ HYP_NAME(Content_Browser), "Content Browser" });
     
-    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(HYP_NAME(Window_Menu_Item), "Windowdasdsndsfnsdjkfndsjf");
+    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(HYP_NAME(Window_Menu_Item), "Window");
     window_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
 
     m_main_panel->AddChildUIObject(menu_bar);
@@ -314,8 +314,8 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<UIPanel> top_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Top_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     dockable_container->AddChildUIObject(top_panel, UIDockableItemPosition::TOP);
 
-    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
-    dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
+    // RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    // dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
 
     // {
     //     auto btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(TestButton1), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));

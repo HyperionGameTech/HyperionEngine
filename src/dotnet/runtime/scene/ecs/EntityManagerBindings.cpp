@@ -70,12 +70,13 @@ struct ManagedMeshComponent
     ManagedRefCountedPtr    proxy_rc;
     uint32                  mesh_component_flags;
     Matrix4                 previous_model_matrix;
+    ubyte                   user_data[16];
 };
 
 static_assert(sizeof(ManagedMeshComponent) == sizeof(MeshComponent), "ManagedMeshComponent should equal MeshComponent size");
 static_assert(alignof(ManagedMeshComponent) == alignof(MeshComponent), "ManagedMeshComponent should have the same alignment as MeshComponent");
 static_assert(std::is_trivially_copyable_v<ManagedMeshComponent> && std::is_standard_layout_v<ManagedMeshComponent>, "ManagedMeshComponent should be trivially copyable and standard layout");
-static_assert(sizeof(ManagedMeshComponent) == 96, "ManagedMeshComponent should equal 96 bytes to match C# struct size");
+static_assert(sizeof(ManagedMeshComponent) == 112, "ManagedMeshComponent should equal 96 bytes to match C# struct size");
 
 HYP_EXPORT uint32 MeshComponent_GetNativeTypeID()
 {
@@ -95,7 +96,8 @@ HYP_EXPORT ComponentID MeshComponent_AddComponent(EntityManager *manager, Manage
         Handle<Skeleton> { },
         std::move(proxy),
         component->mesh_component_flags,
-        component->previous_model_matrix
+        component->previous_model_matrix,
+        MeshComponentUserData::InternFromBytes(component->user_data)
     });
 }
 

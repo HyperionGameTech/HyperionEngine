@@ -9,7 +9,7 @@ namespace Hyperion
         Dirty = 0x1
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 96)]
+    [StructLayout(LayoutKind.Explicit, Size = 112)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -24,6 +24,10 @@ namespace Hyperion
         private MeshComponentFlags meshComponentFlags;
         [FieldOffset(32)] // align to 16 byte boundary
         private Matrix4 previousModelMatrix;
+        
+        // 16 bytes of user data
+        [FieldOffset(96)]
+        private fixed byte userData[16];
 
         public Mesh Mesh
         {

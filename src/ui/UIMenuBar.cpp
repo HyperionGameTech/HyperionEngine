@@ -222,8 +222,6 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    DebugLog(LogType::Debug, "SetSelectedMenuItemIndex(%u)\n", index);
-
     if (index == m_selected_menu_item_index) {
         return;
     }
@@ -275,7 +273,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    auto menu_item = m_parent->CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    RC<UIMenuItem> menu_item = m_parent->CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
     menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetText(text);
@@ -390,7 +388,6 @@ void UIMenuBar::UpdateMenuItemSizes()
     for (SizeType i = 0; i < m_menu_items.Size(); i++) {
         m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
         m_menu_items[i]->SetPosition(offset);
-        // m_menu_items[i]->UpdateSize();
 
         offset.x += m_menu_items[i]->GetActualSize().x;
     }

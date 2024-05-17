@@ -232,23 +232,28 @@ void UIText::UpdateMesh()
 
         mesh = char_mesh_builder.OptimizeCharMeshes(m_parent->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(*font_atlas, m_text));
     } else {
-        DebugLog(LogType::Warn, "No font atlas for UIText %s", GetName().LookupString());
+        DebugLog(LogType::Warn, "No font atlas for UIText %s", *GetName());
+    }
 
+    if (!mesh.IsValid()) {
         mesh = GetQuadMesh();
     }
+
+    AssertThrow(mesh.IsValid());
+    m_text_aabb = mesh->GetAABB();
 
     g_safe_deleter->SafeRelease(std::move(mesh_component.mesh));
 
     mesh_component.mesh = mesh;
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 
-    if (mesh.IsValid()) {
-        SetAABB(mesh->GetAABB());
-    } else {
-        DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
+    // if (mesh.IsValid()) {
+    //     SetAABB(mesh->GetAABB());
+    // } else {
+    //     DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
 
-        SetAABB(BoundingBox::Empty());
-    }
+    //     SetAABB(BoundingBox::Empty());
+    // }
 }
 
 Handle<Material> UIText::GetMaterial() const
@@ -286,8 +291,38 @@ void UIText::UpdateSize(bool update_children)
 {
     UIObject::UpdateSize(update_children);
 
+    if (NodeProxy node = GetNode()) {
+        const Vec3f aabb_extent = node->GetEntityAABB().GetExtent();
+
+        const bool was_transform_locked = node->IsTransformLocked();
+
+        if (was_transform_locked) {
+            node->UnlockTransform();
+        }
+
+        node->SetWorldScale(Vec3f {
+            float(m_actual_size.x) / MathUtil::Max(aabb_extent.x, MathUtil::epsilon_f),
+            float(m_actual_size.y) / MathUtil::Max(aabb_extent.y, MathUtil::epsilon_f),
+            1.0f
+        });
+
+        if (was_transform_locked) {
+            node->LockTransform();
+        }
+    }
+
     // Update material to get new font size if necessary
     UpdateMaterial();
+}
+
+BoundingBox UIText::CalculateAABB() const
+{
+    DebugLog(LogType::Debug, "Text \"%s\" calculated aabb: %f, %f, %f\t%f, %f, %f\n",
+        m_text.Data(),
+        m_text_aabb.min.x, m_text_aabb.min.y, m_text_aabb.min.z,
+        m_text_aabb.max.x, m_text_aabb.max.y, m_text_aabb.max.z);
+
+    return m_text_aabb;
 }
 
 #pragma endregion UIText

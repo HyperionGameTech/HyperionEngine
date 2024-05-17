@@ -98,14 +98,12 @@ struct UIObjectSize
 
     enum FlagBits : Flags
     {
-        AUTO     = 0x04,
+        AUTO            = 0x04,
 
-        PIXEL    = 0x10,
-        PERCENT  = 0x20,
+        PIXEL           = 0x10,
+        PERCENT         = 0x20,
 
-        FLEX     = 0x40,
-
-        DEFAULT  = PIXEL
+        DEFAULT         = PIXEL
     };
 
     UIObjectSize()
@@ -455,6 +453,11 @@ protected:
      */
     static Handle<Mesh> GetQuadMesh();
 
+    /*! \brief Calculate the local (object space) bounding box (in pixels) of this object.
+     *  should be in range of (0,0,0):(size,size,size). */
+    virtual BoundingBox CalculateAABB() const;
+
+    /*! \brief Override to have the UIObject use a different material. */
     virtual Handle<Material> GetMaterial() const;
 
     const Handle<Mesh> &GetMesh() const;

@@ -10,6 +10,11 @@ UIImage::UIImage(UIStage *parent, NodeProxy node_proxy)
 {
 }
 
+void UIImage::Init()
+{
+    UIObject::Init();
+}
+
 void UIImage::SetTexture(Handle<Texture> texture)
 {
     if (texture == m_texture) {
