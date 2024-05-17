@@ -224,6 +224,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
+        DebugLog(LogType::Debug, "MouseMove: %d, %d\n", mouse_position.x, mouse_position.y);
+
         // check intersects with objects on mouse movement.
         // for any objects that had mouse held on them,
         // if the mouse is on them, signal mouse movement
@@ -331,6 +333,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .is_down            = false
                     });
 
+                    DebugLog(LogType::Debug, "Mouse hover on: %s, AABB: %f, %f, %f\t%f, %f, %f\n",
+                        *ui_object->GetName(),
+                        ui_object->GetWorldAABB().min.x, ui_object->GetWorldAABB().min.y, ui_object->GetWorldAABB().min.z,
+                        ui_object->GetWorldAABB().max.x, ui_object->GetWorldAABB().max.y, ui_object->GetWorldAABB().max.z);
+
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
                     }
@@ -355,6 +362,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
+
+                    DebugLog(LogType::Debug, "Mouse LEAVE on: %s\n", *other_ui_object->GetName());
                 }
 
                 it = m_hovered_entities.Erase(it);

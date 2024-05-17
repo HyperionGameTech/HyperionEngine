@@ -297,8 +297,6 @@ void UIObject::UpdatePosition(bool update_children)
         z_value
     });
 
-    node->LockTransform();
-
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
@@ -308,6 +306,8 @@ void UIObject::UpdatePosition(bool update_children)
             return UIObjectIterationResult::CONTINUE;
         });
     }
+
+    node->LockTransform();
 }
 
 UIObjectSize UIObject::GetSize() const
@@ -363,16 +363,14 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    node->UnlockTransform();
-
-    BoundingBox aabb = node->GetLocalAABB();
+    BoundingBox aabb = node->GetEntityAABB();
 
     // If we have a mesh, set the AABB to the mesh's AABB
     if (!aabb.IsValid() || !aabb.IsFinite()) {
         if (const Handle<Mesh> &mesh = GetMesh()) {
             aabb = mesh->GetAABB();
 
-            SetLocalAABB(aabb);
+            SetAABB(aabb);
         }
     }
 
@@ -387,11 +385,13 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    const Vec3f local_aabb_extent = aabb.GetExtent();
+    const Vec3f aabb_extent = aabb.GetExtent();
+
+    node->UnlockTransform();
 
     node->SetWorldScale(Vec3f {
-        float(m_actual_size.x) / MathUtil::Max(local_aabb_extent.x, MathUtil::epsilon_f),
-        float(m_actual_size.y) / MathUtil::Max(local_aabb_extent.y, MathUtil::epsilon_f),
+        float(m_actual_size.x) / MathUtil::Max(aabb_extent.x, MathUtil::epsilon_f),
+        float(m_actual_size.y) / MathUtil::Max(aabb_extent.y, MathUtil::epsilon_f),
         1.0f
     });
 
@@ -737,11 +737,24 @@ BoundingBox UIObject::GetLocalAABB() const
     return BoundingBox::Empty();
 }
 
-void UIObject::SetLocalAABB(const BoundingBox &aabb)
+void UIObject::SetAABB(const BoundingBox &aabb)
 {
     if (const NodeProxy &node = GetNode()) {
-        node->SetLocalAABB(aabb);
+        const bool transform_locked = node->IsTransformLocked();
+
+        if (transform_locked) {
+            node->UnlockTransform();
+        }
+
+        node->SetEntityAABB(aabb);
+
+        if (transform_locked) {
+            node->LockTransform();
+        }
     }
+
+    UpdateSize();
+    UpdatePosition();
 
     Scene *scene = GetScene();
 

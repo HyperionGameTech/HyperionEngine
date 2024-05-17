@@ -25,6 +25,11 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy)
 {
 }
 
+void UIPanel::Init()
+{
+    UIObject::Init();
+}
+
 Handle<Material> UIPanel::GetMaterial() const
 {
     return g_material_system->GetOrCreate(

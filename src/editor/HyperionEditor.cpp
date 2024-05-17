@@ -108,11 +108,11 @@ void HyperionEditorImpl::CreateMainPanel()
     m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
     // btn->SetPadding(Vec2i { 5, 5 });
     
-    auto menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+    RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     menu_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
 
-    auto file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
+    RC<UIMenuItem> file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
 
     file_menu_item->AddDropDownMenuItem({
         HYP_NAME(New),
@@ -143,7 +143,7 @@ void HyperionEditorImpl::CreateMainPanel()
         "Exit"
     });
 
-    auto edit_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
+    RC<UIMenuItem> edit_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
     edit_menu_item->AddDropDownMenuItem({
         HYP_NAME(Undo),
         "Undo"
@@ -169,22 +169,26 @@ void HyperionEditorImpl::CreateMainPanel()
         "Paste"
     });
 
-    auto tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Tools_Menu_Item), "Tools");
+    RC<UIMenuItem> tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Tools_Menu_Item), "Tools");
     tools_menu_item->AddDropDownMenuItem({ HYP_NAME(Build_Lightmap), "Build Lightmaps" });
 
-    auto view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "Window");
-    view_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
+    RC<UIMenuItem> view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "View");
+    view_menu_item->AddDropDownMenuItem({ HYP_NAME(Content_Browser), "Content Browser" });
     
+    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(HYP_NAME(Window_Menu_Item), "Windowdasdsndsfnsdjkfndsjf");
+    window_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
+
     m_main_panel->AddChildUIObject(menu_bar);
 
-    auto tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 60, 80 }, Vec2i { 1150, 650 });
+    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 60 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-60, UIObjectSize::PIXEL }));
+
+    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 60 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     tab_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-    m_main_panel->AddChildUIObject(tab_view);
-
-    auto scene_tab_content_grid = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Scene_Tab_Grid), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     RC<UITab> scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+
+#if 1
     RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const UIMouseEventData &event)
@@ -295,14 +299,33 @@ void HyperionEditorImpl::CreateMainPanel()
     });
 
     ui_image->SetTexture(m_scene_texture);
-    scene_tab_content_grid->AddChildUIObject(ui_image, UIDockableItemPosition::CENTER);
 
-    RC<UIPanel> scene_graph = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Graph_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    scene_tab_content_grid->AddChildUIObject(scene_graph, UIDockableItemPosition::LEFT);
+    scene_tab->GetContents()->AddChildUIObject(ui_image);
+#endif
 
-    scene_tab->GetContents()->AddChildUIObject(scene_tab_content_grid);
+    dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
 
-    auto game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+    RC<UIPanel> scene_graph = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Graph_Panel), Vec2i { 0, 0 }, UIObjectSize({ 250, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    dockable_container->AddChildUIObject(scene_graph, UIDockableItemPosition::LEFT);
+
+    RC<UIPanel> properties_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Properties_panel), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    dockable_container->AddChildUIObject(properties_panel, UIDockableItemPosition::RIGHT);
+
+    RC<UIPanel> top_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Top_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    dockable_container->AddChildUIObject(top_panel, UIDockableItemPosition::TOP);
+    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
+
+    // {
+    //     auto btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(TestButton1), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+    //     // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
+    //     // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
+    //     btn->SetText("hello hello world");
+    //     // btn->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    //     dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
+    // }
+
+    RC<UITab> game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
 
     for (int i = 0; i < 50; i++) {
         auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(CreateNameFromDynamicString(ANSIString("Hello_world_button_") + ANSIString::ToString(i)), Vec2i { 20, i * 25 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
@@ -312,6 +335,8 @@ void HyperionEditorImpl::CreateMainPanel()
         game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
     }
+
+    m_main_panel->AddChildUIObject(dockable_container);
 
     // AssertThrow(game_tab_content_button->GetScene() != nullptr);
 

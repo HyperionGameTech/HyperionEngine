@@ -459,10 +459,12 @@ protected:
 
     const Handle<Mesh> &GetMesh() const;
 
-    void SetLocalAABB(const BoundingBox &aabb);
+    void SetAABB(const BoundingBox &aabb);
 
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
+
+    void UpdateActualSizes();
 
     UIStage                         *m_parent;
 
@@ -495,7 +497,6 @@ protected:
 private:
     void ComputeOffsetPosition();
 
-    void UpdateActualSizes();
     void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool is_inner = false);
 
     template <class Lambda>

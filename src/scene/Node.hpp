@@ -341,9 +341,15 @@ public:
         SetLocalRotation(Quaternion(m_parent_node->GetWorldRotation()).Invert() * rotation);
     }
 
-    /*! \brief \returns The local-space (model) of the node's aabb. Only includes
-     * the Entity's aabb
-     */
+    /*! \brief \returns The underlying entity AABB for this node. */
+    const BoundingBox &GetEntityAABB() const
+        { return m_entity_aabb; }
+
+    /*! \brief Set the underlying entity AABB of the Node. Used for marshaling data */
+    void SetEntityAABB(const BoundingBox &aabb)
+        { m_entity_aabb = aabb; UpdateWorldTransform(); }
+
+    /*! \brief \returns The local-space (model) of the node's aabb. */
     const BoundingBox &GetLocalAABB() const
         { return m_local_aabb; }
 
@@ -436,6 +442,7 @@ protected:
     NodeList                m_child_nodes;
     Transform               m_local_transform;
     Transform               m_world_transform;
+    BoundingBox             m_entity_aabb;
     BoundingBox             m_local_aabb;
     BoundingBox             m_world_aabb;
 

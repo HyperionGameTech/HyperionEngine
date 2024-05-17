@@ -19,19 +19,17 @@ UIDockableItem::UIDockableItem(UIStage *parent, NodeProxy node_proxy)
 #pragma region UIDockableContainer
 
 UIDockableContainer::UIDockableContainer(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::DOCKABLE_CONTAINER),
-      m_flow(UIDockableContainerFlow::HORIZONTAL)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::DOCKABLE_CONTAINER)
 {
     AssertThrow(m_parent != nullptr);
 
-    m_left_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(DockableItems_Side0), Vec2i { 0, 0 }, UIObjectSize({ 25, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    UIObject::AddChildUIObject(m_left_container);
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
+        m_dockable_items[i] = m_parent->CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
+    }
 
-    m_center_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(DockableItems_Center), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    UIObject::AddChildUIObject(m_center_container);
-
-    m_right_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(DockableItems_Side1), Vec2i { 0, 0 }, UIObjectSize({ 25, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    UIObject::AddChildUIObject(m_right_container);
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
+        UIObject::AddChildUIObject(m_dockable_items[i]);
+    }
 }
 
 void UIDockableContainer::Init()
@@ -43,20 +41,9 @@ void UIDockableContainer::Init()
 
 void UIDockableContainer::AddChildUIObject(UIObject *ui_object, UIDockableItemPosition position)
 {
-    switch (position) {
-    case UIDockableItemPosition::LEFT:
-        m_left_container->AddChildUIObject(ui_object);
+    m_dockable_items[uint32(position)]->AddChildUIObject(ui_object);
 
-        break;
-    case UIDockableItemPosition::RIGHT:
-        m_right_container->AddChildUIObject(ui_object);
-
-        break;
-    case UIDockableItemPosition::CENTER:
-        m_center_container->AddChildUIObject(ui_object);
-
-        break;
-    }
+    UpdateSize(true);
 }
 
 void UIDockableContainer::UpdateSize(bool update_children)
@@ -70,30 +57,49 @@ void UIDockableContainer::UpdateLayout()
 {
     const Vec2i container_size = GetActualSize();
 
-    switch (m_flow) {
-    case UIDockableContainerFlow::HORIZONTAL:
-        m_left_container->SetPosition(Vec2i { 0, 0 });
-        m_left_container->SetSize(UIObjectSize({ 25, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    // Top
+    m_dockable_items[uint32(UIDockableItemPosition::TOP)]->SetPosition(Vec2i { 0, 0 });
+    m_dockable_items[uint32(UIDockableItemPosition::TOP)]->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-        m_right_container->SetSize(UIObjectSize({ 25, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        m_right_container->SetPosition(Vec2i { container_size.x - m_right_container->GetActualSize().x, 0 });
+    // Bottom
+    m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->SetPosition(Vec2i { 0, container_size.y - m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y });
 
-        m_center_container->SetPosition(Vec2i { m_left_container->GetActualSize().x, 0 });
-        m_center_container->SetSize(UIObjectSize({ container_size.x - (m_left_container->GetActualSize().x + m_right_container->GetActualSize().x), UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    // Left
+    m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->SetPosition(Vec2i { 0, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y });
+    m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { container_size.y - (m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y + m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y), UIObjectSize::PIXEL }));
 
-        break;
-    case UIDockableContainerFlow::VERTICAL:
-        m_left_container->SetPosition(Vec2i { 0, 0 });
-        m_left_container->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PERCENT }));
+    // Right
+    m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { container_size.y - (m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y + m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y), UIObjectSize::PIXEL }));
+    m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->SetPosition(Vec2i { container_size.x - m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y });
 
-        m_right_container->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PERCENT }));
-        m_right_container->SetPosition(Vec2i { 0, container_size.y - m_right_container->GetActualSize().y });
+    // Center
+    m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetPosition(Vec2i { m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y });
+    m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetSize(UIObjectSize({ container_size.x - (m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetActualSize().x + m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetActualSize().x), UIObjectSize::PIXEL }, { container_size.y - (m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y + m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y), UIObjectSize::PIXEL }));
 
-        m_center_container->SetPosition(Vec2i { 0, m_left_container->GetActualSize().y });
-        m_center_container->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { container_size.x - (m_left_container->GetActualSize().x + m_right_container->GetActualSize().x), UIObjectSize::PIXEL }));
 
-        break;
-    }
+    // m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetPosition(Vec2i { 0, 0 });
+    // m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->SetSize(UIObjectSize({ container_size.x, UIObjectSize::PIXEL }, { container_size.y, UIObjectSize::PIXEL }));
+
+    DebugLog(LogType::Debug, "Container size: %d,%d\n", container_size.x, container_size.y);
+    DebugLog(LogType::Debug, "Top size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetActualSize().y);
+    DebugLog(LogType::Debug, "Bottom size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetActualSize().y);
+    DebugLog(LogType::Debug, "Left size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetActualSize().y);
+    DebugLog(LogType::Debug, "Right size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetActualSize().y);
+    DebugLog(LogType::Debug, "Center size: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetActualSize().x, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetActualSize().y);
+
+    DebugLog(LogType::Debug, "Container position: %d,%d\n", GetPosition().x, GetPosition().y);
+    DebugLog(LogType::Debug, "Top position: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetPosition().x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetPosition().y);
+    DebugLog(LogType::Debug, "Bottom position: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetPosition().x, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetPosition().y);
+    DebugLog(LogType::Debug, "Left position: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetPosition().x, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetPosition().y);
+    DebugLog(LogType::Debug, "Right position: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetPosition().x, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetPosition().y);
+    DebugLog(LogType::Debug, "Center position: %d,%d\n", m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetPosition().x, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetPosition().y);
+
+    DebugLog(LogType::Debug, "Top aabb: %f,%f,%f\t%f,%f,%f\n", m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().min.x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().min.y, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().min.z, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().max.x, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().max.y, m_dockable_items[uint32(UIDockableItemPosition::TOP)]->GetWorldAABB().max.z);
+    DebugLog(LogType::Debug, "Bottom aabb: %f,%f,%f\t%f,%f,%f\n", m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().min.x, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().min.y, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().min.z, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().max.x, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().max.y, m_dockable_items[uint32(UIDockableItemPosition::BOTTOM)]->GetWorldAABB().max.z);
+    DebugLog(LogType::Debug, "Left aabb: %f,%f,%f\t%f,%f,%f\n", m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().min.x, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().min.y, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().min.z, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().max.x, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().max.y, m_dockable_items[uint32(UIDockableItemPosition::LEFT)]->GetWorldAABB().max.z);
+    DebugLog(LogType::Debug, "Right aabb: %f,%f,%f\t%f,%f,%f\n", m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().min.x, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().min.y, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().min.z, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().max.x, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().max.y, m_dockable_items[uint32(UIDockableItemPosition::RIGHT)]->GetWorldAABB().max.z);
+    DebugLog(LogType::Debug, "Center aabb: %f,%f,%f\t%f,%f,%f\n", m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().min.x, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().min.y, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().min.z, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().max.x, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().max.y, m_dockable_items[uint32(UIDockableItemPosition::CENTER)]->GetWorldAABB().max.z);
 }
 
 #pragma region UIDockableContainer

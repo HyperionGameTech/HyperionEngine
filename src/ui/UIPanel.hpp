@@ -24,6 +24,8 @@ public:
     UIPanel &operator=(UIPanel &&other) noexcept    = delete;
     virtual ~UIPanel() override                     = default;
 
+    virtual void Init() override;
+
 protected:
     virtual Handle<Material> GetMaterial() const override;
 };

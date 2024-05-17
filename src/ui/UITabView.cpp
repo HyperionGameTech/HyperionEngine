@@ -243,11 +243,15 @@ void UITabView::UpdateTabSizes()
 
     const Vec2i actual_size = GetActualSize();
 
-    const int relative_tab_width = int(100.0f * (1.0f / float(m_tabs.Size())));
+    const int relative_tab_width = 100;///int(100.0f * (1.0f / float(m_tabs.Size())));
+
+    int offset = 0;
 
     for (SizeType i = 0; i < m_tabs.Size(); i++) {
-        m_tabs[i]->SetSize(UIObjectSize({ relative_tab_width, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
-        m_tabs[i]->SetPosition(Vec2i { int(i) * (actual_size.x / int(m_tabs.Size())), 0 });
+        m_tabs[i]->SetSize(UIObjectSize({ relative_tab_width, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+        m_tabs[i]->SetPosition(Vec2i { offset, 0 });
+
+        offset += relative_tab_width;//m_tabs[i]->GetActualSize().x;
     }
 }
 

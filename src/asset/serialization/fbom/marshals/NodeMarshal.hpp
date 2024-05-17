@@ -31,6 +31,7 @@ public:
         out.SetProperty("world_transform.rotation", FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
         out.SetProperty("world_transform.scale", FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
 
+        out.SetProperty("entity_aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetEntityAABB());
         out.SetProperty("local_aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetLocalAABB());
         out.SetProperty("world_aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetWorldAABB());
 

@@ -243,17 +243,12 @@ void UIText::UpdateMesh()
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 
     if (mesh.IsValid()) {
-        SetLocalAABB(mesh->GetAABB());
+        SetAABB(mesh->GetAABB());
     } else {
         DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
 
-        SetLocalAABB(BoundingBox::Empty());
+        SetAABB(BoundingBox::Empty());
     }
-
-    // Update bounding box, size (Material gets updated as well)
-    UpdateSize();
-    // Update positioning to ensure it's aligned correctly
-    UpdatePosition();
 }
 
 Handle<Material> UIText::GetMaterial() const

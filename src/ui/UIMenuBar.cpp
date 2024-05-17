@@ -17,7 +17,7 @@ UIMenuItem::UIMenuItem(UIStage *parent, NodeProxy node_proxy)
     : UIPanel(parent, std::move(node_proxy), UIObjectType::MENU_ITEM)
 {
     SetBorderRadius(0);
-    SetPadding({ 10, 0 });
+    SetPadding({ 2, 0 });
 }
 
 void UIMenuItem::Init()
@@ -186,7 +186,7 @@ void UIMenuBar::Init()
 
     UIPanel::Init();
 
-    m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(MenuItemContents), Vec2i { 0, 0 }, UIObjectSize({ 250, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(MenuItemContents), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     m_container->SetIsVisible(false);
     m_container->SetBorderFlags(UIObjectBorderFlags::NONE);
     m_container->SetBorderRadius(0);
@@ -390,6 +390,7 @@ void UIMenuBar::UpdateMenuItemSizes()
     for (SizeType i = 0; i < m_menu_items.Size(); i++) {
         m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
         m_menu_items[i]->SetPosition(offset);
+        // m_menu_items[i]->UpdateSize();
 
         offset.x += m_menu_items[i]->GetActualSize().x;
     }

@@ -21,9 +21,8 @@ enum class UIDockableItemPosition : uint32
     LEFT,
     RIGHT,
     CENTER,
-
-    TOP = LEFT,
-    BOTTOM = RIGHT,
+    TOP,
+    BOTTOM,
 
     MAX
 };
@@ -55,11 +54,6 @@ public:
     UIDockableContainer &operator=(UIDockableContainer &&other) noexcept    = delete;
     virtual ~UIDockableContainer() override                                 = default;
 
-    UIDockableContainerFlow GetFlow() const
-        { return m_flow; }
-
-    void SetFlow(UIDockableContainerFlow flow);
-
     void AddChildUIObject(UIObject *ui_object, UIDockableItemPosition position);
 
     virtual void Init() override;
@@ -68,13 +62,7 @@ public:
 private:
     void UpdateLayout();
 
-    UIDockableContainerFlow                                                     m_flow;
-
-    RC<UIObject>                                                                m_left_container;
-    RC<UIObject>                                                                m_center_container;
-    RC<UIObject>                                                                m_right_container;
-
-    FixedArray<Array<RC<UIDockableItem>>, uint32(UIDockableItemPosition::MAX)>  m_dockable_items;
+    FixedArray<RC<UIDockableItem>, uint32(UIDockableItemPosition::MAX)> m_dockable_items;
 };
 
 #pragma endregion UIDockableContainer

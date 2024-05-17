@@ -83,6 +83,7 @@ Node::Node(Node &&other) noexcept
       m_parent_node(other.m_parent_node),
       m_local_transform(other.m_local_transform),
       m_world_transform(other.m_world_transform),
+      m_entity_aabb(other.m_entity_aabb),
       m_local_aabb(other.m_local_aabb),
       m_world_aabb(other.m_world_aabb),
       m_scene(other.m_scene),
@@ -94,6 +95,7 @@ Node::Node(Node &&other) noexcept
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
+    other.m_entity_aabb = BoundingBox::Empty();
     other.m_local_aabb = BoundingBox::Empty();
     other.m_world_aabb = BoundingBox::Empty();
     other.m_scene = nullptr;
@@ -142,6 +144,9 @@ Node &Node::operator=(Node &&other) noexcept
 
     m_world_transform = other.m_world_transform;
     other.m_world_transform = Transform::identity;
+
+    m_entity_aabb = other.m_entity_aabb;
+    other.m_entity_aabb = BoundingBox::Empty();
 
     m_local_aabb = other.m_local_aabb;
     other.m_local_aabb = BoundingBox::Empty();
@@ -540,12 +545,6 @@ void Node::SetEntity(ID<Entity> entity)
             SetWorldTransform(transform_component->transform);
         }
 
-        if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
-            m_local_aabb = bounding_box_component->local_aabb;
-        } else {
-            m_local_aabb = BoundingBox::Empty();
-        }
-
         RefreshEntityTransform();
 
         // set entity to static by default
@@ -561,9 +560,8 @@ void Node::SetEntity(ID<Entity> entity)
             });
         }
     } else {
-        m_local_aabb = BoundingBox::Empty();
-
         m_entity = ID<Entity>::invalid;
+        m_entity_aabb = BoundingBox::Empty();
 
         UpdateWorldTransform();
     }
@@ -603,7 +601,8 @@ void Node::UpdateWorldTransform()
         m_world_transform = m_local_transform;
     }
 
-    m_world_aabb = m_local_aabb * m_world_transform;
+    m_local_aabb = m_entity_aabb;
+    m_world_aabb = m_entity_aabb * m_world_transform;
 
     if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(m_entity);
@@ -619,6 +618,7 @@ void Node::UpdateWorldTransform()
     }
 
     if (m_parent_node != nullptr) {
+        m_parent_node->m_local_aabb.Extend(m_local_aabb * m_local_transform);
         m_parent_node->m_world_aabb.Extend(m_world_aabb);
     }
 
@@ -663,13 +663,13 @@ uint Node::FindSelfIndex() const
 
 void Node::RefreshEntityTransform()
 {
-    m_local_aabb = BoundingBox::Empty();
+    m_entity_aabb = BoundingBox::Empty();
 
     if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         if (auto *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
-            m_local_aabb = bounding_box_component->local_aabb;
+            m_entity_aabb = bounding_box_component->local_aabb;
         } else {
-            m_local_aabb = BoundingBox::Empty();
+            m_entity_aabb = BoundingBox::Empty();
         }
 
         if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
@@ -681,7 +681,7 @@ void Node::RefreshEntityTransform()
         }
     }
 
-    m_world_aabb = m_local_aabb * m_world_transform;
+    UpdateWorldTransform();
 }
 
 bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
