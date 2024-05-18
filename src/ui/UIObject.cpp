@@ -125,23 +125,12 @@ UIObject::~UIObject()
 
 void UIObject::Init()
 {
-    Handle<Mesh> mesh = GetQuadMesh();
-
     Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
 
-    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent {
-        mesh,
-        GetMaterial()
-    });
-
-    scene->GetEntityManager()->AddComponent(GetEntity(), VisibilityStateComponent {
-        // VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
-    });
-
-    scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent {
-        mesh->GetAABB()
-    });
+    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), GetMaterial() });
+    scene->GetEntityManager()->AddComponent(GetEntity(), VisibilityStateComponent { });
+    scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent { });
 
     struct ScriptedDelegate
     {
@@ -218,8 +207,6 @@ void UIObject::Init()
 
     // set `m_is_init` to true before calling `UpdatePosition` and `UpdateSize` to allow them to run
     m_is_init = true;
-
-    // SetAABB(BoundingBox::Zero());
 
     UpdateSize();
     UpdatePosition();
@@ -323,7 +310,6 @@ void UIObject::SetSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 UIObjectSize UIObject::GetInnerSize() const
@@ -337,7 +323,6 @@ void UIObject::SetInnerSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 UIObjectSize UIObject::GetMaxSize() const
@@ -351,7 +336,6 @@ void UIObject::SetMaxSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 void UIObject::UpdateSize(bool update_children)
@@ -360,11 +344,11 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    UpdateActualSizes();
+    UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
 
     const NodeProxy &node = GetNode();
 
-    if (!node) {
+    if (!node.IsValid()) {
         return;
     }
 
@@ -380,10 +364,17 @@ void UIObject::UpdateSize(bool update_children)
         });
     }
 
-    // // @TODO Investigate this.. auto needs recalculation
-    // if (m_size.GetAllFlags() & UIObjectSize::AUTO) {
-    //     UpdateActualSizes();
-    // }
+    // auto needs recalculation
+    const bool needs_update_after_children = (m_size.GetAllFlags() & UIObjectSize::AUTO)
+        || (m_inner_size.GetAllFlags() & UIObjectSize::AUTO)
+        || (m_max_size.GetAllFlags() & UIObjectSize::AUTO);
+
+    if (needs_update_after_children) {
+        UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
+        SetAABB(CalculateAABB());
+    }
+
+    UpdateMeshData();
 }
 
 Vec2i UIObject::GetScrollOffset() const
@@ -724,7 +715,7 @@ void UIObject::SetAABB(const BoundingBox &aabb)
             node->UnlockTransform();
         }
 
-        node->SetEntityAABB(aabb, /* update_immediate */ true);
+        node->SetEntityAABB(aabb);
 
         if (transform_locked) {
             node->LockTransform();
@@ -822,25 +813,33 @@ Scene *UIObject::GetScene() const
         return node->GetScene();
     }
 
-    return nullptr;//g_engine->GetWorld()->GetDetachedScene().Get();
+    return nullptr;
 }
 
-void UIObject::UpdateActualSizes()
+void UIObject::UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags)
 {
-    if (m_max_size.GetValue().x != 0 || m_max_size.GetValue().y != 0) {
-        ComputeActualSize(m_max_size, m_actual_max_size);
+    if (flags & UIObjectUpdateSizeFlags::MAX_SIZE) {
+        if (m_max_size.GetValue().x != 0 || m_max_size.GetValue().y != 0) {
+            ComputeActualSize(m_max_size, m_actual_max_size, phase);
+        }
     }
 
-    ComputeActualSize(m_size, m_actual_size);
+    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE) {
+        ComputeActualSize(m_size, m_actual_size, phase, false);
+    }
 
-    ComputeActualSize(m_inner_size, m_actual_inner_size, true);
+    if (flags & UIObjectUpdateSizeFlags::INNER_SIZE) {
+        ComputeActualSize(m_inner_size, m_actual_inner_size, phase, true);
+    }
 
-    // clamp actual size to max size (if set for either x or y axis)
-    m_actual_size.x = m_actual_max_size.x != 0 ? MathUtil::Min(m_actual_size.x, m_actual_max_size.x) : m_actual_size.x;
-    m_actual_size.y = m_actual_max_size.y != 0 ? MathUtil::Min(m_actual_size.y, m_actual_max_size.y) : m_actual_size.y;
+    if (flags & UIObjectUpdateSizeFlags::CLAMP_OUTER_SIZE) {
+        // clamp actual size to max size (if set for either x or y axis)
+        m_actual_size.x = m_actual_max_size.x != 0 ? MathUtil::Min(m_actual_size.x, m_actual_max_size.x) : m_actual_size.x;
+        m_actual_size.y = m_actual_max_size.y != 0 ? MathUtil::Min(m_actual_size.y, m_actual_max_size.y) : m_actual_size.y;
+    }
 }
 
-void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, bool is_inner)
+void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner)
 {
     Vec2i parent_size = { 0, 0 };
     Vec2i parent_padding = { 0, 0 };
@@ -851,6 +850,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
     if (is_inner) {
         parent_size = GetActualSize();
         parent_padding = GetPadding();
+        DebugLog(LogType::Debug, "inner for %s, parent size: %d, %d\n", *GetName(), parent_size.x, parent_size.y);
     } else if (parent_ui_object) {
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
@@ -879,7 +879,8 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
         out_actual_size.y -= parent_padding.y * 2;
     }
 
-    if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
+    // Calculate "auto" sizing based on children. Must be executed after children have their sizes calculated.
+    if (phase == UpdateSizePhase::AFTER_CHILDREN && (in_size.GetAllFlags() & UIObjectSize::AUTO)) {
         Vec2i dynamic_size;
 
         BoundingBox node_aabb = BoundingBox::Empty();
@@ -914,6 +915,10 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
     // make sure the actual size is at least 0
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
+
+    if (is_inner) {
+        DebugLog(LogType::Debug, "inner for %s, in size: %d, %d\tout size: %d, %d\n", *GetName(), in_size.GetValue().x, in_size.GetValue().y, out_actual_size.x, out_actual_size.y);
+    }
 }
 
 void UIObject::ComputeOffsetPosition()

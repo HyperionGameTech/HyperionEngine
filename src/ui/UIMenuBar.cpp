@@ -17,7 +17,7 @@ UIMenuItem::UIMenuItem(UIStage *parent, NodeProxy node_proxy)
     : UIPanel(parent, std::move(node_proxy), UIObjectType::MENU_ITEM)
 {
     SetBorderRadius(0);
-    SetPadding({ 2, 0 });
+    SetPadding({ 5, 0 });
 }
 
 void UIMenuItem::Init()
@@ -262,10 +262,10 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 
     menu_item->SetFocusState(menu_item->GetFocusState() | UIObjectFocusState::TOGGLED);
 
-    m_container->SetIsVisible(true);
-    m_container->SetPosition({ menu_item->GetPosition().x, 0 });
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    m_container->SetPosition({ menu_item->GetPosition().x, 0 });
+    m_container->SetIsVisible(true);
     m_container->Focus();
 }
 

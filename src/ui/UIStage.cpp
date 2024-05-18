@@ -224,8 +224,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
-        DebugLog(LogType::Debug, "MouseMove: %d, %d\n", mouse_position.x, mouse_position.y);
-
         // check intersects with objects on mouse movement.
         // for any objects that had mouse held on them,
         // if the mouse is on them, signal mouse movement
@@ -362,8 +360,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
-
-                    DebugLog(LogType::Debug, "Mouse LEAVE on: %s\n", *other_ui_object->GetName());
                 }
 
                 it = m_hovered_entities.Erase(it);
@@ -434,8 +430,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
-        DebugLog(LogType::Debug, "Mouse button up %u\n", uint32(event.GetMouseButtons()));
-
         for (auto &it : m_mouse_button_pressed_states) {
             const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RC<UIObject> &ui_object)
             {
@@ -489,35 +483,36 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         Array<RC<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results)) {
-                UIObject *first_hit = nullptr;
+            UIObject *first_hit = nullptr;
 
-                for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                    if (const RC<UIObject> &ui_object = *it) {
-                        if (first_hit) {
-                            // We don't want to check the current object if it's not a child of the first hit object,
-                            // since it would be behind the first hit object.
-                            if (!first_hit->IsOrHasParent(ui_object)) {
-                                continue;
-                            }
-                        } else {
-                            first_hit = ui_object;
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+
+                if (const RC<UIObject> &ui_object = *it) {
+                    if (first_hit) {
+                        // We don't want to check the current object if it's not a child of the first hit object,
+                        // since it would be behind the first hit object.
+                        if (!first_hit->IsOrHasParent(ui_object)) {
+                            continue;
                         }
+                    } else {
+                        first_hit = ui_object;
+                    }
 
-                        event_handler_result |= ui_object->OnScroll(UIMouseEventData {
-                            .input_manager      = input_manager,
-                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                            .mouse_buttons      = event.GetMouseButtons(),
-                            .is_down            = false,
-                            .wheel              = Vec2i { wheel_x, wheel_y }
-                        });
+                    event_handler_result |= ui_object->OnScroll(UIMouseEventData {
+                        .input_manager      = input_manager,
+                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .mouse_buttons      = event.GetMouseButtons(),
+                        .is_down            = false,
+                        .wheel              = Vec2i { wheel_x, wheel_y }
+                    });
 
-                        if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
-                            break;
-                        }
+                    if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                        break;
                     }
                 }
             }
+        }
 
         break;
     }

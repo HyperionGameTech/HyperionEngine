@@ -333,21 +333,18 @@ public:
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     void SetWorldRotation(const Quaternion &rotation);
 
-    /*! \returns The local-space (model) of the node's aabb. Only includes
-     * the Entity's aabb.
-     */
+    /*! \returns The local-space (model) of the node's aabb. Does not include any child nodes' transforms. */
+    BoundingBox GetEntityAABB() const;
+    
+    /*! \brief Set the local-space (model) of the node's aabb. */
+    void SetEntityAABB(const BoundingBox &aabb);
+
+    /*! \returns The local-space (model) of the node's aabb, including child nodes with their relative transforms. */
     BoundingBox GetLocalAABB() const;
 
-    /*! \brief Set the local-space aabb of the node. */
-    void SetLocalAABB(const BoundingBox &aabb);
-
     /*! \returns The world-space aabb of the node. Includes the transforms of all
-     * parent nodes.
-     */
+     * parent nodes. */
     BoundingBox GetWorldAABB() const;
-
-    /*! \brief Set the world-space aabb of the node. */
-    void SetWorldAABB(const BoundingBox &aabb);
 
     /*! \brief If the Node is present, returns true if the Node's transform is locked. */
     bool IsTransformLocked() const;

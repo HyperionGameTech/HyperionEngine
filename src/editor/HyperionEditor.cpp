@@ -180,9 +180,9 @@ void HyperionEditorImpl::CreateMainPanel()
 
     m_main_panel->AddChildUIObject(menu_bar);
 
-    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 60 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-60, UIObjectSize::PIXEL }));
+    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
 
-    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 60 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     tab_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
 
@@ -311,11 +311,8 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<UIPanel> properties_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Properties_panel), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
     dockable_container->AddChildUIObject(properties_panel, UIDockableItemPosition::RIGHT);
 
-    RC<UIPanel> top_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Top_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
-    dockable_container->AddChildUIObject(top_panel, UIDockableItemPosition::TOP);
-
-    // RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
-    // dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
+    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
 
     // {
     //     auto btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(TestButton1), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
@@ -623,8 +620,8 @@ void HyperionEditor::Init()
     // }
 
     if (auto zombie = results["zombie"].Get<Node>()) {
-        zombie.Scale(0.05f);
-        zombie.Translate(Vec3f(0, -0.5f, -1.0f));
+        zombie.Scale(0.25f);
+        zombie.Translate(Vec3f(0, 2.0f, -1.0f));
         auto zombie_entity = zombie[0].GetEntity();
 
         m_scene->GetRoot().AddChild(zombie);
@@ -632,8 +629,8 @@ void HyperionEditor::Init()
         if (zombie_entity.IsValid()) {
             if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
                 mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.25f);
-                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.05f);
+                mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
             }
         }
 

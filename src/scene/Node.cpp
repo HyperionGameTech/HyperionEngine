@@ -84,8 +84,6 @@ Node::Node(Node &&other) noexcept
       m_local_transform(other.m_local_transform),
       m_world_transform(other.m_world_transform),
       m_entity_aabb(other.m_entity_aabb),
-      m_local_aabb(other.m_local_aabb),
-      m_world_aabb(other.m_world_aabb),
       m_scene(other.m_scene),
       m_transform_locked(other.m_transform_locked),
       m_delegates(std::move(other.m_delegates))
@@ -96,8 +94,6 @@ Node::Node(Node &&other) noexcept
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
     other.m_entity_aabb = BoundingBox::Empty();
-    other.m_local_aabb = BoundingBox::Empty();
-    other.m_world_aabb = BoundingBox::Empty();
     other.m_scene = nullptr;
     other.m_transform_locked = false;
 
@@ -147,12 +143,6 @@ Node &Node::operator=(Node &&other) noexcept
 
     m_entity_aabb = other.m_entity_aabb;
     other.m_entity_aabb = BoundingBox::Empty();
-
-    m_local_aabb = other.m_local_aabb;
-    other.m_local_aabb = BoundingBox::Empty();
-
-    m_world_aabb = other.m_world_aabb;
-    other.m_world_aabb = BoundingBox::Empty();
 
     m_scene = other.m_scene;
     other.m_scene = nullptr;
@@ -572,35 +562,25 @@ void Node::SetEntity(ID<Entity> entity)
     }
 }
 
-void Node::SetEntityAABB(const BoundingBox &aabb, bool update_immediate)
+void Node::SetEntityAABB(const BoundingBox &aabb)
 {
-    if (m_entity_aabb == aabb && !update_immediate) {
+    if (m_entity_aabb == aabb) {
         return;
     }
 
     m_entity_aabb = aabb;
-
-    if (update_immediate) {
-        Node *parent = this;
-
-        while (parent->GetParent() != nullptr) {
-            parent = parent->GetParent();
-        }
-
-        parent->UpdateAABBs();
-    }
 }
 
-BoundingBox Node::GetLocalAABB(bool include_entity_aabb) const
+BoundingBox Node::GetLocalAABB() const
 {
-    BoundingBox aabb = (include_entity_aabb && m_entity_aabb.IsValid()) ? m_entity_aabb : BoundingBox::Zero();
+    BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
 
     for (const NodeProxy &child : GetChildren()) {
         if (!child.IsValid()) {
             continue;
         }
 
-        aabb.Extend(child->GetLocalAABB(true) * child->GetLocalTransform());
+        aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
     }
 
     return aabb;
@@ -679,20 +659,6 @@ void Node::UpdateWorldTransform()
     }
 }
 
-void Node::UpdateAABBs()
-{
-    m_local_aabb = m_entity_aabb;
-    m_world_aabb = m_entity_aabb * m_world_transform;
-
-    for (NodeProxy &node : m_child_nodes) {
-        AssertThrow(node != nullptr);
-        node->UpdateAABBs();
-
-        m_local_aabb.Extend(node->GetLocalAABB() * node->GetLocalTransform());
-        m_world_aabb.Extend(node->GetWorldAABB());
-    }
-}
-
 uint Node::CalculateDepth() const
 {
     uint depth = 0;
@@ -745,14 +711,16 @@ void Node::RefreshEntityTransform()
 
 bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
 {
-    const bool has_node_hit = ray.TestAABB(m_world_aabb);
+    const BoundingBox world_aabb = GetWorldAABB();
+
+    const bool has_node_hit = ray.TestAABB(world_aabb);
 
     bool has_entity_hit = false;
 
     if (has_node_hit) {
         if (m_entity.IsValid()) {
             has_entity_hit = ray.TestAABB(
-                m_world_aabb,
+                world_aabb,
                 m_entity.Value(),
                 nullptr,
                 out_results

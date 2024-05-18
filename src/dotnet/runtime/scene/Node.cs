@@ -259,6 +259,20 @@ namespace Hyperion
             }
         }
 
+        public BoundingBox EntityAABB
+        {
+            get
+            {
+                BoundingBox aabb = new BoundingBox();
+                Node_GetEntityAABB(managedNode, out aabb);
+                return aabb;
+            }
+            set
+            {
+                Node_SetEntityAABB(managedNode, ref value);
+            }
+        }
+
         public BoundingBox WorldAABB
         {
             get
@@ -266,10 +280,6 @@ namespace Hyperion
                 BoundingBox aabb = new BoundingBox();
                 Node_GetWorldAABB(managedNode, out aabb);
                 return aabb;
-            }
-            set
-            {
-                Node_SetWorldAABB(managedNode, ref value);
             }
         }
 
@@ -280,10 +290,6 @@ namespace Hyperion
                 BoundingBox aabb = new BoundingBox();
                 Node_GetLocalAABB(managedNode, out aabb);
                 return aabb;
-            }
-            set
-            {
-                Node_SetLocalAABB(managedNode, ref value);
             }
         }
 
@@ -372,17 +378,17 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Node_SetEntity")]
         private static extern void Node_SetEntity(ManagedNode managedNode, [In] ref Entity entity);
 
+        [DllImport("hyperion", EntryPoint = "Node_GetEntityAABB")]
+        private static extern void Node_GetEntityAABB(ManagedNode managedNode, [Out] out BoundingBox aabb);
+
+        [DllImport("hyperion", EntryPoint = "Node_SetEntityAABB")]
+        private static extern void Node_SetEntityAABB(ManagedNode managedNode, [In] ref BoundingBox aabb);
+
         [DllImport("hyperion", EntryPoint = "Node_GetWorldAABB")]
         private static extern void Node_GetWorldAABB(ManagedNode managedNode, [Out] out BoundingBox aabb);
 
-        [DllImport("hyperion", EntryPoint = "Node_SetWorldAABB")]
-        private static extern void Node_SetWorldAABB(ManagedNode managedNode, [In] ref BoundingBox aabb);
-
         [DllImport("hyperion", EntryPoint = "Node_GetLocalAABB")]
         private static extern void Node_GetLocalAABB(ManagedNode managedNode, [Out] out BoundingBox aabb);
-
-        [DllImport("hyperion", EntryPoint = "Node_SetLocalAABB")]
-        private static extern void Node_SetLocalAABB(ManagedNode managedNode, [In] ref BoundingBox aabb);
 
         [DllImport("hyperion", EntryPoint = "Node_IsTransformLocked")]
         private static extern bool Node_IsTransformLocked(ManagedNode managedNode);

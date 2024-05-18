@@ -373,6 +373,28 @@ HYP_EXPORT void Node_Scale(ManagedNode managed_node, Vec3f *scale)
     node->Scale(*scale);
 }
 
+HYP_EXPORT void Node_GetEntityAABB(ManagedNode managed_node, BoundingBox *out_aabb)
+{
+    Node *node = managed_node.GetNode();
+
+    if (node == nullptr) {
+        return;
+    }
+
+    *out_aabb = node->GetEntityAABB();
+}
+
+HYP_EXPORT void Node_SetEntityAABB(ManagedNode managed_node, BoundingBox *aabb)
+{
+    Node *node = managed_node.GetNode();
+
+    if (node == nullptr) {
+        return;
+    }
+
+    node->SetEntityAABB(*aabb);
+}
+
 HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, BoundingBox *out_aabb)
 {
     Node *node = managed_node.GetNode();
@@ -382,17 +404,6 @@ HYP_EXPORT void Node_GetWorldAABB(ManagedNode managed_node, BoundingBox *out_aab
     }
 
     *out_aabb = node->GetWorldAABB();
-}
-
-HYP_EXPORT void Node_SetWorldAABB(ManagedNode managed_node, BoundingBox *aabb)
-{
-    Node *node = managed_node.GetNode();
-
-    if (node == nullptr) {
-        return;
-    }
-
-    node->SetWorldAABB(*aabb);
 }
 
 HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, BoundingBox *out_aabb)
@@ -406,14 +417,4 @@ HYP_EXPORT void Node_GetLocalAABB(ManagedNode managed_node, BoundingBox *out_aab
     *out_aabb = node->GetLocalAABB();
 }
 
-HYP_EXPORT void Node_SetLocalAABB(ManagedNode managed_node, BoundingBox *aabb)
-{
-    Node *node = managed_node.GetNode();
-
-    if (node == nullptr) {
-        return;
-    }
-
-    node->SetLocalAABB(*aabb);
-}
 } // extern "C"

@@ -112,7 +112,7 @@ const String &NodeProxy::GetName() const
 
 void NodeProxy::SetName(const String &name)
 {
-    if (auto *node = Get()) {
+    if (Node *node = Get()) {
         node->SetName(name);
     }
 }
@@ -126,24 +126,24 @@ ID<Entity> NodeProxy::GetEntity() const
 
 void NodeProxy::SetEntity(ID<Entity> entity)
 {
-    if (auto *node = Get()) {
+    if (Node *node = Get()) {
         node->SetEntity(entity);
     }
 }
 
 Node *NodeProxy::GetParent() const
 {
-    if (auto *node = Get()) {
+    if (Node *node = Get()) {
         return node->GetParent();
     }
 
     return nullptr;
 }
 
-bool NodeProxy::IsOrHasParent(const Node *node) const
+bool NodeProxy::IsOrHasParent(const Node *other) const
 {
-    if (auto *this_node = Get()) {
-        return this_node->IsOrHasParent(node);
+    if (Node *node = Get()) {
+        return node->IsOrHasParent(other);
     }
 
     return false;
@@ -151,8 +151,10 @@ bool NodeProxy::IsOrHasParent(const Node *node) const
 
 NodeProxy NodeProxy::GetChild(SizeType index)
 {
-    if (Get() && index < Get()->GetChildren().Size()) {
-        return Get()->GetChild(index);
+    if (Node *node = Get()) {
+        if (node && index < node->GetChildren().Size()) {
+            return node->GetChild(index);
+        }
     }
     
     return empty;
@@ -160,8 +162,8 @@ NodeProxy NodeProxy::GetChild(SizeType index)
 
 NodeProxy NodeProxy::Select(const char *selector) const
 {
-    if (Get()) {
-        return Get()->Select(selector);
+    if (Node *node = Get()) {
+        return node->Select(selector);
     }
     
     return empty;
@@ -169,8 +171,8 @@ NodeProxy NodeProxy::Select(const char *selector) const
 
 NodeProxy NodeProxy::AddChild()
 {
-    if (Get()) {
-        return Get()->AddChild();
+    if (Node *node = Get()) {
+        return node->AddChild();
     }
 
     return empty;
@@ -189,11 +191,11 @@ NodeProxy NodeProxy::AddChild(const NodeProxy &node)
 
 bool NodeProxy::Remove()
 {
-    if (!Get()) {
-        return false;
+    if (Node *node = Get()) {
+        return node->Remove();
     }
-
-    return Get()->Remove();
+    
+    return false;
 }
 
 const Transform &NodeProxy::GetLocalTransform() const
@@ -207,8 +209,8 @@ const Transform &NodeProxy::GetLocalTransform() const
 
 void NodeProxy::SetLocalTransform(const Transform &transform)
 {
-    if (Get()) {
-        Get()->SetLocalTransform(transform);
+    if (Node *node = Get()) {
+        node->SetLocalTransform(transform);
     }
 }
 
@@ -217,8 +219,8 @@ const Vec3f &NodeProxy::GetLocalTranslation() const
 
 void NodeProxy::SetLocalTranslation(const Vec3f &translation)
 {
-    if (Get()) {
-        Get()->SetLocalTranslation(translation);
+    if (Node *node = Get()) {
+        node->SetLocalTranslation(translation);
     }
 }
 
@@ -227,8 +229,8 @@ const Vec3f &NodeProxy::GetLocalScale() const
 
 void NodeProxy::SetLocalScale(const Vec3f &scale)
 {
-    if (Get()) {
-        Get()->SetLocalScale(scale);
+    if (Node *node = Get()) {
+        node->SetLocalScale(scale);
     }
 }
 
@@ -237,15 +239,15 @@ const Quaternion &NodeProxy::GetLocalRotation() const
 
 void NodeProxy::SetLocalRotation(const Quaternion &rotation)
 {
-    if (Get()) {
-        Get()->SetLocalRotation(rotation);
+    if (Node *node = Get()) {
+        node->SetLocalRotation(rotation);
     }
 }
 
 const Transform &NodeProxy::GetWorldTransform() const
 {
-    if (Get()) {
-        return Get()->GetWorldTransform();
+    if (Node *node = Get()) {
+        return node->GetWorldTransform();
     }
 
     return Transform::identity;
@@ -256,8 +258,8 @@ const Vec3f &NodeProxy::GetWorldTranslation() const
 
 void NodeProxy::SetWorldTranslation(const Vec3f &translation)
 {
-    if (Get()) {
-        Get()->SetWorldTranslation(translation);
+    if (Node *node = Get()) {
+        node->SetWorldTranslation(translation);
     }
 }
 
@@ -266,8 +268,8 @@ const Vec3f &NodeProxy::GetWorldScale() const
 
 void NodeProxy::SetWorldScale(const Vec3f &scale)
 {
-    if (Get()) {
-        Get()->SetWorldScale(scale);
+    if (Node *node = Get()) {
+        node->SetWorldScale(scale);
     }
 }
 
@@ -276,47 +278,49 @@ const Quaternion &NodeProxy::GetWorldRotation() const
 
 void NodeProxy::SetWorldRotation(const Quaternion &rotation)
 {
-    if (Get()) {
-        Get()->SetWorldRotation(rotation);
+    if (Node *node = Get()) {
+        node->SetWorldRotation(rotation);
+    }
+}
+
+BoundingBox NodeProxy::GetEntityAABB() const
+{
+    if (Node *node = Get()) {
+        return node->GetEntityAABB();
+    }
+
+    return BoundingBox::Empty();
+}
+
+void NodeProxy::SetEntityAABB(const BoundingBox &aabb)
+{
+    if (Node *node = Get()) {
+        return node->SetEntityAABB(aabb);
     }
 }
 
 BoundingBox NodeProxy::GetLocalAABB() const
 {
-    if (Get()) {
-        return Get()->GetLocalAABB();
+    if (Node *node = Get()) {
+        return node->GetLocalAABB();
     }
 
     return BoundingBox::Empty();
-}
-
-void NodeProxy::SetLocalAABB(const BoundingBox &aabb)
-{
-    if (Get()) {
-        Get()->SetLocalAABB(aabb);
-    }
 }
 
 BoundingBox NodeProxy::GetWorldAABB() const
 {
-    if (Get()) {
-        return Get()->GetWorldAABB();
+    if (Node *node = Get()) {
+        return node->GetWorldAABB();
     }
 
     return BoundingBox::Empty();
 }
 
-void NodeProxy::SetWorldAABB(const BoundingBox &aabb)
-{
-    if (Get()) {
-        Get()->SetWorldAABB(aabb);
-    }
-}
-
 bool NodeProxy::IsTransformLocked() const
 {
-    if (Get()) {
-        return Get()->IsTransformLocked();
+    if (Node *node = Get()) {
+        return node->IsTransformLocked();
     }
 
     return false;
@@ -324,22 +328,22 @@ bool NodeProxy::IsTransformLocked() const
 
 void NodeProxy::LockTransform()
 {
-    if (Get()) {
-        Get()->LockTransform();
+    if (Node *node = Get()) {
+        node->LockTransform();
     }
 }
 
 void NodeProxy::UnlockTransform()
 {
-    if (Get()) {
-        Get()->UnlockTransform();
+    if (Node *node = Get()) {
+        node->UnlockTransform();
     }
 }
 
 uint NodeProxy::CalculateDepth() const
 {
-    if (Get()) {
-        return Get()->CalculateDepth();
+    if (Node *node = Get()) {
+        return node->CalculateDepth();
     }
 
     return 0;
@@ -349,8 +353,8 @@ HashCode NodeProxy::GetHashCode() const
 {
     HashCode hc;
 
-    if (Get()) {
-        hc.Add(Get()->GetHashCode());
+    if (Node *node = Get()) {
+        hc.Add(node->GetHashCode());
     }
 
     return hc;

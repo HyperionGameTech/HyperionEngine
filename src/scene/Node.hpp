@@ -350,33 +350,23 @@ public:
     const BoundingBox &GetEntityAABB() const
         { return m_entity_aabb; }
 
-    /*! \brief Set the underlying entity AABB of the Node. Used for marshaling data
+    /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
     *   \param aabb The entity bounding box to set
-    *   \param update_immediate If true, updates the parents' bounding boxes immediately to reflect the change. */
-    void SetEntityAABB(const BoundingBox &aabb, bool update_immediate = false);
+    *   \note Calls to RefreshEntityTransform() will override this value. */
+    void SetEntityAABB(const BoundingBox &aabb);
 
-    /*! \brief \returns The local-space (model) of the node's aabb.
-     *  \param include_entity_aabb If true, includes the Node's Entity AABB in the calculation.
-     *  If false, returns only the AABBs of the child nodes, relative to this node. */
-    BoundingBox GetLocalAABB(bool include_entity_aabb = true) const;
-
-    /*! \brief Set the local-space AABB of the Node. Used for marshaling data */
-    void SetLocalAABB(const BoundingBox &aabb)
-        { m_local_aabb = aabb; }
+    /*! \brief Get the local-space (model) aabb of the node.
+     *  \returns The local-space (model) of the node's aabb. */
+    BoundingBox GetLocalAABB() const;
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
      */
     BoundingBox GetWorldAABB() const;
 
-    /*! \brief Set the world-space AABB of the Node. Used for marshaling data */
-    void SetWorldAABB(const BoundingBox &aabb)
-        { m_world_aabb = aabb; }
-
+    /*! \brief Update the world transform of the Node to reflect changes in the local transform and parent transform.
+     *  This will update the TransformComponent of the entity if it exists. */ 
     void UpdateWorldTransform();
-    void UpdateAABBs();
-
-    void RefreshEntityTransform();
 
     /*! \brief Calculate the depth of the Node relative to the root Node.
      * \returns The depth of the Node relative to the root Node. If the Node has no parent, 0 is returned. */
@@ -419,8 +409,6 @@ public:
         hc.Add(m_name);
         hc.Add(m_local_transform);
         hc.Add(m_world_transform);
-        hc.Add(m_local_aabb);
-        hc.Add(m_world_aabb);
         hc.Add(m_entity);
 
         for (auto &child : m_child_nodes) {
@@ -439,6 +427,10 @@ protected:
         Scene *scene = nullptr
     );
 
+    /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
+     *  and will update the TransformComponent of the entity if it exists. */
+    void RefreshEntityTransform();
+
     void OnNestedNodeAdded(const NodeProxy &node, bool direct);
     void OnNestedNodeRemoved(const NodeProxy &node, bool direct);
 
@@ -450,8 +442,6 @@ protected:
     Transform               m_local_transform;
     Transform               m_world_transform;
     BoundingBox             m_entity_aabb;
-    BoundingBox             m_local_aabb;
-    BoundingBox             m_world_aabb;
 
     ID<Entity>              m_entity;
 

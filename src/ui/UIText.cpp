@@ -246,14 +246,6 @@ void UIText::UpdateMesh()
 
     mesh_component.mesh = mesh;
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
-
-    // if (mesh.IsValid()) {
-    //     SetAABB(mesh->GetAABB());
-    // } else {
-    //     DebugLog(LogType::Warn, "No mesh for UIText %s", GetName().LookupString());
-
-    //     SetAABB(BoundingBox::Empty());
-    // }
 }
 
 Handle<Material> UIText::GetMaterial() const
@@ -317,11 +309,6 @@ void UIText::UpdateSize(bool update_children)
 
 BoundingBox UIText::CalculateAABB() const
 {
-    DebugLog(LogType::Debug, "Text \"%s\" calculated aabb: %f, %f, %f\t%f, %f, %f\n",
-        m_text.Data(),
-        m_text_aabb.min.x, m_text_aabb.min.y, m_text_aabb.min.z,
-        m_text_aabb.max.x, m_text_aabb.max.y, m_text_aabb.max.z);
-
     return m_text_aabb;
 }
 

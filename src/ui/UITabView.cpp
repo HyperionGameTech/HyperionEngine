@@ -15,6 +15,7 @@ UITab::UITab(UIStage *parent, NodeProxy node_proxy)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::TOP | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
+    SetPadding(Vec2i { 15, 0 });
 }
 
 void UITab::Init()
@@ -250,12 +251,10 @@ void UITabView::UpdateTabSizes()
 
     const Vec2i actual_size = GetActualSize();
 
-    const int relative_tab_width = int(100.0f * (1.0f / float(m_tabs.Size())));
-
     int offset = 0;
 
     for (SizeType i = 0; i < m_tabs.Size(); i++) {
-        m_tabs[i]->SetSize(UIObjectSize({ relative_tab_width, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        m_tabs[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
         m_tabs[i]->SetPosition(Vec2i { offset, 0 });
 
         offset += m_tabs[i]->GetActualSize().x;

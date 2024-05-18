@@ -191,9 +191,30 @@ private:
 
 struct UIObjectID : UniqueID { };
 
+enum class UIObjectUpdateSizeFlags : uint32
+{
+    NONE                = 0x0,
+
+    MAX_SIZE            = 0x1,
+    INNER_SIZE          = 0x2,
+    OUTER_SIZE          = 0x4,
+
+    CLAMP_OUTER_SIZE    = 0x8,
+
+    DEFAULT             = MAX_SIZE | INNER_SIZE | OUTER_SIZE | CLAMP_OUTER_SIZE
+};
+
+HYP_MAKE_ENUM_FLAGS(UIObjectUpdateSizeFlags)
+
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
 protected:
+    enum class UpdateSizePhase
+    {
+        BEFORE_CHILDREN,
+        AFTER_CHILDREN
+    };
+
     UIObject(UIObjectType type);
 
 public:
@@ -409,11 +430,17 @@ public:
     virtual void UpdatePosition(bool update_children = true);
     virtual void UpdateSize(bool update_children = true);
 
+    /*! \brief Get the focus state of the UI object.
+     *  \details The focus state of the UI object is used to determine if the object is currently focused, hovered, pressed, etc.
+     *  \return The focus state of the UI object. */
     [[nodiscard]]
     HYP_FORCE_INLINE
     EnumFlags<UIObjectFocusState> GetFocusState() const
         { return m_focus_state; }
 
+    /*! \brief Set the focus state of the UI object.
+     *  \details The focus state of the UI object is used to determine if the object is currently focused, hovered, pressed, etc.
+     *  \param focus_state The focus state of the UI object. */
     void SetFocusState(EnumFlags<UIObjectFocusState> focus_state);
 
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
@@ -429,6 +456,7 @@ public:
      *  \return The relative coordinates within the UIObject. */
     Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
 
+    // Events
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDown;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseUp;
     Delegate<UIEventHandlerResult, const UIMouseEventData &>    OnMouseDrag;
@@ -467,8 +495,6 @@ protected:
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
 
-    void UpdateActualSizes();
-
     UIStage                         *m_parent;
 
     Name                            m_name;
@@ -500,7 +526,8 @@ protected:
 private:
     void ComputeOffsetPosition();
 
-    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, bool is_inner = false);
+    void UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags);
+    void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner = false);
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda) const;
