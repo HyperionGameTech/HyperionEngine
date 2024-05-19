@@ -207,7 +207,7 @@ const Handle<Scene> &World::GetDetachedScene(ThreadID thread_id)
             thread_id
         );
 
-        scene->SetName(Name::Unique("DetachedScene"));
+        scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));
 
         InitObject(scene);
 

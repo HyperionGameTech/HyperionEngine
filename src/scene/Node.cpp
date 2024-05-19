@@ -39,7 +39,7 @@ Node::Node(
         name,
         entity,
         local_transform,
-        g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get()
+        GetDefaultScene()
     )
 {
 }
@@ -69,7 +69,7 @@ Node::Node(
     m_name(name),
     m_parent_node(nullptr),
     m_local_transform(local_transform),
-    m_scene(scene),
+    m_scene(scene != nullptr ? scene : GetDefaultScene()),
     m_transform_locked(false),
     m_delegates(new Delegates)
 {
@@ -94,10 +94,10 @@ Node::Node(Node &&other) noexcept
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
     other.m_entity_aabb = BoundingBox::Empty();
-    other.m_scene = nullptr;
+    other.m_scene = GetDefaultScene();
     other.m_transform_locked = false;
 
-    auto entity = other.m_entity;
+    const ID<Entity> entity = other.m_entity;
     other.m_entity = ID<Entity>::invalid;
     SetEntity(entity);
 
@@ -145,9 +145,9 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_entity_aabb = BoundingBox::Empty();
 
     m_scene = other.m_scene;
-    other.m_scene = nullptr;
+    other.m_scene = GetDefaultScene();
 
-    ID<Entity> entity = other.m_entity;
+    const ID<Entity> entity = other.m_entity;
     other.m_entity = ID<Entity>::invalid;
     SetEntity(entity);
 
@@ -193,32 +193,39 @@ bool Node::IsOrHasParent(const Node *node) const
 
 void Node::SetScene(Scene *scene)
 {
-    if (m_scene == scene) {
-        return;
-    }
-
     if (!scene) {
         scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
     }
 
     AssertThrow(scene != nullptr);
 
-    Scene *previous_scene = m_scene;
+    if (m_scene != scene) {
+        Scene *previous_scene = m_scene;
 
-    m_scene = scene;
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(
+            previous_scene != nullptr,
+            "Previous scene is null when setting new scene for Node %s - should be set to detached world scene by default",
+            m_name.Data()
+        );
+#endif
 
-    // Move entity from previous scene to new scene
-    if (m_entity.IsValid()) {
-        if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr) {
-            AssertThrow(m_scene->GetEntityManager() != nullptr);
-            
-            previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
-        } else {
-            m_entity = ID<Entity>::invalid;
+        m_scene = scene;
+
+        // Move entity from previous scene to new scene
+        if (m_entity.IsValid()) {
+            if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr) {
+                AssertThrow(m_scene->GetEntityManager() != nullptr);
+                
+                previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
+            } else {
+                // Entity manager null - exiting engine is likely cause
+                m_entity = ID<Entity>::invalid;
+            }
         }
     }
 
-    for (auto &child : m_child_nodes) {
+    for (NodeProxy &child : m_child_nodes) {
         if (!child) {
             continue;
         }
@@ -274,21 +281,20 @@ NodeProxy Node::AddChild(const NodeProxy &node)
         "Cannot attach a child node that already has a parent"
     );
 
-    m_child_nodes.PushBack(std::move(node));
+    m_child_nodes.PushBack(node);
+    
+    node->m_parent_node = this;
+    node->SetScene(m_scene);
 
-    auto &_node = m_child_nodes.Back();
-    _node->m_parent_node = this;
-    _node->SetScene(m_scene);
+    OnNestedNodeAdded(node, true);
 
-    OnNestedNodeAdded(_node, true);
-
-    for (auto &nested : _node->GetDescendents()) {
+    for (auto &nested : node->GetDescendents()) {
         OnNestedNodeAdded(nested, false);
     }
 
-    _node->UpdateWorldTransform();
+    node->UpdateWorldTransform();
 
-    return _node;
+    return node;
 }
 
 bool Node::RemoveChild(NodeList::Iterator iter)
@@ -789,6 +795,11 @@ NodeProxy Node::FindChildByName(const String &name) const
     }
 
     return NodeProxy::empty;
+}
+
+Scene *Node::GetDefaultScene()
+{
+    return g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
 }
 
 } // namespace hyperion

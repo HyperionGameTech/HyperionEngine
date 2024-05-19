@@ -117,7 +117,8 @@ public:
     /*! \returns A pointer to the Scene this Node and its children are attached to. May be null. */
     Scene *GetScene() const { return m_scene; }
 
-    /*! \brief Set the Scene this Node and its children are attached to. */
+    /*! \brief Set the Scene this Node and its children are attached to.
+     *  \internal Not intended to be used in user code. Use Remove() instead. */
     void SetScene(Scene *scene);
 
     ID<Entity> GetEntity() const { return m_entity; }
@@ -426,6 +427,8 @@ protected:
         const Transform &local_transform = Transform(),
         Scene *scene = nullptr
     );
+
+    static Scene *GetDefaultScene();
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */

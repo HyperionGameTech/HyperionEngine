@@ -11,7 +11,7 @@ namespace hyperion {
 class WriteBitmap
 {
 public:
-    HYP_API static void Write(
+    HYP_API static bool Write(
         const char *path,
         int width,
         int height,

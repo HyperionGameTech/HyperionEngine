@@ -31,7 +31,7 @@ extern NameRegistry *g_name_registry;
  */
 struct Name
 {
-    NameID hash_code;
+    HashCode::ValueType hash_code;
     
     constexpr Name()
         : hash_code(0)

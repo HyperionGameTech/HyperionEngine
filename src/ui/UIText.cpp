@@ -217,9 +217,9 @@ void UIText::SetTextColor(const Vec4f &color)
 
 void UIText::UpdateMesh()
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
-    if (scene == nullptr) {
+    if (!scene) {
         return;
     }
 

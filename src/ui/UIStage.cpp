@@ -37,6 +37,21 @@ UIStage::UIStage(ThreadID owner_thread_id)
 
 UIStage::~UIStage()
 {
+    HYP_BREAKPOINT;
+}
+
+Scene *UIStage::GetScene() const
+{
+    /*// UIStage parenting - GetScene() returns parent stages' scene
+    if (m_stage != nullptr) {
+        return m_stage->GetScene();
+    }*/
+
+    if (Scene *ui_object_scene = UIObject::GetScene()) {
+        return ui_object_scene;
+    }
+
+    return m_scene.Get();
 }
 
 void UIStage::Init()
@@ -93,8 +108,6 @@ void UIStage::Init()
     InitObject(m_scene);
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
-
-    // @FIXME: Circular reference
     m_scene->GetEntityManager()->AddComponent(m_scene->GetRoot()->GetEntity(), UIComponent { RefCountedPtrFromThis() });
 
     m_scene->GetRoot()->LockTransform();
@@ -114,11 +127,17 @@ void UIStage::AddChildUIObject(UIObject *ui_object)
     }
 
     UIObject::AddChildUIObject(ui_object);
+
+    // Check if no parent stage
+    if (m_stage == nullptr) {
+        // Set child object stage to this
+        ui_object->m_stage = this;
+        ui_object->SetAllChildUIObjectsStage(this);
+    }
 }
 
 void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
-    HYP_BREAKPOINT;
     m_scene->Update(delta);
 
     for (auto &it : m_mouse_button_pressed_states) {
@@ -130,11 +149,18 @@ void UIStage::OnAttached_Internal(UIObject *parent)
 {
     AssertThrow(parent != nullptr);
     AssertThrow(parent->GetNode() != nullptr);
-
+    
     UIObject::OnAttached_Internal(parent);
 
-    m_scene->GetRoot()->Remove();
-    parent->GetNode()->AddChild(m_scene->GetRoot());
+    // temp
+    auto main_panel = parent->FindChildUIObject(HYP_NAME(Main_Panel));
+    AssertThrow(main_panel != nullptr);
+    auto main_panel_parent = main_panel->GetParentUIObject();
+    AssertThrow(main_panel_parent == this);
+    AssertThrow(parent->GetScene()->GetEntityManager()->GetComponent<UIComponent>(main_panel_parent->GetEntity()).ui_object == main_panel_parent);
+
+    // Set root to be empty node proxy, now that it is attached to another object.
+    m_scene->SetRoot(NodeProxy::empty);
 }
 
 void UIStage::OnDetached_Internal()
@@ -145,8 +171,8 @@ void UIStage::OnDetached_Internal()
     // Set all sub objects to have a m_stage of this
     UIObject::SetAllChildUIObjectsStage(this);
 
-    m_scene->GetRoot()->Remove();
-    m_scene->GetRoot()->SetScene(m_scene.Get());
+    // Re-set scene root to be our node proxy
+    m_scene->SetRoot(m_node_proxy);
 }
 
 void UIStage::SetOwnerThreadID(ThreadID thread_id)

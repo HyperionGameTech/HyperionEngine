@@ -472,6 +472,9 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+    Name test_name = HYP_NAME(TestName1);
+    AssertThrow(Memory::StrCmp(test_name.LookupString(), "TestName1") == 0);
+
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 
     GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(EditorUIRenderer), GetUIStage());

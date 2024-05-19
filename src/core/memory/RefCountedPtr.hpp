@@ -97,8 +97,6 @@ struct RefCountData
     {
         // Setup weak ptr for EnableRefCountedPtrFromThis
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>) {
-            ptr->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(this, true);
-
             dtor = [](void *ptr)
             {
                 static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);

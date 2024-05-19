@@ -125,16 +125,17 @@ public:
     const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
-    /*! \brief Used for deserialization only */
-    void SetRoot(NodeProxy &&root)
+    /*! \brief Set the root node of this Scene, discarding the current.
+     *  \internal For internal use only. Should not be called from user code. */
+    void SetRoot(NodeProxy root)
     {
-        if (m_root_node_proxy) {
+        if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
             m_root_node_proxy->SetScene(nullptr);
         }
 
         m_root_node_proxy = std::move(root);
 
-        if (m_root_node_proxy) {
+        if (m_root_node_proxy.IsValid()) {
             m_root_node_proxy->SetScene(this);
         }
     }
@@ -161,7 +162,7 @@ public:
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
     bool IsWorldScene() const
-        { return !m_parent_scene.IsValid() && !m_is_non_world_scene; }
+        { return !m_is_non_world_scene; }
 
     bool IsAudioListener() const
         { return m_is_audio_listener; }
@@ -221,8 +222,7 @@ private:
     Handle<TLAS>                    m_tlas;
 
     Matrix4                         m_last_view_projection_matrix;
-
-    Handle<Scene>                   m_parent_scene;
+    
     bool                            m_is_non_world_scene;
 
     bool                            m_is_audio_listener;

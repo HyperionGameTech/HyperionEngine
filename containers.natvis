@@ -68,14 +68,16 @@
 
     <Expand>
       <CustomListItems>
-        <Variable Name="bucket_ptr" InitialValue="((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_inline_storage.data[0]))" />
+        <Variable Name="bucket_ptr" InitialValue="((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *) &amp;(m_buckets.m_inline_storage.data[0]))" />
+        <Variable Name="bucket_index" InitialValue="0" />
+
         <Variable Name="current_head" InitialValue="((hyperion::containers::detail::HashElement&lt;$T1,$T2&gt; *)nullptr)" />
 
         <Exec Condition="m_buckets.m_is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *)&amp;m_buckets.m_inline_storage.data[0] + m_buckets.m_start_offset)</Exec>
         <Exec Condition="m_buckets.m_is_dynamic == true">bucket_ptr = (m_buckets.m_buffer_raw + m_buckets.m_start_offset)</Exec>
 
         <Loop>
-          <Break Condition="bucket_ptr == ((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *)&amp;m_buckets.m_inline_storage.data[0] + m_buckets.m_size)" />
+          <Break Condition="bucket_index == (m_buckets.m_size - m_buckets.m_start_offset)" />
 
           <Exec>current_head = bucket_ptr-&gt;head</Exec>
 
@@ -87,6 +89,7 @@
             </Loop>
           </If>
           <Exec>bucket_ptr++</Exec>
+          <Exec>bucket_index++</Exec>
         </Loop>
       </CustomListItems>
     </Expand>
@@ -151,39 +154,48 @@
 
   <!-- Walks the whole hash map to display the name as a string! -->
   <Type Name="hyperion::Name">
-    <DisplayString>{{ ID={hash_code} }}</DisplayString>
-
     <Expand>
       <CustomListItems>
         <Variable Name="bucket_ptr" InitialValue="((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_inline_storage.data[0]))" />
+        <Variable Name="bucket_index" InitialValue="0" />
 
         <Variable Name="current_head" InitialValue="((hyperion::containers::detail::HashElement&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)nullptr)" />
 
         <Variable Name="found" InitialValue="false"/>
 
+        <Variable Name="hc" InitialValue="this-&gt;hash_code"/>
+
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)&amp;g_name_registry-&gt;m_name_map.m_buckets.m_inline_storage.data[0] + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_is_dynamic == true">bucket_ptr = (g_name_registry-&gt;m_name_map.m_buckets.m_buffer_raw + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
 
         <Loop>
-          <Break Condition="found == true || bucket_ptr == ((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)&amp;g_name_registry-&gt;m_name_map.m_buckets.m_inline_storage.data[0] + g_name_registry-&gt;m_name_map.m_buckets.m_size)" />
+          <Break Condition="found == true || bucket_index == (g_name_registry-&gt;m_name_map.m_buckets.m_size - g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)" />
 
           <Exec>current_head = bucket_ptr-&gt;head</Exec>
 
-          <If Condition="current_head != nullptr &amp;&amp; found == false">
-
-            <Loop>
+          <If Condition="found == false &amp;&amp; current_head != nullptr">
+           <Loop>
               <Break Condition="found == true || current_head == nullptr" />
-
-              <If Condition="current_head-&gt;hash_code == hash_code">
-                <Item Name="Value">current_head-&gt;pair.second</Item>
+              <If Condition="(unsigned __int64)hash_code == (unsigned __int64)current_head-&gt;pair.first">
+                <If Condition="current_head-&gt;pair.second.m_is_dynamic == false">
+                  <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_inline_storage.data + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
+                </If>
+                <If Condition="current_head-&gt;pair.second.m_is_dynamic == true">
+                  <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_buffer_raw + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
+                </If>
                 <Exec>found = true</Exec>
               </If>
-
               <Exec>current_head = current_head-&gt;next</Exec>
             </Loop>
           </If>
+
           <Exec>bucket_ptr++</Exec>
+          <Exec>bucket_index++</Exec>
         </Loop>
+
+        <If Condition="found == false">
+          <Item Name="StringValue">"???"</Item>
+        </If>
       </CustomListItems>
     </Expand>
   </Type>

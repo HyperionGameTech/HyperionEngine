@@ -64,7 +64,7 @@ unsigned char* createBitmapInfoHeader (int height, int width)
 }
 
 namespace hyperion {
-void WriteBitmap::Write(
+bool WriteBitmap::Write(
     const char *path,
     int width,
     int height,
@@ -80,6 +80,10 @@ void WriteBitmap::Write(
 
     FILE* imageFile = fopen(path, "wb");
 
+    if (!imageFile) {
+        return false;
+    }
+
     unsigned char* fileHeader = createBitmapFileHeader(height, stride);
     fwrite(fileHeader, 1, FILE_HEADER_SIZE, imageFile);
 
@@ -93,5 +97,7 @@ void WriteBitmap::Write(
     }
 
     fclose(imageFile);
+
+    return true;
 }
 } // namespace hyperion

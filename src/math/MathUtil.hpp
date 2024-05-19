@@ -552,7 +552,7 @@ public:
         value |= value >> 16;
         value |= value >> 32;
 
-        return tab64[(((static_cast<uint64>(value) - (value >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
+        return tab64[(value - (value >> 1)) * 0x07EDD5E59A4E28C2 >> 58];
     }
 
     // https://www.techiedelight.com/round-next-highest-power-2/

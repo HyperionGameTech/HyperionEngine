@@ -74,9 +74,7 @@ public:
      * 
      *  \return Handle to the scene. */
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Handle<Scene> &GetScene() const
-        { return m_scene; }
+    virtual Scene *GetScene() const override;
 
     /*! \brief Get the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.

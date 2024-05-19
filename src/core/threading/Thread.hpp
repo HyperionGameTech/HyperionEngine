@@ -30,10 +30,11 @@ enum class ThreadPriorityValue
 
 struct ThreadID
 {
-    HYP_API static const ThreadID invalid;
+    static const ThreadID invalid;
 
     HYP_API static ThreadID Current();
     HYP_API static ThreadID CreateDynamicThreadID(Name name);
+    HYP_API static ThreadID Invalid();
 
     uint32  value;
     Name    name;
@@ -75,9 +76,14 @@ struct ThreadID
     HYP_API ThreadMask GetMask() const;
 
     [[nodiscard]]
+    HYP_API bool IsValid() const;
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    bool IsValid() const
-        { return value != invalid.value; }
+    HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(value);
+    }
 };
 
 static_assert(std::is_trivially_destructible_v<ThreadID>,

@@ -424,7 +424,7 @@ public:
 
     const NodeProxy &GetNode() const;
 
-    Scene *GetScene() const;
+    virtual Scene *GetScene() const;
 
     BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;

@@ -24,13 +24,13 @@ HYP_EXPORT void UIStage_GetScene(ManagedRefCountedPtr obj, ManagedHandle *out_sc
 {
     RC<UIStage> stage = GetRefCountedPtrFromManaged<UIStage>(obj);
 
-    if (!stage) {
+    if (!stage || !stage->GetScene()) {
         *out_scene = { };
 
         return;
     }
     
-    *out_scene = CreateManagedHandleFromHandle(stage->GetScene());
+    *out_scene = CreateManagedHandleFromHandle(Handle<Scene>(stage->GetScene()->GetID()));
 }
 
 HYP_EXPORT void UIStage_GetSurfaceSize(ManagedRefCountedPtr obj, Vec2i *out_surface_size)

@@ -147,12 +147,18 @@ bool Threads::IsOnThread(const ThreadID &thread_id)
     return false;
 }
 
-const ThreadID &Threads::GetThreadID(ThreadName thread_name)
+ThreadID Threads::GetThreadID(ThreadName thread_name)
 {
-    return thread_ids.At(thread_name);
+    const auto it = thread_ids.Find(thread_name);
+
+    if (it != thread_ids.End()) {
+        return it->second;
+    }
+
+    return ThreadID::invalid;
 }
 
-const ThreadID &Threads::CurrentThreadID()
+ThreadID Threads::CurrentThreadID()
 {
     return current_thread_id;
 }

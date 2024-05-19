@@ -7,6 +7,7 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
+#include <core/Util.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
@@ -543,16 +544,16 @@ public:
         return floats;
     }
 
-    void Write(const String &filepath) const
+    bool Write(const String &filepath) const
     {
         Array<ubyte> unpacked_bytes = GetUnpackedBytes(3 /* WriteBitmap uses 3 bytes per pixel */);
 
         // BMP stores in BGR format, so swap R and B
         for (uint i = 0; i < unpacked_bytes.Size(); i += 3) {
-            std::swap(unpacked_bytes[i], unpacked_bytes[i + 2]);
+            Swap(unpacked_bytes[i], unpacked_bytes[i + 2]);
         }
 
-        WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
+        return WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
     }
 
     void FlipVertical()

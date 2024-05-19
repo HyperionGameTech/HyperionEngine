@@ -99,9 +99,9 @@ public:
     {   
         if (value.Is<ResultType>()) {
             if constexpr (is_opaque_handle) {
-                auto casted = value.Get<ResultType>().Cast<Handle<T>>();
+                AtomicRefCountedPtr<Handle<T>> casted = value.Get<ResultType>().Cast<Handle<T>>();
 
-                if (casted) {
+                if (casted != nullptr) {
                     return *casted;
                 }
             } else {
@@ -122,7 +122,7 @@ public:
 
     CastedType Load(AssetManager &asset_manager, const String &path, LoaderResult &out_result)
     {
-        auto loaded_asset = loader.Load(asset_manager, path);
+        LoadedAsset loaded_asset = loader.Load(asset_manager, path);
         out_result = loaded_asset.result;
 
         if (!loaded_asset.result) {
@@ -197,10 +197,10 @@ struct AssetLoaderWrapper<Node>
     static inline CastedType ExtractAssetValue(AssetValue &value)
     {
         if (value.Is<ResultType>()) {
-            auto result = value.Get<ResultType>();
+            ResultType result = value.Get<ResultType>();
 
             if (result.IsValid()) {
-                result->SetScene(nullptr); // sets it to detached scene for the current thread we're on.
+                result->SetScene(nullptr); // sets scene to be the "detached" scene for the current thread we're on.
             }
     
             return result;
@@ -219,37 +219,39 @@ struct AssetLoaderWrapper<Node>
 
     NodeProxy Load(AssetManager &asset_manager, const String &path, LoaderResult &out_result)
     {
-        auto loaded_asset = loader.Load(asset_manager, path);
+        LoadedAsset loaded_asset = loader.Load(asset_manager, path);
         out_result = loaded_asset.result;
 
         if (!loaded_asset.result) {
-            return CastedType();
+            return EmptyResult();
         }
 
         if (loaded_asset.value.Is<AnyPtr>()) {
-            auto casted_result = loaded_asset.value.Get<AnyPtr>().Cast<Node>();
+            UniquePtr<Node> casted_result = loaded_asset.value.Get<AnyPtr>().Cast<Node>();
             
             return MakeCastedType(std::move(casted_result));
-        } else if (loaded_asset.value.Is<AssetValue>()) {
-            auto &as_ref_counted = loaded_asset.value.Get<AssetValue>();
+        }
+
+        if (loaded_asset.value.Is<AssetValue>()) {
+            AssetValue &as_ref_counted = loaded_asset.value.Get<AssetValue>();
 
             if (as_ref_counted.Is<ResultType>()) {
                 return as_ref_counted.Get<ResultType>();
             }
         }
 
-        return CastedType();
+        return EmptyResult();
     }
 
     static auto MakeCastedType(AnyPtr &&ptr) -> CastedType
     {
-        auto casted_result = ptr.Cast<Node>();
+        UniquePtr<Node> casted_result = ptr.Cast<Node>();
 
-        if (casted_result) {
+        if (casted_result != nullptr) {
             return NodeProxy(casted_result.Release());
         }
 
-        return CastedType();
+        return EmptyResult();
     }
 
     static auto MakeResultType(AnyPtr &&ptr) -> ResultType

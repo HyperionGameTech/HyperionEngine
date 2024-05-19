@@ -69,6 +69,74 @@ private:
     AtomicVar<uint32>                       m_num_render_lists;
 };
 
+struct DetachedScenesContainer
+{
+    World                                                                                   *world;
+    FixedArray<Handle<Scene>, MathUtil::FastLog2_Pow2(uint64(ThreadName::THREAD_STATIC))>   static_thread_scenes;
+    HashMap<ThreadID, Handle<Scene>>                                                        dynamic_thread_scenes;
+    Mutex                                                                                   dynamic_thread_scenes_mutex;
+
+    DetachedScenesContainer(World *world)
+        : world(world)
+    {
+        for (uint64 i = 0; i < static_thread_scenes.Size(); i++) {
+            const uint64 thread_name_value = 1ull << i;
+            const ThreadName thread_name = ThreadName(thread_name_value);
+
+            const ThreadID thread_id = Threads::GetThreadID(thread_name);
+
+            if (!thread_id.IsValid()) {
+                continue;
+            }
+
+            AssertThrow(!thread_id.IsDynamic());
+
+            static_thread_scenes[i] = CreateSceneForThread(thread_id);
+        }
+    }
+
+    const Handle<Scene> &GetDetachedScene(ThreadID thread_id)
+    {
+        if (thread_id.IsDynamic()) {
+            Mutex::Guard guard(dynamic_thread_scenes_mutex);
+
+            auto it = dynamic_thread_scenes.Find(thread_id);
+
+            if (it == dynamic_thread_scenes.End()) {
+                it = dynamic_thread_scenes.Insert({
+                    thread_id,
+                    CreateSceneForThread(thread_id)
+                }).first;
+            }
+
+            return it->second;
+        }
+
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(MathUtil::IsPowerOfTwo(thread_id.value));
+        AssertThrow(MathUtil::FastLog2_Pow2(thread_id.value) < static_thread_scenes.Size());
+#endif
+
+        return static_thread_scenes[MathUtil::FastLog2_Pow2(thread_id.value)];
+    }
+
+private:
+
+    Handle<Scene> CreateSceneForThread(ThreadID thread_id)
+    {
+        Handle<Scene> scene = CreateObject<Scene>(
+            Handle<Camera>::empty,
+            thread_id
+        );
+
+        scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));
+        scene->SetWorld(world);
+        InitObject(scene);
+
+        return scene;
+    }
+};
+
 class HYP_API World : public BasicObject<STUB_CLASS(World)>
 {
 public:

@@ -40,9 +40,19 @@ ThreadID ThreadID::CreateDynamicThreadID(Name name)
     return { generator.Next() << 16u, name };
 }
 
+ThreadID ThreadID::Invalid()
+{
+    return invalid;
+}
+
 bool ThreadID::IsDynamic() const
 {
     return THREAD_DYNAMIC & value;
+}
+
+bool ThreadID::IsValid() const
+{
+    return value != invalid.value;
 }
 
 ThreadMask ThreadID::GetMask() const

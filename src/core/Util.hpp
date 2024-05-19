@@ -155,15 +155,40 @@ constexpr uint ArraySize(const T (&)[N])
     return N;
 }
 
+/*! \brief Convert the value to an rvalue reference. If it cannot be converted, a compile time error will be generated.
+ *  \tparam T The type of the value being passed
+ *  \param value The value to convert to an rvalue reference.
+ *  \returns The value as an rvalue reference. */
+template <class T>
+HYP_FORCE_INLINE
+constexpr std::remove_reference_t<T> &&Move(T &&value) noexcept
+{
+    static_assert(std::is_lvalue_reference_v<T>, "T must be an lvalue reference to use Move()");
+    static_assert(!std::is_same_v<const T &, T &> , "T must not be const to use Move()");
+
+    return static_cast<std::remove_reference_t<T> &&>(value);
+}
+
+/*! \brief Attempts to move the object if possible, will use copy otherwise.
+ *  \tparam T The type of the value being passed
+ *  \param value The value to convert to an rvalue reference.
+ *  \returns The value as an rvalue reference. */
+template <class T>
+HYP_FORCE_INLINE
+constexpr std::remove_reference_t<T> &&TryMove(T &&value) noexcept
+{
+    return static_cast<std::remove_reference_t<T> &&>(value);
+}
+
 template <class T>
 HYP_FORCE_INLINE
 void Swap(T &a, T &b)
 {
     static_assert(std::is_move_constructible_v<T> && std::is_move_assignable_v<T>, "Swap requires T to be move constructible and move assignable");
 
-    T temp = Move(a);
-    a = Move(b);
-    b = Move(temp);
+    T temp = TryMove(a);
+    a = TryMove(b);
+    b = TryMove(temp);
 }
 
 } // namespace hyperion

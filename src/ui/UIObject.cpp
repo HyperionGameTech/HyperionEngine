@@ -125,7 +125,7 @@ UIObject::~UIObject()
 
 void UIObject::Init()
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
 
     scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), GetMaterial() });
@@ -215,7 +215,17 @@ void UIObject::Init()
 
 void UIObject::Update(GameCounter::TickUnit delta)
 {
-    ForEachChildUIObject([delta](const RC<UIObject> &child)
+    Update_Internal(delta);
+
+    if (const NodeProxy &node = GetNode()) {
+        // temp
+        AssertThrow(node->GetScene() == GetScene());
+        for (auto &child1 : node->GetDescendents()) {
+            AssertThrow(child1->GetScene() == GetScene());
+        }
+    }
+
+    ForEachChildUIObject([this, delta](const RC<UIObject> &child)
     {
         child->Update_Internal(delta);
 
@@ -233,7 +243,6 @@ void UIObject::OnAttached_Internal(UIObject *parent)
     AssertThrow(parent != nullptr);
 
     m_stage = parent->GetStage();
-
     SetAllChildUIObjectsStage(parent->GetStage());
 }
 
@@ -636,6 +645,8 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
+    AssertThrow(!ui_object->IsOrHasParent(this));
+
     const NodeProxy &node = GetNode();
 
     if (!node) {
@@ -667,12 +678,6 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
 bool UIObject::RemoveChildUIObject(UIObject *ui_object)
 {
     if (!ui_object) {
-        return false;
-    }
-
-    Scene *scene = GetScene();
-
-    if (!scene) {
         return false;
     }
 
@@ -760,7 +765,7 @@ void UIObject::SetAABB(const BoundingBox &aabb)
     // UpdateSize();
     // UpdatePosition();
 
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return;
@@ -794,7 +799,7 @@ Handle<Material> UIObject::GetMaterial() const
 
 const Handle<Mesh> &UIObject::GetMesh() const
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!GetEntity().IsValid() || !scene) {
         return Handle<Mesh>::empty;
@@ -809,7 +814,7 @@ const Handle<Mesh> &UIObject::GetMesh() const
 
 RC<UIObject> UIObject::GetParentUIObject() const
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return nullptr;
@@ -826,13 +831,9 @@ RC<UIObject> UIObject::GetParentUIObject() const
     while (parent_node) {
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
-                    if (ui_component->ui_object.Is<UIStage>()) {
-                        return nullptr;
-                    }
+                AssertThrow(ui_component->ui_object != nullptr);
 
-                    return ui_component->ui_object;
-                }
+                return ui_component->ui_object;
             }
         }
 
@@ -1016,7 +1017,7 @@ void UIObject::ComputeOffsetPosition()
 
 void UIObject::UpdateMeshData()
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return;
@@ -1041,7 +1042,7 @@ void UIObject::UpdateMeshData()
 
 void UIObject::UpdateMaterial(bool update_children)
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return;
@@ -1077,7 +1078,7 @@ void UIObject::UpdateMaterial(bool update_children)
 
 bool UIObject::HasChildUIObjects() const
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return false;
@@ -1116,11 +1117,17 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
     if (!m_node_proxy.IsValid()) {
         return;
     }
+    
+    const Scene *scene = GetScene();
+
+    if (!scene) {
+        return;
+    }
 
     const ID<Entity> entity = m_node_proxy->GetEntity();
 
     if (entity.IsValid()) {
-        UIComponent *ui_component = m_node_proxy->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(entity);
+        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);
 
         if (ui_component && ui_component->ui_object) {
             // Visibility affects all child nodes as well, so return from here.
@@ -1143,7 +1150,7 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
         }
 
         UIComponent *ui_component = it->GetEntity().IsValid()
-            ? it->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
+            ? scene->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
             : nullptr;
 
         if (!ui_component || !ui_component->ui_object) {
@@ -1180,7 +1187,7 @@ Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
 template <class Lambda>
 void UIObject::ForEachChildUIObject(Lambda &&lambda) const
 {
-    Scene *scene = GetScene();
+    const Scene *scene = GetScene();
 
     if (!scene) {
         return;
