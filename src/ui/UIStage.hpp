@@ -57,7 +57,7 @@ public:
     static const int min_depth = -10000;
     static const int max_depth = 10000;
 
-    UIStage();
+    UIStage(ThreadID owner_thread_id);
     UIStage(const UIStage &other)               = delete;
     UIStage &operator=(const UIStage &other)    = delete;
     virtual ~UIStage() override;
@@ -119,7 +119,7 @@ public:
         bool attach_to_root = false
     )
     {
-        Threads::AssertOnThread(ThreadName::THREAD_GAME);
+        Threads::AssertOnThread(m_owner_thread_id);
 
         AssertThrow(IsInit());
         AssertThrow(GetNode().IsValid());
@@ -150,9 +150,22 @@ public:
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
     bool TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects);
 
-    virtual void Init() override;
+    /*! \brief Set the owner thread ID for the UIStage, as well as its
+     *  underlying UIObjects.
+     *  \note Ensure that the UIStage will not be accessed from any other
+     *  thread than the one specified. This method is not thread-safe. */
+    void SetOwnerThreadID(ThreadID thread_id);
 
-    void Update(GameCounter::TickUnit delta);
+    virtual void Init() override;
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+
+protected:
+    virtual void Update_Internal(GameCounter::TickUnit delta) override;
+    
+    virtual void OnAttached_Internal(UIObject *parent) override;
+    
+    // Override OnDetached_Internal to update subobjects to have this as a stage
+    virtual void OnDetached_Internal() override;
 
 private:
     /*! \brief To be called internally from UIObject only */
@@ -184,6 +197,8 @@ private:
     }
 
     bool Remove(ID<Entity> entity);
+
+    ThreadID                                    m_owner_thread_id;
 
     Vec2i                                       m_surface_size;
 

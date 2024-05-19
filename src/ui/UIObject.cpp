@@ -93,7 +93,7 @@ Handle<Mesh> UIObject::GetQuadMesh()
 
 UIObject::UIObject(UIObjectType type)
     : m_type(type),
-      m_parent(nullptr),
+      m_stage(nullptr),
       m_is_init(false),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
@@ -109,13 +109,13 @@ UIObject::UIObject(UIObjectType type)
 {
 }
 
-UIObject::UIObject(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
+UIObject::UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type)
     : UIObject(type)
 {
-    AssertThrowMsg(parent != nullptr, "Invalid UIStage parent pointer provided to UIObject!");
+    AssertThrowMsg(stage != nullptr, "Invalid UIStage pointer provided to UIObject!");
     AssertThrowMsg(node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
     
-    m_parent = parent;
+    m_stage = stage;
     m_node_proxy = std::move(node_proxy);
 }
 
@@ -211,6 +211,37 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
+}
+
+void UIObject::Update(GameCounter::TickUnit delta)
+{
+    ForEachChildUIObject([delta](const RC<UIObject> &child)
+    {
+        child->Update_Internal(delta);
+
+        return UIObjectIterationResult::CONTINUE;
+    });
+}
+
+void UIObject::Update_Internal(GameCounter::TickUnit delta)
+{
+    // Do nothing
+}
+
+void UIObject::OnAttached_Internal(UIObject *parent)
+{
+    AssertThrow(parent != nullptr);
+
+    m_stage = parent->GetStage();
+
+    SetAllChildUIObjectsStage(parent->GetStage());
+}
+
+void UIObject::OnDetached_Internal()
+{
+    m_stage = nullptr;
+
+    SetAllChildUIObjectsStage(nullptr);
 }
 
 Name UIObject::GetName() const
@@ -458,7 +489,7 @@ void UIObject::Focus()
         return;
     }
 
-    if (!m_parent) {
+    if (m_stage == nullptr) {
         return;
     }
 
@@ -467,7 +498,7 @@ void UIObject::Focus()
     // Note: Calling `SetFocusedObject` between `SetFocusState` and `OnGainFocus` is intentional
     // as `SetFocusedObject` calls `Blur()` on any previously focused object (which may include a parent of this object)
     // Some UI object types may need to know if any child object is focused when handling `OnLoseFocus`
-    m_parent->SetFocusedObject(RefCountedPtrFromThis());
+    m_stage->SetFocusedObject(RefCountedPtrFromThis());
 
     OnGainFocus(UIMouseEventData { });
 }
@@ -488,15 +519,15 @@ void UIObject::Blur(bool blur_children)
         });
     }
 
-    if (!m_parent) {
+    if (m_stage == nullptr) {
         return;
     }
 
-    if (m_parent->GetFocusedObject() != this) {
+    if (m_stage->GetFocusedObject() != this) {
         return;
     }
 
-    m_parent->SetFocusedObject(nullptr);
+    m_stage->SetFocusedObject(nullptr);
 }
 
 void UIObject::SetBorderRadius(uint32 border_radius)
@@ -627,6 +658,8 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
+    ui_object->OnAttached_Internal(this);
+
     ui_object->UpdateSize();
     ui_object->UpdatePosition();
 }
@@ -654,6 +687,8 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             bool removed = child_node->Remove();
 
             if (removed) {
+                ui_object->OnDetached_Internal();
+
                 ui_object->UpdateSize();
                 ui_object->UpdatePosition();
 
@@ -855,8 +890,8 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
         self_padding = GetPadding();
-    } else if (m_parent) {
-        parent_size = m_parent->GetSurfaceSize();
+    } else if (m_stage != nullptr) {
+        parent_size = m_stage->GetSurfaceSize();
         self_padding = GetPadding();
     } else {
         return;
@@ -1111,21 +1146,15 @@ void UIObject::CollectObjects(const Proc<void, const RC<UIObject> &> &proc) cons
             ? it->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
             : nullptr;
 
+        if (!ui_component || !ui_component->ui_object) {
+            continue;
+        }
+
         children.PushBack({
             it,
-            ui_component != nullptr
-                ? ui_component->ui_object
-                : nullptr
+            ui_component->ui_object
         });
     }
-
-    /*std::sort(children.Begin(), children.End(), [](const auto &lhs, const auto &rhs)
-    {
-        AssertThrow(lhs.first.IsValid());
-        AssertThrow(rhs.first.IsValid());
-
-        return lhs.first->GetLocalTranslation().z < rhs.first->GetLocalTranslation().z;
-    });*/
 
     for (const Pair<NodeProxy, RC<UIObject>> &it : children) {
         it.second->CollectObjects(proc);
@@ -1189,6 +1218,16 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda) const
             queue.Push(child.Get());
         }
     }
+}
+
+void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
+{
+    ForEachChildUIObject([stage](const RC<UIObject> &ui_object)
+    {
+        ui_object->m_stage = stage;
+
+        return UIObjectIterationResult::CONTINUE;
+    });
 }
 
 #pragma endregion UIObject

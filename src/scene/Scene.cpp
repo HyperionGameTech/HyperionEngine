@@ -86,27 +86,29 @@ struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 #pragma endregion Render commands
 
 Scene::Scene()
-    : Scene(Handle<Camera>::empty, { })
+    : Scene(Handle<Camera>::empty, Threads::GetThreadID(ThreadName::THREAD_GAME), { })
 {
 }
 
 Scene::Scene(Handle<Camera> camera)
-    : Scene(std::move(camera), { })
+    : Scene(std::move(camera), Threads::GetThreadID(ThreadName::THREAD_GAME), { })
 {
 }
 
 Scene::Scene(
     Handle<Camera> camera,
+    ThreadID owner_thread_id,
     const InitInfo &info
 ) : BasicObject(info),
     HasDrawProxy(),
+    m_owner_thread_id(owner_thread_id),
     m_camera(std::move(camera)),
     m_root_node_proxy(new Node("<ROOT>", ID<Entity>::invalid, Transform { }, this)),
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(info.flags & InitInfo::SCENE_FLAGS_NON_WORLD),
     m_is_audio_listener(false),
-    m_entity_manager(new EntityManager(info.thread_mask, this)),
+    m_entity_manager(new EntityManager(owner_thread_id.GetMask(), this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_mutation_state(DataMutationState::DIRTY)
 {
@@ -187,6 +189,16 @@ void Scene::Init()
     }
 
     SetReady(true);
+}
+
+void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
+{
+    if (m_owner_thread_id == owner_thread_id) {
+        return;
+    }
+
+    m_owner_thread_id = owner_thread_id;
+    m_entity_manager->SetOwnerThreadMask(owner_thread_id.GetMask());
 }
 
 void Scene::SetCamera(Handle<Camera> camera)

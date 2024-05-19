@@ -186,25 +186,25 @@ void World::RemoveScene(ID<Scene> id)
     m_has_scene_updates.Set(true, MemoryOrder::RELAXED);
 }
 
-const Handle<Scene> &World::GetDetachedScene()
+const Handle<Scene> &World::GetDetachedScene(ThreadName thread_name)
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    const ThreadID thread_id = Threads::GetThreadID(thread_name);
 
-    return GetDetachedScene(ThreadName::THREAD_GAME);
+    Threads::AssertOnThread(thread_id);
+
+    return GetDetachedScene(thread_id);
 }
 
-const Handle<Scene> &World::GetDetachedScene(ThreadMask thread_mask)
+const Handle<Scene> &World::GetDetachedScene(ThreadID thread_id)
 {
     Mutex::Guard guard(m_detached_scenes_mutex);
 
-    auto it = m_detached_scenes.Find(thread_mask);
+    auto it = m_detached_scenes.Find(thread_id);
 
     if (it == m_detached_scenes.End()) {
-        auto scene = CreateObject<Scene>(
+        Handle<Scene> scene = CreateObject<Scene>(
             Handle<Camera>::empty,
-            Scene::InitInfo {
-                .thread_mask = thread_mask
-            }
+            thread_id
         );
 
         scene->SetName(Name::Unique("DetachedScene"));
@@ -213,7 +213,7 @@ const Handle<Scene> &World::GetDetachedScene(ThreadMask thread_mask)
 
         scene->SetWorld(this);
 
-        it = m_detached_scenes.Insert(thread_mask, std::move(scene)).first;
+        it = m_detached_scenes.Insert(thread_id, std::move(scene)).first;
     }
 
     return it->second;

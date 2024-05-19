@@ -236,16 +236,61 @@ public:
     EntityManager &operator=(EntityManager &&) noexcept = delete;
     ~EntityManager()                                    = default;
 
+    /*! \brief Gets the thread mask of the thread that owns this EntityManager.
+     *
+     *  \return The thread mask.
+     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ThreadMask GetOwnerThreadMask() const
+        { return m_owner_thread_mask; }
+
+    /*! \brief Sets the thread mask of the thread that owns this EntityManager.
+     *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
+    void SetOwnerThreadMask(ThreadMask owner_thread_mask)
+        { m_owner_thread_mask = owner_thread_mask; }
+
+    /*! \brief Gets the Scene that this EntityManager is associated with.
+     *
+     *  \return Pointer to the Scene.
+     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Scene *GetScene() const
         { return m_scene; }
 
+    /*! \brief Gets the command queue for this EntityManager.
+     *
+     *  \return Reference to the command queue.
+     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     EntityManagerCommandQueue &GetCommandQueue()
         { return m_command_queue; }
 
+    /*! \brief Gets the command queue for this EntityManager.
+     *
+     *  \return Reference to the command queue.
+     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const EntityManagerCommandQueue &GetCommandQueue() const
         { return m_command_queue; }
 
+    /*! \brief Adds a new entity to the EntityManager.
+     *  \note Must be called from the owner thread.
+     *
+     *  \return The Entity that was added.
+     */
+    [[nodiscard]]
     ID<Entity> AddEntity();
+
+    /*! \brief Removes an entity from the EntityManager.
+     *
+     *  \param[in] id The Entity to remove.
+     *
+     *  \return True if the entity was removed, false otherwise.
+     */
     bool RemoveEntity(ID<Entity> id);
 
     /*! \brief Moves an entity from one EntityManager to another.

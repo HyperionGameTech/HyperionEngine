@@ -121,7 +121,7 @@ inline bool utf32_isalpha(u32char ch)
                             (ch >= u32char('a') && ch <= u32char('z')));
 }
 
-inline int utf8_strlen(const char *first, const char *last, int *out_count = nullptr)
+inline int utf8_strlen(const char *first, const char *last, int *out_byte_index = nullptr)
 {
     int i;
     int count = 0;
@@ -134,13 +134,13 @@ inline int utf8_strlen(const char *first, const char *last, int *out_count = nul
         else if ((c & 0xF8) == 0xF0) i += 3;
         else return -1;//invalid utf8
     }
-    if (out_count) {
-        *out_count = i;
+    if (out_byte_index) {
+        *out_byte_index = i;
     }
     return count;
 }
 
-inline int utf8_strlen(const char *str, int *out_count = nullptr)
+inline int utf8_strlen(const char *str, int *out_byte_index = nullptr)
 {
     const auto max = std::strlen(str);
     int count = 0;
@@ -155,29 +155,29 @@ inline int utf8_strlen(const char *str, int *out_count = nullptr)
         else return -1;//invalid utf8
     }
 
-    if (out_count) {
-        *out_count = i;
+    if (out_byte_index) {
+        *out_byte_index = i;
     }
 
     return count;
 }
 
 template <class T, bool is_utf8>
-int utf_strlen(const T *str, int *out_count = nullptr)
+int utf_strlen(const T *str, int *out_byte_index = nullptr)
 {
     if constexpr (is_utf8) {
-        return utf8_strlen(str, out_count);
+        return utf8_strlen(str, out_byte_index);
     }
 
-    int counter = 0;
+    int count = 0;
     const T *pos = str;
-    for (; *pos; ++pos, counter++);
+    for (; *pos; ++pos, count++);
 
-    if (out_count != nullptr) {
-        *out_count = counter;
+    if (out_byte_index != nullptr) {
+        *out_byte_index = count;
     }
 
-    return counter;
+    return count;
 }
 
 inline int utf8_strcmp(const char *s1, const char *s2)

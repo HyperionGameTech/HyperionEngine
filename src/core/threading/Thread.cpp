@@ -45,6 +45,11 @@ bool ThreadID::IsDynamic() const
     return THREAD_DYNAMIC & value;
 }
 
+ThreadMask ThreadID::GetMask() const
+{
+    return IsDynamic() ? THREAD_DYNAMIC : ThreadMask(value);
+}
+
 HYP_API void SetCurrentThreadID(const ThreadID &thread_id)
 {
     Threads::SetCurrentThreadID(thread_id);

@@ -79,7 +79,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
 
                         for (auto &attr : attribs) {
                             if (!attr.first.Empty()) {
-                                locals[attr.first] = attr.second;
+                                locals[attr.first.ToLower()] = attr.second;
                             }
                         }
 

@@ -19,7 +19,7 @@ namespace hyperion {
 Game::Game()
     : m_is_init(false),
       m_input_manager(new InputManager()),
-      m_ui_stage(new UIStage())
+      m_ui_stage(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)))
 {
 }
 
@@ -27,7 +27,7 @@ Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
       m_input_manager(new InputManager()),
       m_managed_game_info(std::move(managed_game_info)),
-      m_ui_stage(new UIStage())
+      m_ui_stage(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)))
 {
 }
 
@@ -66,6 +66,7 @@ void Game::Init_Internal()
 
     m_scene = CreateObject<Scene>(
         Handle<Camera>(),
+        Threads::GetThreadID(ThreadName::THREAD_GAME),
         Scene::InitInfo {
             .flags = Scene::InitInfo::SCENE_FLAGS_HAS_TLAS // default it to having a top level acceleration structure for RT
         }

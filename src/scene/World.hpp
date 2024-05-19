@@ -78,16 +78,20 @@ public:
     ~World();
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
-     *  \details This version of the function returns the Scene object handle for the detached Scene. */
-    const Handle<Scene> &GetDetachedScene();
+     *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
+     *  If the Scene does not exist for the given thread mask, it will be created.
+     *\param thread_name The thread the Scene should be associated with.
+     * \return The handle for the detached Scene for the given thread.
+     */
+    const Handle<Scene> &GetDetachedScene(ThreadName thread_name = ThreadName::THREAD_GAME);
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
-     *  This version of the function allows the caller to specify the thread mask the Scene uses for entity management.
+     *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
      *  If the Scene does not exist for the given thread mask, it will be created.
-     *\param thread_mask The thread mask the Scene should be associated with.
-     * \return The handle for the detached Scene for the given thread mask.
+     *\param thread_id The thread the Scene should be associated with.
+     * \return The handle for the detached Scene for the given thread.
      */
-    const Handle<Scene> &GetDetachedScene(ThreadMask thread_mask);
+    const Handle<Scene> &GetDetachedScene(ThreadID thread_id);
 
     PhysicsWorld &GetPhysicsWorld() { return m_physics_world; }
     const PhysicsWorld &GetPhysicsWorld() const { return m_physics_world; }
@@ -119,7 +123,7 @@ private:
     PhysicsWorld                        m_physics_world;
     RenderListContainer                 m_render_list_container;
 
-    FlatMap<ThreadMask, Handle<Scene>>  m_detached_scenes;
+    FlatMap<ThreadID, Handle<Scene>>    m_detached_scenes;
     Mutex                               m_detached_scenes_mutex;
 
     FlatSet<Handle<Scene>>              m_scenes;

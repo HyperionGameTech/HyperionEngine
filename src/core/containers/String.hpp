@@ -1428,8 +1428,7 @@ SizeType String<string_type>::FindIndex(const String &other) const
 {
     if (auto *ptr = StrStr(other)) {
         if constexpr (is_utf8) {
-            int *count;
-            const int len = utf8_strlen(Data(), ptr, count);
+            const int len = utf8_strlen(Data(), ptr, nullptr);
 
             return SizeType(len);
         } else {

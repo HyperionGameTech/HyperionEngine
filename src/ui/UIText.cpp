@@ -198,7 +198,7 @@ FontAtlas *UIText::GetFontAtlasOrDefault() const
 {
     return m_font_atlas != nullptr
         ? m_font_atlas.Get()
-        : (m_parent != nullptr ? m_parent->GetDefaultFontAtlas().Get() : nullptr);
+        : (GetStage() != nullptr ? GetStage()->GetDefaultFontAtlas().Get() : nullptr);
 }
 
 void UIText::SetFontAtlas(RC<FontAtlas> font_atlas)
@@ -230,7 +230,7 @@ void UIText::UpdateMesh()
     if (FontAtlas *font_atlas = GetFontAtlasOrDefault()) {
         CharMeshBuilder char_mesh_builder(m_options);
 
-        mesh = char_mesh_builder.OptimizeCharMeshes(m_parent->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(*font_atlas, m_text));
+        mesh = char_mesh_builder.OptimizeCharMeshes(GetStage()->GetSurfaceSize(), char_mesh_builder.BuildCharMeshes(*font_atlas, m_text));
     } else {
         DebugLog(LogType::Warn, "No font atlas for UIText %s", *GetName());
     }

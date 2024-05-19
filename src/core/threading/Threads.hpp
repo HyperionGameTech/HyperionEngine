@@ -15,8 +15,6 @@
 namespace hyperion {
 namespace threading {
 
-using ThreadMask = uint32;
-
 enum ThreadName : ThreadMask
 {
     THREAD_MAIN     = 0x01u,

@@ -105,9 +105,29 @@ void HyperionEditorImpl::CreateFontAtlas()
 
 void HyperionEditorImpl::CreateMainPanel()
 {
-    m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
     // btn->SetPadding(Vec2i { 5, 5 });
     
+    if (RC<UIObject> loaded_ui = AssetManager::GetInstance()->Load<UIObject>("ui/Editor.Main.ui.xml")) {
+        if (loaded_ui.Is<UIStage>()) {
+            loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
+        }
+
+        // auto main_menu = loaded_ui->FindChildUIObject(HYP_NAME(Main_MenuBar));
+
+        // if (main_menu != nullptr) {
+        //     DebugLog(LogType::Debug, "Main menu: %u\n", uint(main_menu->GetType()));
+        // }
+
+        // DebugLog(LogType::Debug, "Loaded position: %d, %d\n", loaded_ui->GetPosition().x, loaded_ui->GetPosition().y);
+        // DebugLog(LogType::Debug, "Loaded UI: %s\n", *loaded_ui->GetName());
+
+        GetUIStage()->AddChildUIObject(loaded_ui);
+    }
+
+#if 0
+    m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
+
+#if 0
     RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     menu_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -179,6 +199,7 @@ void HyperionEditorImpl::CreateMainPanel()
     window_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
 
     m_main_panel->AddChildUIObject(menu_bar);
+#endif
 
     RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
 
@@ -188,7 +209,6 @@ void HyperionEditorImpl::CreateMainPanel()
 
     RC<UITab> scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
 
-#if 1
     RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const UIMouseEventData &event)
@@ -301,7 +321,6 @@ void HyperionEditorImpl::CreateMainPanel()
     ui_image->SetTexture(m_scene_texture);
 
     scene_tab->GetContents()->AddChildUIObject(ui_image);
-#endif
 
     dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
 
@@ -335,6 +354,8 @@ void HyperionEditorImpl::CreateMainPanel()
     }
 
     m_main_panel->AddChildUIObject(dockable_container);
+
+#endif
 
     // AssertThrow(game_tab_content_button->GetScene() != nullptr);
 

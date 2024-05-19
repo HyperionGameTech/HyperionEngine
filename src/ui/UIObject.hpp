@@ -219,8 +219,9 @@ protected:
 
 public:
     friend class UIRenderer;
+    friend class UIStage;
 
-    UIObject(UIStage *parent, NodeProxy node_proxy, UIObjectType type);
+    UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type);
     UIObject(const UIObject &other)                 = delete;
     UIObject &operator=(const UIObject &other)      = delete;
     UIObject(UIObject &&other) noexcept             = delete;
@@ -228,6 +229,7 @@ public:
     virtual ~UIObject();
 
     virtual void Init();
+    virtual void Update(GameCounter::TickUnit delta) final;
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -247,7 +249,7 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     UIStage *GetStage() const
-        { return m_parent; }
+        { return m_stage; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -471,6 +473,11 @@ public:
     Delegate<UIEventHandlerResult, const UIKeyEventData &>      OnKeyUp;
 
 protected:
+    virtual void Update_Internal(GameCounter::TickUnit delta);
+
+    virtual void OnAttached_Internal(UIObject *parent);
+    virtual void OnDetached_Internal();
+
     /*! \brief Sets the NodeProxy for this UIObject.
      *  \note To be called internally from UIStage */
     void SetNodeProxy(NodeProxy);
@@ -495,7 +502,7 @@ protected:
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
 
-    UIStage                         *m_parent;
+    UIStage                         *m_stage;
 
     Name                            m_name;
 
@@ -531,6 +538,9 @@ private:
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda) const;
+
+    // For UIStage only.
+    void SetAllChildUIObjectsStage(UIStage *stage);
 
     const UIObjectID                m_id;
     const UIObjectType              m_type;

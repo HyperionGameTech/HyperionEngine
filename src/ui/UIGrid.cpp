@@ -52,7 +52,7 @@ RC<UIGridColumn> UIGridRow::FindEmptyColumn() const
 
 void UIGridRow::SetNumColumns(uint num_columns)
 {
-    if (!m_parent) {
+    if (GetStage() == nullptr) {
         return;
     }
 
@@ -72,7 +72,7 @@ void UIGridRow::SetNumColumns(uint num_columns)
         const uint num_columns_to_add = num_columns - current_num_columns;
 
         for (uint i = 0; i < num_columns_to_add; i++) {
-            auto column = m_parent->CreateUIObject<UIGridColumn>(HYP_NAME(Column), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(HYP_NAME(Column), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
             UIObject::AddChildUIObject(column);
 
             m_columns.PushBack(std::move(column));
@@ -84,11 +84,11 @@ void UIGridRow::SetNumColumns(uint num_columns)
 
 RC<UIGridColumn> UIGridRow::AddColumn()
 {
-    if (!m_parent) {
+    if (GetStage() == nullptr) {
         return nullptr;
     }
 
-    const RC<UIGridColumn> column = m_parent->CreateUIObject<UIGridColumn>(HYP_NAME(Column), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(HYP_NAME(Column), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     UIObject::AddChildUIObject(column);
 
     m_columns.PushBack(column);
@@ -146,7 +146,7 @@ void UIGrid::SetNumColumns(uint num_columns)
 
 void UIGrid::SetNumRows(uint num_rows)
 {
-    if (!m_parent) {
+    if (GetStage() == nullptr) {
         return;
     }
 
@@ -166,7 +166,7 @@ void UIGrid::SetNumRows(uint num_rows)
         const uint num_rows_to_add = num_rows - current_num_rows;
 
         for (uint i = 0; i < num_rows_to_add; i++) {
-            auto row = m_parent->CreateUIObject<UIGridRow>(HYP_NAME(Row), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(HYP_NAME(Row), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
             m_container->AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
@@ -178,11 +178,11 @@ void UIGrid::SetNumRows(uint num_rows)
 
 RC<UIGridRow> UIGrid::AddRow()
 {
-    if (!m_parent || !m_container) {
+    if (GetStage() == nullptr || m_container == nullptr) {
         return nullptr;
     }
 
-    const RC<UIGridRow> row = m_parent->CreateUIObject<UIGridRow>(HYP_NAME(Row), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(HYP_NAME(Row), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     m_container->AddChildUIObject(row);
 
     m_rows.PushBack(row);
@@ -198,9 +198,9 @@ void UIGrid::Init()
 
     UIPanel::Init();
 
-    AssertThrow(m_parent != nullptr);
+    AssertThrow(GetStage() != nullptr);
 
-    m_container = m_parent->CreateUIObject<UIPanel>(HYP_NAME(GridContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    m_container = GetStage()->CreateUIObject<UIPanel>(HYP_NAME(GridContents), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     UIObject::AddChildUIObject(m_container);
 }
 

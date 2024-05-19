@@ -51,7 +51,6 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
         SCENE_FLAGS_NON_WORLD   = 0x2
     };
 
-    ThreadMask      thread_mask = ThreadName::THREAD_GAME;
     ComponentFlags  flags = SCENE_FLAGS_NONE;
 };
 
@@ -69,19 +68,32 @@ public:
 
     HYP_API Scene(
         Handle<Camera> camera,
-        const InitInfo &info
+        ThreadID owner_thread_id,
+        const InitInfo &info = { }
     );
 
     Scene(const Scene &other)               = delete;
     Scene &operator=(const Scene &other)    = delete;
     HYP_API ~Scene();
 
-    Handle<Camera> &GetCamera()
-        { return m_camera; }
+    /*! \brief Get the thread ID that owns this Scene. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ThreadID GetOwnerThreadID() const
+        { return m_owner_thread_id; }
 
+    /*! \brief Set the thread ID that owns this Scene.
+     *  This is used to assert that the Scene is being accessed from the correct thread.
+     *  \note Only call this if you know what you are doing. */
+    void SetOwnerThreadID(ThreadID owner_thread_id);
+
+    /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
+    /*! \brief Set the camera that is used to render this Scene. */
     HYP_API void SetCamera(Handle<Camera> camera);
 
     RenderList &GetRenderList()
@@ -191,6 +203,8 @@ public:
 private:
     void EnqueueRenderUpdates();
 
+    ThreadID                        m_owner_thread_id;
+
     Handle<Camera>                  m_camera;
     RenderList                      m_render_list;
 
@@ -213,7 +227,7 @@ private:
 
     bool                            m_is_audio_listener;
                                  
-    mutable DataMutationState         m_mutation_state;
+    mutable DataMutationState       m_mutation_state;
 };
 
 } // namespace hyperion

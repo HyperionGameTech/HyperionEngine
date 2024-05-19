@@ -17,6 +17,8 @@
 namespace hyperion {
 namespace threading {
 
+using ThreadMask = uint32;
+
 enum class ThreadPriorityValue
 {
     LOWEST,
@@ -48,16 +50,34 @@ struct ThreadID
     bool operator<(const ThreadID &other) const
         { return value < other.value; }
 
-    // Not valid for DYNAMIC thread IDs.
+    /*! \brief Get the inverted value of this thread ID, for use as a mask.
+     * This is useful for selecting all threads except the one with this ID.
+     * \warning This is not valid for dynamic thread IDs. */
+    [[nodiscard]]
     HYP_FORCE_INLINE
     uint operator~() const
         { return ~value; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     operator uint32() const
         { return value; }
     
+    /*! \brief Check if this thread ID is a dynamic thread ID.
+     *  \returns True if this is a dynamic thread ID, false otherwise. */
+    [[nodiscard]]
     HYP_API bool IsDynamic() const;
+
+    /*! \brief Get the mask for this thread ID. For static thread IDs, this is the same as the value.
+     *  For dynamic thread IDs, this is the THREAD_DYNAMIC mask.
+     *  \returns The relevant mask for this thread ID. */ 
+    [[nodiscard]]
+    HYP_API ThreadMask GetMask() const;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsValid() const
+        { return value != invalid.value; }
 };
 
 static_assert(std::is_trivially_destructible_v<ThreadID>,

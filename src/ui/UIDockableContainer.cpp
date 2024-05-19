@@ -18,13 +18,11 @@ UIDockableItem::UIDockableItem(UIStage *parent, NodeProxy node_proxy)
 
 #pragma region UIDockableContainer
 
-UIDockableContainer::UIDockableContainer(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::DOCKABLE_CONTAINER)
+UIDockableContainer::UIDockableContainer(UIStage *stage, NodeProxy node_proxy)
+    : UIPanel(stage, std::move(node_proxy), UIObjectType::DOCKABLE_CONTAINER)
 {
-    AssertThrow(m_parent != nullptr);
-
     for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
-        m_dockable_items[i] = m_parent->CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
+        m_dockable_items[i] = GetStage()->CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
     }
 
     for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {

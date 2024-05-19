@@ -27,8 +27,9 @@
 
 namespace hyperion {
 
-UIStage::UIStage()
+UIStage::UIStage(ThreadID owner_thread_id)
     : UIObject(UIObjectType::STAGE),
+      m_owner_thread_id(owner_thread_id),
       m_surface_size { 1000, 1000 }
 {
     SetName(HYP_NAME(Stage));
@@ -77,9 +78,8 @@ void UIStage::Init()
 
     m_scene = CreateObject<Scene>(
         CreateObject<Camera>(),
-        Scene::InitInfo
-        {
-            ThreadName::THREAD_GAME,
+        m_owner_thread_id,
+        Scene::InitInfo {
             Scene::InitInfo::SCENE_FLAGS_NON_WORLD
         }
     );
@@ -107,8 +107,18 @@ void UIStage::Init()
     UIObject::Init();
 }
 
-void UIStage::Update(GameCounter::TickUnit delta)
+void UIStage::AddChildUIObject(UIObject *ui_object)
 {
+    if (!ui_object) {
+        return;
+    }
+
+    UIObject::AddChildUIObject(ui_object);
+}
+
+void UIStage::Update_Internal(GameCounter::TickUnit delta)
+{
+    HYP_BREAKPOINT;
     m_scene->Update(delta);
 
     for (auto &it : m_mouse_button_pressed_states) {
@@ -116,9 +126,43 @@ void UIStage::Update(GameCounter::TickUnit delta)
     }
 }
 
+void UIStage::OnAttached_Internal(UIObject *parent)
+{
+    AssertThrow(parent != nullptr);
+    AssertThrow(parent->GetNode() != nullptr);
+
+    UIObject::OnAttached_Internal(parent);
+
+    m_scene->GetRoot()->Remove();
+    parent->GetNode()->AddChild(m_scene->GetRoot());
+}
+
+void UIStage::OnDetached_Internal()
+{
+    // Remove m_stage parent object
+    UIObject::OnDetached_Internal();
+
+    // Set all sub objects to have a m_stage of this
+    UIObject::SetAllChildUIObjectsStage(this);
+
+    m_scene->GetRoot()->Remove();
+    m_scene->GetRoot()->SetScene(m_scene.Get());
+}
+
+void UIStage::SetOwnerThreadID(ThreadID thread_id)
+{
+    AssertThrowMsg(thread_id.IsValid(), "Invalid thread ID");
+
+    m_owner_thread_id = thread_id;
+
+    if (m_scene.IsValid()) {
+        m_scene->SetOwnerThreadID(thread_id);
+    }
+}
+
 bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     const Vec4f world_position = m_scene->GetCamera()->TransformScreenToWorld(position);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };

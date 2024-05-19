@@ -12,6 +12,9 @@
 #include <asset/data_loaders/JSONLoader.hpp>
 #include <asset/font_loaders/FontFaceLoader.hpp>
 #include <asset/font_loaders/FontAtlasLoader.hpp>
+#include <asset/ui_loaders/UILoader.hpp>
+
+#include <ui/UIObject.hpp>
 
 #include <Engine.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -51,6 +54,7 @@ void AssetManager::RegisterDefaultLoaders()
         "ttf", "otf", "ttc", "dfont"
     );
     Register<FontAtlasLoader, FontAtlas>();
+    Register<UILoader, UIObject>();
 }
 
 const AssetLoaderDefinition *AssetManager::GetLoader(const FilePath &path, TypeID desired_type_id)
