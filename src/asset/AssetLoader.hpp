@@ -147,9 +147,9 @@ public:
     {
         if (ptr) {
             if constexpr (is_opaque_handle) {
-                auto casted = ptr.Cast<Handle<T>>();
+                UniquePtr<Handle<T>> casted = ptr.Cast<Handle<T>>();
 
-                if (casted) {
+                if (casted != nullptr) {
                     return *casted;
                 }
             } else if (UniquePtr<InnerType> casted = ptr.Cast<InnerType>()) {

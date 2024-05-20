@@ -137,7 +137,10 @@ public:
         ui_object->SetSize(size);
         ui_object->Init();
 
-        return ui_object.Cast<T>();
+        RC<T> result = ui_object.Cast<T>();
+        AssertThrow(result != nullptr);
+
+        return result;
     }
 
     EnumFlags<UIEventHandlerResult> OnInputEvent(

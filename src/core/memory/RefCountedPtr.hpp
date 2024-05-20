@@ -16,6 +16,9 @@
 #include <cstdlib>
 
 namespace hyperion {
+
+class UIObject; // TEMP
+
 namespace memory {
 
 template <class T, class CountType = std::atomic<uint>>
@@ -47,14 +50,20 @@ struct RefCountData
     CountType   weak_count;
     void        (*dtor)(void *);
 
+    RefCountData()
+    {
+        value = nullptr;
+        type_id = TypeID { };
+        strong_count = 0;
+        weak_count = 0;
+        dtor = nullptr;
+    }
+    
 #ifdef HYP_DEBUG_MODE
     ~RefCountData()
     {
-        AssertThrow(dtor == nullptr);
-        AssertThrow(value == nullptr);
         AssertThrow(strong_count == 0);
         AssertThrow(weak_count == 0);
-        AssertThrow(type_id == TypeID::ForType<void>());
     }
 #endif
 
@@ -62,8 +71,30 @@ struct RefCountData
     HYP_FORCE_INLINE
     bool HasValue() const
         { return value != nullptr; }
+    
+    HYP_FORCE_INLINE
+    void IncRefCount_Strong()
+    {
+        if constexpr (std::is_integral_v<CountType>) {
+            ++strong_count;
+        } else {
+            strong_count.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+    
+    HYP_FORCE_INLINE
+    void IncRefCount_Weak()
+    {
+        if constexpr (std::is_integral_v<CountType>) {
+            ++weak_count;
+        } else {
+            weak_count.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
 
-    auto UseCount() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint UseCount_Strong() const
     {
         if constexpr (std::is_integral_v<CountType>) {
             return strong_count;
@@ -72,43 +103,62 @@ struct RefCountData
         }
     }
 
-    template <class T, class ...Args>
-    void Construct(Args &&... args)
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint UseCount_Weak() const
     {
-        value = Memory::New<T>(std::forward<Args>(args)...);
-
-        // Setup weak ptr for EnableRefCountedPtrFromThis
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>) {
-            dtor = [](void *ptr)
-            {
-                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
-
-                Memory::Delete<T>(ptr);
-            };
+        if constexpr (std::is_integral_v<CountType>) {
+            return weak_count;
         } else {
-            dtor = &Memory::Delete<T>;
+            return weak_count.load(std::memory_order_acquire);
         }
-
-        type_id = TypeID::ForType<T>();
     }
 
     template <class T>
-    void TakeOwnership(T *ptr)
+    void InitStrong(T *ptr)
     {
-        // Setup weak ptr for EnableRefCountedPtrFromThis
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>) {
-            dtor = [](void *ptr)
-            {
-                static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
+        using Normalized = NormalizedType<T>;
 
-                Memory::Delete<T>(ptr);
-            };
+        static_assert(!std::is_void_v<T>, "Cannot initialize RefCountedPtr data with void pointer");
+
+        // Setup weak ptr for EnableRefCountedPtrFromThis
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, Normalized>) {
+#ifdef HYP_DEBUG_MODE
+            // Should already be set up from InitWeak() call.
+            AssertThrow(value == ptr);
+#endif
         } else {
-            dtor = &Memory::Delete<T>;
+            value = ptr;
         }
 
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(UseCount_Strong() == 0, "Initializing RefCountedPtr but ptr is already owned by another RefCountedPtr object!");
+#endif
+
+        // Override type_id, dtor for derived types
+        type_id = TypeID::ForType<Normalized>();
+        dtor = &Memory::Delete<Normalized>;
+
+        IncRefCount_Strong();
+    }
+
+    template <class T>
+    void InitWeak(T *ptr)
+    {
+        static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThis<T, CountType> to use this method");
+
         value = ptr;
-        type_id = TypeID::ForType<T>();
+        /*type_id = TypeID::ForType<T>();
+        dtor = [](void *ptr)
+        {
+            // Deletes control block
+            static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
+
+            Memory::Delete<T>(ptr);
+        };*/
+
+        // Weak count will be incremented - set to 1 on construction
+        ptr->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(this, true);
     }
 
     void Destruct()
@@ -229,21 +279,6 @@ public:
     TypeID GetTypeID() const
         { return m_ref->type_id; }
 
-    /*! \brief Creates a new RefCountedPtr of T from the existing RefCountedPtr.
-     * If the types are not exact AND T is not equal to void,
-     * no conversion is performed and an empty RefCountedPtr is returned.
-     */
-    template <class T>
-    HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> Cast()
-    {
-        if (GetTypeID() == TypeID::ForType<T>() || std::is_same_v<T, void>) {
-            return CastUnsafe<T>();
-        }
-
-        return RefCountedPtr<T, CountType>();
-    }
-
     template <class T>
     HYP_FORCE_INLINE
     RefCountedPtr<T, CountType> CastUnsafe()
@@ -260,8 +295,32 @@ public:
     HYP_FORCE_INLINE
     void Reset()
         { DropRefCount(); }
+    
+    template <class Ty>
+    HYP_FORCE_INLINE
+    void Reset(Ty *ptr)
+    {
+        if (std::is_base_of_v<UIObject, Ty>) {
+            HYP_BREAKPOINT;
+        }
+
+        using TyN = NormalizedType<Ty>;
+
+        DropRefCount();
+
+        if (ptr) {
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, TyN>) {
+                m_ref = ptr->EnableRefCountedPtrFromThisBase<CountType>::weak.GetRefCountData_Internal();
+            } else {
+                m_ref = new RefCountDataType;
+            }
+
+            m_ref->template InitStrong<TyN>(ptr);
+        }
+    }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */
+    [[nodiscard]]
     HYP_FORCE_INLINE
     RefCountDataType *GetRefCountData_Internal() const
         { return m_ref; }
@@ -281,6 +340,8 @@ public:
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
         * The caller is responsible for handling the reference count of the returned value.
     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
@@ -306,11 +367,7 @@ protected:
             return;
         }
 
-        if constexpr (std::is_integral_v<CountType>) {
-            ++m_ref->strong_count;
-        } else {
-            m_ref->strong_count.fetch_add(1u, std::memory_order_relaxed);
-        }
+        m_ref->IncRefCount_Strong();
     }
     
     HYP_FORCE_INLINE
@@ -346,13 +403,7 @@ protected:
 };
 
 template <class CountType>
-const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::null_ref__internal = {
-    nullptr,
-    TypeID::ForType<void>(),
-    { },
-    { },
-    nullptr
-};
+const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::null_ref__internal = { };
 
 template <class CountType>
 class WeakRefCountedPtrBase
@@ -419,18 +470,6 @@ public:
     {
         DropRefCount();
     }
-
-    HYP_FORCE_INLINE
-    void *Get() const
-        { return m_ref->value; }
-    
-    HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return m_ref->value != nullptr; }
-    
-    HYP_FORCE_INLINE
-    bool operator!() const
-        { return m_ref->value == nullptr; }
     
     HYP_FORCE_INLINE
     bool operator==(const RefCountedPtrBase<CountType> &other) const
@@ -441,24 +480,12 @@ public:
         { return m_ref == other.m_ref; }
     
     HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
-        { return Get() == nullptr; }
-    
-    HYP_FORCE_INLINE
     bool operator!=(const RefCountedPtrBase<CountType> &other) const
         { return m_ref != other.m_ref; }
     
     HYP_FORCE_INLINE
     bool operator!=(const WeakRefCountedPtrBase &other) const
         { return m_ref != other.m_ref; }
-    
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
-        { return Get() != nullptr; }
-    
-    HYP_FORCE_INLINE
-    TypeID GetTypeID() const
-        { return m_ref->type_id; }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE
@@ -468,6 +495,8 @@ public:
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
         * The caller is responsible for handling the reference count of the returned value.
     */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
@@ -477,29 +506,17 @@ public:
     }
 
     template <class T>
+    [[nodiscard]]
     HYP_FORCE_INLINE
-    WeakRefCountedPtr<T, CountType> Cast()
-    {
-        if (GetTypeID() == TypeID::ForType<T>() || std::is_same_v<T, void>) {
-            return CastUnsafe<T>();
-        }
-
-        return WeakRefCountedPtr<T, CountType>();
-    }
-
-    template <class T>
-    HYP_FORCE_INLINE
-    WeakRefCountedPtr<T, CountType> CastUnsafe()
+    WeakRefCountedPtr<T, CountType> CastUnsafe() const
     {
         WeakRefCountedPtr<T, CountType> rc;
-        rc.m_ref = m_ref;
-        
-        IncRefCount();
-
+        rc.SetRefCountData_Internal(m_ref, true);
         return rc;
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */
+    [[nodiscard]]
     HYP_FORCE_INLINE
     RefCountDataType *GetRefCountData_Internal() const
         { return m_ref; }
@@ -533,11 +550,7 @@ protected:
             return;
         }
 
-        if constexpr (std::is_integral_v<CountType>) {
-            ++m_ref->weak_count;
-        } else {
-            m_ref->weak_count.fetch_add(1u, std::memory_order_relaxed);
-        }
+        m_ref->IncRefCount_Weak();
     }
     
     HYP_FORCE_INLINE
@@ -604,7 +617,7 @@ public:
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
-        Reset(ptr);
+        Reset<Ty>(ptr);
     }
     
     // delete parent constructors
@@ -672,43 +685,53 @@ public:
     }
 
     ~RefCountedPtr() = default;
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     operator T *() const
         { return Get(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *Get() const
         { return static_cast<T *>(Base::m_ref->value); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *operator->() const
         { return Get(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T &operator*() const
         { return *Get(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     operator bool() const
         { return Base::operator bool(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return Base::operator!(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const RefCountedPtr &other) const
         { return Base::operator==(other); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const RefCountedPtr &other) const
         { return Base::operator!=(other); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
@@ -717,32 +740,45 @@ public:
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
+    HYP_FORCE_INLINE
     void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
-        Base::DropRefCount();
-
-        if (ptr) {
-            Base::m_ref = new typename Base::RefCountDataType;
-            Base::m_ref->template TakeOwnership<TyN>(ptr);
-            Base::m_ref->strong_count = 1u;
-            Base::m_ref->weak_count = 0u;
-        }
+        Base::template Reset<Ty>(ptr);
     }
 
-    /*! \brief Drops the reference to the currently held value, if any.  */
+    /*! \brief Drops the reference to the currently held value, if any. */
+    HYP_FORCE_INLINE
     void Reset()
         { Base::Reset(); }
 
     /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type, or if the given type is convertible to the type of this RefCountedPtr. */
     template <class Ty>
-    [[nodiscard]] bool Is() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Is() const
     {
         return Base::GetTypeID() == TypeID::ForType<Ty>()
             || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
             || std::is_same_v<Ty, void>;
+    }
+
+    /*! \brief Attempts to cast the pointer directly to the given type.
+        If the types are not compatible (Derived -> Base) or equal (or T is not void, in the case of a void pointer),
+        no cast is performed and a null RefCountedPtr is returned. Otherwise, a new RefCountedPtr is returned,
+        with the currently held pointer casted to Ty as the held value. */
+    template <class Ty>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    RefCountedPtr<Ty, CountType> Cast()
+    {
+        if (Is<Ty>()) {
+            return Base::template CastUnsafe<Ty>();
+        }
+
+        return RefCountedPtr<Ty, CountType>();
     }
 };
 
@@ -802,61 +838,48 @@ public:
 
     ~RefCountedPtr() = default;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     operator void *() const
         { return Base::Get(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     void *Get() const
         { return Base::Get(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     operator bool() const
         { return Base::operator bool(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return Base::operator!(); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const RefCountedPtr &other) const
         { return Base::operator==(other); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const RefCountedPtr &other) const
         { return Base::operator!=(other); }
-
+    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
-    template <class T>
-    void Set(const T &value)
-    {
-        Base::DropRefCount();
-
-        Base::m_ref = new typename Base::RefCountDataType;
-        Base::m_ref->template Construct<T>(value);
-        Base::m_ref->strong_count = 1u;
-        Base::m_ref->weak_count = 0u;
-    }
-
-    template <class T>
-    void Set(T &&value)
-    {
-        Base::DropRefCount();
-
-        Base::m_ref = new typename Base::RefCountDataType;
-        Base::m_ref->template Construct<T>(std::move(value));
-        Base::m_ref->strong_count = 1u;
-        Base::m_ref->weak_count = 0u;
-    }
-
-    /*! \brief Drops the reference to the currently held value, if any.  */
+    /*! \brief Drops the reference to the currently held value, if any. */
+    HYP_FORCE_INLINE
     void Reset()
         { Base::Reset(); }
 
@@ -864,26 +887,39 @@ public:
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
+    HYP_FORCE_INLINE
     void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
 
-        Base::DropRefCount();
-
-        if (ptr) {
-            Base::m_ref = new typename Base::RefCountDataType;
-            Base::m_ref->template TakeOwnership<TyN>(ptr);
-            Base::m_ref->strong_count = 1u;
-            Base::m_ref->weak_count = 0u;
-        }
+        Base::template Reset<Ty>(ptr);
     }
 
-    /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type, or if the given type is convertible to the type of this RefCountedPtr. */
+    /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type,
+     *  or if the given type is convertible to the type of this RefCountedPtr. */
     template <class Ty>
-    [[nodiscard]] bool Is() const
+    HYP_FORCE_INLINE
+    [[nodiscard]]
+    bool Is() const
     {
         return Base::GetTypeID() == TypeID::ForType<Ty>()
             || std::is_same_v<Ty, void>;
+    }
+
+    /*! \brief Attempts to cast the pointer directly to the given type.
+        If the types are not compatible (Derived -> Base) or equal (or T is not void, in the case of a void pointer),
+        no cast is performed and a null RefCountedPtr is returned. Otherwise, a new RefCountedPtr is returned,
+        with the currently held pointer casted to Ty as the held value. */
+    template <class Ty>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    RefCountedPtr<Ty, CountType> Cast()
+    {
+        if (Is<Ty>()) {
+            return Base::template CastUnsafe<Ty>();
+        }
+
+        return RefCountedPtr<Ty, CountType>();
     }
 };
 
@@ -895,11 +931,6 @@ protected:
     using Base = detail::WeakRefCountedPtrBase<CountType>;
 
 public:
-    using Base::operator==;
-    using Base::operator!=;
-    using Base::operator!;
-    using Base::operator bool;
-
     WeakRefCountedPtr()
         : Base()
     {
@@ -946,18 +977,79 @@ public:
 
     ~WeakRefCountedPtr() = default;
 
-    HYP_FORCE_INLINE
-    T *Get() const
-        { return static_cast<T *>(Base::m_ref->value); }
-    
+    [[nodiscard]]
     HYP_FORCE_INLINE
     RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
-        rc.SetRefCountData_Internal(Base::m_ref, true);
+
+        if (Base::m_ref->UseCount_Strong() == 0) { // atomic, acquire for atomic RC pointers
+            Base::m_ref->InitStrong(static_cast<T *>(Base::m_ref->value));
+
+            // InitStrong increments reference count already
+            rc.SetRefCountData_Internal(Base::m_ref, false /* inc_ref */);
+        } else {
+            rc.SetRefCountData_Internal(Base::m_ref, true /* inc_ref */);
+        }
 
         return rc;
     }
+};
+
+// Weak<void> specialization
+// Cannot be locked directly; must be cast to another type using `Cast<T>()` first.
+template <class CountType>
+class WeakRefCountedPtr<void, CountType> : public detail::WeakRefCountedPtrBase<CountType>
+{
+protected:
+    using Base = detail::WeakRefCountedPtrBase<CountType>;
+
+public:
+    WeakRefCountedPtr()
+        : Base()
+    {
+    }
+
+    WeakRefCountedPtr(const WeakRefCountedPtr &other)
+        : Base(other)
+    {
+    }
+
+    WeakRefCountedPtr &operator=(const WeakRefCountedPtr &other)
+    {
+        Base::operator=(other);
+
+        return *this;
+    }
+
+    WeakRefCountedPtr(const RefCountedPtr<void, CountType> &other)
+        : Base(other)
+    {
+    }
+
+    WeakRefCountedPtr &operator=(const RefCountedPtr<void, CountType> &other)
+    {
+        Base::operator=(other);
+
+        return *this;
+    }
+
+    WeakRefCountedPtr(RefCountedPtr<void, CountType> &&other) noexcept              = delete;
+    WeakRefCountedPtr &operator=(RefCountedPtr<void, CountType> &&other) noexcept   = delete;
+
+    WeakRefCountedPtr(WeakRefCountedPtr &&other) noexcept
+        : Base(std::move(other))
+    {
+    }
+
+    WeakRefCountedPtr &operator=(WeakRefCountedPtr &&other) noexcept
+    {
+        Base::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~WeakRefCountedPtr() = default;
 };
 
 namespace detail {
@@ -967,7 +1059,9 @@ class EnableRefCountedPtrFromThisBase
 {
 public:
     friend struct RefCountData<CountType>;
-
+    friend class RefCountedPtrBase<CountType>;
+    
+protected:
     EnableRefCountedPtrFromThisBase() = default;
 
     EnableRefCountedPtrFromThisBase(const EnableRefCountedPtrFromThisBase &)
@@ -982,9 +1076,12 @@ public:
         return *this;
     }
 
-    ~EnableRefCountedPtrFromThisBase() = default;
+    ~EnableRefCountedPtrFromThisBase()
+    {
+        // // Delete control block
+        // weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
+    }
 
-protected:
     WeakRefCountedPtr<void, CountType>  weak;
 };
 
@@ -996,8 +1093,25 @@ class EnableRefCountedPtrFromThis : public detail::EnableRefCountedPtrFromThisBa
     using Base = detail::EnableRefCountedPtrFromThisBase<CountType>;
 
 public:
-    EnableRefCountedPtrFromThis() = default;
+    EnableRefCountedPtrFromThis()
+    {
+        detail::RefCountData<CountType> *ref_count_data = new detail::RefCountData<CountType>;
+        ref_count_data->template InitWeak<T>(static_cast<T *>(this));
+    }
 
+    ~EnableRefCountedPtrFromThis() = default;
+
+protected:
+    RefCountedPtr<T, CountType> RefCountedPtrFromThis()
+        { return Base::weak.template CastUnsafe<T>().Lock(); }
+
+    RefCountedPtr<const T, CountType> RefCountedPtrFromThis() const
+        { return Base::weak.template CastUnsafe<const T>().Lock(); }
+
+    WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis()
+        { return Base::weak.template CastUnsafe<T>(); }
+
+private:
     EnableRefCountedPtrFromThis(const EnableRefCountedPtrFromThis &)
     {
         // Do not modify weak ptr
@@ -1009,18 +1123,6 @@ public:
 
         return *this;
     }
-
-    ~EnableRefCountedPtrFromThis() = default;
-
-protected:
-    RefCountedPtr<T, CountType> RefCountedPtrFromThis()
-        { return Base::weak.Lock().template CastUnsafe<T>(); }
-
-    RefCountedPtr<const T, CountType> RefCountedPtrFromThis() const
-        { return Base::weak.Lock().template CastUnsafe<T>(); }
-
-    WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis()
-        { return Base::weak.template CastUnsafe<T>(); }
 };
 
 } // namespace memory
