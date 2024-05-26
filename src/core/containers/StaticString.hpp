@@ -369,9 +369,20 @@ struct Substr_Impl<String, Start, End, true>
 template <auto String, SizeType Start, SizeType End>
 struct Substr
 {
-    static constexpr auto _clamped_end = (End >= String.size ? String.size - 1 : End);
+    static_assert(Start <= End, "Start must be less than or equal to end");
+    static_assert(Start < String.size, "Start must be less than string size");
+    static_assert(End < String.size, "End must be less than string size");
 
-    static constexpr auto value = detail::Substr_Impl<String, Start, End, Start >= _clamped_end>()(::hyperion::containers::detail::make_offset_index_sequence_t<_clamped_end - Start, Start>());
+    static constexpr auto value = detail::Substr_Impl<String, Start, End, Start >= End>()(containers::detail::make_offset_index_sequence_t<(End >= String.size ? String.size - 1 : End) - Start, Start>());
+};
+
+template <auto String, SizeType Start>
+struct Substr<String, Start, SizeType(-1)>
+{
+    static_assert(Start <= String.size - 1, "Start must be less than or equal to end");
+    static_assert(Start < String.size, "Start must be less than string size");
+    
+    static constexpr auto value = detail::Substr_Impl<String, Start, String.size - 1, Start >= String.size - 1>()(containers::detail::make_offset_index_sequence_t<(String.size - 1) - Start, Start>());
 };
 
 #pragma endregion Substr
@@ -769,7 +780,7 @@ struct GetSplitIndices_Impl
             std::array<Pair<SizeType, SizeType>, Count + 1> split_indices = { };
 
             if constexpr (Count == 0) {
-                split_indices[0] = { 0, String.Size() - 1 /* -1 for NUL char */ };
+                split_indices[0] = std::pair<SizeType, SizeType> { 0, String.Size() - 1 /* -1 for NUL char */ };
             } else {
                 std::array<char, Count> delimiter_indices = { };
 

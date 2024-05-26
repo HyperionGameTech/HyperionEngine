@@ -23,9 +23,9 @@ constexpr auto StripClassOrStruct()
     constexpr auto struct_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("struct ") > >();
 
     if constexpr (class_index != -1 && (struct_index == -1 || class_index <= struct_index)) {
-        return containers::helpers::Substr<Str, class_index + 6, Str.Size()>::value; // 6 = length of "class "
+        return containers::helpers::Substr< Str, class_index + 6, SizeType(-1) >::value; // 6 = length of "class "
     } else if constexpr (struct_index != -1 && (class_index == -1 || struct_index <= class_index)) {
-        return containers::helpers::Substr<Str, struct_index + 7, Str.Size()>::value; // 7 = length of "struct "
+        return containers::helpers::Substr< Str, struct_index + 7, SizeType(-1) >::value; // 7 = length of "struct "
     } else {
         return Str;
     }
@@ -75,7 +75,10 @@ constexpr auto ParseTypeName()
     constexpr auto left_arrow_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("<") > >();
     constexpr auto right_arrow_index = Str.template FindLast< containers::detail::IntegerSequenceFromString< StaticString(">") > >();
 
+
     if constexpr (left_arrow_index != SizeType(-1) && right_arrow_index != SizeType(-1)) {
+        static_assert(left_arrow_index < right_arrow_index, "Left arrow index must be less than right arrow index or parsing will fail!");
+
         return containers::helpers::Concat<
             containers::helpers::TransformSplit< TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr< Str, 0, left_arrow_index >::value >::value,
             StaticString("<"),
@@ -83,7 +86,7 @@ constexpr auto ParseTypeName()
             StaticString(">")
         >::value;
     } else {
-        return containers::helpers::TransformSplit< TypeNameStringTransformer<ShouldStripNamespace>, Str >::value;
+        return containers::helpers::TransformSplit< TypeNameStringTransformer< ShouldStripNamespace >, Str >::value;
     }
 }
 
