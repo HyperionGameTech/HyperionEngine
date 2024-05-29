@@ -673,6 +673,14 @@ void HyperionEditor::Init()
         }
 
         GetScene()->GetRoot().AddChild(node);
+        
+        for (auto &node : node.GetChildren()) {
+            if (auto child_entity = node.GetEntity()) {
+                // Add BLASComponent
+
+                m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+            }
+        }
     }).Detach();
 
     batch->LoadAsync();

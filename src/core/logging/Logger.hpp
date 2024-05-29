@@ -16,6 +16,7 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/Bitset.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Threads.hpp>
@@ -84,11 +85,17 @@ public:
     LogChannel *GetParentChannel() const
         { return m_parent_channel; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const Bitset &GetMaskBitset() const
+        { return m_mask_bitset; }
+
 private:
     uint32                      m_id;
     Name                        m_name;
     EnumFlags<LogChannelFlags>  m_flags;
     LogChannel                  *m_parent_channel;
+    Bitset                      m_mask_bitset;
 };
 
 class HYP_API Logger
@@ -180,7 +187,7 @@ using logging::LogLevel;
 #define HYP_DEFINE_LOG_SUBCHANNEL(name, parent_name) \
     hyperion::logging::LogChannel Log_##name(HYP_NAME_UNSAFE(name), &Log_##parent_name)
 
-#if defined(HYP_MSVC) && HYP_MSVC
+#ifdef HYP_MSVC
     #define HYP_LOG(channel, level, fmt, ...) \
         hyperion::logging::Logger::GetInstance().Log< level, hyperion::StaticString< sizeof(HYP_DEBUG_FUNC_SHORT) >(HYP_DEBUG_FUNC_SHORT), hyperion::StaticString< sizeof(fmt) >(fmt) >(hyperion::Log_##channel, __VA_ARGS__)
 #else

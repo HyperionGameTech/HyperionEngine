@@ -208,6 +208,9 @@ void BLAS::Init()
 
     DeferCreate(m_blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
 
+    // @TODO: Refactor so this sync is not needed
+    HYP_SYNC_RENDER();
+
     SetReady(true);
 }
 

@@ -68,6 +68,8 @@ Result BottomLevelAccelerationStructure<Platform::VULKAN>::UpdateStructure(Insta
 
 // explicit specialization definitions
 
+#pragma region AccelerationGeometry
+
 template <>
 AccelerationGeometry<Platform::VULKAN>::AccelerationGeometry(
     Array<PackedVertex> &&packed_vertices,
@@ -207,6 +209,10 @@ Result AccelerationGeometry<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> 
 
     return result;
 }
+
+#pragma endregion AccelerationGeometry
+
+#pragma region AccelerationStructure
 
 template <>
 AccelerationStructure<Platform::VULKAN>::AccelerationStructure()
@@ -508,6 +514,10 @@ void AccelerationStructure<Platform::VULKAN>::RemoveGeometry(const AccelerationG
     SetNeedsRebuildFlag();
 }
 
+#pragma endregion AccelerationStructure
+
+#pragma region TopLevelAccelerationStructure
+
 template <>
 TopLevelAccelerationStructure<Platform::VULKAN>::TopLevelAccelerationStructure()
     : AccelerationStructure(),
@@ -698,9 +708,9 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::CreateOrRebuildInstances
         instances.Size() * sizeof(VkAccelerationStructureInstanceKHR)
     );
 
-    AssertThrow(m_instances_buffer != nullptr);
+    AssertThrow(m_instances_buffer.IsValid());
 
-    if (m_instances_buffer->Size() != instances_buffer_size) {
+    if (m_instances_buffer->IsCreated() && m_instances_buffer->Size() != instances_buffer_size) {
         DebugLog(
             LogType::Debug,
             "Resizing TLAS instances buffer from %llu to %llu\n",
@@ -983,6 +993,10 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::Rebuild(Instance<Platfor
     return result;
 }
 
+#pragma endregion TopLevelAccelerationStructure
+
+#pragma region BottomLevelAccelerationStructure
+
 template <>
 BottomLevelAccelerationStructure<Platform::VULKAN>::BottomLevelAccelerationStructure()
     : AccelerationStructure()
@@ -1112,6 +1126,8 @@ Result BottomLevelAccelerationStructure<Platform::VULKAN>::Rebuild(Instance<Plat
 
     return result;
 }
+
+#pragma endregion BottomLevelAccelerationStructure
 
 } // namespace platform
 } // namespace renderer

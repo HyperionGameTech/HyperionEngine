@@ -179,11 +179,20 @@ static ByteBuffer CompileToSPIRV(
     Array<String> &error_messages
 )
 {
-#define GLSL_ERROR(level, error_message, ...) \
-    { \
-        HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
-        error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
-    }
+
+#ifdef HYP_MSVC
+    #define GLSL_ERROR(level, error_message, ...) \
+        { \
+            HYP_LOG(ShaderCompiler, level, error_message, __VA_ARGS__); \
+            error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
+        }
+#else
+    #define GLSL_ERROR(level, error_message, ...) \
+        { \
+            HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
+            error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
+        }
+#endif
 
     auto default_resources = DefaultResources();
 

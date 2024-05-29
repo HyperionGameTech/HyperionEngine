@@ -23,9 +23,9 @@ constexpr auto StripClassOrStruct()
     constexpr auto struct_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("struct ") > >();
 
     if constexpr (class_index != -1 && (struct_index == -1 || class_index <= struct_index)) {
-        return containers::helpers::Substr< Str, class_index + 6, SizeType(-1) >::value; // 6 = length of "class "
+        return containers::helpers::Substr< Str, class_index + 6, Str.Size() >::value; // 6 = length of "class "
     } else if constexpr (struct_index != -1 && (class_index == -1 || struct_index <= class_index)) {
-        return containers::helpers::Substr< Str, struct_index + 7, SizeType(-1) >::value; // 7 = length of "struct "
+        return containers::helpers::Substr< Str, struct_index + 7, Str.Size() >::value; // 7 = length of "struct "
     } else {
         return Str;
     }

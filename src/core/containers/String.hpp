@@ -20,6 +20,16 @@
 #include <type_traits>
 
 namespace hyperion {
+
+namespace utilities {
+namespace detail {
+
+template <int string_type>
+class StringView;
+
+} // namespace detail
+} // namespace utilities
+
 namespace containers {
 
 enum StringType : int
@@ -95,6 +105,8 @@ public:
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 
+    static constexpr bool is_contiguous = true;
+
     static const String empty;
 
     static constexpr bool is_ansi = string_type == ANSI;
@@ -120,6 +132,12 @@ public:
     explicit String(const CharArray<CharType> &char_array);
     explicit String(const ByteBuffer &byte_buffer);
 
+    template <int other_string_type>
+    String(utilities::detail::StringView<other_string_type> string_view)
+    {
+        *this = string_view;
+    }
+
     template <int other_string_type, std::enable_if_t<other_string_type != string_type, int> = 0>
     String(const String<other_string_type> &other)
         : String()
@@ -133,6 +151,19 @@ public:
     String &operator=(const CharType *str);
     String &operator=(const String &other);
     String &operator=(String &&other) noexcept;
+    
+    template <int other_string_type>
+    HYP_FORCE_INLINE
+    String &operator=(utilities::detail::StringView<other_string_type> string_view)
+    {
+        Clear();
+        Reserve(string_view.Size());
+        for (SizeType i = 0; i < string_view.Length(); i++) {
+            Append(string_view.GetChar(i));
+        }
+
+        return *this;
+    }
     
     template <int other_string_type, std::enable_if_t<other_string_type != string_type, int> = 0>
     HYP_FORCE_INLINE
@@ -938,11 +969,13 @@ auto String<string_type>::operator[](SizeType index) const -> const CharType
 template <int string_type>
 auto String<string_type>::GetChar(SizeType index) const -> WidestCharType
 {
+    const SizeType size = Size();
+
+#ifdef HYP_DEBUG_MODE
+    AssertThrow(index < size);
+#endif
+
     if constexpr (is_utf8) {
-        const SizeType size = Size();
-
-        AssertThrow(index < size);
-
         return utf::utf8_charat(Data(), size, index);
     } else {
         return Base::operator[](index);

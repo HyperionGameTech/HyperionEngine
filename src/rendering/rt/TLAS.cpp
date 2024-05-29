@@ -114,11 +114,11 @@ void TLAS::PerformBLASUpdates()
 
     while (m_blas_pending_addition.Any()) {
         auto blas = m_blas_pending_addition.PopFront();
-        AssertThrow(blas);
+        if (InitObject(blas)) {
+            m_tlas->AddBLAS(blas->GetInternalBLAS());
 
-        m_tlas->AddBLAS(blas->GetInternalBLAS());
-
-        m_blas.PushBack(std::move(blas));
+            m_blas.PushBack(std::move(blas));
+        }
     }
 
     m_has_blas_updates.store(false);
@@ -140,13 +140,18 @@ void TLAS::UpdateRender(
     
     for (auto &blas : m_blas) {
         AssertThrow(blas != nullptr);
+
+        AssertThrow(blas->IsReady());
         
         AssertThrow(!blas->GetInternalBLAS()->GetGeometries().Empty());
-        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedIndexStorageBuffer() != nullptr);
-        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
 
-        //bool was_blas_rebuilt = false;
-        //blas->UpdateRenderframe, was_blas_rebuilt);
+        AssertThrow(blas->GetInternalBLAS()->GetBuffer().IsValid());
+
+        // Temp checks
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedIndexStorageBuffer() != nullptr);
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetPlatformImpl().handle != VK_NULL_HANDLE);
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
+        AssertThrow(blas->GetInternalBLAS()->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetPlatformImpl().handle != VK_NULL_HANDLE);
     }
     
     HYPERION_ASSERT_RESULT(m_tlas->UpdateStructure(g_engine->GetGPUInstance(), out_update_state_flags));

@@ -11,6 +11,7 @@
 #include <core/functional/Proc.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/utilities/Tuple.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/Handle.hpp>
 #include <core/ID.hpp>
 
@@ -25,6 +26,18 @@
 #include <GameCounter.hpp>
 
 namespace hyperion {
+
+enum class EntityManagerFlags : uint32
+{
+    NONE                            = 0x0,
+    PARALLEL_SYSTEM_EXECUTION       = 0x1,
+    EXEC_COMMANDS_ON_OWNER_THREAD   = 0x2,
+    DISCARD_COMMANDS                = 0x4,
+
+    DEFAULT                         = PARALLEL_SYSTEM_EXECUTION | EXEC_COMMANDS_ON_OWNER_THREAD
+};
+
+HYP_MAKE_ENUM_FLAGS(EntityManagerFlags)
 
 class Scene;
 
@@ -175,12 +188,6 @@ struct EntityListener
     }
 };
 
-enum EntityManagerCommandQueuePolicy
-{
-    ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD,
-    ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD
-};
-
 class EntityManager;
 
 using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter::TickUnit /* delta */>;
@@ -188,7 +195,7 @@ using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter
 class HYP_API EntityManagerCommandQueue
 {
 public:
-    EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy);
+    EntityManagerCommandQueue(bool discard_commands);
     EntityManagerCommandQueue(const EntityManagerCommandQueue &)                = delete;
     EntityManagerCommandQueue &operator=(const EntityManagerCommandQueue &)     = delete;
     EntityManagerCommandQueue(EntityManagerCommandQueue &&) noexcept            = delete;
@@ -203,14 +210,13 @@ public:
     void Execute(EntityManager &mgr, GameCounter::TickUnit delta);
 
 private:
-    EntityManagerCommandQueuePolicy m_policy;
-
     struct EntityManagerCommandBuffer
     {
         Queue<EntityManagerCommandProc> commands;
         std::mutex                      mutex;
     };
 
+    bool                                        m_discard_commands;
     FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
     AtomicVar<uint>                             m_buffer_index { 0 };
     AtomicVar<uint>                             m_count { 0 };
@@ -219,14 +225,11 @@ private:
 class HYP_API EntityManager
 {
 public:
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene)
+    EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT)
         : m_owner_thread_mask(owner_thread_mask),
           m_scene(scene),
-          m_command_queue(
-              (owner_thread_mask & ThreadName::THREAD_GAME)
-                  ? ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD
-                  : ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD // discard commands if not on the game thread
-          )
+          m_command_queue(owner_thread_mask & ThreadName::THREAD_GAME), // discard commands if not on the game thread
+          m_flags(flags)
     {
         AssertThrow(scene != nullptr);
     }
@@ -699,7 +702,7 @@ private:
 
         SystemType *ptr = nullptr;
 
-        if (system_ptr->AllowParallelExecution()) {
+        if ((m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION) && system_ptr->AllowParallelExecution()) {
             for (auto &system_execution_group : m_system_execution_groups) {
                 if (system_execution_group.IsValidForExecutionGroup(system_ptr.Get())) {
                     ptr = static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
@@ -724,6 +727,7 @@ private:
 
     ThreadMask                                                              m_owner_thread_mask;
     Scene                                                                   *m_scene;
+    EnumFlags<EntityManagerFlags>                                           m_flags;
 
     TypeMap<UniquePtr<ComponentContainerBase>>                              m_containers;
     EntityContainer                                                         m_entities;
