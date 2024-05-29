@@ -43,7 +43,8 @@ LogChannel::LogChannel(Name name)
     : m_id(g_log_channel_id_generator.Next()),
       m_name(name),
       m_flags(LogChannelFlags::NONE),
-      m_parent_channel(nullptr)
+      m_parent_channel(nullptr),
+      m_mask_bitset(1ull << m_id)
 {
 }
 
@@ -51,6 +52,10 @@ LogChannel::LogChannel(Name name, LogChannel *parent_channel)
     : LogChannel(name)
 {
     m_parent_channel = parent_channel;
+
+    if (m_parent_channel != nullptr) {
+        m_mask_bitset |= m_parent_channel->m_mask_bitset;
+    }
 }
 
 LogChannel::~LogChannel()
@@ -130,15 +135,9 @@ bool Logger::IsChannelEnabled(const LogChannel &channel) const
     // @TODO: Come up with a more efficient solution that doesn't require atomics, looping, or dynamic bitsets
 
     const Bitset mask_value(m_log_mask.Get(MemoryOrder::ACQUIRE));
+    const Bitset &channel_mask_bitset = channel.GetMaskBitset();
 
-    Bitset bs;
-    bs.Set(channel.GetID(), true);
-
-    for (LogChannel *parent = channel.GetParentChannel(); parent != nullptr; parent = parent->GetParentChannel()) {
-        bs.Set(parent->GetID(), true);
-    }
-
-    return (mask_value & bs) == bs;
+    return (mask_value & channel_mask_bitset) == channel_mask_bitset;
 }
 
 void Logger::SetChannelEnabled(const LogChannel &channel, bool enabled)

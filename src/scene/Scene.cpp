@@ -118,7 +118,10 @@ Scene::Scene(
     m_world(nullptr),
     m_is_non_world_scene(info.flags & InitInfo::SCENE_FLAGS_NON_WORLD),
     m_is_audio_listener(false),
-    m_entity_manager(new EntityManager(owner_thread_id.GetMask(), this)),
+    m_entity_manager(new EntityManager(
+        owner_thread_id.GetMask(),
+        this
+    )),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_previous_delta(0.01667f),
     m_mutation_state(DataMutationState::DIRTY)

@@ -79,7 +79,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
 #ifdef HYP_SDL
     app_context.Reset(new SDLAppContext("Hyperion", arguments));
 #else
-#error "No AppContext implementation for this platform!"
+    #error "No AppContext implementation for this platform!"
 #endif
 
     Vec2u resolution = { 1280, 720 };

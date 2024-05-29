@@ -21,91 +21,75 @@ static const uint32 systems_execution_parallel_threshold = 3;
 
 #pragma region EntityManagerCommandQueue
 
-EntityManagerCommandQueue::EntityManagerCommandQueue(EntityManagerCommandQueuePolicy policy)
-    : m_policy(policy)
+EntityManagerCommandQueue::EntityManagerCommandQueue(bool discard_commands)
+    : m_discard_commands(discard_commands)
 {
 }
 
 void EntityManagerCommandQueue::AwaitEmpty()
 {
     HYP_SCOPE;
-    
-    switch (m_policy) {
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
-        EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
-        std::unique_lock<std::mutex> guard(buffer.mutex);
-
-        while (m_count.Get(MemoryOrder::ACQUIRE)) {
-            m_condition_variable.wait(guard);
-        }
-
-        break;
+    if (m_discard_commands) {
+        return;
     }
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD:
-        // Do nothing
-        break;
+    
+    const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+    EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
+
+    std::unique_lock<std::mutex> guard(buffer.mutex);
+
+    while (m_count.Get(MemoryOrder::ACQUIRE)) {
+        m_condition_variable.wait(guard);
     }
 }
 
 void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
     HYP_SCOPE;
+
+    if (m_discard_commands) {
+        return;
+    }
     
-    switch (m_policy) {
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
-        EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
+    const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+    EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
-        std::unique_lock<std::mutex> guard(buffer.mutex);
+    std::unique_lock<std::mutex> guard(buffer.mutex);
 
-        buffer.commands.Push(std::move(command));
-        m_count.Increment(1, MemoryOrder::RELEASE);
-
-        break;
-    }
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD:
-        // Do nothing
-        break;
-    }
+    buffer.commands.Push(std::move(command));
+    m_count.Increment(1, MemoryOrder::RELEASE);
 }
 
 void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    switch (m_policy) {
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
-
-        EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
-
-        if (!m_count.Get(MemoryOrder::ACQUIRE)) {
-            return;
-        }
-
-        std::unique_lock<std::mutex> guard(buffer.mutex);
-
-        // Swap the buffer index to allow new commands to be added to buffer while executing
-        const uint32 next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
-
-        m_buffer_index.Set(next_buffer_index, MemoryOrder::RELEASE);
-
-        while (buffer.commands.Any()) {
-            buffer.commands.Pop()(mgr, delta);
-        }
-
-        // Update count to be the number of commands in the next buffer (0 unless one of the commands added more commands to the queue)
-        m_count.Set(uint(m_command_buffers[next_buffer_index].commands.Size()), MemoryOrder::RELEASE);
-        m_condition_variable.notify_all();
-
-        break;
+    if (m_discard_commands) {
+        return;
     }
-    case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD:
-        // Do nothing
-        break;
+    
+    const uint current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+
+    EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
+
+    if (!m_count.Get(MemoryOrder::ACQUIRE)) {
+        return;
     }
+
+    std::unique_lock<std::mutex> guard(buffer.mutex);
+
+    // Swap the buffer index to allow new commands to be added to buffer while executing
+    const uint32 next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
+
+    m_buffer_index.Set(next_buffer_index, MemoryOrder::RELEASE);
+
+    while (buffer.commands.Any()) {
+        buffer.commands.Pop()(mgr, delta);
+    }
+
+    // Update count to be the number of commands in the next buffer (0 unless one of the commands added more commands to the queue)
+    m_count.Set(uint32(m_command_buffers[next_buffer_index].commands.Size()), MemoryOrder::RELEASE);
 }
 
 #pragma endregion EntityManagerCommandQueue

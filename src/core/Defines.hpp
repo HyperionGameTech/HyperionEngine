@@ -108,6 +108,12 @@
 #pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
 #endif
 
+/// Support for checking if VA_OPT is available:
+// https://stackoverflow.com/a/48045656
+#define HYP_PP_THIRD_ARG(a,b,c,...) c
+#define HYP_VA_OPT_SUPPORTED_I(...) HYP_PP_THIRD_ARG(__VA_OPT__(,),true,false,)
+#define HYP_VA_OPT_SUPPORTED HYP_VA_OPT_SUPPORTED_I(?)
+
 #pragma endregion Compiler and Platform Switches
 
 #pragma region Utility Macros
