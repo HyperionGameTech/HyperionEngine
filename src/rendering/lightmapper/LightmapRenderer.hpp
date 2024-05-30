@@ -75,7 +75,7 @@ struct alignas(16) LightmapHitsBuffer
 
 static_assert(sizeof(LightmapHitsBuffer) == max_ray_hits_gpu * 16);
 
-class LightmapPathTracer
+class HYP_API LightmapPathTracer
 {
 public:
     LightmapPathTracer(const TLASRef &tlas, LightmapShadingType shading_type);
@@ -108,7 +108,7 @@ private:
     RaytracingPipelineRef                               m_raytracing_pipeline;
 };
 
-class LightmapJob
+class HYP_API LightmapJob
 {
 public:
     static constexpr uint num_multisamples = 1;
@@ -200,7 +200,7 @@ private:
     uint                                                    m_texel_index;
 };
 
-class LightmapRenderer : public RenderComponent<LightmapRenderer>
+class HYP_API LightmapRenderer : public RenderComponent<LightmapRenderer>
 {
 public:
     LightmapRenderer(Name name);
@@ -212,7 +212,7 @@ public:
 
         m_queue.Push(std::move(job));
 
-        m_num_jobs.Increment(1u, MemoryOrder::RELAXED);
+        m_num_jobs.Increment(1, MemoryOrder::RELEASE);
     }
 
     void Init();

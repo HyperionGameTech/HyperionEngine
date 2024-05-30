@@ -35,6 +35,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Shadows, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(EnvProbe, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(EnvGrid, Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(Font, Rendering);
+HYP_DEFINE_LOG_SUBCHANNEL(Lightmap, Rendering);
 
 #pragma endregion Rendering
 

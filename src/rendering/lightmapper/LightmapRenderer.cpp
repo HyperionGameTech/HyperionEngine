@@ -7,6 +7,9 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -519,7 +522,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 LightmapRenderer::LightmapRenderer(Name name)
     : RenderComponent(name),
       m_trace_mode(LIGHTMAP_TRACE_MODE_CPU),
-      m_num_jobs { 0u }
+      m_num_jobs { 0 }
 {
 }
 
@@ -529,30 +532,35 @@ void LightmapRenderer::Init()
         // trace on GPU if the card supports ray tracing
         m_trace_mode = LIGHTMAP_TRACE_MODE_GPU;
     }
-}
 
-void LightmapRenderer::InitGame()
-{
     static constexpr uint ideal_triangles_per_job = 10000;
 
     // Build jobs
     m_parent->GetScene()->GetEntityManager()->PushCommand([this](EntityManager &mgr, GameCounter::TickUnit)
     {
+        HYP_LOG(Lightmap, LogLevel::INFO, "Building graph for lightmapper");
+
         Array<LightmapEntity> lightmap_entities;
         HashMap<ID<Mesh>, Array<Triangle>> triangle_cache;
         uint num_triangles = 0;
 
         for (auto [entity, mesh_component, transform_component] : mgr.GetEntitySet<MeshComponent, TransformComponent>()) {
             if (!mesh_component.mesh.IsValid()) {
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with invalid mesh on MeshComponent");
+
                 continue;
             }
 
             if (!mesh_component.material.IsValid()) {
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with invalid material on MeshComponent");
+
                 continue;
             }
 
             // Only process opaque and translucent materials
             if (mesh_component.material->GetBucket() != BUCKET_OPAQUE && mesh_component.material->GetBucket() != BUCKET_TRANSLUCENT) {
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with bucket that is not opaque or translucent");
+
                 continue;
             }
 
@@ -609,6 +617,8 @@ void LightmapRenderer::InitGame()
                 }
             }
 
+            HYP_LOG(Lightmap, LogLevel::INFO, "Add Entity (#{}) to be processed for lightmap", entity.Value());
+
             lightmap_entities.PushBack(LightmapEntity {
                 entity,
                 mesh_component.mesh,
@@ -620,11 +630,19 @@ void LightmapRenderer::InitGame()
         }
 
         if (lightmap_entities.Any()) {
+            HYP_LOG(Lightmap, LogLevel::INFO, "Adding lightmap job for {} entities", lightmap_entities.Size());
+
             UniquePtr<LightmapJob> job(new LightmapJob(m_parent->GetScene(), std::move(lightmap_entities), std::move(triangle_cache)));
 
             AddJob(std::move(job));
+        } else {
+            HYP_LOG(Lightmap, LogLevel::INFO, "Skipping adding lightmap job, no entities to process");
         }
-    }); 
+    });
+}
+
+void LightmapRenderer::InitGame()
+{ 
 }
 
 void LightmapRenderer::OnRemoved()
@@ -636,19 +654,21 @@ void LightmapRenderer::OnRemoved()
 
     m_queue.Clear();
 
-    m_num_jobs.Set(0u, MemoryOrder::RELAXED);
+    m_num_jobs.Set(0, MemoryOrder::RELEASE);
 }
 
 void LightmapRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    if (!m_num_jobs.Get(MemoryOrder::RELAXED)) {
+    uint32 num_jobs = m_num_jobs.Get(MemoryOrder::ACQUIRE);
+
+    if (!num_jobs) {
         return;
     }
 
     DebugLog(
         LogType::Debug,
         "Processing %u lightmap jobs...\n",
-        m_num_jobs.Get(MemoryOrder::RELAXED)
+        num_jobs
     );
 
     // Trace lightmap on CPU
@@ -692,7 +712,7 @@ void LightmapRenderer::OnRender(Frame *frame)
         return;
     }
 
-    if (!m_num_jobs.Get(MemoryOrder::RELAXED)) {
+    if (!m_num_jobs.Get(MemoryOrder::ACQUIRE)) {
         return;
     }
 
@@ -718,7 +738,7 @@ void LightmapRenderer::OnRender(Frame *frame)
         Mutex::Guard guard(m_queue_mutex);
 
         // Hack: ensure num_jobs has not changed
-        if (!m_num_jobs.Get(MemoryOrder::RELAXED)) {
+        if (!m_num_jobs.Get(MemoryOrder::ACQUIRE)) {
             return;
         }
 
@@ -870,7 +890,7 @@ void LightmapRenderer::HandleCompletedJob(LightmapJob *job)
     }
 
     m_queue.Pop();
-    m_num_jobs.Decrement(1u, MemoryOrder::RELAXED);
+    m_num_jobs.Decrement(1, MemoryOrder::RELEASE);
 }
 
 #pragma endregion LightmapRenderer

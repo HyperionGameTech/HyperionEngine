@@ -44,6 +44,9 @@
 
 // temp
 #include <util/profiling/Profile.hpp>
+#include <rendering/lightmapper/LightmapRenderer.hpp>
+#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+
 #include <core/system/SystemEvent.hpp>
 
 // temp
@@ -547,6 +550,41 @@ void HyperionEditorImpl::CreateMainPanel()
 
     RC<UITab> game_tab = tab_view->AddTab(NAME("Game_Tab"), "Game");
     game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    
+    auto generate_lightmaps_button = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Generate_Lightmaps), Vec2i{60, 50}, UIObjectSize({50, UIObjectSize::PIXEL}, {25, UIObjectSize::PIXEL}));
+    generate_lightmaps_button->SetText("GenerateLightmap");
+
+    generate_lightmaps_button->OnClick.Bind([this](...)
+    {
+        struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
+        {
+            Handle<Scene> scene;
+
+            RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
+                : scene(std::move(scene))
+            {
+            }
+
+            virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
+
+            virtual Result operator()() override
+            {
+                if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
+                    scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
+                } else {
+                    scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
+                }
+
+                HYPERION_RETURN_OK;
+            }
+        };
+        
+        PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    game_tab->GetContents()->AddChildUIObject(generate_lightmaps_button);
 
     auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(CreateNameFromDynamicString("Hello_world_button"), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
     // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
