@@ -31,13 +31,21 @@ enum class EntityManagerFlags : uint32
 {
     NONE                            = 0x0,
     PARALLEL_SYSTEM_EXECUTION       = 0x1,
-    EXEC_COMMANDS_ON_OWNER_THREAD   = 0x2,
-    DISCARD_COMMANDS                = 0x4,
 
-    DEFAULT                         = PARALLEL_SYSTEM_EXECUTION | EXEC_COMMANDS_ON_OWNER_THREAD
+    DEFAULT                         = PARALLEL_SYSTEM_EXECUTION
 };
 
 HYP_MAKE_ENUM_FLAGS(EntityManagerFlags)
+
+enum class EntityManagerCommandQueueFlags : uint32
+{
+    NONE            = 0x0,
+    EXEC_COMMANDS   = 0x1,
+
+    DEFAULT         = EXEC_COMMANDS
+};
+
+HYP_MAKE_ENUM_FLAGS(EntityManagerCommandQueueFlags)
 
 class Scene;
 
@@ -195,13 +203,22 @@ using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter
 class HYP_API EntityManagerCommandQueue
 {
 public:
-    EntityManagerCommandQueue(bool discard_commands);
+    EntityManagerCommandQueue(EnumFlags<EntityManagerCommandQueueFlags> flags = EntityManagerCommandQueueFlags::DEFAULT);
     EntityManagerCommandQueue(const EntityManagerCommandQueue &)                = delete;
     EntityManagerCommandQueue &operator=(const EntityManagerCommandQueue &)     = delete;
     EntityManagerCommandQueue(EntityManagerCommandQueue &&) noexcept            = delete;
     EntityManagerCommandQueue &operator=(EntityManagerCommandQueue &&) noexcept = delete;
     ~EntityManagerCommandQueue()                                                = default;
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    EnumFlags<EntityManagerCommandQueueFlags> GetFlags() const
+        { return m_flags; }
+
+    void SetFlags(EnumFlags<EntityManagerCommandQueueFlags> flags)
+        { m_flags = flags; }
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool HasUpdates() const
         { return m_count.Get(MemoryOrder::ACQUIRE) != 0; }
@@ -216,7 +233,7 @@ private:
         std::mutex                      mutex;
     };
 
-    bool                                        m_discard_commands;
+    EnumFlags<EntityManagerCommandQueueFlags>   m_flags;
     FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
     AtomicVar<uint>                             m_buffer_index { 0 };
     AtomicVar<uint>                             m_count { 0 };
@@ -228,7 +245,6 @@ public:
     EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT)
         : m_owner_thread_mask(owner_thread_mask),
           m_scene(scene),
-          m_command_queue(owner_thread_mask & ThreadName::THREAD_GAME), // discard commands if not on the game thread
           m_flags(flags)
     {
         AssertThrow(scene != nullptr);

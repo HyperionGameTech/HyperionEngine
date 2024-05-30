@@ -118,6 +118,11 @@ Scene::Scene(
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_mutation_state(DataMutationState::DIRTY)
 {
+    // Disable command execution if not on game thread
+    if (!(m_owner_thread_id & ThreadName::THREAD_GAME)) {
+        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
+    }
+
     m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
     m_entity_manager->AddSystem<EntityMeshDirtyStateSystem>();
     m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
@@ -205,6 +210,12 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
 
     m_owner_thread_id = owner_thread_id;
     m_entity_manager->SetOwnerThreadMask(owner_thread_id.GetMask());
+
+    if (m_owner_thread_id & ThreadName::THREAD_GAME) {
+        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() | EntityManagerCommandQueueFlags::EXEC_COMMANDS);
+    } else {
+        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
+    }
 }
 
 void Scene::SetCamera(Handle<Camera> camera)

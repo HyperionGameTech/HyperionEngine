@@ -17,14 +17,14 @@ static const uint systems_execution_parallel_threshold = 3;
 
 #pragma region EntityManagerCommandQueue
 
-EntityManagerCommandQueue::EntityManagerCommandQueue(bool discard_commands)
-    : m_discard_commands(discard_commands)
+EntityManagerCommandQueue::EntityManagerCommandQueue(EnumFlags<EntityManagerCommandQueueFlags> flags)
+    : m_flags(flags)
 {
 }
 
 void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
-    if (m_discard_commands) {
+    if (!(m_flags & EntityManagerCommandQueueFlags::EXEC_COMMANDS)) {
         return;
     }
     
@@ -39,7 +39,7 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 
 void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUnit delta)
 {
-    if (m_discard_commands) {
+    if (!(m_flags & EntityManagerCommandQueueFlags::EXEC_COMMANDS)) {
         return;
     }
     
