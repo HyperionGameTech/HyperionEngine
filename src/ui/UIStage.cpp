@@ -109,7 +109,7 @@ void UIStage::Init()
         if (font_atlas_asset.IsOK()) {
             m_default_font_atlas = font_atlas_asset.Result();
         } else {
-            HYP_LOG(UI, LogLevel::ERROR, "Failed to load default font atlas! Error was: {}", font_atlas_asset.result.message);
+            HYP_LOG(UI, LogLevel::ERR, "Failed to load default font atlas! Error was: {}", loader_result.message);
         }
     }
 

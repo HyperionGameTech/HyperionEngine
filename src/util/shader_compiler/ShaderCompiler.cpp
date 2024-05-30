@@ -346,9 +346,9 @@ static ByteBuffer CompileToSPIRV(
     glslang_shader_set_preamble(shader, preamble.Data());
 
     if (!glslang_shader_preprocess(shader, &input))	{
-        GLSL_ERROR(LogLevel::ERROR, "GLSL preprocessing failed {}", filename);
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_shader_get_info_log(shader));
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_shader_get_info_debug_log(shader));
+        GLSL_ERROR(LogLevel::ERR, "GLSL preprocessing failed {}", filename);
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_log(shader));
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_debug_log(shader));
 
         glslang_shader_delete(shader);
 
@@ -362,9 +362,9 @@ static ByteBuffer CompileToSPIRV(
 #endif
 
     if (!glslang_shader_parse(shader, &input)) {
-        GLSL_ERROR(LogLevel::ERROR, "GLSL parsing failed {}", filename);
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_shader_get_info_log(shader));
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_shader_get_info_debug_log(shader));
+        GLSL_ERROR(LogLevel::ERR, "GLSL parsing failed {}", filename);
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_log(shader));
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_debug_log(shader));
 
         glslang_shader_delete(shader);
 
@@ -375,9 +375,9 @@ static ByteBuffer CompileToSPIRV(
     glslang_program_add_shader(program, shader);
 
     if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT)) {
-        GLSL_ERROR(LogLevel::ERROR, "GLSL linking failed {} {}", filename, source);
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_program_get_info_log(program));
-        GLSL_ERROR(LogLevel::ERROR, "{}", glslang_program_get_info_debug_log(program));
+        GLSL_ERROR(LogLevel::ERR, "GLSL linking failed {} {}", filename, source);
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_program_get_info_log(program));
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_program_get_info_debug_log(program));
 
         glslang_program_delete(program);
         glslang_shader_delete(shader);
@@ -393,7 +393,7 @@ static ByteBuffer CompileToSPIRV(
     const char *spirv_messages = glslang_program_SPIRV_get_messages(program);
 
     if (spirv_messages) {
-        GLSL_ERROR(LogLevel::ERROR, "{}:\n{}", filename, spirv_messages);
+        GLSL_ERROR(LogLevel::ERR, "{}:\n{}", filename, spirv_messages);
     }
 
     glslang_program_delete(program);
@@ -595,7 +595,7 @@ ShaderProperties &ShaderProperties::Set(const ShaderProperty &property, bool ena
         if (!FindVertexAttributeForDefinition(property.GetValueString(), type)) {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "Invalid vertex attribute name for shader: {}",
                 property.GetValueString()
             );
@@ -919,7 +919,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERROR,
+            LogLevel::ERR,
             "Failed to load the compiled shader {}; Variants are missing.\n\tRequested with properties:\n\t{} - {}\n\n\tFound:\n\t{}\n\nMissing:\n\t{}",
             bundle.name,
             additional_versions.GetHashCode().Value(),
@@ -965,7 +965,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         // not in definitions file
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERROR,
+            LogLevel::ERR,
             "Section {} not found in shader definitions file",
             name
         );
@@ -1073,7 +1073,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         if (FileSystem::MkDir(data_path.Data()) != 0) {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "Failed to create data path at {}",
                 data_path
             );
@@ -1165,7 +1165,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
 
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "{}: Loading of compiled shader failed with version hash {}",
                 it.first->name,
                 it.first->versions.GetHashCode().Value()
@@ -1535,7 +1535,7 @@ bool ShaderCompiler::CompileBundle(
                 // could not open file!
                 HYP_LOG(
                     ShaderCompiler,
-                    LogLevel::ERROR,
+                    LogLevel::ERR,
                     "Failed to open shader source file at {}",
                     filepath
                 );
@@ -1555,7 +1555,7 @@ bool ShaderCompiler::CompileBundle(
             if (result.errors.Any()) {
                 HYP_LOG(
                     ShaderCompiler,
-                    LogLevel::ERROR,
+                    LogLevel::ERR,
                     "{} shader processing errors:",
                     result.errors.Size()
                 );
@@ -1599,7 +1599,7 @@ bool ShaderCompiler::CompileBundle(
         for (const auto &error : all_process_errors) {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "\t{}",
                 error.error_message
             );
@@ -1641,7 +1641,7 @@ bool ShaderCompiler::CompileBundle(
                 if (!FindVertexAttributeForDefinition(definition.name, type)) {
                     HYP_LOG(
                         ShaderCompiler,
-                        LogLevel::ERROR,
+                        LogLevel::ERR,
                         "Invalid vertex attribute definition, {}",
                         definition.name
                     );
@@ -1660,7 +1660,7 @@ bool ShaderCompiler::CompileBundle(
                 if (!FindVertexAttributeForDefinition(definition.name, type)) {
                     HYP_LOG(
                         ShaderCompiler,
-                        LogLevel::ERROR,
+                        LogLevel::ERR,
                         "Invalid vertex attribute definition, {}",
                         definition.name
                     );
@@ -1838,7 +1838,7 @@ bool ShaderCompiler::CompileBundle(
             if (byte_buffer.Empty()) {
                 HYP_LOG(
                     ShaderCompiler,
-                    LogLevel::ERROR,
+                    LogLevel::ERR,
                     "Failed to compile file {} with version hash {}",
                     item.file.path,
                     properties.GetHashCode().Value()
@@ -1859,7 +1859,7 @@ bool ShaderCompiler::CompileBundle(
             if (!spirv_writer.IsOpen()) {
                 HYP_LOG(
                     ShaderCompiler,
-                    LogLevel::ERROR,
+                    LogLevel::ERR,
                     "Could not open file {} for writing!",
                     output_filepath
                 );
@@ -1961,7 +1961,7 @@ bool ShaderCompiler::GetCompiledShader(
     if (!LoadOrCreateCompiledShaderBatch(name, final_properties, batch)) {
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERROR,
+            LogLevel::ERR,
             "Failed to attempt loading of shader batch: {}\n\tRequested instance with properties: [{}]",
             name,
             final_properties.ToString()
@@ -1987,7 +1987,7 @@ bool ShaderCompiler::GetCompiledShader(
     if (it == batch.compiled_shaders.End()) {
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERROR,
+            LogLevel::ERR,
             "Hash calculation for shader {} does not match {}! Invalid shader property combination.\n\tRequested instance with properties: [{}]",
             name,
             final_properties_hash.Value(),

@@ -188,7 +188,7 @@ ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 
                     return shader;
                 } else {
-                    HYP_LOG(Shader, LogLevel::ERROR,
+                    HYP_LOG(Shader, LogLevel::ERR,
                         "Loaded shader from cache (Name: {}, Properties: {}) does not contain the requested properties!\n\tRequested: {}",
                         definition.GetName(),
                         shader->GetCompiledShader()->GetProperties().ToString(),

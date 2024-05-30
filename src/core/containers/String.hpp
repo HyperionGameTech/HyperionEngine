@@ -300,6 +300,12 @@ public:
         Append(parts);
     }
 
+    /*template <int other_string_type>
+    void Concat(const String<other_string_type> &other);
+    
+    template <int other_string_type>
+    void Concat(String<other_string_type> &&other);*/
+
     typename Base::ValueType PopBack();
     typename Base::ValueType PopFront();
     void Clear();

@@ -39,7 +39,7 @@ HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version
     const uint32 engine_version_major_minor = engine_version & mask;
 
     if ((assembly_engine_version & mask) != engine_version_major_minor) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "Assembly engine version mismatch: Assembly version: {}.{}.{}, Engine version: {}.{}.{}",
+        HYP_LOG(DotNET, LogLevel::ERR, "Assembly engine version mismatch: Assembly version: {}.{}.{}, Engine version: {}.{}.{}",
             (assembly_engine_version >> 16u) & 0xffu,
             (assembly_engine_version >> 8u) & 0xffu,
             assembly_engine_version & 0xffu,
@@ -90,7 +90,7 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *m
     }
 
     if (managed_class.class_object->HasMethod(method_name)) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "Class '{}' already has a method named '{}'!", managed_class.class_object->GetName(), method_name);
+        HYP_LOG(DotNET, LogLevel::ERR, "Class '{}' already has a method named '{}'!", managed_class.class_object->GetName(), method_name);
 
         return;
     }

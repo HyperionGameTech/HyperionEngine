@@ -174,7 +174,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
 #ifdef HYP_DEBUG_MODE
                     if (!render_group.IsValid()) {
-                        HYP_LOG(UI, LogLevel::ERROR, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
+                        HYP_LOG(UI, LogLevel::ERR, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
 
                         continue;
                     }

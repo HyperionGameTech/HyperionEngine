@@ -106,12 +106,22 @@ struct Formatter<StringType, char *>
         return StringType(value);
     }
 };
+
 template <class StringType, SizeType Size>
 struct Formatter<StringType, char[Size]>
 {
     auto operator()(const char (&value)[Size]) const
     {
         return StringType(static_cast<const char *>(value));
+    }
+};
+
+template <class StringType>
+struct Formatter<StringType, wchar_t *>
+{
+    auto operator()(const wchar_t *value) const
+    {
+        return StringType(WideStringView(value));
     }
 };
 

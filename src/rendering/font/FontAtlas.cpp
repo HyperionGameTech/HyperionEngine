@@ -310,7 +310,7 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
     Handle<Texture> atlas = m_atlases->GetAtlasForPixelSize(pixel_size);
 
     if (!atlas.IsValid()) {
-        HYP_LOG(Font, LogLevel::ERROR, "Failed to get atlas for pixel size {}", pixel_size);
+        HYP_LOG(Font, LogLevel::ERR, "Failed to get atlas for pixel size {}", pixel_size);
 
         return;
     }
@@ -389,7 +389,7 @@ Bitmap<1> FontAtlas::GenerateBitmap(uint pixel_size) const
     Handle<Texture> atlas = m_atlases->GetAtlasForPixelSize(pixel_size);
 
     if (!atlas.IsValid()) {
-        HYP_LOG(Font, LogLevel::ERROR, "Failed to get atlas for pixel size {}", pixel_size);
+        HYP_LOG(Font, LogLevel::ERR, "Failed to get atlas for pixel size {}", pixel_size);
 
         return { };
     }
