@@ -100,7 +100,7 @@ void HyperionEditorImpl::CreateFontAtlas()
     RC<FontFace> font_face = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (!font_face) {
-        HYP_LOG(Editor, LogLevel::ERROR, "Failed to load font face!");
+        HYP_LOG(Editor, LogLevel::ERR, "Failed to load font face!");
 
         return;
     }

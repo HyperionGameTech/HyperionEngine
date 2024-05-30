@@ -171,7 +171,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     // save default configuration to file if
     // anything changed from the loading process
     if (!m_configuration.SaveToDefinitionsFile()) {
-        HYP_LOG(Config, LogLevel::ERROR, "Failed to save configuration file");
+        HYP_LOG(Config, LogLevel::ERR, "Failed to save configuration file");
     }
 
     if (!m_shader_compiler.LoadShaderDefinitions()) {
@@ -465,7 +465,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     ShaderRef shader = g_shader_manager->GetOrCreate(shader_definition);
 
     if (!shader) {
-        HYP_LOG(Engine, LogLevel::ERROR, "Shader is empty; Cannot create RenderGroup.");
+        HYP_LOG(Engine, LogLevel::ERR, "Shader is empty; Cannot create RenderGroup.");
 
         return Handle<RenderGroup>::empty;
     }
@@ -496,13 +496,13 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 )
 {
     if (!shader.IsValid()) {
-        HYP_LOG(Engine, LogLevel::ERROR, "Shader is empty; Cannot create RenderGroup.");
+        HYP_LOG(Engine, LogLevel::ERR, "Shader is empty; Cannot create RenderGroup.");
 
         return Handle<RenderGroup>::empty;
     }
 
     if (!shader->GetCompiledShader()) {
-        HYP_LOG(Engine, LogLevel::ERROR, "Shader is not compiled; Cannot create RenderGroup.");
+        HYP_LOG(Engine, LogLevel::ERR, "Shader is not compiled; Cannot create RenderGroup.");
 
         return Handle<RenderGroup>::empty;
     }
@@ -531,7 +531,7 @@ void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
 {
     if (cache) {
-        HYP_LOG(Engine, LogLevel::ERROR, "Insert RenderGroup in mapping for renderable attribute set hash {}",
+        HYP_LOG(Engine, LogLevel::ERR, "Insert RenderGroup in mapping for renderable attribute set hash {}",
             render_group->GetRenderableAttributes().GetHashCode().Value());
 
         m_render_group_mapping.Insert(

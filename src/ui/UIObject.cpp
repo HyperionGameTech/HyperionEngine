@@ -191,7 +191,7 @@ void UIObject::Init()
                 }
             }
 
-            HYP_LOG(UI, LogLevel::ERROR, "Failed to call method {} for UI object with name: {}", method_name, ui_object->GetName());
+            HYP_LOG(UI, LogLevel::ERR, "Failed to call method {} for UI object with name: {}", method_name, ui_object->GetName());
 
             return UIEventHandlerResult::ERR;
         }
@@ -720,21 +720,21 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
     const NodeProxy &node = GetNode();
 
     if (!node) {
-        HYP_LOG(UI, LogLevel::ERROR, "Parent UI object has no attachable node: {}", GetName());
+        HYP_LOG(UI, LogLevel::ERR, "Parent UI object has no attachable node: {}", GetName());
 
         return;
     }
 
     if (NodeProxy child_node = ui_object->GetNode()) {
         if (child_node->GetParent() != nullptr && !child_node->Remove()) {
-            HYP_LOG(UI, LogLevel::ERROR, "Failed to remove child node '{}' from current parent {}", child_node->GetName(), child_node->GetParent()->GetName());
+            HYP_LOG(UI, LogLevel::ERR, "Failed to remove child node '{}' from current parent {}", child_node->GetName(), child_node->GetParent()->GetName());
 
             return;
         }
 
         node->AddChild(child_node);
     } else {
-        HYP_LOG(UI, LogLevel::ERROR, "Child UI object '{}' has no attachable node", ui_object->GetName());
+        HYP_LOG(UI, LogLevel::ERR, "Child UI object '{}' has no attachable node", ui_object->GetName());
 
         return;
     }

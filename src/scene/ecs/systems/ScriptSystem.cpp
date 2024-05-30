@@ -53,13 +53,13 @@ void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entit
     }
 
     if (!script_component.assembly) {
-        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script_info.assembly_name);
+        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script_info.assembly_name);
 
         return;
     }
 
     if (!script_component.object) {
-        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script_info.class_name, script_component.script_info.assembly_name.Data());
+        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script_info.class_name, script_component.script_info.assembly_name.Data());
 
         return;
     }

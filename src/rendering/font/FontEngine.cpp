@@ -29,7 +29,7 @@ FontEngine::FontEngine()
 {
 #ifdef HYP_FREETYPE
     if (FT_Init_FreeType(&m_backend)) {
-        HYP_LOG(Font, LogLevel::ERROR, "Error! Cannot start FreeType engine.");
+        HYP_LOG(Font, LogLevel::ERR, "Error! Cannot start FreeType engine.");
         m_backend = nullptr;
         return;
     }
@@ -54,7 +54,7 @@ FontEngine::Backend FontEngine::GetFontBackend()
 hyperion::FontFace FontEngine::LoadFont(const FilePath &path)
 {
     if (m_backend == nullptr) {
-        HYP_LOG(Font, LogLevel::ERROR, "Font backend system not initialized!");
+        HYP_LOG(Font, LogLevel::ERR, "Font backend system not initialized!");
     }
 
     return { GetFontBackend(), path };

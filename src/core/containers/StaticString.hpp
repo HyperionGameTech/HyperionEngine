@@ -88,9 +88,11 @@ struct StaticString
 
     static constexpr SizeType size = Sz;
 
-    char data[Sz];
+    using CharType = char;
 
-    constexpr StaticString(const char (&str)[Sz])
+    CharType data[Sz];
+
+    constexpr StaticString(const CharType (&str)[Sz])
     {
         for (SizeType i = 0; i < Sz; ++i) {
             data[i] = str[i];
@@ -215,7 +217,7 @@ struct StaticString
     //     return TrimLeft().TrimRight();
     // }
 
-    constexpr const char *Data() const
+    constexpr const CharType *Data() const
         { return &data[0]; }
 
     constexpr SizeType Size() const
@@ -775,7 +777,7 @@ struct GetSplitIndices_Impl
             std::array<Pair<SizeType, SizeType>, Count + 1> split_indices = { };
 
             if constexpr (Count == 0) {
-                split_indices[0] = std::pair<SizeType, SizeType> { 0, String.Size() - 1 /* -1 for NUL char */ };
+                split_indices[0] = Pair<SizeType, SizeType> { 0, String.Size() - 1 /* -1 for NUL char */ };
             } else {
                 std::array<char, Count> delimiter_indices = { };
 
@@ -819,7 +821,7 @@ struct GetSplitIndices_Impl
                 }
 
                 split_indices[Count] = Pair<SizeType, SizeType> {
-                    delimiter_indices[std::size(delimiter_indices) - 1] + 1,
+                    SizeType(delimiter_indices[std::size(delimiter_indices) - 1] + 1),
                     String.Size() - 1 /* -1 for NUL char */
                 };
             }

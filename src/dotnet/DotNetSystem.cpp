@@ -47,7 +47,7 @@ static Optional<FilePath> FindAssemblyFilePath(const char *path)
     }
     
     if (!filepath.Exists()) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "Failed to load .NET assembly at path: {}. Could not locate an assembly for {}.", filepath, path);
+        HYP_LOG(DotNET, LogLevel::ERR, "Failed to load .NET assembly at path: {}. Could not locate an assembly for {}.", filepath, path);
 
         return { };
     }
@@ -72,7 +72,7 @@ public:
     virtual ~DotNetImpl() override
     {
         if (!ShutdownDotNetRuntime()) {
-            HYP_LOG(DotNET, LogLevel::ERROR, "Failed to shutdown .NET runtime");
+            HYP_LOG(DotNET, LogLevel::ERR, "Failed to shutdown .NET runtime");
         }
     }
 
@@ -161,7 +161,7 @@ public:
         void *load_assembly_and_get_function_pointer_fptr = nullptr;
 
         if (m_get_delegate_fptr(m_cxt, hdt_load_assembly_and_get_function_pointer, &load_assembly_and_get_function_pointer_fptr) != 0) {
-            HYP_LOG(DotNET, LogLevel::ERROR, "Failed to get delegate: Failed to get function pointer");
+            HYP_LOG(DotNET, LogLevel::ERR, "Failed to get delegate: Failed to get function pointer");
 
             return nullptr;
         }
@@ -174,7 +174,7 @@ public:
         bool result = load_assembly_and_get_function_pointer(assembly_path, type_name, method_name, delegate_type_name, nullptr, &delegate_ptr) == 0;
 
         if (!result) {
-            HYP_LOG(DotNET, LogLevel::ERROR, "Failed to get delegate: Failed to load assembly and get function pointer");
+            HYP_LOG(DotNET, LogLevel::ERR, "Failed to get delegate: Failed to load assembly and get function pointer");
 
             return nullptr;
         }
@@ -250,7 +250,7 @@ private:
         HYP_LOG(DotNET, LogLevel::DEBUG, "Initializing .NET runtime");
 
         if (m_init_fptr(PlatformString(GetRuntimeConfigPath()).Data(), nullptr, &m_cxt) != 0) {
-            HYP_LOG(DotNET, LogLevel::ERROR, "Failed to initialize .NET runtime");
+            HYP_LOG(DotNET, LogLevel::ERR, "Failed to initialize .NET runtime");
 
             return false;
         }
@@ -335,13 +335,13 @@ DotNetSystem::~DotNetSystem() = default;
 RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
 {
     if (!IsEnabled()) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not enabled, cannot load assemblies");
+        HYP_LOG(DotNET, LogLevel::ERR, "DotNetSystem not enabled, cannot load assemblies");
 
         return nullptr;
     }
 
     if (!IsInitialized()) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not initialized, call Initialize() before attempting to load assemblies");
+        HYP_LOG(DotNET, LogLevel::ERR, "DotNetSystem not initialized, call Initialize() before attempting to load assemblies");
 
         return nullptr;
     }

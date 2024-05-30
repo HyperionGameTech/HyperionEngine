@@ -529,7 +529,7 @@ Vec4f Texture::Sample(Vec2f uv) const
     const uint bytes_per_pixel = renderer::NumBytes(m_image->GetTextureFormat());
 
     if (bytes_per_pixel != 1) {
-        HYP_LOG(Texture, LogLevel::ERROR, "Texture::Sample: Unsupported bytes per pixel: {}", bytes_per_pixel);
+        HYP_LOG(Texture, LogLevel::ERR, "Texture::Sample: Unsupported bytes per pixel: {}", bytes_per_pixel);
 
         return Vec4f::Zero();
     }

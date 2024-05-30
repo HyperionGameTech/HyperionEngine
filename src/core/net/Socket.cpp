@@ -71,7 +71,7 @@ bool SocketServer::Start()
 #endif
 
     if (m_impl->socket_id == -1) {
-        HYP_LOG(Socket, LogLevel::ERROR, "Failed to open socket server. Code: {}", errno);
+        HYP_LOG(Socket, LogLevel::ERR, "Failed to open socket server. Code: {}", errno);
 
         TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String("Failed to open socket")), SocketProcArgument(int32(errno)) });
 
@@ -195,7 +195,7 @@ bool SocketServer::PollForConnections(Array<RC<SocketClient>> &out_connections)
 
         // Make the socket non-blocking
         if (fcntl(new_socket, F_SETFL, O_NONBLOCK) == -1) {
-            HYP_LOG(Socket, LogLevel::ERROR, "Failed to set socket to non-blocking. Code: {}", errno);
+            HYP_LOG(Socket, LogLevel::ERR, "Failed to set socket to non-blocking. Code: {}", errno);
 
             close(new_socket);
             continue;

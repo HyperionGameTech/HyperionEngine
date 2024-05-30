@@ -1319,7 +1319,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     continue;
                 }
 
-                HYP_LOG(Assets, LogLevel::ERROR, "Unsure how to build child object {}", id);
+                HYP_LOG(Assets, LogLevel::ERR, "Unsure how to build child object {}", id);
             }
         }
 

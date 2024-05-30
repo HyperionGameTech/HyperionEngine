@@ -315,7 +315,12 @@ public:
 
     Array<T, NumInlineBytes> Slice(int first, int last) const;
 
+    /*! \brief Modify the array by appending all items in \ref{other} to the current array. */
     void Concat(const Array &other);
+    
+    /*! \brief Modify the array by appending all items in \ref{other} to the current array.
+     *  All items from the other array are moved over, thus \ref{other} will be empty after the call.
+     */
     void Concat(Array &&other);
 
     /*! \brief Erase an element by iterator. */

@@ -45,7 +45,7 @@ void Threads::SetCurrentThreadID(ThreadID id)
     );
 
     if (FAILED(set_thread_result)) {
-        HYP_LOG(Threading, LogLevel::ERROR, "Failed to set Win32 thread name for thread {}", id.name);
+        HYP_LOG(Threading, LogLevel::ERR, "Failed to set Win32 thread name for thread {}", id.name);
     }
 #elif defined(HYP_MACOS)
     pthread_setname_np(id.name.LookupString());
@@ -70,7 +70,7 @@ void Threads::AssertOnThread(ThreadMask mask, const char *message)
     );
 
 #else
-    HYP_LOG(Threading, LogLevel::ERROR, "AssertOnThread() called but thread IDs are currently disabled");
+    HYP_LOG(Threading, LogLevel::ERR, "AssertOnThread() called but thread IDs are currently disabled");
 #endif
 #endif
 }
@@ -91,7 +91,7 @@ void Threads::AssertOnThread(const ThreadID &thread_id, const char *message)
         message ? message : "(no message)"
     );
 #else
-    HYP_LOG(Threading, LogLevel::ERROR, "AssertOnThread() called but thread IDs are currently disabled!");
+    HYP_LOG(Threading, LogLevel::ERR, "AssertOnThread() called but thread IDs are currently disabled!");
 #endif
 #endif
 }
@@ -113,7 +113,7 @@ bool Threads::IsOnThread(ThreadMask mask)
     }
 
 #else
-    HYP_LOG(Threading, LogLevel::ERROR, "IsOnThread() called but thread IDs are currently disabled!");
+    HYP_LOG(Threading, LogLevel::ERR, "IsOnThread() called but thread IDs are currently disabled!");
 #endif
 
     return false;
@@ -127,7 +127,7 @@ bool Threads::IsOnThread(const ThreadID &thread_id)
     }
 
 #else
-    HYP_LOG(Threading, LogLevel::ERROR, "IsOnThread() called but thread IDs are currently disabled!");
+    HYP_LOG(Threading, LogLevel::ERR, "IsOnThread() called but thread IDs are currently disabled!");
 #endif
 
     return false;

@@ -68,7 +68,7 @@ public:
         m_length = len;
     }
 
-    template <SizeType Sz, std::enable_if_t<is_utf8 || is_ansi, int> = 0>
+    template <SizeType Sz, typename = std::enable_if_t< std::is_same_v< typename StaticString< Sz >::CharType, CharType > > >
     StringView(const StaticString<Sz> &str)
         : m_begin(str.Begin()),
           m_end(str.End()),

@@ -38,7 +38,7 @@ enum LogLevel : uint32
     DEBUG,
     INFO,
     WARNING,
-    ERROR,
+    ERR,
     FATAL
 };
 
@@ -102,7 +102,7 @@ class HYP_API Logger
             return StaticString("Info");
         } else if constexpr (Level == LogLevel::WARNING) {
             return StaticString("Warning");
-        } else if constexpr (Level == LogLevel::ERROR) {
+        } else if constexpr (Level == LogLevel::ERR) {
             return StaticString("Error");
         } else if constexpr (Level == LogLevel::FATAL) {
             return StaticString("Fatal");
@@ -180,7 +180,12 @@ using logging::LogLevel;
 #define HYP_DEFINE_LOG_SUBCHANNEL(name, parent_name) \
     hyperion::logging::LogChannel Log_##name(HYP_NAME_UNSAFE(name), &Log_##parent_name)
 
-#define HYP_LOG(channel, level, fmt, ...) \
-    hyperion::logging::Logger::GetInstance().Log< level, hyperion::StaticString(HYP_DEBUG_FUNC_SHORT), hyperion::StaticString(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
+#if defined(HYP_MSVC) && HYP_MSVC
+    #define HYP_LOG(channel, level, fmt, ...) \
+        hyperion::logging::Logger::GetInstance().Log< level, hyperion::StaticString< sizeof(HYP_DEBUG_FUNC_SHORT) >(HYP_DEBUG_FUNC_SHORT), hyperion::StaticString< sizeof(fmt) >(fmt) >(hyperion::Log_##channel, __VA_ARGS__)
+#else
+    #define HYP_LOG(channel, level, fmt, ...) \
+        hyperion::logging::Logger::GetInstance().Log< level, hyperion::StaticString(HYP_DEBUG_FUNC_SHORT), hyperion::StaticString(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
+#endif
 
 #endif
