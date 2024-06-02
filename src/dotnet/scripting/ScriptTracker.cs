@@ -9,14 +9,16 @@ namespace Hyperion
     public class ScriptTracker
     {
         private FileSystemWatcher watcher;
-        private IntPtr callbackPtr;
+        private ScriptEventCallback callback;
         private IntPtr callbackSelfPtr;
+
+        private ScriptCompiler scriptCompiler = new ScriptCompiler();
 
         private Dictionary<string, ManagedScriptWrapper> processingScripts = new Dictionary<string, ManagedScriptWrapper>();
 
         public void Initialize(string path, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
-            this.callbackPtr = callbackPtr;
+            this.callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
             this.callbackSelfPtr = callbackSelfPtr;
 
             watcher = new FileSystemWatcher(path);
@@ -57,7 +59,10 @@ namespace Hyperion
                     continue;
                 }
 
-                // @TODO : Implement script processing - compile using Roslyn
+                // script processing - compile using Roslyn
+                // just testing for now
+                scriptCompiler.Compile(entry.Key);
+                entry.Value.Get().State = ManagedScriptState.Compiled;
             }
 
             foreach (string scriptPath in scriptsToRemove)
@@ -94,12 +99,6 @@ namespace Hyperion
 
         private void TriggerCallback(ScriptEvent scriptEvent)
         {
-            if (callbackPtr == IntPtr.Zero)
-            {
-                throw new InvalidOperationException("ScriptTracker callback pointer is not set");
-            }
-
-            ScriptEventCallback callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
             callback(callbackSelfPtr, scriptEvent);
         }
     }

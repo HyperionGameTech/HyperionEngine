@@ -27,12 +27,17 @@ namespace Hyperion
                 throw new Exception("Failed to load assembly: " + assemblyPath);
             }
 
-            Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} references assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
+#if DEBUG // Load all referenced assemblies to ensure nothing will crash later
+            Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
 
             for (int i = 0; i < assembly.GetReferencedAssemblies().Length; i++)
             {
-                Logger.Log(LogType.Info, "Found assembly: {0}", assembly.GetReferencedAssemblies()[i].Name);
+                Logger.Log(LogType.Info, "Found referenced assembly: {0}", assembly.GetReferencedAssemblies()[i].Name);
+
+                // Ensure the referenced assembly is found
+                Assembly.Load(assembly.GetReferencedAssemblies()[i]);
             }
+#endif
 
             AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
 
