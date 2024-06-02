@@ -36,25 +36,23 @@ namespace Hyperion
 
             AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
 
-            if (hyperionCoreDependency == null)
+            if (hyperionCoreDependency != null)
             {
-                throw new Exception("Failed to find HyperionCore dependency");
-            }
+                string versionString = hyperionCoreDependency.Version.ToString();
 
-            string versionString = hyperionCoreDependency.Version.ToString();
+                var versionParts = versionString.Split('.');
 
-            var versionParts = versionString.Split('.');
+                uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
+                uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
+                uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
 
-            uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
-            uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
-            uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
+                uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
 
-            uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
-
-            // Verify the engine version (major, minor)
-            if (!NativeInterop_VerifyEngineVersion(assemblyEngineVersion, true, true, false))
-            {
-                throw new Exception("Assembly version does not match engine version");
+                // Verify the engine version (major, minor)
+                if (!NativeInterop_VerifyEngineVersion(assemblyEngineVersion, true, true, false))
+                {
+                    throw new Exception("Assembly version does not match engine version");
+                }
             }
 
             Type[] types = assembly.GetTypes();
@@ -155,7 +153,7 @@ namespace Hyperion
             return managedClass;
         }
 
-        private static void HandleParameters(IntPtr paramsPtr, MethodInfo methodInfo, out object?[] parameters)
+        private static unsafe void HandleParameters(IntPtr paramsPtr, MethodInfo methodInfo, out object?[] parameters)
         {
             int numParams = methodInfo.GetParameters().Length;
 
@@ -186,7 +184,31 @@ namespace Hyperion
                     continue;
                 }
 
-                parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
+                if (paramType == typeof(IntPtr))
+                {
+                    parameters[i] = Marshal.ReadIntPtr(paramAddress);
+
+                    continue;
+                }
+
+                if (paramType.IsValueType)
+                {
+                    parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
+
+                    continue;
+                }
+
+                if (paramType.IsPointer)
+                {
+                    throw new NotImplementedException("Pointer parameter type not implemented");
+                }
+
+                if (paramType.IsByRef)
+                {
+                    throw new NotImplementedException("ByRef parameter type not implemented");
+                }
+
+                throw new NotImplementedException("Parameter type not implemented");
             }
         }
 

@@ -33,25 +33,7 @@ public class TestUIScript : UIEventHandler
         });
 
         var meshComponent = Scene.EntityManager.GetComponent<MeshComponent>(tmpEntity);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-
-        GC.Collect();
-        GC.Collect();
-        GC.Collect();
-
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
         var mesh = meshComponent.Mesh;
-        Logger.Log(LogType.Info, "Mesh AABB:: {0}", mesh.AABB);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-        Logger.Log(LogType.Info, "Mesh Component Mesh ref count: {0}", meshComponent.Mesh.StrongRefCount);
-
-        meshComponent.Flags = (uint)MeshComponentFlags.None;
-        Logger.Log(LogType.Info, "Mesh Component Flags (before): {0}", meshComponent.Flags);
-        meshComponent.Flags |= (uint)MeshComponentFlags.Dirty;
-        Logger.Log(LogType.Info, "Mesh Component Flags (after): {0}", meshComponent.Flags);
     }
 
     public override void Destroy()

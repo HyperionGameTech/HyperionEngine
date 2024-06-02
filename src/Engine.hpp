@@ -55,6 +55,7 @@ class Engine;
 class Game;
 class GameThread;
 class ShaderGlobals;
+class ScriptingService;
 
 extern Engine               *g_engine;
 extern AssetManager         *g_asset_manager;
@@ -234,6 +235,11 @@ public:
     HYP_FORCE_INLINE
     FinalPass *GetFinalPass() const
         { return m_final_pass.Get(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ScriptingService *GetScriptingService() const
+        { return m_scripting_service.Get(); }
     
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -378,6 +384,8 @@ private:
     DebugDrawer                                             m_debug_drawer;
 
     UniquePtr<FinalPass>                                    m_final_pass;
+
+    UniquePtr<ScriptingService>                             m_scripting_service;
 
     CrashHandler                                            m_crash_handler;
 

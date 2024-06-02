@@ -34,6 +34,22 @@ struct ManagedClass
 
 namespace hyperion::dotnet {
 
+namespace detail {
+
+template <class T>
+constexpr inline T *ToPointerType(T *value)
+{
+    return value;
+}
+
+template <class T>
+constexpr inline T *ToPointerType(T **value)
+{
+    return *value;
+}
+
+} // namespace detail
+
 class Class
 {
 public:
@@ -147,7 +163,7 @@ public:
 
         const ManagedMethod &method_object = it->second;
 
-        void *args_vptr[] = { &args... };
+        void *args_vptr[] = { static_cast<void *>(detail::ToPointerType<NormalizedType<Args>>(&args))... };
 
         if constexpr (std::is_void_v<ReturnType>) {
             InvokeStaticMethod(&method_object, args_vptr, nullptr);

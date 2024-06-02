@@ -151,6 +151,7 @@ file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
 file(GLOB_RECURSE CSHARP_CORE_SOURCES "src/dotnet/core/**.cs")
 file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs")
 file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
+file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 
 # # store sources that are in runtime folder in a separate list
 # file(GLOB_RECURSE RUNTIME_SOURCES "src/runtime/*.cpp" "src/runtime/*.c")
@@ -482,6 +483,10 @@ endif()
 
 if(CSHARP_INTEROP_SOURCES)
     create_csharp_library(HyperionInterop "${CSHARP_INTEROP_SOURCES}")
+endif()
+
+if(CSHARP_SCRIPTING_SOURCES)
+    create_csharp_library(HyperionScripting "${CSHARP_SCRIPTING_SOURCES}")
 endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})

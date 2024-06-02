@@ -17,7 +17,6 @@ HYP_DEFINE_LOG_SUBCHANNEL(Assets, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Math, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(DotNET, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Streaming, Core);
-HYP_DEFINE_LOG_SUBCHANNEL(Script, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(UI, Core);
 
 #pragma endregion Core
@@ -67,5 +66,13 @@ HYP_DEFINE_LOG_SUBCHANNEL(Camera, Scene);
 HYP_DEFINE_LOG_SUBCHANNEL(Octree, Scene);
 
 #pragma endregion Scene
+
+#pragma region Script
+
+HYP_DEFINE_LOG_SUBCHANNEL(Script, Core);
+
+HYP_DEFINE_LOG_SUBCHANNEL(ScriptingService, Script);
+
+#pragma endregion Script
 
 } // namespace hyperion

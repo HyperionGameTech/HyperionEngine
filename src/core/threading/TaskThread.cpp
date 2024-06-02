@@ -30,6 +30,8 @@ void TaskThread::operator()()
 
         const uint32 num_tasks = m_task_queue.Size();
         m_num_tasks.Set(num_tasks, MemoryOrder::RELAXED);
+
+        BeforeExecuteTasks();
         
         // execute all tasks outside of lock
         while (m_task_queue.Any()) {
@@ -39,6 +41,8 @@ void TaskThread::operator()()
         if (num_tasks != 0) {
             m_num_tasks.Decrement(num_tasks, MemoryOrder::RELAXED);
         }
+
+        AfterExecuteTasks();
     }
 
     m_is_running.Set(false, MemoryOrder::RELAXED);

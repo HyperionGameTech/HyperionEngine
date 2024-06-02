@@ -33,6 +33,9 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <scripting/Script.hpp>
+#include <scripting/ScriptingService.hpp>
+
 // temp
 #include <util/Profile.hpp>
 #include <core/system/SystemEvent.hpp>
@@ -320,6 +323,13 @@ void HyperionEditorImpl::CreateMainPanel()
     // AssertThrow(game_tab_content_button->GetScene() != nullptr);
 
     // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
+
+    g_engine->GetScriptingService()->StartTrackingScript(HYP_NAME(FooBar0), RC<Script>(new Script({
+        "foobarfizzbuzz.cs"
+    })));
+    g_engine->GetScriptingService()->StartTrackingScript(HYP_NAME(FooBar1), RC<Script>(new Script({
+        "foobarfizzbaz.cs"
+    })));
 }
 
 RC<UIObject> HyperionEditorImpl::CreateSceneOutline()

@@ -26,6 +26,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <scripting/ScriptingService.hpp>
+
 namespace hyperion {
 
 using renderer::FillMode;
@@ -288,6 +290,9 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_final_pass.Reset(new FinalPass);
     m_final_pass->Create();
 
+    m_scripting_service.Reset(new ScriptingService);
+    m_scripting_service->Start();
+
     Compile();
 }
 
@@ -352,6 +357,9 @@ void Engine::FinalizeStop()
     HYP_LOG(Engine, LogLevel::INFO, "Stopping all engine processes");
 
     m_delegates.OnShutdown.Broadcast();
+
+    m_scripting_service->Stop();
+    m_scripting_service.Reset();
 
     m_world.Reset();
 

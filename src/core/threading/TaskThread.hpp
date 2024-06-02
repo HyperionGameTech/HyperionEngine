@@ -42,6 +42,14 @@ public:
     virtual void Stop();
 
 protected:
+    /*! \brief Method to be executed each tick of the task thread, before executing tasks.
+     *  Used by derived classes to inject custom logic. */
+    virtual void BeforeExecuteTasks() { }
+
+    /*! \brief Method to be executed each tick of the task thread, after executing tasks.
+     *  Used by derived classes to inject custom logic. */
+    virtual void AfterExecuteTasks() { }
+
     virtual void operator()() override;
 
     AtomicVar<bool>                 m_is_running;

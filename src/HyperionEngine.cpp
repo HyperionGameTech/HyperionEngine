@@ -24,10 +24,9 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
     g_safe_deleter = new SafeDeleter;
 
     ComponentInterfaceRegistry::GetInstance().Initialize();
+    dotnet::DotNetSystem::GetInstance().Initialize();
 
     g_engine->Initialize(app_context);
-
-    dotnet::DotNetSystem::GetInstance().Initialize();
 }
 
 HYP_API void ShutdownApplication()
