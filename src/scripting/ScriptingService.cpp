@@ -53,12 +53,17 @@ private:
 
 #pragma region ScriptingServiceThread
 
+using ScriptingServiceThreadCallback = void(*)(void *, ScriptEvent);
+
 class ScriptingServiceThread : public TaskThread
 {
 public:
-    ScriptingServiceThread()
+    ScriptingServiceThread(const FilePath &watch_directory, ScriptingServiceThreadCallback callback, void *callback_self_ptr)
         : TaskThread(ThreadID::CreateDynamicThreadID(HYP_NAME(ScriptingServiceThread)), ThreadPriorityValue::LOWEST),
-          m_script_tracker(new ScriptTracker)
+          m_script_tracker(new ScriptTracker),
+          m_watch_directory(watch_directory),
+          m_callback(callback),
+          m_callback_self_ptr(callback_self_ptr)
     {
     }
 
@@ -75,39 +80,12 @@ public:
         TaskThread::Stop();
     }
 
-    void StartTracking(Name name, const RC<Script> &script)
-    {
-        Threads::AssertOnThread(GetID());
-
-        AssertThrow(script != nullptr);
-        AssertThrowMsg(script->GetDescriptor().path.Size() + 1 <= script_max_path_length, "Invalid script path: must be <= %llu characters", script_max_path_length - 1);
-
-        HYP_LOG(ScriptingService, LogLevel::DEBUG, "Calling C# start tracking with managedscript with state {}", script->GetManagedScript().state);
-
-        m_script_tracker->GetObject()->InvokeMethodByName<void, Name, ManagedScript *>("StartTracking", Name(name), &script->GetManagedScript());
-
-        m_tracked_scripts.Set(name, script);
-    }
-
-    void StopTracking(Name name)
-    {
-        Threads::AssertOnThread(GetID());
-
-        auto it = m_tracked_scripts.Find(name);
-
-        if (it == m_tracked_scripts.End()) {
-            return;
-        }
-
-        m_script_tracker->GetObject()->InvokeMethodByName<void, Name>("StopTracking", Name(name));
-
-        m_tracked_scripts.Erase(it);
-    }
-
 protected:
     virtual void operator()() override
     {
         m_is_running.Set(true, MemoryOrder::RELAXED);
+
+        m_script_tracker->GetObject()->InvokeMethodByName<void>("Initialize", m_watch_directory.Data(), m_callback, m_callback_self_ptr);
 
         Queue<Scheduler::ScheduledTask> tasks;
 
@@ -125,43 +103,30 @@ protected:
         }
     }
 
-    ScriptTracker               *m_script_tracker;
-    FlatMap<Name, RC<Script>>   m_tracked_scripts;
+    ScriptTracker                   *m_script_tracker;
+    FilePath                        m_watch_directory;
+    ScriptingServiceThreadCallback  m_callback;
+    void                            *m_callback_self_ptr;
 };
 
 #pragma endregion ScriptingServiceThread
 
 #pragma region ScriptingService
 
-ScriptingService::ScriptingService()
-    : m_thread(new ScriptingServiceThread)
+ScriptingService::ScriptingService(const FilePath &watch_directory)
+    : m_thread(new ScriptingServiceThread(
+        watch_directory,
+        [](void *self_ptr, ScriptEvent event)
+        {
+            static_cast<ScriptingService *>(self_ptr)->PushScriptEvent(event);
+        },
+        this
+      ))
 {
 }
 
 ScriptingService::~ScriptingService()
 {
-}
-
-void ScriptingService::StartTrackingScript(Name name, const RC<Script> &script)
-{
-    AssertThrowMsg(m_thread && m_thread->IsRunning(), "Cannot start tracking script: Service is not running");
-
-    m_thread->GetScheduler().Enqueue([this, name, script]
-    {
-        m_thread->StartTracking(name, script);
-    });
-}
-
-void ScriptingService::StopTrackingScript(Name name)
-{
-    if (!m_thread || !m_thread->IsRunning()) {
-        return;
-    }
-
-    m_thread->GetScheduler().Enqueue([this, name]
-    {
-        m_thread->StopTracking(name);
-    });
 }
 
 void ScriptingService::Start()
@@ -173,6 +138,52 @@ void ScriptingService::Stop()
 {
     m_thread->Stop();
     m_thread->Join();
+}
+
+void ScriptingService::Update()
+{
+    if (!HasEvents()) {
+        return;
+    }
+
+    Queue<ScriptEvent> script_event_queue;
+
+    { // pull events from queue
+        Mutex::Guard guard(m_script_event_queue_mutex);
+
+        script_event_queue = std::move(m_script_event_queue);
+
+        m_script_event_queue_count.Decrement(1, MemoryOrder::RELEASE);
+    }
+
+    for (ScriptEvent &event : script_event_queue) {
+        switch (event.type) {
+        case ScriptEventType::STATE_CHANGED:
+            OnScriptStateChanged.Broadcast(*event.script);
+
+            break;
+        default:
+            HYP_LOG(ScriptingService, LogLevel::ERROR, "Unknown script event received: {}", uint32(event.type));
+
+            break;
+        }
+    }
+}
+
+// Called from any thread - most likely from C# thread pool
+// @TODO: Use scheduler to push task to game thread instead
+void ScriptingService::PushScriptEvent(const ScriptEvent &event)
+{
+    Mutex::Guard guard(m_script_event_queue_mutex);
+
+    m_script_event_queue.Push(event);
+
+    m_script_event_queue_count.Increment(1, MemoryOrder::RELEASE);
+}
+
+bool ScriptingService::HasEvents() const
+{
+    return m_script_event_queue_count.Get(MemoryOrder::ACQUIRE);
 }
 
 #pragma endregion ScriptingService

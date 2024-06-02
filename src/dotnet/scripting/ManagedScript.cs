@@ -94,9 +94,30 @@ namespace Hyperion
     {
         private IntPtr ptr;
 
+        public ManagedScriptWrapper(ManagedScript managedScript)
+        {
+            this.ptr = ManagedScript_AllocateNativeObject(ref managedScript);
+        }
+
         public ManagedScriptWrapper(IntPtr ptr)
         {
             this.ptr = ptr;
+        }
+
+        ~ManagedScriptWrapper()
+        {
+            if (IsValid)
+            {
+                ManagedScript_FreeNativeObject(ref Get());
+            }
+        }
+
+        public IntPtr Address
+        {
+            get
+            {
+                return ptr;
+            }
         }
 
         public bool IsValid
@@ -182,5 +203,11 @@ namespace Hyperion
                 managedScript.LastModifiedTimestamp = lastModifiedTimestamp;
             }
         }
+
+        [DllImport("hyperion", EntryPoint = "ManagedScript_AllocateNativeObject")]
+        private static extern IntPtr ManagedScript_AllocateNativeObject([In] ref ManagedScript inManagedScript);
+
+        [DllImport("hyperion", EntryPoint = "ManagedScript_FreeNativeObject")]
+        private static extern void ManagedScript_FreeNativeObject([In] ref ManagedScript inManagedScript);
     }
 }

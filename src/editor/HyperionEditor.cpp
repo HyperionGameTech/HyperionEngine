@@ -324,12 +324,10 @@ void HyperionEditorImpl::CreateMainPanel()
 
     // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
 
-    g_engine->GetScriptingService()->StartTrackingScript(HYP_NAME(FooBar0), RC<Script>(new Script({
-        "foobarfizzbuzz.cs"
-    })));
-    g_engine->GetScriptingService()->StartTrackingScript(HYP_NAME(FooBar1), RC<Script>(new Script({
-        "foobarfizzbaz.cs"
-    })));
+    g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript &script)
+    {
+        DebugLog(LogType::Debug, "Script changed\n");
+    }).Detach();
 }
 
 RC<UIObject> HyperionEditorImpl::CreateSceneOutline()

@@ -290,7 +290,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_final_pass.Reset(new FinalPass);
     m_final_pass->Create();
 
-    m_scripting_service.Reset(new ScriptingService);
+    m_scripting_service.Reset(new ScriptingService("./")); // @TODO: Proper watch directory
     m_scripting_service->Start();
 
     Compile();

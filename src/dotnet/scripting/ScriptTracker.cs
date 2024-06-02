@@ -1,105 +1,106 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    public delegate void ScriptEventCallback(IntPtr selfPtr, ScriptEvent scriptEvent);
+
     public class ScriptTracker
     {
-        private Dictionary<Name, ManagedScriptWrapper> trackedScripts = new Dictionary<Name, ManagedScriptWrapper>();
-        private Dictionary<Name, ManagedScriptWrapper> processingScripts = new Dictionary<Name, ManagedScriptWrapper>();
-        private Dictionary<Name, ManagedScriptWrapper> erroredScripts = new Dictionary<Name, ManagedScriptWrapper>();
+        private FileSystemWatcher watcher;
+        private IntPtr callbackPtr;
+        private IntPtr callbackSelfPtr;
 
-        private void UpdateTrackedScripts()
+        private Dictionary<string, ManagedScriptWrapper> processingScripts = new Dictionary<string, ManagedScriptWrapper>();
+
+        public void Initialize(string path, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
-            List<Name> erroredScriptsToRemove = new List<Name>();
-            List<Name> scriptsToStartProcessing = new List<Name>();
+            this.callbackPtr = callbackPtr;
+            this.callbackSelfPtr = callbackSelfPtr;
 
-            foreach (KeyValuePair<Name, ManagedScriptWrapper> trackedScript in trackedScripts)
-            {
-                if (!trackedScript.Value.IsValid)
-                {
-                    Console.WriteLine("Script {0} is not valid", trackedScript.Value.Get().Path);
-                    continue;
-                }
-
-                if (trackedScript.Value.IsProcessing)
-                {
-                    continue;
-                }
-
-                if (trackedScript.Value.IsErrored)
-                {
-                    Console.WriteLine("Script {0} is in error state", trackedScript.Value.Get().Path);
-
-                    erroredScriptsToRemove.Add(trackedScript.Key);
-
-                    continue;
-                }
-
-                trackedScript.Value.UpdateState();
-
-                if (trackedScript.Value.IsDirty)
-                {
-                    scriptsToStartProcessing.Add(trackedScript.Key);
-
-                    continue;
-                }
-            }
-
-            foreach (Name erroredScriptName in erroredScriptsToRemove)
-            {
-                erroredScripts.Add(erroredScriptName, trackedScripts[erroredScriptName]);
-                trackedScripts.Remove(erroredScriptName);
-            }
-
-            foreach (Name processingScriptName in scriptsToStartProcessing)
-            {
-                ManagedScriptWrapper script = trackedScripts[processingScriptName];
-
-                if (!script.IsValid)
-                {
-                    continue;
-                }
-
-                script.Get().State |= ManagedScriptState.Processing;
-
-                processingScripts.Add(processingScriptName, script);
-            }
-        }
-
-        private void UpdateProcessingScripts()
-        {
-            Console.WriteLine("ScriptTracker.UpdateProcessingScripts() called from C#. Currently have {0} processing scripts", processingScripts.Count);
+            watcher = new FileSystemWatcher(path);
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.Filter = "*.cs";
+            watcher.Changed += OnFileChanged;
+            watcher.EnableRaisingEvents = true;
+            watcher.IncludeSubdirectories = true;
         }
 
         public void Update()
         {
-            Console.WriteLine("ScriptTracker.Update() called from C#. Currently have {0} tracked scripts", trackedScripts.Count);
+            Console.WriteLine("ScriptTracker.Update() called from C#. Currently have {0} scripts processing", processingScripts.Count);
 
-            UpdateTrackedScripts();
-            UpdateProcessingScripts();
-        }
+            List<string> scriptsToRemove = new List<string>();
 
-        public unsafe void StartTracking(Name name, IntPtr managedScriptPtr)
-        {
-            if (trackedScripts.ContainsKey(name))
+            foreach (KeyValuePair<string, ManagedScriptWrapper> entry in processingScripts)
             {
-                throw new InvalidOperationException("Script already being tracked");
+                if (!entry.Value.IsValid)
+                {
+                    scriptsToRemove.Add(entry.Key);
+
+                    continue;
+                }
+
+                Console.WriteLine("ScriptTracker.Update() : {0} is processing", entry.Key);
+
+                if (entry.Value.Get().State != ManagedScriptState.Processing)
+                {
+                    TriggerCallback(new ScriptEvent
+                    {
+                        Type = ScriptEventType.StateChanged,
+                        ScriptPtr = entry.Value.Address
+                    });
+
+                    scriptsToRemove.Add(entry.Key);
+
+                    continue;
+                }
+
+                // @TODO : Implement script processing - compile using Roslyn
             }
 
-            ManagedScriptWrapper managedScriptWrapper = new ManagedScriptWrapper(managedScriptPtr);
-            trackedScripts.Add(name, managedScriptWrapper);
-            
-            Console.WriteLine("ScriptTracker.StartTracking() called from C# " + managedScriptWrapper.Get().Path);
+            foreach (string scriptPath in scriptsToRemove)
+            {
+                processingScripts.Remove(scriptPath);
+            }
         }
 
-        public unsafe void StopTracking(Name name)
+        private void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            trackedScripts.Remove(name);
-            processingScripts.Remove(name);
-            erroredScripts.Remove(name);
+            Console.WriteLine("ScriptTracker.OnFileChanged() : {0}", e.FullPath);
 
-            Console.WriteLine("ScriptTracker.StopTracking() called from C#");
+            if (processingScripts.ContainsKey(e.FullPath))
+            {
+                Console.WriteLine("ScriptTracker.OnFileChanged() : {0} is already being processed", e.FullPath);
+
+                return;
+            }
+
+            ManagedScriptWrapper managedScriptWrapper = new ManagedScriptWrapper(new ManagedScript
+            {
+                Path = e.FullPath,
+                State = ManagedScriptState.Processing
+            });
+
+            processingScripts.Add(e.FullPath, managedScriptWrapper);
+
+            TriggerCallback(new ScriptEvent
+            {
+                Type = ScriptEventType.StateChanged,
+                ScriptPtr = managedScriptWrapper.Address
+            });
+        }
+
+        private void TriggerCallback(ScriptEvent scriptEvent)
+        {
+            if (callbackPtr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("ScriptTracker callback pointer is not set");
+            }
+
+            ScriptEventCallback callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
+            callback(callbackSelfPtr, scriptEvent);
         }
     }
 }

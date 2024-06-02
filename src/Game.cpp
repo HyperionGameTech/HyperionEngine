@@ -15,6 +15,8 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/core/RefCountedPtrBindings.hpp>
 
+#include <scripting/ScriptingService.hpp>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);
@@ -94,7 +96,7 @@ void Game::Init_Internal()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
-    SystemEvent event;
+    g_engine->GetScriptingService()->Update();
 
     Logic(delta);
     

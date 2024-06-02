@@ -6,7 +6,12 @@
 #include <core/containers/FlatMap.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/AtomicVar.hpp>
 #include <core/threading/TaskThread.hpp>
+
+#include <core/functional/Delegate.hpp>
+
+#include <core/filesystem/FilePath.hpp>
 
 namespace hyperion {
 
@@ -14,24 +19,47 @@ class ScriptTracker;
 
 class ScriptingServiceThread;
 
+enum class ScriptEventType : uint32
+{
+    NONE,
+    STATE_CHANGED
+};
+
+struct ScriptEvent
+{
+    ScriptEventType type;
+    ManagedScript   *script;
+};
+
 class HYP_API ScriptingService
 {
 public:
-    ScriptingService();
+    ScriptingService(const FilePath &watch_directory);
     ScriptingService(const ScriptingService &other)                 = delete;
     ScriptingService &operator=(const ScriptingService &other)      = delete;
     ScriptingService(ScriptingService &&other) noexcept             = delete;
     ScriptingService &operator=(ScriptingService &&other) noexcept  = delete;
     ~ScriptingService();
 
-    void StartTrackingScript(Name name, const RC<Script> &script);
-    void StopTrackingScript(Name name);
-
     void Start();
     void Stop();
 
+    /*! \brief Called from game thread */
+    void Update();
+
+    /*! \brief To be called from ScriptingService thread only */
+    void PushScriptEvent(const ScriptEvent &event);
+
+    Delegate<void, const ManagedScript &>   OnScriptStateChanged;
+
 private:
-    UniquePtr<ScriptingServiceThread>   m_thread;
+    bool HasEvents() const;
+
+    UniquePtr<ScriptingServiceThread>       m_thread;
+
+    Queue<ScriptEvent>                      m_script_event_queue;
+    Mutex                                   m_script_event_queue_mutex;
+    AtomicVar<uint32>                       m_script_event_queue_count;
 };
 
 } // namespace hyperion
