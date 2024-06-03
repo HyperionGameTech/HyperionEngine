@@ -58,12 +58,19 @@ using ScriptingServiceThreadCallback = void(*)(void *, ScriptEvent);
 class ScriptingServiceThread : public TaskThread
 {
 public:
-    ScriptingServiceThread(const FilePath &watch_directory, ScriptingServiceThreadCallback callback, void *callback_self_ptr)
-        : TaskThread(ThreadID::CreateDynamicThreadID(HYP_NAME(ScriptingServiceThread)), ThreadPriorityValue::LOWEST),
-          m_script_tracker(new ScriptTracker),
-          m_watch_directory(watch_directory),
-          m_callback(callback),
-          m_callback_self_ptr(callback_self_ptr)
+    ScriptingServiceThread(
+        const FilePath &watch_directory,
+        const FilePath &intermediate_directory,
+        const FilePath &binary_output_directory,
+        ScriptingServiceThreadCallback callback,
+        void *callback_self_ptr
+    ) : TaskThread(ThreadID::CreateDynamicThreadID(HYP_NAME(ScriptingServiceThread)), ThreadPriorityValue::LOWEST),
+        m_script_tracker(new ScriptTracker),
+        m_watch_directory(watch_directory),
+        m_intermediate_directory(intermediate_directory),
+        m_binary_output_directory(binary_output_directory),
+        m_callback(callback),
+        m_callback_self_ptr(callback_self_ptr)
     {
     }
 
@@ -85,7 +92,14 @@ protected:
     {
         m_is_running.Set(true, MemoryOrder::RELAXED);
 
-        m_script_tracker->GetObject()->InvokeMethodByName<void>("Initialize", m_watch_directory.Data(), m_callback, m_callback_self_ptr);
+        m_script_tracker->GetObject()->InvokeMethodByName<void>(
+            "Initialize",
+            m_watch_directory.Data(),
+            m_intermediate_directory.Data(),
+            m_binary_output_directory.Data(),
+            m_callback,
+            m_callback_self_ptr
+        );
 
         Queue<Scheduler::ScheduledTask> tasks;
 
@@ -105,6 +119,8 @@ protected:
 
     ScriptTracker                   *m_script_tracker;
     FilePath                        m_watch_directory;
+    FilePath                        m_intermediate_directory;
+    FilePath                        m_binary_output_directory;
     ScriptingServiceThreadCallback  m_callback;
     void                            *m_callback_self_ptr;
 };
@@ -113,9 +129,11 @@ protected:
 
 #pragma region ScriptingService
 
-ScriptingService::ScriptingService(const FilePath &watch_directory)
+ScriptingService::ScriptingService(const FilePath &watch_directory, const FilePath &intermediate_directory, const FilePath &binary_output_directory)
     : m_thread(new ScriptingServiceThread(
         watch_directory,
+        intermediate_directory,
+        binary_output_directory,
         [](void *self_ptr, ScriptEvent event)
         {
             static_cast<ScriptingService *>(self_ptr)->PushScriptEvent(event);
@@ -123,6 +141,17 @@ ScriptingService::ScriptingService(const FilePath &watch_directory)
         this
       ))
 {
+    if (!watch_directory.Exists()) {
+        watch_directory.MkDir();
+    }
+
+    if (!intermediate_directory.Exists()) {
+        intermediate_directory.MkDir();
+    }
+
+    if (!binary_output_directory.Exists()) {
+        binary_output_directory.MkDir();
+    }
 }
 
 ScriptingService::~ScriptingService()

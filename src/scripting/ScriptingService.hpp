@@ -34,7 +34,11 @@ struct ScriptEvent
 class HYP_API ScriptingService
 {
 public:
-    ScriptingService(const FilePath &watch_directory);
+    ScriptingService(
+        const FilePath &watch_directory,
+        const FilePath &intermediate_directory,
+        const FilePath &binary_output_directory
+    );
     ScriptingService(const ScriptingService &other)                 = delete;
     ScriptingService &operator=(const ScriptingService &other)      = delete;
     ScriptingService(ScriptingService &&other) noexcept             = delete;

@@ -12,16 +12,18 @@ namespace Hyperion
         private ScriptEventCallback callback;
         private IntPtr callbackSelfPtr;
 
-        private ScriptCompiler scriptCompiler = new ScriptCompiler();
+        private ScriptCompiler? scriptCompiler = null;
 
         private Dictionary<string, ManagedScriptWrapper> processingScripts = new Dictionary<string, ManagedScriptWrapper>();
 
-        public void Initialize(string path, IntPtr callbackPtr, IntPtr callbackSelfPtr)
+        public void Initialize(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
             this.callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
             this.callbackSelfPtr = callbackSelfPtr;
 
-            watcher = new FileSystemWatcher(path);
+            scriptCompiler = new ScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
+
+            watcher = new FileSystemWatcher(sourceDirectory);
             watcher.NotifyFilter = NotifyFilters.LastWrite;
             watcher.Filter = "*.cs";
             watcher.Changed += OnFileChanged;
@@ -61,8 +63,18 @@ namespace Hyperion
 
                 // script processing - compile using Roslyn
                 // just testing for now
-                scriptCompiler.Compile(entry.Key);
-                entry.Value.Get().State = ManagedScriptState.Compiled;
+                if (scriptCompiler != null)
+                {
+                    scriptCompiler.Compile(entry.Key);
+
+                    entry.Value.Get().State = ManagedScriptState.Compiled;
+                }
+                else
+                {
+                    Console.WriteLine("ScriptTracker.Update() : scriptCompiler is null");
+
+                    entry.Value.Get().State = ManagedScriptState.Errored;
+                }
             }
 
             foreach (string scriptPath in scriptsToRemove)

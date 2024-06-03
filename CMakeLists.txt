@@ -135,6 +135,15 @@ add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
 add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
 add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
 
+set(HYP_SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/res/scripts")
+file(MAKE_DIRECTORY ${HYP_SCRIPTS_DIR})
+
+set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/res/scripts/projects")
+file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
+
+set(HYP_SCRIPTS_BIN_DIR "${CMAKE_SOURCE_DIR}/res/scripts/bin")
+file(MAKE_DIRECTORY ${HYP_SCRIPTS_BIN_DIR})
+
 add_definitions(-DHYP_EDITOR=1)
 
 add_definitions(-DHYP_SDL=1)
@@ -403,7 +412,7 @@ target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
 function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file
-    set(CSHARP_PROJECT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${output_name})
+    set(CSHARP_PROJECT_DIR ${CSHARP_PROJECTS_DIR}/${output_name})
     file(MAKE_DIRECTORY ${CSHARP_PROJECT_DIR})
 
     # generate .csproj file
@@ -435,6 +444,7 @@ function(create_csharp_library output_name csharp_sources)
         file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"4.9.2\" />\n")
         file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp.Scripting\" Version=\"4.9.2\" />\n")
         file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Scripting\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
     endif()
 
     file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "  </ItemGroup>\n")
@@ -472,6 +482,7 @@ function(create_csharp_library output_name csharp_sources)
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
         DEPENDS HyperionCore
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/*.dll ${CMAKE_CURRENT_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/*.dll ${HYP_SCRIPTS_BIN_DIR}/ # copy to scripts bin dir so that they can be used in scripts
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
