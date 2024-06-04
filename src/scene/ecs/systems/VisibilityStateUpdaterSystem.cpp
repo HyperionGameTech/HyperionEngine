@@ -14,11 +14,11 @@
 
 namespace hyperion {
 
-void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void VisibilityStateUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    VisibilityStateComponent &visibility_state_component = entity_manager.GetComponent<VisibilityStateComponent>(entity);
+    VisibilityStateComponent &visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
 
     if (visibility_state_component.octant_id != OctantID::Invalid()) {
         return;
@@ -28,10 +28,10 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
 
     // This system must be ran before WorldAABBUpdaterSystem so that the bounding box is up to date
 
-    BoundingBoxComponent &bounding_box_component = entity_manager.GetComponent<BoundingBoxComponent>(entity);
+    BoundingBoxComponent &bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
 
     if (bounding_box_component.world_aabb.IsValid()) {
-        Octree &octree = entity_manager.GetScene()->GetOctree();
+        Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
         const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
@@ -55,15 +55,15 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     visibility_state_component.last_aabb_hash = bounding_box_component.world_aabb.GetHashCode();
 }
 
-void VisibilityStateUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    VisibilityStateComponent &visibility_state_component = entity_manager.GetComponent<VisibilityStateComponent>(entity);
+    VisibilityStateComponent &visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
     visibility_state_component.visibility_state = nullptr;
 
     if (visibility_state_component.octant_id != OctantID::Invalid()) {
-        Octree &octree = entity_manager.GetScene()->GetOctree();
+        Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
         const Octree::Result remove_result = octree.Remove(entity);
 
@@ -75,11 +75,11 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager
     }
 }
 
-void VisibilityStateUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    Octree &octree = entity_manager.GetScene()->GetOctree();
+    Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
-    for (auto [entity_id, visibility_state_component, bounding_box_component] : entity_manager.GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, visibility_state_component, bounding_box_component] : GetEntityManager().GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>()) {
         bool needs_octree_update = false;
 
         const bool visibility_state_invalidated = visibility_state_component.flags & VISIBILITY_STATE_FLAG_INVALIDATED;

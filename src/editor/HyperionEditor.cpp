@@ -307,8 +307,8 @@ void HyperionEditorImpl::CreateMainPanel()
 
     game_tab_content_button->GetScene()->GetEntityManager()->AddComponent(game_tab_content_button->GetEntity(), ScriptComponent {
         {
-            .assembly_name  = "csharp.dll",
-            .class_name     = "TestUIScript"
+            .assembly_path  = "GameName.dll",
+            .class_name     = "FizzBuzzTest"
         }
     });
 
@@ -326,7 +326,7 @@ void HyperionEditorImpl::CreateMainPanel()
 
     g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript &script)
     {
-        DebugLog(LogType::Debug, "Script changed\n");
+        DebugLog(LogType::Debug, "Script state changed: now is %u\n", script.state);
     }).Detach();
 }
 

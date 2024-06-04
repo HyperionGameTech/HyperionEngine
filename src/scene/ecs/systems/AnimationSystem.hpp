@@ -15,9 +15,14 @@ class AnimationSystem : public System<
 >
 {
 public:
+    AnimationSystem(EntityManager &entity_manager)
+        : System(entity_manager)
+    {
+    }
+
     virtual ~AnimationSystem() override = default;
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
+    virtual void Process(GameCounter::TickUnit delta) override;
 };
 
 } // namespace hyperion

@@ -83,17 +83,17 @@ struct RENDER_COMMAND(RemoveBLASFromTLAS) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-void BLASUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void BLASUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
 
-    BLASComponent &blas_component = entity_manager.GetComponent<BLASComponent>(entity);
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
-    TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
+    BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
     if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid()) {
         return;
@@ -116,23 +116,23 @@ void BLASUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> 
 
     DeferCreate(blas_component.blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
     
-    if (const TLASRef &tlas = entity_manager.GetScene()->GetTLAS(); tlas.IsValid()) {
+    if (const TLASRef &tlas = GetEntityManager().GetScene()->GetTLAS(); tlas.IsValid()) {
         PUSH_RENDER_COMMAND(AddBLASToTLAS, tlas, blas_component.blas);
     }
 }
 
-void BLASUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
 
-    BLASComponent &blas_component = entity_manager.GetComponent<BLASComponent>(entity);
+    BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
 
     if (blas_component.blas.IsValid()) {
-        if (const TLASRef &tlas = entity_manager.GetScene()->GetTLAS(); tlas.IsValid()) {
+        if (const TLASRef &tlas = GetEntityManager().GetScene()->GetTLAS(); tlas.IsValid()) {
             PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, tlas, blas_component.blas);
         }
 
@@ -140,13 +140,13 @@ void BLASUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity
     }
 }
 
-void BLASUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return;
     }
 
-    for (auto [entity_id, blas_component, mesh_component, transform_component] : entity_manager.GetEntitySet<BLASComponent, MeshComponent, TransformComponent>()) {
+    for (auto [entity_id, blas_component, mesh_component, transform_component] : GetEntityManager().GetEntitySet<BLASComponent, MeshComponent, TransformComponent>()) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (!blas_component.blas.IsValid()) {

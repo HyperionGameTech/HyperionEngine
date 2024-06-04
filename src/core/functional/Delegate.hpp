@@ -9,6 +9,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/IDGenerator.hpp>
+#include <core/Name.hpp>
 
 #include <core/Defines.hpp>
 
@@ -34,9 +35,25 @@ struct DelegateHandlerData
     HYP_API void Reset();
     HYP_API void Detach(DelegateHandler &&delegate_handler);
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return id != 0 && delegate != nullptr; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const DelegateHandlerData &other) const
+        { return id == other.id && delegate == other.delegate; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator!=(const DelegateHandlerData &other) const
+        { return id != other.id || delegate != other.delegate; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator<(const DelegateHandlerData &other) const
+        { return id < other.id; }
 };
 
 template <class ReturnType>
@@ -70,18 +87,36 @@ public:
 
     ~DelegateHandler()                                              = default;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const DelegateHandler &other) const
         { return m_data == other.m_data; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const DelegateHandler &other) const
         { return m_data != other.m_data; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator<(const DelegateHandler &other) const
+    {
+        if (!IsValid()) {
+            return false;
+        }
+
+        if (!other.IsValid()) {
+            return true;
+        }
+
+        return *m_data < *other.m_data;
+    }
 
     /*! \brief Check if the DelegateHandler is valid.
      *
      * \return True if the DelegateHandler is valid, false otherwise.
      */
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return m_data != nullptr && m_data->IsValid(); }
@@ -95,7 +130,8 @@ public:
         This will allow the Delegate handler function to remain attached to the delegate upon destruction of this object.
         \note This requires proper management to prevent memory leaks and access of invalid objects, as the lifecycle of the handler will now last
             as long as the Delegate itself. */
-    HYP_FORCE_INLINE void Detach()
+    HYP_FORCE_INLINE
+    void Detach()
     {
         if (IsValid()) {
             m_data->Detach(std::move(*this));
@@ -109,6 +145,77 @@ private:
     }
 
     RC<functional::detail::DelegateHandlerData> m_data;
+};
+
+/*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them using RAII */
+class DelegateHandlerSet
+{
+public:
+    using Iterator = typename FlatMap<Name, DelegateHandler>::Iterator;
+    using ConstIterator = typename FlatMap<Name, DelegateHandler>::ConstIterator;
+
+    HYP_FORCE_INLINE
+    DelegateHandlerSet &Add(const DelegateHandler &delegate_handler)
+    {
+        m_delegate_handlers.Insert({ Name::Unique(), delegate_handler });
+        return *this;
+    }
+
+    HYP_FORCE_INLINE
+    DelegateHandlerSet &Add(Name name, const DelegateHandler &delegate_handler)
+    {
+        m_delegate_handlers.Insert({ name, delegate_handler });
+        return *this;
+    }
+
+    HYP_FORCE_INLINE
+    bool Remove(Name name)
+    {
+        auto it = m_delegate_handlers.Find(name);
+
+        if (it == m_delegate_handlers.End()) {
+            return false;
+        }
+
+        m_delegate_handlers.Erase(it);
+
+        return true;
+    }
+
+    HYP_FORCE_INLINE
+    bool Remove(ConstIterator it)
+    {
+        if (it == m_delegate_handlers.End()) {
+            return false;
+        }
+
+        m_delegate_handlers.Erase(it);
+
+        return true;
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Iterator Find(Name name)
+        { return m_delegate_handlers.Find(name); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ConstIterator Find(Name name) const
+        { return m_delegate_handlers.Find(name); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Contains(Name name) const
+        { return m_delegate_handlers.Contains(name); }
+
+    HYP_DEF_STL_BEGIN_END(
+        m_delegate_handlers.Begin(),
+        m_delegate_handlers.End()
+    )
+
+private:
+    FlatMap<Name, DelegateHandler>  m_delegate_handlers;
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
@@ -297,6 +404,7 @@ private:
 
 using functional::Delegate;
 using functional::DelegateHandler;
+using functional::DelegateHandlerSet;
 
 } // namespace hyperion
 

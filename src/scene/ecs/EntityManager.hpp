@@ -129,10 +129,9 @@ public:
 
     /*! \brief Processes all Systems in the SystemExecutionGroup.
      *
-     *  \param[in] entity_manager The EntityManager to use.
-     *  \param[in] delta The delta time to use.
+     *  \param[in] delta The delta time value
      */
-    void Process(EntityManager &entity_manager, GameCounter::TickUnit delta);
+    void Process(GameCounter::TickUnit delta);
 
 private:
     TypeMap<UniquePtr<SystemBase>>  m_systems;
@@ -649,7 +648,7 @@ public:
     template <class SystemType, class ...Args>
     SystemType *AddSystem(Args &&... args)
     {
-        return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>::Construct(std::forward<Args>(args)...)));
+        return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>(new SystemType(*this, std::forward<Args>(args)...))));
     }
 
     void Update(GameCounter::TickUnit delta);

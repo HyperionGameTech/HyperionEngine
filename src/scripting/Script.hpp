@@ -4,6 +4,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/UUID.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
@@ -41,18 +42,21 @@ struct ScriptDesc
 
 
 static constexpr SizeType script_max_path_length = 1024;
+static constexpr SizeType script_max_class_name_length = 1024;
 
 struct ManagedScript
 {
+    UUID    uuid;
     char    path[script_max_path_length];
     char    assembly_path[script_max_path_length];
+    char    class_name[script_max_class_name_length];
     uint32  state;
     uint64  last_modified_timestamp;
 };
 
 static_assert(std::is_standard_layout_v<ManagedScript>, "ManagedScript struct must be standard layout");
-static_assert(std::is_trivial_v<ManagedScript>, "ManagedScript struct must be a trivial type");
-static_assert(sizeof(ManagedScript) == 2064, "ManagedScript struct size must match C# struct size");
+static_assert(std::is_trivially_copyable_v<ManagedScript>, "ManagedScript struct must be a trivial type");
+static_assert(sizeof(ManagedScript) == 3104, "ManagedScript struct size must match C# struct size");
 
 class HYP_API Script
 {

@@ -289,9 +289,9 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 
 } // namespace terrain
 
-void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void TerrainSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, terrain_component, transform_component, mesh_component] : entity_manager.GetEntitySet<TerrainComponent, TransformComponent, MeshComponent>()) {
+    for (auto [entity_id, terrain_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<TerrainComponent, TransformComponent, MeshComponent>()) {
         if (!(terrain_component.flags & TERRAIN_COMPONENT_FLAG_INIT)) {
             mesh_component.material = CreateObject<Material>(HYP_NAME(terrain_material));
             mesh_component.material->SetBucket(BUCKET_OPAQUE);
@@ -378,7 +378,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                 AssertThrowMsg(mesh.IsValid(), "Terrain mesh is invalid");
                 InitObject(mesh);
 
-                entity_manager.PushCommand([state, coord = patch_info.coord, mesh = std::move(mesh), material = mesh_component.material](EntityManager &mgr, GameCounter::TickUnit delta) mutable
+                GetEntityManager().PushCommand([state, coord = patch_info.coord, mesh = std::move(mesh), material = mesh_component.material](EntityManager &mgr, GameCounter::TickUnit delta) mutable
                 {
                     const ID<Entity> patch_entity = state->GetPatchEntity(coord);
 
@@ -469,7 +469,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                 };
 
                 // add command to add the entity
-                entity_manager.PushCommand([state, patch_info, translation = transform_component.transform.GetTranslation()](EntityManager &mgr, GameCounter::TickUnit delta)
+                GetEntityManager().PushCommand([state, patch_info, translation = transform_component.transform.GetTranslation()](EntityManager &mgr, GameCounter::TickUnit delta)
                 {
                     const ID<Entity> patch_entity = mgr.AddEntity();
 
@@ -556,7 +556,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
                 }
 
                 // Push command to remove the entity
-                entity_manager.PushCommand([state, update](EntityManager &mgr, GameCounter::TickUnit delta)
+                GetEntityManager().PushCommand([state, update](EntityManager &mgr, GameCounter::TickUnit delta)
                 {
                     const ID<Entity> patch_entity = state->GetPatchEntity(update.coord);
 
@@ -592,7 +592,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
             }
             default: {
                 // Push command to update patch state
-                entity_manager.PushCommand([state, update](EntityManager &mgr, GameCounter::TickUnit delta)
+                GetEntityManager().PushCommand([state, update](EntityManager &mgr, GameCounter::TickUnit delta)
                 {
                     const ID<Entity> patch_entity = state->GetPatchEntity(update.coord);
 
@@ -632,7 +632,7 @@ void TerrainSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit
 
                 // Push command to update patch state
                 // @FIXME: thread safety issues with using state here
-                entity_manager.PushCommand([patch_coord = it.first, is_in_range, state](EntityManager &mgr, GameCounter::TickUnit delta)
+                GetEntityManager().PushCommand([patch_coord = it.first, is_in_range, state](EntityManager &mgr, GameCounter::TickUnit delta)
                 {
                     const ID<Entity> entity = state->GetPatchEntity(patch_coord);
 

@@ -14,18 +14,34 @@ namespace Hyperion
         Errored = 0x8
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 2064)]
+    [StructLayout(LayoutKind.Sequential, Size = 3104)]
     public unsafe struct ManagedScript
     {
+        private Guid guid;
+
         private fixed byte path[1024];
 
         private fixed byte assemblyPath[1024];
+
+        private fixed byte className[1024];
 
         [MarshalAs(UnmanagedType.U4)]
         private uint state;
 
         [MarshalAs(UnmanagedType.U8)]
         public ulong lastModifiedTimestamp;
+
+        public Guid Guid
+        {
+            get
+            {
+                return guid;
+            }
+            set
+            {
+                guid = value;
+            }
+        }
 
         public string Path
         {
@@ -58,6 +74,25 @@ namespace Hyperion
             set
             {
                 fixed (byte* p = assemblyPath)
+                {
+                    byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+                    Marshal.Copy(bytes, 0, (IntPtr)p, bytes.Length);
+                }
+            }
+        }
+
+        public string ClassName
+        {
+            get
+            {
+                fixed (byte* p = className)
+                {
+                    return Marshal.PtrToStringAnsi((IntPtr)p);
+                }
+            }
+            set
+            {
+                fixed (byte* p = className)
                 {
                     byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
                     Marshal.Copy(bytes, 0, (IntPtr)p, bytes.Length);
@@ -197,8 +232,6 @@ namespace Hyperion
 
             if (lastModifiedTimestamp > managedScript.LastModifiedTimestamp)
             {
-                Console.WriteLine("File {0} has been modified at {1}. Previous timestamp was {2}", managedScript.Path, lastModifiedTimestamp, managedScript.LastModifiedTimestamp);
-
                 managedScript.State |= ManagedScriptState.Dirty;
                 managedScript.LastModifiedTimestamp = lastModifiedTimestamp;
             }

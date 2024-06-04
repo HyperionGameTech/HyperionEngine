@@ -10,15 +10,15 @@
 
 namespace hyperion {
 
-void SkySystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void SkySystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    SkyComponent &sky_component = entity_manager.GetComponent<SkyComponent>(entity);
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    SkyComponent &sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     if (!sky_component.render_component) {
-        sky_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<SkydomeRenderer>(
+        sky_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<SkydomeRenderer>(
             Name::Unique("sky_renderer")
         );
     }
@@ -51,21 +51,21 @@ void SkySystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
     }
 }
 
-void SkySystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void SkySystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    SkyComponent &sky_component = entity_manager.GetComponent<SkyComponent>(entity);
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    SkyComponent &sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     if (sky_component.render_component) {
-        entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<SkydomeRenderer>(sky_component.render_component->GetName());
+        GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<SkydomeRenderer>(sky_component.render_component->GetName());
 
         sky_component.render_component = nullptr;
     }
 }
 
-void SkySystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void SkySystem::Process(GameCounter::TickUnit delta)
 {
     // do nothing
 }

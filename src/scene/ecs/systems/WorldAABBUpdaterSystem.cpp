@@ -6,12 +6,12 @@
 
 namespace hyperion {
 
-void WorldAABBUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void WorldAABBUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    BoundingBoxComponent &bounding_box_component = entity_manager.GetComponent<BoundingBoxComponent>(entity);
-    TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
+    BoundingBoxComponent &bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
+    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
     bounding_box_component.world_aabb = BoundingBox::Empty();
 
@@ -23,18 +23,18 @@ void WorldAABBUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
 
     bounding_box_component.transform_hash_code = transform_component.transform.GetHashCode();
 
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-void WorldAABBUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void WorldAABBUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 }
 
-void WorldAABBUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : entity_manager.GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>()) {
+    for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>()) {
         const BoundingBox local_aabb = bounding_box_component.local_aabb;
         BoundingBox world_aabb = bounding_box_component.world_aabb;
 

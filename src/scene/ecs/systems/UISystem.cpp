@@ -7,18 +7,18 @@
 
 namespace hyperion {
 
-void UISystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void UISystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
 }
 
-void UISystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void UISystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 }
 
-void UISystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void UISystem::Process(GameCounter::TickUnit delta)
 {
     // do nothing
 }

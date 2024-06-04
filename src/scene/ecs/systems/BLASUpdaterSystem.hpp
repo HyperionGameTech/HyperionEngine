@@ -17,12 +17,17 @@ class BLASUpdaterSystem : public System<
 >
 {
 public:
+    BLASUpdaterSystem(EntityManager &entity_manager)
+        : System(entity_manager)
+    {
+    }
+
     virtual ~BLASUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity) override;
-    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity) override;
+    virtual void OnEntityAdded(ID<Entity> entity) override;
+    virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
+    virtual void Process(GameCounter::TickUnit delta) override;
 };
 
 } // namespace hyperion

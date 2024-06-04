@@ -28,9 +28,14 @@ class TerrainSystem : public System<
 >
 {
 public:
+    TerrainSystem(EntityManager &entity_manager)
+        : System(entity_manager)
+    {
+    }
+    
     virtual ~TerrainSystem() override = default;
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
+    virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
     struct TerrainGenerationResult
