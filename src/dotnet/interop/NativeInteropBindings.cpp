@@ -15,6 +15,8 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
+#include <dotnet/interop/ManagedObject.hpp>
+#include <dotnet/DotNetSystem.hpp>
 
 using namespace hyperion;
 using namespace hyperion::dotnet;
@@ -51,20 +53,23 @@ HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version
     return true;
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_method_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_method_fptr)
 {
     AssertThrow(class_holder != nullptr);
 
     class_holder->SetInvokeMethodFunction(invoke_method_fptr);
+
+    // @TODO: Store the assembly guid somewhere
 }
 
-HYP_EXPORT void ManagedClass_Create(ClassHolder *class_holder, int32 type_hash, const char *type_name, ManagedClass *out_managed_class)
+HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, int32 type_hash, const char *type_name, ManagedClass *out_managed_class)
 {
+    AssertThrow(assembly_guid != nullptr);
     AssertThrow(class_holder != nullptr);
 
     Class *class_object = class_holder->GetOrCreateClassObject(type_hash, type_name);
 
-    *out_managed_class = ManagedClass { type_hash, class_object };
+    *out_managed_class = ManagedClass { type_hash, class_object, *assembly_guid };
 }
 
 HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)
@@ -112,6 +117,25 @@ HYP_EXPORT void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, C
     }
 
     managed_class.class_object->SetFreeObjectFunction(free_object_fptr);
+}
+
+HYP_EXPORT void NativeInterop_AddMethodToCache(ManagedGuid *assembly_guid, ManagedGuid *method_guid, void *method_info_ptr)
+{
+    AssertThrow(assembly_guid != nullptr);
+    AssertThrow(method_guid != nullptr);
+    AssertThrow(method_info_ptr != nullptr);
+
+    DotNetSystem::GetInstance().AddMethodToCache(*assembly_guid, *method_guid, method_info_ptr);
+}
+
+HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ManagedObject *out_managed_object)
+{
+    AssertThrow(assembly_guid != nullptr);
+    AssertThrow(object_guid != nullptr);
+    AssertThrow(object_ptr != nullptr);
+    AssertThrow(out_managed_object != nullptr);
+
+    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_managed_object);
 }
 
 } // extern "C"

@@ -9,6 +9,7 @@ namespace Hyperion
     internal struct StoredManagedMethod
     {
         public MethodInfo methodInfo;
+        public Guid assemblyGuid;
     }
 
     internal class ManagedMethodCache
@@ -40,12 +41,45 @@ namespace Hyperion
             return null;
         }
 
-        public void AddMethod(Guid guid, MethodInfo methodInfo)
+        public void AddMethod(Guid assemblyGuid, Guid methodGuid, MethodInfo methodInfo)
         {
-            methodCache.Add(guid, new StoredManagedMethod
+            if (methodCache.ContainsKey(methodGuid))
             {
-                methodInfo = methodInfo
+                if (methodCache[methodGuid].assemblyGuid == assemblyGuid)
+                {
+                    return;
+                }
+
+                throw new Exception("Method already exists in cache for a different assembly!");
+            }
+
+            methodCache.Add(methodGuid, new StoredManagedMethod
+            {
+                methodInfo = methodInfo,
+                assemblyGuid = assemblyGuid
             });
+        }
+
+        public int RemoveMethodsForAssembly(Guid assemblyGuid)
+        {
+            List<Guid> keysToRemove = new List<Guid>();
+
+            foreach (KeyValuePair<Guid, StoredManagedMethod> kvp in methodCache)
+            {
+                if (kvp.Value.assemblyGuid == assemblyGuid)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            int numKeysToRemove = keysToRemove.Count;
+
+            foreach (Guid key in keysToRemove)
+            {
+                methodCache.Remove(key);
+            }
+
+            return numKeysToRemove;
         }
     }
 }

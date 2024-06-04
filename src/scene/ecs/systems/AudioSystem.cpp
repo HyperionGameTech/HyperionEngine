@@ -9,11 +9,11 @@
 
 namespace hyperion {
 
-void AudioSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void AudioSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    AudioComponent &audio_component = entity_manager.GetComponent<AudioComponent>(entity);
+    AudioComponent &audio_component = GetEntityManager().GetComponent<AudioComponent>(entity);
 
     if (audio_component.audio_source.IsValid()) {
         InitObject(audio_component.audio_source);
@@ -22,14 +22,14 @@ void AudioSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity
     }
 }
 
-void AudioSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void AudioSystem::Process(GameCounter::TickUnit delta)
 {
     if (!AudioManager::GetInstance()->IsInitialized()) {
         return;
     }
 
-    if (entity_manager.GetScene()->IsAudioListener()) {
-        const Handle<Camera> &camera = entity_manager.GetScene()->GetCamera();
+    if (GetEntityManager().GetScene()->IsAudioListener()) {
+        const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
         if (camera.IsValid()) {
             AudioManager::GetInstance()->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
@@ -37,7 +37,7 @@ void AudioSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit d
         }
     }
 
-    for (auto [entity_id, audio_component, transform_component] : entity_manager.GetEntitySet<AudioComponent, TransformComponent>()) {
+    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>()) {
         if (!audio_component.audio_source.IsValid()) {
             audio_component.playback_state.status = AUDIO_PLAYBACK_STATUS_STOPPED;
             audio_component.playback_state.current_time = 0.0f;

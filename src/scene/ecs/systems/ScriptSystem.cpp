@@ -13,31 +13,66 @@
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
 #include <dotnet/runtime/ManagedHandle.hpp>
 
+#include <scripting/ScriptingService.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
 
-void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+ScriptSystem::ScriptSystem(EntityManager &entity_manager)
+    : System(entity_manager)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    m_delegate_handlers.Add(g_engine->GetScriptingService()->OnScriptStateChanged.Bind([this](const ManagedScript &script)
+    {
+        Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    ScriptComponent &script_component = entity_manager.GetComponent<ScriptComponent>(entity);
+        HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Detected script state change for script '{}' (assembly: {}, class: {}, state: {})",
+            script.uuid, script.assembly_path, script.class_name, script.state);
 
-    if (script_component.flags & SCF_INIT) {
+        if (!(script.state & uint32(CompiledScriptState::COMPILED))) {
+            return;
+        }
+
+        for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>()) {
+            if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path)) {
+                HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Reloading script for entity #{} (assembly {}, class: {})",
+                    entity.Value(), script_component.script.assembly_path, script_component.script.class_name);
+
+                // Reload the script
+                script_component.flags |= ScriptComponentFlags::RELOADING;
+
+                OnEntityRemoved(entity);
+                OnEntityAdded(entity);
+
+                script_component.flags &= ~ScriptComponentFlags::RELOADING;
+
+                HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Script reloaded for entity #{}", entity.Value());
+            }
+        }
+    }));
+}
+
+void ScriptSystem::OnEntityAdded(ID<Entity> entity)
+{
+    SystemBase::OnEntityAdded(entity);
+
+    ScriptComponent &script_component = GetEntityManager().GetComponent<ScriptComponent>(entity);
+
+    if (script_component.flags & ScriptComponentFlags::INITIALIZED) {
         return;
     }
 
     script_component.assembly = nullptr;
     script_component.object = nullptr;
 
-    if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(script_component.script_info.assembly_name.Data())) {
-        if (dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName(script_component.script_info.class_name.Data())) {
+    if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(script_component.script.assembly_path)) {
+        if (dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             script_component.object = class_ptr->NewObject();
 
             if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                 script_component.object->InvokeMethod<void, ManagedHandle>(
                     before_init_method_ptr,
-                    CreateManagedHandleFromID(entity_manager.GetScene()->GetID())
+                    CreateManagedHandleFromID(GetEntityManager().GetScene()->GetID())
                 );
             }
 
@@ -53,27 +88,27 @@ void ScriptSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entit
     }
 
     if (!script_component.assembly) {
-        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script_info.assembly_name);
+        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script.assembly_path);
 
         return;
     }
 
     if (!script_component.object) {
-        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script_info.class_name, script_component.script_info.assembly_name.Data());
+        HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
 
         return;
     }
 
-    script_component.flags |= SCF_INIT;
+    script_component.flags |= ScriptComponentFlags::INITIALIZED;
 }
 
-void ScriptSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    ScriptComponent &script_component = entity_manager.GetComponent<ScriptComponent>(entity);
+    ScriptComponent &script_component = GetEntityManager().GetComponent<ScriptComponent>(entity);
 
-    if (!(script_component.flags & SCF_INIT)) {
+    if (!(script_component.flags & ScriptComponentFlags::INITIALIZED)) {
         return;
     }
 
@@ -88,13 +123,13 @@ void ScriptSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> ent
     script_component.object = nullptr;
     script_component.assembly = nullptr;
 
-    script_component.flags &= ~SCF_INIT;
+    script_component.flags &= ~ScriptComponentFlags::INITIALIZED;
 }
 
-void ScriptSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void ScriptSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, script_component] : entity_manager.GetEntitySet<ScriptComponent>()) {
-        if (!(script_component.flags & SCF_INIT)) {
+    for (auto [entity_id, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>()) {
+        if (!(script_component.flags & ScriptComponentFlags::INITIALIZED)) {
             continue;
         }
 

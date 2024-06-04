@@ -9,11 +9,11 @@
 
 namespace hyperion {
 
-void EntityMeshDirtyStateSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void EntityMeshDirtyStateSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
@@ -21,14 +21,14 @@ void EntityMeshDirtyStateSystem::OnEntityAdded(EntityManager &entity_manager, ID
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-void EntityMeshDirtyStateSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 }
 
-void EntityMeshDirtyStateSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, mesh_component, transform_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent>()) {
+    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>()) {
         // Update the material
         if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty()) {
             mesh_component.material->EnqueueRenderUpdates();

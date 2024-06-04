@@ -5,35 +5,34 @@
 
 #include <core/Handle.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
 #include <dotnet/Assembly.hpp>
 #include <dotnet/Object.hpp>
+
+#include <scripting/Script.hpp>
 
 #include <HashCode.hpp>
 
 namespace hyperion {
 
-using ScriptComponentFlags = uint32;
-
-enum ScriptComponentFlagBits : ScriptComponentFlags
+enum class ScriptComponentFlags : uint32
 {
-    SCF_NONE = 0x0,
-    SCF_INIT = 0x1
+    NONE        = 0x0,
+    INITIALIZED = 0x1,
+    RELOADING   = 0x2
 };
 
-struct ScriptInfo
-{
-    String  assembly_name;
-    String  class_name;
-};
+HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 
 struct ScriptComponent
 {
-    ScriptInfo                  script_info;
+    ManagedScript                   script { };
 
-    RC<dotnet::Assembly>        assembly;
-    UniquePtr<dotnet::Object>   object;
+    RC<dotnet::Assembly>            assembly;
+    UniquePtr<dotnet::Object>       object;
 
-    ScriptComponentFlags        flags = SCF_NONE;
+    EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
 };
 
 } // namespace hyperion

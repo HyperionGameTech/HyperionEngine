@@ -9,12 +9,14 @@ namespace Hyperion
     internal class StoredManagedObject : IDisposable
     {
         public Guid guid;
+        public Guid assemblyGuid;
         public object obj;
         public GCHandle gcHandle;
 
-        public StoredManagedObject(Guid guid, object obj)
+        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj)
         {
-            this.guid = guid;
+            this.guid = objectGuid;
+            this.assemblyGuid = assemblyGuid;
             this.obj = obj;
             this.gcHandle = GCHandle.Alloc(this.obj);
         }
@@ -54,15 +56,15 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedObject> objects = new Dictionary<Guid, StoredManagedObject>();
         private object lockObject = new object();
 
-        public ManagedObject AddObject(object obj)
+        public ManagedObject AddObject(Guid assemblyGuid, Guid objectGuid, object obj)
         {
+            Logger.Log(LogType.Debug, $"Adding object {obj} to cache for assembly {assemblyGuid}");
+
             lock (lockObject)
             {
-                Guid guid = Guid.NewGuid();
+                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj);
 
-                StoredManagedObject storedObject = new StoredManagedObject(guid, obj);
-
-                objects.Add(guid, storedObject);
+                objects.Add(objectGuid, storedObject);
 
                 return storedObject.ToManagedObject();
             }
@@ -81,7 +83,7 @@ namespace Hyperion
             }
         }
 
-        public void RemoveObject(Guid guid)
+        public bool RemoveObject(Guid guid)
         {
             lock (lockObject)
             {
@@ -89,7 +91,37 @@ namespace Hyperion
                 {
                     objects[guid].Dispose();
                     objects.Remove(guid);
+                    
+                    return true;
                 }
+            }
+            
+            return false;
+        }
+
+        public int RemoveObjectsForAssembly(Guid assemblyGuid)
+        {
+            lock (lockObject)
+            {
+                List<Guid> keysToRemove = new List<Guid>();
+
+                foreach (KeyValuePair<Guid, StoredManagedObject> entry in objects)
+                {
+                    Logger.Log(LogType.Debug, $"Checking object {entry.Key} for assembly {assemblyGuid}. Object assembly: {entry.Value.assemblyGuid}");
+
+                    if (entry.Value.assemblyGuid == assemblyGuid)
+                    {
+                        keysToRemove.Add(entry.Key);
+                    }
+                }
+
+                foreach (Guid key in keysToRemove)
+                {
+                    objects[key].Dispose();
+                    objects.Remove(key);
+                }
+
+                return keysToRemove.Count;
             }
         }
     }

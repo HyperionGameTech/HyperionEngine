@@ -48,6 +48,7 @@ namespace Hyperion
     {
         private int typeHash;
         private IntPtr classObjectPtr;
+        private Guid assemblyGuid;
         private Guid newObjectGuid;
         private Guid freeObjectGuid;
 

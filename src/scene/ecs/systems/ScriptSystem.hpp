@@ -6,6 +6,8 @@
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 namespace hyperion {
 
 class ScriptSystem : public System<
@@ -13,6 +15,7 @@ class ScriptSystem : public System<
 >
 {
 public:
+    ScriptSystem(EntityManager &entity_manager);
     virtual ~ScriptSystem() override = default;
 
     // This system does not support parallel execution because scripts may modify
@@ -20,10 +23,13 @@ public:
     virtual bool AllowParallelExecution() const override
         { return false; }
 
-    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity) override;
-    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity) override;
+    virtual void OnEntityAdded(ID<Entity> entity) override;
+    virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override;
+    virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    DelegateHandlerSet  m_delegate_handlers;
 };
 
 } // namespace hyperion

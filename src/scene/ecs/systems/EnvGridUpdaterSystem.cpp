@@ -17,12 +17,12 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvGrid);
 
-void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void EnvGridUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    EnvGridComponent &env_grid_component = entity_manager.GetComponent<EnvGridComponent>(entity);
-    BoundingBoxComponent &bounding_box_component = entity_manager.GetComponent<BoundingBoxComponent>(entity);
+    EnvGridComponent &env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
+    BoundingBoxComponent &bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
 
     if (env_grid_component.render_component) {
         return;
@@ -44,7 +44,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entit
         HYP_LOG(EnvGrid, LogLevel::WARNING, "EnvGridUpdaterSystem::OnEntityAdded: Entity #{} has invalid bounding box", entity.Value());
     }
 
-    env_grid_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<EnvGrid>(
+    env_grid_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<EnvGrid>(
         Name::Unique("env_grid_renderer"),
         EnvGridOptions {
             env_grid_component.env_grid_type,
@@ -55,21 +55,21 @@ void EnvGridUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entit
     );
 }
 
-void EnvGridUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    EnvGridComponent &env_grid_component = entity_manager.GetComponent<EnvGridComponent>(entity);
+    EnvGridComponent &env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
     if (env_grid_component.render_component) {
-        entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<EnvGrid>(env_grid_component.render_component->GetName());
+        GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<EnvGrid>(env_grid_component.render_component->GetName());
         env_grid_component.render_component = nullptr;
     }
 }
 
-void EnvGridUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>()) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         const BoundingBox &world_aabb = bounding_box_component.world_aabb;

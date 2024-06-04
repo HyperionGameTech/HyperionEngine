@@ -49,11 +49,11 @@ struct RENDER_COMMAND(UpdateRenderProxies) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void EntityDrawDataUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
@@ -75,18 +75,18 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, I
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-void EntityDrawDataUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void EntityDrawDataUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    MeshComponent &mesh_component = entity_manager.GetComponent<MeshComponent>(entity);
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 }
 
-void EntityDrawDataUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void EntityDrawDataUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity, mesh_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }

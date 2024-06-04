@@ -11,24 +11,12 @@
 
 namespace hyperion {
 namespace dotnet {
+
+struct ManagedObject;
+
 namespace detail {
 
-class DotNetImplBase
-{
-public:
-    virtual ~DotNetImplBase() = default;
-
-    virtual void Initialize() = 0;
-    virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
-
-    virtual void *GetDelegate(
-        const TChar *assembly_path,
-        const TChar *type_name,
-        const TChar *method_name,
-        const TChar *delegate_type_name
-    ) const = 0;
-};
-
+class DotNetImplBase;
 class DotNetImpl;
 
 } // namespace detail
@@ -47,6 +35,10 @@ public:
     ~DotNetSystem();
 
     RC<Assembly> LoadAssembly(const char *path) const;
+    bool UnloadAssembly(ManagedGuid guid) const;
+
+    void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const;
+    void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const;
 
     bool IsEnabled() const;
 
@@ -56,6 +48,8 @@ public:
     void Shutdown();
 
 private:
+    bool EnsureInitialized() const;
+
     bool                        m_is_initialized;
     RC<detail::DotNetImplBase>  m_impl;
 };

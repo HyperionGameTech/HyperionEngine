@@ -16,6 +16,13 @@ struct ManagedGuid
 {
     uint64  low;
     uint64  high;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsValid() const
+    {
+        return low != 0 || high != 0;
+    }
 };
 
 static_assert(sizeof(ManagedGuid) == 16, "ManagedGuid size mismatch with C#");

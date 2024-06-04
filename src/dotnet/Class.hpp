@@ -8,6 +8,7 @@
 
 #include <core/containers/HashMap.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/String.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>
@@ -18,6 +19,7 @@ namespace hyperion::dotnet {
 class Object;
 class Class;
 class ClassHolder;
+class Assembly;
 } // namespace hyperion::dotnet
 
 extern "C" {
@@ -26,6 +28,7 @@ struct ManagedClass
 {
     hyperion::int32                 type_hash;
     hyperion::dotnet::Class         *class_object;
+    hyperion::dotnet::ManagedGuid   assembly_guid;
     hyperion::dotnet::ManagedGuid   new_object_guid;
     hyperion::dotnet::ManagedGuid   free_object_guid;
 };
@@ -143,6 +146,8 @@ public:
      */
     const HashMap<String, ManagedMethod> &GetMethods() const
         { return m_methods; }
+
+    void EnsureLoaded() const;
 
     /*! \brief Create a new managed object of this class.
      *     The new object will be managed by the .NET runtime and will be freed when the unique pointer goes out of scope.

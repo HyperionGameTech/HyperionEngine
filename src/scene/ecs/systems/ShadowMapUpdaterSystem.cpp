@@ -15,12 +15,12 @@
 
 namespace hyperion {
 
-void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void ShadowMapUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
-    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
+    ShadowMapComponent &shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
+    LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
     if (!light_component.light) {
         return;
@@ -32,7 +32,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
 
     switch (light_component.light->GetType()) {
     case LightType::DIRECTIONAL:
-        shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<DirectionalLightShadowRenderer>(
+        shadow_map_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
             shadow_map_component.resolution,
             shadow_map_component.mode
@@ -40,7 +40,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
 
         break;
     case LightType::POINT:
-        shadow_map_component.render_component = entity_manager.GetScene()->GetEnvironment()->AddRenderComponent<PointLightShadowRenderer>(
+        shadow_map_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<PointLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_point"),
             light_component.light,
             shadow_map_component.resolution
@@ -58,21 +58,21 @@ void ShadowMapUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Ent
     }
 }
 
-void ShadowMapUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    ShadowMapComponent &shadow_map_component = entity_manager.GetComponent<ShadowMapComponent>(entity);
-    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
+    ShadowMapComponent &shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
+    LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
     if (shadow_map_component.render_component) {
         switch (light_component.light->GetType()) {
         case LightType::DIRECTIONAL:
-            entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<DirectionalLightShadowRenderer>(shadow_map_component.render_component->GetName());
+            GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<DirectionalLightShadowRenderer>(shadow_map_component.render_component->GetName());
 
             break;
         case LightType::POINT:
-            entity_manager.GetScene()->GetEnvironment()->RemoveRenderComponent<PointLightShadowRenderer>(shadow_map_component.render_component->GetName());
+            GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<PointLightShadowRenderer>(shadow_map_component.render_component->GetName());
 
             break;
         default:
@@ -83,9 +83,9 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<E
     }
 }
 
-void ShadowMapUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, shadow_map_component, light_component, transform_component] : entity_manager.GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>()) {
+    for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>()) {
         if (!light_component.light) {
             continue;
         }

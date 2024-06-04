@@ -107,25 +107,33 @@ public:
         return m_component_infos[index];
     }
 
-    virtual void OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity_id)
+    virtual void OnEntityAdded(ID<Entity> entity_id)
     {
         m_initialized_entities.Insert(entity_id);
     }
 
-    virtual void OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity_id)
+    virtual void OnEntityRemoved(ID<Entity> entity_id)
     {
         m_initialized_entities.Erase(entity_id);
     }
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) = 0;
+    virtual void Process(GameCounter::TickUnit delta) = 0;
 
 protected:
-    SystemBase(Array<TypeID> &&component_type_ids, Array<ComponentInfo> &&component_infos)
-        : m_component_type_ids(std::move(component_type_ids)),
+    SystemBase(EntityManager &entity_manager, Array<TypeID> &&component_type_ids, Array<ComponentInfo> &&component_infos)
+        : m_entity_manager(entity_manager),
+          m_component_type_ids(std::move(component_type_ids)),
           m_component_infos(std::move(component_infos))
     {
         AssertThrowMsg(m_component_type_ids.Size() == m_component_infos.Size(), "Component type ID count and component infos count mismatch");
     }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    EntityManager &GetEntityManager()
+        { return m_entity_manager; }
+
+    EntityManager           &m_entity_manager;
 
     Array<TypeID>           m_component_type_ids;
     Array<ComponentInfo>    m_component_infos;
@@ -144,8 +152,12 @@ class System : public SystemBase
 public:
     using ComponentDescriptorTypes = Tuple< ComponentDescriptors... >;
 
-    System()
-        : SystemBase({ TypeID::ForType<typename ComponentDescriptors::Type>()... }, { ComponentInfo(ComponentDescriptors())... })
+    System(EntityManager &entity_manager)
+        : SystemBase(
+              entity_manager,
+              { TypeID::ForType<typename ComponentDescriptors::Type>()... },
+              { ComponentInfo(ComponentDescriptors())... }
+          )
     {
     }
 
@@ -155,7 +167,7 @@ public:
     System &operator=(System &&other) noexcept  = delete;
     virtual ~System() override                  = default;
 
-    virtual void Process(EntityManager &entity_manager, GameCounter::TickUnit delta) override = 0;
+    virtual void Process(GameCounter::TickUnit delta) override = 0;
 };
 
 } // namespace hyperion

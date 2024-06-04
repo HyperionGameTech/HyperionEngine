@@ -253,7 +253,7 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
             }
 
             if (system_it.second->ActsOnComponents(component_type_ids, true)) {
-                system_it.second->OnEntityAdded(*this, entity);
+                system_it.second->OnEntityAdded(entity);
             }
         }
     }
@@ -273,7 +273,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
             if (system_it.second->ActsOnComponents(component_type_ids, true)) {
-                system_it.second->OnEntityRemoved(*this, entity);
+                system_it.second->OnEntityRemoved(entity);
             }
         }
     }
@@ -298,7 +298,7 @@ void EntityManager::Update(GameCounter::TickUnit delta)
         puts("----------");
 #endif
 
-        system_execution_group.Process(*this, delta);
+        system_execution_group.Process(delta);
 
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
         const auto stop = std::chrono::high_resolution_clock::now();
@@ -311,7 +311,7 @@ void EntityManager::Update(GameCounter::TickUnit delta)
     }
 }
 
-void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void SystemExecutionGroup::Process(GameCounter::TickUnit delta)
 {
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
     Array<Pair<ThreadMask, double>> times;
@@ -329,7 +329,7 @@ void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::T
                 const auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-                it.second->Process(entity_manager, delta);
+                it.second->Process(delta);
 
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
                 auto stop = std::chrono::high_resolution_clock::now();
@@ -350,7 +350,7 @@ void SystemExecutionGroup::Process(EntityManager &entity_manager, GameCounter::T
             const auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-            it.second->Process(entity_manager, delta);
+            it.second->Process(delta);
 
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
             const auto stop = std::chrono::high_resolution_clock::now();

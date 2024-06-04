@@ -9,6 +9,7 @@ namespace Hyperion
     public class ScriptTracker
     {
         private FileSystemWatcher watcher;
+
         private ScriptEventCallback callback;
         private IntPtr callbackSelfPtr;
 
@@ -34,7 +35,12 @@ namespace Hyperion
 
         public void Update()
         {
-            Console.WriteLine("ScriptTracker.Update() called from C#. Currently have {0} scripts processing", processingScripts.Count);
+            if (processingScripts.Count == 0)
+            {
+                return;
+            }
+
+            Logger.Log(LogType.Info, "Processing {0} scripts...", processingScripts.Count);
 
             List<string> scriptsToRemove = new List<string>();
 
@@ -46,8 +52,6 @@ namespace Hyperion
 
                     continue;
                 }
-
-                Console.WriteLine("ScriptTracker.Update() : {0} is processing", entry.Key);
 
                 if (entry.Value.Get().State != ManagedScriptState.Processing)
                 {
@@ -66,14 +70,31 @@ namespace Hyperion
                 // just testing for now
                 if (scriptCompiler != null)
                 {
-                    scriptCompiler.Compile(entry.Key);
+                    ref ManagedScript managedScript = ref entry.Value.Get();
 
-                    entry.Value.Get().State = ManagedScriptState.Compiled;
+                    try
+                    {
+                        if (scriptCompiler.Compile(ref managedScript))
+                        {
+                            managedScript.State |= ManagedScriptState.Compiled;
+                        }
+                        else
+                        {
+                            managedScript.State |= ManagedScriptState.Errored;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log(LogType.Error, "Error compiling script {0}: {1}", entry.Key, e.Message);
+
+                        managedScript.State |= ManagedScriptState.Errored;
+                    }
+
+                    managedScript.State &= ~ManagedScriptState.Processing;
+                    managedScript.State &= ~ManagedScriptState.Dirty;
                 }
                 else
                 {
-                    Console.WriteLine("ScriptTracker.Update() : scriptCompiler is null");
-
                     entry.Value.Get().State = ManagedScriptState.Errored;
                 }
             }
@@ -86,11 +107,9 @@ namespace Hyperion
 
         private void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            Console.WriteLine("ScriptTracker.OnFileChanged() : {0}", e.FullPath);
-
             if (processingScripts.ContainsKey(e.FullPath))
             {
-                Console.WriteLine("ScriptTracker.OnFileChanged() : {0} is already being processed", e.FullPath);
+                Logger.Log(LogType.Info, "Script {0} is already being processed. Skipping...", e.FullPath);
 
                 return;
             }

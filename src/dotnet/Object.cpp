@@ -21,16 +21,22 @@ Object::Object(Class *class_ptr, ManagedObject managed_object)
 
 Object::~Object()
 {
+    m_class_ptr->EnsureLoaded();
+
     m_class_ptr->GetFreeObjectFunction()(m_managed_object);
 }
 
 void *Object::InvokeMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr)
 {
+    m_class_ptr->EnsureLoaded();
+
     return m_class_ptr->GetParent()->GetInvokeMethodFunction()(method_ptr->guid, m_managed_object.guid, args_vptr, return_value_vptr);
 }
 
 const ManagedMethod *Object::GetMethod(const String &method_name) const
 {
+    m_class_ptr->EnsureLoaded();
+
     auto it = m_class_ptr->GetMethods().Find(method_name);
 
     if (it == m_class_ptr->GetMethods().End()) {

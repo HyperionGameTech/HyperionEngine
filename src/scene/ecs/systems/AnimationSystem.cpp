@@ -7,9 +7,9 @@
 
 namespace hyperion {
 
-void AnimationSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void AnimationSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, animation_component, mesh_component] : entity_manager.GetEntitySet<AnimationComponent, MeshComponent>()) {
+    for (auto [entity_id, animation_component, mesh_component] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>()) {
         if (!mesh_component.skeleton) {
             continue;
         }

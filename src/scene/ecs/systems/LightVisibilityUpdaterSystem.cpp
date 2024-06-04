@@ -8,13 +8,13 @@
 
 namespace hyperion {
 
-void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, ID<Entity> entity)
+void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
-    SystemBase::OnEntityAdded(entity_manager, entity);
+    SystemBase::OnEntityAdded(entity);
 
-    entity_manager.AddTag<EntityTag::LIGHT>(entity);
+    GetEntityManager().AddTag<EntityTag::LIGHT>(entity);
 
-    LightComponent &light_component = entity_manager.GetComponent<LightComponent>(entity);
+    LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
     if (!light_component.light) {
         return;
@@ -26,18 +26,18 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     const Transform initial_transform(light->GetPosition());
 
     // Set initial transform on the TransformComponent
-    TransformComponent &transform_component = entity_manager.GetComponent<TransformComponent>(entity);
+    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
     transform_component.transform = initial_transform;
 
     const Transform transform = transform_component.transform;
 
     { // Add a bounding box component to the entity or update if it already exists
-        BoundingBoxComponent *bounding_box_component = entity_manager.TryGetComponent<BoundingBoxComponent>(entity);
+        BoundingBoxComponent *bounding_box_component = GetEntityManager().TryGetComponent<BoundingBoxComponent>(entity);
 
         if (!bounding_box_component) {
-            entity_manager.AddComponent(entity, BoundingBoxComponent { });
+            GetEntityManager().AddComponent(entity, BoundingBoxComponent { });
 
-            bounding_box_component = &entity_manager.GetComponent<BoundingBoxComponent>(entity);
+            bounding_box_component = &GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
         }
 
         switch (light->GetType()) {
@@ -56,22 +56,22 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     }
 
     { // Add a VisibilityStateComponent if it doesn't exist yet
-        VisibilityStateComponent *visibility_state_component = entity_manager.TryGetComponent<VisibilityStateComponent>(entity);
+        VisibilityStateComponent *visibility_state_component = GetEntityManager().TryGetComponent<VisibilityStateComponent>(entity);
 
         if (!visibility_state_component) {
             // Directional light sources are always visible
             if (light->GetType() == LightType::DIRECTIONAL) {
-                entity_manager.AddComponent(entity, VisibilityStateComponent {
+                GetEntityManager().AddComponent(entity, VisibilityStateComponent {
                     VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
                 });
             } else {
-                entity_manager.AddComponent(entity, VisibilityStateComponent { });
+                GetEntityManager().AddComponent(entity, VisibilityStateComponent { });
             }
         }
     }
 
     //{ // Check if there is a MeshComponent to get the material from
-    //    MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity);
+    //    MeshComponent *mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity);
 
     //    if (mesh_component) {
     //        light->SetMaterial(mesh_component->material);
@@ -80,18 +80,18 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(EntityManager &entity_manager, 
     //}
 }
 
-void LightVisibilityUpdaterSystem::OnEntityRemoved(EntityManager &entity_manager, ID<Entity> entity)
+void LightVisibilityUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
-    SystemBase::OnEntityRemoved(entity_manager, entity);
+    SystemBase::OnEntityRemoved(entity);
 
-    entity_manager.RemoveTag<EntityTag::LIGHT>(entity);
+    GetEntityManager().RemoveTag<EntityTag::LIGHT>(entity);
 }
 
-void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCounter::TickUnit delta)
+void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    const Handle<Camera> &camera = entity_manager.GetScene()->GetCamera();
+    const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
-    for (auto [entity_id, light_component, transform_component, bounding_box_component] : entity_manager.GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!light_component.light) {
             continue;
         }
@@ -115,7 +115,7 @@ void LightVisibilityUpdaterSystem::Process(EntityManager &entity_manager, GameCo
             if (light_component.light->GetType() == LightType::DIRECTIONAL) {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
 
-                VisibilityStateComponent *visibility_state_component = entity_manager.TryGetComponent<VisibilityStateComponent>(entity_id);
+                VisibilityStateComponent *visibility_state_component = GetEntityManager().TryGetComponent<VisibilityStateComponent>(entity_id);
 
                 if (visibility_state_component) {
                     visibility_state_component->flags |= VISIBILITY_STATE_FLAG_INVALIDATED;

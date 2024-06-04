@@ -16,6 +16,8 @@
 #include <util/fs/FsUtil.hpp>
 #include <util/json/JSON.hpp>
 
+#include <dotnet/Class.hpp>
+
 #ifdef HYP_DOTNET
 #include <dotnetcore/hostfxr.h>
 #include <dotnetcore/nethost.h>
@@ -23,12 +25,34 @@
 #endif
 
 namespace hyperion {
-
 namespace dotnet {
-
 namespace detail {
 
-using InitializeAssemblyDelegate = void (*)(void *, const void *);
+class DotNetImplBase
+{
+public:
+    virtual ~DotNetImplBase() = default;
+
+    virtual void Initialize() = 0;
+    virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
+    virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
+
+    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const = 0;
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const = 0;
+
+    virtual void *GetDelegate(
+        const TChar *assembly_path,
+        const TChar *type_name,
+        const TChar *method_name,
+        const TChar *delegate_type_name
+    ) const = 0;
+};
+
+using InitializeAssemblyDelegate = void(*)(ManagedGuid *, ClassHolder *, const char *);
+using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
+
+using AddMethodToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *);
+using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, ManagedObject *);
 
 static Optional<FilePath> FindAssemblyFilePath(const char *path)
 {
@@ -43,7 +67,7 @@ static Optional<FilePath> FindAssemblyFilePath(const char *path)
     if (!filepath.Exists()) {
         HYP_LOG(DotNET, LogLevel::WARNING, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
 
-        filepath = g_asset_manager->GetBasePath() / path;
+        filepath = g_asset_manager->GetBasePath() / "scripts" / "bin" / path;
     }
     
     if (!filepath.Exists()) {
@@ -62,6 +86,9 @@ public:
     DotNetImpl()
         : m_dll(nullptr),
           m_initialize_assembly_fptr(nullptr),
+          m_unload_assembly_fptr(nullptr),
+          m_add_method_to_cache_fptr(nullptr),
+          m_add_object_to_cache_fptr(nullptr),
           m_cxt(nullptr),
           m_init_fptr(nullptr),
           m_get_delegate_fptr(nullptr),
@@ -124,9 +151,49 @@ public:
             "InitializeAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
         );
 
+        m_unload_assembly_fptr = (UnloadAssemblyDelegate)GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("UnloadAssembly"),
+            UNMANAGEDCALLERSONLY_METHOD
+        );
+
+        AssertThrowMsg(
+            m_unload_assembly_fptr != nullptr,
+            "UnloadAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
+        );
+
+        m_add_method_to_cache_fptr = (AddMethodToCacheDelegate)GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("AddMethodToCache"),
+            UNMANAGEDCALLERSONLY_METHOD
+        );
+
+        AssertThrowMsg(
+            m_add_method_to_cache_fptr != nullptr,
+            "AddMethodToCache could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
+        );
+
+        m_add_object_to_cache_fptr = (AddObjectToCacheDelegate)GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("AddObjectToCache"),
+            UNMANAGEDCALLERSONLY_METHOD
+        );
+
+        AssertThrowMsg(
+            m_add_object_to_cache_fptr != nullptr,
+            "AddObjectToCache could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
+        );
+
         // Call the Initialize method in the NativeInterop class directly,
         // to load all the classes and methods into the class object holder
-        m_initialize_assembly_fptr(&m_root_assembly->GetClassObjectHolder(), interop_assembly_path->Data());
+        m_initialize_assembly_fptr(
+            &m_root_assembly->GetGuid(),
+            &m_root_assembly->GetClassObjectHolder(),
+            interop_assembly_path->Data()
+        );
     }
 
     virtual RC<Assembly> LoadAssembly(const char *path) const override
@@ -141,9 +208,38 @@ public:
 
         AssertThrow(m_root_assembly != nullptr);
 
-        m_initialize_assembly_fptr(&assembly->GetClassObjectHolder(), filepath->Data());
+        m_initialize_assembly_fptr(
+            &assembly->GetGuid(),
+            &assembly->GetClassObjectHolder(),
+            filepath->Data()
+        );
 
         return assembly;
+    }
+
+    virtual bool UnloadAssembly(ManagedGuid assembly_guid) const override
+    {
+        HYP_LOG(DotNET, LogLevel::INFO, "Unloading assembly...");
+
+        // if (Class *native_interop_class = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop")) {
+        //     return native_interop_class->InvokeStaticMethod<bool>("UnloadAssembly", &assembly_guid);
+        // }
+        // return false;
+
+        int32 result;
+        m_unload_assembly_fptr(&assembly_guid, &result);
+
+        return bool(result);
+    }
+
+    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const
+    {
+        m_add_method_to_cache_fptr(&assembly_guid, &method_guid, method_info_ptr);
+    }
+
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const
+    {
+        m_add_object_to_cache_fptr(&assembly_guid, &object_guid, object_ptr, out_managed_object);
     }
 
     virtual void *GetDelegate(
@@ -279,6 +375,9 @@ private:
     RC<Assembly>                                m_root_assembly;
 
     InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
+    UnloadAssemblyDelegate                      m_unload_assembly_fptr;
+    AddMethodToCacheDelegate                    m_add_method_to_cache_fptr;
+    AddObjectToCacheDelegate                    m_add_object_to_cache_fptr;
 
     hostfxr_handle                              m_cxt;
     hostfxr_initialize_for_runtime_config_fn    m_init_fptr;
@@ -302,6 +401,14 @@ public:
     {
         return nullptr;
     }
+
+    virtual bool UnloadAssembly(ManagedGuid guid) const override
+    {
+        return false;
+    }
+
+    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const override {}
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const override {}
 
     virtual void *GetDelegate(
         const TChar *assembly_path,
@@ -332,23 +439,59 @@ DotNetSystem::DotNetSystem()
 
 DotNetSystem::~DotNetSystem() = default;
 
-RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
+bool DotNetSystem::EnsureInitialized() const
 {
     if (!IsEnabled()) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not enabled, cannot load assemblies");
+        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not enabled, cannot load/unload assemblies");
 
-        return nullptr;
+        return false;
     }
 
     if (!IsInitialized()) {
-        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not initialized, call Initialize() before attempting to load assemblies");
+        HYP_LOG(DotNET, LogLevel::ERROR, "DotNetSystem not initialized, call Initialize() before attempting to load/unload assemblies");
 
-        return nullptr;
+        return false;
     }
 
     AssertThrow(m_impl != nullptr);
 
+    return true;
+}
+
+RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
+{
+    if (!EnsureInitialized()) {
+        return nullptr;
+    }
+
     return m_impl->LoadAssembly(path);
+}
+
+bool DotNetSystem::UnloadAssembly(ManagedGuid guid) const
+{
+    if (!EnsureInitialized()) {
+        return false;
+    }
+
+    return m_impl->UnloadAssembly(guid);
+}
+
+void DotNetSystem::AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const
+{
+    if (!EnsureInitialized()) {
+        return;
+    }
+
+    m_impl->AddMethodToCache(assembly_guid, method_guid, method_info_ptr);
+}
+
+void DotNetSystem::AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const
+{
+    if (!EnsureInitialized()) {
+        return;
+    }
+
+    m_impl->AddObjectToCache(assembly_guid, object_guid, object_ptr, out_managed_object);
 }
 
 bool DotNetSystem::IsEnabled() const

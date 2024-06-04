@@ -29,7 +29,9 @@ namespace Hyperion
 
             foreach (string directory in directories)
             {
-                BuildProject(directory, false);
+                string moduleName;
+
+                BuildProject(directory, false, out moduleName);
             }
         }
 
@@ -115,15 +117,27 @@ namespace Hyperion
             return System.IO.Path.Combine(projectOutputDirectory, $"{moduleBaseName}.csproj");
         }
 
-        private void BuildProject(string scriptDirectory, bool forceRebuild = false)
+        private string GetAssemblyPath(string moduleName, bool relative = false)
         {
-            string moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
+            if (relative)
+            {
+                return $"{moduleName}.dll";
+            }
+            else
+            {
+                return System.IO.Path.Combine(binaryOutputDirectory, $"{moduleName}.dll");
+            }
+        }
+
+        private bool BuildProject(string scriptDirectory, bool forceRebuild, out string moduleName)
+        {
+            moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
 
             if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
             {
                 Logger.Log(LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
 
-                return;
+                return true;
             }
 
             Logger.Log(LogType.Info, "Rebuilding module {0}...", moduleName);
@@ -138,16 +152,19 @@ namespace Hyperion
                 projectOutputDirectory: projectOutputDirectory
             );
 
-            GenerateCSharpProjectFile(
+            if (!GenerateCSharpProjectFile(
                 projectFilePath: projectFilePath,
                 scriptDirectory: scriptDirectory,
                 moduleName: moduleName
-            );
+            ))
+            {
+                return false;
+            }
 
-            RunDotNetCLI(projectOutputDirectory);
+            return RunDotNetCLI(projectOutputDirectory: projectOutputDirectory);
         }
 
-        private void GenerateCSharpProjectFile(string projectFilePath, string scriptDirectory, string moduleName)
+        private bool GenerateCSharpProjectFile(string projectFilePath, string scriptDirectory, string moduleName)
         {
             string projectContent =
                 "<Project Sdk=\"Microsoft.NET.Sdk\">\n"
@@ -156,6 +173,7 @@ namespace Hyperion
                         + "<TargetFramework>net8.0</TargetFramework>\n"
                         + "<ImplicitUsings>enable</ImplicitUsings>\n"
                         + "<Nullable>enable</Nullable>\n"
+                        + "<EnableDynamicLoading>true</EnableDynamicLoading>\n"
                         + $"<AssemblyName>{moduleName}</AssemblyName>\n"
                     + "</PropertyGroup>\n"
                     + "<ItemGroup>\n"
@@ -165,25 +183,41 @@ namespace Hyperion
                     + "</ItemGroup>\n"
                 + "</Project>\n";
 
-            System.IO.File.WriteAllText(projectFilePath, projectContent);
+            try
+            {
+                System.IO.File.WriteAllText(projectFilePath, projectContent);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, "Failed to write project file: {0}", e.Message);
+
+                return false;
+            }
+
+            return true;
         }
 
-        private void RunDotNetCLI(string projectOutputDirectory)
+        private bool RunDotNetCLI(string projectOutputDirectory)
         {
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo.FileName = "dotnet";
             process.StartInfo.Arguments = $"build";
             process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = false;
-            process.StartInfo.RedirectStandardError = false;
             process.StartInfo.WorkingDirectory = projectOutputDirectory;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.CreateNoWindow = true;
+            process.OutputDataReceived += (sender, args) => Logger.Log(LogType.Info, args.Data);
+            process.ErrorDataReceived += (sender, args) => Logger.Log(LogType.Error, args.Data);
             process.Start();
 
             process.WaitForExit();
 
             if (process.ExitCode != 0)
             {
-                return;
+                Logger.Log(LogType.Error, "Failed to compile script");
+
+                return false;
             }
 
             Logger.Log(LogType.Info, "Script compiled successfully");
@@ -196,18 +230,37 @@ namespace Hyperion
                 // Copy the DLL to the output directory
                 string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dll));
 
-                System.IO.File.Copy(dll, outputDllPath, true);
+                try
+                {
+                    System.IO.File.Copy(dll, outputDllPath, true);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(LogType.Error, "Failed to copy DLL: {0}", e.Message);
 
-                Console.WriteLine("Copied {0} to {1}", dll, outputDllPath);
+                    return false;
+                }
             }
+
+            return true;
         }
 
-        public void Compile(string scriptPath)
+        public bool Compile(ref ManagedScript managedScript)
         {
-            BuildProject(
-                scriptDirectory: System.IO.Path.GetDirectoryName(scriptPath),
-                forceRebuild: true
-            );
+            string moduleName;
+
+            if (BuildProject(
+                scriptDirectory: System.IO.Path.GetDirectoryName(managedScript.Path),
+                forceRebuild: true,
+                moduleName: out moduleName
+            ))
+            {
+                managedScript.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

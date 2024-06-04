@@ -13,31 +13,28 @@ namespace Hyperion
         public static InvokeMethodDelegate InvokeMethodDelegate = InvokeMethod;
 
         [UnmanagedCallersOnly]
-        public static void InitializeAssembly(IntPtr classHolderPtr, IntPtr assemblyPathStringPtr)
+        public static void InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr)
         {
             // Create a managed string from the pointer
             string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
 
+            if (AssemblyCache.Instance.Get(assemblyPath) != null)
+            {
+                throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
+            }
+
+            Guid assemblyGuid = Guid.NewGuid();
+            Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
+
             Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
 
-            Assembly assembly = Assembly.LoadFrom(assemblyPath);
+            AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
+            Assembly? assembly = assemblyInstance.Assembly;
 
             if (assembly == null)
             {
                 throw new Exception("Failed to load assembly: " + assemblyPath);
             }
-
-#if DEBUG // Load all referenced assemblies to ensure nothing will crash later
-            Logger.Log(LogType.Info, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
-
-            for (int i = 0; i < assembly.GetReferencedAssemblies().Length; i++)
-            {
-                Logger.Log(LogType.Info, "Found referenced assembly: {0}", assembly.GetReferencedAssemblies()[i].Name);
-
-                // Ensure the referenced assembly is found
-                Assembly.Load(assembly.GetReferencedAssemblies()[i]);
-            }
-#endif
 
             AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
 
@@ -66,11 +63,74 @@ namespace Hyperion
             {
                 if (type.IsClass)
                 {
-                    InitManagedClass(classHolderPtr, type);
+                    InitManagedClass(assemblyGuid, classHolderPtr, type);
                 }
             }
 
-            NativeInterop_SetInvokeMethodFunction(classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
+            NativeInterop_SetInvokeMethodFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
+        }
+        
+        [UnmanagedCallersOnly]
+        public static void UnloadAssembly(IntPtr assemblyGuidPtr, IntPtr outResult)
+        {
+            bool result = true;
+
+            try
+            {
+                Guid assemblyGuid = Marshal.PtrToStructure<Guid>(assemblyGuidPtr);
+
+                if (AssemblyCache.Instance.Get(assemblyGuid) == null)
+                {
+                    Logger.Log(LogType.Warn, "Failed to unload assembly: {0} not found", assemblyGuid);
+
+                    foreach (var kv in AssemblyCache.Instance.Assemblies)
+                    {
+                        Logger.Log(LogType.Info, "Assembly: {0}", kv.Key);
+                    }
+
+                    result = false;
+                }
+                else
+                {
+                    Logger.Log(LogType.Info, "Unloading assembly: {0}...", assemblyGuid);
+
+                    AssemblyCache.Instance.Remove(assemblyGuid);
+                }
+            }
+            catch (Exception err)
+            {
+                Logger.Log(LogType.Error, "Error unloading assembly: {0}", err);
+
+                result = false;
+            }
+
+            Marshal.WriteInt32(outResult, result ? 1 : 0);
+        }
+
+        [UnmanagedCallersOnly]
+        public static unsafe void AddMethodToCache(IntPtr assemblyGuidPtr, IntPtr methodGuidPtr, IntPtr methodInfoPtr)
+        {
+            Guid assemblyGuid = Marshal.PtrToStructure<Guid>(assemblyGuidPtr);
+            Guid methodGuid = Marshal.PtrToStructure<Guid>(methodGuidPtr);
+
+            ref MethodInfo methodInfo = ref System.Runtime.CompilerServices.Unsafe.AsRef<MethodInfo>(methodInfoPtr.ToPointer());
+
+            ManagedMethodCache.Instance.AddMethod(assemblyGuid, methodGuid, methodInfo);
+        }
+
+        [UnmanagedCallersOnly]
+        public static unsafe void AddObjectToCache(IntPtr assemblyGuidPtr, IntPtr objectGuidPtr, IntPtr objectPtr, IntPtr outManagedObjectPtr)
+        {
+            Guid assemblyGuid = Marshal.PtrToStructure<Guid>(assemblyGuidPtr);
+            Guid objectGuid = Marshal.PtrToStructure<Guid>(objectGuidPtr);
+
+            // read object as reference
+            ref object obj = ref System.Runtime.CompilerServices.Unsafe.AsRef<object>(objectPtr.ToPointer());
+
+            ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
+
+            // write managedObject to outManagedObjectPtr
+            Marshal.StructureToPtr(managedObject, outManagedObjectPtr, false);
         }
 
         private static void CollectMethods(Type type, Dictionary<string, MethodInfo> methods)
@@ -100,14 +160,14 @@ namespace Hyperion
             }
         }
 
-        private static ManagedClass InitManagedClass(IntPtr classHolderPtr, Type type)
+        private static ManagedClass InitManagedClass(Guid assemblyGuid, IntPtr classHolderPtr, Type type)
         {
             string typeName = type.Name;
 
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
             ManagedClass managedClass = new ManagedClass();
-            ManagedClass_Create(classHolderPtr, type.GetHashCode(), typeNamePtr, out managedClass);
+            ManagedClass_Create(ref assemblyGuid, classHolderPtr, type.GetHashCode(), typeNamePtr, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -116,8 +176,11 @@ namespace Hyperion
 
             foreach (var item in methods)
             {
+                MethodInfo methodInfo = item.Value;
+                GCHandle methodInfoHandle = GCHandle.Alloc(methodInfo);
+
                 // Get all custom attributes for the method
-                object[] attributes = item.Value.GetCustomAttributes(false /* inherit */);
+                object[] attributes = methodInfo.GetCustomAttributes(false /* inherit */);
 
                 List<string> attributeNames = new List<string>();
 
@@ -128,10 +191,12 @@ namespace Hyperion
                 }
 
                 // Add the objects being pointed to to the delegate cache so they don't get GC'd
-                Guid guid = Guid.NewGuid();
-                managedClass.AddMethod(item.Key, guid, attributeNames.ToArray());
+                Guid methodGuid = Guid.NewGuid();
+                managedClass.AddMethod(item.Key, methodGuid, attributeNames.ToArray());
 
-                ManagedMethodCache.Instance.AddMethod(guid, item.Value);
+                NativeInterop_AddMethodToCache(ref assemblyGuid, ref methodGuid, GCHandle.ToIntPtr(methodInfoHandle));
+
+                methodInfoHandle.Free();
             }
 
             // Add new object, free object delegates
@@ -139,6 +204,7 @@ namespace Hyperion
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
+                // GCHandle objHandle = GCHandle.Alloc(obj);
 
                 // Call the constructor
                 ConstructorInfo constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
@@ -150,7 +216,19 @@ namespace Hyperion
 
                 constructorInfo.Invoke(obj, null);
 
-                return ManagedObjectCache.Instance.AddObject(obj);
+                Guid objectGuid = Guid.NewGuid();
+
+                // @TODO: Reduce complexity - this is a bit of a mess between C# adn C++ interop
+                // ManagedObject managedObject = new ManagedObject();
+
+                // NativeInterop_AddObjectToCache(ref assemblyGuid, ref objectGuid, GCHandle.ToIntPtr(objHandle), out managedObject);
+
+                // objHandle.Free();
+
+                // return managedObject;
+
+                
+                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
             });
 
             managedClass.FreeObjectFunction = new FreeObjectDelegate(FreeObject);
@@ -290,16 +368,25 @@ namespace Hyperion
 
         public static void FreeObject(ManagedObject obj)
         {
-            ManagedObjectCache.Instance.RemoveObject(obj.guid);
+            if (!ManagedObjectCache.Instance.RemoveObject(obj.guid))
+            {
+                throw new Exception("Failed to remove object from cache: " + obj.guid);
+            }
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
-        private static extern void NativeInterop_SetInvokeMethodFunction(IntPtr classHolderPtr, IntPtr invokeMethodPtr);
+        private static extern void NativeInterop_SetInvokeMethodFunction([In] ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr invokeMethodPtr);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_AddMethodToCache")]
+        private static extern void NativeInterop_AddMethodToCache([In] ref Guid assemblyGuid, [In] ref Guid methodGuid, IntPtr methodInfoPtr);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_AddObjectToCache")]
+        private static extern void NativeInterop_AddObjectToCache([In] ref Guid assemblyGuid, [In] ref Guid objectGuid, IntPtr objPtr, [Out] out ManagedObject managedObject);
     }
 }
