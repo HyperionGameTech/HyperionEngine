@@ -20,46 +20,135 @@ namespace Hyperion
             this.binaryOutputDirectory = binaryOutputDirectory;
         }
 
-        private string GetProjectPath(string scriptPath)
+        public void BuildAllProjects()
         {
-            string basePath = System.IO.Path.GetDirectoryName(scriptPath);
-            string relativePath = System.IO.Path.GetRelativePath(basePath, intermediateDirectory);
+            string[] directories = System.IO.Directory.GetDirectories(sourceDirectory, "*", System.IO.SearchOption.AllDirectories)
+                .Append(sourceDirectory)
+                .Where(directory => System.IO.Directory.GetFiles(directory, "*.cs").Length > 0)
+                .ToArray();
 
-            return System.IO.Path.Combine(intermediateDirectory, relativePath, new DirectoryInfo(scriptPath).Parent.Name);
+            foreach (string directory in directories)
+            {
+                BuildProject(directory, false);
+            }
         }
 
-        private void GenerateCSharpProjectFile(string scriptPath)
+        private bool DetectNeedsRebuild(string scriptDirectory, string moduleName)
         {
-            string scriptBasePath = System.IO.Path.GetDirectoryName(scriptPath);
+            // Get the max updated timestamp of all the files in the directory
 
+            string[] files = System.IO.Directory.GetFiles(scriptDirectory, "*.cs", System.IO.SearchOption.AllDirectories);
+
+            long maxTimestamp = 0;
+
+            foreach (string file in files)
+            {
+                long timestamp = System.IO.File.GetLastWriteTime(file).ToFileTime();
+
+                if (timestamp > maxTimestamp)
+                {
+                    maxTimestamp = timestamp;
+                }
+            }
+
+            // Try to find the DLL in the output directory
+            string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, $"{moduleName}.dll", System.IO.SearchOption.AllDirectories);
+
+            if (dlls.Length == 0)
+            {
+                // DLL not found, needs rebuild
+                return true;
+            }
+
+            foreach (string dll in dlls)
+            {
+                if (System.IO.File.GetLastWriteTime(dll).ToFileTime() < maxTimestamp)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private string GetModuleNameForScriptDirectory(string scriptDirectory)
+        {
             // Get relative path to the source directory
-            string relativePath = System.IO.Path.GetRelativePath(sourceDirectory, scriptBasePath)
+            string relativePath = System.IO.Path.GetRelativePath(sourceDirectory, scriptDirectory)
                 .Replace(" ", "")
                 .Replace(".", "");
 
+            Logger.Log(LogType.Info, $"Relative path: {relativePath}");
+
+            if (relativePath.EndsWith("/"))
+            {
+                relativePath = relativePath.Substring(0, relativePath.Length - 1);
+            }
+
             // chop the last part of the relative path
-            string moduleName = "";
-            
-            if (relativePath.Contains("/"))
+            string moduleName = "GameName";
+
+            if (relativePath.Length != 0)
             {
-                moduleName = relativePath.Substring(relativePath.LastIndexOf("/") + 1);
-                relativePath = relativePath.Substring(0, relativePath.LastIndexOf("/"));
+                moduleName += "." + relativePath.Replace("/", ".");
             }
 
-            if (moduleName == "")
+            return moduleName;
+        }
+
+        private string GetProjectOutputDirectory(string moduleName, bool createDirectory = false)
+        {
+            string path = System.IO.Path.Combine(intermediateDirectory, moduleName);
+
+            if (createDirectory && !System.IO.Directory.Exists(path))
             {
-                moduleName = "Default";
+                System.IO.Directory.CreateDirectory(path);
             }
 
-            string projectOutputDirectory = System.IO.Path.Combine(intermediateDirectory, relativePath, moduleName);
+            return path;
+        }
 
-            if (!System.IO.Directory.Exists(projectOutputDirectory))
+        private string GetProjectFilePath(string moduleName, string projectOutputDirectory)
+        {
+            string moduleBaseName = moduleName.Split(".").Last();
+
+            return System.IO.Path.Combine(projectOutputDirectory, $"{moduleBaseName}.csproj");
+        }
+
+        private void BuildProject(string scriptDirectory, bool forceRebuild = false)
+        {
+            string moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
+
+            if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
             {
-                System.IO.Directory.CreateDirectory(projectOutputDirectory);
+                Logger.Log(LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
+
+                return;
             }
 
-            string projectFilePath = System.IO.Path.Combine(projectOutputDirectory, $"{moduleName}.csproj");
+            Logger.Log(LogType.Info, "Rebuilding module {0}...", moduleName);
 
+            string projectOutputDirectory = GetProjectOutputDirectory(
+                moduleName: moduleName,
+                createDirectory: true
+            );
+
+            string projectFilePath = GetProjectFilePath(
+                moduleName: moduleName,
+                projectOutputDirectory: projectOutputDirectory
+            );
+
+            GenerateCSharpProjectFile(
+                projectFilePath: projectFilePath,
+                scriptDirectory: scriptDirectory,
+                moduleName: moduleName
+            );
+
+            RunDotNetCLI(projectOutputDirectory);
+        }
+
+        private void GenerateCSharpProjectFile(string projectFilePath, string scriptDirectory, string moduleName)
+        {
             string projectContent =
                 "<Project Sdk=\"Microsoft.NET.Sdk\">\n"
                     + "<PropertyGroup>\n"
@@ -67,22 +156,19 @@ namespace Hyperion
                         + "<TargetFramework>net8.0</TargetFramework>\n"
                         + "<ImplicitUsings>enable</ImplicitUsings>\n"
                         + "<Nullable>enable</Nullable>\n"
-                        + "<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>\n"
                         + $"<AssemblyName>{moduleName}</AssemblyName>\n"
                     + "</PropertyGroup>\n"
                     + "<ItemGroup>\n"
                     + $"<ProjectReference Include=\"{System.IO.Path.Combine(intermediateDirectory, "HyperionCore", "HyperionCore.csproj")}\" />\n"
                     + $"<ProjectReference Include=\"{System.IO.Path.Combine(intermediateDirectory, "HyperionRuntime", "HyperionRuntime.csproj")}\" />\n"
-                    +   string.Join("", System.IO.Directory.GetFiles(scriptBasePath, "*.cs").Select(script => $"<Compile Include=\"{script}\" />\n"))
+                    +   string.Join("", System.IO.Directory.GetFiles(scriptDirectory, "*.cs").Select(script => $"<Compile Include=\"{script}\" />\n"))
                     + "</ItemGroup>\n"
                 + "</Project>\n";
 
             System.IO.File.WriteAllText(projectFilePath, projectContent);
-
-            RunDotNetCLI(projectOutputDirectory);
         }
 
-        private void RunDotNetCLI(string projectPath)
+        private void RunDotNetCLI(string projectOutputDirectory)
         {
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo.FileName = "dotnet";
@@ -90,7 +176,7 @@ namespace Hyperion
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = false;
             process.StartInfo.RedirectStandardError = false;
-            process.StartInfo.WorkingDirectory = projectPath;
+            process.StartInfo.WorkingDirectory = projectOutputDirectory;
             process.Start();
 
             process.WaitForExit();
@@ -103,7 +189,7 @@ namespace Hyperion
             Logger.Log(LogType.Info, "Script compiled successfully");
 
             // Grep all DLLs in the output directory
-            string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectPath, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
+            string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
 
             foreach (string dll in dlls)
             {
@@ -116,10 +202,12 @@ namespace Hyperion
             }
         }
 
-        // just testing
         public void Compile(string scriptPath)
         {
-            GenerateCSharpProjectFile(scriptPath);
+            BuildProject(
+                scriptDirectory: System.IO.Path.GetDirectoryName(scriptPath),
+                forceRebuild: true
+            );
         }
     }
 }

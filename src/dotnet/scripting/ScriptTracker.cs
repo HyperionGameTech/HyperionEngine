@@ -22,6 +22,7 @@ namespace Hyperion
             this.callbackSelfPtr = callbackSelfPtr;
 
             scriptCompiler = new ScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
+            scriptCompiler.BuildAllProjects();
 
             watcher = new FileSystemWatcher(sourceDirectory);
             watcher.NotifyFilter = NotifyFilters.LastWrite;

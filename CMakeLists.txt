@@ -482,7 +482,6 @@ function(create_csharp_library output_name csharp_sources)
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
         DEPENDS HyperionCore
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/*.dll ${CMAKE_CURRENT_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/*.dll ${HYP_SCRIPTS_BIN_DIR}/ # copy to scripts bin dir so that they can be used in scripts
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
