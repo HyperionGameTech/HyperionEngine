@@ -26,9 +26,6 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
     {
         Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-        HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Detected script state change for script '{}' (assembly: {}, class: {}, state: {})",
-            script.uuid, script.assembly_path, script.class_name, script.state);
-
         if (!(script.state & uint32(CompiledScriptState::COMPILED))) {
             return;
         }
@@ -87,8 +84,8 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
         }
     }
 
-    if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path)) {
-        if (dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
+    if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path)) {
+        if (dotnet::Class *class_ptr = assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             script_component.object = class_ptr->NewObject();
 
             if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
@@ -106,7 +103,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             }
         }
 
-        script_component.assembly = std::move(managed_assembly);
+        script_component.assembly = std::move(assembly);
     }
 
     if (!script_component.assembly) {
@@ -156,8 +153,7 @@ void ScriptSystem::Process(GameCounter::TickUnit delta)
         }
 
         if (dotnet::Class *class_ptr = script_component.object->GetClass()) {
-
-            if (auto *update_method_ptr = class_ptr->GetMethod("Update")) {
+            if (dotnet::ManagedMethod *update_method_ptr = class_ptr->GetMethod("Update")) {
                 if (update_method_ptr->HasAttribute("Hyperion.ScriptMethodStub")) {
                     // Stubbed method, don't waste cycles calling it if it's not implemented
                     continue;

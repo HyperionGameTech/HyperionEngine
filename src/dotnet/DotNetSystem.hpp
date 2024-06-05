@@ -34,7 +34,7 @@ public:
     DotNetSystem &operator=(DotNetSystem &&) noexcept   = delete;
     ~DotNetSystem();
 
-    RC<Assembly> LoadAssembly(const char *path) const;
+    UniquePtr<Assembly> LoadAssembly(const char *path) const;
     bool UnloadAssembly(ManagedGuid guid) const;
 
     void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const;

@@ -34,7 +34,7 @@ public:
     virtual ~DotNetImplBase() = default;
 
     virtual void Initialize() = 0;
-    virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
+    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
     virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const = 0;
@@ -196,9 +196,9 @@ public:
         );
     }
 
-    virtual RC<Assembly> LoadAssembly(const char *path) const override
+    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
     {
-        RC<Assembly> assembly(new Assembly());
+        UniquePtr<Assembly> assembly(new Assembly());
 
         Optional<FilePath> filepath = FindAssemblyFilePath(path);
 
@@ -372,7 +372,7 @@ private:
 
     UniquePtr<DynamicLibrary>                   m_dll;
 
-    RC<Assembly>                                m_root_assembly;
+    UniquePtr<Assembly>                         m_root_assembly;
 
     InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
     UnloadAssemblyDelegate                      m_unload_assembly_fptr;
@@ -397,7 +397,7 @@ public:
     {
     }
 
-    virtual RC<Assembly> LoadAssembly(const char *path) const override
+    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
     {
         return nullptr;
     }
@@ -458,7 +458,7 @@ bool DotNetSystem::EnsureInitialized() const
     return true;
 }
 
-RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
+UniquePtr<Assembly> DotNetSystem::LoadAssembly(const char *path) const
 {
     if (!EnsureInitialized()) {
         return nullptr;

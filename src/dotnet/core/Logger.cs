@@ -3,19 +3,25 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum LogType : int
+    public enum LogType : uint
     {
+        Debug,
         Info,
         Warn,
         Error,
-        Fatal,
-        Debug
+        Fatal
     }
     
     public class Logger
     {
-        // Log with variadic arguments
+        private static LogChannel defaultChannel = new LogChannel("Default");
+
         public static void Log(LogType logLevel, string message, params object[] args)
+        {
+            Log(defaultChannel, logLevel, message, args);
+        }
+
+        public static void Log(LogChannel channel, LogType logLevel, string message, params object[] args)
         {
             var frame = new System.Diagnostics.StackFrame(1, true);
 
@@ -23,7 +29,7 @@ namespace Hyperion
 
             try
             {
-                formattedMessage = string.Format(message + "\n", args);
+                formattedMessage = string.Format(message, args);
             }
             catch (FormatException)
             {
@@ -32,7 +38,7 @@ namespace Hyperion
 
             if (frame == null)
             {
-                Logger_Log((int)logLevel, "", 0, formattedMessage);
+                Logger_Log(channel.ptr, (uint)logLevel, "", 0, formattedMessage);
 
                 return;
             }
@@ -53,10 +59,10 @@ namespace Hyperion
             
             uint line = (uint)frame.GetFileLineNumber();
 
-            Logger_Log((int)logLevel, fileName + ":" + funcName, line, formattedMessage);
+            Logger_Log(channel.ptr, (uint)logLevel, funcName, line, formattedMessage);
         }
 
         [DllImport("hyperion", EntryPoint = "Logger_Log")]
-        private static extern void Logger_Log(int logLevel, [MarshalAs(UnmanagedType.LPStr)] string funcName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
+        private static extern void Logger_Log(IntPtr logChannelPtr, uint logLevel, [MarshalAs(UnmanagedType.LPStr)] string funcName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
     }
 }

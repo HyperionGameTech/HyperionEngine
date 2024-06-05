@@ -443,10 +443,6 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset)
         return;
     }
 
-    HYP_LOG(UI, LogLevel::INFO, "Scroll offset changed for UI object {}: {}", GetName(), scroll_offset);
-    HYP_LOG(UI, LogLevel::INFO, "Actual size: {}", m_actual_size);
-    HYP_LOG(UI, LogLevel::INFO, "Actual inner size: {}", m_actual_inner_size);
-
     m_scroll_offset = scroll_offset;
 
     UpdatePosition();
@@ -1064,10 +1060,6 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_
 
     // make sure the actual size is at least 0
     out_actual_size = MathUtil::Max(out_actual_size, Vec2i { 0, 0 });
-
-    if (is_inner) {
-        HYP_LOG(UI, LogLevel::DEBUG, "inner for {}, in size: {}, {}\tout size: {}, {}", GetName(), in_size.GetValue().x, in_size.GetValue().y, out_actual_size.x, out_actual_size.y);
-    }
 }
 
 void UIObject::ComputeOffsetPosition()

@@ -87,6 +87,47 @@ void Logger::RegisterChannel(LogChannel *channel)
     m_log_channels[channel->GetID()] = channel;
 }
 
+LogChannel *Logger::CreateDynamicLogChannel(Name name, LogChannel *parent_channel)
+{
+    Mutex::Guard guard(m_dynamic_log_channels_mutex);
+
+    m_dynamic_log_channels.EmplaceBack(name, parent_channel);
+
+    return &m_dynamic_log_channels.Back();
+}
+
+void Logger::DestroyDynamicLogChannel(Name name)
+{
+    Mutex::Guard guard(m_dynamic_log_channels_mutex);
+
+    auto it = m_dynamic_log_channels.FindIf([name](const auto &item)
+    {
+        return item.GetName() == name;
+    });
+
+    if (it == m_dynamic_log_channels.End()) {
+        return;
+    }
+
+    m_dynamic_log_channels.Erase(it);
+}
+
+void Logger::DestroyDynamicLogChannel(LogChannel *channel)
+{
+    Mutex::Guard guard(m_dynamic_log_channels_mutex);
+
+    auto it = m_dynamic_log_channels.FindIf([channel](const auto &item)
+    {
+        return &item == channel;
+    });
+
+    if (it == m_dynamic_log_channels.End()) {
+        return;
+    }
+
+    m_dynamic_log_channels.Erase(it);
+}
+
 bool Logger::IsChannelEnabled(const LogChannel &channel) const
 {
     // @TODO: Come up with a more efficient solution that doesn't require atomics, looping, or dynamic bitsets
@@ -114,8 +155,6 @@ void Logger::SetChannelEnabled(const LogChannel &channel, bool enabled)
 
 void Logger::Log(const LogChannel &channel, const LogMessage &message)
 {
-    // @TODO handle log level
-
     std::puts(*message.message);
 }
 

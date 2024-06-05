@@ -83,7 +83,7 @@ protected:
 
     RC<UIStage>                 m_ui_stage;
 
-    RC<Assembly>                m_managed_assembly;
+    UniquePtr<Assembly>         m_managed_assembly;
     UniquePtr<Object>           m_managed_game_object;
 
 private:

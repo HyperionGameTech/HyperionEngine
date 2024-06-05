@@ -16,7 +16,9 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/LinkedList.hpp>
 
+#include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Threads.hpp>
 
@@ -126,6 +128,10 @@ public:
 
     void RegisterChannel(LogChannel *channel);
 
+    LogChannel *CreateDynamicLogChannel(Name name, LogChannel *parent_channel = nullptr);
+    void DestroyDynamicLogChannel(Name name);
+    void DestroyDynamicLogChannel(LogChannel *channel);
+
     [[nodiscard]]
     bool IsChannelEnabled(const LogChannel &channel) const;
 
@@ -159,8 +165,9 @@ private:
     void Log(const LogChannel &channel, const LogMessage &message);
 
     AtomicVar<uint64>                       m_log_mask;
-
     FixedArray<LogChannel *, max_channels>  m_log_channels;
+    LinkedList<LogChannel>                  m_dynamic_log_channels;
+    Mutex                                   m_dynamic_log_channels_mutex;
 };
 
 } // namespace logging

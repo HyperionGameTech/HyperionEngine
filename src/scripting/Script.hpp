@@ -31,8 +31,8 @@ HYP_MAKE_ENUM_FLAGS(CompiledScriptState)
 
 struct CompiledScript
 {
-    RC<dotnet::Assembly>            assembly;
-    UniquePtr<dotnet::Object>       object;
+    UniquePtr<dotnet::Assembly> assembly;
+    UniquePtr<dotnet::Object>   object;
 };
 
 struct ScriptDesc

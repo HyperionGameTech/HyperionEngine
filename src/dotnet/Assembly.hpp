@@ -25,29 +25,38 @@ public:
 
     using InvokeMethodFunction = void *(*)(ManagedGuid, ManagedGuid, void **, void *);
 
-    ClassHolder(Weak<Assembly> &&owner_assembly);
+    ClassHolder(Assembly *owner_assembly);
     ClassHolder(const ClassHolder &)                = delete;
     ClassHolder &operator=(const ClassHolder &)     = delete;
     ClassHolder(ClassHolder &&) noexcept            = delete;
     ClassHolder &operator=(ClassHolder &&) noexcept = delete;
     ~ClassHolder()                                  = default;
 
+    [[nodiscard]]
     bool CheckAssemblyLoaded() const;
 
-    const Weak<Assembly> &GetOwnerAssembly() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Assembly *GetOwnerAssembly() const
         { return m_owner_assembly; }
 
+    [[nodiscard]]
     Class *GetOrCreateClassObject(int32 type_hash, const char *type_name);
+
+    [[nodiscard]]
     Class *FindClassByName(const char *type_name);
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     InvokeMethodFunction GetInvokeMethodFunction() const
         { return m_invoke_method_fptr; }
 
+    HYP_FORCE_INLINE
     void SetInvokeMethodFunction(InvokeMethodFunction invoke_method_fptr)
         { m_invoke_method_fptr = invoke_method_fptr; }
 
 private:
-    Weak<Assembly>                      m_owner_assembly;
+    Assembly                            *m_owner_assembly;
 
     HashMap<int32, UniquePtr<Class>>    m_class_objects;
 
@@ -55,7 +64,7 @@ private:
     InvokeMethodFunction                m_invoke_method_fptr;
 };
 
-class Assembly : public EnableRefCountedPtrFromThis<Assembly>
+class Assembly
 {
 public:
     Assembly();
@@ -65,15 +74,23 @@ public:
     Assembly &operator=(Assembly &&) noexcept   = delete;
     ~Assembly();
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ManagedGuid &GetGuid()
         { return m_guid; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ManagedGuid &GetGuid() const
         { return m_guid; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ClassHolder &GetClassObjectHolder()
         { return m_class_object_holder; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ClassHolder &GetClassObjectHolder() const
         { return m_class_object_holder; }
 
@@ -85,8 +102,8 @@ public:
     bool Unload();
 
 private:
-    ManagedGuid     m_guid;
-    ClassHolder     m_class_object_holder;
+    ManagedGuid m_guid;
+    ClassHolder m_class_object_holder;
 };
 
 } // namespace dotnet

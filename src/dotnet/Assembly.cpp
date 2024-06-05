@@ -12,7 +12,7 @@ namespace dotnet {
 
 Assembly::Assembly()
     : m_guid { 0, 0 },
-      m_class_object_holder(WeakRefCountedPtrFromThis())
+      m_class_object_holder(this)
 {
 }
 
@@ -44,16 +44,16 @@ bool Assembly::Unload()
 
 #pragma region ClassHolder
 
-ClassHolder::ClassHolder(Weak<Assembly> &&owner_assembly)
-    : m_owner_assembly(std::move(owner_assembly)),
+ClassHolder::ClassHolder(Assembly *owner_assembly)
+    : m_owner_assembly(owner_assembly),
       m_invoke_method_fptr(nullptr)
 {
 }
 
 bool ClassHolder::CheckAssemblyLoaded() const
 {
-    if (RC<Assembly> owner_assembly = m_owner_assembly.Lock()) {
-        return owner_assembly->IsLoaded();
+    if (m_owner_assembly) {
+        return m_owner_assembly->IsLoaded();
     }
 
     return false;

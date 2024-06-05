@@ -29,7 +29,7 @@ struct ScriptComponent
 {
     ManagedScript                   script { };
 
-    RC<dotnet::Assembly>            assembly;
+    UniquePtr<dotnet::Assembly>     assembly;
     UniquePtr<dotnet::Object>       object;
 
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
