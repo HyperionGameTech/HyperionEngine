@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -22,6 +23,22 @@ namespace Hyperion
 
         public void BuildAllProjects()
         {
+            string[] symLinks = System.IO.Directory.GetFiles(binaryOutputDirectory, "*.*.dll", System.IO.SearchOption.AllDirectories)
+                .Where(file => (System.IO.File.GetAttributes(file) & System.IO.FileAttributes.ReparsePoint) == System.IO.FileAttributes.ReparsePoint)
+                .ToArray();
+
+            foreach (string symLink in symLinks)
+            {
+                try
+                {
+                    System.IO.File.Delete(symLink);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(LogType.Error, "Failed to delete symlink: {0}", e.Message);
+                }
+            }
+
             string[] directories = System.IO.Directory.GetDirectories(sourceDirectory, "*", System.IO.SearchOption.AllDirectories)
                 .Append(sourceDirectory)
                 .Where(directory => System.IO.Directory.GetFiles(directory, "*.cs").Length > 0)
@@ -30,8 +47,14 @@ namespace Hyperion
             foreach (string directory in directories)
             {
                 string moduleName;
+                int hotReloadVersion;
 
-                BuildProject(directory, false, out moduleName);
+                BuildProject(
+                    scriptDirectory: directory,
+                    forceRebuild: false,
+                    moduleName: out moduleName,
+                    hotReloadVersion: out hotReloadVersion
+                );
             }
         }
 
@@ -129,9 +152,10 @@ namespace Hyperion
             }
         }
 
-        private bool BuildProject(string scriptDirectory, bool forceRebuild, out string moduleName)
+        private bool BuildProject(string scriptDirectory, bool forceRebuild, out string moduleName, out int hotReloadVersion)
         {
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
+            hotReloadVersion = -1;
 
             if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
             {
@@ -161,7 +185,10 @@ namespace Hyperion
                 return false;
             }
 
-            return RunDotNetCLI(projectOutputDirectory: projectOutputDirectory);
+            return RunDotNetCLI(
+                projectOutputDirectory: projectOutputDirectory,
+                hotReloadVersion: out hotReloadVersion
+            );
         }
 
         private bool GenerateCSharpProjectFile(string projectFilePath, string scriptDirectory, string moduleName)
@@ -197,8 +224,10 @@ namespace Hyperion
             return true;
         }
 
-        private bool RunDotNetCLI(string projectOutputDirectory)
+        private bool RunDotNetCLI(string projectOutputDirectory, out int hotReloadVersion)
         {
+            hotReloadVersion = -1;
+
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo.FileName = "dotnet";
             process.StartInfo.Arguments = $"build";
@@ -224,19 +253,92 @@ namespace Hyperion
 
             // Grep all DLLs in the output directory
             string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
+            string[] outputDlls = new string[dlls.Length];
 
-            foreach (string dll in dlls)
+            for (int i = 0; i < dlls.Length; i++)
             {
                 // Copy the DLL to the output directory
-                string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dll));
+                string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dlls[i]));
 
                 try
                 {
-                    System.IO.File.Copy(dll, outputDllPath, true);
+                    System.IO.File.Copy(dlls[i], outputDllPath, true);
                 }
                 catch (Exception e)
                 {
                     Logger.Log(LogType.Error, "Failed to copy DLL: {0}", e.Message);
+
+                    return false;
+                }
+
+                outputDlls[i] = outputDllPath;
+            }
+
+            return CreateSymLinks(outputDlls, out hotReloadVersion);
+        }
+
+        private bool CreateSymLinks(string[] dlls, out int hotReloadVersion)
+        {
+            // For each dll file, find the highest foo.X.dll file and create a symlink foo.(X+1).dll to the newly compiled DLL
+            // This is to ensure that the game always loads the latest version of the DLL
+
+            hotReloadVersion = 0;
+
+            HashSet<string> directories = new HashSet<string>();
+
+            foreach (string dll in dlls)
+            {
+                directories.Add(System.IO.Path.GetDirectoryName(dll));
+            }
+
+            HashSet<string> files = new HashSet<string>();
+
+            foreach (string directory in directories)
+            {
+                string[] directoryFiles = System.IO.Directory.GetFiles(directory, "*.*.dll");
+
+                foreach (string file in directoryFiles)
+                {
+                    files.Add(file);
+                }
+            }
+
+            foreach (string file in files)
+            {
+                string[] splitParts = System.IO.Path.GetFileNameWithoutExtension(file).Split('.');
+                string versionString = splitParts[splitParts.Length - 1];
+
+                if (int.TryParse(versionString, out int version))
+                {
+                    if (version > hotReloadVersion)
+                    {
+                        hotReloadVersion = version;
+                    }
+                }
+            }
+
+            hotReloadVersion += 1;
+
+            foreach (string dll in dlls)
+            {
+                string fileName = System.IO.Path.GetFileName(dll);
+                string directory = dll.Substring(0, dll.Length - fileName.Length);
+
+                string newFileName = $"{System.IO.Path.GetFileNameWithoutExtension(fileName)}.{hotReloadVersion}.dll";
+                string newFilePath = System.IO.Path.Combine(directory, newFileName);
+
+                try
+                {
+                    if (System.IO.File.Exists(newFilePath))
+                    {
+                        System.IO.File.Delete(newFilePath);
+                    }
+
+                    System.IO.File.CreateSymbolicLink(newFilePath, dll);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(LogType.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
 
                     return false;
                 }
@@ -248,14 +350,17 @@ namespace Hyperion
         public bool Compile(ref ManagedScript managedScript)
         {
             string moduleName;
+            int hotReloadVersion;
 
             if (BuildProject(
                 scriptDirectory: System.IO.Path.GetDirectoryName(managedScript.Path),
                 forceRebuild: true,
-                moduleName: out moduleName
+                moduleName: out moduleName,
+                hotReloadVersion: out hotReloadVersion
             ))
             {
                 managedScript.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
+                managedScript.HotReloadVersion = hotReloadVersion;
 
                 return true;
             }

@@ -41,6 +41,11 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
                 // Reload the script
                 script_component.flags |= ScriptComponentFlags::RELOADING;
 
+                script_component.script.uuid = script.uuid;
+                script_component.script.state = script.state;
+                script_component.script.hot_reload_version = script.hot_reload_version;
+                script_component.script.last_modified_timestamp = script.last_modified_timestamp;
+
                 OnEntityRemoved(entity);
                 OnEntityAdded(entity);
 
@@ -65,7 +70,24 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
     script_component.assembly = nullptr;
     script_component.object = nullptr;
 
-    if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(script_component.script.assembly_path)) {
+    ANSIString assembly_path(script_component.script.assembly_path);
+
+    if (script_component.script.hot_reload_version > 0) {
+        // @FIXME Implement FindLastIndex
+        const SizeType extension_index = assembly_path.FindIndex(".dll");
+
+        if (extension_index != ANSIString::not_found) {
+            assembly_path = assembly_path.Substr(0, extension_index)
+                + "." + ANSIString::ToString(script_component.script.hot_reload_version)
+                + ".dll";
+        } else {
+            assembly_path = assembly_path
+                + "." + ANSIString::ToString(script_component.script.hot_reload_version)
+                + ".dll";
+        }
+    }
+
+    if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path)) {
         if (dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             script_component.object = class_ptr->NewObject();
 

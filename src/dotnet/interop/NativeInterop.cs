@@ -177,8 +177,7 @@ namespace Hyperion
             foreach (var item in methods)
             {
                 MethodInfo methodInfo = item.Value;
-                GCHandle methodInfoHandle = GCHandle.Alloc(methodInfo);
-
+                
                 // Get all custom attributes for the method
                 object[] attributes = methodInfo.GetCustomAttributes(false /* inherit */);
 
@@ -194,9 +193,7 @@ namespace Hyperion
                 Guid methodGuid = Guid.NewGuid();
                 managedClass.AddMethod(item.Key, methodGuid, attributeNames.ToArray());
 
-                NativeInterop_AddMethodToCache(ref assemblyGuid, ref methodGuid, GCHandle.ToIntPtr(methodInfoHandle));
-
-                methodInfoHandle.Free();
+                ManagedMethodCache.Instance.AddMethod(assemblyGuid, methodGuid, methodInfo);
             }
 
             // Add new object, free object delegates
@@ -226,7 +223,6 @@ namespace Hyperion
                 // objHandle.Free();
 
                 // return managedObject;
-
                 
                 return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
             });
@@ -382,11 +378,5 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
         private static extern void NativeInterop_SetInvokeMethodFunction([In] ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr invokeMethodPtr);
-
-        [DllImport("hyperion", EntryPoint = "NativeInterop_AddMethodToCache")]
-        private static extern void NativeInterop_AddMethodToCache([In] ref Guid assemblyGuid, [In] ref Guid methodGuid, IntPtr methodInfoPtr);
-
-        [DllImport("hyperion", EntryPoint = "NativeInterop_AddObjectToCache")]
-        private static extern void NativeInterop_AddObjectToCache([In] ref Guid assemblyGuid, [In] ref Guid objectGuid, IntPtr objPtr, [Out] out ManagedObject managedObject);
     }
 }

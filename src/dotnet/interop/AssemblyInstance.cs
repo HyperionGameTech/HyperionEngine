@@ -30,14 +30,13 @@ namespace Hyperion
     {
         private Guid guid;
         private string path;
-        private AssemblyLoadContext context;
+        private AssemblyLoadContext? context;
         private Assembly? assembly;
 
         public AssemblyInstance(Guid guid, string path)
         {
             this.guid = guid;
             this.path = path;
-            this.context = new ScriptAssemblyContext(path);
         }
 
         public Assembly? Assembly
@@ -71,6 +70,7 @@ namespace Hyperion
                 return;
             }
 
+            context = new ScriptAssemblyContext(path);
             assembly = context.LoadFromAssemblyPath(path);
 
 #if DEBUG // Load all referenced assemblies to ensure nothing will crash later
@@ -80,10 +80,6 @@ namespace Hyperion
             {
                 Logger.Log(LogType.Info, "Found referenced assembly: {0}", assembly.GetReferencedAssemblies()[i].Name);
 
-                // @TODO: Management of referenced assemblies that are to be unloaded and reloaded
-
-                // Ensure the referenced assembly is found
-                // Assembly.Load(assembly.GetReferencedAssemblies()[i]);
                 context.LoadFromAssemblyName(assembly.GetReferencedAssemblies()[i]);
             }
 #endif
@@ -104,6 +100,7 @@ namespace Hyperion
             Logger.Log(LogType.Info, $"Unloaded assembly {guid} from {path}. Removed {numObjectsRemoved} objects, {numMethodsRemoved} methods");
 
             assembly = null;
+            context = null;
         }
     }
 
@@ -136,19 +133,9 @@ namespace Hyperion
 
         public AssemblyInstance? Get(Guid guid)
         {
-            // if (assemblies.ContainsKey(guid))
-            // {
-            //     return assemblies[guid];
-            // }
-
-            // return null;
-
-            foreach (KeyValuePair<Guid, AssemblyInstance> assembly in assemblies)
+            if (assemblies.ContainsKey(guid))
             {
-                if (assembly.Key == guid)
-                {
-                    return assembly.Value;
-                }
+                return assemblies[guid];
             }
 
             return null;

@@ -28,6 +28,9 @@ namespace Hyperion
         [MarshalAs(UnmanagedType.U4)]
         private uint state;
 
+        [MarshalAs(UnmanagedType.U4)]
+        public int hotReloadVersion;
+
         [MarshalAs(UnmanagedType.U8)]
         public ulong lastModifiedTimestamp;
 
@@ -109,6 +112,18 @@ namespace Hyperion
             set
             {
                 state = (uint)value;
+            }
+        }
+
+        public int HotReloadVersion
+        {
+            get
+            {
+                return hotReloadVersion;
+            }
+            set
+            {
+                hotReloadVersion = value;
             }
         }
 

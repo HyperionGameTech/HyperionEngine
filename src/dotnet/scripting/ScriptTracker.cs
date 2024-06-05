@@ -117,7 +117,9 @@ namespace Hyperion
             ManagedScriptWrapper managedScriptWrapper = new ManagedScriptWrapper(new ManagedScript
             {
                 Path = e.FullPath,
-                State = ManagedScriptState.Processing
+                State = ManagedScriptState.Processing,
+                HotReloadVersion = 0,
+                LastModifiedTimestamp = 0
             });
 
             processingScripts.Add(e.FullPath, managedScriptWrapper);

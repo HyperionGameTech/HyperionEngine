@@ -51,6 +51,7 @@ struct ManagedScript
     char    assembly_path[script_max_path_length];
     char    class_name[script_max_class_name_length];
     uint32  state;
+    int32   hot_reload_version;
     uint64  last_modified_timestamp;
 };
 
