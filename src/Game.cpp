@@ -123,7 +123,7 @@ void Game::Init()
             CreateManagedHandleFromHandle(m_scene),
             m_input_manager.Get(),
             g_asset_manager,
-            CreateManagedRefCountedPtr(m_ui_stage)
+            UnmarshalRefCountedPtr(m_ui_stage)
         );
 
         m_managed_game_object->InvokeMethodByName<void>("Init");

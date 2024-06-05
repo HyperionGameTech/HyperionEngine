@@ -22,7 +22,7 @@ extern "C" {
 
 HYP_EXPORT void UIStage_GetScene(ManagedRefCountedPtr obj, ManagedHandle *out_scene)
 {
-    RC<UIStage> stage = GetRefCountedPtrFromManaged<UIStage>(obj);
+    RC<UIStage> stage = MarshalRefCountedPtr<UIStage>(obj);
 
     if (!stage || !stage->GetScene()) {
         *out_scene = { };
@@ -35,7 +35,7 @@ HYP_EXPORT void UIStage_GetScene(ManagedRefCountedPtr obj, ManagedHandle *out_sc
 
 HYP_EXPORT void UIStage_GetSurfaceSize(ManagedRefCountedPtr obj, Vec2i *out_surface_size)
 {
-    RC<UIStage> stage = GetRefCountedPtrFromManaged<UIStage>(obj);
+    RC<UIStage> stage = MarshalRefCountedPtr<UIStage>(obj);
 
     if (!stage) {
         *out_surface_size = Vec2i::Zero();
@@ -48,7 +48,7 @@ HYP_EXPORT void UIStage_GetSurfaceSize(ManagedRefCountedPtr obj, Vec2i *out_surf
 
 // HYP_EXPORT void UIStage_CreateUIObject(ManagedRefCountedPtr obj, Name *name, Vec2i *position, Vec2i *size, bool attach_to_root, ManagedRefCountedPtr *out_ptr)
 // {
-//     RC<UIStage> stage = GetRefCountedPtrFromManaged<UIStage>(obj);
+//     RC<UIStage> stage = MarshalRefCountedPtr<UIStage>(obj);
 
 //     if (!stage) {
 //         *out_ptr = ManagedRefCountedPtr { 0 };
@@ -57,13 +57,13 @@ HYP_EXPORT void UIStage_GetSurfaceSize(ManagedRefCountedPtr obj, Vec2i *out_surf
 
 //     RC<UIObject> ui_object = stage->CreateUIObject<UIObject>(*name, *position, UIObjectSize({ size->x, UIObjectSize::PIXEL }, { size->y, UIObjectSize::PIXEL }), attach_to_root);
 
-//     *out_ptr = CreateManagedRefCountedPtr(ui_object);
+//     *out_ptr = UnmarshalRefCountedPtr(ui_object);
 // }
 
 #define DEF_CREATE_UI_OBJECT(T) \
     HYP_EXPORT void UIStage_CreateUIObject_##T(ManagedRefCountedPtr obj, Name *name, Vec2i *position, Vec2i *size, bool attach_to_root, ManagedRefCountedPtr *out_ptr) \
     { \
-        RC<UIStage> stage = GetRefCountedPtrFromManaged<UIStage>(obj); \
+        RC<UIStage> stage = MarshalRefCountedPtr<UIStage>(obj); \
         \
         if (!stage) { \
             *out_ptr = ManagedRefCountedPtr { 0 }; \
@@ -72,7 +72,7 @@ HYP_EXPORT void UIStage_GetSurfaceSize(ManagedRefCountedPtr obj, Vec2i *out_surf
         \
         RC<T> ui_object = stage->CreateUIObject<T>(*name, *position, UIObjectSize({ size->x, UIObjectSize::PIXEL }, { size->y, UIObjectSize::PIXEL }), attach_to_root); \
         \
-        *out_ptr = CreateManagedRefCountedPtr(ui_object); \
+        *out_ptr = UnmarshalRefCountedPtr(ui_object); \
     }
 
 DEF_CREATE_UI_OBJECT(UIButton)

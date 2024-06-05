@@ -96,7 +96,7 @@ HYP_EXPORT ComponentID MeshComponent_AddComponent(EntityManager *manager, Manage
     Handle<Mesh> mesh = CreateHandleFromManagedHandle<Mesh>(component->mesh_handle);
     Handle<Material> material = CreateHandleFromManagedHandle<Material>(component->material_handle);
 
-    RC<RenderProxy> proxy = GetRefCountedPtrFromManaged<RenderProxy>(component->proxy_rc);
+    RC<RenderProxy> proxy = MarshalRefCountedPtr<RenderProxy>(component->proxy_rc);
 
     return manager->AddComponent(entity, MeshComponent {
         std::move(mesh),

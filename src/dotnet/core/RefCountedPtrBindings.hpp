@@ -41,7 +41,7 @@ extern HYP_API void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr);
  * \return The ManagedRefCountedPtr.
  */
 template <class T>
-static inline ManagedRefCountedPtr CreateManagedRefCountedPtr(const RC<T> &ref_counted_ptr)
+static inline ManagedRefCountedPtr UnmarshalRefCountedPtr(const RC<T> &ref_counted_ptr)
 {
     ManagedRefCountedPtr managed_ref_counted_ptr;
     managed_ref_counted_ptr.address = reinterpret_cast<uintptr_t>(static_cast<const void *>(ref_counted_ptr.GetRefCountData_Internal()));
@@ -51,7 +51,7 @@ static inline ManagedRefCountedPtr CreateManagedRefCountedPtr(const RC<T> &ref_c
 }
 
 template <class T>
-static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref_counted_ptr)
+static inline RC<T> MarshalRefCountedPtr(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::detail::RefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
@@ -66,7 +66,7 @@ static inline RC<T> GetRefCountedPtrFromManaged(ManagedRefCountedPtr managed_ref
 }
 
 template <class T>
-static inline Weak<T> GetWeakRefCountedPtrFromManaged(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
+static inline Weak<T> MarshalWeakRefCountedPtr(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::detail::WeakRefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 

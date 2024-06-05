@@ -17,7 +17,7 @@ extern "C" {
 
 HYP_EXPORT UIObjectType UIObject_GetType(ManagedRefCountedPtr obj)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return UIObjectType::UNKNOWN;
@@ -28,7 +28,7 @@ HYP_EXPORT UIObjectType UIObject_GetType(ManagedRefCountedPtr obj)
 
 HYP_EXPORT void UIObject_GetName(ManagedRefCountedPtr obj, Name *out_name)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         *out_name = Name::Invalid();
@@ -40,7 +40,7 @@ HYP_EXPORT void UIObject_GetName(ManagedRefCountedPtr obj, Name *out_name)
 
 HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, Name *name)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -51,7 +51,7 @@ HYP_EXPORT void UIObject_SetName(ManagedRefCountedPtr obj, Name *name)
 
 HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -62,7 +62,7 @@ HYP_EXPORT void UIObject_GetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 
 HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -73,7 +73,7 @@ HYP_EXPORT void UIObject_SetPosition(ManagedRefCountedPtr obj, Vec2i *position)
 
 HYP_EXPORT void UIObject_GetSize(ManagedRefCountedPtr obj, Vec2i *size)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -84,7 +84,7 @@ HYP_EXPORT void UIObject_GetSize(ManagedRefCountedPtr obj, Vec2i *size)
 
 HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i *size)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -95,7 +95,7 @@ HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i *size)
 
 HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return UIObjectAlignment::TOP_LEFT;
@@ -106,7 +106,7 @@ HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr ob
 
 HYP_EXPORT void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
@@ -117,7 +117,7 @@ HYP_EXPORT void UIObject_SetOriginAlignment(ManagedRefCountedPtr obj, UIObjectAl
 
 HYP_EXPORT UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr obj)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return UIObjectAlignment::TOP_LEFT;
@@ -128,7 +128,7 @@ HYP_EXPORT UIObjectAlignment UIObject_GetParentAlignment(ManagedRefCountedPtr ob
 
 HYP_EXPORT void UIObject_SetParentAlignment(ManagedRefCountedPtr obj, UIObjectAlignment alignment)
 {
-    RC<UIObject> ui_object = GetRefCountedPtrFromManaged<UIObject>(obj);
+    RC<UIObject> ui_object = MarshalRefCountedPtr<UIObject>(obj);
 
     if (!ui_object) {
         return;
