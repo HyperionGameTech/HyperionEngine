@@ -201,7 +201,7 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
     out->Write<uint8>(IsBigEndian());
 
     // binary version
-    out->Write<uint32>(FBOM::version);
+    out->Write<uint32>(FBOM::version.value);
 
     const SizeType position_change = SizeType(out->Position()) - position_before;
     AssertThrow(position_change <= FBOM::header_size);
