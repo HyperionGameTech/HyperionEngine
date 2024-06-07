@@ -452,6 +452,19 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
+    /*! \brief Remove this object from its parent UI object, if applicable.
+     *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
+     *  invalidating the pointer. Proper care must be taken to ensure `this` is not reused after calling this method.
+     *  If you need to use the object again, use \ref{DetachFromParent} which returns a strong reference counted pointer to `this`,
+     *  ensuring it does not get instantly deleted.
+     *  \returns A boolean indicating whether or not the object could be removed from its parent */
+    virtual bool RemoveFromParent();
+
+    /*! \brief Remove this object from its parent UI object, if applicable. Ensures the object is not immediately deleted
+     *  in the case that the parent UIObject holds the last reference to `this`.
+     *  \returns A reference counted pointer to `this`. */
+    virtual RC<UIObject> DetachFromParent();
+
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
      *  If no child UIObject with the specified Name is found, nullptr is returned.
      *  \param name The Name of the child UIObject to find.
@@ -523,7 +536,7 @@ protected:
     virtual void Update_Internal(GameCounter::TickUnit delta);
 
     virtual void OnAttached_Internal(UIObject *parent);
-    virtual void OnDetached_Internal();
+    virtual void OnRemoved_Internal();
 
     /*! \brief Check if the object has been computed as visible or not. E.g scrolled out of view in a parent container */
     virtual void UpdateComputedVisibility();

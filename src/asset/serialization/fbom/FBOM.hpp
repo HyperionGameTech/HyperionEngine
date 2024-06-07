@@ -10,6 +10,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/ClassInfo.hpp>
@@ -37,6 +38,18 @@
 #include <cstring>
 
 namespace hyperion {
+
+enum class FBOMVersionCompareMode : uint32
+{
+    MAJOR,
+    MINOR,
+    PATCH,
+    
+    DEFAULT = uint32(MAJOR) | uint32(MINOR)
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMVersionCompareMode)
+
 namespace fbom {
 
 struct FBOMObjectType;
@@ -44,6 +57,77 @@ struct FBOMObjectType;
 class FBOMObject;
 class FBOMReader;
 class FBOMWriter;
+
+struct FBOMVersion
+{
+    uint32  value;
+
+    constexpr FBOMVersion()
+        : value(0)
+    {
+    }
+
+    constexpr FBOMVersion(uint32 value)
+        : value(value)
+    {
+    }
+
+    constexpr FBOMVersion(uint8 major, uint8 minor, uint8 patch)
+        : value((uint32(major) << 16) | (uint32(minor) << 8) | (uint32(patch)))
+          
+    {
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetMajor() const
+        { return value & (0xffu << 16); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetMinor() const
+        { return value & (0xffu << 8); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetPatch() const
+        { return value & 0xffu; }
+
+    /*! \brief Returns an integer indicating whether the two version are compatible or not.
+     *  If the returned value is equal to zero, the two versions are compatible.
+     *  If the returned value is less than zero, \ref{lhs} is incompatible, due to being outdated.
+     *  If the returned value is less than zero, \ref{lhs} is incompatible, due to being newer. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static int TestCompatibility(const FBOMVersion &lhs, const FBOMVersion &rhs, EnumFlags<FBOMVersionCompareMode> compare_mode = FBOMVersionCompareMode::DEFAULT)
+    {
+        if (compare_mode & FBOMVersionCompareMode::MAJOR) {
+            if (lhs.GetMajor() < rhs.GetMajor()) {
+                return -1;
+            } else if (lhs.GetMajor() > rhs.GetMajor()) {
+                return 1;
+            }
+        }
+
+        if (compare_mode & FBOMVersionCompareMode::MINOR) {
+            if (lhs.GetMinor() < rhs.GetMinor()) {
+                return -1;
+            } else if (lhs.GetMinor() > rhs.GetMinor()) {
+                return 1;
+            }
+        }
+
+        if (compare_mode & FBOMVersionCompareMode::PATCH) {
+            if (lhs.GetPatch() < rhs.GetPatch()) {
+                return -1;
+            } else if (lhs.GetPatch() > rhs.GetPatch()) {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+};
 
 
 enum FBOMCommand : uint8
@@ -250,51 +334,27 @@ struct FBOMStaticData
     }
 };
 
-class FBOM
+class HYP_API FBOM
 {
-    FlatMap<String, UniquePtr<FBOMMarshalerBase>>   marshalers;
-
 public:
     static constexpr SizeType header_size = 32;
     static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
-    static constexpr uint32 version = 0x1;
+    static constexpr FBOMVersion version = FBOMVersion { 1, 1, 0 };
+
+    static FBOM &GetInstance();
 
     FBOM();
-    FBOM(const FBOM &other) = delete;
-    FBOM &operator=(const FBOM &other) = delete;
+    FBOM(const FBOM &other)             = delete;
+    FBOM &operator=(const FBOM &other)  = delete;
     ~FBOM();
+    
+    void RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
 
-    template <class T, class Marshaler = FBOMMarshaler<T>>
-    void RegisterLoader()
-    {
-        static_assert(std::is_base_of_v<FBOMMarshalerBase, Marshaler>,
-            "Marshaler class must be a derived class of FBOMMarshalBase");
+    [[nodiscard]]
+    FBOMMarshalerBase *GetLoader(ANSIStringView type_name) const;
 
-        auto loader = UniquePtr<Marshaler>::Construct();
-        const auto name = loader->GetObjectType().name;
-
-        DebugLog(LogType::Debug, "Registered FBOM loader %s\n", name.Data());
-
-        marshalers.Set(name, std::move(loader));
-    }
-
-    FBOMMarshalerBase *GetLoader(const String &type_name) const
-    {
-        const auto it = marshalers.Find(type_name);
-
-        if (it == marshalers.End()) {
-            return nullptr;
-        }
-
-        return it->second.Get();
-    }
-
-    static FBOM &GetInstance()
-    {
-        static FBOM instance;
-
-        return instance;
-    }
+private:
+    FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
 };
 
 struct FBOMConfig
@@ -312,8 +372,7 @@ public:
 
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
     {
-        const String object_type_name(in.m_object_type.name);
-        const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(object_type_name);
+        const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(in.m_object_type.name);
 
         if (!loader) {
             return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
@@ -365,8 +424,10 @@ public:
             uint32 binary_version;
             Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
 
-            if (binary_version > FBOM::version || binary_version < 0x1) {
-                return { FBOMResult::FBOM_ERR, "Invalid binary version specified in header" };
+            int compatibility_test_result = FBOMVersion::TestCompatibility(binary_version, FBOM::version);
+
+            if (compatibility_test_result != 0) {
+                return { FBOMResult::FBOM_ERR, "Unsupported binary version" };
             }
         }
 

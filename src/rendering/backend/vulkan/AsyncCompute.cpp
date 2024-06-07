@@ -9,6 +9,9 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 namespace hyperion::renderer {
 
 namespace platform {
@@ -48,10 +51,7 @@ Result AsyncCompute<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     m_is_supported = device->GetQueueFamilyIndices().compute_family.HasValue();
 
     if (!m_is_supported) {
-        DebugLog(
-            LogType::Warn,
-            "Dedicated compute queue not supported, using graphics queue for compute operations\n"
-        );
+        HYP_LOG(RenderingBackend, LogLevel::WARNING, "Dedicated compute queue not supported, using graphics queue for compute operations");
         
         queue = &device->GetGraphicsQueue();
     }

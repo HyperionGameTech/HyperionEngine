@@ -249,7 +249,7 @@ void UIObject::OnAttached_Internal(UIObject *parent)
     SetAllChildUIObjectsStage(parent->GetStage());
 }
 
-void UIObject::OnDetached_Internal()
+void UIObject::OnRemoved_Internal()
 {
     m_stage = nullptr;
 
@@ -631,6 +631,8 @@ bool UIObject::IsVisible() const
 void UIObject::SetIsVisible(bool is_visible)
 {
     m_is_visible = is_visible;
+
+    UpdateComputedVisibility();
 }
 
 void UIObject::UpdateComputedVisibility()
@@ -651,14 +653,16 @@ void UIObject::UpdateComputedVisibility()
         const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
         const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
 
+        if (GetName() == HYP_WEAK_NAME(MenuItemContents)) {
+            HYP_LOG(UI, LogLevel::DEBUG, "Testing intersection for parent AABB: {} and menu contents: {}", parent_aabb, self_aabb);
+        }
+
         m_computed_visibility = parent_aabb.Intersects(self_aabb);
 
         return;
     }
 
     m_computed_visibility = true;
-
-    return;
 }
 
 bool UIObject::HasFocus(bool include_children) const
@@ -758,7 +762,7 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             bool removed = child_node->Remove();
 
             if (removed) {
-                ui_object->OnDetached_Internal();
+                ui_object->OnRemoved_Internal();
 
                 ui_object->UpdateSize();
                 ui_object->UpdatePosition();
@@ -769,6 +773,26 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
     }
 
     return false;
+}
+
+bool UIObject::RemoveFromParent()
+{
+    if (RC<UIObject> parent = GetParentUIObject()) {
+        return parent->RemoveChildUIObject(this);
+    }
+
+    return false;
+}
+
+RC<UIObject> UIObject::DetachFromParent()
+{
+    RC<UIObject> this_ref_counted = RefCountedPtrFromThis();
+
+    if (RC<UIObject> parent = GetParentUIObject()) {
+        parent->RemoveChildUIObject(this);
+    }
+
+    return this_ref_counted;
 }
 
 RC<UIObject> UIObject::FindChildUIObject(Name name) const
@@ -1268,11 +1292,24 @@ void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject
         });
     }
 
+    std::sort(children.Begin(), children.End(), [](const Pair<Node *, UIObject *> &lhs, const Pair<Node *, UIObject *> &rhs)
+    {
+        return lhs.second->GetDepth() < rhs.second->GetDepth();
+    });
+
     if (IsContainer()) {
         for (const Pair<Node *, UIObject *> &it : children) {
             it.second->CollectObjects(proc, out_deferred_child_objects);
         }
     } else {
+        // Keep non-container objects on the same layer as parent to reduce number of PSOs
+        // Using this method flattens out the objects that will be rendered.
+        // For containers:                      For non-containers:
+        //      *Container Object 1                 *Non-container Object 1
+        //      *Child Object 1                     *Non-container Object 2
+        //      *Container Object 2                 *Child Object 1
+        //      *Child Object 2                     *Child Object 2
+
         for (Pair<Node *, UIObject *> &it : children) {
             out_deferred_child_objects.PushBack(it.second);
         }

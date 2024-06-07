@@ -1,21 +1,20 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_PHYSICS_SHAPE_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_PHYSICS_SHAPE_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <physics/RigidBody.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
 
+using namespace hyperion::physics;
+
 template <>
-class FBOMMarshaler<physics::PhysicsShape> : public FBOMObjectMarshalerBase<physics::PhysicsShape>
+class FBOMMarshaler<PhysicsShape> : public FBOMObjectMarshalerBase<PhysicsShape>
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const physics::PhysicsShape &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const PhysicsShape &in_object, FBOMObject &out) const override
     {
         /// @TODO: Serialize the actual object -- will be dependent on the physics engine used
 
@@ -32,12 +31,12 @@ public:
             return err;
         }
 
-        out_object = RC<physics::PhysicsShape>::Construct(physics::PhysicsShapeType(type));
+        out_object = RC<PhysicsShape>::Construct(PhysicsShapeType(type));
 
         return { FBOMResult::FBOM_OK };
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(PhysicsShape, FBOMMarshaler<PhysicsShape>);
 
-#endif
+} // namespace hyperion::fbom

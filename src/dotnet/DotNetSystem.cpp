@@ -232,12 +232,12 @@ public:
         return bool(result);
     }
 
-    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const
+    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const override
     {
         m_add_method_to_cache_fptr(&assembly_guid, &method_guid, method_info_ptr);
     }
 
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const override
     {
         m_add_object_to_cache_fptr(&assembly_guid, &object_guid, object_ptr, out_managed_object);
     }

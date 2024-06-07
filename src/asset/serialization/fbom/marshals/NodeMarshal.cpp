@@ -1,10 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_NODE_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_NODE_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
-#include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
 #include <scene/Node.hpp>
 #include <scene/animation/Bone.hpp>
 #include <Engine.hpp>
@@ -155,6 +151,6 @@ public:
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(Node, FBOMMarshaler<Node>);
 
-#endif
+} // namespace hyperion::fbom

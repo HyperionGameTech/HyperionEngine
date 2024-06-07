@@ -2,7 +2,9 @@
 
 #include <streaming/StreamedMeshData.hpp>
 
-#include <asset/serialization/fbom/marshals/MeshDataMarshal.hpp>
+#include <asset/serialization/fbom/FBOMMarshaler.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
+
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
 

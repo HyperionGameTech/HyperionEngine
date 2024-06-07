@@ -94,6 +94,9 @@ public:
     const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
+    virtual bool IsContainer() const override
+        { return false; }
+
     virtual void Init() override;
 
 protected:
@@ -179,6 +182,9 @@ public:
      * \return True if the menu item was removed, false otherwise.
      */
     bool RemoveMenuItem(Name name);
+
+protected:
+    virtual void OnRemoved_Internal() override;
 
 private:
     void UpdateMenuItemSizes();

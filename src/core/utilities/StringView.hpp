@@ -33,6 +33,15 @@ public:
     template <int FirstStringType, int SecondStringType>
     friend bool operator<(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
+    template <int FirstStringType, int SecondStringType>
+    friend bool operator==(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+
+    template <int FirstStringType, int SecondStringType>
+    friend bool operator==(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+
+    template <int FirstStringType, int SecondStringType>
+    friend bool operator==(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
+
     using CharType = typename containers::detail::StringTypeImpl<string_type>::CharType;
     using WidestCharType = typename containers::detail::StringTypeImpl<string_type>::WidestCharType;
 
@@ -115,6 +124,11 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
+    operator detail::String<string_type>() const
+        { return detail::String<string_type>(Data()); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     explicit operator const CharType *() const
         { return m_begin; }
 
@@ -124,24 +138,6 @@ public:
     HYP_FORCE_INLINE
     const CharType *operator*() const
         { return m_begin; }
-    
-    /*! \brief Compare two StringView objects. If the underlying pointers are equal by memory address,
-     *  compares the length to ensure both strings are equal. If the strings are not nullptr, then
-     *  the strings are compared using the \ref{Memory::AreStaticStringsEqual} function.
-     *  \param other The other StringView object to compare against.
-     *  \returns True if the strings are equal, false otherwise. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr bool operator==(const StringView &other) const
-    {
-        // If memory addresses are equal then return true,
-        // only compare length if strings are not nullptr.
-        if (m_begin == other.m_begin && (!m_begin || Size() == other.Size())) {
-            return true;
-        }
-
-        return Memory::AreStaticStringsEqual(m_begin, other.m_begin);
-    }
 
     /*! \brief Inversion of the equality operator.
      *  \param other The other StringView object to compare against.
@@ -233,6 +229,36 @@ bool operator<(const StringView<StringType> &lhs, const containers::detail::Stri
     }
 
     return utf::utf_strcmp<typename StringView<StringType>::CharType, StringView<StringType>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
+}
+
+template <int StringType>
+bool operator==(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
+{
+    if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
+        return true;
+    }
+
+    return Memory::AreStaticStringsEqual(lhs.Begin(), rhs.Begin());
+}
+
+template <int StringType>
+bool operator==(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
+{
+    if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
+        return true;
+    }
+
+    return Memory::AreStaticStringsEqual(lhs.Begin(), rhs.Begin());
+}
+
+template <int StringType>
+bool operator==(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
+{
+    if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
+        return true;
+    }
+
+    return Memory::AreStaticStringsEqual(lhs.Begin(), rhs.Begin());
 }
 
 } // namespace detail

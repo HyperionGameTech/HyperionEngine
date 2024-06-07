@@ -1,8 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_SHADER_BUNDLE_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_SHADER_BUNDLE_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <util/shader_compiler/ShaderCompiler.hpp>
 #include <Engine.hpp>
@@ -307,6 +304,8 @@ public:
     }
 };
 
+HYP_DEFINE_MARSHAL(CompiledShader, FBOMMarshaler<CompiledShader>);
+
 template <>
 class FBOMMarshaler<CompiledShaderBatch> : public FBOMObjectMarshalerBase<CompiledShaderBatch>
 {
@@ -342,6 +341,6 @@ public:
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(CompiledShaderBatch, FBOMMarshaler<CompiledShaderBatch>);
 
-#endif
+} // namespace hyperion::fbom

@@ -174,10 +174,10 @@ void UIStage::OnAttached_Internal(UIObject *parent)
     m_scene->SetRoot(NodeProxy::empty);;
 }
 
-void UIStage::OnDetached_Internal()
+void UIStage::OnRemoved_Internal()
 {
     // Remove m_stage parent object
-    UIObject::OnDetached_Internal();
+    UIObject::OnRemoved_Internal();
 
     // Set all sub objects to have a m_stage of this
     UIObject::SetAllChildUIObjectsStage(this);

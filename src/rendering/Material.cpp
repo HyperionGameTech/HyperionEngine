@@ -589,7 +589,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 
     if (it != m_map.End()) {
         if (Handle<Material> handle = it->second.Lock()) {
-            HYP_LOG(Material, LogLevel::WARNING, "Reusing material with hash {} from material cache", hc.Value());
+            // HYP_LOG(Material, LogLevel::WARNING, "Reusing material with hash {} from material cache", hc.Value());
 
             return handle;
         }

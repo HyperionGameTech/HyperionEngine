@@ -4,146 +4,48 @@
 #define HYPERION_FBOM_TYPE_HPP
 
 #include <core/containers/String.hpp>
+#include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 
-#include <string>
 #include <cstddef>
 
 namespace hyperion::fbom {
 
 struct FBOMType
 {
-    String      name;
+    ANSIString  name;
     SizeType    size;
-    FBOMType    *extends = nullptr;
+    FBOMType    *extends;
 
-    FBOMType()
-        : name("UNSET"),
-          size(0),
-          extends(nullptr)
-    {
-    }
-
-    FBOMType(const String &name, SizeType size)
-        : name(name),
-          size(size),
-          extends(nullptr)
-    {
-    }
-
-    FBOMType(const String &name, SizeType size, const FBOMType &extends)
-        : name(name),
-          size(size),
-          extends(new FBOMType(extends))
-    {
-    }
-
-    FBOMType(const FBOMType &other)
-        : name(other.name),
-          size(other.size),
-          extends(nullptr)
-    {
-        if (other.extends != nullptr) {
-            extends = new FBOMType(*other.extends);
-        }
-    }
-
-    FBOMType &operator=(const FBOMType &other)
-    {
-        if (extends != nullptr) {
-            delete extends;
-        }
-
-        name = other.name;
-        size = other.size;
-        extends = nullptr;
-
-        if (other.extends != nullptr) {
-            extends = new FBOMType(*other.extends);
-        }
-
-        return *this;
-    }
-
-    FBOMType(FBOMType &&other) noexcept
-        : name(std::move(other.name)),
-          size(other.size),
-          extends(other.extends)
-    {
-        other.size = 0;
-        other.extends = nullptr;
-    }
-
-    FBOMType &operator=(FBOMType &&other) noexcept
-    {
-        if (extends != nullptr) {
-            delete extends;
-        }
-
-        name = std::move(other.name);
-        size = other.size;
-        extends = other.extends;
-
-        other.size = 0;
-        other.extends = nullptr;
-
-        return *this;
-    }
-
-    ~FBOMType()
-    {
-        if (extends != nullptr) {
-            delete extends;
-        }
-    }
+    FBOMType();
+    FBOMType(const ANSIStringView &name, SizeType size);
+    FBOMType(const ANSIStringView &name, SizeType size, const FBOMType &extends);
+    FBOMType(const FBOMType &other);
+    FBOMType &operator=(const FBOMType &other);
+    FBOMType(FBOMType &&other) noexcept;
+    FBOMType &operator=(FBOMType &&other) noexcept;
+    ~FBOMType();
 
     FBOMType Extend(const FBOMType &object) const;
+    
+    [[nodiscard]]
+    bool IsOrExtends(const ANSIStringView &name) const;
 
-    bool IsOrExtends(const String &name) const
-    {
-        if (this->name == name) {
-            return true;
-        }
+    [[nodiscard]]
+    bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true) const;
 
-        if (extends == nullptr) {
-            return false;
-        }
+    [[nodiscard]]
+    bool Extends(const FBOMType &other) const;
 
-        return extends->IsOrExtends(name);
-    }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsUnbouned() const
+        { return size == SizeType(-1); }
 
-    bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true) const
-    {
-        if (operator==(other)) {
-            return true;
-        }
-
-        if (allow_unbounded && (IsUnbouned() || other.IsUnbouned())) {
-            if (name == other.name && extends == other.extends) { // don't size check
-                return true;
-            }
-        }
-
-        return Extends(other);
-    }
-
-    bool Extends(const FBOMType &other) const
-    {
-        if (extends == nullptr) {
-            return false;
-        }
-
-        if (*extends == other) {
-            return true;
-        }
-
-        return extends->Extends(other);
-    }
-
-    bool IsUnbouned() const { return size == SizeType(-1); }
-
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator==(const FBOMType &other) const
     {
         return name == other.name
@@ -151,20 +53,16 @@ struct FBOMType
             && extends == other.extends;
     }
 
-    String ToString() const
-    {
-        String str = name + " (" + String::ToString(size) + ") ";
+    [[nodiscard]]
+    String ToString() const;
 
-        if (extends != nullptr) {
-            str += "[" + extends->ToString() + "]";
-        }
-
-        return str;
-    }
-
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     UniqueID GetUniqueID() const
         { return UniqueID(GetHashCode()); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

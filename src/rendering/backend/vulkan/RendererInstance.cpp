@@ -44,7 +44,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
         if (device_features.IsDiscreteGpu()) {
             if ((device_requirements_result = device_features.SatisfiesMinimumRequirements())) {
-                HYP_LOG(Vulkan, LogLevel::INFO, "Select discrete device {}", device_features.GetDeviceName());
+                HYP_LOG(RenderingBackend, LogLevel::INFO, "Select discrete device {}", device_features.GetDeviceName());
 
                 return device;
             }
@@ -56,7 +56,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         device_features.SetPhysicalDevice(device);
 
         if ((device_requirements_result = device_features.SatisfiesMinimumRequirements())) {
-            HYP_LOG(Vulkan, LogLevel::INFO, "Select non-discrete device {}", device_features.GetDeviceName());
+            HYP_LOG(RenderingBackend, LogLevel::INFO, "Select non-discrete device {}", device_features.GetDeviceName());
 
             return device;
         }
@@ -67,7 +67,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
     device_requirements_result = device_features.SatisfiesMinimumRequirements();
 
-    HYP_LOG(Vulkan, LogLevel::ERROR, "No device found which satisfied the minimum requirements; selecting device {}.\nThe error message was: {}",
+    HYP_LOG(RenderingBackend, LogLevel::ERROR, "No device found which satisfied the minimum requirements; selecting device {}.\nThe error message was: {}",
         device_features.GetDeviceName(), device_requirements_result.message);
 
     return device;

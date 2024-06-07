@@ -176,14 +176,17 @@ void UIMenuBar::Init()
 
     UIPanel::Init();
 
-    m_container = GetStage()->CreateUIObject<UIPanel>(HYP_NAME(MenuItemContents), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    m_container = GetStage()->CreateUIObject<UIPanel>(HYP_NAME(MenuItemContents), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 250, UIObjectSize::PIXEL }));
+    m_container->SetBackgroundColor(Color(0xFF0000FFu));
     m_container->SetIsVisible(false);
     m_container->SetBorderFlags(UIObjectBorderFlags::NONE);
     m_container->SetBorderRadius(0);
-    m_container->SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
+    // m_container->SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
     m_container->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     m_container->SetPadding({ 1, 1 });
-    // m_container->SetDepth(100);
+    m_container->SetDepth(100);
+
+    // @TODO: OnRemoved_Internal() , remove m_container from stage
 
     m_container->OnClick.Bind([this](const MouseEvent &data) -> UIEventHandlerResult
     {
@@ -205,7 +208,18 @@ void UIMenuBar::Init()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    AddChildUIObject(m_container);
+    GetStage()->AddChildUIObject(m_container);
+
+    // AddChildUIObject(m_container);
+}
+
+void UIMenuBar::OnRemoved_Internal()
+{
+    UIPanel::OnRemoved_Internal();
+
+    if (m_container != nullptr) {
+        m_container->RemoveFromParent();
+    }
 }
 
 void UIMenuBar::SetSelectedMenuItemIndex(uint index)
@@ -254,7 +268,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
 
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
-    m_container->SetPosition({ menu_item->GetPosition().x, 0 });
+    m_container->SetPosition({ menu_item->GetPosition().x, menu_item->GetPosition().y + menu_item->GetActualSize().y });
     m_container->SetIsVisible(true);
     m_container->Focus();
 }
@@ -293,6 +307,8 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
             } else {
                 SetSelectedMenuItemIndex(menu_item_index);
             }
+
+            HYP_LOG(UI, LogLevel::DEBUG, "Container size {}", m_container->GetActualSize());
 
             return UIEventHandlerResult::STOP_BUBBLING;
         }

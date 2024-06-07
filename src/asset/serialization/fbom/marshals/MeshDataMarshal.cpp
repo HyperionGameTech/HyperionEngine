@@ -1,8 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_MESH_DATA_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_MESH_DATA_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <rendering/Mesh.hpp>
 #include <Engine.hpp>
@@ -71,6 +68,6 @@ public:
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(MeshData, FBOMMarshaler<MeshData>);
 
-#endif
+} // namespace hyperion::fbom

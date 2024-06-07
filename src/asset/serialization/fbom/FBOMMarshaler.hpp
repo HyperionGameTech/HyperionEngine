@@ -15,6 +15,7 @@
 
 namespace hyperion::fbom {
 
+class FBOM;
 class FBOMObject;
 
 class FBOMMarshalerBase
@@ -32,6 +33,31 @@ protected:
 };
 
 template <class T>
+class FBOMObjectMarshalerBase;
+
+template <class T>
+class FBOMMarshaler;
+
+namespace detail {
+
+struct FBOMMarshalerRegistrationBase
+{
+protected:
+    FBOMMarshalerRegistrationBase(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
+};
+
+template <class T, class MarshalerType>
+struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
+{
+    FBOMMarshalerRegistration()
+        : FBOMMarshalerRegistrationBase(TypeID::ForType<T>(), UniquePtr<FBOMMarshalerBase>(new MarshalerType()))
+    {
+    }
+};
+
+} // namespace detail
+
+template <class T>
 class FBOMObjectMarshalerBase : public FBOMMarshalerBase
 {
 public:
@@ -44,13 +70,6 @@ public:
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const = 0;
 
 private:
-    // virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const override
-    // {
-    //     auto extracted_value = in.Get<T>();
-
-    //     return Serialize(*extracted_value.Get(), out);
-    // }
-
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override final
     {
         Any any_value;
@@ -76,8 +95,14 @@ private:
 template <class T>
 class FBOMMarshaler : public FBOMObjectMarshalerBase<T>
 {
-    static_assert(resolution_failure<T>, "No marshal class defined");
+public:
+    virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const override;
+    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override;
 };
+
+#define HYP_DEFINE_MARSHAL(T, MarshalType) \
+    static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> T##_Marshal { }
+
 
 } // namespace hyperion::fbom
 

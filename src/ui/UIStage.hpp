@@ -163,8 +163,8 @@ protected:
     
     virtual void OnAttached_Internal(UIObject *parent) override;
     
-    // Override OnDetached_Internal to update subobjects to have this as a stage
-    virtual void OnDetached_Internal() override;
+    // Override OnRemoved_Internal to update subobjects to have this as a stage
+    virtual void OnRemoved_Internal() override;
 
 private:
     virtual void ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner) override;

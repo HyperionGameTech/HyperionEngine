@@ -15,9 +15,10 @@
 #include <asset/ByteWriter.hpp>
 #include <asset/BufferedByteReader.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
-#include <asset/serialization/fbom/marshals/ShaderBundleMarshal.hpp>
 
 #include <math/MathUtil.hpp>
+
+#include <Engine.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 

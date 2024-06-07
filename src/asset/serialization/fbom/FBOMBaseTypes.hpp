@@ -69,13 +69,13 @@ struct FBOMByteBuffer : FBOMType
 };
 
 struct FBOMVec2f : FBOMSequence { FBOMVec2f() : FBOMSequence(FBOMFloat(), 2) {} };
-struct FBOMVec3f : FBOMSequence { FBOMVec3f() : FBOMSequence(FBOMFloat(), 3) {} };
+struct FBOMVec3f : FBOMSequence { FBOMVec3f() : FBOMSequence(FBOMFloat(), 4 /* 3 + 1 for padding */) {} };
 struct FBOMVec4f : FBOMSequence { FBOMVec4f() : FBOMSequence(FBOMFloat(), 4) {} };
 struct FBOMVec2i : FBOMSequence { FBOMVec2i() : FBOMSequence(FBOMInt(), 2) {} };
-struct FBOMVec3i : FBOMSequence { FBOMVec3i() : FBOMSequence(FBOMInt(), 3) {} };
+struct FBOMVec3i : FBOMSequence { FBOMVec3i() : FBOMSequence(FBOMInt(), 4 /* 3 + 1 for padding */) {} };
 struct FBOMVec4i : FBOMSequence { FBOMVec4i() : FBOMSequence(FBOMInt(), 4) {} };
 struct FBOMVec2ui : FBOMSequence { FBOMVec2ui() : FBOMSequence(FBOMUnsignedInt(), 2) {} };
-struct FBOMVec3ui : FBOMSequence { FBOMVec3ui() : FBOMSequence(FBOMUnsignedInt(), 3) {} };
+struct FBOMVec3ui : FBOMSequence { FBOMVec3ui() : FBOMSequence(FBOMUnsignedInt(), 4 /* 3 + 1 for padding */) {} };
 struct FBOMVec4ui : FBOMSequence { FBOMVec4ui() : FBOMSequence(FBOMUnsignedInt(), 4) {} };
 
 struct FBOMMat3 : FBOMSequence { FBOMMat3() : FBOMSequence(FBOMFloat(), 9) {} };
@@ -113,12 +113,12 @@ struct FBOMObjectType : FBOMType
     {
     }
 
-    FBOMObjectType(const String &name)
+    FBOMObjectType(const ANSIStringView &name)
         : FBOMObjectType(name, FBOMBaseObjectType())
     {
     }
 
-    FBOMObjectType(const String &name, const FBOMType &extends)
+    FBOMObjectType(const ANSIStringView &name, const FBOMType &extends)
         : FBOMType(name, 0, extends)
     {
     }

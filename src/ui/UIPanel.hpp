@@ -25,7 +25,7 @@ public:
     virtual ~UIPanel() override                     = default;
 
     virtual bool IsContainer() const override
-        { return true; }
+        { return false; }
 
     virtual void Init() override;
 

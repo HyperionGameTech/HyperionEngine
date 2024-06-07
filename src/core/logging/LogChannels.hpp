@@ -16,7 +16,6 @@ HYP_DECLARE_LOG_CHANNEL(Physics);
 HYP_DECLARE_LOG_CHANNEL(Audio);
 HYP_DECLARE_LOG_CHANNEL(Input);
 HYP_DECLARE_LOG_CHANNEL(Profile);
-HYP_DECLARE_LOG_CHANNEL(Assets);
 HYP_DECLARE_LOG_CHANNEL(Math);
 HYP_DECLARE_LOG_CHANNEL(DotNET);
 HYP_DECLARE_LOG_CHANNEL(Streaming);
@@ -28,7 +27,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-HYP_DECLARE_LOG_CHANNEL(Vulkan);
+HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 HYP_DECLARE_LOG_CHANNEL(RenderCommands);
 HYP_DECLARE_LOG_CHANNEL(Shader);
@@ -77,6 +76,14 @@ HYP_DECLARE_LOG_CHANNEL(Script);
 HYP_DECLARE_LOG_CHANNEL(ScriptingService);
 
 #pragma endregion Script
+
+#pragma region Assets
+
+HYP_DECLARE_LOG_CHANNEL(Assets);
+
+HYP_DECLARE_LOG_CHANNEL(Serialization);
+
+#pragma endregion Assets
 
 } // namespace hyperion
 

@@ -43,8 +43,6 @@ struct alignas(Alignment) ValueStorage
 
         static_assert(sizeof(T) == sizeof(OtherType), "sizeof must match for both T and OtherType");
 
-        // Should alignof be checked?
-
         Memory::MemCpy(data_buffer, ptr, sizeof(T));
     }
 

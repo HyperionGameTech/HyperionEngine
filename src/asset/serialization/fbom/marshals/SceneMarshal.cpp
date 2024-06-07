@@ -1,12 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_SCENE_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_SCENE_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
-#include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
-#include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
-#include <asset/serialization/fbom/marshals/CameraMarshal.hpp>
 #include <scene/Scene.hpp>
 #include <Engine.hpp>
 
@@ -48,8 +42,7 @@ public:
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                scene_handle->GetRoot()->AddChild(node.deserialized.Get<Node>());
-                // out_object->SetRoot(node.deserialized.Get<Node>());
+                scene_handle->SetRoot(node.deserialized.Get<Node>());
             } else if (node.GetType().IsOrExtends("Camera")) {
                 scene_handle->SetCamera(node.deserialized.Get<Camera>());
             }
@@ -61,6 +54,6 @@ public:
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(Scene, FBOMMarshaler<Scene>);
 
-#endif
+} // namespace hyperion::fbom

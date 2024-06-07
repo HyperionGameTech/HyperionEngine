@@ -24,6 +24,19 @@ static inline UniquePtr<ObjectContainerBase> *AllotContainer()
     return ObjectPool::template AllotContainer<T>();
 }
 
+struct HandleBase
+{
+    uint index;
+
+protected:
+    HandleBase() : index(0) { }
+    HandleBase(uint index) : index(index) { }
+    HandleBase(const HandleBase &other)                 = default;
+    HandleBase &operator=(const HandleBase &other)      = default;
+    HandleBase(HandleBase &other) noexcept              = default;
+    HandleBase &operator=(HandleBase &&other) noexcept  = default;
+};
+
 /*! \brief Definition of a handle for a type.
  *  \details In Hyperion, a handle is a reference to an instance of a specific core engine object type.
  *  These objects are managed by the ObjectPool and are reference counted.
@@ -32,7 +45,7 @@ static inline UniquePtr<ObjectContainerBase> *AllotContainer()
  *  \tparam T The type of object that the handle is referencing. 
 */
 template <class T>
-struct Handle
+struct Handle : HandleBase
 {
     using IDType = ID<T>;
 
@@ -55,18 +68,12 @@ struct Handle
 
     static const Handle empty;
 
-    /*! \brief The index of the object in the object pool's container for \ref{T} */
-    uint index;
-
-    Handle()
-        : index(0)
-    {
-    }
+    Handle() : HandleBase() { }
 
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
-        : index(id.Value())
+        : HandleBase(id.Value())
     {
         if (index != 0) {
             GetContainer().IncRefStrong(index - 1);
@@ -74,7 +81,7 @@ struct Handle
     }
 
     Handle(const Handle &other)
-        : index(other.index)
+        : HandleBase(static_cast<const HandleBase &>(other))
     {
         if (index != 0) {
             GetContainer().IncRefStrong(index - 1);
@@ -101,7 +108,7 @@ struct Handle
     }
 
     Handle(Handle &&other) noexcept
-        : index(other.index)
+        : HandleBase(static_cast<HandleBase &&>(other))
     {
         other.index = 0;
     }

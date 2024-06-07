@@ -8,6 +8,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/utilities/FormatFwd.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -167,6 +169,23 @@ public:
     Vec3f   min;
     Vec3f   max;
 };
+
+namespace utilities {
+
+template <class StringType>
+struct Formatter<StringType, BoundingBox>
+{
+    auto operator()(const BoundingBox &bounding_box) const
+    {
+        return StringType("BoundingBox(min: ")
+            + Formatter<StringType, Vec3f>{}(bounding_box.min)
+            + StringType(", max: ")
+            + Formatter<StringType, Vec3f>{}(bounding_box.max)
+            + StringType(")");
+    }
+};
+
+} // namespace utilities
 
 } // namespace hyperion
 

@@ -1,8 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALER_HPP
-#define HYPERION_FBOM_MARSHALER_HPP
-
+#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 #include <Engine.hpp>
 
@@ -12,6 +10,13 @@ class Engine;
 
 namespace hyperion::fbom {
 
-} // namespace hyperion::fbom
+namespace detail {
 
-#endif
+FBOMMarshalerRegistrationBase::FBOMMarshalerRegistrationBase(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal)
+{
+    FBOM::GetInstance().RegisterLoader(type_id, std::move(marshal));
+}
+
+} // namespace detail
+
+} // namespace hyperion::fbom

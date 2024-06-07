@@ -9,6 +9,9 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <util/BlueNoise.hpp>
 
 #include <util/fs/FsUtil.hpp>
@@ -924,10 +927,7 @@ void ReflectionProbePass::Render(Frame *frame)
 
                 for (const ID<EnvProbe> env_probe_id : env_probes) {
                     if (num_rendered_env_probes >= max_bound_reflection_probes) {
-                        DebugLog(
-                            LogType::Warn,
-                            "Attempting to render too many reflection probes.\n"
-                        );
+                        HYP_LOG(Rendering, LogLevel::WARNING, "Attempting to render too many reflection probes.");
 
                         break;
                     }

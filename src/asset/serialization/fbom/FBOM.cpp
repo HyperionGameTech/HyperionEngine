@@ -5,41 +5,43 @@
 #include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>
 
-#include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
-#include <asset/serialization/fbom/marshals/MeshMarshal.hpp>
-#include <asset/serialization/fbom/marshals/MeshDataMarshal.hpp>
-#include <asset/serialization/fbom/marshals/SubShaderMarshal.hpp>
-#include <asset/serialization/fbom/marshals/MaterialMarshal.hpp>
-#include <asset/serialization/fbom/marshals/TextureMarshal.hpp>
-#include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
-#include <asset/serialization/fbom/marshals/SceneMarshal.hpp>
-#include <asset/serialization/fbom/marshals/CameraMarshal.hpp>
-#include <asset/serialization/fbom/marshals/ShaderBundleMarshal.hpp>
-#include <asset/serialization/fbom/marshals/AudioSourceMarshal.hpp>
-#include <asset/serialization/fbom/marshals/PhysicsShapeMarshal.hpp>
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
 namespace hyperion::fbom {
 
-FBOM::FBOM()
+FBOM &FBOM::GetInstance()
 {
-    // register loaders
-    RegisterLoader<Entity>();
-    RegisterLoader<Mesh>();
-    RegisterLoader<MeshData>();
-    RegisterLoader<SubShader>();
-    RegisterLoader<Material>();
-    RegisterLoader<Texture>();
-    RegisterLoader<Node>();
-    RegisterLoader<Scene>();
-    RegisterLoader<Camera>();
-    RegisterLoader<CompiledShader>();
-    RegisterLoader<CompiledShaderBatch>();
-    RegisterLoader<AudioSource>();
-    RegisterLoader<physics::PhysicsShape>();
+    static FBOM instance;
+
+    return instance;
 }
 
-FBOM::~FBOM() = default;
+FBOM::FBOM()    = default;
+FBOM::~FBOM()   = default;
+
+void FBOM::RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal)
+{
+    AssertThrow(marshal != nullptr);
+
+    const String &name = marshal->GetObjectType().name;
+
+    HYP_LOG(Serialization, LogLevel::INFO, "Registered FBOM loader {}", name);
+
+    m_marshals.Set(name, std::move(marshal));
+}
+
+FBOMMarshalerBase *FBOM::GetLoader(ANSIStringView type_name) const
+{
+    const auto it = m_marshals.FindAs(type_name);
+
+    if (it == m_marshals.End()) {
+        return nullptr;
+    }
+
+    return it->second.Get();
+}
 
 } // namespace hyperion::fbom

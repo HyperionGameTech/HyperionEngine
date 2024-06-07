@@ -1,8 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_FBOM_MARSHALS_AUDIO_SOURCE_MARSHAL_HPP
-#define HYPERION_FBOM_MARSHALS_AUDIO_SOURCE_MARSHAL_HPP
-
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <audio/AudioSource.hpp>
 #include <Engine.hpp>
@@ -54,6 +51,6 @@ public:
     }
 };
 
-} // namespace hyperion::fbom
+HYP_DEFINE_MARSHAL(AudioSource, FBOMMarshaler<AudioSource>);
 
-#endif
+} // namespace hyperion::fbom

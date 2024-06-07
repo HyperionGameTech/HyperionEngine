@@ -6,6 +6,9 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/AsyncCompute.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <cstring>
 #include <algorithm>
 #include <iterator>
@@ -120,14 +123,14 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_presentation);
 
             if (supports_presentation) {
-                DebugLog(LogType::Debug, "Found presentation queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found presentation queue: {}", i);
                 indices.present_family = i;
             }
         }
 
         if (!indices.graphics_family.HasValue()) {
             if (predicate(i, VK_QUEUE_GRAPHICS_BIT, true)) {
-                DebugLog(LogType::Debug, "Found dedicated graphics presentation queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found dedicated graphics presentation queue: {}", i);
                 indices.graphics_family = i;
                 found_indices.PushBack(i);
                 continue;
@@ -136,7 +139,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
         if (!indices.transfer_family.HasValue()) {
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, true)) {
-                DebugLog(LogType::Debug, "Found dedicated transfer queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found dedicated transfer queue: {}", i);
                 indices.transfer_family = i;
                 found_indices.PushBack(i);
                 continue;
@@ -145,7 +148,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
         if (!indices.compute_family.HasValue()) {
             if (predicate(i, VK_QUEUE_COMPUTE_BIT, true)) {
-                DebugLog(LogType::Debug, "Found dedicated compute queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found dedicated compute queue: {}", i);
                 indices.compute_family = i;
                 found_indices.PushBack(i);
                 continue;
@@ -157,11 +160,11 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     AssertThrowMsg(indices.graphics_family.HasValue(), "No graphics queue family found that supports presentation!");
 
     if (!indices.transfer_family.HasValue()) {
-        DebugLog(LogType::Warn, "No dedicated transfer queue family found!\n");
+        HYP_LOG(RenderingBackend, LogLevel::WARNING, "No dedicated transfer queue family found!");
     }
 
     if (!indices.compute_family.HasValue()) {
-        DebugLog(LogType::Warn, "No dedicated compute queue family found!\n");
+        HYP_LOG(RenderingBackend, LogLevel::WARNING, "No dedicated compute queue family found!");
     }
 
     /* Fallback -- find queue families (non-dedicated) */
@@ -174,14 +177,14 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
         if (!indices.transfer_family.HasValue()) {
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, false)) {
-                DebugLog(LogType::Debug, "Found non-dedicated transfer queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found non-dedicated transfer queue {}", i);
                 indices.transfer_family = i;
             }
         }
 
         if (!indices.compute_family.HasValue()) {
             if (predicate(i, VK_QUEUE_COMPUTE_BIT, false)) {
-                DebugLog(LogType::Debug, "Found non-dedicated compute queue (%d)\n", i);
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Found non-dedicated compute queue {}", i);
                 indices.compute_family = i;
             }
         }
@@ -237,17 +240,17 @@ ExtensionMap Device<Platform::VULKAN>::GetUnsupportedExtensions()
 Result Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap &unsupported_extensions)
 {
     if (!unsupported_extensions.empty()) {
-        DebugLog(LogType::Warn, "--- Unsupported Extensions ---\n");
+        HYP_LOG(RenderingBackend, LogLevel::WARNING, "--- Unsupported Extensions ---\n");
         
         bool any_required = false;
 
         for (const auto &extension : unsupported_extensions) {
             if (extension.second) {
-                DebugLog(LogType::Error, "\t%s [REQUIRED]\n", extension.first.c_str());
+                HYP_LOG(RenderingBackend, LogLevel::ERROR, "\t{} [REQUIRED]", extension.first.c_str());
 
                 any_required = true;
             } else {
-                DebugLog(LogType::Warn, "\t%s\n", extension.first.c_str());
+                HYP_LOG(RenderingBackend, LogLevel::WARNING, "\t{}", extension.first.c_str());
             }
         }
 
@@ -340,18 +343,18 @@ Result Device<Platform::VULKAN>::Wait() const
 
 Result Device<Platform::VULKAN>::Create(const std::set<uint32> &required_queue_families)
 {
-    DebugLog(LogType::Debug, "Memory properties:\n");
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Memory properties:\n");
     const auto &memory_properties = m_features->GetPhysicalDeviceMemoryProperties();
 
     for (uint32 i = 0; i < memory_properties.memoryTypeCount; i++) {
         const auto &memory_type = memory_properties.memoryTypes[i];
         const uint32 heap_index =  memory_type.heapIndex;
 
-        DebugLog(LogType::Debug, "Memory type %lu:\t(index: %lu, flags: %lu)\n", i, heap_index, memory_type.propertyFlags);
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Memory type %lu:\t(index: %lu, flags: %lu)\n", i, heap_index, memory_type.propertyFlags);
 
         const VkMemoryHeap &heap = memory_properties.memoryHeaps[heap_index];
 
-        DebugLog(LogType::Debug, "\tHeap:\t\t(size: %llu, flags: %lu)\n", heap.size, heap.flags);
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "\tHeap:\t\t(size: %llu, flags: %lu)\n", heap.size, heap.flags);
     }
 
     Array<VkDeviceQueueCreateInfo> queue_create_infos;
@@ -426,7 +429,7 @@ Result Device<Platform::VULKAN>::Create(const std::set<uint32> &required_queue_f
         "Could not create Device!"
     );
     
-    DebugLog(LogType::Debug, "Loading dynamic functions\n");
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Loading dynamic functions\n");
     m_features->LoadDynamicFunctions(this);
     m_features->SetDeviceFeatures(this);
 

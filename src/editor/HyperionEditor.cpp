@@ -139,7 +139,6 @@ void HyperionEditorImpl::CreateMainPanel()
 
     m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
 
-#if 1
     RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     menu_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -213,6 +212,7 @@ void HyperionEditorImpl::CreateMainPanel()
     m_main_panel->AddChildUIObject(menu_bar);
 #endif
 
+#if 1
     RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
 
     RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
@@ -697,6 +697,17 @@ void HyperionEditor::Init()
         }
 
         GetScene()->GetRoot()->AddChild(node);
+
+
+        FileByteWriter byte_writer("Scene.hypscene");
+        fbom::FBOMWriter writer;
+        writer.Append(*GetScene());
+        auto err = writer.Emit(&byte_writer);
+        byte_writer.Close();
+
+        if (err != fbom::FBOMResult::FBOM_OK) {
+            HYP_THROW("Failed to save scene");
+        }
     }).Detach();
 
     batch->LoadAsync();
