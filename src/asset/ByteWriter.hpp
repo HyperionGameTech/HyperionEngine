@@ -6,7 +6,10 @@
 #include <core/memory/Memory.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
+#include <core/utilities/StringView.hpp>
 #include <core/filesystem/FilePath.hpp>
+
+#include <math/MathUtil.hpp>
 
 #include <Types.hpp>
 
@@ -18,18 +21,23 @@ using ByteWriterFlags = ubyte;
 
 enum ByteWriterFlagBits : ByteWriterFlags
 {
-    BYTE_WRITER_FLAGS_NONE              = 0,
-    BYTE_WRITER_FLAGS_WRITE_NULL_CHAR   = 1 << 0,
-    BYTE_WRITER_FLAGS_WRITE_SIZE        = 1 << 1
+    BYTE_WRITER_FLAGS_NONE              = 0x0,
+    BYTE_WRITER_FLAGS_WRITE_NULL_CHAR   = 0x1,
+    BYTE_WRITER_FLAGS_WRITE_SIZE        = 0x2,
+    BYTE_WRITER_FLAGS_WRITE_STRING_TYPE = 0x4
 };
 
 class ByteWriter
 {
 public:
-    ByteWriter() = default;
-    ByteWriter(const ByteWriter &other) = delete;
-    ByteWriter &operator=(const ByteWriter &other) = delete;
-    virtual ~ByteWriter() = default;
+    static constexpr uint32 string_length_mask = uint32(-1) << 8;
+    // number of bits needed to encode string type in string header
+    static constexpr uint32 string_type_mask = MathUtil::FastLog2(uint32(StringType::MAX)) + 1;
+
+    ByteWriter()                                    = default;
+    ByteWriter(const ByteWriter &other)             = delete;
+    ByteWriter &operator=(const ByteWriter &other)  = delete;
+    virtual ~ByteWriter()                           = default;
 
     void Write(const void *ptr, SizeType size)
     {
@@ -44,29 +52,35 @@ public:
         WriteBytes(reinterpret_cast<const char *>(&value), sizeof(T));
     }
 
-    void WriteString(const String &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
+    template <int StringType>
+    void WriteString(const StringView<StringType> &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
     {
-        const uint32 len = uint32(str.Size());
-
-        if (flags & BYTE_WRITER_FLAGS_WRITE_SIZE) {
-            const uint32 len_nt = len + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0);
-
-            WriteBytes(reinterpret_cast<const char *>(&len_nt), sizeof(uint32));
+        uint32 string_header = (uint32(str.Size() + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0)) << 8) & string_length_mask;
+        
+        if (flags & BYTE_WRITER_FLAGS_WRITE_STRING_TYPE) {
+            string_header |= (uint32(StringView<StringType>::string_type)) & string_type_mask;
         }
 
-        WriteBytes(str.Data(), len);
+        if (flags & (BYTE_WRITER_FLAGS_WRITE_SIZE | BYTE_WRITER_FLAGS_WRITE_STRING_TYPE)) {
+            Write(&string_header, sizeof(uint32));
+        }
+
+        WriteBytes(str.Data(), str.Size() * sizeof(typename StringView<StringType>::CharType));
 
         if (flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) {
             WriteBytes("\0", 1);
         }
     }
+    
+    template <int StringType>
+    void WriteString(const containers::detail::String<StringType> &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
+    {
+        WriteString(StringView<StringType>(str), flags);
+    }
 
     void WriteString(const char *str)
     {
-        const auto len = Memory::StrLen(str);
-
-        WriteBytes(reinterpret_cast<const char *>(&len), sizeof(uint32_t));
-        WriteBytes(str, len);
+        WriteString(StringView<StringType::UTF8>(str));
     }
 
     virtual SizeType Position() const = 0;

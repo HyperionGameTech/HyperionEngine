@@ -500,7 +500,7 @@ static HYP_FORCE_INLINE Handle<T> CreateObject(Args &&... args)
         \
         static Name GetNameForType() \
         { \
-            static const Name name = NAME("T"); \
+            static const Name name = NAME(HYP_STR(T)); \
             return name; \
         } \
         \
@@ -527,7 +527,7 @@ static HYP_FORCE_INLINE Handle<T> CreateObject(Args &&... args)
         \
         static Name GetNameForType() \
         { \
-            static const Name name = NAME("ns::T"); \
+            static const Name name = NAME(HYP_STR(ns::T)); \
             return name; \
         } \
         \

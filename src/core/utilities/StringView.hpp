@@ -21,7 +21,7 @@ namespace detail {
 
 using namespace containers::detail;
 
-template <int string_type>
+template <int StringType>
 class StringView
 {
 public:
@@ -43,23 +43,25 @@ public:
     template <int FirstStringType, int SecondStringType>
     friend bool operator==(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
-    using CharType = typename containers::detail::StringTypeImpl<string_type>::CharType;
-    using WidestCharType = typename containers::detail::StringTypeImpl<string_type>::WidestCharType;
+    using CharType = typename containers::detail::StringTypeImpl<StringType>::CharType;
+    using WidestCharType = typename containers::detail::StringTypeImpl<StringType>::WidestCharType;
 
     using Iterator = const CharType *;
     using ConstIterator = const CharType *;
 
-    static constexpr bool is_ansi = string_type == StringType::ANSI;
-    static constexpr bool is_utf8 = string_type == StringType::UTF8;
-    static constexpr bool is_utf16 = string_type == StringType::UTF16;
-    static constexpr bool is_utf32 = string_type == StringType::UTF32;
-    static constexpr bool is_wide = string_type == StringType::WIDE_CHAR;
+    static constexpr bool is_ansi = StringType == StringType::ANSI;
+    static constexpr bool is_utf8 = StringType == StringType::UTF8;
+    static constexpr bool is_utf16 = StringType == StringType::UTF16;
+    static constexpr bool is_utf32 = StringType == StringType::UTF32;
+    static constexpr bool is_wide = StringType == StringType::WIDE_CHAR;
 
     static_assert(!is_utf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
     static_assert(!is_ansi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
     static_assert(!is_utf16 || std::is_same_v<CharType, utf::u16char>, "UTF-16 Strings must have CharType equal to utf::u16char");
     static_assert(!is_utf32 || std::is_same_v<CharType, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
     static_assert(!is_wide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
+
+    static constexpr int string_type = StringType;
 
     StringView()
         : m_begin(nullptr),
@@ -68,7 +70,7 @@ public:
     {
     }
 
-    StringView(const detail::String<string_type> &str)
+    StringView(const detail::String<StringType> &str)
         : m_begin(str.Begin()),
           m_end(str.End()),
           m_length(str.Length())
@@ -132,8 +134,8 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    operator detail::String<string_type>() const
-        { return detail::String<string_type>(Data()); }
+    operator detail::String<StringType>() const
+        { return detail::String<StringType>(Data()); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -271,8 +273,8 @@ bool operator==(const StringView<StringType> &lhs, const containers::detail::Str
 
 } // namespace detail
 
-template <int string_type>
-using StringView = detail::StringView<string_type>;
+template <int StringType>
+using StringView = detail::StringView<StringType>;
 
 using ANSIStringView = StringView<StringType::ANSI>;
 using UTF8StringView = StringView<StringType::UTF8>;

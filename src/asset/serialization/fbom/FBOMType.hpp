@@ -29,7 +29,10 @@ struct FBOMType
     ~FBOMType();
 
     FBOMType Extend(const FBOMType &object) const;
-    
+
+    [[nodiscard]]
+    bool Is(const FBOMType &other, bool allow_unbounded = true) const;
+
     [[nodiscard]]
     bool IsOrExtends(const ANSIStringView &name) const;
 
@@ -37,12 +40,17 @@ struct FBOMType
     bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true) const;
 
     [[nodiscard]]
-    bool Extends(const FBOMType &other) const;
+    bool Extends(const FBOMType &other, bool allow_unbounded = true) const;
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsUnbouned() const
         { return size == SizeType(-1); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsUnset() const
+        { return name == "UNSET"; }
 
     [[nodiscard]]
     HYP_FORCE_INLINE

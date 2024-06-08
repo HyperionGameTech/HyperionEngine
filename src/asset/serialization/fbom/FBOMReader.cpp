@@ -1,20 +1,34 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <math/MathUtil.hpp>
 
 namespace hyperion::fbom {
 
 template <class StringType>
 FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string)
 {
-    // read 4 bytes of string length
-    uint32 len;
-    reader->Read(&len);
-    CheckEndianness(len);
+    // read 4 bytes of string header
+    uint32 string_header;
+    reader->Read(&string_header);
+    CheckEndianness(string_header);
 
-    ByteBuffer string_buffer(len + 1);
+    const uint32 string_length = (string_header & ByteWriter::string_length_mask) >> 8;
+    const uint32 string_type = (string_header & ByteWriter::string_type_mask);
+    
+    if (string_type != 0 && string_type != StringType::string_type) {
+        DebugLog(LogType::Error, "Expected string type: %u, got type: %u, header: %u\n", StringType::string_type, string_type, string_header);
+        HYP_BREAKPOINT;
+        return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string type mismatch");
+    }
 
-    if (reader->Read(string_buffer.Data(), len) != len) {
+    ByteBuffer string_buffer(string_length + 1);
+
+    uint32 read_length;
+
+    if ((read_length = reader->Read(string_buffer.Data(), string_length)) != string_length) {
+        DebugLog(LogType::Error, "Expected length: %u, got length: %u, header: %u\n", string_length, read_length, string_header);
+        HYP_BREAKPOINT;
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string length mismatch");
     }
 
@@ -31,6 +45,126 @@ FBOMReader::FBOMReader(const FBOMConfig &config)
 }
 
 FBOMReader::~FBOMReader() = default;
+
+FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
+{
+    const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(in.m_object_type.name);
+
+    if (!loader) {
+        DebugLog(LogType::Error, "Error, no loader for type %s\n", in.m_object_type.name.Data());
+        HYP_BREAKPOINT;
+        return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
+    }
+
+    return loader->Deserialize(in, out_object);
+}
+
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
+{
+    FBOMObject obj;
+    FBOMResult res = Deserialize(reader, obj);
+
+    if (res.value != FBOMResult::FBOM_OK) {
+        return res;
+    }
+
+    return Deserialize(obj, out_object);
+}
+
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
+{
+    if (reader.Eof()) {
+        return { FBOMResult::FBOM_ERR, "Stream not open" };
+    }
+
+    FBOMObject root(FBOMObjectType("ROOT"));
+
+    { // read header
+        ubyte header_bytes[FBOM::header_size];
+
+        if (reader.Max() < FBOM::header_size) {
+            return { FBOMResult::FBOM_ERR, "Invalid header" };
+        }
+
+        reader.Read(header_bytes, FBOM::header_size);
+
+        if (Memory::StrCmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0) {
+            return { FBOMResult::FBOM_ERR, "Invalid header identifier" };
+        }
+
+        // read endianness
+        const ubyte endianness = header_bytes[sizeof(FBOM::header_identifier)];
+        
+        // set if it needs to swap endianness.
+        m_swap_endianness = bool(endianness) != IsBigEndian();
+
+        // get version info
+        uint32 binary_version;
+        Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
+
+        DebugLog(LogType::Debug, "read binary version: %u\tcurrent binary version: %u\n", binary_version, FBOM::version.value);
+
+        const int compatibility_test_result = FBOMVersion::TestCompatibility(binary_version, FBOM::version);
+
+        if (compatibility_test_result != 0) {
+            return { FBOMResult::FBOM_ERR, "Unsupported binary version" };
+        }
+    }
+
+    m_static_data_pool.Clear();
+    m_in_static_data = false;
+
+    // expect first FBOMObject defined
+    FBOMCommand command = FBOM_NONE;
+
+    while (!reader.Eof()) {
+        command = PeekCommand(&reader);
+
+        if (FBOMResult err = Handle(&reader, command, &root)) {
+            return err;
+        }
+    }
+
+    if (root.nodes->Empty()) {
+        return { FBOMResult::FBOM_ERR, "No object added to root" };
+    }
+
+    if (root.nodes->Size() > 1) {
+        return { FBOMResult::FBOM_ERR, "> 1 objects added to root (not supported in current implementation)" };
+    }
+
+    out = root.nodes->Front();
+
+    return { FBOMResult::FBOM_OK };
+}
+
+
+FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMObject &out)
+{
+    // Include our root dir as part of the path
+    if (m_config.base_path.Empty()) {
+        m_config.base_path = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath()).c_str();
+    }
+
+    const FilePath read_path { FileSystem::Join(m_config.base_path.Data(), FilePath(path).Basename().Data()).c_str()};
+
+    BufferedReader reader(RC<FileBufferedReaderSource>(new FileBufferedReaderSource(read_path)));
+
+    return Deserialize(reader, out);
+}
+
+FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMDeserializedObject &out)
+{
+    FBOMObject object;
+    
+    if (FBOMResult err = LoadFromFile(path, object)) {
+        return err;
+    }
+
+    out = object.deserialized;
+
+    return { FBOMResult::FBOM_OK };
+}
 
 FBOMCommand FBOMReader::NextCommand(BufferedReader *reader)
 {
@@ -82,28 +216,30 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
     switch (object_type_location) {
     case FBOM_DATA_LOCATION_INPLACE:
     {
-        uint8 extend_level;
-        reader->Read(&extend_level);
-        CheckEndianness(extend_level);
+        FBOMType parent_type = FBOMUnset();
 
-        for (int i = 0; i < extend_level; i++) {
-            if (FBOMResult err = ReadString(reader, out_type.name)) {
+        uint8 has_parent;
+        reader->Read(&has_parent);
+        CheckEndianness(has_parent);
+
+        if (has_parent) {
+            if (FBOMResult err = ReadObjectType(reader, parent_type)) {
                 return err;
             }
 
-            // read size of object
-            uint64 type_size;
-            reader->Read(&type_size);
-            CheckEndianness(type_size);
-
-            out_type.size = type_size;
-
-            if (i == extend_level - 1) {
-                break;
-            }
-
-            out_type = out_type.Extend(FBOMUnset());
+            out_type = parent_type.Extend(out_type);
         }
+
+        if (FBOMResult err = ReadString(reader, out_type.name)) {
+            return err;
+        }
+
+        // read size of object
+        uint64 type_size;
+        reader->Read(&type_size);
+        CheckEndianness(type_size);
+
+        out_type.size = type_size;
 
         break;
     }
@@ -199,8 +335,17 @@ FBOMResult FBOMReader::ReadPropertyName(BufferedReader *reader, Name &out_proper
         return err;
     }
 
-    if (!name_data.ReadName(&out_property_name)) {
-        return FBOMResult(FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `name`");
+    if (FBOMResult err = name_data.ReadName(&out_property_name)) {
+        const FBOMType *root_type = &name_data.GetType();
+
+        while (root_type != nullptr) {
+            DebugLog(LogType::Error, "root_type: %s\n", root_type->name.Data());
+
+            root_type = root_type->extends;
+        }
+
+        HYP_BREAKPOINT;
+        return FBOMResult(FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `Name`");
     }
 
     return FBOMResult::FBOM_OK;
@@ -272,7 +417,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                 break;
             }
             case FBOM_OBJECT_END:
-                if (HasCustomMarshalerForType(object_type)) {
+                if (HasCustomLoaderForType(object_type)) {
                     // call deserializer function, writing into object.deserialized
                     if (FBOMResult err = Deserialize(out_object, out_object.deserialized)) {
                         return err;

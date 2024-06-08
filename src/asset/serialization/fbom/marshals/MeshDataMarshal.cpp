@@ -14,16 +14,14 @@ public:
 
     virtual FBOMResult Serialize(const MeshData &in_object, FBOMObject &out) const override
     {
-        auto x = ::hyperion::detail::MakeStaticString_Impl(HYP_MAKE_CONST_ARG("hello world"));
-
         out.SetProperty(
-            Name("vertices"),
+            NAME("vertices"),
             FBOMSequence(FBOMStruct::Create<Vertex>(), in_object.vertices.Size()),
             in_object.vertices.Data()
         );
     
         out.SetProperty(
-            Name("indices"),
+            NAME("indices"),
             FBOMSequence(FBOMUnsignedInt(), in_object.indices.Size()),
             in_object.indices.Data()
         );
@@ -35,30 +33,34 @@ public:
     {
         Array<Vertex> vertices;
 
-        if (const auto &vertices_property = in.GetProperty("vertices")) {
-            const auto num_vertices = vertices_property.NumElements(FBOMStruct::Create<Vertex>());
+        if (const FBOMData &vertices_property = in.GetProperty("vertices")) {
+            const SizeType num_vertices = vertices_property.NumElements(FBOMStruct::Create<Vertex>());
 
             if (num_vertices != 0) {
                 vertices.Resize(num_vertices);
 
-                if (auto err = vertices_property.ReadElements(FBOMStruct::Create<Vertex>(), num_vertices, vertices.Data())) {
+                if (FBOMResult err = vertices_property.ReadElements(FBOMStruct::Create<Vertex>(), num_vertices, vertices.Data())) {
                     return err;
                 }
             }
+        } else {
+            return { FBOMResult::FBOM_ERR, "vertices property missing" };
         }
 
         Array<uint32> indices;
 
-        if (const auto &indices_property = in.GetProperty("indices")) {
-            const auto num_indices = indices_property.NumElements(FBOMUnsignedInt());
+        if (const FBOMData &indices_property = in.GetProperty("indices")) {
+            const SizeType num_indices = indices_property.NumElements(FBOMUnsignedInt());
 
             if (num_indices != 0) {
                 indices.Resize(num_indices);
 
-                if (auto err = indices_property.ReadElements(FBOMUnsignedInt(), num_indices, indices.Data())) {
+                if (FBOMResult err = indices_property.ReadElements(FBOMUnsignedInt(), num_indices, indices.Data())) {
                     return err;
                 }
             }
+        } else {
+            return { FBOMResult::FBOM_ERR, "indices property missing" };
         }
 
         out_object = MeshData {

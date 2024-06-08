@@ -42,14 +42,22 @@ namespace hyperion {
 
 enum class FBOMVersionCompareMode : uint32
 {
-    MAJOR,
-    MINOR,
-    PATCH,
+    MAJOR   = 0x1,
+    MINOR   = 0x2,
+    PATCH   = 0x4,
     
     DEFAULT = uint32(MAJOR) | uint32(MINOR)
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMVersionCompareMode)
+
+enum class FBOMStaticDataFlags : uint32
+{
+    NONE    = 0x0,
+    WRITTEN = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMStaticDataFlags)
 
 namespace fbom {
 
@@ -213,14 +221,14 @@ struct FBOMStaticData
     } type;
 
 
-    int64               offset;
-    FBOMStaticDataType  data;
-    bool                written;
+    int64                           offset;
+    FBOMStaticDataType              data;
+    EnumFlags<FBOMStaticDataFlags>  flags;
 
     FBOMStaticData()
         : type(FBOM_STATIC_DATA_NONE),
           offset(-1),
-          written(false)
+          flags(FBOMStaticDataFlags::NONE)
     {
     }
 
@@ -228,62 +236,82 @@ struct FBOMStaticData
         : type(FBOM_STATIC_DATA_OBJECT),
           data(object_data),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(const FBOMType &type_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
           data(type_data),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(const FBOMData &data_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
           data(data_data),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(const FBOMNameTable &name_table_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_NAME_TABLE),
           data(name_table_data),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(FBOMObject &&object, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
           data(std::move(object)),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(FBOMType &&type, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
           data(std::move(type)),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(FBOMData &&data, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
           data(std::move(data)),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     explicit FBOMStaticData(FBOMNameTable &&name_table, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_NAME_TABLE),
           data(std::move(name_table)),
           offset(offset),
-          written(false) {}
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
 
     FBOMStaticData(const FBOMStaticData &other)
         : type(other.type),
           data(other.data),
           offset(other.offset),
-          written(other.written) {}
+          flags(other.flags),
+          m_id(other.m_id)
+    {
+    }
 
     FBOMStaticData &operator=(const FBOMStaticData &other)
     {
         type = other.type;
         data = other.data;
         offset = other.offset;
-        written = other.written;
+        flags = other.flags;
+        m_id = other.m_id;
 
         return *this;
     }
@@ -292,11 +320,12 @@ struct FBOMStaticData
         : type(other.type),
           data(std::move(other.data)),
           offset(other.offset),
-          written(other.written)
+          flags(other.flags),
+          m_id(std::move(other.m_id))
     {
         other.type = FBOM_STATIC_DATA_NONE;
         other.offset = -1;
-        other.written = false;
+        other.flags = FBOMStaticDataFlags::NONE;
     }
 
     FBOMStaticData &operator=(FBOMStaticData &&other) noexcept
@@ -304,24 +333,55 @@ struct FBOMStaticData
         type = other.type;
         data = std::move(other.data);
         offset = other.offset;
-        written = other.written;
+        flags = other.flags;
+        m_id = std::move(other.m_id);
 
         other.type = FBOM_STATIC_DATA_NONE;
         other.offset = -1;
-        other.written = false;
+        other.flags = FBOMStaticDataFlags::NONE;
 
         return *this;
     }
 
     ~FBOMStaticData() = default;
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool operator<(const FBOMStaticData &other) const
+        { return offset < other.offset; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsWritten() const
+        { return flags & FBOMStaticDataFlags::WRITTEN; }
+
+    HYP_FORCE_INLINE
+    void SetIsWritten(bool is_written)
     {
-        return offset < other.offset;
+        if (is_written) {
+            flags |= FBOMStaticDataFlags::WRITTEN;
+        } else {
+            flags &= ~FBOMStaticDataFlags::WRITTEN;
+        }
     }
 
+    /*! \brief Set a custom identifier for this object (overrides the underlying data's unique identifier) */
+    HYP_FORCE_INLINE
+    void SetUniqueID(UniqueID id)
+        { m_id.Set(id); }
+
+    HYP_FORCE_INLINE
+    void UnsetCustomUniqueID()
+        { m_id.Unset(); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     UniqueID GetUniqueID() const
     {
+        if (m_id.HasValue()) {
+            return *m_id;
+        }
+
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:
             return data.Get<FBOMObject>().GetUniqueID();
@@ -336,6 +396,8 @@ struct FBOMStaticData
         }
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         switch (type) {
@@ -354,6 +416,8 @@ struct FBOMStaticData
         // return hash_code;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     String ToString() const
     {
         switch (type) {
@@ -369,6 +433,10 @@ struct FBOMStaticData
             return "???";
         }
     }
+
+private:
+    // Optional custom set ID
+    Optional<UniqueID>  m_id;
 };
 
 class HYP_API FBOM
@@ -376,7 +444,7 @@ class HYP_API FBOM
 public:
     static constexpr SizeType header_size = 32;
     static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
-    static constexpr FBOMVersion version = FBOMVersion { 1, 1, 0 };
+    static constexpr FBOMVersion version = FBOMVersion { 1, 2, 0 };
 
     static FBOM &GetInstance();
 
@@ -407,123 +475,12 @@ public:
     FBOMReader(const FBOMConfig &config);
     ~FBOMReader();
 
-    FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
-    {
-        const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(in.m_object_type.name);
+    FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object);
+    FBOMResult Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object);
+    FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out);
 
-        if (!loader) {
-            return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
-        }
-
-        return loader->Deserialize(in, out_object);
-    }
-    
-    FBOMResult Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
-    {
-        FBOMObject obj;
-        FBOMResult res = Deserialize(reader, obj);
-
-        if (res.value != FBOMResult::FBOM_OK) {
-            return res;
-        }
-
-        return Deserialize(obj, out_object);
-    }
-
-    FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out)
-    {
-        if (reader.Eof()) {
-            return { FBOMResult::FBOM_ERR, "Stream not open" };
-        }
-
-        FBOMObject root(FBOMObjectType("ROOT"));
-
-        { // read header
-            ubyte header_bytes[FBOM::header_size];
-
-            if (reader.Max() < FBOM::header_size) {
-                return { FBOMResult::FBOM_ERR, "Invalid header" };
-            }
-
-            reader.Read(header_bytes, FBOM::header_size);
-
-            if (std::strncmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0) {
-                return { FBOMResult::FBOM_ERR, "Invalid header identifier" };
-            }
-
-            // read endianness
-            const ubyte endianness = header_bytes[sizeof(FBOM::header_identifier)];
-            
-            // set if it needs to swap endianness.
-            m_swap_endianness = bool(endianness) != IsBigEndian();
-
-            // get version info
-            uint32 binary_version;
-            Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
-
-            int compatibility_test_result = FBOMVersion::TestCompatibility(binary_version, FBOM::version);
-
-            if (compatibility_test_result != 0) {
-                return { FBOMResult::FBOM_ERR, "Unsupported binary version" };
-            }
-        }
-
-        m_static_data_pool.Clear();
-        m_in_static_data = false;
-
-        // expect first FBOMObject defined
-        FBOMCommand command = FBOM_NONE;
-
-        while (!reader.Eof()) {
-            command = PeekCommand(&reader);
-
-            if (auto err = Handle(&reader, command, &root)) {
-                return err;
-            }
-        }
-
-        if (root.nodes->Empty()) {
-            return { FBOMResult::FBOM_ERR, "No object added to root" };
-        }
-
-        if (root.nodes->Size() > 1) {
-            return { FBOMResult::FBOM_ERR, "> 1 objects added to root (not supported in current implementation)" };
-        }
-
-        out = root.nodes->Front();
-
-        return { FBOMResult::FBOM_OK };
-    }
-
-    
-    FBOMResult LoadFromFile(const String &path, FBOMObject &out)
-    {
-        DebugLog(LogType::Debug, "FBOM: Loading file %s\n", path.Data());
-
-        // Include our root dir as part of the path
-        if (m_config.base_path.Empty()) {
-            m_config.base_path = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath()).c_str();
-        }
-
-        const FilePath read_path { FileSystem::Join(m_config.base_path.Data(), FilePath(path).Basename().Data()).c_str()};
-
-        BufferedReader reader(RC<FileBufferedReaderSource>(new FileBufferedReaderSource(read_path)));
-
-        return Deserialize(reader, out);
-    }
-
-    FBOMResult LoadFromFile(const String &path, FBOMDeserializedObject &out)
-    {
-        FBOMObject object;
-        
-        if (auto err = LoadFromFile(path, object)) {
-            return err;
-        }
-
-        out = object.deserialized;
-
-        return { FBOMResult::FBOM_OK };
-    }
+    FBOMResult LoadFromFile(const String &path, FBOMObject &out);
+    FBOMResult LoadFromFile(const String &path, FBOMDeserializedObject &out);
 
 private:
     template <class T>
@@ -538,10 +495,10 @@ private:
         }
     }
 
-    bool HasCustomMarshalerForType(const FBOMType &type) const
-    {
-        return FBOM::GetInstance().GetLoader(type.name) != nullptr;
-    }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HasCustomLoaderForType(const FBOMType &type) const
+        { return FBOM::GetInstance().GetLoader(type.name) != nullptr; }
 
     FBOMCommand NextCommand(BufferedReader *);
     FBOMCommand PeekCommand(BufferedReader *);
@@ -563,6 +520,8 @@ private:
     {
         static_assert(IsPODType<NormalizedType<T>>, "T must be POD to read as raw data");
 
+        AssertThrow(out_ptr != nullptr);
+
         constexpr SizeType size = sizeof(NormalizedType<T>);
 
         ByteBuffer byte_buffer;
@@ -572,6 +531,8 @@ private:
         }
 
         Memory::MemCpy(static_cast<void *>(out_ptr), static_cast<const void *>(byte_buffer.Data()), size);
+
+        CheckEndianness(*out_ptr);
 
         return FBOMResult::FBOM_OK;
     }
@@ -637,13 +598,25 @@ private:
     FBOMResult WriteHeader(ByteWriter *out);
     FBOMResult WriteStaticDataToByteStream(ByteWriter *out);
 
-    FBOMResult WriteObject(ByteWriter *out, const FBOMObject &);
-    FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &);
-    FBOMResult WriteData(ByteWriter *out, const FBOMData &);
-    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &);
+    FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object, UniqueID id);
+    FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object)
+        { return WriteObject(out, object, object.GetUniqueID()); }
+
+    FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &type, UniqueID id);
+    FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &type)
+        { return WriteObjectType(out, type, type.GetUniqueID()); }
+
+    FBOMResult WriteData(ByteWriter *out, const FBOMData &data, UniqueID id);
+    FBOMResult WriteData(ByteWriter *out, const FBOMData &data)
+        { return WriteData(out, data, data.GetUniqueID()); }
+
+    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
+    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &name_table)
+        { return WriteNameTable(out, name_table, name_table.GetUniqueID()); }
+
     FBOMResult WriteStaticDataUsage(ByteWriter *out, const FBOMStaticData &) const;
 
-    void AddObjectData(const FBOMObject &);
+    void AddObjectData(const FBOMObject &, UniqueID id);
     
     UniqueID AddStaticData(const FBOMType &);
     UniqueID AddStaticData(const FBOMObject &);
@@ -667,7 +640,7 @@ private:
         WriteStream &operator=(WriteStream &&other) noexcept = default;
         ~WriteStream() = default;
 
-        FBOMDataLocation GetDataLocation(const UniqueID &unique_id, FBOMStaticData &out_static_data, String &out_external_key) const;
+        FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, String &out_external_key) const;
         void MarkStaticDataWritten(const UniqueID &unique_id);
 
         [[nodiscard]]
@@ -686,7 +659,11 @@ private:
 
     HYP_FORCE_INLINE
     UniqueID AddStaticData(FBOMStaticData &&static_data)
-        { return AddStaticData(UniqueID(), std::move(static_data)); }
+    {
+        const UniqueID id = static_data.GetUniqueID();
+
+        return AddStaticData(id, std::move(static_data));
+    }
 };
 
 } // namespace fbom

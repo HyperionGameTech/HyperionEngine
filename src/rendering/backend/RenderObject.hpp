@@ -646,7 +646,7 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
         \
         static Name GetNameForType() \
         { \
-            static const Name name = NAME("T"); \
+            static const Name name = NAME(HYP_STR(T)); \
             return name; \
         } \
     }; \
@@ -655,28 +655,28 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     using T##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::T##_##_platform, renderer::Platform::_platform >; \
     using T##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::T##_##_platform, renderer::Platform::_platform >; \
 
-#define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, NAME, T, _max_size) \
+#define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, name, T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType PLATFORM> \
     class T; \
     } \
-    using NAME##_##_platform = platform::T<renderer::Platform::_platform>; \
+    using name##_##_platform = platform::T<renderer::Platform::_platform>; \
     template <> \
-    struct RenderObjectDefinition< NAME##_##_platform, renderer::Platform::_platform > \
+    struct RenderObjectDefinition< name##_##_platform, renderer::Platform::_platform > \
     { \
         static constexpr SizeType max_size = (_max_size); \
         \
         static Name GetNameForType() \
         { \
-            static const Name name = NAME("T"); \
+            static const Name name = NAME(HYP_STR(T)); \
             return name; \
         } \
     }; \
     } \
-    using NAME##_##_platform = renderer::NAME##_##_platform; \
-    using NAME##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::NAME##_##_platform, renderer::Platform::_platform >; \
-    using NAME##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::NAME##_##_platform, renderer::Platform::_platform >; \
+    using name##_##_platform = renderer::name##_##_platform; \
+    using name##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::name##_##_platform, renderer::Platform::_platform >; \
+    using name##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::name##_##_platform, renderer::Platform::_platform >; \
 
 #define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
@@ -690,15 +690,15 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     } \
     } \
 
-#define DEF_RENDER_PLATFORM_OBJECT_NAMED(NAME, T, _max_size) \
-    DEF_RENDER_PLATFORM_OBJECT_NAMED_(VULKAN, NAME, T, _max_size) \
-    DEF_RENDER_PLATFORM_OBJECT_NAMED_(WEBGPU, NAME, T, _max_size) \
+#define DEF_RENDER_PLATFORM_OBJECT_NAMED(name, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_NAMED_(VULKAN, name, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_NAMED_(WEBGPU, name, T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType _platform> \
-    using NAME##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    using name##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
     template <PlatformType _platform> \
-    using NAME##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    using name##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
     } \
     } \
 

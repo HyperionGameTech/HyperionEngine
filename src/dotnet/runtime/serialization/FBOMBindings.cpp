@@ -185,12 +185,13 @@ HYP_EXPORT bool FBOMObject_GetProperty(FBOMObject *ptr, const char *key, FBOMDat
     return true;
 }
 
-HYP_EXPORT bool FBOMObject_SetProperty(FBOMObject *ptr, const char *key, FBOMData *data_ptr)
+HYP_EXPORT bool FBOMObject_SetProperty(FBOMObject *ptr, Name *name_ptr, FBOMData *data_ptr)
 {
     AssertThrow(ptr != nullptr);
+    AssertThrow(name_ptr != nullptr);
     AssertThrow(data_ptr != nullptr);
 
-    ptr->SetProperty(key, *data_ptr);
+    ptr->SetProperty(*name_ptr, *data_ptr);
 
     return true;
 }

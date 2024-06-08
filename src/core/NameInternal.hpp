@@ -154,6 +154,11 @@ struct WeakName
     {
     }
     
+    explicit constexpr WeakName(const ANSIStringView &str)
+        : hash_code(HashCode::GetHashCode(str).Value())
+    {
+    }
+    
     constexpr WeakName(const Name &name)
         : hash_code(name.hash_code)
     {
@@ -189,7 +194,7 @@ struct WeakName
     [[nodiscard]]
     HYP_FORCE_INLINE
     static constexpr WeakName Invalid()
-        { return WeakName { 0 }; };
+        { return WeakName { }; };
 };
 
 constexpr bool operator==(const Name &lhs, const Name &rhs)

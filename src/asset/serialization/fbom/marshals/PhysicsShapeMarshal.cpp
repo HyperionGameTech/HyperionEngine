@@ -18,7 +18,7 @@ public:
     {
         /// @TODO: Serialize the actual object -- will be dependent on the physics engine used
 
-        out.SetProperty("type", FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
+        out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
 
         return { FBOMResult::FBOM_OK };
     }

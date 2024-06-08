@@ -43,7 +43,9 @@ namespace Hyperion
                     throw new ArgumentNullException("value");
                 }
 
-                FBOMObject_SetProperty(ptr, key, value.ptr);
+                Name name = Name.FromString(key);
+
+                FBOMObject_SetProperty(ptr, ref name, value.ptr);
             }
         }
 
@@ -57,6 +59,6 @@ namespace Hyperion
         private static extern bool FBOMObject_GetProperty([In] IntPtr ptr, [MarshalAs(UnmanagedType.LPStr)] string key, [Out] IntPtr outDataPtr);
 
         [DllImport("hyperion", EntryPoint = "FBOMObject_SetProperty")]
-        private static extern bool FBOMObject_SetProperty([In] IntPtr ptr, [MarshalAs(UnmanagedType.LPStr)] string key, [In] IntPtr dataPtr);
+        private static extern bool FBOMObject_SetProperty([In] IntPtr ptr, [In] ref Name key, [In] IntPtr dataPtr);
     }
 }

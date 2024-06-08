@@ -19,19 +19,19 @@ public:
         }
 
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
-        out.SetProperty("global_descriptor_table_version", FBOMUnsignedLong(), renderer::g_static_descriptor_table_decl->GetHashCode().Value());
+        out.SetProperty(NAME("global_descriptor_table_version"), FBOMUnsignedLong(), renderer::g_static_descriptor_table_decl->GetHashCode().Value());
 
-        out.SetProperty("name", FBOMName(), in_object.GetDefinition().name);
+        out.SetProperty(NAME("name"), FBOMName(), in_object.GetDefinition().name);
 
-        out.SetProperty("entry_point_name", FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
+        out.SetProperty(NAME("entry_point_name"), FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
 
         const VertexAttributeSet required_vertex_attributes = in_object.GetDefinition().GetProperties().GetRequiredVertexAttributes();
-        out.SetProperty("required_vertex_attributes", FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
+        out.SetProperty(NAME("required_vertex_attributes"), FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
 
         const VertexAttributeSet optional_vertex_attributes = in_object.GetDefinition().GetProperties().GetOptionalVertexAttributes();
-        out.SetProperty("optional_vertex_attributes", FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
+        out.SetProperty(NAME("optional_vertex_attributes"), FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
 
-        out.SetProperty("num_descriptor_usages", FBOMData::FromUnsignedInt(uint32(in_object.GetDescriptorUsages().Size())));
+        out.SetProperty(NAME("num_descriptor_usages"), FBOMData::FromUnsignedInt(uint32(in_object.GetDescriptorUsages().Size())));
 
         for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++) {
             const DescriptorUsage &item = in_object.GetDescriptorUsages()[index];
@@ -40,42 +40,42 @@ public:
             const ANSIString set_name_string(item.set_name.LookupString());
 
             out.SetProperty(
-                String("descriptor_usages.") + String::ToString(index) + ".slot",
+                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".slot"),
                 FBOMData::FromUnsignedInt(item.slot)
             );
 
             out.SetProperty(
-                String("descriptor_usages.") + String::ToString(index) + ".descriptor_name",
+                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".descriptor_name"),
                 FBOMString(descriptor_name_string.Size()),
                 descriptor_name_string.Data()
             );
 
             out.SetProperty(
-                String("descriptor_usages.") + String::ToString(index) + ".set_name",
+                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".set_name"),
                 FBOMString(set_name_string.Size()),
                 set_name_string.Data()
             );
 
             out.SetProperty(
-                String("descriptor_usages.") + String::ToString(index) + ".flags",
+                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".flags"),
                 FBOMData::FromUnsignedInt(item.flags)
             );
 
             out.SetProperty(
-                String("descriptor_usages.") + String::ToString(index) + ".num_params",
+                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".num_params"),
                 FBOMData::FromUnsignedInt(uint32(item.params.Size()))
             );
 
-            uint param_index = 0;
+            uint32 param_index = 0;
 
             for (const auto &it : item.params) {
                 out.SetProperty(
-                    String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].key",
+                    CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].key"),
                     FBOMData::FromString(it.first)
                 );
 
                 out.SetProperty(
-                    String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].value",
+                    CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].value"),
                     FBOMData::FromString(it.second)
                 );
 
@@ -84,40 +84,40 @@ public:
         }
 
         auto properties_array = in_object.GetDefinition().GetProperties().GetPropertySet().ToArray();
-        out.SetProperty("properties.size", FBOMData::FromUnsignedInt(uint32(properties_array.Size())));
+        out.SetProperty(NAME("properties.size"), FBOMData::FromUnsignedInt(uint32(properties_array.Size())));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
             const ShaderProperty &item = properties_array[index];
 
             out.SetProperty(
-                String("properties.") + String::ToString(index) + ".name",
+                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".name"),
                 FBOMData::FromString(item.name)
             );
 
             out.SetProperty(
-                String("properties.") + String::ToString(index) + ".is_permutation",
+                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".is_permutation"),
                 FBOMData::FromBool(item.is_permutation)
             );
 
             out.SetProperty(
-                String("properties.") + String::ToString(index) + ".flags",
+                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".flags"),
                 FBOMData::FromUnsignedInt(item.flags)
             );
 
             out.SetProperty(
-                String("properties.") + String::ToString(index) + ".is_value_group",
+                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".is_value_group"),
                 FBOMData::FromBool(item.IsValueGroup())
             );
 
             if (item.IsValueGroup()) {
                 out.SetProperty(
-                    String("properties.") + String::ToString(index) + ".num_possible_values",
+                    CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".num_possible_values"),
                     FBOMData::FromUnsignedInt(uint32(item.possible_values.Size()))
                 );
 
                 for (SizeType i = 0; i < item.possible_values.Size(); i++) {
                     out.SetProperty(
-                        String("properties.") + String::ToString(index) + ".possible_values[" + String::ToString(i) + "]",
+                        CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".possible_values[" + ANSIString::ToString(i) + "]"),
                         FBOMData::FromString(item.possible_values[i])
                     );
                 }
@@ -128,10 +128,7 @@ public:
             const auto &byte_buffer = in_object.modules[index];
 
             if (byte_buffer.Size()) {
-                out.SetProperty(
-                    String("module[") + String::ToString(index) + "]",
-                    byte_buffer
-                );
+                out.SetProperty(CreateNameFromDynamicString(ANSIString("module[") + ANSIString::ToString(index) + "]"), byte_buffer);
             }
         }
 
@@ -142,7 +139,7 @@ public:
     {
         uint64 global_descriptor_table_version = -1;
 
-        if (auto err = in.GetProperty("global_descriptor_table_version").ReadUnsignedLong(&global_descriptor_table_version)) {
+        if (FBOMResult err = in.GetProperty("global_descriptor_table_version").ReadUnsignedLong(&global_descriptor_table_version)) {
             return err;
         }
 
@@ -163,12 +160,12 @@ public:
 
         Name name;
 
-        if (auto err = in.GetProperty("name").ReadName(&name)) {
+        if (FBOMResult err = in.GetProperty("name").ReadName(&name)) {
             return err;
         }
 
         if (in.HasProperty("entry_point_name")) {
-            if (auto err = in.GetProperty("entry_point_name").ReadString(compiled_shader.entry_point_name)) {
+            if (FBOMResult err = in.GetProperty("entry_point_name").ReadString(compiled_shader.entry_point_name)) {
                 return err;
             }
         } else {
@@ -184,29 +181,29 @@ public:
         compiled_shader.GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
         compiled_shader.GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
 
-        uint num_descriptor_usages = 0;
+        uint32 num_descriptor_usages = 0;
 
         if (in.HasProperty("num_descriptor_usages")) {
             in.GetProperty("num_descriptor_usages").ReadUnsignedInt(&num_descriptor_usages);
 
             if (num_descriptor_usages != 0) {
-                for (uint i = 0; i < num_descriptor_usages; i++) {
-                    const auto descriptor_usage_index_string = String("descriptor_usages.") + String::ToString(i);
+                for (uint32 i = 0; i < num_descriptor_usages; i++) {
+                    const ANSIString descriptor_usage_index_string = ANSIString("descriptor_usages.") + ANSIString::ToString(i);
 
                     DescriptorUsage usage;
 
                     ANSIString descriptor_name_string;
                     ANSIString set_name_string;
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
+                    if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
                         return err;
                     }
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".descriptor_name").ReadString(descriptor_name_string)) {
+                    if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".descriptor_name").ReadString(descriptor_name_string)) {
                         return err;
                     }
 
-                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadString(set_name_string)) {
+                    if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadString(set_name_string)) {
                         return err;
                     }
 
@@ -215,22 +212,22 @@ public:
 
                     in.GetProperty(descriptor_usage_index_string + ".flags").ReadUnsignedInt(&usage.flags);
 
-                    uint num_params = 0;
+                    uint32 num_params = 0;
                     in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUnsignedInt(&num_params);
 
-                    for (uint j = 0; j < num_params; j++) {
-                        const String param_string = descriptor_usage_index_string + ".params[" + String::ToString(j) + "]";
+                    for (uint32 j = 0; j < num_params; j++) {
+                        const ANSIString param_string = descriptor_usage_index_string + ".params[" + ANSIString::ToString(j) + "]";
 
                         String key;
                         String value;
 
-                        if (auto err = in.GetProperty(param_string + ".key").ReadString(key)) {
+                        if (FBOMResult err = in.GetProperty(param_string + ".key").ReadString(key)) {
                             DebugLog(LogType::Error, "Failed to read key for descriptor usage 'key' parameter %s\n", param_string.Data());
                             
                             return err;
                         }
 
-                        if (auto err = in.GetProperty(param_string + ".value").ReadString(value)) {
+                        if (FBOMResult err = in.GetProperty(param_string + ".value").ReadString(value)) {
                             DebugLog(LogType::Error, "Failed to read value for descriptor usage 'value' parameter %s\n", param_string.Data());
                             return err;
                         }
@@ -243,13 +240,13 @@ public:
             }
         }
 
-        uint num_properties;
+        uint32 num_properties;
 
         if (auto err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
             return err;
         }
 
-        for (uint i = 0; i < num_properties; i++) {
+        for (uint32 i = 0; i < num_properties; i++) {
             const auto param_string = String("properties.") + String::ToString(i);
 
             ShaderProperty property;

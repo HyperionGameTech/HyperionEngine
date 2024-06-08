@@ -135,7 +135,6 @@ struct FBOMData
     FBOM_TYPE_FUNCTIONS(Float, float)
     FBOM_TYPE_FUNCTIONS(Bool, bool)
     FBOM_TYPE_FUNCTIONS(Byte, ubyte)
-    FBOM_TYPE_FUNCTIONS(Name, Name)
     FBOM_TYPE_FUNCTIONS(Mat3, Matrix3)
     FBOM_TYPE_FUNCTIONS(Mat4, Matrix4)
     FBOM_TYPE_FUNCTIONS(Vec2f, Vec2f)
@@ -212,7 +211,7 @@ struct FBOMData
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsStruct(const char *type_name) const
-        { return type.IsOrExtends(FBOMStruct(type_name, 0)); }
+        { return type.IsOrExtends(FBOMStruct(type_name, -1)); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -241,6 +240,23 @@ struct FBOMData
         return ReadStruct(TypeNameWithoutNamespace<T>().Data(), sizeof(T), out);
     }
 
+    static FBOMData FromName(Name name)
+    {
+        FBOMData data(FBOMStruct::Create<Name>());
+        data.SetBytes(sizeof(Name), &name);
+
+        return data;
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsName() const
+        { return IsStruct("Name"); }
+
+    HYP_FORCE_INLINE
+    FBOMResult ReadName(Name *out) const
+        { return ReadStruct<Name>(out); }
+
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsSequence() const
@@ -257,6 +273,11 @@ struct FBOMData
     HYP_FORCE_INLINE
     bool IsSequenceOfByteSize(SizeType byte_size) const
         { return type.IsOrExtends(FBOMSequence(FBOMByte(), byte_size)); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsObject() const
+        { return type.IsOrExtends(FBOMBaseObjectType()); }
 
     FBOMResult ReadObject(FBOMObject &out_object) const;
     

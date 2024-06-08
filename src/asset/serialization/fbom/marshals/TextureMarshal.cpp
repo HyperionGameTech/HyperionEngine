@@ -14,18 +14,18 @@ public:
 
     virtual FBOMResult Serialize(const Texture &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("extent.width", FBOMUnsignedInt(), in_object.GetExtent().width);
-        out.SetProperty("extent.height", FBOMUnsignedInt(), in_object.GetExtent().height);
-        out.SetProperty("extent.depth", FBOMUnsignedInt(), in_object.GetExtent().depth);
+        out.SetProperty(NAME("extent.width"), FBOMUnsignedInt(), in_object.GetExtent().width);
+        out.SetProperty(NAME("extent.height"), FBOMUnsignedInt(), in_object.GetExtent().height);
+        out.SetProperty(NAME("extent.depth"), FBOMUnsignedInt(), in_object.GetExtent().depth);
 
-        out.SetProperty("format", FBOMUnsignedInt(), in_object.GetFormat());
-        out.SetProperty("type", FBOMUnsignedInt(), in_object.GetType());
-        out.SetProperty("filter_mode", FBOMUnsignedInt(), in_object.GetFilterMode());
-        out.SetProperty("wrap_mode", FBOMUnsignedInt(), in_object.GetWrapMode());
+        out.SetProperty(NAME("format"), FBOMUnsignedInt(), in_object.GetFormat());
+        out.SetProperty(NAME("type"), FBOMUnsignedInt(), in_object.GetType());
+        out.SetProperty(NAME("filter_mode"), FBOMUnsignedInt(), in_object.GetFilterMode());
+        out.SetProperty(NAME("wrap_mode"), FBOMUnsignedInt(), in_object.GetWrapMode());
 
         const auto num_bytes = in_object.GetImage()->GetByteSize();
 
-        out.SetProperty("num_bytes", FBOMUnsignedLong(), num_bytes);
+        out.SetProperty(NAME("num_bytes"), FBOMUnsignedLong(), num_bytes);
 
         if (in_object.GetImage() && in_object.GetImage()->HasAssignedImageData()) {
             const StreamedData *streamed_data = in_object.GetImage()->GetStreamedData();
@@ -33,7 +33,7 @@ public:
 
             AssertThrowMsg(byte_buffer.Size() == num_bytes, "num_bytes != byte_buffer.Size()!");
             
-            out.SetProperty("bytes", FBOMByteBuffer(byte_buffer.Size()), byte_buffer);
+            out.SetProperty(NAME("bytes"), FBOMByteBuffer(byte_buffer.Size()), byte_buffer);
         }
 
         return { FBOMResult::FBOM_OK };

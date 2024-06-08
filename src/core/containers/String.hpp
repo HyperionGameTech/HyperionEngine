@@ -24,12 +24,15 @@ namespace containers {
 
 enum StringType : int
 {
-    NONE    = 0,
-    ANSI    = 1,
-    UTF8    = 2,
-    UTF16   = 3,
-    UTF32   = 4,
-    WIDE_CHAR    = 5
+    NONE        = 0,
+
+    ANSI        = 1,
+    UTF8        = 2,
+    UTF16       = 3,
+    UTF32       = 4,
+    WIDE_CHAR   = 5,
+
+    MAX
 };
 
 namespace detail {
@@ -39,7 +42,7 @@ using namespace ::utf;
 template <class CharType>
 using CharArray = Array<CharType, 64u>;
 
-template <int string_type>
+template <int StringType>
 struct StringTypeImpl { };
 
 template <>
@@ -78,12 +81,12 @@ struct StringTypeImpl<WIDE_CHAR>
 };
 
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
-template <int string_type>
-class String : Array<typename StringTypeImpl<string_type>::CharType, 64u>
+template <int StringType>
+class String : Array<typename StringTypeImpl<StringType>::CharType, 64u>
 {
 public:
-    using CharType = typename StringTypeImpl<string_type>::CharType;
-    using WidestCharType = typename StringTypeImpl<string_type>::WidestCharType;
+    using CharType = typename StringTypeImpl<StringType>::CharType;
+    using WidestCharType = typename StringTypeImpl<StringType>::WidestCharType;
 
 protected:
     using Base = Array<CharType, 64u>;
@@ -97,17 +100,19 @@ public:
 
     static const String empty;
 
-    static constexpr bool is_ansi = string_type == ANSI;
-    static constexpr bool is_utf8 = string_type == UTF8;
-    static constexpr bool is_utf16 = string_type == UTF16;
-    static constexpr bool is_utf32 = string_type == UTF32;
-    static constexpr bool is_wide = string_type == WIDE_CHAR;
+    static constexpr bool is_ansi = StringType == ANSI;
+    static constexpr bool is_utf8 = StringType == UTF8;
+    static constexpr bool is_utf16 = StringType == UTF16;
+    static constexpr bool is_utf32 = StringType == UTF32;
+    static constexpr bool is_wide = StringType == WIDE_CHAR;
 
     static_assert(!is_utf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
     static_assert(!is_ansi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
     static_assert(!is_utf16 || std::is_same_v<CharType, utf::u16char>, "UTF-16 Strings must have CharType equal to utf::u16char");
     static_assert(!is_utf32 || std::is_same_v<CharType, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
     static_assert(!is_wide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
+
+    static constexpr int string_type = StringType;
 
     static constexpr SizeType not_found = SizeType(-1);
 
@@ -120,8 +125,8 @@ public:
     explicit String(const CharArray<CharType> &char_array);
     explicit String(const ByteBuffer &byte_buffer);
 
-    template <int other_string_type, std::enable_if_t<other_string_type != string_type, int> = 0>
-    String(const String<other_string_type> &other)
+    template <int OtherStringType, std::enable_if_t<OtherStringType != StringType, int> = 0>
+    String(const String<OtherStringType> &other)
         : String()
     {
         *this = other;
@@ -134,9 +139,9 @@ public:
     String &operator=(const String &other);
     String &operator=(String &&other) noexcept;
     
-    template <int other_string_type, std::enable_if_t<other_string_type != string_type, int> = 0>
+    template <int OtherStringType, std::enable_if_t<OtherStringType != StringType, int> = 0>
     HYP_FORCE_INLINE
-    String &operator=(const String<other_string_type> &other)
+    String &operator=(const String<OtherStringType> &other)
     {
         Clear();
         Reserve(other.Size());
@@ -643,11 +648,11 @@ protected:
     SizeType m_length;
 };
 
-template <int string_type>
-const String<string_type> String<string_type>::empty = String();
+template <int StringType>
+const String<StringType> String<StringType>::empty = String();
 
-template <int string_type>
-String<string_type>::String()
+template <int StringType>
+String<StringType>::String()
     : Base(),
       m_length(0)
 {
@@ -655,8 +660,8 @@ String<string_type>::String()
     Base::PushBack(CharType { 0 });
 }
 
-template <int string_type>
-String<string_type>::String(const CharType *str)
+template <int StringType>
+String<StringType>::String(const CharType *str)
     : Base(),
       m_length(0)
 {
@@ -688,8 +693,8 @@ String<string_type>::String(const CharType *str)
     Base::PushBack(CharType { 0 });
 }
 
-template <int string_type>
-String<string_type>::String(const CharType *str, int max_len)
+template <int StringType>
+String<StringType>::String(const CharType *str, int max_len)
     : Base(),
       m_length(0)
 {
@@ -721,15 +726,15 @@ String<string_type>::String(const CharType *str, int max_len)
     Base::PushBack(CharType { 0 });
 }
 
-template <int string_type>
-String<string_type>::String(const String &other)
+template <int StringType>
+String<StringType>::String(const String &other)
     : Base(other),
       m_length(other.m_length)
 {
 }
 
-template <int string_type>
-String<string_type>::String(String &&other) noexcept
+template <int StringType>
+String<StringType>::String(String &&other) noexcept
     : Base(static_cast<Base &&>(std::move(other))),
       m_length(other.m_length)
 {
@@ -737,8 +742,8 @@ String<string_type>::String(String &&other) noexcept
 }
 
 
-template <int string_type>
-String<string_type>::String(const CharArray<CharType> &char_array)
+template <int StringType>
+String<StringType>::String(const CharArray<CharType> &char_array)
     : Base(),
       m_length(0)
 {
@@ -753,8 +758,8 @@ String<string_type>::String(const CharArray<CharType> &char_array)
     m_length = utf::utf_strlen<CharType, is_utf8>(Base::Data());
 }
 
-template <int string_type>
-String<string_type>::String(const ByteBuffer &byte_buffer)
+template <int StringType>
+String<StringType>::String(const ByteBuffer &byte_buffer)
     : Base(),
       m_length(0)
 {
@@ -779,21 +784,21 @@ String<string_type>::String(const ByteBuffer &byte_buffer)
     m_length = utf::utf_strlen<CharType, is_utf8>(Base::Data());
 }
 
-template <int string_type>
-String<string_type>::~String()
+template <int StringType>
+String<StringType>::~String()
 {
 }
 
-template <int string_type>
-auto String<string_type>::operator=(const CharType *str) -> String&
+template <int StringType>
+auto String<StringType>::operator=(const CharType *str) -> String&
 {
-    String<string_type>::operator=(String(str));
+    String<StringType>::operator=(String(str));
 
     return *this;
 }
 
-template <int string_type>
-auto String<string_type>::operator=(const String &other) -> String&
+template <int StringType>
+auto String<StringType>::operator=(const String &other) -> String&
 {
     Base::operator=(other);
     m_length = other.m_length;
@@ -801,8 +806,8 @@ auto String<string_type>::operator=(const String &other) -> String&
     return *this;
 }
 
-template <int string_type>
-auto String<string_type>::operator=(String &&other) noexcept -> String&
+template <int StringType>
+auto String<StringType>::operator=(String &&other) noexcept -> String&
 {
     const auto len = other.m_length;
     Base::operator=(std::move(other));
@@ -812,8 +817,8 @@ auto String<string_type>::operator=(String &&other) noexcept -> String&
     return *this;
 }
 
-template <int string_type>
-auto String<string_type>::operator+(const String &other) const -> String
+template <int StringType>
+auto String<StringType>::operator+(const String &other) const -> String
 {
     String result(*this);
     result.Append(other);
@@ -821,8 +826,8 @@ auto String<string_type>::operator+(const String &other) const -> String
     return result;
 }
 
-template <int string_type>
-auto String<string_type>::operator+(CharType ch) const -> String
+template <int StringType>
+auto String<StringType>::operator+(CharType ch) const -> String
 {
     String result(*this);
     result.Append(ch);
@@ -830,8 +835,8 @@ auto String<string_type>::operator+(CharType ch) const -> String
     return result;
 }
 
-template <int string_type>
-auto String<string_type>::operator+(String &&other) const -> String
+template <int StringType>
+auto String<StringType>::operator+(String &&other) const -> String
 {
     String result(*this);
     result.Append(std::move(other));
@@ -839,32 +844,32 @@ auto String<string_type>::operator+(String &&other) const -> String
     return result;
 }
 
-template <int string_type>
-auto String<string_type>::operator+=(const String &other) -> String&
+template <int StringType>
+auto String<StringType>::operator+=(const String &other) -> String&
 {
     Append(other);
 
     return *this;
 }
 
-template <int string_type>
-auto String<string_type>::operator+=(String &&other) -> String&
+template <int StringType>
+auto String<StringType>::operator+=(String &&other) -> String&
 {
     Append(std::move(other));
 
     return *this;
 }
 
-template <int string_type>
-auto String<string_type>::operator+=(CharType ch) -> String&
+template <int StringType>
+auto String<StringType>::operator+=(CharType ch) -> String&
 {
     Append(ch);
 
     return *this;
 }
 
-template <int string_type>
-bool String<string_type>::operator==(const String &other) const
+template <int StringType>
+bool String<StringType>::operator==(const String &other) const
 {
     if (this == std::addressof(other)) {
         return true;
@@ -881,8 +886,8 @@ bool String<string_type>::operator==(const String &other) const
     return utf::utf_strcmp<CharType, is_utf8>(Base::Data(), other.Data()) == 0;
 }
 
-template <int string_type>
-bool String<string_type>::operator==(const CharType *str) const
+template <int StringType>
+bool String<StringType>::operator==(const CharType *str) const
 {
     if (!str) {
         return *this == empty;
@@ -905,32 +910,32 @@ bool String<string_type>::operator==(const CharType *str) const
     return utf::utf_strcmp<CharType, is_utf8>(Base::Data(), str) == 0;
 }
 
-template <int string_type>
-bool String<string_type>::operator!=(const String &other) const
+template <int StringType>
+bool String<StringType>::operator!=(const String &other) const
 {
     return !operator==(other);
 }
 
-template <int string_type>
-bool String<string_type>::operator!=(const CharType *str) const
+template <int StringType>
+bool String<StringType>::operator!=(const CharType *str) const
 {
     return !operator==(str);
 }
 
-template <int string_type>
-bool String<string_type>::operator<(const String &other) const
+template <int StringType>
+bool String<StringType>::operator<(const String &other) const
 {
     return utf::utf_strcmp<CharType, is_utf8>(Base::Data(), other.Data()) < 0;
 }
 
-template <int string_type>
-auto String<string_type>::operator[](SizeType index) const -> const CharType
+template <int StringType>
+auto String<StringType>::operator[](SizeType index) const -> const CharType
 {
     return Base::operator[](index);
 }
 
-template <int string_type>
-auto String<string_type>::GetChar(SizeType index) const -> WidestCharType
+template <int StringType>
+auto String<StringType>::GetChar(SizeType index) const -> WidestCharType
 {
     if constexpr (is_utf8) {
         const SizeType size = Size();
@@ -943,8 +948,8 @@ auto String<string_type>::GetChar(SizeType index) const -> WidestCharType
     }
 }
 
-template <int string_type>
-void String<string_type>::Append(const String &other)
+template <int StringType>
+void String<StringType>::Append(const String &other)
 {
     if (Size() + other.Size() + 1 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + other.Size() + 1) {
@@ -968,8 +973,8 @@ void String<string_type>::Append(const String &other)
     m_length += other.m_length;
 }
 
-template <int string_type>
-void String<string_type>::Append(String &&other)
+template <int StringType>
+void String<StringType>::Append(String &&other)
 {
     if (Size() + other.Size() + 1 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + other.Size() + 1) {
@@ -995,14 +1000,14 @@ void String<string_type>::Append(String &&other)
     other.Clear();
 }
 
-template <int string_type>
-void String<string_type>::Append(const CharType *str)
+template <int StringType>
+void String<StringType>::Append(const CharType *str)
 {
     Append(String(str));
 }
 
-template <int string_type>
-void String<string_type>::Append(CharType value)
+template <int StringType>
+void String<StringType>::Append(CharType value)
 {
     if (Size() + 2 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + 2) {
@@ -1023,15 +1028,15 @@ void String<string_type>::Append(CharType value)
     ++m_length;
 }
 
-template <int string_type>
-auto String<string_type>::PopFront() -> typename Base::ValueType
+template <int StringType>
+auto String<StringType>::PopFront() -> typename Base::ValueType
 {
     --m_length;
     return Base::PopFront();
 }
 
-template <int string_type>
-auto String<string_type>::PopBack() -> typename Base::ValueType
+template <int StringType>
+auto String<StringType>::PopBack() -> typename Base::ValueType
 {
     --m_length;
     Base::PopBack(); // pop NT-char
@@ -1040,16 +1045,16 @@ auto String<string_type>::PopBack() -> typename Base::ValueType
     return res;
 }
 
-template <int string_type>
-void String<string_type>::Clear()
+template <int StringType>
+void String<StringType>::Clear()
 {
     Base::Clear();
     Base::PushBack(CharType { 0 }); // NT char
     m_length = 0;
 }
 
-template <int string_type>
-bool String<string_type>::StartsWith(const String &other) const
+template <int StringType>
+bool String<StringType>::StartsWith(const String &other) const
 {
     if (Size() < other.Size()) {
         return false;
@@ -1058,8 +1063,8 @@ bool String<string_type>::StartsWith(const String &other) const
     return std::equal(Base::Begin(), Base::Begin() + other.Size(), other.Base::Begin());
 }
 
-template <int string_type>
-bool String<string_type>::EndsWith(const String &other) const
+template <int StringType>
+bool String<StringType>::EndsWith(const String &other) const
 {
     if (Size() < other.Size()) {
         return false;
@@ -1068,8 +1073,8 @@ bool String<string_type>::EndsWith(const String &other) const
     return std::equal(Base::Begin() + Size() - other.Size(), Base::End(), other.Base::Begin());
 }
 
-template <int string_type>
-auto String<string_type>::ToLower() const -> String
+template <int StringType>
+auto String<StringType>::ToLower() const -> String
 {
     String result;
     result.Reserve(Size());
@@ -1101,8 +1106,8 @@ auto String<string_type>::ToLower() const -> String
     return result;
 }
 
-template <int string_type>
-auto String<string_type>::ToUpper() const -> String
+template <int StringType>
+auto String<StringType>::ToUpper() const -> String
 {
     String result(*this);
 
@@ -1113,14 +1118,14 @@ auto String<string_type>::ToUpper() const -> String
     return result;
 }
 
-template <int string_type>
-auto String<string_type>::Trimmed() const -> String
+template <int StringType>
+auto String<StringType>::Trimmed() const -> String
 {
     return TrimmedLeft().TrimmedRight();
 }
 
-template <int string_type>
-auto String<string_type>::TrimmedLeft() const -> String
+template <int StringType>
+auto String<StringType>::TrimmedLeft() const -> String
 {
     String res;
     res.Reserve(Size());
@@ -1140,8 +1145,8 @@ auto String<string_type>::TrimmedLeft() const -> String
     return res;
 }
 
-template <int string_type>
-auto String<string_type>::TrimmedRight() const -> String
+template <int StringType>
+auto String<StringType>::TrimmedRight() const -> String
 {
     String res;
     res.Reserve(Size());
@@ -1160,8 +1165,8 @@ auto String<string_type>::TrimmedRight() const -> String
 
     return res;
 }
-template <int string_type>
-String<string_type> String<string_type>::ReplaceAll(const String &search, const String &replace) const
+template <int StringType>
+String<StringType> String<StringType>::ReplaceAll(const String &search, const String &replace) const
 {
     String tmp(*this);
 
@@ -1188,8 +1193,8 @@ String<string_type> String<string_type>::ReplaceAll(const String &search, const 
     return result;
 }
 
-template <int string_type>
-String<string_type> String<string_type>::Escape() const
+template <int StringType>
+String<StringType> String<StringType>::Escape() const
 {
     const SizeType size = Size();
     const auto *data = Base::Data();
@@ -1307,8 +1312,8 @@ String<string_type> String<string_type>::Escape() const
 }
 
 
-template <int string_type>
-auto String<string_type>::Substr(SizeType first, SizeType last) const -> String
+template <int StringType>
+auto String<StringType>::Substr(SizeType first, SizeType last) const -> String
 {
     if (first == SizeType(-1)) {
         return *this;
@@ -1396,8 +1401,8 @@ auto String<string_type>::Substr(SizeType first, SizeType last) const -> String
     }
 }
 
-template <int string_type>
-auto String<string_type>::StrStr(const String &other) const -> const CharType*
+template <int StringType>
+auto String<StringType>::StrStr(const String &other) const -> const CharType*
 {
     if (Size() < other.Size()) {
         return nullptr;
@@ -1428,8 +1433,8 @@ auto String<string_type>::StrStr(const String &other) const -> const CharType*
     return nullptr;
 }
 
-template <int string_type>
-SizeType String<string_type>::FindIndex(const String &other) const
+template <int StringType>
+SizeType String<StringType>::FindIndex(const String &other) const
 {
     if (auto *ptr = StrStr(other)) {
         if constexpr (is_utf8) {
@@ -1445,10 +1450,10 @@ SizeType String<string_type>::FindIndex(const String &other) const
 }
 
 #if 0
-template <int string_type>
-String<string_type> operator+(const CharType *str, const String<string_type> &other)
+template <int StringType>
+String<StringType> operator+(const CharType *str, const String<StringType> &other)
 {
-    return String<string_type>(str) + other;
+    return String<StringType>(str) + other;
 }
 #endif
 
@@ -1481,16 +1486,16 @@ inline UTF32String operator+(const utf::u32char *str, const UTF32String &other)
 inline WideString operator+(const wchar_t *str, const WideString &other)
     { return WideString(str) + other; }
 
-template <int string_type, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<string_type>::CharType, char>, int>>
-std::ostream &operator<<(std::ostream &os, const containers::detail::String<string_type> &str)
+template <int StringType, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<StringType>::CharType, char>, int>>
+std::ostream &operator<<(std::ostream &os, const containers::detail::String<StringType> &str)
 {
     os << str.Data();
 
     return os;
 }
 
-template <int string_type, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<string_type>::CharType, wchar_t>, int>>
-std::wostream &operator<<(std::wostream &os, const containers::detail::String<string_type> &str)
+template <int StringType, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<StringType>::CharType, wchar_t>, int>>
+std::wostream &operator<<(std::wostream &os, const containers::detail::String<StringType> &str)
 {
     os << str.Data();
 

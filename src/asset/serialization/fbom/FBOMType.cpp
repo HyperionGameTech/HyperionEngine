@@ -96,46 +96,75 @@ bool FBOMType::IsOrExtends(const ANSIStringView &name) const
         return true;
     }
 
-    if (extends == nullptr) {
+    if (extends == nullptr || extends->IsUnset()) {
         return false;
     }
 
     return extends->IsOrExtends(name);
 }
 
-bool FBOMType::IsOrExtends(const FBOMType &other, bool allow_unbounded) const
+bool FBOMType::Is(const FBOMType &other, bool allow_unbounded) const
 {
-    if (*this == other) {
-        return true;
-    }
-
-    if (allow_unbounded && (IsUnbouned() || other.IsUnbouned())) {
-        if (name == other.name && extends == other.extends) { // don't size check
-            return true;
-        }
-    }
-
-    return Extends(other);
-}
-
-bool FBOMType::Extends(const FBOMType &other) const
-{
-    if (extends == nullptr) {
+    if (name != other.name) {
         return false;
     }
 
-    if (*extends == other) {
+    if (!allow_unbounded) {
+        if (size != other.size) {
+            return false;
+        }
+    }
+
+    if (extends != nullptr) {
+        if (!other.extends) {
+            return false;
+        }
+
+        return extends->Is(*other.extends, allow_unbounded);
+    }
+
+    return true;
+}
+
+bool FBOMType::IsOrExtends(const FBOMType &other, bool allow_unbounded) const
+{
+    if (Is(other, allow_unbounded)) {
         return true;
     }
 
-    return extends->Extends(other);
+    return Extends(other, allow_unbounded);
+
+    // if (*this == other) {
+    //     return true;
+    // }
+
+    // if (allow_unbounded && (IsUnbouned() || other.IsUnbouned())) {
+    //     if (name == other.name && extends == other.extends) { // don't size check
+    //         return true;
+    //     }
+    // }
+
+    // return Extends(other);
+}
+
+bool FBOMType::Extends(const FBOMType &other, bool allow_unbounded) const
+{
+    if (extends == nullptr || extends->IsUnset()) {
+        return false;
+    }
+
+    if (extends->Is(other)) {
+        return true;
+    }
+
+    return extends->Extends(other, allow_unbounded);
 }
 
 String FBOMType::ToString() const
 {
     String str = String(name) + " (" + String::ToString(size) + ") ";
 
-    if (extends != nullptr) {
+    if (extends != nullptr && !extends->IsUnset()) {
         str += "[" + extends->ToString() + "]";
     }
 

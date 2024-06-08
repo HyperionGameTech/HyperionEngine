@@ -156,6 +156,12 @@ constexpr auto TypeNameWithoutNamespace()
     return detail::ParseTypeName< substr, true >();
 }
 
+template <class T>
+struct TypeWrapper
+{
+    using Type = T;
+};
+
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */
 template <class T, uint N>
 constexpr uint ArraySize(const T (&)[N])

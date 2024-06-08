@@ -14,9 +14,9 @@ public:
 
     virtual FBOMResult Serialize(const AudioSource &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("format", FBOMData::FromUnsignedInt(uint32(in_object.GetFormat())));
-        out.SetProperty("byte_buffer", FBOMData::FromByteBuffer(in_object.GetByteBuffer()));
-        out.SetProperty("freq", FBOMData::FromUnsignedLong(in_object.GetFreq()));
+        out.SetProperty(NAME("format"), FBOMData::FromUnsignedInt(uint32(in_object.GetFormat())));
+        out.SetProperty(NAME("byte_buffer"), FBOMData::FromByteBuffer(in_object.GetByteBuffer()));
+        out.SetProperty(NAME("freq"), FBOMData::FromUnsignedLong(in_object.GetFreq()));
 
         return { FBOMResult::FBOM_OK };
     }

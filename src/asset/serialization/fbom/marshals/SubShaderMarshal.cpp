@@ -14,13 +14,8 @@ public:
 
     virtual FBOMResult Serialize(const SubShader &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMUnsignedInt(), static_cast<uint32>(in_object.type));
-
-        out.SetProperty(
-            "bytes",
-            FBOMSequence(FBOMByte(), in_object.spirv.bytes.Size()),
-            in_object.spirv.bytes.Data()
-        );
+        out.SetProperty(NAME("type"), FBOMUnsignedInt(), static_cast<uint32>(in_object.type));
+        out.SetProperty(NAME("bytes"), FBOMSequence(FBOMByte(), in_object.spirv.bytes.Size()), in_object.spirv.bytes.Data());
 
         return { FBOMResult::FBOM_OK };
     }
@@ -29,15 +24,15 @@ public:
     {
         SubShader sub_shader;
 
-        if (auto err = in.GetProperty("type").ReadUnsignedInt(&sub_shader.type)) {
+        if (FBOMResult err = in.GetProperty("type").ReadUnsignedInt(&sub_shader.type)) {
             return err;
         }
 
-        if (const auto &bytes_property = in.GetProperty("bytes")) {
-            const auto num_bytes = bytes_property.NumElements(FBOMByte());
+        if (const FBOMData &bytes_property = in.GetProperty("bytes")) {
+            const SizeType num_bytes = bytes_property.NumElements(FBOMByte());
 
             if (num_bytes != 0) {
-                if (auto err = bytes_property.ReadBytes(num_bytes, sub_shader.spirv.bytes)) {
+                if (FBOMResult err = bytes_property.ReadBytes(num_bytes, sub_shader.spirv.bytes)) {
                     return err;
                 }
             }

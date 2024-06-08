@@ -16,22 +16,22 @@ public:
 
     virtual FBOMResult Serialize(const Camera &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("translation", FBOMData::FromVec3f(in_object.GetTranslation()));
-        out.SetProperty("direction", FBOMData::FromVec3f(in_object.GetDirection()));
-        out.SetProperty("up",FBOMData::FromVec3f(in_object.GetUpVector()));
-        out.SetProperty("view_matrix", FBOMData::FromMat4(in_object.GetViewMatrix()));
-        out.SetProperty("projection_matrix", FBOMData::FromMat4(in_object.GetProjectionMatrix()));
-        out.SetProperty("view_projection_matrix", FBOMData::FromMat4(in_object.GetViewProjectionMatrix()));
-        out.SetProperty("width", FBOMData::FromUnsignedInt(uint32(in_object.GetWidth())));
-        out.SetProperty("height", FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
-        out.SetProperty("near", FBOMData::FromFloat(in_object.GetNear()));
-        out.SetProperty("far", FBOMData::FromFloat(in_object.GetFar()));
-        out.SetProperty("frustum", FBOMData::FromArray(in_object.GetFrustum().GetPlanes()));
-        out.SetProperty("fov", FBOMData::FromFloat(in_object.GetFOV()));
-        out.SetProperty("left", FBOMData::FromFloat(in_object.GetLeft()));
-        out.SetProperty("right", FBOMData::FromFloat(in_object.GetRight()));
-        out.SetProperty("bottom", FBOMData::FromFloat(in_object.GetBottom()));
-        out.SetProperty("top", FBOMData::FromFloat(in_object.GetTop()));
+        out.SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetTranslation()));
+        out.SetProperty(NAME("direction"), FBOMData::FromVec3f(in_object.GetDirection()));
+        out.SetProperty(NAME("up"),FBOMData::FromVec3f(in_object.GetUpVector()));
+        out.SetProperty(NAME("view_matrix"), FBOMData::FromMat4(in_object.GetViewMatrix()));
+        out.SetProperty(NAME("projection_matrix"), FBOMData::FromMat4(in_object.GetProjectionMatrix()));
+        out.SetProperty(NAME("view_projection_matrix"), FBOMData::FromMat4(in_object.GetViewProjectionMatrix()));
+        out.SetProperty(NAME("width"), FBOMData::FromUnsignedInt(uint32(in_object.GetWidth())));
+        out.SetProperty(NAME("height"), FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
+        out.SetProperty(NAME("near"), FBOMData::FromFloat(in_object.GetNear()));
+        out.SetProperty(NAME("far"), FBOMData::FromFloat(in_object.GetFar()));
+        out.SetProperty(NAME("frustum"), FBOMData::FromArray(in_object.GetFrustum().GetPlanes()));
+        out.SetProperty(NAME("fov"), FBOMData::FromFloat(in_object.GetFOV()));
+        out.SetProperty(NAME("left"), FBOMData::FromFloat(in_object.GetLeft()));
+        out.SetProperty(NAME("right"), FBOMData::FromFloat(in_object.GetRight()));
+        out.SetProperty(NAME("bottom"), FBOMData::FromFloat(in_object.GetBottom()));
+        out.SetProperty(NAME("top"), FBOMData::FromFloat(in_object.GetTop()));
 
         // TODO: Save camera controller!
 

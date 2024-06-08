@@ -15,19 +15,19 @@ public:
 
     virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
+        out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
         
-        out.SetProperty("name", FBOMData::FromString(in_object.GetName()));
+        out.SetProperty(NAME("name"), FBOMData::FromString(in_object.GetName()));
     
-        out.SetProperty("local_transform.translation", FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()));
-        out.SetProperty("local_transform.rotation", FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()));
-        out.SetProperty("local_transform.scale", FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()));
+        out.SetProperty(NAME("local_transform.translation"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()));
+        out.SetProperty(NAME("local_transform.rotation"), FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()));
+        out.SetProperty(NAME("local_transform.scale"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()));
     
-        out.SetProperty("world_transform.translation", FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()));
-        out.SetProperty("world_transform.rotation", FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
-        out.SetProperty("world_transform.scale", FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
+        out.SetProperty(NAME("world_transform.translation"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()));
+        out.SetProperty(NAME("world_transform.rotation"), FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
+        out.SetProperty(NAME("world_transform.scale"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
 
-        out.SetProperty("aabb", FBOMStruct::Create<BoundingBox>(), &in_object.GetEntityAABB());
+        out.SetProperty(NAME("aabb"), FBOMStruct::Create<BoundingBox>(), &in_object.GetEntityAABB());
 
         switch (in_object.GetType()) {
         case Node::Type::NODE:

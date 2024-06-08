@@ -99,7 +99,7 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
     fbom::FBOMReader deserializer(fbom::FBOMConfig { });
     fbom::FBOMDeserializedObject object;
 
-    if (auto err = deserializer.Deserialize(reader, object)) {
+    if (fbom::FBOMResult err = deserializer.Deserialize(reader, object)) {
         HYP_LOG(Streaming, LogLevel::WARNING, "StreamedMeshData: Error deserializing mesh data: {}", err.message);
         return;
     }

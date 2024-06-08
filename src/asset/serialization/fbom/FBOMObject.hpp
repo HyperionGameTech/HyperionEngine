@@ -93,7 +93,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    bool HasProperty(const ANSIStringView &key) const
+    bool HasProperty(const ANSIString &key) const
         { return HasProperty(CreateWeakNameFromDynamicString(key)); }
 
     [[nodiscard]]
@@ -101,7 +101,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const FBOMData &GetProperty(const ANSIStringView &key) const
+    const FBOMData &GetProperty(const ANSIString &key) const
         { return GetProperty(CreateWeakNameFromDynamicString(key)); }
 
     void SetProperty(Name key, const FBOMData &data);
@@ -121,6 +121,9 @@ public:
     {
         SetProperty(key, type, sizeof(NormalizedType<T>), &value);
     }
+
+    [[nodiscard]]
+    const FBOMData &operator[](WeakName key) const;
 
     /*! \brief Add a child object to this object node.
         @param object The child object to add

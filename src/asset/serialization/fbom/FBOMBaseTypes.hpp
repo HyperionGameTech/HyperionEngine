@@ -24,13 +24,14 @@ struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1) { } };
 
 struct FBOMStruct : FBOMType
 {
-    FBOMStruct(const char *type_name, SizeType sz)
-        : FBOMType(type_name, sz)
+    FBOMStruct(const ANSIStringView &type_name, SizeType sz)
+        : FBOMType(type_name, sz, FBOMType("struct", sz))
     {
     }
 
     template <class T>
-    static FBOMStruct Create()
+    FBOMStruct(TypeWrapper<T>)
+        : FBOMType(TypeNameWithoutNamespace<T>(), sizeof(T), FBOMType("struct", sizeof(T)))
     {
         static_assert(!std::is_pointer_v<T>, "Cannot create struct of pointer type");
         static_assert(!std::is_reference_v<T>, "Cannot create struct of reference type");
@@ -39,8 +40,12 @@ struct FBOMStruct : FBOMType
 
         static_assert(std::is_standard_layout_v<T>, "Cannot create struct of non-standard layout type");
         static_assert(std::is_trivially_copyable_v<T>, "Cannot create struct of non-trivially copyable type");
+    }
 
-        return FBOMStruct(TypeNameWithoutNamespace<T>().Data(), sizeof(T));
+    template <class T>
+    static FBOMStruct Create()
+    {
+        return FBOMStruct(TypeWrapper<T> { });
     }
 };
 
@@ -122,22 +127,7 @@ struct FBOMObjectType : FBOMType
     }
 };
 
-struct FBOMName : FBOMObjectType
-{
-    FBOMName()
-        : FBOMObjectType("name")
-    {
-    }
-};
-
-// /*! \brief An in-memory representation of an object. Cannot be serialized. */
-// struct FBOMMemoryObjectType : FBOMType
-// {
-//     FBOMMemoryObjectType()
-//         : FBOMType("memory_object", 0)
-//     {
-//     }
-// };
+struct FBOMName : FBOMStruct { FBOMName() : FBOMStruct(TypeWrapper<Name> { }) { } };
 
 } // namespace hyperion::fbom
 
