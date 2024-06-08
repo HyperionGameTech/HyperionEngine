@@ -31,7 +31,7 @@ void DebugDrawer::Create()
     }
 
     m_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(DebugAABB),
+        NAME("DebugAABB"),
         ShaderProperties(
             static_mesh_vertex_attributes,
             Array<String> { "IMMEDIATE_MODE" }
@@ -46,10 +46,10 @@ void DebugDrawer::Create()
     AssertThrow(descriptor_table != nullptr);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &debug_drawer_descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(DebugDrawerDescriptorSet), frame_index);
+        const DescriptorSetRef &debug_drawer_descriptor_set = descriptor_table->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index);
         AssertThrow(debug_drawer_descriptor_set != nullptr);
 
-        debug_drawer_descriptor_set->SetElement(HYP_NAME(ImmediateDrawsBuffer), g_engine->GetRenderData()->immediate_draws.GetBuffer(frame_index));
+        debug_drawer_descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), g_engine->GetRenderData()->immediate_draws.GetBuffer(frame_index));
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -139,7 +139,7 @@ void DebugDrawer::Render(Frame *frame)
     RendererProxy proxy = m_render_group->GetProxy();
     proxy.Bind(frame);
 
-    const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(HYP_NAME(DebugDrawerDescriptorSet));
+    const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
 
     proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
         proxy.GetCommandBuffer(frame_index),
@@ -147,29 +147,29 @@ void DebugDrawer::Render(Frame *frame)
         proxy.GetGraphicsPipeline(),
         {
             {
-                HYP_NAME(DebugDrawerDescriptorSet),
+                NAME("DebugDrawerDescriptorSet"),
                 {
-                    { HYP_NAME(ImmediateDrawsBuffer), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, 0) }
+                    { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, 0) }
                 }
             },
             {
-                HYP_NAME(Scene),
+                NAME("Scene"),
                 {
-                    { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                    { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
             },
             {
-                HYP_NAME(Object),
+                NAME("Object"),
                 {
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-                    { HYP_NAME(MaterialsBuffer), HYP_RENDER_OBJECT_OFFSET(Material, 0) },
+                    { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, 0) },
 #endif
-                    { HYP_NAME(SkeletonsBuffer), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
-                    { HYP_NAME(EntityInstanceBatchesBuffer), 0 }
+                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
+                    { NAME("EntityInstanceBatchesBuffer"), 0 }
                 }
             }
         }
@@ -178,11 +178,11 @@ void DebugDrawer::Render(Frame *frame)
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const DebugDrawCommand &draw_command = m_draw_commands[index];
 
-        proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(HYP_NAME(DebugDrawerDescriptorSet), frame_index)->Bind(
+        proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index)->Bind(
             proxy.GetCommandBuffer(frame_index),
             proxy.GetGraphicsPipeline(),
             {
-                { HYP_NAME(ImmediateDrawsBuffer), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, index) }
+                { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, index) }
             },
             debug_drawer_descriptor_set_index
         );

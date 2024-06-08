@@ -39,7 +39,7 @@ void SkySystem::OnEntityAdded(ID<Entity> entity)
         material->SetIsDepthTestEnabled(true);
         material->SetIsDepthWriteEnabled(false);
         material->SetShader(g_shader_manager->GetOrCreate(
-            HYP_NAME(Skybox),
+            NAME("Skybox"),
             ShaderProperties(mesh_component.mesh->GetVertexAttributes())
         ));
 

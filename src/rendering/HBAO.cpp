@@ -23,8 +23,8 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : renderer::Rende
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(SSAOResultTexture), pass_image_views[frame_index]);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSAOResultTexture"), pass_image_views[frame_index]);
         }
 
         HYPERION_RETURN_OK;
@@ -44,8 +44,8 @@ struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
         Result result;
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(SSAOResultTexture), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSAOResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         return result;
@@ -88,7 +88,7 @@ void HBAO::CreatePass()
     shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
 
     ShaderRef hbao_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(HBAO),
+        NAME("HBAO"),
         shader_properties
     );
 
@@ -145,13 +145,13 @@ void HBAO::Render(Frame *frame)
             m_hbao_pass->GetRenderGroup()->GetPipeline(),
             {
                 {
-                    HYP_NAME(Scene),
+                    NAME("Scene"),
                     {
-                        { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                        { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                     }
                 }
             }

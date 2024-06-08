@@ -115,7 +115,7 @@ class GStreamerThread : public TaskThread
 {
 public:
     GStreamerThread()
-        : TaskThread(ThreadID::CreateDynamicThreadID(HYP_NAME(GStreamerThread))),
+        : TaskThread(ThreadID::CreateDynamicThreadID(NAME("GStreamerThread"))),
           m_in_queue(new EncoderDataQueue()),
           m_out_queue(new EncoderDataQueue())
     {

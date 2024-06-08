@@ -155,7 +155,7 @@ public:
         uint32 texture_index = 0;
 
         ShaderRef shader = g_shader_manager->GetOrCreate(
-            HYP_NAME(Forward),
+            NAME("Forward"),
             ShaderProperties()
         );
 

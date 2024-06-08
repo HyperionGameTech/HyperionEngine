@@ -293,7 +293,7 @@ void TerrainSystem::Process(GameCounter::TickUnit delta)
 {
     for (auto [entity_id, terrain_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<TerrainComponent, TransformComponent, MeshComponent>()) {
         if (!(terrain_component.flags & TERRAIN_COMPONENT_FLAG_INIT)) {
-            mesh_component.material = CreateObject<Material>(HYP_NAME(terrain_material));
+            mesh_component.material = CreateObject<Material>(NAME("terrain_material"));
             mesh_component.material->SetBucket(BUCKET_OPAQUE);
             mesh_component.material->SetIsDepthTestEnabled(true);
             mesh_component.material->SetIsDepthWriteEnabled(true);

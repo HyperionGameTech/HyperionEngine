@@ -37,8 +37,8 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
             : g_engine->GetPlaceholderData()->GetImageView2D1x1R8();
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(TAAResultTexture), result_texture_view);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("TAAResultTexture"), result_texture_view);
         }
 
         HYPERION_RETURN_OK;
@@ -105,7 +105,7 @@ void TemporalAA::CreateImages()
 
 void TemporalAA::CreateComputePipelines()
 {
-    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(TemporalAA));
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalAA"));
     AssertThrow(shader.IsValid());
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
@@ -119,22 +119,22 @@ void TemporalAA::CreateComputePipelines()
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // create descriptor sets for depth pyramid generation.
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(TemporalAADescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InColorTexture), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(InPrevColorTexture), (*textures[(frame_index + 1) % 2])->GetImageView());
+        descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
+        descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetImageView());
 
-        descriptor_set->SetElement(HYP_NAME(InVelocityTexture), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(HYP_NAME(InDepthTexture), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InDepthTexture"), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
     
-        descriptor_set->SetElement(HYP_NAME(SamplerLinear), g_engine->GetPlaceholderData()->GetSamplerLinear());
-        descriptor_set->SetElement(HYP_NAME(SamplerNearest), g_engine->GetPlaceholderData()->GetSamplerNearest());
+        descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
+        descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
 
-        descriptor_set->SetElement(HYP_NAME(OutColorImage), (*textures[frame_index % 2])->GetImageView());
+        descriptor_set->SetElement(NAME("OutColorImage"), (*textures[frame_index % 2])->GetImageView());
     }
 
     DeferCreate(

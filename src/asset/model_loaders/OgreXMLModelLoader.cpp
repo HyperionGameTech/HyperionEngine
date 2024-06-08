@@ -256,7 +256,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         ShaderProperties shader_properties(mesh->GetVertexAttributes());
 
         Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())));
-        material->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties));
+        material->SetShader(g_shader_manager->GetOrCreate(NAME("Forward"), shader_properties));
         InitObject(material);
 
         scene->GetEntityManager()->AddComponent(

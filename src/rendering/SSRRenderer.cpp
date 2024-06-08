@@ -97,8 +97,8 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : renderer::RenderCommand
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(SSRResultTexture), image_views[frame_index]);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSRResultTexture"), image_views[frame_index]);
         }
 
         HYPERION_RETURN_OK;
@@ -116,8 +116,8 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : renderer::RenderCommand
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(SSRResultTexture), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSRResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -257,24 +257,24 @@ void SSRRenderer::CreateComputePipelines()
 
     // Write UVs pass
 
-    ShaderRef write_uvs_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties);
+    ShaderRef write_uvs_shader = g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties);
     AssertThrow(write_uvs_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef write_uvs_shader_descriptor_table = MakeRenderObject<DescriptorTable>(write_uvs_shader_descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(HYP_NAME(SSRDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(UVImage), m_image_outputs[0]->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(SSRParams), m_uniform_buffer);
+        descriptor_set->SetElement(NAME("UVImage"), m_image_outputs[0]->GetImageView());
+        descriptor_set->SetElement(NAME("SSRParams"), m_uniform_buffer);
     }
 
     DeferCreate(write_uvs_shader_descriptor_table, g_engine->GetGPUDevice());
 
     m_write_uvs = MakeRenderObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
+        g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties),
         write_uvs_shader_descriptor_table
     );
 
@@ -282,19 +282,19 @@ void SSRRenderer::CreateComputePipelines()
 
     // Sample pass
 
-    ShaderRef sample_shader = g_shader_manager->GetOrCreate(HYP_NAME(SSRSample), shader_properties);
+    ShaderRef sample_shader = g_shader_manager->GetOrCreate(NAME("SSRSample"), shader_properties);
     AssertThrow(sample_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration sample_shader_descriptor_table_decl = sample_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef sample_shader_descriptor_table = MakeRenderObject<DescriptorTable>(sample_shader_descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = sample_shader_descriptor_table->GetDescriptorSet(HYP_NAME(SSRDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = sample_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(UVImage), m_image_outputs[0]->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(SampleImage), m_image_outputs[1]->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(SSRParams), m_uniform_buffer);
+        descriptor_set->SetElement(NAME("UVImage"), m_image_outputs[0]->GetImageView());
+        descriptor_set->SetElement(NAME("SampleImage"), m_image_outputs[1]->GetImageView());
+        descriptor_set->SetElement(NAME("SSRParams"), m_uniform_buffer);
     }
 
     DeferCreate(sample_shader_descriptor_table, g_engine->GetGPUDevice());
@@ -343,13 +343,13 @@ void SSRRenderer::Render(Frame *frame)
         m_write_uvs,
         {
             {
-                HYP_NAME(Scene),
+                NAME("Scene"),
                 {
-                    { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                    { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                    { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                    { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
+                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
+                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                 }
             }
         }
@@ -374,13 +374,13 @@ void SSRRenderer::Render(Frame *frame)
         m_sample,
         {
             {
-                HYP_NAME(Scene),
+                NAME("Scene"),
                 {
-                    { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                    { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                    { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                    { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
+                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
+                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                 }
             }
         }

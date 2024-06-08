@@ -31,8 +31,8 @@ struct RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet) : renderer::RenderCo
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(DepthPyramidResult), depth_pyramid_image_view);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("DepthPyramidResult"), depth_pyramid_image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -46,8 +46,8 @@ struct RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet) : renderer::Render
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-                ->SetElement(HYP_NAME(DepthPyramidResult), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("DepthPyramidResult"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -144,32 +144,32 @@ void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
         m_depth_pyramid_mips.PushBack(std::move(mip_image_view));
     }
 
-    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(GenerateDepthPyramid), { });
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("GenerateDepthPyramid"), { });
     AssertThrow(shader.IsValid());
     
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     m_mip_descriptor_tables.Reserve(num_mip_levels);
 
-    const renderer::DescriptorSetDeclaration *depth_pyramid_descriptor_set_decl = descriptor_table_decl.FindDescriptorSetDeclaration(HYP_NAME(DepthPyramidDescriptorSet));
+    const renderer::DescriptorSetDeclaration *depth_pyramid_descriptor_set_decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("DepthPyramidDescriptorSet"));
     AssertThrow(depth_pyramid_descriptor_set_decl != nullptr);
 
     for (uint mip_level = 0; mip_level < num_mip_levels; mip_level++) {
         DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &depth_pyramid_descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(DepthPyramidDescriptorSet), frame_index);
+            const DescriptorSetRef &depth_pyramid_descriptor_set = descriptor_table->GetDescriptorSet(NAME("DepthPyramidDescriptorSet"), frame_index);
             AssertThrow(depth_pyramid_descriptor_set != nullptr);
 
             if (mip_level == 0) {
                 // first mip level -- input is the actual depth image
-                depth_pyramid_descriptor_set->SetElement(HYP_NAME(InImage), depth_attachment->GetImageView());
+                depth_pyramid_descriptor_set->SetElement(NAME("InImage"), depth_attachment->GetImageView());
             } else {
-                depth_pyramid_descriptor_set->SetElement(HYP_NAME(InImage), m_depth_pyramid_mips[mip_level - 1]);
+                depth_pyramid_descriptor_set->SetElement(NAME("InImage"), m_depth_pyramid_mips[mip_level - 1]);
             }
 
-            depth_pyramid_descriptor_set->SetElement(HYP_NAME(OutImage), m_depth_pyramid_mips[mip_level]);
-            depth_pyramid_descriptor_set->SetElement(HYP_NAME(DepthPyramidSampler), m_depth_pyramid_sampler);
+            depth_pyramid_descriptor_set->SetElement(NAME("OutImage"), m_depth_pyramid_mips[mip_level]);
+            depth_pyramid_descriptor_set->SetElement(NAME("DepthPyramidSampler"), m_depth_pyramid_sampler);
         }
 
         HYPERION_ASSERT_RESULT(descriptor_table->Create(g_engine->GetGPUDevice()));

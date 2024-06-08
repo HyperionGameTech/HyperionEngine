@@ -291,21 +291,21 @@ void EnvProbe::CreateShader()
     switch (m_env_probe_type) {
     case EnvProbeType::ENV_PROBE_TYPE_REFLECTION:
         m_shader = g_shader_manager->GetOrCreate({
-            HYP_NAME(RenderToCubemap),
+            NAME("RenderToCubemap"),
             ShaderProperties(static_mesh_vertex_attributes, { "MODE_REFLECTION" })
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SKY:
         m_shader = g_shader_manager->GetOrCreate({
-            HYP_NAME(RenderSky),
+            NAME("RenderSky"),
             ShaderProperties(static_mesh_vertex_attributes)
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SHADOW:
         m_shader = g_shader_manager->GetOrCreate({
-            HYP_NAME(RenderToCubemap),
+            NAME("RenderToCubemap"),
             ShaderProperties(static_mesh_vertex_attributes, { "MODE_SHADOWS" })
         });
 
@@ -609,13 +609,13 @@ void EnvProbe::UpdateRenderData(bool set_texture)
             switch (GetEnvProbeType()) {
             case ENV_PROBE_TYPE_REFLECTION:
             case ENV_PROBE_TYPE_SKY: // fallthrough
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
-                    ->SetElement(HYP_NAME(EnvProbeTextures), texture_slot, m_texture->GetImageView());
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetImageView());
 
                 break;
             case ENV_PROBE_TYPE_SHADOW:
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
-                    ->SetElement(HYP_NAME(PointLightShadowMapTextures), texture_slot, m_texture->GetImageView());
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetImageView());
 
                 break;
             default:

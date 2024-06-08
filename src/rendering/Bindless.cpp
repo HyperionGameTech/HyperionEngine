@@ -20,8 +20,8 @@ void BindlessStorage::Destroy()
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (const auto &it : m_resources) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Material), frame_index)
-                ->SetElement(HYP_NAME(Textures), it.first.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)
+                ->SetElement(NAME("Textures"), it.first.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
     }
 
@@ -45,8 +45,8 @@ void BindlessStorage::AddResource(ID<Texture> id, const ImageViewRef &image_view
     m_resources.Insert({ id, image_view });
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Material), frame_index)
-            ->SetElement(HYP_NAME(Textures), id.ToIndex(), image_view);
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)
+            ->SetElement(NAME("Textures"), id.ToIndex(), image_view);
     }
 }
 
@@ -67,8 +67,8 @@ void BindlessStorage::RemoveResource(ID<Texture> id)
     m_resources.Erase(it);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Material), frame_index)
-            ->SetElement(HYP_NAME(Textures), id.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)
+            ->SetElement(NAME("Textures"), id.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 }
 

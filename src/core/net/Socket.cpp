@@ -73,7 +73,7 @@ bool SocketServer::Start()
     if (m_impl->socket_id == -1) {
         HYP_LOG(Socket, LogLevel::ERROR, "Failed to open socket server. Code: {}", errno);
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String("Failed to open socket")), SocketProcArgument(int32(errno)) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(String("Failed to open socket")), SocketProcArgument(int32(errno)) });
 
         return false;
     }
@@ -94,7 +94,7 @@ bool SocketServer::Start()
     if (setsockopt(m_impl->socket_id, SOL_SOCKET, SO_REUSEADDR, &reuse_socket, sizeof(reuse_socket)) != 0) {
         const int32 error_code = errno;
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
         return false;
     }
@@ -102,7 +102,7 @@ bool SocketServer::Start()
     if (setsockopt(m_impl->socket_id, SOL_SOCKET, SO_REUSEPORT, &reuse_socket, sizeof(reuse_socket)) != 0) {
         const int32 error_code = errno;
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
         return false;
     }
@@ -110,7 +110,7 @@ bool SocketServer::Start()
     if (bind(m_impl->socket_id, (struct sockaddr *)&m_impl->local, len) != 0) {
         const int32 error_code = errno;
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(error_code) });
 
 
         return false;
@@ -119,12 +119,12 @@ bool SocketServer::Start()
     if (listen(m_impl->socket_id, max_connections) != 0) {
         const int32 error_code = errno;
 
-        TriggerProc(HYP_NAME(OnError), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(int32(errno)) });
+        TriggerProc(NAME("OnError"), { SocketProcArgument(String(strerror(error_code))), SocketProcArgument(int32(errno)) });
 
         return false;
     }
 
-    TriggerProc(HYP_NAME(OnServerStarted), { });
+    TriggerProc(NAME("OnServerStarted"), { });
 
     m_thread.Reset(new SocketServerThread(m_name));
     m_thread->Start(this);
@@ -165,7 +165,7 @@ bool SocketServer::Stop()
     close(m_impl->socket_id);
     unlink(m_impl->local.sun_path);
 
-    TriggerProc(HYP_NAME(OnServerStopped), { });
+    TriggerProc(NAME("OnServerStopped"), { });
 
     m_impl.Reset();
 
@@ -219,7 +219,7 @@ void SocketServer::AddConnection(RC<SocketClient> &&connection)
 
     Mutex::Guard guard(m_connections_mutex);
 
-    connection->TriggerProc(HYP_NAME(OnClientConnected), {
+    connection->TriggerProc(NAME("OnClientConnected"), {
         SocketProcArgument(connection->GetName())
     });
 
@@ -237,7 +237,7 @@ bool SocketServer::RemoveConnection(Name client_name)
     }
 
     if (it->second != nullptr) {
-        it->second->TriggerProc(HYP_NAME(OnClientDisconnected), {
+        it->second->TriggerProc(NAME("OnClientDisconnected"), {
             SocketProcArgument(it->second->GetName())
         });
 
@@ -314,7 +314,7 @@ void SocketServerThread::operator()(SocketServer *server)
                 switch (result) {
                 case SOCKET_RESULT_TYPE_DATA:
                     // Trigger the OnClientData event
-                    pair.second->TriggerProc(HYP_NAME(OnClientData), {
+                    pair.second->TriggerProc(NAME("OnClientData"), {
                         SocketProcArgument(pair.second->GetName()),
                         SocketProcArgument(std::move(received_data))
                     });
@@ -322,7 +322,7 @@ void SocketServerThread::operator()(SocketServer *server)
                     break;
                 case SOCKET_RESULT_TYPE_ERROR:
                     // Trigger the OnError event
-                    pair.second->TriggerProc(HYP_NAME(OnClientError), {
+                    pair.second->TriggerProc(NAME("OnClientError"), {
                         SocketProcArgument(pair.second->GetName())
                     });
 

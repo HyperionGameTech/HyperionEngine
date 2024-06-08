@@ -370,7 +370,7 @@ void IndirectRenderer::Create()
 {
     m_indirect_draw_state.Create();
 
-    ShaderRef object_visibility_shader = g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility));
+    ShaderRef object_visibility_shader = g_shader_manager->GetOrCreate(NAME("ObjectVisibility"));
     AssertThrow(object_visibility_shader.IsValid());
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
@@ -378,12 +378,12 @@ void IndirectRenderer::Create()
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(ObjectVisibilityDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(ObjectInstancesBuffer), m_indirect_draw_state.GetInstanceBuffer(frame_index));
-        descriptor_set->SetElement(HYP_NAME(IndirectDrawCommandsBuffer), m_indirect_draw_state.GetIndirectBuffer(frame_index));
-        descriptor_set->SetElement(HYP_NAME(EntityInstanceBatchesBuffer), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
+        descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_draw_state.GetIndirectBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -452,13 +452,13 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         m_object_visibility,
         {
             {
-                HYP_NAME(Scene),
+                NAME("Scene"),
                 {
-                    { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                    { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }
@@ -500,11 +500,11 @@ void IndirectRenderer::RebuildDescriptors(Frame *frame)
 
     const DescriptorTableRef &descriptor_table = m_object_visibility->GetDescriptorTable();
 
-    const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(ObjectVisibilityDescriptorSet), frame_index);
+    const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frame_index);
     AssertThrow(descriptor_set != nullptr);
 
-    descriptor_set->SetElement(HYP_NAME(ObjectInstancesBuffer), m_indirect_draw_state.GetInstanceBuffer(frame_index));
-    descriptor_set->SetElement(HYP_NAME(IndirectDrawCommandsBuffer), m_indirect_draw_state.GetIndirectBuffer(frame_index));
+    descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
+    descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_draw_state.GetIndirectBuffer(frame_index));
 
     descriptor_set->Update(g_engine->GetGPUDevice());
 }

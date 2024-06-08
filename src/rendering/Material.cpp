@@ -100,9 +100,9 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
             if (texture.IsValid()) {
                 AssertThrow(texture->GetImageView() != nullptr);
 
-                descriptor_set->SetElement(HYP_NAME(Textures), texture_index, texture->GetImageView());
+                descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
             } else {
-                descriptor_set->SetElement(HYP_NAME(Textures), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+                descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
         }
 
@@ -163,7 +163,7 @@ Material::ParameterTable Material::DefaultParameters()
 Material::Material()
     : BasicObject(),
       m_render_attributes {
-        .shader_definition  = ShaderDefinition { HYP_NAME(Forward), static_mesh_vertex_attributes },
+        .shader_definition  = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
         .bucket             = Bucket::BUCKET_OPAQUE,
         .fill_mode          = FillMode::FILL,
         .blend_function     = BlendFunction::None(),
@@ -180,7 +180,7 @@ Material::Material(Name name, Bucket bucket)
     : BasicObject(name),
       m_render_attributes {
         .shader_definition = ShaderDefinition {
-            HYP_NAME(Forward),
+            NAME("Forward"),
             static_mesh_vertex_attributes
         },
         .bucket = Bucket::BUCKET_OPAQUE
@@ -546,7 +546,7 @@ Handle<Material> MaterialCache::CreateMaterial(
 {
     if (!attributes.shader_definition) {
         attributes.shader_definition = ShaderDefinition {
-            HYP_NAME(Forward),
+            NAME("Forward"),
             static_mesh_vertex_attributes
         };
     }
@@ -571,7 +571,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 {
     if (!attributes.shader_definition) {
         attributes.shader_definition = ShaderDefinition {
-            HYP_NAME(Forward),
+            NAME("Forward"),
             static_mesh_vertex_attributes
         };
     }
@@ -647,7 +647,7 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
         return;
     }
 
-    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(HYP_NAME(Material));
+    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(declaration != nullptr);
 
     const renderer::DescriptorSetLayout layout(*declaration);
@@ -655,7 +655,7 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
     const DescriptorSetRef invalid_descriptor_set = layout.CreateDescriptorSet();
     
     for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-        invalid_descriptor_set->SetElement(HYP_NAME(Textures), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        invalid_descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 
     DeferCreate(invalid_descriptor_set, g_engine->GetGPUDevice());
@@ -678,7 +678,7 @@ const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Materi
 
 void MaterialDescriptorSetManager::AddMaterial(ID<Material> id)
 {
-    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(HYP_NAME(Material));
+    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(declaration != nullptr);
 
     renderer::DescriptorSetLayout layout(*declaration);
@@ -689,7 +689,7 @@ void MaterialDescriptorSetManager::AddMaterial(ID<Material> id)
         descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>(layout);
 
         for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-            descriptor_sets[frame_index]->SetElement(HYP_NAME(Textures), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
     }
 
@@ -716,7 +716,7 @@ void MaterialDescriptorSetManager::AddMaterial(ID<Material> id)
 
 void MaterialDescriptorSetManager::AddMaterial(ID<Material> id, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
 {
-    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(HYP_NAME(Material));
+    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(declaration != nullptr);
 
     const renderer::DescriptorSetLayout layout(*declaration);
@@ -731,13 +731,13 @@ void MaterialDescriptorSetManager::AddMaterial(ID<Material> id, FixedArray<Handl
                 const Handle<Texture> &texture = textures[texture_index];
 
                 if (texture.IsValid() && texture->GetImageView() != nullptr) {
-                    descriptor_sets[frame_index]->SetElement(HYP_NAME(Textures), texture_index, texture->GetImageView());
+                    descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
 
                     continue;
                 }
             }
 
-            descriptor_sets[frame_index]->SetElement(HYP_NAME(Textures), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
     }
 

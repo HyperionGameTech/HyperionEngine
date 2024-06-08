@@ -1270,7 +1270,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
                 auto material = g_material_system->GetOrCreate({
                     .shader_definition = ShaderDefinition {
-                        HYP_NAME(Forward),
+                        NAME("Forward"),
                         ShaderProperties(mesh->attributes, {{ "SKINNING" }})
                     },
                     .bucket = Bucket::BUCKET_OPAQUE

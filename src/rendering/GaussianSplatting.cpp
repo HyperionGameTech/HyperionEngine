@@ -285,13 +285,13 @@ void GaussianSplattingInstance::Record(Frame *frame)
             m_update_splat_distances,
             {
                 {
-                    HYP_NAME(Scene),
+                    NAME("Scene"),
                     {
-                        { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                        { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                     }
                 }
             }
@@ -386,13 +386,13 @@ void GaussianSplattingInstance::Record(Frame *frame)
                 m_sort_splats,
                 {
                     {
-                        HYP_NAME(Scene),
+                        NAME("Scene"),
                         {
-                            { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                            { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                            { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                         }
                     }
                 }
@@ -447,13 +447,13 @@ void GaussianSplattingInstance::Record(Frame *frame)
             m_update_splats,
             {
                 {
-                    HYP_NAME(Scene),
+                    NAME("Scene"),
                     {
-                        { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                        { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                     }
                 }
             }
@@ -492,7 +492,7 @@ void GaussianSplattingInstance::CreateBuffers()
 
 void GaussianSplattingInstance::CreateShader()
 {
-    m_shader = g_shader_manager->GetOrCreate(HYP_NAME(GaussianSplatting));
+    m_shader = g_shader_manager->GetOrCreate(NAME("GaussianSplatting"));
 }
 
 void GaussianSplattingInstance::CreateRenderGroup()
@@ -502,12 +502,12 @@ void GaussianSplattingInstance::CreateRenderGroup()
     );
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(GaussianSplattingDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("GaussianSplattingDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(SplatIndicesBuffer), m_splat_indices_buffer);
-        descriptor_set->SetElement(HYP_NAME(SplatInstancesBuffer), m_splat_buffer);
-        descriptor_set->SetElement(HYP_NAME(GaussianSplattingSceneShaderData), m_scene_buffer);
+        descriptor_set->SetElement(NAME("SplatIndicesBuffer"), m_splat_indices_buffer);
+        descriptor_set->SetElement(NAME("SplatInstancesBuffer"), m_splat_buffer);
+        descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
     DeferCreate(
@@ -544,7 +544,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
     // UpdateSplats
 
     ShaderRef update_splats_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(GaussianSplatting_UpdateSplats),
+        NAME("GaussianSplatting_UpdateSplats"),
         base_properties
     );
 
@@ -553,13 +553,13 @@ void GaussianSplattingInstance::CreateComputePipelines()
     );
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = update_splats_descriptor_table->GetDescriptorSet(HYP_NAME(UpdateSplatsDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = update_splats_descriptor_table->GetDescriptorSet(NAME("UpdateSplatsDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(SplatIndicesBuffer), m_splat_indices_buffer);
-        descriptor_set->SetElement(HYP_NAME(SplatInstancesBuffer), m_splat_buffer);
-        descriptor_set->SetElement(HYP_NAME(IndirectDrawCommandsBuffer), m_indirect_buffer);
-        descriptor_set->SetElement(HYP_NAME(GaussianSplattingSceneShaderData), m_scene_buffer);
+        descriptor_set->SetElement(NAME("SplatIndicesBuffer"), m_splat_indices_buffer);
+        descriptor_set->SetElement(NAME("SplatInstancesBuffer"), m_splat_buffer);
+        descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_buffer);
+        descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
     DeferCreate(
@@ -580,7 +580,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
     // UpdateDistances
 
     ShaderRef update_splat_distances_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(GaussianSplatting_UpdateDistances),
+        NAME("GaussianSplatting_UpdateDistances"),
         base_properties
     );
 
@@ -589,12 +589,12 @@ void GaussianSplattingInstance::CreateComputePipelines()
     );
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = update_splat_distances_descriptor_table->GetDescriptorSet(HYP_NAME(UpdateDistancesDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = update_splat_distances_descriptor_table->GetDescriptorSet(NAME("UpdateDistancesDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(SplatIndicesBuffer), m_splat_indices_buffer);
-        descriptor_set->SetElement(HYP_NAME(SplatInstancesBuffer), m_splat_buffer);
-        descriptor_set->SetElement(HYP_NAME(GaussianSplattingSceneShaderData), m_scene_buffer);
+        descriptor_set->SetElement(NAME("SplatIndicesBuffer"), m_splat_indices_buffer);
+        descriptor_set->SetElement(NAME("SplatInstancesBuffer"), m_splat_buffer);
+        descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
     DeferCreate(
@@ -615,7 +615,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
     // SortSplats
 
     ShaderRef sort_splats_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(GaussianSplatting_SortSplats),
+        NAME("GaussianSplatting_SortSplats"),
         base_properties
     );
 
@@ -627,12 +627,12 @@ void GaussianSplattingInstance::CreateComputePipelines()
         );
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = sort_splats_descriptor_table->GetDescriptorSet(HYP_NAME(SortSplatsDescriptorSet), frame_index);
+            const DescriptorSetRef &descriptor_set = sort_splats_descriptor_table->GetDescriptorSet(NAME("SortSplatsDescriptorSet"), frame_index);
             AssertThrow(descriptor_set != nullptr);
 
-            descriptor_set->SetElement(HYP_NAME(SplatIndicesBuffer), m_splat_indices_buffer);
-            descriptor_set->SetElement(HYP_NAME(SplatInstancesBuffer), m_splat_buffer);
-            descriptor_set->SetElement(HYP_NAME(GaussianSplattingSceneShaderData), m_scene_buffer);
+            descriptor_set->SetElement(NAME("SplatIndicesBuffer"), m_splat_indices_buffer);
+            descriptor_set->SetElement(NAME("SplatInstancesBuffer"), m_splat_buffer);
+            descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
         }
 
         DeferCreate(
@@ -807,13 +807,13 @@ void GaussianSplatting::Render(Frame *frame)
                 pipeline,
                 {
                     {
-                        HYP_NAME(Scene),
+                        NAME("Scene"),
                         {
-                            { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                            { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                            { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                         }
                     }
                 }

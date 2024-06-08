@@ -36,7 +36,7 @@ Handle<Material> UIImage::GetMaterial() const
 {
     return g_material_system->GetOrCreate(
         MaterialAttributes {
-            .shader_definition  = ShaderDefinition { HYP_NAME(UIObject), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_IMAGE" }) },
+            .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_IMAGE" }) },
             .bucket             = Bucket::BUCKET_UI,
             .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                                 BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),

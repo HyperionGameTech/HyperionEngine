@@ -73,43 +73,43 @@ void PlaceholderData::Create()
 {
     auto *device = g_engine->GetGPUDevice();
 
-    m_image_2d_1x1_r8.SetName(HYP_NAME(Placeholder_2D_1x1_R8));
+    m_image_2d_1x1_r8.SetName(NAME("Placeholder_2D_1x1_R8"));
     DeferCreate(m_image_2d_1x1_r8, device);
 
-    m_image_view_2d_1x1_r8.SetName(HYP_NAME(Placeholder_2D_1x1_R8_View));
+    m_image_view_2d_1x1_r8.SetName(NAME("Placeholder_2D_1x1_R8_View"));
     DeferCreate(m_image_view_2d_1x1_r8, device, m_image_2d_1x1_r8);
 
-    m_image_2d_1x1_r8_storage.SetName(HYP_NAME(Placeholder_2D_1x1_R8_Storage));
+    m_image_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage"));
     DeferCreate(m_image_2d_1x1_r8_storage, device);
 
-    m_image_view_2d_1x1_r8_storage.SetName(HYP_NAME(Placeholder_2D_1x1_R8_Storage_View));
+    m_image_view_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
     DeferCreate(m_image_view_2d_1x1_r8_storage, device, m_image_2d_1x1_r8_storage);
 
-    m_image_3d_1x1x1_r8.SetName(HYP_NAME(Placeholder_3D_1x1x1_R8));
+    m_image_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8"));
     DeferCreate(m_image_3d_1x1x1_r8, device);
 
-    m_image_view_3d_1x1x1_r8.SetName(HYP_NAME(Placeholder_3D_1x1x1_R8_View));
+    m_image_view_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8_View"));
     DeferCreate(m_image_view_3d_1x1x1_r8, device, m_image_3d_1x1x1_r8);
 
-    m_image_3d_1x1x1_r8_storage.SetName(HYP_NAME(Placeholder_3D_1x1x1_R8_Storage));
+    m_image_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
     DeferCreate(m_image_3d_1x1x1_r8_storage, device);
 
-    m_image_view_3d_1x1x1_r8_storage.SetName(HYP_NAME(Placeholder_3D_1x1x1_R8_Storage_View));
+    m_image_view_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
     DeferCreate(m_image_view_3d_1x1x1_r8_storage, device, m_image_3d_1x1x1_r8_storage);
 
-    m_image_cube_1x1_r8.SetName(HYP_NAME(Placeholder_Cube_1x1_R8));
+    m_image_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8"));
     DeferCreate(m_image_cube_1x1_r8, device);
 
-    m_image_view_cube_1x1_r8.SetName(HYP_NAME(Placeholder_Cube_1x1_R8_View));
+    m_image_view_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8_View"));
     DeferCreate(m_image_view_cube_1x1_r8, device, m_image_cube_1x1_r8);
 
-    m_sampler_linear.SetName(HYP_NAME(Placeholder_Sampler_Linear));
+    m_sampler_linear.SetName(NAME("Placeholder_Sampler_Linear"));
     DeferCreate(m_sampler_linear, device);
 
-    m_sampler_linear_mipmap.SetName(HYP_NAME(Placeholder_Sampler_Linear_Mipmap));
+    m_sampler_linear_mipmap.SetName(NAME("Placeholder_Sampler_Linear_Mipmap"));
     DeferCreate(m_sampler_linear_mipmap, device);
 
-    m_sampler_nearest.SetName(HYP_NAME(Placeholder_Sampler_Nearest));
+    m_sampler_nearest.SetName(NAME("Placeholder_Sampler_Nearest"));
     DeferCreate(m_sampler_nearest, device);
 
     HYP_SYNC_RENDER(); // wait for all objects to be created

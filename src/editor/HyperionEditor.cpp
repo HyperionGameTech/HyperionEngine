@@ -122,7 +122,7 @@ void HyperionEditorImpl::CreateMainPanel()
             loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
         }
 
-        // auto main_menu = loaded_ui->FindChildUIObject(HYP_NAME(Main_MenuBar));
+        // auto main_menu = loaded_ui->FindChildUIObject(NAME("Main_MenuBar"));
 
         // if (main_menu != nullptr) {
         //     DebugLog(LogType::Debug, "Main menu: %u\n", uint(main_menu->GetType()));
@@ -137,16 +137,16 @@ void HyperionEditorImpl::CreateMainPanel()
     }
 #else
 
-    m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Main_Panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
+    m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Main_Panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
 
-    RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(HYP_NAME(Sample_MenuBar), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+    RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(NAME("Sample_MenuBar"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
     menu_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
 
-    RC<UIMenuItem> file_menu_item = menu_bar->AddMenuItem(HYP_NAME(File_Menu_Item), "File");
+    RC<UIMenuItem> file_menu_item = menu_bar->AddMenuItem(NAME("File_Menu_Item"), "File");
 
     file_menu_item->AddDropDownMenuItem({
-        HYP_NAME(New),
+        NAME("New"),
         "New",
         []()
         {
@@ -155,73 +155,73 @@ void HyperionEditorImpl::CreateMainPanel()
     });
 
     file_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Open),
+        NAME("Open"),
         "Open"
     });
 
     file_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Save),
+        NAME("Save"),
         "Save"
     });
 
     file_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Save_As),
+        NAME("Save_As"),
         "Save As..."
     });
 
     file_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Exit),
+        NAME("Exit"),
         "Exit"
     });
 
-    RC<UIMenuItem> edit_menu_item = menu_bar->AddMenuItem(HYP_NAME(Edit_Menu_Item), "Edit");
+    RC<UIMenuItem> edit_menu_item = menu_bar->AddMenuItem(NAME("Edit_Menu_Item"), "Edit");
     edit_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Undo),
+        NAME("Undo"),
         "Undo"
     });
 
     edit_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Redo),
+        NAME("Redo"),
         "Redo"
     });
 
     edit_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Cut),
+        NAME("Cut"),
         "Cut"
     });
 
     edit_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Copy),
+        NAME("Copy"),
         "Copy"
     });
 
     edit_menu_item->AddDropDownMenuItem({
-        HYP_NAME(Paste),
+        NAME("Paste"),
         "Paste"
     });
 
-    RC<UIMenuItem> tools_menu_item = menu_bar->AddMenuItem(HYP_NAME(Tools_Menu_Item), "Tools");
-    tools_menu_item->AddDropDownMenuItem({ HYP_NAME(Build_Lightmap), "Build Lightmaps" });
+    RC<UIMenuItem> tools_menu_item = menu_bar->AddMenuItem(NAME("Tools_Menu_Item"), "Tools");
+    tools_menu_item->AddDropDownMenuItem({ NAME("Build_Lightmap"), "Build Lightmaps" });
 
-    RC<UIMenuItem> view_menu_item = menu_bar->AddMenuItem(HYP_NAME(View_Menu_Item), "View");
-    view_menu_item->AddDropDownMenuItem({ HYP_NAME(Content_Browser), "Content Browser" });
+    RC<UIMenuItem> view_menu_item = menu_bar->AddMenuItem(NAME("View_Menu_Item"), "View");
+    view_menu_item->AddDropDownMenuItem({ NAME("Content_Browser"), "Content Browser" });
     
-    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(HYP_NAME(Window_Menu_Item), "Window");
-    window_menu_item->AddDropDownMenuItem({ HYP_NAME(Reset_Layout), "Reset Layout" });
+    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(NAME("Window_Menu_Item"), "Window");
+    window_menu_item->AddDropDownMenuItem({ NAME("Reset_Layout"), "Reset Layout" });
 
     m_main_panel->AddChildUIObject(menu_bar);
 #endif
 
 #if 1
-    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(HYP_NAME(Dockable_Container), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
+    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(NAME("Dockable_Container"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
 
-    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(HYP_NAME(Sample_TabView), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(NAME("Sample_TabView"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     tab_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
 
-    RC<UITab> scene_tab = tab_view->AddTab(HYP_NAME(Scene_Tab), "Scene");
+    RC<UITab> scene_tab = tab_view->AddTab(NAME("Scene_Tab"), "Scene");
 
-    RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(HYP_NAME(Sample_Image), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(NAME("Sample_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
     {
@@ -285,11 +285,11 @@ void HyperionEditorImpl::CreateMainPanel()
     dockable_container->AddChildUIObject(CreateSceneOutline(), UIDockableItemPosition::LEFT);
     dockable_container->AddChildUIObject(CreateDetailView(), UIDockableItemPosition::RIGHT);
 
-    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Bottom_panel), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
+    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Bottom_panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
     dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
 
     // {
-    //     auto btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(TestButton1), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+    //     auto btn = GetUIStage()->CreateUIObject<UIButton>(NAME("TestButton1"), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
     //     // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
     //     // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
     //     btn->SetText("hello hello world");
@@ -297,7 +297,7 @@ void HyperionEditorImpl::CreateMainPanel()
     //     dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
     // }
 
-    RC<UITab> game_tab = tab_view->AddTab(HYP_NAME(Game_Tab), "Game");
+    RC<UITab> game_tab = tab_view->AddTab(NAME("Game_Tab"), "Game");
     game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(CreateNameFromDynamicString("Hello_world_button"), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
@@ -332,10 +332,10 @@ void HyperionEditorImpl::CreateMainPanel()
 
 RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 {
-    RC<UIPanel> scene_outline = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Outline), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    RC<UIPanel> scene_outline = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline"), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
-    // RC<UIPanel> scene_outline_header = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Scene_Outline_Header), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    // RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Scene_Outline_Header_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    // RC<UIPanel> scene_outline_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
+    // RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Scene_Outline_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
     // scene_outline_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     // scene_outline_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
     // scene_outline_header_text->SetText("SCENE");
@@ -343,7 +343,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     // scene_outline_header->AddChildUIObject(scene_outline_header_text);
     // scene_outline->AddChildUIObject(scene_outline_header);
 
-    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(HYP_NAME(Scene_Outline_ListView), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     // TODO make it more efficient to add/remove items instead of searching by name
@@ -378,10 +378,10 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 
 RC<UIObject> HyperionEditorImpl::CreateDetailView()
 {
-    RC<UIPanel> detail_view = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Detail_View), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+    RC<UIPanel> detail_view = GetUIStage()->CreateUIObject<UIPanel>(NAME("Detail_View"), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
-    RC<UIPanel> detail_view_header = GetUIStage()->CreateUIObject<UIPanel>(HYP_NAME(Detail_View_Header), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    RC<UIText> detail_view_header_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Detail_View_Header_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    RC<UIPanel> detail_view_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Detail_View_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
+    RC<UIText> detail_view_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
     detail_view_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     detail_view_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
     detail_view_header_text->SetText("PROPERTIES");
@@ -421,7 +421,7 @@ void HyperionEditorImpl::Initialize()
     CreateMainPanel();
     CreateInitialState();
 
-    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 18, UIObjectSize::PIXEL }));
+    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(NAME("Sample_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 18, UIObjectSize::PIXEL }));
     // ui_text->SetText("Hi hello");
     // ui_text->SetParentAlignment(UIObjectAlignment::CENTER);
     // ui_text->SetOriginAlignment(UIObjectAlignment::CENTER);
@@ -436,7 +436,7 @@ void HyperionEditorImpl::Initialize()
     
     // ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 
-    // auto new_btn = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Nested_Button), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
+    // auto new_btn = GetUIStage()->CreateUIObject<UIButton>(NAME("Nested_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
     // new_btn->SetOriginAlignment(UIObjectAlignment::CENTER);
     // new_btn->SetParentAlignment(UIObjectAlignment::CENTER);
     // btn->AddChildUIObject(new_btn);
@@ -495,7 +495,7 @@ void HyperionEditor::Init()
 
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 
-    GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(EditorUIRenderer), GetUIStage());
+    GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(NAME("EditorUIRenderer"), GetUIStage());
     
     Extent2D window_size;
 
@@ -505,7 +505,7 @@ void HyperionEditor::Init()
         window_size = Extent2D { 1280, 720 };
     }
 
-    auto screen_capture_component = GetScene()->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(EditorSceneCapture), window_size);
+    auto screen_capture_component = GetScene()->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), window_size);
 
     m_impl = new HyperionEditorImpl(GetScene(), GetScene()->GetCamera(), m_input_manager.Get(), GetUIStage());
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());
@@ -616,7 +616,7 @@ void HyperionEditor::Init()
     //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
     //         {
     //            .shader_definition = ShaderDefinition {
-    //                 HYP_NAME(Forward),
+    //                 NAME("Forward"),
     //                 ShaderProperties(static_mesh_vertex_attributes)
     //             },
     //            .bucket = Bucket::BUCKET_OPAQUE

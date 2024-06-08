@@ -49,10 +49,10 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
             AssertThrow(descriptor_table.IsValid());
 
             for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(RenderTextureToScreenDescriptorSet), frame_index);
+                const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
                 AssertThrow(descriptor_set != nullptr);
 
-                descriptor_set->SetElement(HYP_NAME(InTexture), texture->GetImageView());
+                descriptor_set->SetElement(NAME("InTexture"), texture->GetImageView());
             }
         }
 
@@ -97,7 +97,7 @@ void CompositePass::CreateShader()
     }
 
     m_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(Composite),
+        NAME("Composite"),
         final_output_props
     );
 }
@@ -192,13 +192,13 @@ void FinalPass::Create()
     m_composite_pass.Create();
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-            ->SetElement(HYP_NAME(FinalOutputTexture), m_composite_pass.GetAttachment(0)->GetImageView());
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(NAME("FinalOutputTexture"), m_composite_pass.GetAttachment(0)->GetImageView());
     }
 
     FullScreenPass::CreateQuad();
 
-    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(Blit));
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("Blit"));
     AssertThrow(shader.IsValid());
 
     uint iteration = 0;
@@ -260,20 +260,20 @@ void FinalPass::Create()
     // Create UI stuff
     InitObject(m_ui_texture);
 
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(HYP_NAME(RenderTextureToScreen));
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(RenderTextureToScreenDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         if (m_ui_texture.IsValid()) {
-            descriptor_set->SetElement(HYP_NAME(InTexture), m_ui_texture->GetImageView());
+            descriptor_set->SetElement(NAME("InTexture"), m_ui_texture->GetImageView());
         } else {
-            descriptor_set->SetElement(HYP_NAME(InTexture), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("InTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
     }
 
@@ -364,13 +364,13 @@ void FinalPass::Render(Frame *frame)
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
             {
                 {
-                    HYP_NAME(Scene),
+                    NAME("Scene"),
                     {
-                        { HYP_NAME(ScenesBuffer), HYP_RENDER_OBJECT_OFFSET(Scene, 0) },
-                        { HYP_NAME(CamerasBuffer), HYP_RENDER_OBJECT_OFFSET(Camera, 0) },
-                        { HYP_NAME(LightsBuffer), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { HYP_NAME(EnvGridsBuffer), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                        { HYP_NAME(CurrentEnvProbe), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, 0) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, 0) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
                     }
                 }
             }

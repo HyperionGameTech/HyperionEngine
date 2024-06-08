@@ -35,7 +35,7 @@ UIStage::UIStage(ThreadID owner_thread_id)
       m_owner_thread_id(owner_thread_id),
       m_surface_size { 1000, 1000 }
 {
-    SetName(HYP_NAME(Stage));
+    SetName(NAME("Stage"));
     SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 }
 

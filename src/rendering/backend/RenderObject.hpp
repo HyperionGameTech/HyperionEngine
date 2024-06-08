@@ -222,7 +222,7 @@ public:
 #ifdef HYP_DEBUG_MODE
         return m_debug_names[index];
 #else
-        return HYP_NAME(DebugNamesNotEnabled);
+        return NAME("DebugNamesNotEnabled");
 #endif
     }
 
@@ -646,7 +646,7 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
         \
         static Name GetNameForType() \
         { \
-            static const Name name = HYP_NAME(T); \
+            static const Name name = NAME("T"); \
             return name; \
         } \
     }; \
@@ -669,7 +669,7 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
         \
         static Name GetNameForType() \
         { \
-            static const Name name = HYP_NAME(T); \
+            static const Name name = NAME("T"); \
             return name; \
         } \
     }; \

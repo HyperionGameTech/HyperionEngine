@@ -52,8 +52,8 @@ struct RENDER_COMMAND(SetShadowMapInGlobalDescriptorSet) : renderer::RenderComma
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
-                ->SetElement(HYP_NAME(ShadowMapTextures), shadow_map_index, shadow_map_image_view);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                ->SetElement(NAME("ShadowMapTextures"), shadow_map_index, shadow_map_image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -75,8 +75,8 @@ struct RENDER_COMMAND(UnsetShadowMapInGlobalDescriptorSet) : renderer::RenderCom
     virtual Result operator()() override
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Scene), frame_index)
-                ->SetElement(HYP_NAME(ShadowMapTextures), shadow_map_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                ->SetElement(NAME("ShadowMapTextures"), shadow_map_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -210,7 +210,7 @@ void ShadowPass::CreateShader()
     }
 
     m_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(Shadows),
+        NAME("Shadows"),
         properties
     );
 }
@@ -288,7 +288,7 @@ void ShadowPass::CreateShadowMap()
 
 void ShadowPass::CreateCombineShadowMapsPass()
 {
-    ShaderRef shader = g_shader_manager->GetOrCreate(HYP_NAME(CombineShadowMaps), {{ "STAGE_DYNAMICS" }});
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("CombineShadowMaps"), {{ "STAGE_DYNAMICS" }});
     AssertThrow(shader.IsValid());
 
     DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
@@ -296,11 +296,11 @@ void ShadowPass::CreateCombineShadowMapsPass()
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(CombineShadowMapsDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("CombineShadowMapsDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(PrevTexture), m_shadow_map_statics->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(InTexture), m_shadow_map_dynamics->GetImageView());
+        descriptor_set->SetElement(NAME("PrevTexture"), m_shadow_map_statics->GetImageView());
+        descriptor_set->SetElement(NAME("InTexture"), m_shadow_map_dynamics->GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
@@ -311,7 +311,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
 void ShadowPass::CreateComputePipelines()
 {
-    ShaderRef blur_shadow_map_shader = g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap));
+    ShaderRef blur_shadow_map_shader = g_shader_manager->GetOrCreate(NAME("BlurShadowMap"));
     AssertThrow(blur_shadow_map_shader.IsValid());
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
@@ -321,11 +321,11 @@ void ShadowPass::CreateComputePipelines()
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(BlurShadowMapDescriptorSet), frame_index);
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("BlurShadowMapDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(HYP_NAME(InputTexture), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(HYP_NAME(OutputTexture), m_shadow_map_all->GetImageView());
+        descriptor_set->SetElement(NAME("InputTexture"), m_framebuffer->GetAttachment(0)->GetImageView());
+        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());

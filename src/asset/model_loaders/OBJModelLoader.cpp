@@ -376,7 +376,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             material = g_material_system->GetOrCreate(
                 {
                     .shader_definition = ShaderDefinition {
-                        HYP_NAME(Forward),
+                        NAME("Forward"),
                         ShaderProperties(mesh->GetVertexAttributes())
                     },
                     .bucket = Bucket::BUCKET_OPAQUE

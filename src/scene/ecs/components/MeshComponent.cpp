@@ -42,7 +42,7 @@ protected:
     {
         return {
             {
-                HYP_NAME(Mesh),
+                NAME("Mesh"),
                 [](const void *component, fbom::FBOMData *out)
                 {
                     DebugLog(LogType::Debug, "Get Mesh property, ID = #%u\n", static_cast<const MeshComponent *>(component)->mesh.GetID().Value());
@@ -54,7 +54,7 @@ protected:
                 }
             },
             {
-                HYP_NAME(Flags),
+                NAME("Flags"),
                 [](const void *component, fbom::FBOMData *out)
                 {
                     *out = fbom::FBOMData::FromUnsignedInt(uint32(static_cast<const MeshComponent *>(component)->flags));

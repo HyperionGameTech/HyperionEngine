@@ -41,7 +41,7 @@ constexpr Name MakeName_Impl(StringType str);
  *
  *  To create a name at compile time, use the \ref{HYP_NAME} macro.
  *  \code{.cpp}
- *  Name name = HYP_NAME(MyName);
+ *  Name name = NAME("MyName");
  *  \endcode
  *
  *  To create a name at runtime, use the \ref{CreateNameFromDynamicString} function.

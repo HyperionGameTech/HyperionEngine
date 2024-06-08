@@ -297,7 +297,7 @@ public:
         const Extent3D extent = m_image->GetExtent();
 
         ShaderRef shader = g_shader_manager->GetOrCreate(
-            HYP_NAME(GenerateMipmaps),
+            NAME("GenerateMipmaps"),
             ShaderProperties()
         );
 
@@ -312,9 +312,9 @@ public:
             ImageViewRef mip_image_view = MakeRenderObject<ImageView>();
             PUSH_RENDER_COMMAND(CreateMipImageView, m_image, mip_image_view, mip_level);
 
-            const DescriptorSetRef &generate_mipmaps_descriptor_set = descriptor_table->GetDescriptorSet(HYP_NAME(GenerateMipmapsDescriptorSet), 0);
+            const DescriptorSetRef &generate_mipmaps_descriptor_set = descriptor_table->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);
             AssertThrow(generate_mipmaps_descriptor_set != nullptr);
-            generate_mipmaps_descriptor_set->SetElement(HYP_NAME(InputTexture), mip_level == 0 ? m_image_view : m_mip_image_views[mip_level - 1]);
+            generate_mipmaps_descriptor_set->SetElement(NAME("InputTexture"), mip_level == 0 ? m_image_view : m_mip_image_views[mip_level - 1]);
             DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
             m_mip_image_views[mip_level] = std::move(mip_image_view);

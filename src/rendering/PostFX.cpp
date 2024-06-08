@@ -56,11 +56,11 @@ void PostFXPass::CreateDescriptors()
         }
 
         const Name descriptor_name = m_stage == POST_PROCESSING_STAGE_PRE_SHADING
-            ? HYP_NAME(PostFXPreStack)
-            : HYP_NAME(PostFXPostStack);
+            ? NAME("PostFXPreStack")
+            : NAME("PostFXPostStack");
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
                 ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachment(0)->GetImageView());
         }
     }
@@ -263,8 +263,8 @@ void PostProcessing::CreateUniformBuffer()
     );
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(HYP_NAME(Global), frame_index)
-            ->SetElement(HYP_NAME(PostProcessingUniforms), m_uniform_buffer);
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(NAME("PostProcessingUniforms"), m_uniform_buffer);
     }
 }
 

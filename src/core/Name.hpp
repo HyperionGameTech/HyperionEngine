@@ -122,15 +122,15 @@ struct Formatter<StringType, Name>
 #define HYP_HASHED_NAME(name)   ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
 #define HYP_NAME_UNSAFE(name)   ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
 #define HYP_WEAK_NAME(name)     ::hyperion::Name(HYP_HASHED_NAME(name).hash_code.Value())
-#define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
+#define NAME("name")          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
 
 #define NAME(str) HYP_NAME2(str)
 #else
-#define HYP_NAME(name)          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
-#define HYP_NAME_UNSAFE(name)   HYP_NAME(name)
-#define HYP_WEAK_NAME(name)     HYP_NAME(name)
+#define NAME("name")          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
+#define HYP_NAME_UNSAFE(name)   NAME("name")
+#define HYP_WEAK_NAME(name)     NAME("name")
 
-#define NAME(str) HYP_NAME(str)
+#define NAME(str) NAME("str")
 #endif
 
 } // namespace hyperion

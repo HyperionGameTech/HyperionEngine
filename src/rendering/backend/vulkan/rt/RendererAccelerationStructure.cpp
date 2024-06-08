@@ -82,8 +82,8 @@ AccelerationGeometry<Platform::VULKAN>::AccelerationGeometry(
     m_material_index(material_index),
     m_geometry { }
 {
-    m_packed_vertex_buffer.SetName(HYP_NAME(RTPackedVertexBuffer));
-    m_packed_index_buffer.SetName(HYP_NAME(RTPackedIndexBuffer));
+    m_packed_vertex_buffer.SetName(NAME("RTPackedVertexBuffer"));
+    m_packed_index_buffer.SetName(NAME("RTPackedIndexBuffer"));
 }
 
 template <>
@@ -514,8 +514,8 @@ TopLevelAccelerationStructure<Platform::VULKAN>::TopLevelAccelerationStructure()
     : AccelerationStructure(),
       m_mesh_descriptions_buffer(MakeRenderObject<GPUBuffer<Platform::VULKAN>>(GPUBufferType::STORAGE_BUFFER))
 {
-    m_instances_buffer.SetName(HYP_NAME(TLASInstancesBuffer));
-    m_mesh_descriptions_buffer.SetName(HYP_NAME(TLASMeshDescriptionsBuffer));
+    m_instances_buffer.SetName(NAME("TLASInstancesBuffer"));
+    m_mesh_descriptions_buffer.SetName(NAME("TLASMeshDescriptionsBuffer"));
 }
 
 template <>
@@ -971,7 +971,7 @@ template <>
 BottomLevelAccelerationStructure<Platform::VULKAN>::BottomLevelAccelerationStructure(const Matrix4 &transform)
     : AccelerationStructure(transform)
 {
-    m_instances_buffer.SetName(HYP_NAME(BLASInstancesBuffer));
+    m_instances_buffer.SetName(NAME("BLASInstancesBuffer"));
 }
 
 template <>

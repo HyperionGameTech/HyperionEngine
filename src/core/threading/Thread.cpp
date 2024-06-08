@@ -16,7 +16,7 @@
 namespace hyperion {
 namespace threading {
 
-const ThreadID ThreadID::invalid = ThreadID { ~0u, HYP_NAME(InvalidThreadID) };
+const ThreadID ThreadID::invalid = ThreadID { ~0u, NAME("InvalidThreadID") };
 
 ThreadID ThreadID::Current()
 {

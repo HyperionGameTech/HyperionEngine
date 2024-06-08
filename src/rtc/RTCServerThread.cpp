@@ -6,7 +6,7 @@
 namespace hyperion {
 
 RTCServerThread::RTCServerThread()
-    : Thread(HYP_NAME(RTCServerThread))
+    : Thread(NAME("RTCServerThread"))
 {
 }
 
