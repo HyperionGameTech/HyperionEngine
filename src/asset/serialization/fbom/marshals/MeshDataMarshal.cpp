@@ -14,14 +14,16 @@ public:
 
     virtual FBOMResult Serialize(const MeshData &in_object, FBOMObject &out) const override
     {
+        auto x = ::hyperion::detail::MakeStaticString_Impl(HYP_MAKE_CONST_ARG("hello world"));
+
         out.SetProperty(
-            "vertices",
+            Name("vertices"),
             FBOMSequence(FBOMStruct::Create<Vertex>(), in_object.vertices.Size()),
             in_object.vertices.Data()
         );
     
         out.SetProperty(
-            "indices",
+            Name("indices"),
             FBOMSequence(FBOMUnsignedInt(), in_object.indices.Size()),
             in_object.indices.Data()
         );

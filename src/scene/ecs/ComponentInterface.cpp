@@ -73,7 +73,7 @@ ComponentInterfaceBase::ComponentInterfaceBase()
 {
 }
 
-ComponentProperty *ComponentInterfaceBase::GetProperty(Name name)
+ComponentProperty *ComponentInterfaceBase::GetProperty(WeakName name)
 {
     for (auto &property : m_properties) {
         if (property.GetName() == name) {
@@ -84,7 +84,7 @@ ComponentProperty *ComponentInterfaceBase::GetProperty(Name name)
     return nullptr;
 }
 
-const ComponentProperty *ComponentInterfaceBase::GetProperty(Name name) const
+const ComponentProperty *ComponentInterfaceBase::GetProperty(WeakName name) const
 {
     for (auto &property : m_properties) {
         if (property.GetName() == name) {

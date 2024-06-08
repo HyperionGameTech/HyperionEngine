@@ -902,6 +902,19 @@ struct ParseInteger
 
 #pragma endregion ParseInteger
 
+#pragma MakeStaticString
+
+template <class StringType>
+constexpr auto MakeStaticString(StringType str_arg)
+{
+    return StaticString(HYP_GET_CONST_ARG(str_arg));
+}
+
+#define HYP_MAKE_CONST_ARG_STR(sz, str) \
+    [=] { return StaticString<(sz)>(str); }
+
+#pragma endregion MakeStaticString
+
 } // namespace helpers
 
 } // namespace containers

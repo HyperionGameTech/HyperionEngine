@@ -174,8 +174,8 @@ public:
     const Array<ComponentProperty> &GetProperties() const
         { return m_properties; }
 
-    ComponentProperty *GetProperty(Name name);
-    const ComponentProperty *GetProperty(Name name) const;
+    ComponentProperty *GetProperty(WeakName name);
+    const ComponentProperty *GetProperty(WeakName name) const;
 
 protected:
     virtual TypeID GetTypeID_Internal() const = 0;

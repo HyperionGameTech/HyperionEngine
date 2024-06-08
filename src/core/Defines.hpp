@@ -108,6 +108,13 @@
 #define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
 #define HYP_CONCAT_INNER(a, b) a ## b
 
+// https://mpark.github.io/programming/2017/05/26/constexpr-function-parameters/
+#define HYP_MAKE_CONST_ARG(value) \
+    [] { return (value); }
+
+#define HYP_GET_CONST_ARG(arg) \
+    (arg)()
+
 #define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class) \
     bool operator==(const hyp_class &other) const { \
         return std::memcmp(this, &other, sizeof(*this)) == 0; \

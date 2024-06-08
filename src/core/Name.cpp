@@ -47,9 +47,9 @@ Name CreateNameFromDynamicString(const ANSIString &str)
     return Name(name_registration.id);
 }
 
-Name CreateWeakNameFromDynamicString(const ANSIStringView &str)
+WeakName CreateWeakNameFromDynamicString(const ANSIStringView &str)
 {
-    return Name(NameRegistration::GenerateID(str));
+    return WeakName(NameRegistration::GenerateID(str));
 }
 
 NameID NameRegistration::GenerateID(const ANSIStringView &str)

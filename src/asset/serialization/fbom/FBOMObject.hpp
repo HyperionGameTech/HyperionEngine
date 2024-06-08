@@ -10,6 +10,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/memory/ByteBuffer.hpp>
+#include <core/Name.hpp>
 
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMLoadable.hpp>
@@ -53,7 +54,7 @@ class FBOMObject
 public:
     FBOMType                            m_object_type;
     FBOMNodeHolder                      *nodes;
-    FlatMap<String, FBOMData>           properties;
+    FlatMap<Name, FBOMData>             properties;
     FBOMDeserializedObject              deserialized;
     Optional<FBOMExternalObjectInfo>    m_external_info;
     UniqueID                            m_unique_id;
@@ -87,24 +88,36 @@ public:
     const FBOMType &GetType() const
         { return m_object_type; }
 
-    bool HasProperty(UTF8StringView key) const;
+    [[nodiscard]]
+    bool HasProperty(WeakName key) const;
 
-    const FBOMData &GetProperty(UTF8StringView key) const;
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool HasProperty(const ANSIStringView &key) const
+        { return HasProperty(CreateWeakNameFromDynamicString(key)); }
 
-    void SetProperty(const String &key, const FBOMData &data);
-    void SetProperty(const String &key, FBOMData &&data);
-    void SetProperty(const String &key, const FBOMType &type, SizeType size, const void *bytes);
-    void SetProperty(const String &key, const FBOMType &type, const void *bytes);
-    void SetProperty(const String &key, const ByteBuffer &bytes);
+    [[nodiscard]]
+    const FBOMData &GetProperty(WeakName key) const;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const FBOMData &GetProperty(const ANSIStringView &key) const
+        { return GetProperty(CreateWeakNameFromDynamicString(key)); }
+
+    void SetProperty(Name key, const FBOMData &data);
+    void SetProperty(Name key, FBOMData &&data);
+    void SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
+    void SetProperty(Name key, const FBOMType &type, const void *bytes);
+    void SetProperty(Name key, const ByteBuffer &bytes);
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
-    void SetProperty(const String &key, const FBOMType &type, const T &value)
+    void SetProperty(Name key, const FBOMType &type, const T &value)
     {
         SetProperty(key, type, sizeof(NormalizedType<T>), &value);
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
-    void SetProperty(const String &key, const FBOMType &type, T &&value)
+    void SetProperty(Name key, const FBOMType &type, T &&value)
     {
         SetProperty(key, type, sizeof(NormalizedType<T>), &value);
     }

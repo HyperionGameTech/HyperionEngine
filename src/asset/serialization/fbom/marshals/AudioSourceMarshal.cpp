@@ -25,19 +25,19 @@ public:
     {
         ByteBuffer byte_buffer;
 
-        if (auto err = in.GetProperty("byte_buffer").ReadByteBuffer(byte_buffer)) {
+        if (FBOMResult err = in.GetProperty("byte_buffer").ReadByteBuffer(byte_buffer)) {
             return err;
         }
 
         uint format;
 
-        if (auto err = in.GetProperty("format").ReadUnsignedInt(&format)) {
+        if (FBOMResult err = in.GetProperty("format").ReadUnsignedInt(&format)) {
             return err;
         }
 
         SizeType freq;
 
-        if (auto err = in.GetProperty("freq").ReadUnsignedLong(&freq)) {
+        if (FBOMResult err = in.GetProperty("freq").ReadUnsignedLong(&freq)) {
             return err;
         }
 

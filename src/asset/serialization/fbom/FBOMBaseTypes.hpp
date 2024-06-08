@@ -96,8 +96,6 @@ struct FBOMString : FBOMType
     }
 };
 
-struct FBOMName : FBOMUnsignedLong { };
-
 struct FBOMBaseObjectType : FBOMType
 {
     FBOMBaseObjectType()
@@ -120,6 +118,14 @@ struct FBOMObjectType : FBOMType
 
     FBOMObjectType(const ANSIStringView &name, const FBOMType &extends)
         : FBOMType(name, 0, extends)
+    {
+    }
+};
+
+struct FBOMName : FBOMObjectType
+{
+    FBOMName()
+        : FBOMObjectType("name")
     {
     }
 };

@@ -15,6 +15,12 @@
 
 namespace hyperion {
 
+/*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
+extern HYP_API Name CreateNameFromDynamicString(const ANSIString &str);
+
+/*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
+extern HYP_API WeakName CreateWeakNameFromDynamicString(const ANSIStringView &str);
+
 class NameRegistry
 {
 public:
@@ -32,7 +38,6 @@ private:
     HashMap<NameID, ANSIString> m_name_map;
     mutable Mutex               m_mutex;
 };
-
 
 struct NameRegistration
 {
@@ -57,6 +62,16 @@ struct NameRegistration
         static constexpr NameID name_id = HashedName::hash_code.Value();
 
         Name::GetRegistry()->RegisterName(name_id, hashed_name.data, lock);
+
+        return NameRegistration { name_id };
+    }
+    
+    template <HashCode::ValueType HashCode>
+    static NameRegistration FromHashedName(const char *str, bool lock = true)
+    {
+        static constexpr NameID name_id = HashCode;
+
+        Name::GetRegistry()->RegisterName(name_id, str, lock);
 
         return NameRegistration { name_id };
     }
@@ -97,22 +112,25 @@ struct Formatter<StringType, Name>
 
 } // namespace utilities
 
-
-/*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
-extern HYP_API Name CreateNameFromDynamicString(const ANSIString &str);
-
-/*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
-extern HYP_API Name CreateWeakNameFromDynamicString(const ANSIStringView &str);
-
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
+
+#define HYP_HASHED_NAME2(name)  ::hyperion::HashedName<::hyperion::StaticString<sizeof(name)>(name)>()
+#define HYP_NAME_UNSAFE2(name)  ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME2(name))
+#define HYP_WEAK_NAME2(name)    ::hyperion::Name(HYP_HASHED_NAME2(name).hash_code.Value())
+#define HYP_NAME2(name)         ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME2(name))
+
 #define HYP_HASHED_NAME(name)   ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
-#define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
 #define HYP_NAME_UNSAFE(name)   ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
 #define HYP_WEAK_NAME(name)     ::hyperion::Name(HYP_HASHED_NAME(name).hash_code.Value())
+#define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
+
+#define NAME(str) HYP_NAME2(str)
 #else
 #define HYP_NAME(name)          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
 #define HYP_NAME_UNSAFE(name)   HYP_NAME(name)
 #define HYP_WEAK_NAME(name)     HYP_NAME(name)
+
+#define NAME(str) HYP_NAME(str)
 #endif
 
 } // namespace hyperion

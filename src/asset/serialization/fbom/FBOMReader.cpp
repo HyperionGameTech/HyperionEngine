@@ -4,6 +4,25 @@
 
 namespace hyperion::fbom {
 
+template <class StringType>
+FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string)
+{
+    // read 4 bytes of string length
+    uint32 len;
+    reader->Read(&len);
+    CheckEndianness(len);
+
+    ByteBuffer string_buffer(len + 1);
+
+    if (reader->Read(string_buffer.Data(), len) != len) {
+        return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string length mismatch");
+    }
+
+    out_string = StringType(string_buffer);
+
+    return FBOMResult::FBOM_OK;
+}
+
 FBOMReader::FBOMReader(const FBOMConfig &config)
     : m_config(config),
       m_in_static_data(false),
@@ -52,28 +71,9 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
     return FBOMResult::FBOM_OK;
 }
 
-String FBOMReader::ReadString(BufferedReader *reader)
+FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type)
 {
-    // read 4 bytes of string length
-    uint32 len;
-    reader->Read(&len);
-    CheckEndianness(len);
-
-    char *bytes = new char[len + 1];
-    memset(bytes, 0, len + 1);
-
-    reader->Read(bytes, len);
-
-    String str(bytes);
-
-    delete[] bytes;
-
-    return str;
-}
-
-FBOMType FBOMReader::ReadObjectType(BufferedReader *reader)
-{
-    FBOMType result = FBOMUnset();
+    out_type = FBOMUnset();
 
     uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
@@ -87,20 +87,22 @@ FBOMType FBOMReader::ReadObjectType(BufferedReader *reader)
         CheckEndianness(extend_level);
 
         for (int i = 0; i < extend_level; i++) {
-            result.name = ReadString(reader);
+            if (FBOMResult err = ReadString(reader, out_type.name)) {
+                return err;
+            }
 
             // read size of object
             uint64 type_size;
             reader->Read(&type_size);
             CheckEndianness(type_size);
 
-            result.size = type_size;
+            out_type.size = type_size;
 
             if (i == extend_level - 1) {
                 break;
             }
 
-            result = result.Extend(FBOMUnset());
+            out_type = out_type.Extend(FBOMUnset());
         }
 
         break;
@@ -114,7 +116,7 @@ FBOMType FBOMReader::ReadObjectType(BufferedReader *reader)
 
         // grab from static data pool
         AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_TYPE);
-        result = m_static_data_pool[offset].type_data;
+        out_type = m_static_data_pool[offset].data.Get<FBOMType>();
 
         break;
     }
@@ -123,10 +125,34 @@ FBOMType FBOMReader::ReadObjectType(BufferedReader *reader)
         break;
     }
 
-    return result;
+    return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &data)
+FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_name_table)
+{
+    uint32 count;
+    reader->Read(&count);
+    CheckEndianness(count);
+
+    for (uint32 i = 0; i < count; i++) {
+        ANSIString str;
+        NameID name_data;
+
+        if (FBOMResult err = ReadString(reader, str)) {
+            return err;
+        }
+
+        if (FBOMResult err = ReadRawData<NameID>(reader, &name_data)) {
+            return err;
+        }
+
+        out_name_table.Add(str, WeakName(name_data));
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
 {
     // read data location
     uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
@@ -134,7 +160,11 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &data)
     CheckEndianness(object_type_location);
 
     if (object_type_location == FBOM_DATA_LOCATION_INPLACE) {
-        FBOMType object_type = ReadObjectType(reader);
+        FBOMType object_type;
+        
+        if (FBOMResult err = ReadObjectType(reader, object_type)) {
+            return err;
+        }
 
         uint32 sz;
         reader->Read(&sz);
@@ -146,7 +176,7 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &data)
             return { FBOMResult::FBOM_ERR, "File is corrupted" };
         }
 
-        data = FBOMData(object_type, std::move(byte_buffer));
+        out_data = FBOMData(object_type, std::move(byte_buffer));
     } else if (object_type_location == FBOM_DATA_LOCATION_STATIC) {
         // read offset as u32
         uint32 offset;
@@ -155,15 +185,30 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &data)
 
         // grab from static data pool
         AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_DATA);
-        data = m_static_data_pool[offset].data_data.Get();
+        out_data = m_static_data_pool[offset].data.Get<FBOMData>();
     }
 
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FBOMObject *root)
+FBOMResult FBOMReader::ReadPropertyName(BufferedReader *reader, Name &out_property_name)
 {
-    if (auto err = Eat(reader, FBOM_OBJECT_START)) {
+    FBOMData name_data;
+
+    if (FBOMResult err = ReadData(reader, name_data)) {
+        return err;
+    }
+
+    if (!name_data.ReadName(&out_property_name)) {
+        return FBOMResult(FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `name`");
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object, FBOMObject *root)
+{
+    if (FBOMResult err = Eat(reader, FBOM_OBJECT_START)) {
         return err;
     }
 
@@ -189,18 +234,22 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
 
         // grab from static data pool
         AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_OBJECT);
-        object = m_static_data_pool[offset].object_data;
+        out_object = m_static_data_pool[offset].data.Get<FBOMObject>();
 
         return FBOMResult::FBOM_OK;
     }
     case FBOM_DATA_LOCATION_INPLACE:
     {
         // read string of "type" - loader to use
-        const FBOMType object_type = ReadObjectType(reader);
+        FBOMType object_type;
+        
+        if (FBOMResult err = ReadObjectType(reader, object_type)) {
+            return err;
+        }
 
         // DebugLog("Read object ")
 
-        object = FBOMObject(object_type);
+        out_object = FBOMObject(object_type);
         // object.m_unique_id = unique_id;
 
         do {
@@ -211,21 +260,21 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
             {
                 FBOMObject child;
 
-                if (auto err = ReadObject(reader, child, root)) {
+                if (FBOMResult err = ReadObject(reader, child, root)) {
                     return err;
                 }
 
                 // // Debug sanity check
                 // AssertThrow(object.nodes->FindIf([id = child.GetUniqueID()](const auto &item) { return item.GetUniqueID() == id; }) == object.nodes->End());
 
-                object.nodes->PushBack(std::move(child));
+                out_object.nodes->PushBack(std::move(child));
 
                 break;
             }
             case FBOM_OBJECT_END:
                 if (HasCustomMarshalerForType(object_type)) {
                     // call deserializer function, writing into object.deserialized
-                    if (auto err = Deserialize(object, object.deserialized)) {
+                    if (FBOMResult err = Deserialize(out_object, out_object.deserialized)) {
                         return err;
                     }
                 }
@@ -233,19 +282,23 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
                 break;
             case FBOM_DEFINE_PROPERTY:
             {
-                if (auto err = Eat(reader, FBOM_DEFINE_PROPERTY)) {
+                if (FBOMResult err = Eat(reader, FBOM_DEFINE_PROPERTY)) {
                     return err;
                 }
 
-                const auto property_name = ReadString(reader);
+                Name property_name;
+                
+                if (FBOMResult err = ReadPropertyName(reader, property_name)) {
+                    return err;
+                }
 
                 FBOMData data;
 
-                if (auto err = ReadData(reader, data)) {
+                if (FBOMResult err = ReadData(reader, data)) {
                     return err;
                 }
 
-                object.SetProperty(property_name, std::move(data));
+                out_object.SetProperty(property_name, std::move(data));
 
                 break;
             }
@@ -255,7 +308,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
         } while (command != FBOM_OBJECT_END && command != FBOM_NONE);
 
         // eat end
-        if (auto err = Eat(reader, FBOM_OBJECT_END)) {
+        if (FBOMResult err = Eat(reader, FBOM_OBJECT_END)) {
             return err;
         }
 
@@ -263,7 +316,12 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
     }
     case FBOM_DATA_LOCATION_EXT_REF:
     {
-        const auto ref_name = ReadString(reader);
+        ANSIString ref_name;
+        
+        if (FBOMResult err = ReadString(reader, ref_name)) {
+            return err;
+        }
+
         DebugLog(LogType::Debug, "FBOM: Ext ref: %s\n", ref_name.Data());
         
         // read object_index as u32,
@@ -295,20 +353,20 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
             const auto it = m_config.external_data_cache.Find(Pair<String, uint32> { relative_path, object_index });
 
             if (it != m_config.external_data_cache.End()) {
-                object = it->second;
+                out_object = it->second;
 
                 break;
             }
         }
 
-        if (auto err = FBOMReader(m_config).LoadFromFile(ref_path, object)) {
+        if (FBOMResult err = FBOMReader(m_config).LoadFromFile(ref_path, out_object)) {
             if (!m_config.continue_on_external_load_error) {
                 return err;
             }
         }
 
         // cache it
-        m_config.external_data_cache.Set(Pair<String, uint32> { relative_path, object_index }, object);
+        m_config.external_data_cache.Set(Pair<String, uint32> { relative_path, object_index }, out_object);
 
         break;
     }
@@ -328,6 +386,17 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &object, FB
     return FBOMResult::FBOM_OK;
 }
 
+FBOMResult FBOMReader::ReadRawData(BufferedReader *reader, SizeType count, ByteBuffer &out_byte_buffer)
+{
+    if (reader->Position() + count > reader->Max()) {
+        return { FBOMResult::FBOM_ERR, "File is corrupted: attempted to read past end" };
+    }
+
+    out_byte_buffer = reader->ReadBytes(count);
+
+    return FBOMResult::FBOM_OK;
+}
+
 FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMObject *root)
 {
     AssertThrow(root != nullptr);
@@ -337,7 +406,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
     {
         FBOMObject child;
 
-        if (auto err = ReadObject(reader, child, root)) {
+        if (FBOMResult err = ReadObject(reader, child, root)) {
             return err;
         }
 
@@ -352,7 +421,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
     {
         AssertThrow(!m_in_static_data);
 
-        if (auto err = Eat(reader, FBOM_STATIC_DATA_START)) {
+        if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_START)) {
             return err;
         }
 
@@ -363,7 +432,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
         reader->Read(&static_data_size);
         CheckEndianness(static_data_size);
 
-        const auto initial_static_data_size = static_data_size;
+        const uint32 initial_static_data_size = static_data_size;
 
         // skip 8 bytes of padding
         uint64 tmp;
@@ -376,7 +445,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
         //   u32 as index/offset
         //   u8 as type of static data
         //   then, the actual size of the data will vary depending on the held type
-        for (uint i = 0; i < static_data_size; i++) {
+        for (uint32 i = 0; i < static_data_size; i++) {
             uint32 offset;
             reader->Read(&offset);
             CheckEndianness(offset);
@@ -399,7 +468,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
             {
                 FBOMObject object;
 
-                if (auto err = ReadObject(reader, object, root)) {
+                if (FBOMResult err = ReadObject(reader, object, root)) {
                     return err;
                 }
 
@@ -408,18 +477,40 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
                 break;
             }
             case FBOMStaticData::FBOM_STATIC_DATA_TYPE:
-                m_static_data_pool[offset] = FBOMStaticData(ReadObjectType(reader), offset);
+            {
+                FBOMType type;
+
+                if (FBOMResult err = ReadObjectType(reader, type)) {
+                    return err;
+                }
+
+                m_static_data_pool[offset] = FBOMStaticData(type, offset);
 
                 break;
+            }
             case FBOMStaticData::FBOM_STATIC_DATA_DATA:
             {
                 FBOMData data;
 
-                if (auto err = ReadData(reader, data)) {
+                if (FBOMResult err = ReadData(reader, data)) {
                     return err;
                 }
 
                 m_static_data_pool[offset] = FBOMStaticData(std::move(data), offset);
+
+                break;
+            }
+            case FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE:
+            {
+                FBOMNameTable name_table;
+
+                if (FBOMResult err = ReadNameTable(reader, name_table)) {
+                    return err;
+                }
+
+                name_table.RegisterAllNamesGlobally();
+
+                m_static_data_pool[offset] = FBOMStaticData(std::move(name_table), offset);
 
                 break;
             }
@@ -434,7 +525,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
     {
         AssertThrow(m_in_static_data);
 
-        if (auto err = Eat(reader, FBOM_STATIC_DATA_END)) {
+        if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_END)) {
             return err;
         }
 

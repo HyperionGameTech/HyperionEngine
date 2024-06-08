@@ -87,7 +87,7 @@ FBOMObject::~FBOMObject()
     }
 }
 
-bool FBOMObject::HasProperty(UTF8StringView key) const
+bool FBOMObject::HasProperty(WeakName key) const
 {
     auto it = properties.FindAs(key);
 
@@ -98,7 +98,7 @@ bool FBOMObject::HasProperty(UTF8StringView key) const
     return true;
 }
 
-const FBOMData &FBOMObject::GetProperty(UTF8StringView key) const
+const FBOMData &FBOMObject::GetProperty(WeakName key) const
 {
     auto it = properties.FindAs(key);
 
@@ -109,17 +109,17 @@ const FBOMData &FBOMObject::GetProperty(UTF8StringView key) const
     return it->second;
 }
 
-void FBOMObject::SetProperty(const String &key, const FBOMData &data)
+void FBOMObject::SetProperty(Name key, const FBOMData &data)
 {
     properties.Set(key, data);
 }
 
-void FBOMObject::SetProperty(const String &key, FBOMData &&data)
+void FBOMObject::SetProperty(Name key, FBOMData &&data)
 {
     properties.Set(key, std::move(data));
 }
 
-void FBOMObject::SetProperty(const String &key, const FBOMType &type, SizeType size, const void *bytes)
+void FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
@@ -127,14 +127,14 @@ void FBOMObject::SetProperty(const String &key, const FBOMType &type, SizeType s
     SetProperty(key, data);
 }
 
-void FBOMObject::SetProperty(const String &key, const FBOMType &type, const void *bytes)
+void FBOMObject::SetProperty(Name key, const FBOMType &type, const void *bytes)
 {
     AssertThrowMsg(!type.IsUnbouned(), "Cannot determine size of an unbounded type, please manually specify size");
 
     SetProperty(key, type, type.size, bytes);
 }
 
-void FBOMObject::SetProperty(const String &key, const ByteBuffer &bytes)
+void FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
 {
     SetProperty(key, FBOMByteBuffer(bytes.Size()), bytes.Data());
 }
@@ -185,8 +185,7 @@ String FBOMObject::ToString() const
     ss << m_object_type.ToString();
     ss << " { properties: { ";
     for (auto &prop : properties) {
-        ss << prop.first;// << ": ";
-        //ss << prop.second.ToString();
+        ss << *prop.first;
         ss << ", ";
     }
 

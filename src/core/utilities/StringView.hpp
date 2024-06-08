@@ -6,6 +6,7 @@
 #include <core/memory/Memory.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/StaticString.hpp>
+#include <core/memory/ByteBuffer.hpp>
 
 #include <HashCode.hpp>
 
@@ -91,6 +92,13 @@ public:
         : m_begin(str.Begin()),
           m_end(str.End()),
           m_length(utf::utf_strlen<CharType, is_utf8>(str.data))
+    {
+    }
+
+    StringView(const ByteBuffer &byte_buffer)
+        : m_begin(reinterpret_cast<const CharType *>(byte_buffer.Data())),
+          m_end(reinterpret_cast<const CharType *>(byte_buffer.Data() + byte_buffer.Size())),
+          m_length(utf::utf_strlen<CharType, is_utf8>(reinterpret_cast<const CharType *>(byte_buffer.Data())))
     {
     }
 

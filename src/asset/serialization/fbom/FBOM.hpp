@@ -7,6 +7,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
+#include <core/utilities/StringView.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueID.hpp>
@@ -148,6 +149,58 @@ enum FBOMDataLocation
     FBOM_DATA_LOCATION_EXT_REF = 0x04
 };
 
+struct FBOMNameTable
+{
+    HashMap<WeakName, ANSIString>   values;
+
+    HYP_FORCE_INLINE
+    WeakName Add(const ANSIStringView &str)
+    {
+        const WeakName name = CreateWeakNameFromDynamicString(str);
+
+        return Add(str, name);
+    }
+
+    HYP_FORCE_INLINE
+    WeakName Add(const ANSIStringView &str, WeakName name)
+    {
+        values.Insert(name, str);
+
+        return name;
+    }
+
+    void RegisterAllNamesGlobally()
+    {
+        for (const auto &it : values) {
+            CreateNameFromDynamicString(it.second);
+        }
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    UniqueID GetUniqueID() const
+        { return UniqueID(GetHashCode()); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+        { return values.GetHashCode(); }
+
+    [[nodiscard]]
+    String ToString() const
+    {
+        String str;
+
+        for (const auto &pair : values) {
+            str += String::ToString(pair.first.GetID()) + " : " + String(pair.second) + "\n";
+        }
+
+        return str;
+    }
+};
+
+using FBOMStaticDataType = Variant<FBOMObject, FBOMType, FBOMData, FBOMNameTable>;
+
 struct FBOMStaticData
 {
     enum
@@ -155,17 +208,14 @@ struct FBOMStaticData
         FBOM_STATIC_DATA_NONE = 0x00,
         FBOM_STATIC_DATA_OBJECT = 0x01,
         FBOM_STATIC_DATA_TYPE = 0x02,
-        FBOM_STATIC_DATA_DATA = 0x04
+        FBOM_STATIC_DATA_DATA = 0x04,
+        FBOM_STATIC_DATA_NAME_TABLE = 0x08
     } type;
 
 
     int64               offset;
-
-    FBOMObject          object_data;
-    FBOMType            type_data;
-    Optional<FBOMData>  data_data;
-
-    bool written;
+    FBOMStaticDataType  data;
+    bool                written;
 
     FBOMStaticData()
         : type(FBOM_STATIC_DATA_NONE),
@@ -176,54 +226,62 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMObject &object_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_OBJECT),
-          object_data(object_data),
+          data(object_data),
           offset(offset),
           written(false) {}
 
     explicit FBOMStaticData(const FBOMType &type_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
-          type_data(type_data),
+          data(type_data),
           offset(offset),
           written(false) {}
 
     explicit FBOMStaticData(const FBOMData &data_data, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
-          data_data(data_data),
+          data(data_data),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMObject &&object_data, int64 offset = -1) noexcept
+    explicit FBOMStaticData(const FBOMNameTable &name_table_data, int64 offset = -1)
+        : type(FBOM_STATIC_DATA_NAME_TABLE),
+          data(name_table_data),
+          offset(offset),
+          written(false) {}
+
+    explicit FBOMStaticData(FBOMObject &&object, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
-          object_data(std::move(object_data)),
+          data(std::move(object)),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMType &&type_data, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMType &&type, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
-          type_data(std::move(type_data)),
+          data(std::move(type)),
           offset(offset),
           written(false) {}
 
-    explicit FBOMStaticData(FBOMData &&data_data, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMData &&data, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
-          data_data(std::move(data_data)),
+          data(std::move(data)),
+          offset(offset),
+          written(false) {}
+
+    explicit FBOMStaticData(FBOMNameTable &&name_table, int64 offset = -1) noexcept
+        : type(FBOM_STATIC_DATA_NAME_TABLE),
+          data(std::move(name_table)),
           offset(offset),
           written(false) {}
 
     FBOMStaticData(const FBOMStaticData &other)
         : type(other.type),
-          object_data(other.object_data),
-          type_data(other.type_data),
-          data_data(other.data_data),
+          data(other.data),
           offset(other.offset),
           written(other.written) {}
 
     FBOMStaticData &operator=(const FBOMStaticData &other)
     {
         type = other.type;
-        object_data = other.object_data;
-        type_data = other.type_data;
-        data_data = other.data_data;
+        data = other.data;
         offset = other.offset;
         written = other.written;
 
@@ -232,57 +290,30 @@ struct FBOMStaticData
 
     FBOMStaticData(FBOMStaticData &&other) noexcept
         : type(other.type),
-          object_data(std::move(other.object_data)),
-          type_data(std::move(other.type_data)),
-          data_data(std::move(other.data_data)),
+          data(std::move(other.data)),
           offset(other.offset),
           written(other.written)
     {
         other.type = FBOM_STATIC_DATA_NONE;
-        other.offset = 0;
+        other.offset = -1;
         other.written = false;
     }
 
     FBOMStaticData &operator=(FBOMStaticData &&other) noexcept
     {
         type = other.type;
-        object_data = std::move(other.object_data);
-        type_data = std::move(other.type_data);
-        data_data = std::move(other.data_data);
+        data = std::move(other.data);
         offset = other.offset;
         written = other.written;
 
         other.type = FBOM_STATIC_DATA_NONE;
-        other.offset = 0;
+        other.offset = -1;
         other.written = false;
 
         return *this;
     }
 
     ~FBOMStaticData() = default;
-
-    // bool operator==(const FBOMStaticData &other) const
-    // {
-    //     if (
-    //         type != other.type
-    //         || offset != other.offset
-    //         || written != other.written
-    //     )
-    //     {
-    //         return false;
-    //     }
-
-    //     switch (type) {
-    //     case FBOM_STATIC_DATA_OBJECT:
-    //         return object_data == other.object_data;
-    //     case FBOM_STATIC_DATA_TYPE:
-    //         return type_data == other.type_data;
-    //     case FBOM_STATIC_DATA_DATA:
-    //         return data_data.Get() == other.data_data.Get();
-    //     case FBOM_STATIC_DATA_NONE:
-    //         return true;
-    //     }
-    // }
 
     bool operator<(const FBOMStaticData &other) const
     {
@@ -293,11 +324,13 @@ struct FBOMStaticData
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:
-            return object_data.GetUniqueID();
+            return data.Get<FBOMObject>().GetUniqueID();
         case FBOM_STATIC_DATA_TYPE:
-            return type_data.GetUniqueID();
+            return data.Get<FBOMType>().GetUniqueID();
         case FBOM_STATIC_DATA_DATA:
-            return data_data.Get().GetUniqueID();
+            return data.Get<FBOMData>().GetUniqueID();
+        case FBOM_STATIC_DATA_NAME_TABLE:
+            return data.Get<FBOMNameTable>().GetUniqueID();
         default:
             return UniqueID(0);
         }
@@ -307,11 +340,13 @@ struct FBOMStaticData
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:
-            return object_data.GetHashCode();
+            return data.Get<FBOMObject>().GetHashCode();
         case FBOM_STATIC_DATA_TYPE:
-            return type_data.GetHashCode();
+            return data.Get<FBOMType>().GetHashCode();
         case FBOM_STATIC_DATA_DATA:
-            return data_data.Get().GetHashCode();
+            return data.Get<FBOMData>().GetHashCode();
+        case FBOM_STATIC_DATA_NAME_TABLE:
+            return data.Get<FBOMNameTable>().GetHashCode();
         default:
             return HashCode();
         }
@@ -323,11 +358,13 @@ struct FBOMStaticData
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:
-            return object_data.ToString();
+            return data.Get<FBOMObject>().ToString();
         case FBOM_STATIC_DATA_TYPE:
-            return type_data.ToString();
+            return data.Get<FBOMType>().ToString();
         case FBOM_STATIC_DATA_DATA:
-            return data_data.Get().ToString();
+            return data.Get<FBOMData>().ToString();
+        case FBOM_STATIC_DATA_NAME_TABLE:
+            return data.Get<FBOMNameTable>().ToString();
         default:
             return "???";
         }
@@ -492,6 +529,8 @@ private:
     template <class T>
     void CheckEndianness(T &value)
     {
+        static_assert(IsPODType<T>, "T must be POD to use CheckEndianness()");
+
         if constexpr (sizeof(T) == 1) {
             return;
         } else if (m_swap_endianness) {
@@ -508,10 +547,34 @@ private:
     FBOMCommand PeekCommand(BufferedReader *);
     FBOMResult Eat(BufferedReader *, FBOMCommand, bool read = true);
 
-    String ReadString(BufferedReader *);
-    FBOMType ReadObjectType(BufferedReader *);
-    FBOMResult ReadData(BufferedReader *, FBOMData &data);
-    FBOMResult ReadObject(BufferedReader *, FBOMObject &object, FBOMObject *root);
+    template <class StringType>
+    FBOMResult ReadString(BufferedReader *, StringType &out_string);
+
+    FBOMResult ReadObjectType(BufferedReader *, FBOMType &out_type);
+    FBOMResult ReadNameTable(BufferedReader *, FBOMNameTable &out_name_table);
+    FBOMResult ReadData(BufferedReader *, FBOMData &out_data);
+    FBOMResult ReadPropertyName(BufferedReader *, Name &out_property_name);
+    FBOMResult ReadObject(BufferedReader *, FBOMObject &out_object, FBOMObject *root);
+
+    FBOMResult ReadRawData(BufferedReader *, SizeType count, ByteBuffer &out_byte_buffer);
+
+    template <class T>
+    FBOMResult ReadRawData(BufferedReader *reader, T *out_ptr)
+    {
+        static_assert(IsPODType<NormalizedType<T>>, "T must be POD to read as raw data");
+
+        constexpr SizeType size = sizeof(NormalizedType<T>);
+
+        ByteBuffer byte_buffer;
+
+        if (FBOMResult err = ReadRawData(reader, size, byte_buffer)) {
+            return err;
+        }
+
+        Memory::MemCpy(static_cast<void *>(out_ptr), static_cast<const void *>(byte_buffer.Data()), size);
+
+        return FBOMResult::FBOM_OK;
+    }
 
     FBOMResult Handle(BufferedReader *, FBOMCommand, FBOMObject *root);
 
@@ -541,7 +604,7 @@ public:
 
     ~FBOMWriter();
 
-    template <class T, class Marshaler = FBOMMarshaler<T>>
+    template <class T, class Marshal = FBOMMarshaler<T>>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
     Append(const T &object, FBOMObjectFlags flags = FBOM_OBJECT_FLAGS_NONE)
     {
@@ -549,7 +612,7 @@ public:
             return err;
         }
 
-        Marshaler marshal;
+        Marshal marshal;
 
         FBOMObject base(marshal.GetObjectType());
         base.GenerateUniqueID(object, flags);
@@ -577,23 +640,27 @@ private:
     FBOMResult WriteObject(ByteWriter *out, const FBOMObject &);
     FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &);
     FBOMResult WriteData(ByteWriter *out, const FBOMData &);
+    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &);
     FBOMResult WriteStaticDataUsage(ByteWriter *out, const FBOMStaticData &) const;
 
     void AddObjectData(const FBOMObject &);
-    void AddStaticData(const FBOMType &);
-    void AddStaticData(const FBOMObject &);
-    void AddStaticData(const FBOMData &);
+    
+    UniqueID AddStaticData(const FBOMType &);
+    UniqueID AddStaticData(const FBOMObject &);
+    UniqueID AddStaticData(const FBOMData &);
+    UniqueID AddStaticData(const FBOMNameTable &);
 
     struct WriteStream
     {
+        UniqueID                            m_name_table_id;
         FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
         HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
         FlatMap<UniqueID, int>              m_hash_use_count_map;
-        Array<FBOMObject>                   m_object_data;// TODO: make multiple objects be supported by the loader.
+        Array<FBOMObject>                   m_object_data;// TODO: make multiple root objects be supported by the loader
         SizeType                            m_static_data_offset = 0;
         FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
 
-        WriteStream() = default;
+        WriteStream();
         WriteStream(const WriteStream &other) = default;
         WriteStream &operator=(const WriteStream &other) = default;
         WriteStream(WriteStream &&other) noexcept = default;
@@ -602,7 +669,24 @@ private:
 
         FBOMDataLocation GetDataLocation(const UniqueID &unique_id, FBOMStaticData &out_static_data, String &out_external_key) const;
         void MarkStaticDataWritten(const UniqueID &unique_id);
+
+        [[nodiscard]]
+        HYP_FORCE_INLINE
+        FBOMNameTable &GetNameTable()
+        {
+            auto it = m_static_data.Find(m_name_table_id);
+            AssertThrow(it != m_static_data.End());
+
+            return it->second.data.Get<FBOMNameTable>();
+        }
     } m_write_stream;
+
+private:
+    UniqueID AddStaticData(UniqueID id, FBOMStaticData &&static_data);
+
+    HYP_FORCE_INLINE
+    UniqueID AddStaticData(FBOMStaticData &&static_data)
+        { return AddStaticData(UniqueID(), std::move(static_data)); }
 };
 
 } // namespace fbom
