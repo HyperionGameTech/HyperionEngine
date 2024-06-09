@@ -15,8 +15,8 @@ FBOMWriter::WriteStream::WriteStream() = default;
 
 FBOMWriter::FBOMWriter()
 {
-    // // Add name table for the write stream
-    // AddStaticData(m_write_stream.m_name_table_id, FBOMStaticData(FBOMNameTable { }));
+    // Add name table for the write stream
+    AddStaticData(m_write_stream.m_name_table_id, FBOMStaticData(FBOMNameTable { }));
 }
 
 FBOMWriter::FBOMWriter(FBOMWriter &&other) noexcept
@@ -51,7 +51,8 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out)
     BuildStaticData();
 
     WriteHeader(out);
-    WriteStaticDataToByteStream(out);
+    WriteNameTable(out);
+    WriteStaticData(out);
 
     for (const auto &it : m_write_stream.m_object_data) {
         if (FBOMResult err = WriteObject(out, it)) {
@@ -135,7 +136,13 @@ void FBOMWriter::Prune(const FBOMObject &object)
     //}
 }
 
-FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
+FBOMResult FBOMWriter::WriteNameTable(ByteWriter *out)
+{
+    // temp
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
 {
     Array<FBOMStaticData> static_data_ordered;
     static_data_ordered.Reserve(m_write_stream.m_static_data.Size());
@@ -164,10 +171,10 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
     //   then, the actual size of the data will vary depending on the held type
 
     for (const FBOMStaticData &it : static_data_ordered) {
-        // temp
-        if (it.type == FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE) {
-            continue;
-        }
+        // // temp
+        // if (it.type == FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE) {
+        //     continue;
+        // }
 
 
         AssertThrow(it.offset < static_data_ordered.Size());
@@ -376,17 +383,6 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data, UniqueID
     }
 
     if (data_location == FBOM_DATA_LOCATION_INPLACE) {
-        // // Custom logic for `Name` objects: store their string data in the stream's name table
-        // if (data.IsName()) {
-        //     Name name;
-
-        //     if (!data.ReadName(&name)) {
-        //         return FBOMResult(FBOMResult::FBOM_ERR, "Invalid name object, cannot write to stream");
-        //     }
-
-        //     m_write_stream.GetNameTable().Add(name.LookupString());
-        // }
-
         // write type first
         if (FBOMResult err = WriteObjectType(out, data.GetType())) {
             return err;
@@ -394,15 +390,15 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data, UniqueID
 
         const SizeType sz = data.TotalSize();
 
-        unsigned char *bytes = new unsigned char[sz];
+        ByteBuffer byte_buffer;
 
-        data.ReadBytes(sz, bytes);
+        if (FBOMResult err = data.ReadBytes(sz, byte_buffer)) {
+            return err;
+        }
 
         // size of data as uint32_t
         out->Write<uint32>(uint32(sz));
-        out->Write(bytes, sz);
-
-        delete[] bytes;
+        out->Write(byte_buffer.Data(), byte_buffer.Size());
 
         m_write_stream.MarkStaticDataWritten(id);
     } else {
@@ -429,10 +425,10 @@ FBOMResult FBOMWriter::WriteNameTable(ByteWriter *out, const FBOMNameTable &name
     if (data_location == FBOM_DATA_LOCATION_INPLACE) {
         out->Write<uint32>(uint32(name_table.values.Size()));
 
-        // for (const auto &it : name_table.values) {
-        //     out->WriteString(it.second, BYTE_WRITER_FLAGS_WRITE_SIZE | BYTE_WRITER_FLAGS_WRITE_STRING_TYPE);
-        //     out->Write<NameID>(it.first.GetID());
-        // }
+        for (const auto &it : name_table.values) {
+            out->WriteString(it.second, BYTE_WRITER_FLAGS_WRITE_SIZE | BYTE_WRITER_FLAGS_WRITE_STRING_TYPE);
+            out->Write<NameID>(it.first.GetID());
+        }
 
         m_write_stream.MarkStaticDataWritten(id);
     } else {
@@ -502,6 +498,14 @@ UniqueID FBOMWriter::AddStaticData(const FBOMObject &object)
 
 UniqueID FBOMWriter::AddStaticData(const FBOMData &data)
 {
+    // Custom logic for `Name` objects: store their string data in the stream's name table
+    if (data.IsName()) {
+        Name name;
+        AssertThrowMsg(data.ReadName(&name).value == FBOMResult::FBOM_OK, "Invalid name object, cannot write to stream");
+
+        m_write_stream.GetNameTable().Add(name.LookupString());
+    }
+
     AddStaticData(data.GetType());
 
     return AddStaticData(FBOMStaticData(data));

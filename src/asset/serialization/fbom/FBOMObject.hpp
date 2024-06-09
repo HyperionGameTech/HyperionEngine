@@ -93,7 +93,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    bool HasProperty(const ANSIString &key) const
+    bool HasProperty(const ANSIStringView &key) const
         { return HasProperty(CreateWeakNameFromDynamicString(key)); }
 
     [[nodiscard]]
@@ -101,25 +101,29 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const FBOMData &GetProperty(const ANSIString &key) const
+    const FBOMData &GetProperty(const ANSIStringView &key) const
         { return GetProperty(CreateWeakNameFromDynamicString(key)); }
 
-    void SetProperty(Name key, const FBOMData &data);
-    void SetProperty(Name key, FBOMData &&data);
-    void SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
-    void SetProperty(Name key, const FBOMType &type, const void *bytes);
-    void SetProperty(Name key, const ByteBuffer &bytes);
+    FBOMObject &SetProperty(Name key, const FBOMData &data);
+    FBOMObject &SetProperty(Name key, FBOMData &&data);
+    FBOMObject &SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
+    FBOMObject &SetProperty(Name key, const FBOMType &type, const void *bytes);
+    FBOMObject &SetProperty(Name key, const ByteBuffer &bytes);
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
-    void SetProperty(Name key, const FBOMType &type, const T &value)
+    FBOMObject &SetProperty(Name key, const FBOMType &type, const T &value)
     {
         SetProperty(key, type, sizeof(NormalizedType<T>), &value);
+
+        return *this;
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
-    void SetProperty(Name key, const FBOMType &type, T &&value)
+    FBOMObject &SetProperty(Name key, const FBOMType &type, T &&value)
     {
         SetProperty(key, type, sizeof(NormalizedType<T>), &value);
+
+        return *this;
     }
 
     [[nodiscard]]

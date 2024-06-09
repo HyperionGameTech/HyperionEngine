@@ -111,8 +111,8 @@ Node::Node(Node &&other) noexcept
     m_descendents = std::move(other.m_descendents);
     other.m_descendents = {};
 
-    for (auto &node : m_child_nodes) {
-        AssertThrow(node != nullptr);
+    for (NodeProxy &node : m_child_nodes) {
+        AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
     }
@@ -163,8 +163,8 @@ Node &Node::operator=(Node &&other) noexcept
     m_descendents = std::move(other.m_descendents);
     other.m_descendents = {};
 
-    for (auto &node : m_child_nodes) {
-        AssertThrow(node != nullptr);
+    for (NodeProxy &node : m_child_nodes) {
+        AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
     }
@@ -292,7 +292,7 @@ NodeProxy Node::AddChild(const NodeProxy &node)
 
     OnNestedNodeAdded(node, true);
 
-    for (auto &nested : node->GetDescendents()) {
+    for (NodeProxy &nested : node->GetDescendents()) {
         OnNestedNodeAdded(nested, false);
     }
 
@@ -307,11 +307,11 @@ bool Node::RemoveChild(NodeList::Iterator iter)
         return false;
     }
 
-    if (auto &node = *iter) {
-        AssertThrow(node != nullptr);
+    if (NodeProxy &node = *iter) {
+        AssertThrow(node.IsValid());
         AssertThrow(node->GetParent() == this);
 
-        for (auto &nested : node->GetDescendents()) {
+        for (NodeProxy &nested : node->GetDescendents()) {
             OnNestedNodeRemoved(nested, false);
         }
 
@@ -349,11 +349,11 @@ bool Node::Remove()
 void Node::RemoveAllChildren()
 {
     for (auto it = m_child_nodes.begin(); it != m_child_nodes.end();) {
-        if (auto &node = *it) {
-            AssertThrow(node != nullptr);
+        if (NodeProxy &node = *it) {
+            AssertThrow(node.IsValid());
             AssertThrow(node->GetParent() == this);
 
-            for (auto &nested : node->GetDescendents()) {
+            for (NodeProxy &nested : node->GetDescendents()) {
                 OnNestedNodeRemoved(nested, false);
             }
 
@@ -491,8 +491,8 @@ void Node::LockTransform()
         }
     }
 
-    for (auto &child : m_child_nodes) {
-        if (!child) {
+    for (NodeProxy &child : m_child_nodes) {
+        if (!child.IsValid()) {
             continue;
         }
 
@@ -504,8 +504,8 @@ void Node::UnlockTransform()
 {
     m_transform_locked = false;
 
-    for (auto &child : m_child_nodes) {
-        if (!child) {
+    for (NodeProxy &child : m_child_nodes) {
+        if (!child.IsValid()) {
             continue;
         }
 
@@ -543,7 +543,19 @@ void Node::SetEntity(ID<Entity> entity)
     if (entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_entity = entity;
 
-        if (auto *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+        EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
+
+        // need to move the entity between EntityManagers
+        if (previous_entity_manager != nullptr && previous_entity_manager != m_scene->GetEntityManager().Get()) {
+            previous_entity_manager->MoveEntity(m_entity, *m_scene->GetEntityManager());
+
+#ifdef HYP_DEBUG_MODE
+            // Sanity check
+            AssertThrow(EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity) == m_scene->GetEntityManager().Get());
+#endif
+        }
+
+        if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
             SetWorldTransform(transform_component->transform);
         }
 
@@ -554,7 +566,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
         
         // Update / add a NodeLinkComponent to the new entity
-        if (auto *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
+        if (NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
             node_link_component->node = WeakRefCountedPtrFromThis();
         } else {
             m_scene->GetEntityManager()->AddComponent(m_entity, NodeLinkComponent {
@@ -660,7 +672,7 @@ void Node::UpdateWorldTransform()
         return;
     }
 
-    for (auto &node : m_child_nodes) {
+    for (NodeProxy &node : m_child_nodes) {
         AssertThrow(node != nullptr);
         node->UpdateWorldTransform();
     }
@@ -734,8 +746,8 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
             );
         }
 
-        for (auto &child_node : m_child_nodes) {
-            if (!child_node) {
+        for (const NodeProxy &child_node : m_child_nodes) {
+            if (!child_node.IsValid()) {
                 continue;
             }
 

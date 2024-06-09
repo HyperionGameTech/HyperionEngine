@@ -375,8 +375,6 @@ private:
 
     UniquePtr<ShaderGlobals>                                m_render_data;
 
-    ObjectPool                                              m_object_pool;
-
     Handle<World>                                           m_world;
     
     Configuration                                           m_configuration;

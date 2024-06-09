@@ -135,7 +135,27 @@ public:
 template <class Component>
 class ComponentContainer : public ComponentContainerBase
 {
+    static class Factory : public ComponentContainerFactoryBase
+    {
+    public:
+        Factory(UniquePtr<ComponentContainerBase> (*create)())
+            : m_create(create)
+        {
+        }
+
+        virtual ~Factory() override = default;
+
+        virtual UniquePtr<ComponentContainerBase> Create() const override
+            { return m_create(); }
+
+    private:
+        UniquePtr<ComponentContainerBase> (*m_create)();
+    } factory;
+
 public:
+    static Factory *GetFactory()
+        { return &factory; }
+
     ComponentContainer()
         : ComponentContainerBase(&factory)
     {
@@ -172,6 +192,7 @@ public:
         return &it->second;
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     Component &GetComponent(ComponentID id)
     {
@@ -180,6 +201,7 @@ public:
         return m_components.At(id);
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const Component &GetComponent(ComponentID id) const
     {
@@ -188,6 +210,7 @@ public:
         return m_components.At(id);
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     ComponentID AddComponent(Component &&component)
     {
@@ -236,28 +259,12 @@ public:
         return { };
     }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     SizeType Size() const
         { return m_components.Size(); }
 
 private:
-    static class Factory : public ComponentContainerFactoryBase
-    {
-    public:
-        Factory(UniquePtr<ComponentContainerBase> (*create)())
-            : m_create(create)
-        {
-        }
-
-        virtual ~Factory() override = default;
-
-        virtual UniquePtr<ComponentContainerBase> Create() const override
-            { return m_create(); }
-
-    private:
-        UniquePtr<ComponentContainerBase> (*m_create)();
-    } factory;
-
     ComponentID                     m_component_id_counter = 0;
     FlatMap<ComponentID, Component> m_components;
 };

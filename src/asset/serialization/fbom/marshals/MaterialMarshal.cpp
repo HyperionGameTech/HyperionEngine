@@ -18,11 +18,13 @@ public:
     virtual FBOMResult Serialize(const Material &in_object, FBOMObject &out) const override
     {
         out.SetProperty(NAME("name"), FBOMName(), in_object.GetName());
-
-        out.SetProperty(NAME("attributes.bucket"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().bucket));
-        out.SetProperty(NAME("attributes.flags"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags));
-        out.SetProperty(NAME("attributes.cull_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces));
-        out.SetProperty(NAME("attributes.fill_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode));
+        out.SetProperty(NAME("attributes"), FBOMData::FromObject(
+            FBOMObject()
+                .SetProperty(NAME("bucket"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().bucket))
+                .SetProperty(NAME("flags"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags))
+                .SetProperty(NAME("cull_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces))
+                .SetProperty(NAME("fill_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode))
+        ));
 
         out.SetProperty(NAME("params.size"), FBOMUnsignedInt(), uint32(in_object.GetParameters().Size()));
 
@@ -100,10 +102,16 @@ public:
         Material::ParameterTable parameters = Material::DefaultParameters();
         Material::TextureSet textures;
 
-        in.GetProperty("attributes.bucket").ReadUnsignedInt(&attributes.bucket);
-        in.GetProperty("attributes.flags").ReadUnsignedInt(&attributes.flags);
-        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&attributes.cull_faces);
-        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&attributes.fill_mode);
+        FBOMObject attributes_object;
+
+        if (FBOMResult err = in.GetProperty("attributes").ReadObject(attributes_object)) {
+            return err;
+        }
+
+        attributes_object.GetProperty("bucket").ReadUnsignedInt(&attributes.bucket);
+        attributes_object.GetProperty("flags").ReadUnsignedInt(&attributes.flags);
+        attributes_object.GetProperty("cull_mode").ReadUnsignedInt(&attributes.cull_faces);
+        attributes_object.GetProperty("fill_mode").ReadUnsignedInt(&attributes.fill_mode);
 
         uint32 num_parameters;
 

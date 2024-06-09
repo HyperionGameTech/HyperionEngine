@@ -78,7 +78,7 @@ public:
         }
         
         {
-            Vector3 translation, direction, up_vector;
+            Vec3f translation, direction, up_vector;
             in.GetProperty("translation").ReadElements(FBOMFloat(), 3, &translation);
             in.GetProperty("direction").ReadElements(FBOMFloat(), 3, &direction);
             in.GetProperty("up").ReadElements(FBOMFloat(), 3, &up_vector);
@@ -93,11 +93,13 @@ public:
         }
 
         { // frustum
-            Vector4 planes[6];
+            Vec4f planes[6];
 
-            in.GetProperty("frustum").ReadElements(FBOMVec4f(), 6, &planes[0]);
+            if (FBOMResult err = in.GetProperty("frustum").ReadElements(FBOMVec4f(), 6, &planes[0])) {
+                return err;
+            }
 
-            for (uint i = 0; i < std::size(planes); i++) {
+            for (uint32 i = 0; i < ArraySize(planes); i++) {
                 camera_handle->GetFrustum().GetPlane(i) = planes[i];
             }
         }

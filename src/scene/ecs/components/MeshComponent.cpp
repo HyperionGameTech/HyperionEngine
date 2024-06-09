@@ -34,9 +34,10 @@ public:
 
 protected:
     virtual TypeID GetTypeID_Internal() const override
-    {
-        return TypeID::ForType<MeshComponent>();
-    }
+        { return TypeID::ForType<MeshComponent>(); }
+
+    virtual ANSIStringView GetTypeName_Internal() const override
+        { return TypeNameWithoutNamespace<MeshComponent>(); }
     
     virtual Array<ComponentProperty> GetProperties_Internal() const override
     {

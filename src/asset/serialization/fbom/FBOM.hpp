@@ -556,10 +556,8 @@ class FBOMWriter
 {
 public:
     FBOMWriter();
-
-    FBOMWriter(const FBOMWriter &other) = delete;
-    FBOMWriter &operator=(const FBOMWriter &other) = delete;
-
+    FBOMWriter(const FBOMWriter &other)             = delete;
+    FBOMWriter &operator=(const FBOMWriter &other)  = delete;
     FBOMWriter(FBOMWriter &&other) noexcept;
     FBOMWriter &operator=(FBOMWriter &&other) noexcept;
 
@@ -596,7 +594,8 @@ private:
     void Prune(const FBOMObject &);
 
     FBOMResult WriteHeader(ByteWriter *out);
-    FBOMResult WriteStaticDataToByteStream(ByteWriter *out);
+    FBOMResult WriteNameTable(ByteWriter *out);
+    FBOMResult WriteStaticData(ByteWriter *out);
 
     FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object, UniqueID id);
     FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object)
@@ -625,6 +624,7 @@ private:
 
     struct WriteStream
     {
+        // FBOMNameTable                       m_name_table;
         UniqueID                            m_name_table_id;
         FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
         HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
@@ -634,11 +634,11 @@ private:
         FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
 
         WriteStream();
-        WriteStream(const WriteStream &other) = default;
-        WriteStream &operator=(const WriteStream &other) = default;
-        WriteStream(WriteStream &&other) noexcept = default;
-        WriteStream &operator=(WriteStream &&other) noexcept = default;
-        ~WriteStream() = default;
+        WriteStream(const WriteStream &other)                   = default;
+        WriteStream &operator=(const WriteStream &other)        = default;
+        WriteStream(WriteStream &&other) noexcept               = default;
+        WriteStream &operator=(WriteStream &&other) noexcept    = default;
+        ~WriteStream()                                          = default;
 
         FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, String &out_external_key) const;
         void MarkStaticDataWritten(const UniqueID &unique_id);

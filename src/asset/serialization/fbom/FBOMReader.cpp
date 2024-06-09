@@ -266,23 +266,39 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
 
 FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_name_table)
 {
-    uint32 count;
-    reader->Read(&count);
-    CheckEndianness(count);
+    // read data location
+    uint8 object_type_location = FBOM_DATA_LOCATION_NONE;
+    reader->Read(&object_type_location);
+    CheckEndianness(object_type_location);
 
-    for (uint32 i = 0; i < count; i++) {
-        ANSIString str;
-        NameID name_data;
+    if (object_type_location == FBOM_DATA_LOCATION_INPLACE) {
+        uint32 count;
+        reader->Read(&count);
+        CheckEndianness(count);
 
-        if (FBOMResult err = ReadString(reader, str)) {
-            return err;
+        for (uint32 i = 0; i < count; i++) {
+            ANSIString str;
+            NameID name_data;
+
+            if (FBOMResult err = ReadString(reader, str)) {
+                return err;
+            }
+
+            if (FBOMResult err = ReadRawData<NameID>(reader, &name_data)) {
+                return err;
+            }
+
+            out_name_table.Add(str, WeakName(name_data));
         }
+    } else if (object_type_location == FBOM_DATA_LOCATION_STATIC) {
+        // read offset as u32
+        uint32 offset;
+        reader->Read(&offset);
+        CheckEndianness(offset);
 
-        if (FBOMResult err = ReadRawData<NameID>(reader, &name_data)) {
-            return err;
-        }
-
-        out_name_table.Add(str, WeakName(name_data));
+        // grab from static data pool
+        AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE);
+        out_name_table = m_static_data_pool[offset].data.Get<FBOMNameTable>();
     }
 
     return FBOMResult::FBOM_OK;

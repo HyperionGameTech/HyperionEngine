@@ -69,13 +69,14 @@ void ComponentInterfaceBase::Initialize()
 }
 
 ComponentInterfaceBase::ComponentInterfaceBase()
-    : m_type_id(TypeID::Void())
+    : m_component_container_factory(nullptr),
+      m_type_id(TypeID::Void())
 {
 }
 
 ComponentProperty *ComponentInterfaceBase::GetProperty(WeakName name)
 {
-    for (auto &property : m_properties) {
+    for (ComponentProperty &property : m_properties) {
         if (property.GetName() == name) {
             return &property;
         }

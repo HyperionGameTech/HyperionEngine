@@ -242,16 +242,16 @@ public:
 
         uint32 num_properties;
 
-        if (auto err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
+        if (FBOMResult err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
             return err;
         }
 
         for (uint32 i = 0; i < num_properties; i++) {
-            const auto param_string = String("properties.") + String::ToString(i);
+            const ANSIString param_string = ANSIString("properties.") + ANSIString::ToString(i);
 
             ShaderProperty property;
 
-            if (auto err = in.GetProperty(param_string + ".name").ReadString(property.name)) {
+            if (FBOMResult err = in.GetProperty(param_string + ".name").ReadString(property.name)) {
                 continue;
             }
 
@@ -264,14 +264,14 @@ public:
             if (is_value_group) {
                 uint32 num_possible_values = 0;
 
-                if (auto err = in.GetProperty(param_string + ".num_possible_values").ReadUnsignedInt(&num_possible_values)) {
+                if (FBOMResult err = in.GetProperty(param_string + ".num_possible_values").ReadUnsignedInt(&num_possible_values)) {
                     continue;
                 }
 
                 for (uint32 i = 0; i < num_possible_values; i++) {
                     String possible_value;
 
-                    if (auto err = in.GetProperty(param_string + ".possible_values[" + String::ToString(i) + "]").ReadString(possible_value)) {
+                    if (FBOMResult err = in.GetProperty(param_string + ".possible_values[" + ANSIString::ToString(i) + "]").ReadString(possible_value)) {
                         continue;
                     }
 
@@ -283,10 +283,10 @@ public:
         }
 
         for (SizeType index = 0; index < ShaderModuleType::MAX; index++) {
-            const auto module_property_name = String("module[") + String::ToString(index) + "]";
+            const ANSIString module_property_name = ANSIString("module[") + ANSIString::ToString(index) + "]";
 
-            if (const auto &property = in.GetProperty(module_property_name)) {
-                if (auto err = property.ReadByteBuffer(compiled_shader.modules[index])) {
+            if (const FBOMData &property = in.GetProperty(module_property_name)) {
+                if (FBOMResult err = property.ReadByteBuffer(compiled_shader.modules[index])) {
                     return err;
                 }
             }
@@ -311,7 +311,7 @@ public:
 
     virtual FBOMResult Serialize(const CompiledShaderBatch &in_object, FBOMObject &out) const override
     {
-        for (auto &compiled_shader : in_object.compiled_shaders) {
+        for (const CompiledShader &compiled_shader : in_object.compiled_shaders) {
             out.AddChild(compiled_shader);
         }
 
@@ -322,7 +322,7 @@ public:
     {
         CompiledShaderBatch batch;
 
-        for (auto &node : *in.nodes) {
+        for (FBOMObject &node : *in.nodes) {
             if (node.GetType().IsOrExtends("CompiledShader")) {
                 Optional<CompiledShader> compiled_shader = node.deserialized.Get<CompiledShader>();
 

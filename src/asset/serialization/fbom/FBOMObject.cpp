@@ -109,34 +109,44 @@ const FBOMData &FBOMObject::GetProperty(WeakName key) const
     return it->second;
 }
 
-void FBOMObject::SetProperty(Name key, const FBOMData &data)
+FBOMObject &FBOMObject::SetProperty(Name key, const FBOMData &data)
 {
     properties.Set(key, data);
+
+    return *this;
 }
 
-void FBOMObject::SetProperty(Name key, FBOMData &&data)
+FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
 {
     properties.Set(key, std::move(data));
+
+    return *this;
 }
 
-void FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes)
+FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
 
     SetProperty(key, data);
+
+    return *this;
 }
 
-void FBOMObject::SetProperty(Name key, const FBOMType &type, const void *bytes)
+FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const void *bytes)
 {
     AssertThrowMsg(!type.IsUnbouned(), "Cannot determine size of an unbounded type, please manually specify size");
 
     SetProperty(key, type, type.size, bytes);
+
+    return *this;
 }
 
-void FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
+FBOMObject &FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
 {
     SetProperty(key, FBOMByteBuffer(bytes.Size()), bytes.Data());
+
+    return *this;
 }
 
 const FBOMData &FBOMObject::operator[](WeakName key) const

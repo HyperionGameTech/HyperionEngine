@@ -18,14 +18,20 @@ public:
         out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
         
         out.SetProperty(NAME("name"), FBOMData::FromString(in_object.GetName()));
-    
-        out.SetProperty(NAME("local_transform.translation"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()));
-        out.SetProperty(NAME("local_transform.rotation"), FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()));
-        out.SetProperty(NAME("local_transform.scale"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()));
-    
-        out.SetProperty(NAME("world_transform.translation"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()));
-        out.SetProperty(NAME("world_transform.rotation"), FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
-        out.SetProperty(NAME("world_transform.scale"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()));
+
+        out.SetProperty(NAME("local_transform"), FBOMData::FromObject(
+            FBOMObject()
+                .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()))
+                .SetProperty(NAME("rotation"), FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()))
+                .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()))
+        ));
+
+        out.SetProperty(NAME("world_transform"), FBOMData::FromObject(
+            FBOMObject()
+                .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()))
+                .SetProperty(NAME("rotation"), FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()))
+                .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()))
+        ));
 
         out.SetProperty(NAME("aabb"), FBOMStruct::Create<BoundingBox>(), &in_object.GetEntityAABB());
 
@@ -40,20 +46,20 @@ public:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
         }
 
-        if (const auto &entity = in_object.GetEntity()) {
-            // @TODO Fix when entity moving between EntityManager instances is supported
+        if (ID<Entity> entity = in_object.GetEntity()) {
+            Handle<Entity> entity_handle { entity };
 
-            // if (auto err = out.AddChild(*entity/*, FBOM_OBJECT_FLAGS_EXTERNAL*/)) {
-            //     return err;
-            // }
+            if (auto err = out.AddChild(*entity_handle, FBOM_OBJECT_FLAGS_EXTERNAL)) {
+                return err;
+            }
         }
 
-        for (const auto &child : in_object.GetChildren()) {
+        for (const NodeProxy &child : in_object.GetChildren()) {
             if (!child) {
                 continue;
             }
 
-            if (auto err = out.AddChild(*child.Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE)) {
+            if (FBOMResult err = out.AddChild(*child.Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE)) {
                 return err;
             }
         }
@@ -88,16 +94,22 @@ public:
 
         { // local transform
             Transform transform = Transform::identity;
+            
+            FBOMObject local_transform_object;
 
-            if (auto err = in.GetProperty("local_transform.translation").ReadVec3f(&transform.GetTranslation())) {
+            if (FBOMResult err = in.GetProperty("local_transform").ReadObject(local_transform_object)) {
+                return err;
+            }
+
+            if (FBOMResult err = local_transform_object.GetProperty("translation").ReadElements(FBOMFloat(), 3, &transform.GetTranslation())) {
                 return err;
             }
         
-            if (auto err = in.GetProperty("local_transform.rotation").ReadQuaternion(&transform.GetRotation())) {
+            if (FBOMResult err = local_transform_object.GetProperty("rotation").ReadElements(FBOMFloat(), 4, &transform.GetRotation())) {
                 return err;
             }
 
-            if (auto err = in.GetProperty("local_transform.scale").ReadVec3f(&transform.GetScale())) {
+            if (FBOMResult err = local_transform_object.GetProperty("scale").ReadElements(FBOMFloat(), 3, &transform.GetScale())) {
                 return err;
             }
 
@@ -107,16 +119,22 @@ public:
 
         { // world transform
             Transform transform = Transform::identity;
+            
+            FBOMObject world_transform_object;
 
-            if (auto err = in.GetProperty("world_transform.translation").ReadElements(FBOMFloat(), 3, &transform.GetTranslation())) {
+            if (FBOMResult err = in.GetProperty("world_transform").ReadObject(world_transform_object)) {
+                return err;
+            }
+
+            if (FBOMResult err = world_transform_object.GetProperty("translation").ReadElements(FBOMFloat(), 3, &transform.GetTranslation())) {
                 return err;
             }
         
-            if (auto err = in.GetProperty("world_transform.rotation").ReadElements(FBOMFloat(), 4, &transform.GetRotation())) {
+            if (FBOMResult err = world_transform_object.GetProperty("rotation").ReadElements(FBOMFloat(), 4, &transform.GetRotation())) {
                 return err;
             }
 
-            if (auto err = in.GetProperty("world_transform.scale").ReadElements(FBOMFloat(), 3, &transform.GetScale())) {
+            if (FBOMResult err = world_transform_object.GetProperty("scale").ReadElements(FBOMFloat(), 3, &transform.GetScale())) {
                 return err;
             }
 
@@ -139,9 +157,7 @@ public:
             if (sub_object.GetType().IsOrExtends("Node")) {
                 node->AddChild(sub_object.deserialized.Get<Node>());
             } else if (sub_object.GetType().IsOrExtends("Entity")) {
-                // @TODO: Fix when entity moving between EntityManager instances is supported
-
-                // node_ptr->SetEntity(sub_object.deserialized.Get<Entity>());
+                node->SetEntity(sub_object.deserialized.Get<Entity>().GetID());
             }
         }
 

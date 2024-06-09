@@ -6,8 +6,9 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FlatSet.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <core/containers/HashMap.hpp>
 #include <core/containers/TypeMap.hpp>
+#include <core/memory/UniquePtr.hpp>
 #include <core/functional/Proc.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Threads.hpp>
@@ -216,26 +217,95 @@ private:
     AtomicVar<uint>                             m_count { 0 };
 };
 
-class HYP_API EntityManager
+class EntityToEntityManagerMap
 {
 public:
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene)
-        : m_owner_thread_mask(owner_thread_mask),
-          m_scene(scene),
-          m_command_queue(
-              (owner_thread_mask & ThreadName::THREAD_GAME)
-                  ? ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD
-                  : ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD // discard commands if not on the game thread
-          )
+    HYP_FORCE_INLINE
+    void Add(ID<Entity> entity, EntityManager *entity_manager)
     {
-        AssertThrow(scene != nullptr);
+        Mutex::Guard guard(m_mutex);
+
+#ifdef HYP_DEBUG_MODE
+        const auto it = m_map.Find(entity);
+        AssertThrowMsg(it == m_map.End(), "Entity already added to Entity -> EntityManager mapping!");
+#endif
+
+        m_map.Set(entity, entity_manager);
     }
 
+    HYP_FORCE_INLINE
+    void Remove(ID<Entity> entity)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        const auto it = m_map.Find(entity);
+        AssertThrowMsg(it != m_map.End(), "Entity -> EntityManager mapping does not exist!");
+
+        m_map.Erase(it);
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    EntityManager *GetEntityManager(ID<Entity> entity) const
+    {
+        Mutex::Guard guard(m_mutex);
+
+        const auto it = m_map.Find(entity);
+
+        if (it == m_map.End()) {
+            return nullptr;
+        }
+
+        return it->second;
+    }
+
+    HYP_FORCE_INLINE
+    void RemoveEntityManager(EntityManager *entity_manager)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        Array<ID<Entity>> keys_to_remove;
+
+        for (auto &it : m_map) {
+            if (it.second == entity_manager) {
+                keys_to_remove.PushBack(it.first);
+            }
+        }
+
+        for (ID<Entity> entity : keys_to_remove) {
+            m_map.Erase(entity);
+        }
+    }
+
+    HYP_FORCE_INLINE
+    void Remap(ID<Entity> entity, EntityManager *new_entity_manager)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        const auto it = m_map.Find(entity);
+        AssertThrowMsg(it != m_map.End(), "Entity -> EntityManager mapping does not exist!");
+
+        it->second = new_entity_manager;
+    }
+
+private:
+    HashMap<ID<Entity>, EntityManager *>    m_map;
+    mutable Mutex                           m_mutex;
+};
+
+class HYP_API EntityManager
+{
+    static EntityToEntityManagerMap s_entity_to_entity_manager_map;
+
+public:
+    EntityManager(ThreadMask owner_thread_mask, Scene *scene);
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
     EntityManager(EntityManager &&) noexcept            = delete;
     EntityManager &operator=(EntityManager &&) noexcept = delete;
-    ~EntityManager()                                    = default;
+    ~EntityManager();
+
+    static EntityToEntityManagerMap &GetEntityToEntityManagerMap();
 
     /*! \brief Gets the thread mask of the thread that owns this EntityManager.
      *
@@ -303,6 +373,7 @@ public:
      */
     void MoveEntity(ID<Entity> entity, EntityManager &other);
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool HasEntity(ID<Entity> entity) const
     {
@@ -316,12 +387,15 @@ public:
     }
 
     template <EntityTag tag>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasTag(ID<Entity> entity) const
     {
         return HasComponent<EntityTagComponent<tag>>(entity);
     }
 
     template <EntityTag tag>
+    HYP_FORCE_INLINE
     void AddTag(ID<Entity> entity)
     {
         if (HasTag<tag>(entity)) {
@@ -332,6 +406,7 @@ public:
     }
 
     template <EntityTag tag>
+    HYP_FORCE_INLINE
     void RemoveTag(ID<Entity> entity)
     {
         if (!HasTag<tag>(entity)) {
@@ -341,6 +416,8 @@ public:
         RemoveComponent<EntityTagComponent<tag>>(entity);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Array<EntityTag> GetTags(ID<Entity> entity) const
     {
         Array<EntityTag> tags;
@@ -349,6 +426,8 @@ public:
         return tags;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     uint32 GetTagsMask(ID<Entity> entity) const
     {
         uint32 mask = 0;
@@ -358,6 +437,8 @@ public:
     }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasComponent(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -370,6 +451,8 @@ public:
         return it->second.HasComponent<Component>();
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasComponent(TypeID component_type_id, ID<Entity> entity)
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -383,6 +466,8 @@ public:
     }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Component &GetComponent(ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
@@ -405,10 +490,14 @@ public:
     }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const Component &GetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->GetComponent<Component>(entity); }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Component *TryGetComponent(ID<Entity> entity)
     {
         // temp removed
@@ -445,6 +534,8 @@ public:
     }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const Component *TryGetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent<Component>(entity); }
 
@@ -455,6 +546,8 @@ public:
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
@@ -486,20 +579,28 @@ public:
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const void *TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent(component_type_id, entity); }
 
     template <class ... Components>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Tuple< Components &... > GetComponents(ID<Entity> entity)
         { return Tie(GetComponent<Components>(entity)...); }
 
     template <class ... Components>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Tuple< const Components &... > GetComponents(ID<Entity> entity) const
         { return Tie(GetComponent<Components>(entity)...); }
 
     /*! \brief Get a map of all component types to respective component IDs for a given Entity.
      *  \param entity The entity to lookup components for
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -534,6 +635,48 @@ public:
         const ComponentID component_id = GetContainer<Component>().AddComponent(std::move(component));
 
         auto components_insert_result = it->second.components.Set<Component>(component_id);
+        component_it = components_insert_result.first;
+
+        { // Lock the entity sets mutex
+            Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+
+            auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+            if (component_entity_sets_it != m_component_entity_sets.End()) {
+                for (EntitySetTypeID entity_set_id : component_entity_sets_it->second) {
+                    auto entity_set_it = m_entity_sets.Find(entity_set_id);
+                    AssertThrowMsg(entity_set_it != m_entity_sets.End(), "Entity set does not exist");
+
+                    entity_set_it->second->OnEntityUpdated(entity);
+                }
+            }
+        }
+
+        // Notify systems that entity is being added to them
+        NotifySystemsOfEntityAdded(entity, it->second.components);
+
+        return component_id;
+    }
+
+    ComponentID AddComponent(ID<Entity> entity, TypeID component_type_id, UniquePtr<void> &&component_ptr)
+    {
+        Threads::AssertOnThread(m_owner_thread_mask);
+
+        AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
+
+        auto it = m_entities.Find(entity);
+        AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
+
+        auto component_it = it->second.components.Find(component_type_id);
+        // @TODO: Replace the component if it already exists
+        AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component of type %u", component_type_id.Value());
+
+        ComponentContainerBase *container = TryGetContainer(component_type_id);
+        AssertThrowMsg(container != nullptr, "Component container does not exist for component type %u", component_type_id.Value());
+
+        const ComponentID component_id = container->AddComponent(std::move(component_ptr));
+
+        auto components_insert_result = it->second.components.Set(component_type_id, component_id);
         component_it = components_insert_result.first;
 
         { // Lock the entity sets mutex
@@ -597,6 +740,7 @@ public:
         }
     }
 
+    [[nodiscard]]
     ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
 
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
@@ -610,6 +754,7 @@ public:
      *  \return Reference to the entity set.
      */
     template <class ... Components>
+    [[nodiscard]]
     EntitySet<Components...> &GetEntitySet()
     {
         Mutex::Guard guard(m_entity_sets_mutex);
@@ -646,6 +791,7 @@ public:
     }
 
     template <class SystemType, class ...Args>
+    HYP_FORCE_INLINE
     SystemType *AddSystem(Args &&... args)
     {
         return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>(new SystemType(*this, std::forward<Args>(args)...))));
@@ -658,18 +804,22 @@ public:
 
 private:
     template <uint32... indices>
+    HYP_FORCE_INLINE
     void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, Array<EntityTag> &out_tags) const
     {
         ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_tags.PushBack(EntityTag(indices + 1))) : void()), ...);
     }
 
     template <uint32... indices>
+    HYP_FORCE_INLINE
     void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, uint32 &out_mask) const
     {
         ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_mask |= (1u << uint32(indices))) : void()), ...);
     }
 
     template <class Component>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ComponentContainer<Component> &GetContainer()
     {
         auto it = m_containers.Find<Component>();
@@ -681,6 +831,8 @@ private:
         return static_cast<ComponentContainer<Component> &>(*it->second);
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ComponentContainerBase *TryGetContainer(TypeID component_type_id)
     {
         auto it = m_containers.Find(component_type_id);

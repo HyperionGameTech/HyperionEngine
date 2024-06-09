@@ -19,10 +19,14 @@
 #include <math/Matrix4.hpp>
 #include <math/Quaternion.hpp>
 
+#include <scene/ecs/ComponentFactory.hpp>
+#include <scene/ecs/ComponentContainer.hpp>
+
 namespace hyperion {
 
 class ComponentInterfaceBase;
 class ComponentInterfaceRegistry;
+class ComponentContainerFactoryBase;
 
 template <class ComponentType>
 class ComponentInterface;
@@ -75,25 +79,37 @@ public:
 
     ~ComponentProperty()                                        = default;
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     Name GetName() const
         { return m_name; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    EnumFlags<ComponentPropertyFlags> GetFlags() const
+        { return m_flags; }
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsReadable() const
         { return m_flags & ComponentPropertyFlags::READ; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsWritable() const
         { return m_flags & ComponentPropertyFlags::WRITE; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsReadOnly() const
         { return !IsWritable(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const Getter &GetGetter() const
         { return m_getter; }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     const Setter &GetSetter() const
         { return m_setter; }
@@ -145,17 +161,41 @@ public:
         return static_cast< ComponentInterface<T> *>(GetComponentInterface(TypeID::ForType<T>()));
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    Array<ComponentInterfaceBase *> GetComponentInterfaces() const
+    {
+        AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
+
+        Array<ComponentInterfaceBase *> interfaces;
+        interfaces.Resize(m_interfaces.Size());
+
+        uint32 interface_index = 0;
+
+        for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it, ++interface_index) {
+            interfaces[interface_index] = it->second.Get();
+        }
+
+        return interfaces;
+    }
+
 private:
     bool                                                        m_is_initialized;
     HashMap< TypeID, UniquePtr< ComponentInterfaceBase >(*)() > m_factories;
     HashMap< TypeID, UniquePtr< ComponentInterfaceBase > >      m_interfaces;
 };
 
+template <class ComponentType>
+struct ComponentInterfaceRegistration;
 
 class ComponentInterfaceBase
 {
-public:
+protected:
     ComponentInterfaceBase();
+
+public:
+    template <class ComponentType>
+    friend struct ComponentInterfaceRegistration;
 
     ComponentInterfaceBase(const ComponentInterfaceBase &)                  = delete;
     ComponentInterfaceBase &operator=(const ComponentInterfaceBase &)       = delete;
@@ -168,8 +208,17 @@ public:
     /*! \brief Called by ComponentInterfaceRegistry, not to be called by user code */
     void Initialize();
 
+    UniquePtr<void> CreateComponent() const
+        { return m_component_factory->CreateComponent(); }
+
+    ComponentContainerFactoryBase *GetComponentContainerFactory() const
+        { return m_component_container_factory; }
+
     TypeID GetTypeID() const
         { return m_type_id; }
+
+    virtual ANSIStringView GetTypeName() const final
+        { return GetTypeName_Internal(); }
 
     const Array<ComponentProperty> &GetProperties() const
         { return m_properties; }
@@ -179,11 +228,15 @@ public:
 
 protected:
     virtual TypeID GetTypeID_Internal() const = 0;
+    virtual ANSIStringView GetTypeName_Internal() const = 0;
+
     virtual Array<ComponentProperty> GetProperties_Internal() const = 0;
 
 private:
-    TypeID                      m_type_id;
-    Array<ComponentProperty>    m_properties;
+    UniquePtr<ComponentFactoryBase> m_component_factory;
+    ComponentContainerFactoryBase   *m_component_container_factory;
+    TypeID                          m_type_id;
+    Array<ComponentProperty>        m_properties;
 };
 
 template <class ComponentType>
@@ -193,7 +246,11 @@ struct ComponentInterfaceRegistration
     {
         ComponentInterfaceRegistry::GetInstance().Register(TypeID::ForType<ComponentType>(), []() -> UniquePtr<ComponentInterfaceBase>
         {
-            return UniquePtr<ComponentInterfaceBase>(new ComponentInterface<ComponentType>());
+            UniquePtr<ComponentInterfaceBase> component_interface(new ComponentInterface<ComponentType>());
+            component_interface->m_component_factory = UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>());
+            component_interface->m_component_container_factory = ComponentContainer<ComponentType>::GetFactory();
+
+            return component_interface;
         });
     }
 };

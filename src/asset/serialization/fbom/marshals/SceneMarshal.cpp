@@ -24,7 +24,7 @@ public:
             out.AddChild(*in_object.GetRoot().Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE);
         }
 
-        if (auto *camera = in_object.GetCamera().Get()) {
+        if (const Handle<Camera> &camera = in_object.GetCamera()) {
             out.AddChild(*camera);
         }
 
@@ -36,7 +36,10 @@ public:
         Handle<Scene> scene_handle = CreateObject<Scene>(Handle<Camera>());
 
         Name name;
-        in.GetProperty("name").ReadName(&name);
+
+        if (FBOMResult err = in.GetProperty("name").ReadName(&name)) {
+            return err;
+        }
 
         scene_handle->SetName(name);
 

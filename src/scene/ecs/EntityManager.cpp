@@ -13,7 +13,7 @@ namespace hyperion {
 #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static const uint systems_execution_parallel_threshold = 3;
+static const uint32 systems_execution_parallel_threshold = 3;
 
 #pragma region EntityManagerCommandQueue
 
@@ -26,7 +26,7 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const uint current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+        const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
         EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
         std::unique_lock<std::mutex> guard(buffer.mutex);
@@ -46,7 +46,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 {
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
-        const uint current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
+        const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
 
         EntityManagerCommandBuffer &buffer = m_command_buffers[current_buffer_index];
 
@@ -57,7 +57,7 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
         std::unique_lock<std::mutex> guard(buffer.mutex);
 
         // Swap the buffer index to allow new commands to be added to buffer while executing
-        const uint next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
+        const uint32 next_buffer_index = (current_buffer_index + 1) % m_command_buffers.Size();
 
         m_buffer_index.Set(next_buffer_index, MemoryOrder::RELEASE);
 
@@ -80,13 +80,56 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 
 #pragma region EntityManager
 
+EntityToEntityManagerMap EntityManager::s_entity_to_entity_manager_map { };
+
+EntityToEntityManagerMap &EntityManager::GetEntityToEntityManagerMap()
+{
+    return s_entity_to_entity_manager_map;
+}
+
+HYP_DISABLE_OPTIMIZATION;
+EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene)
+    : m_owner_thread_mask(owner_thread_mask),
+      m_scene(scene),
+      m_command_queue(
+          (owner_thread_mask & ThreadName::THREAD_GAME)
+              ? ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD
+              : ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD // discard commands if not on the game thread
+      )
+{
+    AssertThrow(scene != nullptr);
+
+    // add initial component containers based on registered component interfaces
+    Array<ComponentInterfaceBase *> component_interfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
+    for (ComponentInterfaceBase *component_interface : component_interfaces) {
+        AssertThrow(component_interface != nullptr);
+
+        ComponentContainerFactoryBase *component_container_factory = component_interface->GetComponentContainerFactory();
+        AssertThrow(component_container_factory != nullptr);
+
+        UniquePtr<ComponentContainerBase> component_container = component_container_factory->Create();
+        AssertThrow(component_container != nullptr);
+
+        m_containers.Set(component_interface->GetTypeID(), std::move(component_container));
+    }
+}
+HYP_ENABLE_OPTIMIZATION;
+
+EntityManager::~EntityManager()
+{
+    GetEntityToEntityManagerMap().RemoveEntityManager(this);
+}
+
 ID<Entity> EntityManager::AddEntity()
 {
     Threads::AssertOnThread(m_owner_thread_mask);
     
-    const uint index = Handle<Entity>::GetContainer().NextIndex();
+    const uint32 index = Handle<Entity>::GetContainer().NextIndex();
+    const ID<Entity> entity = ID<Entity>::FromIndex(index);
 
-    return m_entities.AddEntity(Handle<Entity>(ID<Entity>::FromIndex(index)));
+    GetEntityToEntityManagerMap().Add(entity, this);
+
+    return m_entities.AddEntity(Handle<Entity> { entity });
 }
 
 bool EntityManager::RemoveEntity(ID<Entity> entity)
@@ -134,6 +177,8 @@ bool EntityManager::RemoveEntity(ID<Entity> entity)
             }
         }
     }
+    
+    GetEntityToEntityManagerMap().Remove(entity);
 
     m_entities.Erase(it);
 
@@ -163,9 +208,9 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
 
     const EntityData &entity_data = entity_it->second;
 
-    other.m_entities.AddEntity(entity_it->first, EntityData {
-        entity_data.handle
-    });
+    other.m_entities.AddEntity(entity_it->first, EntityData { entity_data.handle });
+
+    GetEntityToEntityManagerMap().Remap(entity, &other);
 
     const auto other_entity_it = other.m_entities.Find(entity);
     AssertThrow(other_entity_it != other.m_entities.End());
@@ -323,7 +368,7 @@ void SystemExecutionGroup::Process(GameCounter::TickUnit delta)
         TaskSystem::GetInstance().ParallelForEach(
             TaskThreadPoolName::THREAD_POOL_GENERIC,
             m_systems,
-            [&, delta](auto &it, uint index, uint)
+            [&, delta](auto &it, uint32 index, uint32)
             {
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
                 const auto start = std::chrono::high_resolution_clock::now();
