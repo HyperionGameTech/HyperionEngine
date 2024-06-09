@@ -16,16 +16,16 @@ public:
     {
         out.SetProperty(NAME("name"), FBOMName(), in_object.GetName());
 
-        // for (auto &node : in_object.GetRoot().GetChildren()) {
-        //     out.AddChild(*node.Get());
-        // }
-
         if (in_object.GetRoot()) {
-            out.AddChild(*in_object.GetRoot().Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE);
+            if (FBOMResult err = out.AddChild(*in_object.GetRoot().Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE)) {
+                return err;
+            }
         }
 
         if (const Handle<Camera> &camera = in_object.GetCamera()) {
-            out.AddChild(*camera);
+            if (FBOMResult err = out.AddChild(*camera)) {
+                return err;
+            }
         }
 
         return { FBOMResult::FBOM_OK };

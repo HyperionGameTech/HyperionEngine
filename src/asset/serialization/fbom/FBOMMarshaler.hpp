@@ -26,6 +26,7 @@ public:
     virtual ~FBOMMarshalerBase() = default;
 
     virtual FBOMType GetObjectType() const = 0;
+    virtual TypeID GetTypeID() const = 0;
 
 protected:
     // virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const = 0;
@@ -65,6 +66,9 @@ public:
 
     virtual FBOMType GetObjectType() const override
         { return FBOMObjectType(TypeNameWithoutNamespace<T>().Data()); }
+
+    virtual TypeID GetTypeID() const override final
+        { return TypeID::ForType<T>(); }
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const = 0;

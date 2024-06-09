@@ -218,7 +218,7 @@ public:
         { return m_type_id; }
 
     virtual ANSIStringView GetTypeName() const final
-        { return GetTypeName_Internal(); }
+        { return m_type_name; }
 
     const Array<ComponentProperty> &GetProperties() const
         { return m_properties; }
@@ -236,6 +236,7 @@ private:
     UniquePtr<ComponentFactoryBase> m_component_factory;
     ComponentContainerFactoryBase   *m_component_container_factory;
     TypeID                          m_type_id;
+    ANSIStringView                  m_type_name;
     Array<ComponentProperty>        m_properties;
 };
 

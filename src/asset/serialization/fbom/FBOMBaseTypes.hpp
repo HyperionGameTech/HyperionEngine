@@ -24,6 +24,11 @@ struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1) { } };
 
 struct FBOMStruct : FBOMType
 {
+    FBOMStruct()
+        : FBOMType("struct", -1)
+    {
+    }
+    
     FBOMStruct(const ANSIStringView &type_name, SizeType sz)
         : FBOMType(type_name, sz, FBOMType("struct", sz))
     {
@@ -53,6 +58,12 @@ struct FBOMSequence : FBOMType
 {
     FBOMSequence() : FBOMType("seq", -1) {}
 
+    FBOMSequence(const FBOMType &held_type)
+        : FBOMType("seq", -1)
+    {
+        AssertThrowMsg(!held_type.IsUnbouned(), "Cannot create sequence of unbounded type");
+    }
+
     FBOMSequence(const FBOMType &held_type, SizeType count)
         : FBOMType("seq", held_type.size * count)
     {
@@ -63,7 +74,7 @@ struct FBOMSequence : FBOMType
 struct FBOMByteBuffer : FBOMType
 {
     FBOMByteBuffer()
-        : FBOMType("buf", 0)
+        : FBOMType("buf", -1)
     {
     }
 
@@ -91,7 +102,7 @@ struct FBOMQuaternion : FBOMVec4f { FBOMQuaternion() : FBOMVec4f() {} };
 struct FBOMString : FBOMType
 {
     FBOMString()
-        : FBOMString(0)
+        : FBOMString(-1)
     {
     }
 

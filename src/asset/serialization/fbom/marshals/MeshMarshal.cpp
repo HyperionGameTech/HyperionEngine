@@ -15,7 +15,7 @@ public:
     virtual FBOMResult Serialize(const Mesh &in_object, FBOMObject &out) const override
     {
         out.SetProperty(NAME("topology"), FBOMUnsignedInt(), in_object.GetTopology());
-        out.SetProperty(NAME("attributes"), FBOMStruct::Create<VertexAttributeSet>(), &in_object.GetVertexAttributes());
+        out.SetProperty(NAME("attributes"), FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
 
         const RC<StreamedMeshData> &streamed_mesh_data = in_object.GetStreamedMeshData();
 
@@ -25,17 +25,16 @@ public:
 
             // dump vertices and indices
             out.SetProperty(NAME("num_vertices"), FBOMUnsignedInt(), uint32(mesh_data.vertices.Size()));
-            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>(), mesh_data.vertices.Size()), mesh_data.vertices.Data());
+            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>()), ByteBuffer(mesh_data.vertices.Size(), mesh_data.vertices.Data()));
 
             out.SetProperty(NAME("num_indices"), FBOMUnsignedInt(), uint32(mesh_data.indices.Size()));
-        
-            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt(), mesh_data.indices.Size()), mesh_data.indices.Data());
+            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt()), ByteBuffer(mesh_data.indices.Size(), mesh_data.indices.Data()));
         } else {
             out.SetProperty(NAME("num_vertices"), FBOMUnsignedInt(), 0);
-            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>(), 0), nullptr);
+            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>()), ByteBuffer());
 
             out.SetProperty(NAME("num_indices"), FBOMUnsignedInt(), 0u);
-            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt(), 0), nullptr);
+            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt()), ByteBuffer());
         }
 
         return { FBOMResult::FBOM_OK };

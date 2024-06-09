@@ -3,7 +3,7 @@
 #ifndef HYPERION_FBOM_RESULT_HPP
 #define HYPERION_FBOM_RESULT_HPP
 
-#include <string>
+#include <core/containers/String.hpp>
 
 namespace hyperion::fbom {
 
@@ -15,19 +15,18 @@ struct FBOMResult
         FBOM_ERR = 1
     } value;
 
-    const char *message = "";
+    String message = "";
 
-    FBOMResult(decltype(FBOM_OK) value = FBOM_OK, const char *message = "")
+    FBOMResult(decltype(FBOM_OK) value = FBOM_OK, const String &message = "")
         : value(value),
           message(message)
     {
     }
 
-    FBOMResult(const FBOMResult &other)
-        : value(other.value),
-          message(other.message)
-    {
-    }
+    FBOMResult(const FBOMResult &other)                 = default;
+    FBOMResult &operator=(const FBOMResult &other)      = default;
+    FBOMResult(FBOMResult &&other) noexcept             = default;
+    FBOMResult &operator=(FBOMResult &&other) noexcept  = default;
 
     operator int() const { return int(value); }
 };

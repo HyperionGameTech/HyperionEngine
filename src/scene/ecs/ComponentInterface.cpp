@@ -65,6 +65,7 @@ void ComponentInterfaceRegistry::Register(TypeID component_type_id, UniquePtr< C
 void ComponentInterfaceBase::Initialize()
 {
     m_type_id = GetTypeID_Internal();
+    m_type_name = GetTypeName_Internal();
     m_properties = GetProperties_Internal();
 }
 

@@ -50,14 +50,16 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out)
 
     BuildStaticData();
 
-    WriteHeader(out);
-    WriteNameTable(out);
-    WriteStaticData(out);
+    if (FBOMResult err = WriteHeader(out)) {
+        return err;
+    }
 
-    for (const auto &it : m_write_stream.m_object_data) {
-        if (FBOMResult err = WriteObject(out, it)) {
-            m_write_stream.m_last_result = err;
+    if (FBOMResult err = WriteStaticData(out)) {
+        return err;
+    }
 
+    for (const FBOMObject &object : m_write_stream.m_object_data) {
+        if (FBOMResult err = WriteObject(out, object)) {
             return err;
         }
     }
@@ -71,10 +73,16 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out)
 
 FBOMResult FBOMWriter::WriteExternalObjects()
 {
-    for (const auto &it : m_write_stream.m_external_objects) {
+    if (m_write_stream.m_external_objects.Any()) {
+        DebugLog(LogType::Debug, "Writing %u external objects\n", m_write_stream.m_external_objects.Size());
+    }
+
+    for (const KeyValuePair<String, FBOMExternalData> &it : m_write_stream.m_external_objects) {
+        const String external_object_path = it.first;
+
         FBOMWriter chunk_writer;
 
-        for (const auto &objects_it : it.second.objects) {
+        for (const KeyValuePair<UniqueID, FBOMObject> &objects_it : it.second.objects) {
             FBOMObject object(objects_it.second);
 
             // set to empty to not keep recursing. we only write the external data once.
@@ -85,9 +93,11 @@ FBOMResult FBOMWriter::WriteExternalObjects()
             }
         }
 
-        FileByteWriter byte_writer(it.first);
-        chunk_writer.Emit(&byte_writer);
-        byte_writer.Close();
+        FileByteWriter byte_writer(external_object_path);
+
+        if (FBOMResult err = chunk_writer.Emit(&byte_writer)) {
+            return err;
+        }
     }
 
     return FBOMResult::FBOM_OK;
@@ -102,6 +112,7 @@ void FBOMWriter::BuildStaticData()
 
 void FBOMWriter::Prune(const FBOMObject &object)
 {
+    // will be pruned by other instance when it is written
     if (object.IsExternal()) {
         return;
     }
@@ -136,12 +147,6 @@ void FBOMWriter::Prune(const FBOMObject &object)
     //}
 }
 
-FBOMResult FBOMWriter::WriteNameTable(ByteWriter *out)
-{
-    // temp
-    return FBOMResult::FBOM_OK;
-}
-
 FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
 {
     Array<FBOMStaticData> static_data_ordered;
@@ -171,12 +176,6 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
     //   then, the actual size of the data will vary depending on the held type
 
     for (const FBOMStaticData &it : static_data_ordered) {
-        // // temp
-        // if (it.type == FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE) {
-        //     continue;
-        // }
-
-
         AssertThrow(it.offset < static_data_ordered.Size());
 
         out->Write<uint32>(uint32(it.offset));
@@ -245,11 +244,10 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object, Un
     if (object.IsExternal()) {
         // defer writing it. instead we pass the object into our external data,
         // which we will later be write
-
         FBOMExternalData &external_object = m_write_stream.m_external_objects[object.GetExternalObjectKey()];
         external_object.objects[id] = object;
 
-        // return FBOMResult::FBOM_OK;
+        return FBOMResult::FBOM_OK;
     }
 
     out->Write<uint8>(FBOM_OBJECT_START);
@@ -473,8 +471,13 @@ UniqueID FBOMWriter::AddStaticData(UniqueID id, FBOMStaticData &&static_data)
     if (it == m_write_stream.m_static_data.End()) {
         static_data.SetUniqueID(id);
         static_data.offset = m_write_stream.m_static_data_offset++;
-        m_write_stream.m_static_data[id] = std::move(static_data);
+
+        m_write_stream.m_static_data.Set(id, std::move(static_data));
+
+#ifdef HYP_DEBUG_MODE
+        // sanity check
         AssertThrow(m_write_stream.m_static_data[id].GetUniqueID() == id);
+#endif
     }
 
     return id;

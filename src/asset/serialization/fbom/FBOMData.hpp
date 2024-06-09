@@ -66,7 +66,8 @@ struct FBOMData
     ByteBuffer ReadBytes() const;
     ByteBuffer ReadBytes(SizeType n) const;
 
-    void SetBytes(SizeType n, const void *data);
+    void SetBytes(const ByteBuffer &byte_buffer);
+    void SetBytes(SizeType count, const void *data);
 
 #define FBOM_TYPE_FUNCTIONS(type_name, c_type) \
     bool Is##type_name() const { return type == FBOM##type_name(); } \
@@ -173,14 +174,19 @@ struct FBOMData
     template <int string_type>
     [[nodiscard]]
     HYP_FORCE_INLINE
-    static FBOMData FromString(const containers::detail::String<string_type> &str)
+    static FBOMData FromString(const StringView<string_type> &str)
     {
         static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
 
-        FBOMData data(FBOMString(str.Size()));
-        data.SetBytes(str.Size(), str.Data());
-
-        return data;
+        return FBOMData(FBOMString(), ByteBuffer(str.Size(), str.Data()));
+    }
+    
+    template <int string_type>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    static FBOMData FromString(const containers::detail::String<string_type> &str)
+    {
+        return FromString(StringView<string_type>(str));
     }
 
     [[nodiscard]]

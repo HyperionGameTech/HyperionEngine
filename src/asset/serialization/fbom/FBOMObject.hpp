@@ -9,6 +9,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/UniqueID.hpp>
+#include <core/utilities/StringView.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/Name.hpp>
 
@@ -31,7 +32,8 @@ struct FBOMExternalObjectInfo
 {
     String key;
 
-    explicit operator bool() const { return key.Any(); }
+    explicit operator bool() const
+        { return key.Any(); }
 
     UniqueID GetUniqueID() const
         { return UniqueID(key); }
@@ -67,19 +69,25 @@ public:
     FBOMObject &operator=(FBOMObject &&other) noexcept;
     ~FBOMObject();
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsExternal() const
-        { return m_external_info.Any(); }
+        { return m_external_info.HasValue(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const String &GetExternalObjectKey() const
-        { return IsExternal() ? m_external_info.Get().key : String::empty; }
+        { return IsExternal() ? m_external_info->key : String::empty; }
 
-   const FBOMExternalObjectInfo *GetExternalObjectInfo() const
-        { return IsExternal() ? &m_external_info.Get() : nullptr; }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const FBOMExternalObjectInfo *GetExternalObjectInfo() const
+        { return IsExternal() ? m_external_info.TryGet() : nullptr; }
 
     void SetExternalObjectInfo(const FBOMExternalObjectInfo &info)
     {
         if (info) {
-            m_external_info = info;
+            m_external_info.Set(info);
         } else {
             m_external_info.Unset();
         }
@@ -106,25 +114,30 @@ public:
 
     FBOMObject &SetProperty(Name key, const FBOMData &data);
     FBOMObject &SetProperty(Name key, FBOMData &&data);
-    FBOMObject &SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
-    FBOMObject &SetProperty(Name key, const FBOMType &type, const void *bytes);
     FBOMObject &SetProperty(Name key, const ByteBuffer &bytes);
+    FBOMObject &SetProperty(Name key, const FBOMType &type, const ByteBuffer &byte_buffer);
+    FBOMObject &SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
+
+    // TODO: Replace with template function.
+    FBOMObject &SetProperty(Name key, const FBOMType &type, const void *bytes);
+
+    HYP_FORCE_INLINE
+    FBOMObject &SetProperty(Name key, const UTF8StringView &str)
+        { return SetProperty(key, FBOMData::FromString(str)); }
+
+    HYP_FORCE_INLINE
+    FBOMObject &SetProperty(Name key, const ANSIStringView &str)
+        { return SetProperty(key, FBOMData::FromString(str)); }
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
+    HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, const FBOMType &type, const T &value)
-    {
-        SetProperty(key, type, sizeof(NormalizedType<T>), &value);
-
-        return *this;
-    }
+        { return SetProperty(key, type, sizeof(NormalizedType<T>), &value); }
 
     template <class T, typename = typename std::enable_if_t<!std::is_pointer_v<NormalizedType<T>>>>
+    HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, const FBOMType &type, T &&value)
-    {
-        SetProperty(key, type, sizeof(NormalizedType<T>), &value);
-
-        return *this;
-    }
+        { return SetProperty(key, type, sizeof(NormalizedType<T>), &value); }
 
     [[nodiscard]]
     const FBOMData &operator[](WeakName key) const;
@@ -132,38 +145,41 @@ public:
     /*! \brief Add a child object to this object node.
         @param object The child object to add
         @param flags Options to use for loading */
-    template <class T, class MarshalClass = FBOMMarshaler<NormalizedType<T>>>
+    template <class T>
     typename std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>, FBOMResult>
     AddChild(const T &object, FBOMObjectFlags flags = FBOM_OBJECT_FLAGS_NONE)
     {
-        static_assert(implementation_exists<MarshalClass>, "Marshal class does not exist");
-        static_assert(std::is_base_of_v<FBOMMarshalerBase, MarshalClass>, "Marshal class must be a derived class of FBOMMarshalBase");
+        FBOMMarshalerBase *marshal = GetLoader(TypeID::ForType<NormalizedType<T>>());
+        AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
-        MarshalClass marshal;
+        FBOMObjectMarshalerBase<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMObjectMarshalerBase<NormalizedType<T>> *>(marshal);
+        AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
         String external_object_key;
 
-        FBOMObject out_object(marshal.GetObjectType());
+        FBOMObject out_object(marshal_derived->GetObjectType());
         out_object.GenerateUniqueID(object, flags);
 
         if (flags & FBOM_OBJECT_FLAGS_EXTERNAL) {
             if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
-                const String class_name_lower(StringUtil::ToLower(marshal.GetObjectType().name.Data()).c_str());
+                const String class_name_lower = marshal_derived->GetObjectType().name.ToLower();
                 external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
             } else {
                 external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hypdata";
             }
+
+            AssertThrow(external_object_key.Any());
         }
 
-        auto result = marshal.Serialize(object, out_object);
-
-        if (result.value != FBOMResult::FBOM_ERR) {
-            // TODO: Check if external object already exists.
-            // if it does, do not build the file again.
-            AddChild(std::move(out_object), external_object_key);
+        if (FBOMResult err = marshal_derived->Serialize(object, out_object)) {
+            return err;
         }
 
-        return result;
+        // TODO: Check if external object already exists.
+        // if it does, do not build the file again.
+        AddChild(std::move(out_object), external_object_key);
+
+        return { FBOMResult::FBOM_OK };
     }
     
     UniqueID GetUniqueID() const
@@ -195,6 +211,10 @@ public:
     }
 
     void AddChild(FBOMObject &&object, const String &external_object_key = String::empty);
+
+private:
+    [[nodiscard]]
+    static FBOMMarshalerBase *GetLoader(TypeID object_type_id);
 };
 
 // class FBOMNodeHolder {

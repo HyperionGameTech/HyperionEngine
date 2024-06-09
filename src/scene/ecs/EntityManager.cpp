@@ -87,7 +87,6 @@ EntityToEntityManagerMap &EntityManager::GetEntityToEntityManagerMap()
     return s_entity_to_entity_manager_map;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene)
     : m_owner_thread_mask(owner_thread_mask),
       m_scene(scene),
@@ -99,9 +98,8 @@ EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene)
 {
     AssertThrow(scene != nullptr);
 
-    // add initial component containers based on registered component interfaces
-    Array<ComponentInterfaceBase *> component_interfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
-    for (ComponentInterfaceBase *component_interface : component_interfaces) {
+    // add initial component containers
+    for (ComponentInterfaceBase *component_interface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces()) {
         AssertThrow(component_interface != nullptr);
 
         ComponentContainerFactoryBase *component_container_factory = component_interface->GetComponentContainerFactory();
@@ -113,7 +111,6 @@ EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene)
         m_containers.Set(component_interface->GetTypeID(), std::move(component_container));
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 EntityManager::~EntityManager()
 {

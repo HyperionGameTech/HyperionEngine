@@ -86,7 +86,7 @@ public:
 
         out.SetProperty(
             NAME("texture_keys"),
-            FBOMSequence(FBOMUnsignedInt(), std::size(texture_keys)),
+            FBOMSequence(FBOMUnsignedInt(), ArraySize(texture_keys)),
             &texture_keys[0]
         );
 
@@ -96,7 +96,9 @@ public:
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
     {
         Name name;
-        in.GetProperty("name").ReadName(&name);
+        if (FBOMResult err = in.GetProperty("name").ReadName(&name)) {
+            return err;
+        }
 
         MaterialAttributes attributes;
         Material::ParameterTable parameters = Material::DefaultParameters();

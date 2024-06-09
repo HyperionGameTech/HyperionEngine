@@ -538,7 +538,7 @@ void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
 {
     if (cache) {
-        HYP_LOG(Engine, LogLevel::ERROR, "Insert RenderGroup in mapping for renderable attribute set hash {}",
+        HYP_LOG(Engine, LogLevel::DEBUG, "Insert RenderGroup in mapping for renderable attribute set hash {}",
             render_group->GetRenderableAttributes().GetHashCode().Value());
 
         m_render_group_mapping.Insert(

@@ -46,16 +46,17 @@ public:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
         }
 
-        if (ID<Entity> entity = in_object.GetEntity()) {
+        if (ID<Entity> entity = in_object.GetEntity(); entity.IsValid()) {
             Handle<Entity> entity_handle { entity };
+            entity_handle->SetID(entity);
 
-            if (auto err = out.AddChild(*entity_handle, FBOM_OBJECT_FLAGS_EXTERNAL)) {
+            if (FBOMResult err = out.AddChild(*entity_handle, FBOM_OBJECT_FLAGS_EXTERNAL)) {
                 return err;
             }
         }
 
         for (const NodeProxy &child : in_object.GetChildren()) {
-            if (!child) {
+            if (!child.IsValid()) {
                 continue;
             }
 

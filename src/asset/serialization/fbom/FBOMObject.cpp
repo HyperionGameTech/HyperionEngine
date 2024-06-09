@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
 
 namespace hyperion::fbom {
@@ -123,30 +124,32 @@ FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
     return *this;
 }
 
+FBOMObject &FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
+{
+    return SetProperty(key, FBOMData(FBOMByteBuffer(bytes.Size()), ByteBuffer(bytes)));
+}
+
+FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const ByteBuffer &byte_buffer)
+{
+    FBOMData data(type);
+    data.SetBytes(byte_buffer);
+
+    return SetProperty(key, std::move(data));
+}
+
 FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
 
-    SetProperty(key, data);
-
-    return *this;
+    return SetProperty(key, std::move(data));
 }
 
 FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const void *bytes)
 {
-    AssertThrowMsg(!type.IsUnbouned(), "Cannot determine size of an unbounded type, please manually specify size");
+    // AssertThrowMsg(type.IsOrExtends(FBOMStruct()), "Type must be a struct to use this overload");
 
-    SetProperty(key, type, type.size, bytes);
-
-    return *this;
-}
-
-FBOMObject &FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
-{
-    SetProperty(key, FBOMByteBuffer(bytes.Size()), bytes.Data());
-
-    return *this;
+    return SetProperty(key, type, type.size, bytes);
 }
 
 const FBOMData &FBOMObject::operator[](WeakName key) const
@@ -156,19 +159,21 @@ const FBOMData &FBOMObject::operator[](WeakName key) const
 
 void FBOMObject::AddChild(FBOMObject &&object, const String &external_object_key)
 {
-    object.SetExternalObjectInfo(FBOMExternalObjectInfo { external_object_key });
+    if (external_object_key.Length() != 0) {
+        object.SetExternalObjectInfo(FBOMExternalObjectInfo { external_object_key });
+    }
+
+    // // debug sanity check
+    // if (object.GetType().IsOrExtends("Node")) {
+    //     FlatSet<UniqueID> subobject_ids;
+
+    //     for (FBOMObject &subobject : *nodes) {
+    //         auto insert_result = subobject_ids.Insert(subobject.GetUniqueID());
+    //         AssertThrow(insert_result.second);
+    //     }
+    // }
 
     nodes->PushBack(std::move(object));
-
-    if (object.GetType().IsOrExtends("Node")) {
-
-        FlatSet<uint64> sub_node_ids;
-        for (auto &node : *nodes) {
-            // debug sanity check
-            auto insert_result = sub_node_ids.Insert(node.GetUniqueID());
-            AssertThrow(insert_result.second);
-        }
-    }
 }
 
 HashCode FBOMObject::GetHashCode() const
@@ -185,8 +190,8 @@ HashCode FBOMObject::GetHashCode() const
             hc.Add(it.second.GetHashCode());
         }
 
-        for (const auto &it : *nodes) {
-            hc.Add(it.GetHashCode());
+        for (const FBOMObject &subobject : *nodes) {
+            hc.Add(subobject.GetHashCode());
         }
     }
 
@@ -213,6 +218,11 @@ String FBOMObject::ToString() const
     ss << " } ";
 
     return String(ss.str().data());
+}
+
+FBOMMarshalerBase *FBOMObject::GetLoader(TypeID object_type_id)
+{
+    return FBOM::GetInstance().GetLoader(object_type_id);
 }
 
 } // namespace hyperion::fbom

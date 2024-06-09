@@ -41,13 +41,14 @@ public:
             ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(it.first);
 
             if (!component_interface) {
-                return { FBOMResult::FBOM_ERR, "No ComponentInterface found for component" };
+                continue; // skip, for now.
+                // return { FBOMResult::FBOM_ERR, "No ComponentInterface found for component" };
             }
 
             // write all properties
             FBOMObject component_object;
             component_object.SetProperty(NAME("type_id"), FBOMUnsignedInt(), component_interface->GetTypeID().Value());
-            component_object.SetProperty(NAME("type_name"), FBOMString(component_interface->GetTypeName().Size()), component_interface->GetTypeName());
+            component_object.SetProperty(NAME("type_name"), component_interface->GetTypeName());
             component_object.SetProperty(NAME("num_properties"), FBOMUnsignedInt(), uint32(component_interface->GetProperties().Size()));
 
             // @TODO: Fix up when it is easy to create an array similar to how FBOMObject works. FBOMArray?

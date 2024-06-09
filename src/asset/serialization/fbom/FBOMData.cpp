@@ -79,7 +79,7 @@ FBOMData FBOMData::FromObject(const FBOMObject &object)
     serializer.Append(object);
 
     const FBOMResult serialize_result = serializer.Emit(&byte_writer);
-    AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", serialize_result.message);
+    AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", *serialize_result.message);
 
     return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
 }
@@ -111,14 +111,23 @@ ByteBuffer FBOMData::ReadBytes(SizeType n) const
     return ByteBuffer(to_read, bytes.Data());
 }
 
-void FBOMData::SetBytes(SizeType n, const void *data)
+void FBOMData::SetBytes(const ByteBuffer &byte_buffer)
 {
     if (!type.IsUnbouned()) {
-        AssertThrowMsg(n <= type.size, "Attempt to insert data past size max size of object (%llu > %llu)", n, type.size);
+        AssertThrowMsg(byte_buffer.Size() <= type.size, "Attempt to insert data past size max size of object (%llu > %llu)", byte_buffer.Size(), type.size);
     }
 
-    bytes.SetSize(n);
-    bytes.SetData(n, data);
+    bytes = byte_buffer;
+}
+
+void FBOMData::SetBytes(SizeType count, const void *data)
+{
+    if (!type.IsUnbouned()) {
+        AssertThrowMsg(count <= type.size, "Attempt to insert data past size max size of object (%llu > %llu)", count, type.size);
+    }
+
+    bytes.SetSize(count);
+    bytes.SetData(count, data);
 }
 
 } // namespace hyperion::fbom

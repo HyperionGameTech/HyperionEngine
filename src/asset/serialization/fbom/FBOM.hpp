@@ -455,8 +455,28 @@ public:
     
     void RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
 
-    [[nodiscard]]
-    FBOMMarshalerBase *GetLoader(ANSIStringView type_name) const;
+    /*! \brief Get a registered loader for the given object type.
+     *  \example Use the type MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
+     *  \tparam T The type of the class to get the loader for
+     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type
+     */
+    template <class T>
+    [[nodiscard]] HYP_FORCE_INLINE FBOMMarshalerBase *GetLoader() const
+        { return GetLoader(TypeID::ForType<NormalizedType<T>>()); }
+
+    /*! \brief Get a registered loader for the given object TypeID.
+     *  \example Use the TypeID for MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
+     *  \param object_type_id The TypeID of the class to get the loader for
+     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given TypeID
+     */
+    [[nodiscard]] FBOMMarshalerBase *GetLoader(TypeID object_type_id) const;
+
+    /*! \brief Get a registered loader for the given object type name.
+     *  \example Use the string "MyStruct" to get a registered instance of FBOMMarshaler<MyStruct> (assuming GetObjectType() has not been overridden in the marshaler class)
+     *  \param type_name The name of the class to get the loader for
+     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type name
+     */
+    [[nodiscard]] FBOMMarshalerBase *GetLoader(const ANSIStringView &type_name) const;
 
 private:
     FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
@@ -552,6 +572,7 @@ struct FBOMExternalData
     FlatMap<UniqueID, FBOMObject> objects;
 };
 
+HYP_DISABLE_OPTIMIZATION;
 class FBOMWriter
 {
 public:
@@ -563,20 +584,20 @@ public:
 
     ~FBOMWriter();
 
-    template <class T, class Marshal = FBOMMarshaler<T>>
+    template <class T>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
     Append(const T &object, FBOMObjectFlags flags = FBOM_OBJECT_FLAGS_NONE)
     {
-        if (auto err = m_write_stream.m_last_result) {
-            return err;
-        }
+        FBOMMarshalerBase *marshal = FBOM::GetInstance().GetLoader<NormalizedType<T>>();
+        AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
-        Marshal marshal;
+        FBOMObjectMarshalerBase<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMObjectMarshalerBase<NormalizedType<T>> *>(marshal);
+        AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
-        FBOMObject base(marshal.GetObjectType());
+        FBOMObject base(marshal_derived->GetObjectType());
         base.GenerateUniqueID(object, flags);
 
-        if (auto err = marshal.Serialize(object, base)) {
+        if (FBOMResult err = marshal_derived->Serialize(object, base)) {
             m_write_stream.m_last_result = err;
 
             return err;
@@ -594,7 +615,6 @@ private:
     void Prune(const FBOMObject &);
 
     FBOMResult WriteHeader(ByteWriter *out);
-    FBOMResult WriteNameTable(ByteWriter *out);
     FBOMResult WriteStaticData(ByteWriter *out);
 
     FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object, UniqueID id);
@@ -665,6 +685,7 @@ private:
         return AddStaticData(id, std::move(static_data));
     }
 };
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace fbom
 } // namespace hyperion

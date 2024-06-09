@@ -37,7 +37,11 @@ protected:
         { return TypeID::ForType<MeshComponent>(); }
 
     virtual ANSIStringView GetTypeName_Internal() const override
-        { return TypeNameWithoutNamespace<MeshComponent>(); }
+    {
+        static const auto type_name = TypeNameWithoutNamespace<MeshComponent>();
+
+        return type_name.Data();
+    }
     
     virtual Array<ComponentProperty> GetProperties_Internal() const override
     {

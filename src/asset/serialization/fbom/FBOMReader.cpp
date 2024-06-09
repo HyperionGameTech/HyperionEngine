@@ -17,8 +17,6 @@ FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string
     const uint32 string_type = (string_header & ByteWriter::string_type_mask);
     
     if (string_type != 0 && string_type != StringType::string_type) {
-        DebugLog(LogType::Error, "Expected string type: %u, got type: %u, header: %u\n", StringType::string_type, string_type, string_header);
-        HYP_BREAKPOINT;
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string type mismatch");
     }
 
@@ -27,8 +25,6 @@ FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string
     uint32 read_length;
 
     if ((read_length = reader->Read(string_buffer.Data(), string_length)) != string_length) {
-        DebugLog(LogType::Error, "Expected length: %u, got length: %u, header: %u\n", string_length, read_length, string_header);
-        HYP_BREAKPOINT;
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string length mismatch");
     }
 
@@ -51,8 +47,6 @@ FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject 
     const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(in.m_object_type.name);
 
     if (!loader) {
-        DebugLog(LogType::Error, "Error, no loader for type %s\n", in.m_object_type.name.Data());
-        HYP_BREAKPOINT;
         return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
     }
 
@@ -82,11 +76,9 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
     { // read header
         ubyte header_bytes[FBOM::header_size];
 
-        if (reader.Max() < FBOM::header_size) {
+        if (reader.Read(header_bytes, FBOM::header_size) != FBOM::header_size) {
             return { FBOMResult::FBOM_ERR, "Invalid header" };
         }
-
-        reader.Read(header_bytes, FBOM::header_size);
 
         if (Memory::StrCmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0) {
             return { FBOMResult::FBOM_ERR, "Invalid header identifier" };
@@ -101,8 +93,6 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
         // get version info
         uint32 binary_version;
         Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
-
-        DebugLog(LogType::Debug, "read binary version: %u\tcurrent binary version: %u\n", binary_version, FBOM::version.value);
 
         const int compatibility_test_result = FBOMVersion::TestCompatibility(binary_version, FBOM::version);
 
@@ -360,7 +350,6 @@ FBOMResult FBOMReader::ReadPropertyName(BufferedReader *reader, Name &out_proper
             root_type = root_type->extends;
         }
 
-        HYP_BREAKPOINT;
         return FBOMResult(FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `Name`");
     }
 
