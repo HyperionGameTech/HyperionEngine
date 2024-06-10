@@ -68,20 +68,27 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
     BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
     
     FBOMReader deserializer(fbom::FBOMConfig { });
-    return deserializer.Deserialize(byte_reader, out_object);
+    return deserializer.ReadObject(&byte_reader, out_object, nullptr);
 }
 
 FBOMData FBOMData::FromObject(const FBOMObject &object)
 {
     MemoryByteWriter byte_writer;
-
+    
     FBOMWriter serializer;
-    serializer.Append(object);
-
-    const FBOMResult serialize_result = serializer.Emit(&byte_writer);
-    AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", *serialize_result.message);
+    AssertThrow(serializer.WriteObject(&byte_writer, object) == FBOMResult::FBOM_OK);
 
     return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
+
+    // FBOMWriter serializer;
+    // serializer.Append(object);
+
+    // // @TODO Fix me so it is just the object, not the whole buffer + name table etc.
+
+    // const FBOMResult serialize_result = serializer.Emit(&byte_writer);
+    // AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", *serialize_result.message);
+
+    // return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
 }
 
 SizeType FBOMData::ReadBytes(SizeType n, void *out) const

@@ -1,9 +1,26 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+
+#include <core/utilities/Format.hpp>
+
 #include <math/MathUtil.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion {
+namespace utilities {
+
+template <class StringType>
+struct Formatter<StringType, fbom::FBOMVersion>
+{
+    auto operator()(const fbom::FBOMVersion &value) const
+    {
+        return Format< StaticString("{}.{}.{}") >(value.GetMajor(), value.GetMinor(), value.GetPatch());
+    }
+};
+
+} // namespace utilities
+
+namespace fbom {
 
 template <class StringType>
 FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string)
@@ -91,13 +108,13 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
         m_swap_endianness = bool(endianness) != IsBigEndian();
 
         // get version info
-        uint32 binary_version;
-        Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
+        FBOMVersion binary_version;
+        Memory::MemCpy(&binary_version.value, header_bytes + sizeof(FBOM::header_identifier) + sizeof(uint8), sizeof(uint32));
 
         const int compatibility_test_result = FBOMVersion::TestCompatibility(binary_version, FBOM::version);
-
+        
         if (compatibility_test_result != 0) {
-            return { FBOMResult::FBOM_ERR, "Unsupported binary version" };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Unsupported binary version! Got {} but current is {}. Result: {}", binary_version, FBOM::version, compatibility_test_result) };
         }
     }
 
@@ -692,4 +709,5 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
     return FBOMResult::FBOM_OK;
 }
 
-} // namespace hyperion::fbom
+} // namespace fbom
+} // namespace hyperion

@@ -5,31 +5,20 @@
 
 #include <core/Defines.hpp>
 
+#include <core/utilities/UUID.hpp>
+
 #include <Types.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion {
 
 namespace utilities {
-namespace detail {
-
-struct UniqueIDGenerator
-{
-    static HYP_API uint64 Generate();
-};
-
-} // namespace detail
 
 struct UniqueID
 {
-    static inline uint64 DefaultValue()
-    {
-        return detail::UniqueIDGenerator::Generate();
-    }
-
 public:
     UniqueID()
-        : value(DefaultValue())
+        : value(Generate().value)
     {
     }
 
@@ -39,31 +28,10 @@ public:
     {
     }
 
-    UniqueID(const UniqueID &other)
-        : value(other.value)
-    {
-    }
-
-    UniqueID &operator=(const UniqueID &other)
-    {
-        value = other.value;
-
-        return *this;
-    }
-
-    UniqueID(UniqueID &&other) noexcept
-        : value(other.value)
-    {
-        other.value = DefaultValue();
-    }
-
-    UniqueID &operator=(UniqueID &&other) noexcept
-    {
-        value = other.value;
-        other.value = DefaultValue();
-
-        return *this;
-    }
+    UniqueID(const UniqueID &other)                 = default;
+    UniqueID &operator=(const UniqueID &other)      = default;
+    UniqueID(UniqueID &&other) noexcept             = default;
+    UniqueID &operator=(UniqueID &&other) noexcept  = default;
 
     bool operator==(const UniqueID &other) const
         { return value == other.value; }
@@ -82,10 +50,7 @@ public:
 
     static inline UniqueID Generate()
     {
-        UniqueID id;
-        id.value = detail::UniqueIDGenerator::Generate();
-
-        return id;
+        return { UUID { } };
     }
 
 private:
