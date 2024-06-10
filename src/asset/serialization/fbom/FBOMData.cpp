@@ -65,9 +65,14 @@ FBOMData::~FBOMData() = default;
 
 FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
 {
+    if (!IsObject()) {
+        return { FBOMResult::FBOM_ERR, "Not an object" };
+    }
+
     BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
     
     FBOMReader deserializer(fbom::FBOMConfig { });
+    // return deserializer.Deserialize(byte_reader, out_object);
     return deserializer.ReadObject(&byte_reader, out_object, nullptr);
 }
 
@@ -78,17 +83,17 @@ FBOMData FBOMData::FromObject(const FBOMObject &object)
     FBOMWriter serializer;
     AssertThrow(serializer.WriteObject(&byte_writer, object) == FBOMResult::FBOM_OK);
 
-    return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
+    // return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
 
     // FBOMWriter serializer;
     // serializer.Append(object);
 
-    // // @TODO Fix me so it is just the object, not the whole buffer + name table etc.
-
     // const FBOMResult serialize_result = serializer.Emit(&byte_writer);
-    // AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", *serialize_result.message);
+    // AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", serialize_result.message.Data());
 
-    // return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
+    auto value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
+    AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+    return value;
 }
 
 SizeType FBOMData::ReadBytes(SizeType n, void *out) const

@@ -24,30 +24,16 @@ struct Span
     {
     }
 
-    Span(const Span &other)
-        : first(other.first),
-          last(other.last)
-    {
-    }
+    Span(const Span &other) = default;
 
-    template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
+    template <class OtherT>
     Span(const Span<OtherT> &other)
         : first(other.first),
           last(other.last)
     {
     }
 
-    Span &operator=(const Span &other)
-    {
-        if (std::addressof(other) == this) {
-            return *this;
-        }
-
-        first = other.first;
-        last = other.last;
-
-        return *this;
-    }
+    Span &operator=(const Span &other) = default;
 
     template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
     Span &operator=(const Span<OtherT> &other)

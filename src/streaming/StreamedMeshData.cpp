@@ -38,8 +38,8 @@ StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
     MemoryByteWriter writer;
 
     fbom::FBOMWriter serializer;
-    serializer.Append(mesh_data);
-    serializer.Emit(&writer);
+    AssertThrow(serializer.Append(mesh_data).IsOK());
+    AssertThrow(serializer.Emit(&writer).IsOK());
 
     m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
 

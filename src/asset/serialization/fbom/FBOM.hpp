@@ -14,6 +14,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 #include <core/ClassInfo.hpp>
 
 #include <math/MathUtil.hpp>
@@ -155,7 +156,7 @@ class HYP_API FBOM
 public:
     static constexpr SizeType header_size = 32;
     static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
-    static constexpr FBOMVersion version = FBOMVersion { 1, 6, 0 };
+    static constexpr FBOMVersion version = FBOMVersion { 1, 7, 0 };
 
     static FBOM &GetInstance();
 
@@ -283,11 +284,58 @@ struct FBOMExternalData
     FlatMap<UniqueID, FBOMObject> objects;
 };
 
-HYP_DISABLE_OPTIMIZATION;
+struct FBOMWriteStream
+{
+    // FBOMNameTable                       m_name_table;
+    UniqueID                            m_name_table_id;
+    FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
+    HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
+    bool                                m_static_data_write_locked = false; // is writing to static data locked? (prevents iterator invalidation)
+    FlatMap<UniqueID, int>              m_hash_use_count_map;
+    Array<FBOMObject>                   m_object_data;// TODO: make multiple root objects be supported by the loader
+    SizeType                            m_static_data_offset = 0;
+    FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
+
+    FBOMWriteStream();
+    FBOMWriteStream(const FBOMWriteStream &other)                   = default;
+    FBOMWriteStream &operator=(const FBOMWriteStream &other)        = default;
+    FBOMWriteStream(FBOMWriteStream &&other) noexcept               = default;
+    FBOMWriteStream &operator=(FBOMWriteStream &&other) noexcept    = default;
+    ~FBOMWriteStream()                                              = default;
+
+    FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, String &out_external_key) const;
+    void MarkStaticDataWritten(const UniqueID &unique_id);
+
+    HYP_FORCE_INLINE
+    void LockStaticDataWriting()
+        { m_static_data_write_locked = true; }
+
+    HYP_FORCE_INLINE
+    void UnlockStaticDataWriting()
+        { m_static_data_write_locked = false; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsStaticDataWritingLocked() const
+        { return m_static_data_write_locked; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    FBOMNameTable &GetNameTable()
+    {
+        auto it = m_static_data.Find(m_name_table_id);
+        AssertThrow(it != m_static_data.End());
+
+        return it->second.data.Get<FBOMNameTable>();
+    }
+};
+
 class FBOMWriter
 {
 public:
     FBOMWriter();
+    FBOMWriter(const RC<FBOMWriteStream> &write_stream);
+
     FBOMWriter(const FBOMWriter &other)             = delete;
     FBOMWriter &operator=(const FBOMWriter &other)  = delete;
     FBOMWriter(FBOMWriter &&other) noexcept;
@@ -309,7 +357,7 @@ public:
         base.GenerateUniqueID(object, flags);
 
         if (FBOMResult err = marshal_derived->Serialize(object, base)) {
-            m_write_stream.m_last_result = err;
+            m_write_stream->m_last_result = err;
 
             return err;
         }
@@ -353,53 +401,9 @@ private:
     UniqueID AddStaticData(const FBOMData &);
     UniqueID AddStaticData(const FBOMNameTable &);
 
-    struct WriteStream
-    {
-        // FBOMNameTable                       m_name_table;
-        UniqueID                            m_name_table_id;
-        FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
-        HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
-        bool                                m_static_data_write_locked = false; // is writing to static data locked? (prevents iterator invalidation)
-        FlatMap<UniqueID, int>              m_hash_use_count_map;
-        Array<FBOMObject>                   m_object_data;// TODO: make multiple root objects be supported by the loader
-        SizeType                            m_static_data_offset = 0;
-        FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
-
-        WriteStream();
-        WriteStream(const WriteStream &other)                   = default;
-        WriteStream &operator=(const WriteStream &other)        = default;
-        WriteStream(WriteStream &&other) noexcept               = default;
-        WriteStream &operator=(WriteStream &&other) noexcept    = default;
-        ~WriteStream()                                          = default;
-
-        FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, String &out_external_key) const;
-        void MarkStaticDataWritten(const UniqueID &unique_id);
-
-        HYP_FORCE_INLINE
-        void LockStaticDataWriting()
-            { m_static_data_write_locked = true; }
-
-        HYP_FORCE_INLINE
-        void UnlockStaticDataWriting()
-            { m_static_data_write_locked = false; }
-
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool IsStaticDataWritingLocked() const
-            { return m_static_data_write_locked; }
-
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        FBOMNameTable &GetNameTable()
-        {
-            auto it = m_static_data.Find(m_name_table_id);
-            AssertThrow(it != m_static_data.End());
-
-            return it->second.data.Get<FBOMNameTable>();
-        }
-    } m_write_stream;
-
 private:
+    RC<FBOMWriteStream> m_write_stream;
+
     UniqueID AddStaticData(UniqueID id, FBOMStaticData &&static_data);
 
     HYP_FORCE_INLINE

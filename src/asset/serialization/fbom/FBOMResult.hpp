@@ -28,7 +28,15 @@ struct FBOMResult
     FBOMResult(FBOMResult &&other) noexcept             = default;
     FBOMResult &operator=(FBOMResult &&other) noexcept  = default;
 
-    operator int() const { return int(value); }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    operator int() const
+        { return int(value); }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsOK() const
+        { return value == FBOM_OK; }
 };
 
 } // namespace hyperion::fbom

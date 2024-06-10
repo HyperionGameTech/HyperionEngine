@@ -118,23 +118,26 @@ struct FBOMBaseObjectType : FBOMType
         : FBOMType("object", 0)
     {
     }
+
+    FBOMBaseObjectType(const FBOMType &extends)
+        : FBOMType("object", 0, extends)
+    {
+    }
 };
 
 struct FBOMObjectType : FBOMType
 {
-    explicit FBOMObjectType(void)
-        : FBOMObjectType("UNSET")
-    {
-    }
-
     FBOMObjectType(const ANSIStringView &name)
-        : FBOMObjectType(name, FBOMBaseObjectType())
+        : FBOMType(name, 0, FBOMBaseObjectType())
     {
     }
 
     FBOMObjectType(const ANSIStringView &name, const FBOMType &extends)
         : FBOMType(name, 0, extends)
     {
+        AssertThrowMsg(extends.IsOrExtends(FBOMBaseObjectType()),
+            "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
+            name.Data(), extends.name.Data());
     }
 };
 

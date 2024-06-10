@@ -58,6 +58,11 @@ struct FBOMData
 
     [[nodiscard]]
     HYP_FORCE_INLINE
+    const ByteBuffer &GetBytes() const
+        { return bytes; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     SizeType TotalSize() const
         { return bytes.Size(); }
 

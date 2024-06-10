@@ -87,7 +87,7 @@ FBOMType::~FBOMType()
 
 FBOMType FBOMType::Extend(const FBOMType &object) const
 {
-    return FBOMObjectType(object.name, *this);
+    return FBOMType(object.name, -1, *this);
 }
 
 bool FBOMType::IsOrExtends(const ANSIStringView &name) const

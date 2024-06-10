@@ -6,7 +6,7 @@
 namespace hyperion::fbom {
 
 FBOMObject::FBOMObject()
-    : m_object_type(FBOMUnset()),
+    : m_object_type(FBOMBaseObjectType()),
       nodes(new FBOMNodeHolder())
 {
 }
@@ -15,6 +15,7 @@ FBOMObject::FBOMObject(const FBOMType &loader_type)
     : m_object_type(loader_type),
       nodes(new FBOMNodeHolder())
 {
+    AssertThrowMsg(loader_type.IsOrExtends(FBOMBaseObjectType()), "Expected type to be an object type, got %s", loader_type.ToString().Data());
 }
 
 FBOMObject::FBOMObject(const FBOMObject &other)
@@ -32,7 +33,7 @@ FBOMObject::FBOMObject(const FBOMObject &other)
     }
 }
 
-auto FBOMObject::operator=(const FBOMObject &other) -> FBOMObject&
+FBOMObject &FBOMObject::operator=(const FBOMObject &other)
 {
     if (nodes) {
         if (other.nodes) {
@@ -64,7 +65,7 @@ FBOMObject::FBOMObject(FBOMObject &&other) noexcept
     other.nodes = nullptr;
 }
 
-auto FBOMObject::operator=(FBOMObject &&other) noexcept -> FBOMObject&
+FBOMObject &FBOMObject::operator=(FBOMObject &&other) noexcept
 {
     if (nodes) {
         nodes->Clear();

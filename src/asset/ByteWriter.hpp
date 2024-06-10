@@ -104,6 +104,13 @@ public:
 
     virtual void Close() override { }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    ByteBuffer &GetBuffer()
+        { return m_buffer; }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const ByteBuffer &GetBuffer() const
         { return m_buffer; }
 
