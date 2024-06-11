@@ -87,7 +87,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
         );
 
         const SizeType indices_buffer_size = MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex);
-        const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(float32), sizeof(ShaderVec4<float32>));
+        const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(float32), sizeof(Vec4f));
 
         HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create(
            g_engine->GetGPUDevice(),

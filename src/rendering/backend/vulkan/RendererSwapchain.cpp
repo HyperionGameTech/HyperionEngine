@@ -99,13 +99,12 @@ void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> 
 
     for (uint32 i = 0; i < image_count; i++) {
         m_images[i] = MakeRenderObject<Image<Platform::VULKAN>>(
-            Extent3D { extent.width, extent.height, 1 },
-            image_format,
-            ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            nullptr,
-            IMAGE_FLAGS_NONE
+            TextureDescriptor
+            {
+                ImageType::TEXTURE_TYPE_2D,
+                image_format,
+                Extent3D { extent.width, extent.height, 1 }
+            }
         );
 
         m_images[i]->GetPlatformImpl().handle = vk_images[i];

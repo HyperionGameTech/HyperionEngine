@@ -21,8 +21,6 @@
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
-
 class Engine;
 
 enum PostProcessingStage

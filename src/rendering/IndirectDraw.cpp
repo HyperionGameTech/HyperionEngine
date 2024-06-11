@@ -13,10 +13,6 @@
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
-using renderer::ShaderVec3;
-using renderer::ShaderVec4;
-
 template <class BufferType>
 static bool ResizeBuffer(
     Frame *frame,

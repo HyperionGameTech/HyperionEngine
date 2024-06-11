@@ -38,10 +38,6 @@ using Device = platform::Device<Platform::CURRENT>;
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
-using renderer::ShaderVec3;
-using renderer::ShaderVec4;
-using renderer::ShaderMat4;
 using renderer::GPUBufferType;
 
 static constexpr SizeType max_entities_per_instance_batch = 60;

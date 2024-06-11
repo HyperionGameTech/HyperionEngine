@@ -39,6 +39,22 @@
     #define HYP_USED volatile
 #endif
 
+#if defined(HYP_CLANG) && HYP_CLANG
+    #define HYP_DEPRECATED __attribute__((deprecated))
+#elif defined(HYP_GCC) && HYP_GCC
+    #define HYP_DEPRECATED __attribute__((deprecated))
+#elif defined(HYP_MSVC) && HYP_MSVC
+    #define HYP_DEPRECATED __declspec(deprecated)
+#endif
+
+#if defined(HYP_CLANG) && HYP_CLANG
+    #define HYP_NODISCARD __attribute__((warn_unused_result))
+#elif defined(HYP_GCC) && HYP_GCC
+    #define HYP_NODISCARD __attribute__((warn_unused_result))
+#elif defined(HYP_MSVC) && HYP_MSVC
+    #define HYP_NODISCARD _Check_return_
+#endif
+
 #if defined(_WIN32) && _WIN32
     #define HYP_WINDOWS 1
 

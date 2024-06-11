@@ -19,116 +19,6 @@
 
 namespace hyperion::renderer {
 
-using ImageFlags = uint32;
-
-enum ImageFlagBits : ImageFlags
-{
-    IMAGE_FLAGS_NONE            = 0x0,
-    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
-};
-
-enum class ImageType : uint32
-{
-    TEXTURE_TYPE_2D = 0,
-    TEXTURE_TYPE_3D = 1,
-    TEXTURE_TYPE_CUBEMAP = 2
-};
-
-enum class BaseFormat : uint32
-{
-    TEXTURE_FORMAT_NONE,
-    TEXTURE_FORMAT_R,
-    TEXTURE_FORMAT_RG,
-    TEXTURE_FORMAT_RGB,
-    TEXTURE_FORMAT_RGBA,
-    
-    TEXTURE_FORMAT_BGR,
-    TEXTURE_FORMAT_BGRA,
-
-    TEXTURE_FORMAT_DEPTH
-};
-
-enum class InternalFormat : uint32
-{
-    NONE,
-
-    R8,
-    RG8,
-    RGB8,
-    RGBA8,
-    
-    B8,
-    BG8,
-    BGR8,
-    BGRA8,
-
-    R16,
-    RG16,
-    RGB16,
-    RGBA16,
-
-    R32,
-    RG32,
-    RGB32,
-    RGBA32,
-
-    R32_,
-    RG16_,
-    R11G11B10F,
-    R10G10B10A2,
-
-    R16F,
-    RG16F,
-    RGB16F,
-    RGBA16F,
-
-    R32F,
-    RG32F,
-    RGB32F,
-    RGBA32F,
-
-    SRGB, /* begin srgb */
-
-    R8_SRGB,
-    RG8_SRGB,
-    RGB8_SRGB,
-    RGBA8_SRGB,
-    
-    B8_SRGB,
-    BG8_SRGB,
-    BGR8_SRGB,
-    BGRA8_SRGB,
-    
-    DEPTH, /* begin depth */
-
-    DEPTH_16 = DEPTH,
-    DEPTH_24,
-    DEPTH_32F
-};
-
-enum class FilterMode : uint32
-{
-    TEXTURE_FILTER_NEAREST,
-    TEXTURE_FILTER_LINEAR,
-    TEXTURE_FILTER_NEAREST_LINEAR,
-    TEXTURE_FILTER_NEAREST_MIPMAP,
-    TEXTURE_FILTER_LINEAR_MIPMAP,
-    TEXTURE_FILTER_MINMAX_MIPMAP
-};
-
-enum class WrapMode : uint32
-{
-    TEXTURE_WRAP_CLAMP_TO_EDGE,
-    TEXTURE_WRAP_CLAMP_TO_BORDER,
-    TEXTURE_WRAP_REPEAT
-};
-
-enum class TextureMode : uint32
-{
-    SAMPLED,
-    STORAGE
-};
-
 static inline BaseFormat GetBaseFormat(InternalFormat fmt)
 {
     switch (fmt) {
@@ -179,7 +69,7 @@ static inline BaseFormat GetBaseFormat(InternalFormat fmt)
     }
 }
 
-static inline uint NumComponents(BaseFormat format)
+static inline uint32 NumComponents(BaseFormat format)
 {
     switch (format) {
     case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
@@ -194,12 +84,12 @@ static inline uint NumComponents(BaseFormat format)
     }
 }
 
-static inline uint NumComponents(InternalFormat format)
+static inline uint32 NumComponents(InternalFormat format)
 {
     return NumComponents(GetBaseFormat(format));
 }
 
-static inline uint NumBytes(InternalFormat format)
+static inline uint32 NumBytes(InternalFormat format)
 {
     switch (format) {
     case InternalFormat::R8:
@@ -290,12 +180,8 @@ public:
     static constexpr PlatformType platform = PLATFORM;
     
     HYP_API Image(
-        Extent3D extent,
-        InternalFormat format,
-        ImageType type,
-        FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data,
+        const TextureDescriptor &texture_descriptor,
+        UniquePtr<StreamedData> &&streamed_data = nullptr,
         ImageFlags flags = IMAGE_FLAGS_NONE
     );
 
@@ -315,6 +201,11 @@ public:
     const ImagePlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const TextureDescriptor &GetTextureDescriptor() const
+        { return m_texture_descriptor; }
+
     /*
      * Create the image. No texture data will be copied.
      */
@@ -326,12 +217,17 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance, ResourceState state);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
+    [[nodiscard]]
     HYP_API bool IsCreated() const;
 
+    [[nodiscard]]
     HYP_API ResourceState GetResourceState() const;
+
     HYP_API void SetResourceState(ResourceState new_state);
 
+    [[nodiscard]]
     HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
+
     HYP_API void SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state);
 
     HYP_API void InsertBarrier(
@@ -369,8 +265,8 @@ public:
         const Image *src,
         Rect<uint32> src_rect,
         Rect<uint32> dst_rect,
-        uint src_mip,
-        uint dst_mip
+        uint32 src_mip,
+        uint32 dst_mip
     );
 
     HYP_API Result GenerateMipmaps(
@@ -388,35 +284,52 @@ public:
         GPUBuffer<PLATFORM> *dst_buffer
     ) const;
 
+    [[nodiscard]]
     HYP_API ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsRWTexture() const
         { return m_is_rw_texture; }
 
+    HYP_FORCE_INLINE
     void SetIsRWTexture(bool is_rw_texture)
         { m_is_rw_texture = is_rw_texture; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsAttachmentTexture() const
         { return m_is_attachment_texture; }
 
+    HYP_FORCE_INLINE
     void SetIsAttachmentTexture(bool is_attachment_texture)
         { m_is_attachment_texture = is_attachment_texture; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     StreamedData *GetStreamedData() const
         { return m_streamed_data.Get(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasAssignedImageData() const
         { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
 
+    HYP_FORCE_INLINE
     void CopyImageData(const ByteBuffer &byte_buffer)
         { m_streamed_data.Reset(new MemoryStreamedData(byte_buffer)); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsDepthStencil() const
-        { return IsDepthFormat(m_format); }
+        { return IsDepthFormat(m_texture_descriptor.format); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsSRGB() const
-        { return IsSRGBFormat(m_format); }
+        { return IsSRGBFormat(m_texture_descriptor.format); }
 
+    HYP_FORCE_INLINE
     void SetIsSRGB(bool srgb)
     {
         const bool is_srgb = IsSRGB();
@@ -425,115 +338,154 @@ public:
             return;
         }
 
-        const auto internal_format = m_format;
+        const InternalFormat format = m_texture_descriptor.format;
 
         if (is_srgb) {
-            m_format = InternalFormat(int(internal_format) - int(InternalFormat::SRGB));
+            m_texture_descriptor.format = InternalFormat(int(format) - int(InternalFormat::SRGB));
 
             return;
         }
 
-        const auto to_srgb_format = InternalFormat(int(InternalFormat::SRGB) + int(internal_format));
+        const InternalFormat to_srgb_format = InternalFormat(int(InternalFormat::SRGB) + int(format));
 
         if (!IsSRGBFormat(to_srgb_format)) {
             DebugLog(
                 LogType::Warn,
                 "No SRGB counterpart for image type (%d)\n",
-                static_cast<int>(internal_format)
+                int(format)
             );
         }
 
-        m_format = to_srgb_format;
+        m_texture_descriptor.format = to_srgb_format;
     }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsBlended() const
         { return m_is_blended; }
 
+    HYP_FORCE_INLINE
     void SetIsBlended(bool is_blended)
         { m_is_blended = is_blended; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool HasMipmaps() const
     {
-        return m_min_filter_mode == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
-            || m_min_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
-            || m_min_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
+        return m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
+            || m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
+            || m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
     }
 
-    uint NumMipmaps() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 NumMipmaps() const
     {
         return HasMipmaps()
-            ? uint(MathUtil::FastLog2(MathUtil::Max(m_extent.width, m_extent.height, m_extent.depth))) + 1
+            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_descriptor.extent.width, m_texture_descriptor.extent.height, m_texture_descriptor.extent.depth))) + 1
             : 1;
     }
 
     /*! \brief Returns the byte-size of the image. Note, it's possible no CPU-side memory exists
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
-    uint GetByteSize() const
-        { return uint(m_extent.Size())
-            * NumComponents(m_format)
-            * NumBytes(m_format)
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 GetByteSize() const
+        { return uint32(m_texture_descriptor.extent.Size())
+            * NumComponents(m_texture_descriptor.format)
+            * NumBytes(m_texture_descriptor.format)
             * NumFaces(); }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     uint8 GetBPP() const
         { return m_bpp; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsTextureCube() const
-        { return m_type == ImageType::TEXTURE_TYPE_CUBEMAP; }
+        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsPanorama() const
-        { return m_type == ImageType::TEXTURE_TYPE_2D
-            && m_extent.width == m_extent.height * 2
-            && m_extent.depth == 1; }
+        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_2D
+            && m_texture_descriptor.extent.width == m_texture_descriptor.extent.height * 2
+            && m_texture_descriptor.extent.depth == 1; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsTextureArray() const
-        { return !IsTextureCube() && m_num_layers > 1; }
+        { return !IsTextureCube() && m_texture_descriptor.num_layers > 1; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsTexture3D() const
-        { return m_type == ImageType::TEXTURE_TYPE_3D; }
+        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_3D; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     bool IsTexture2D() const
-        { return m_type == ImageType::TEXTURE_TYPE_2D; }
+        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_2D; }
 
-    uint NumLayers() const
-        { return m_num_layers; }
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 NumLayers() const
+        { return m_texture_descriptor.num_layers; }
 
-    void SetNumLayers(uint num_layers)
+    HYP_FORCE_INLINE
+    void SetNumLayers(uint32 num_layers)
     {
-        m_num_layers = num_layers;
+        m_texture_descriptor.num_layers = num_layers;
         m_size = GetByteSize();
     }
 
-    uint NumFaces() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    uint32 NumFaces() const
         { return IsTextureCube()
             ? 6
             : IsTextureArray()
-                ? m_num_layers
+                ? m_texture_descriptor.num_layers
                 : 1; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     FilterMode GetMinFilterMode() const
-        { return m_min_filter_mode; }
+        { return m_texture_descriptor.filter_mode_min; }
 
+    HYP_FORCE_INLINE
     void SetMinFilterMode(FilterMode filter_mode)
-        { m_min_filter_mode = filter_mode; }
+        { m_texture_descriptor.filter_mode_min = filter_mode; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     FilterMode GetMagFilterMode() const
-        { return m_mag_filter_mode; }
+        { return m_texture_descriptor.filter_mode_mag; }
 
+    HYP_FORCE_INLINE
     void SetMagFilterMode(FilterMode filter_mode)
-        { m_mag_filter_mode = filter_mode; }
+        { m_texture_descriptor.filter_mode_mag = filter_mode; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     const Extent3D &GetExtent() const
-        { return m_extent; }
+        { return m_texture_descriptor.extent; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     InternalFormat GetTextureFormat() const
-        { return m_format; }
+        { return m_texture_descriptor.format; }
 
+    HYP_FORCE_INLINE
     void SetTextureFormat(InternalFormat format)
-        { m_format = format; }
+        { m_texture_descriptor.format = format; }
 
+    [[nodiscard]]
+    HYP_FORCE_INLINE
     ImageType GetType() const
-        { return m_type; }
+        { return m_texture_descriptor.type; }
 
 protected:
     ImageFlags  m_flags;
@@ -542,15 +494,10 @@ private:
 
     ImagePlatformImpl<PLATFORM>                 m_platform_impl;
 
-    Extent3D                                    m_extent;
-    InternalFormat                              m_format;
-    ImageType                                   m_type;
-    FilterMode                                  m_min_filter_mode;
-    FilterMode                                  m_mag_filter_mode;
+    TextureDescriptor                           m_texture_descriptor;
     UniquePtr<StreamedData>                     m_streamed_data;
 
     bool                                        m_is_blended;
-    uint                                        m_num_layers;
     bool                                        m_is_rw_texture;
     bool                                        m_is_attachment_texture;
 
@@ -570,11 +517,16 @@ public:
         FilterMode mag_filter_mode,
         UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : Image<PLATFORM>(
-            extent,
-            format,
-            type,
-            min_filter_mode,
-            mag_filter_mode,
+            TextureDescriptor
+            {
+                type,
+                format,
+                extent,
+                min_filter_mode,
+                mag_filter_mode,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1, 1
+            },
             std::move(streamed_data)
         )
     {
@@ -636,11 +588,11 @@ public:
         InternalFormat format,
         UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : StorageImage<PLATFORM>(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_2D,
-        std::move(streamed_data)
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_2D,
+            std::move(streamed_data)
+        )
     {
     }
     
@@ -671,11 +623,11 @@ public:
         InternalFormat format,
         UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : StorageImage<PLATFORM>(
-        extent,
-        format,
-        ImageType::TEXTURE_TYPE_3D,
-        std::move(streamed_data)
-    )
+            extent,
+            format,
+            ImageType::TEXTURE_TYPE_3D,
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -709,13 +661,18 @@ public:
         FilterMode mag_filter_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : Image<PLATFORM>(
-        extent,
-        format,
-        type,
-        min_filter_mode,
-        mag_filter_mode,
-        std::move(streamed_data)
-    )
+            TextureDescriptor
+            {
+                type,
+                format,
+                extent,
+                min_filter_mode,
+                mag_filter_mode,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1, 1
+            },
+            std::move(streamed_data)
+        )   
     {
     }
 
@@ -864,11 +821,16 @@ public:
         ImageType type,
         UniquePtr<StreamedData> &&streamed_data
     ) : Image<PLATFORM>(
-            extent,
-            format,
-            type,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
+            TextureDescriptor
+            {
+                type,
+                format,
+                extent,
+                FilterMode::TEXTURE_FILTER_NEAREST,
+                FilterMode::TEXTURE_FILTER_NEAREST,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1, 1
+            },
             std::move(streamed_data)
         )
     {
@@ -882,12 +844,16 @@ public:
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : Image<PLATFORM>(
-            extent,
-            format,
-            type,
-            min_filter_mode,
-            mag_filter_mode,
-            nullptr
+            TextureDescriptor
+            {
+                ImageType::TEXTURE_TYPE_2D,
+                format,
+                extent,
+                min_filter_mode,
+                mag_filter_mode,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1, 1
+            }
         )
     {
         Image<PLATFORM>::SetIsAttachmentTexture(true);
@@ -970,16 +936,7 @@ public:
 #error Unsupported rendering backend
 #endif
 
-// to reduce noise, pull the above enum classes into hyperion namespace
 namespace hyperion {
-
-using renderer::ImageType;
-using renderer::BaseFormat;
-using renderer::InternalFormat;
-using renderer::FilterMode;
-using renderer::WrapMode;
-using renderer::TextureMode;
-
 namespace renderer {
 
 using Image = platform::Image<Platform::CURRENT>;

@@ -369,19 +369,29 @@ private:
 
 #pragma region Texture
 
-Texture::Texture()
-    : Texture(
-          renderer::TextureImage(
-              Extent3D { 1, 1, 1},
-              InternalFormat::RGBA8,
-              ImageType::TEXTURE_TYPE_2D,
-              FilterMode::TEXTURE_FILTER_NEAREST,
-              FilterMode::TEXTURE_FILTER_NEAREST,
-              nullptr
-          ),
-          FilterMode::TEXTURE_FILTER_NEAREST,
-          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-      )
+Texture::Texture() : Texture(
+    TextureDescriptor
+    {
+        ImageType::TEXTURE_TYPE_2D,
+        InternalFormat::RGBA8,
+        Extent3D { 1, 1, 1 },
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    }
+)
+{
+}
+
+Texture::Texture(
+    const TextureDescriptor &texture_descriptor,
+    UniquePtr<StreamedData> &&streamed_data
+) : Texture(
+        renderer::Image(
+            texture_descriptor,
+            std::move(streamed_data)
+        )
+    )
 {
 }
 
@@ -389,57 +399,27 @@ Texture::Texture(
     ImageRef image,
     ImageViewRef image_view
 ) : BasicObject(),
-    m_image(image),
-    m_image_view(image_view),
-    m_filter_mode(image.IsValid() ? image->GetMinFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST),
-    m_wrap_mode(WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE)
+    m_image(std::move(image)),
+    m_image_view(std::move(image_view))
 {
     AssertThrowMsg(m_image.IsValid(), "Image must be valid");
     AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
 }
 
 Texture::Texture(
-    Extent3D extent,
-    InternalFormat format,
-    ImageType type,
-    FilterMode filter_mode,
-    WrapMode wrap_mode,
-    UniquePtr<StreamedData> &&streamed_data
-) : Texture(
-        renderer::TextureImage(
-            extent,
-            format,
-            type,
-            filter_mode,
-            filter_mode,
-            std::move(streamed_data)
-        ),
-        filter_mode,
-        wrap_mode
-    )
-{
-}
-
-Texture::Texture(
-    Image &&image,
-    FilterMode filter_mode,
-    WrapMode wrap_mode
+    Image &&image
 ) : BasicObject(),
     m_image(MakeRenderObject<Image>(std::move(image))),
-    m_image_view(MakeRenderObject<ImageView>()),
-    m_filter_mode(filter_mode),
-    m_wrap_mode(wrap_mode)
+    m_image_view(MakeRenderObject<ImageView>())
 {
-    AssertThrow(m_image != nullptr);
-    AssertThrow(m_image_view != nullptr);
+    AssertThrowMsg(m_image.IsValid(), "Image must be valid");
+    AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
 }
 
 Texture::Texture(Texture &&other) noexcept
     : BasicObject(std::move(other)),
       m_image(std::move(other.m_image)),
-      m_image_view(std::move(other.m_image_view)),
-      m_filter_mode(other.m_filter_mode),
-      m_wrap_mode(other.m_wrap_mode)
+      m_image_view(std::move(other.m_image_view))
 {
 }
 

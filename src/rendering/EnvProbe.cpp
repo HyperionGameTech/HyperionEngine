@@ -236,21 +236,27 @@ void EnvProbe::Init()
 
     if (!IsControlledByEnvGrid()) {
         if (IsReflectionProbe() || IsSkyProbe()) {
-            m_texture = CreateObject<Texture>(TextureCube(
-                m_dimensions,
-                reflection_probe_format,
-                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                nullptr
-            ));
+            m_texture = CreateObject<Texture>(
+                TextureDescriptor
+                {
+                    ImageType::TEXTURE_TYPE_CUBEMAP,
+                    reflection_probe_format,
+                    Extent3D { m_dimensions.width, m_dimensions.height, 1 },
+                    FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+                    FilterMode::TEXTURE_FILTER_LINEAR
+                }
+            );
         } else if (IsShadowProbe()) {
-            m_texture = CreateObject<Texture>(TextureCube(
-                m_dimensions,
-                shadow_probe_format,
-                FilterMode::TEXTURE_FILTER_NEAREST,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                nullptr
-            ));
+            m_texture = CreateObject<Texture>(
+                TextureDescriptor
+                {
+                    ImageType::TEXTURE_TYPE_CUBEMAP,
+                    shadow_probe_format,
+                    Extent3D { m_dimensions.width, m_dimensions.height, 1 },
+                    FilterMode::TEXTURE_FILTER_NEAREST,
+                    FilterMode::TEXTURE_FILTER_NEAREST
+                }
+            );
         }
 
         AssertThrow(InitObject(m_texture));

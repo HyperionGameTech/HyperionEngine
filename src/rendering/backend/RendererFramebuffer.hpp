@@ -90,12 +90,12 @@ struct AttachmentMap
     )
     {
         ImageRef<PLATFORM> image = MakeRenderObject<Image<PLATFORM>>(
-            Extent3D(extent.width, extent.height, 1),
-            format,
-            type,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            nullptr
+            TextureDescriptor
+            {
+                type,
+                format,
+                Extent3D(extent.width, extent.height, 1)
+            }
         );
 
         image->SetIsAttachmentTexture(true);

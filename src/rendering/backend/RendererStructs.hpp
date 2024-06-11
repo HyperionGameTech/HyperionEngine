@@ -12,9 +12,132 @@
 
 namespace hyperion::renderer {
 
+
+using ImageFlags = uint32;
+
+enum ImageFlagBits : ImageFlags
+{
+    IMAGE_FLAGS_NONE            = 0x0,
+    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
+};
+
+enum class ImageType : uint32
+{
+    TEXTURE_TYPE_2D = 0,
+    TEXTURE_TYPE_3D = 1,
+    TEXTURE_TYPE_CUBEMAP = 2
+};
+
+enum class BaseFormat : uint32
+{
+    TEXTURE_FORMAT_NONE,
+    TEXTURE_FORMAT_R,
+    TEXTURE_FORMAT_RG,
+    TEXTURE_FORMAT_RGB,
+    TEXTURE_FORMAT_RGBA,
+    
+    TEXTURE_FORMAT_BGR,
+    TEXTURE_FORMAT_BGRA,
+
+    TEXTURE_FORMAT_DEPTH
+};
+
+enum class InternalFormat : uint32
+{
+    NONE,
+
+    R8,
+    RG8,
+    RGB8,
+    RGBA8,
+    
+    B8,
+    BG8,
+    BGR8,
+    BGRA8,
+
+    R16,
+    RG16,
+    RGB16,
+    RGBA16,
+
+    R32,
+    RG32,
+    RGB32,
+    RGBA32,
+
+    R32_,
+    RG16_,
+    R11G11B10F,
+    R10G10B10A2,
+
+    R16F,
+    RG16F,
+    RGB16F,
+    RGBA16F,
+
+    R32F,
+    RG32F,
+    RGB32F,
+    RGBA32F,
+
+    SRGB, /* begin srgb */
+
+    R8_SRGB,
+    RG8_SRGB,
+    RGB8_SRGB,
+    RGBA8_SRGB,
+    
+    B8_SRGB,
+    BG8_SRGB,
+    BGR8_SRGB,
+    BGRA8_SRGB,
+    
+    DEPTH, /* begin depth */
+
+    DEPTH_16 = DEPTH,
+    DEPTH_24,
+    DEPTH_32F
+};
+
+enum class FilterMode : uint32
+{
+    TEXTURE_FILTER_NEAREST,
+    TEXTURE_FILTER_LINEAR,
+    TEXTURE_FILTER_NEAREST_LINEAR,
+    TEXTURE_FILTER_NEAREST_MIPMAP,
+    TEXTURE_FILTER_LINEAR_MIPMAP,
+    TEXTURE_FILTER_MINMAX_MIPMAP
+};
+
+enum class WrapMode : uint32
+{
+    TEXTURE_WRAP_CLAMP_TO_EDGE,
+    TEXTURE_WRAP_CLAMP_TO_BORDER,
+    TEXTURE_WRAP_REPEAT
+};
+
+enum class TextureMode : uint32
+{
+    SAMPLED,
+    STORAGE
+};
+
+struct TextureDescriptor
+{
+    ImageType       type = ImageType::TEXTURE_TYPE_2D;
+    InternalFormat  format = InternalFormat::RGBA8;
+    Extent3D        extent = Extent3D { 1, 1, 1 };
+    FilterMode      filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
+    FilterMode      filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
+    WrapMode        wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    uint32          num_layers = 1;
+    uint32          num_faces = 1;
+};
+
 struct alignas(16) PackedVertex
 {
-    float32 position_x,
+    float   position_x,
             position_y,
             position_z,
             normal_x,
@@ -377,227 +500,16 @@ struct ImageSubResource
     }
 };
 
-template <class T>
-struct alignas(8) ShaderVec2
-{
-    union {
-        struct { T x, y; };
-        T values[2];
-    };
-
-    ShaderVec2() = default;
-    ShaderVec2(const ShaderVec2 &other) = default;
-    ShaderVec2(T x, T y) : x(x), y(y) {}
-    ShaderVec2(const Extent2D &extent)
-        : x(extent.width),
-          y(extent.height)
-    {
-    }
-
-    ShaderVec2(const Vec2<T> &xy)
-        : x(xy.x),
-          y(xy.y)
-    {
-    }
-
-    constexpr T &operator[](uint index) { return values[index]; }
-    constexpr const T &operator[](uint index) const { return values[index]; }
-
-    operator Vec2<T>() const { return Vec2<T>(x, y); }
-};
-
-static_assert(sizeof(ShaderVec2<float>) == 8);
-static_assert(sizeof(ShaderVec2<uint32>) == 8);
-
-// shader vec3 is same size as vec4
-template <class T>
-struct alignas(16) ShaderVec3
-{
-    union {
-        struct { T x, y, z, _w; };
-        T values[4];
-    };
-
-    ShaderVec3() = default;
-    ShaderVec3(const ShaderVec3 &other) = default;
-    ShaderVec3(T x, T y, T z) : x(x), y(y), z(z) {}
-
-    ShaderVec3(const Extent3D &extent)
-        : x(extent.width),
-          y(extent.height),
-          z(extent.depth)
-    {
-    }
-
-    ShaderVec3(const Vec3<T> &xyz)
-        : x(xyz.x),
-          y(xyz.y),
-          z(xyz.z)
-    {
-    }
-
-    constexpr T &operator[](uint index) { return values[index]; }
-    constexpr const T &operator[](uint index) const { return values[index]; }
-
-    operator Vector3() const { return Vector3(x, y, z); }
-};
-
-static_assert(sizeof(ShaderVec3<float>)  == 16);
-static_assert(sizeof(ShaderVec3<uint32>) == 16);
-
-template <class T>
-struct alignas(16) ShaderVec4
-{
-    union {
-        struct { T x, y, z, w; };
-        T values[4];
-    };
-
-    ShaderVec4() = default;
-    ShaderVec4(const ShaderVec4 &other) = default;
-    ShaderVec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-    ShaderVec4(const Vector4 &vec)
-        : x(T(vec.x)),
-          y(T(vec.y)),
-          z(T(vec.z)),
-          w(T(vec.w))
-    {
-    }
-
-    ShaderVec4(const Vec3<T> &xyz, T w)
-        : x(xyz.x),
-          y(xyz.y),
-          z(xyz.z),
-          w(w)
-    {
-    }
-
-    constexpr T &operator[](uint index) { return values[index]; }
-    constexpr const T &operator[](uint index) const { return values[index]; }
-
-    operator Vector4() const { return Vector4(float(x), float(y), float(z), float(w)); }
-};
-
-static_assert(sizeof(ShaderVec4<float>) == 16);
-static_assert(sizeof(ShaderVec4<uint32>) == 16);
-
-struct alignas(16) ShaderMat4
-{
-    union {
-        struct {
-            float m00, m01, m02, m03,
-                m10, m11, m12, m13,
-                m20, m21, m22, m23,
-                m30, m31, m32, m33;
-        };
-
-        float values[16];
-        ShaderVec4<float> rows[4];
-    };
-
-    ShaderMat4() = default;
-    ShaderMat4(const ShaderMat4 &other) = default;
-    ShaderMat4(const Matrix4 &mat)
-        : m00(mat[0][0]), m01(mat[0][1]), m02(mat[0][2]), m03(mat[0][3]),
-          m10(mat[1][0]), m11(mat[1][1]), m12(mat[1][2]), m13(mat[1][3]),
-          m20(mat[2][0]), m21(mat[2][1]), m22(mat[2][2]), m23(mat[2][3]),
-          m30(mat[3][0]), m31(mat[3][1]), m32(mat[3][2]), m33(mat[3][3])
-    {
-    }
-
-    constexpr ShaderVec4<float> &operator[](uint index) { return rows[index]; }
-    constexpr const ShaderVec4<float> &operator[](uint index) const { return rows[index]; }
-
-    operator Matrix4() const { return Matrix4(&values[0]); }
-};
-
-static_assert(sizeof(ShaderMat4) == 64);
-
-template <SizeType N, class T>
-struct PaddedStructValue
-{
-    alignas(T) ubyte bytes[sizeof(T) + N];
-};
-
-template <class T, SizeType Size>
-struct ShaderValue : public PaddedStructValue<Size - sizeof(T), T>
-{
-    static_assert(sizeof(T) <= Size, "T does not fit into required size!");
-
-    ShaderValue()
-    {
-        new (this->bytes) T();
-    }
-
-    ShaderValue(const ShaderValue &other)
-    {
-        new (this->bytes) T(other.Get());
-    }
-
-    ShaderValue &operator=(const ShaderValue &other)
-    {
-        Get().~T();
-        new (this->bytes) T(other.Get());
-
-        return *this;
-    }
-
-    ShaderValue(const T &value)
-    {
-        new (this->bytes) T(value);
-    }
-
-    ShaderValue &operator=(const T &value)
-    {
-        Get().~T();
-        new (this->bytes) T(value);
-
-        return *this;
-    }
-
-    ShaderValue(ShaderValue &&other) noexcept
-    {
-        new (this->bytes) T(std::move(other.Get()));
-    }
-
-    ShaderValue &operator=(ShaderValue &&other) noexcept
-    {
-        Get().~T();
-        new (this->bytes) T(std::move(other.Get()));
-
-        return *this;
-    }
-
-    ShaderValue(T &&value) noexcept
-    {
-        new (this->bytes) T(std::move(value));
-    }
-
-    ShaderValue &operator=(T &&value) noexcept
-    {
-        Get().~T();
-        new (this->bytes) T(std::move(value));
-
-        return *this;
-    }
-
-    ~ShaderValue()
-    {
-        Get().~T();
-    }
-
-    T &Get()
-    {
-        return *reinterpret_cast<T *>(this->bytes);
-    }
-
-    const T &Get() const
-    {
-        return *reinterpret_cast<const T *>(this->bytes);
-    }
-};
-
 } // namespace renderer
+
+using renderer::ImageType;
+using renderer::BaseFormat;
+using renderer::InternalFormat;
+using renderer::FilterMode;
+using renderer::WrapMode;
+using renderer::TextureMode;
+using renderer::TextureDescriptor;
+
 } // namespace hyperion
 
 #endif

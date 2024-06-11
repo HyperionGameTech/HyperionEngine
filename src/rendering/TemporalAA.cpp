@@ -15,9 +15,6 @@
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
-using renderer::ShaderMat4;
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::RenderCommand
@@ -171,9 +168,9 @@ void TemporalAA::Render(Frame *frame)
     active_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     struct alignas(128) {
-        ShaderVec2<uint32>  dimensions;
-        ShaderVec2<uint32>  depth_texture_dimensions;
-        ShaderVec2<float>   camera_near_far;
+        Vec2u   dimensions;
+        Vec2u   depth_texture_dimensions;
+        Vec2f   camera_near_far;
     } push_constants;
 
     push_constants.dimensions = m_extent;

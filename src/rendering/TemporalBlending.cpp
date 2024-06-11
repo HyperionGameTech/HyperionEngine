@@ -10,8 +10,6 @@
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : renderer::RenderCommand

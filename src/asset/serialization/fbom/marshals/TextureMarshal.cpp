@@ -20,7 +20,8 @@ public:
 
         out.SetProperty(NAME("format"), FBOMUnsignedInt(), in_object.GetFormat());
         out.SetProperty(NAME("type"), FBOMUnsignedInt(), in_object.GetType());
-        out.SetProperty(NAME("filter_mode"), FBOMUnsignedInt(), in_object.GetFilterMode());
+        out.SetProperty(NAME("filter_mode_min"), FBOMUnsignedInt(), in_object.GetMinFilterMode());
+        out.SetProperty(NAME("filter_mode_mag"), FBOMUnsignedInt(), in_object.GetMagFilterMode());
         out.SetProperty(NAME("wrap_mode"), FBOMUnsignedInt(), in_object.GetWrapMode());
 
         const auto num_bytes = in_object.GetImage()->GetByteSize();
@@ -63,8 +64,11 @@ public:
         ImageType type = ImageType::TEXTURE_TYPE_2D;
         in.GetProperty("type").ReadUnsignedInt(&type);
 
-        FilterMode filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
-        in.GetProperty("filter_mode").ReadUnsignedInt(&filter_mode);
+        FilterMode filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
+        in.GetProperty("filter_mode_min").ReadUnsignedInt(&filter_mode_min);
+
+        FilterMode filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
+        in.GetProperty("filter_mode_mag").ReadUnsignedInt(&filter_mode_mag);
 
         WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
         in.GetProperty("wrap_mode").ReadUnsignedInt(&wrap_mode);
@@ -83,11 +87,15 @@ public:
         }
 
         out_object = CreateObject<Texture>(
-            extent,
-            format,
-            type,
-            filter_mode,
-            wrap_mode,
+            TextureDescriptor
+            {
+                type,
+                format,
+                extent,
+                filter_mode_min,
+                filter_mode_mag,
+                wrap_mode
+            },
             UniquePtr<MemoryStreamedData>::Construct(std::move(byte_buffer))
         );
 

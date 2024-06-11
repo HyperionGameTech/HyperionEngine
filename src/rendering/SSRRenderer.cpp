@@ -11,7 +11,6 @@
 
 namespace hyperion {
 
-using renderer::ShaderVec2;
 using renderer::Result;
 using renderer::GPUBufferType;
 
@@ -21,16 +20,16 @@ static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
 
 struct alignas(16) SSRParams
 {
-    ShaderVec4<uint32> dimensions;
-    float32 ray_step,
-        num_iterations,
-        max_ray_distance,
-        distance_bias,
-        offset,
-        eye_fade_start,
-        eye_fade_end,
-        screen_edge_fade_start,
-        screen_edge_fade_end;
+    Vec4u   dimensions;
+    float   ray_step,
+            num_iterations,
+            max_ray_distance,
+            distance_bias,
+            offset,
+            eye_fade_start,
+            eye_fade_end,
+            screen_edge_fade_start,
+            screen_edge_fade_end;
 };
 
 #pragma region Render commands
