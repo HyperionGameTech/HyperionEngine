@@ -27,7 +27,6 @@
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
-#include <asset/serialization/fbom/FBOMLoadable.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 #include <asset/serialization/fbom/FBOMStaticData.hpp>
 
@@ -326,7 +325,10 @@ struct FBOMWriteStream
         auto it = m_static_data.Find(m_name_table_id);
         AssertThrow(it != m_static_data.End());
 
-        return it->second.data.Get<FBOMNameTable>();
+        FBOMNameTable *name_table_ptr = it->second.data.TryGetAsDynamic<FBOMNameTable>();
+        AssertThrow(name_table_ptr != nullptr);
+
+        return *name_table_ptr;
     }
 };
 

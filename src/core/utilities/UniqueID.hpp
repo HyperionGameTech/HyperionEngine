@@ -53,6 +53,11 @@ public:
         return { UUID { } };
     }
 
+    static inline UniqueID Invalid()
+    {
+        return { 0 };
+    }
+
 private:
     uint64 value;
 };

@@ -303,18 +303,46 @@ public:
 
     ~UniquePtr() = default;
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *Get() const
         { return static_cast<T *>(Base::m_holder.value); }
 
+    template <class OtherType>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    OtherType *TryGetAs() const
+    {
+        if (!Is<OtherType>()) {
+            return nullptr;
+        }
+
+        return static_cast<OtherType *>(Base::m_holder.value);
+    }
+
+    template <class OtherType>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    OtherType *TryGetAsDynamic() const
+    {
+        if (OtherType *ptr = dynamic_cast<OtherType *>(Get())) {
+            return ptr;
+        }
+
+        return nullptr;
+    }
+
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T *operator->() const
         { return Get(); }
 
+    [[nodiscard]]
     HYP_FORCE_INLINE
     T &operator*() const
         { return *Get(); }
     
+    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const UniquePtr &other) const
         { return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get()); }
@@ -324,6 +352,7 @@ public:
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
     template <class Ty>
+    HYP_FORCE_INLINE
     void Set(const T &value)
     {
         using TyN = NormalizedType<Ty>;
@@ -339,6 +368,7 @@ public:
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
     template <class Ty>
+    HYP_FORCE_INLINE
     void Set(Ty &&value)
     {
         using TyN = NormalizedType<Ty>;
@@ -358,6 +388,7 @@ public:
         Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
+    HYP_FORCE_INLINE
     void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
@@ -383,14 +414,18 @@ public:
         The value held within the UniquePtr will be unset,
         and the T* returned from this method will NEED to be deleted
         manually. */
-    [[nodiscard]] T *Release()
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    T *Release()
         { return static_cast<T *>(Base::Release()); }
 
     /*! \brief Constructs a new RefCountedPtr from this object.
         The value held within this UniquePtr will be unset,
         the RefCountedPtr taking over management of the pointer. */
     template <class CountType = uint>
-    [[nodiscard]] RefCountedPtr<T, CountType> MakeRefCounted()
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    RefCountedPtr<T, CountType> MakeRefCounted()
     {
         RefCountedPtr<T, CountType> rc;
         rc.Reset(Release());
@@ -405,15 +440,27 @@ public:
         return UniquePtr(new T(std::forward<Args>(args)...));
     }
 
-    /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr. */
+    /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr. 
+     *  \note This function will not check if the pointer can be casted to the given type using dynamically, so if you have a base class pointer and want to check if it can be casted to a derived class, use IsDynamic().
+     *  However, there is still limited functionality for checking if a base class pointer can be casted to a derived class pointer, as long as the UniquePtr was constructed or Reset() with a derived class pointer. */
     template <class Ty>
-    [[nodiscard]] bool Is() const
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool Is() const
     {
         return GetTypeID() == TypeID::ForType<Ty>()
             || GetBaseTypeID() == TypeID::ForType<Ty>()
             || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
             || std::is_same_v<Ty, void>;
     }
+
+    /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
+     *  This function will also check if the pointer can be casted to the given type using dynamic_cast. */
+    template <class Ty>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool IsDynamic() const
+        { return Is<Ty>() || dynamic_cast<Ty *>(Get()) != nullptr; }
 
     /*! \brief Attempts to cast the pointer directly to the given type.
         If the types are not compatible (Derived -> Base) or equal (or T is not void, in the case of a void pointer),
@@ -425,6 +472,22 @@ public:
     UniquePtr<Ty> Cast()
     {
         if (Is<Ty>()) {
+            return Base::CastUnsafe<Ty>();
+        }
+
+        return UniquePtr<Ty>();
+    }
+
+    /*! \brief Attempts to cast the pointer to the given type using dynamic_cast.
+        If the types are not compatible (Derived -> Base) or equal (or T is not void, in the case of a void pointer),
+        no cast is performed and a null UniquePtr is returned. Otherwise, the
+        value currently held in the UniquePtr being casted is std::move'd to the returned value. */
+    template <class Ty>
+    [[nodiscard]]
+    HYP_FORCE_INLINE
+    UniquePtr<Ty> CastDynamic()
+    {
+        if (IsDynamic<Ty>()) {
             return Base::CastUnsafe<Ty>();
         }
 

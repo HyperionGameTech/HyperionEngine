@@ -263,8 +263,9 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
             m_static_data_pool.Size());
 
         // grab from static data pool
-        AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_TYPE);
-        out_type = m_static_data_pool[offset].data.Get<FBOMType>();
+        FBOMType *as_type = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMType>();
+        AssertThrow(as_type != nullptr);
+        out_type = *as_type;
 
         break;
     }
@@ -314,8 +315,9 @@ FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_
             m_static_data_pool.Size());
 
         // grab from static data pool
-        AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE);
-        out_name_table = m_static_data_pool[offset].data.Get<FBOMNameTable>();
+        FBOMNameTable *as_name_table = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMNameTable>();
+        AssertThrow(as_name_table != nullptr);
+        out_name_table = *as_name_table;
     }
 
     return FBOMResult::FBOM_OK;
@@ -369,8 +371,9 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
             m_static_data_pool.Size());
 
         // grab from static data pool
-        AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_DATA);
-        out_data = m_static_data_pool[offset].data.Get<FBOMData>();
+        FBOMData *as_data = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMData>();
+        AssertThrow(as_data != nullptr);
+        out_data = *as_data;
     }
 
     return FBOMResult::FBOM_OK;
@@ -433,8 +436,9 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
             m_static_data_pool.Size());
 
         // grab from static data pool
-        AssertThrow(m_static_data_pool[offset].type == FBOMStaticData::FBOM_STATIC_DATA_OBJECT);
-        out_object = m_static_data_pool[offset].data.Get<FBOMObject>();
+        FBOMObject *as_object = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMObject>();
+        AssertThrow(as_object != nullptr);
+        out_object = *as_object;
 
         return FBOMResult::FBOM_OK;
     }
@@ -681,7 +685,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
                     return err;
                 }
 
-                m_static_data_pool[offset] = FBOMStaticData(type, offset);
+                m_static_data_pool[offset] = FBOMStaticData(std::move(type), offset);
 
                 break;
             }

@@ -3,9 +3,13 @@
 #ifndef HYPERION_FBOM_TYPE_HPP
 #define HYPERION_FBOM_TYPE_HPP
 
+#include <asset/serialization/fbom/FBOMInterfaces.hpp>
+
 #include <core/containers/String.hpp>
+
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueID.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -13,7 +17,7 @@
 
 namespace hyperion::fbom {
 
-struct FBOMType
+struct FBOMType : public IFBOMSerializable
 {
     ANSIString  name;
     SizeType    size;
@@ -26,7 +30,7 @@ struct FBOMType
     FBOMType &operator=(const FBOMType &other);
     FBOMType(FBOMType &&other) noexcept;
     FBOMType &operator=(FBOMType &&other) noexcept;
-    ~FBOMType();
+    virtual ~FBOMType();
 
     FBOMType Extend(const FBOMType &object) const;
 
@@ -62,16 +66,14 @@ struct FBOMType
     }
 
     [[nodiscard]]
-    String ToString() const;
+    virtual String ToString() const override;
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    UniqueID GetUniqueID() const
+    virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    virtual HashCode GetHashCode() const override
     {
         HashCode hc;
 

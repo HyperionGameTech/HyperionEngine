@@ -10,6 +10,7 @@
 
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
+#include <asset/serialization/fbom/FBOMInterfaces.hpp>
 
 #include <math/MathUtil.hpp>
 #include <math/Vector2.hpp>
@@ -33,7 +34,7 @@ namespace hyperion::fbom {
 
 class FBOMObject;
 
-struct FBOMData
+struct FBOMData : public IFBOMSerializable
 {
     static const FBOMData UNSET;
 
@@ -44,7 +45,7 @@ struct FBOMData
     FBOMData &operator=(const FBOMData &other);
     FBOMData(FBOMData &&other) noexcept;
     FBOMData &operator=(FBOMData &&other) noexcept;
-    ~FBOMData();
+    virtual ~FBOMData();
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -353,8 +354,7 @@ struct FBOMData
     }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    String ToString() const
+    virtual String ToString() const override
     {
         std::stringstream stream;
         stream << "FBOM[";
@@ -378,13 +378,11 @@ struct FBOMData
     }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    UniqueID GetUniqueID() const
+    virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    virtual HashCode GetHashCode() const override
     {
         HashCode hc;
 

@@ -3,6 +3,8 @@
 #ifndef HYPERION_FBOM_NAME_TABLE_HPP
 #define HYPERION_FBOM_NAME_TABLE_HPP
 
+#include <asset/serialization/fbom/FBOMInterfaces.hpp>
+
 #include <core/containers/TypeMap.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/HashMap.hpp>
@@ -22,9 +24,11 @@
 namespace hyperion {
 namespace fbom {
 
-struct FBOMNameTable
+struct FBOMNameTable : public IFBOMSerializable
 {
     HashMap<WeakName, ANSIString>   values;
+
+    virtual ~FBOMNameTable() = default;
 
     HYP_FORCE_INLINE
     WeakName Add(const ANSIStringView &str)
@@ -50,17 +54,7 @@ struct FBOMNameTable
     }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    UniqueID GetUniqueID() const
-        { return UniqueID(GetHashCode()); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
-        { return values.GetHashCode(); }
-
-    [[nodiscard]]
-    String ToString() const
+    virtual String ToString() const override
     {
         String str;
 
@@ -70,6 +64,14 @@ struct FBOMNameTable
 
         return str;
     }
+
+    [[nodiscard]]
+    virtual UniqueID GetUniqueID() const override
+        { return UniqueID(GetHashCode()); }
+
+    [[nodiscard]]
+    virtual HashCode GetHashCode() const override
+        { return values.GetHashCode(); }
 };
 
 } // namespace fbom

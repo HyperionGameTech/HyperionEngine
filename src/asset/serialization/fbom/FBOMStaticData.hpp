@@ -18,6 +18,7 @@
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMNameTable.hpp>
+#include <asset/serialization/fbom/FBOMInterfaces.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
@@ -39,8 +40,6 @@ HYP_MAKE_ENUM_FLAGS(FBOMStaticDataFlags)
 
 namespace fbom {
 
-using FBOMStaticDataType = Variant<FBOMObject, FBOMType, FBOMData, FBOMNameTable>;
-
 struct FBOMStaticData
 {
     enum
@@ -54,7 +53,7 @@ struct FBOMStaticData
 
 
     int64                           offset;
-    FBOMStaticDataType              data;
+    UniquePtr<IFBOMSerializable>    data;
     EnumFlags<FBOMStaticDataFlags>  flags;
 
     FBOMStaticData()
@@ -64,89 +63,92 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMObject &object_data, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMObject &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_OBJECT),
-          data(object_data),
+          data(new FBOMObject(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(const FBOMType &type_data, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMType &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
-          data(type_data),
+          data(new FBOMType(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(const FBOMData &data_data, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMData &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
-          data(data_data),
+          data(new FBOMData(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(const FBOMNameTable &name_table_data, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMNameTable &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_NAME_TABLE),
-          data(name_table_data),
+          data(new FBOMNameTable(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(FBOMObject &&object, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMObject &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
-          data(std::move(object)),
+          data(new FBOMObject(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(FBOMType &&type, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMType &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
-          data(std::move(type)),
+          data(new FBOMType(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(FBOMData &&data, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMData &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
-          data(std::move(data)),
+          data(new FBOMData(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    explicit FBOMStaticData(FBOMNameTable &&name_table, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMNameTable &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_NAME_TABLE),
-          data(std::move(name_table)),
+          data(new FBOMNameTable(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
     }
 
-    FBOMStaticData(const FBOMStaticData &other)
-        : type(other.type),
-          data(other.data),
-          offset(other.offset),
-          flags(other.flags),
-          m_id(other.m_id)
-    {
-    }
+    FBOMStaticData(const FBOMStaticData &other)             = delete;
+    FBOMStaticData &operator=(const FBOMStaticData &other)  = delete;
 
-    FBOMStaticData &operator=(const FBOMStaticData &other)
-    {
-        type = other.type;
-        data = other.data;
-        offset = other.offset;
-        flags = other.flags;
-        m_id = other.m_id;
+    // FBOMStaticData(const FBOMStaticData &other)
+    //     : type(other.type),
+    //       data(other.data),
+    //       offset(other.offset),
+    //       flags(other.flags),
+    //       m_id(other.m_id)
+    // {
+    // }
 
-        return *this;
-    }
+    // FBOMStaticData &operator=(const FBOMStaticData &other)
+    // {
+    //     type = other.type;
+    //     data = other.data;
+    //     offset = other.offset;
+    //     flags = other.flags;
+    //     m_id = other.m_id;
+
+    //     return *this;
+    // }
 
     FBOMStaticData(FBOMStaticData &&other) noexcept
         : type(other.type),
@@ -214,36 +216,35 @@ struct FBOMStaticData
             return *m_id;
         }
 
-        switch (type) {
-        case FBOM_STATIC_DATA_OBJECT:
-            return data.Get<FBOMObject>().GetUniqueID();
-        case FBOM_STATIC_DATA_TYPE:
-            return data.Get<FBOMType>().GetUniqueID();
-        case FBOM_STATIC_DATA_DATA:
-            return data.Get<FBOMData>().GetUniqueID();
-        case FBOM_STATIC_DATA_NAME_TABLE:
-            return data.Get<FBOMNameTable>().GetUniqueID();
-        default:
-            return UniqueID(0);
+        if (data != nullptr) {
+            return data->GetUniqueID();
         }
+
+        return UniqueID::Invalid();
+
+        // switch (type) {
+        // case FBOM_STATIC_DATA_OBJECT:
+        //     return data.Get<FBOMObject>().GetUniqueID();
+        // case FBOM_STATIC_DATA_TYPE:
+        //     return data.Get<FBOMType>().GetUniqueID();
+        // case FBOM_STATIC_DATA_DATA:
+        //     return data.Get<FBOMData>().GetUniqueID();
+        // case FBOM_STATIC_DATA_NAME_TABLE:
+        //     return data.Get<FBOMNameTable>().GetUniqueID();
+        // default:
+        //     return UniqueID(0);
+        // }
     }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
-        switch (type) {
-        case FBOM_STATIC_DATA_OBJECT:
-            return data.Get<FBOMObject>().GetHashCode();
-        case FBOM_STATIC_DATA_TYPE:
-            return data.Get<FBOMType>().GetHashCode();
-        case FBOM_STATIC_DATA_DATA:
-            return data.Get<FBOMData>().GetHashCode();
-        case FBOM_STATIC_DATA_NAME_TABLE:
-            return data.Get<FBOMNameTable>().GetHashCode();
-        default:
-            return HashCode();
+        if (data != nullptr) {
+            return data->GetHashCode();
         }
+
+        return HashCode(0);
 
         // return hash_code;
     }
@@ -252,18 +253,11 @@ struct FBOMStaticData
     HYP_FORCE_INLINE
     String ToString() const
     {
-        switch (type) {
-        case FBOM_STATIC_DATA_OBJECT:
-            return data.Get<FBOMObject>().ToString();
-        case FBOM_STATIC_DATA_TYPE:
-            return data.Get<FBOMType>().ToString();
-        case FBOM_STATIC_DATA_DATA:
-            return data.Get<FBOMData>().ToString();
-        case FBOM_STATIC_DATA_NAME_TABLE:
-            return data.Get<FBOMNameTable>().ToString();
-        default:
-            return "???";
+        if (data != nullptr) {
+            return data->ToString();
         }
+
+        return "<Unset Data>";
     }
 
 private:

@@ -14,7 +14,6 @@
 
 #include <asset/AssetBatch.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOMLoadable.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 
 #include <Types.hpp>

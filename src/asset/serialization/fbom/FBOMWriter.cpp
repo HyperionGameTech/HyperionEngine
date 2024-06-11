@@ -219,16 +219,19 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
 {
     m_write_stream->LockStaticDataWriting();
 
-    Array<FBOMStaticData> static_data_ordered;
+    Array<FBOMStaticData *> static_data_ordered;
     static_data_ordered.Reserve(m_write_stream->m_static_data.Size());
     // static_data_ordered.Reserve(m_write_stream->m_static_data.size());
 
     for (auto &it : m_write_stream->m_static_data) {
         // static_data_ordered.Insert(it.second);
-        static_data_ordered.PushBack(it.second);
+        static_data_ordered.PushBack(&it.second);
     }
 
-    std::sort(static_data_ordered.Begin(), static_data_ordered.End());
+    std::sort(static_data_ordered.Begin(), static_data_ordered.End(), [](const FBOMStaticData *a, const FBOMStaticData *b)
+    {
+        return a->offset < b->offset;
+    });
 
     AssertThrowMsg(static_data_ordered.Size() == m_write_stream->m_static_data_offset,
         "Values do not match, incorrect bookkeeping");
@@ -245,33 +248,57 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
     //   uint8_t as type of static data
     //   then, the actual size of the data will vary depending on the held type
 
-    for (const FBOMStaticData &it : static_data_ordered) {
-        AssertThrow(it.offset < static_data_ordered.Size());
+    for (const FBOMStaticData *static_data : static_data_ordered) {
+        AssertThrow(static_data->offset < static_data_ordered.Size());
 
-        out->Write<uint32>(uint32(it.offset));
-        out->Write<uint8>(it.type);
+        out->Write<uint32>(uint32(static_data->offset));
+        out->Write<uint8>(static_data->type);
 
-        switch (it.type) {
+        switch (static_data->type) {
         case FBOMStaticData::FBOM_STATIC_DATA_OBJECT:
-            if (FBOMResult err = WriteObject(out, it.data.Get<FBOMObject>(), it.GetUniqueID())) {
+        {
+            FBOMObject *as_object = static_data->data.TryGetAsDynamic<FBOMObject>();
+            AssertThrow(as_object != nullptr);
+
+            if (FBOMResult err = WriteObject(out, *as_object, static_data->GetUniqueID())) {
                 return err;
             }
+
             break;
+        }
         case FBOMStaticData::FBOM_STATIC_DATA_TYPE:
-            if (FBOMResult err = WriteObjectType(out, it.data.Get<FBOMType>(), it.GetUniqueID())) {
+        {
+            FBOMType *as_type = static_data->data.TryGetAsDynamic<FBOMType>();
+            AssertThrow(as_type != nullptr);
+
+            if (FBOMResult err = WriteObjectType(out, *as_type, static_data->GetUniqueID())) {
                 return err;
             }
+
             break;
+        }
         case FBOMStaticData::FBOM_STATIC_DATA_DATA:
-            if (FBOMResult err = WriteData(out, it.data.Get<FBOMData>(), it.GetUniqueID())) {
+        {
+            FBOMData *as_data = static_data->data.TryGetAsDynamic<FBOMData>();
+            AssertThrow(as_data != nullptr);
+
+            if (FBOMResult err = WriteData(out, *as_data, static_data->GetUniqueID())) {
                 return err;
             }
+
             break;
+        }
         case FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE:
-            if (FBOMResult err = WriteNameTable(out, it.data.Get<FBOMNameTable>(), it.GetUniqueID())) {
+        {
+            FBOMNameTable *as_name_table = static_data->data.TryGetAsDynamic<FBOMNameTable>();
+            AssertThrow(as_name_table != nullptr);
+
+            if (FBOMResult err = WriteNameTable(out, *as_name_table, static_data->GetUniqueID())) {
                 return err;
             }
+            
             break;
+        }
         default:
             return FBOMResult(FBOMResult::FBOM_ERR, "Cannot write static object to bytestream, unknown type");
         }

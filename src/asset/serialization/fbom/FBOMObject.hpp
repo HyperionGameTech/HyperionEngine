@@ -14,10 +14,10 @@
 #include <core/Name.hpp>
 
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOMLoadable.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 #include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
+#include <asset/serialization/fbom/FBOMInterfaces.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -51,7 +51,7 @@ enum FBOMObjectFlagBits : FBOMObjectFlags
     FBOM_OBJECT_FLAGS_KEEP_UNIQUE = 0x2
 };
 
-class FBOMObject
+class FBOMObject : public IFBOMSerializable
 {
 public:
     FBOMType                            m_object_type;
@@ -67,7 +67,7 @@ public:
     FBOMObject &operator=(const FBOMObject &other);
     FBOMObject(FBOMObject &&other) noexcept;
     FBOMObject &operator=(FBOMObject &&other) noexcept;
-    ~FBOMObject();
+    virtual ~FBOMObject();
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -181,12 +181,16 @@ public:
 
         return { FBOMResult::FBOM_OK };
     }
+
+    [[nodiscard]]
+    virtual String ToString() const override;
     
-    UniqueID GetUniqueID() const
+    [[nodiscard]]
+    virtual UniqueID GetUniqueID() const override
         { return m_unique_id;  }
 
-    HashCode GetHashCode() const;
-    String ToString() const;
+    [[nodiscard]]
+    virtual HashCode GetHashCode() const override;
 
     template <class T>
     void GenerateUniqueID(const T &object, FBOMObjectFlags flags)
