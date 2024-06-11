@@ -180,7 +180,7 @@ public:
     static constexpr PlatformType platform = PLATFORM;
     
     HYP_API Image(
-        const TextureDescriptor &texture_descriptor,
+        const TextureDesc &texture_desc,
         UniquePtr<StreamedData> &&streamed_data = nullptr,
         ImageFlags flags = IMAGE_FLAGS_NONE
     );
@@ -203,7 +203,7 @@ public:
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const TextureDescriptor &GetTextureDescriptor() const
+    const TextureDesc &GetTextureDescriptor() const
         { return m_texture_descriptor; }
 
     /*
@@ -494,7 +494,7 @@ private:
 
     ImagePlatformImpl<PLATFORM>                 m_platform_impl;
 
-    TextureDescriptor                           m_texture_descriptor;
+    TextureDesc                           m_texture_descriptor;
     UniquePtr<StreamedData>                     m_streamed_data;
 
     bool                                        m_is_blended;
@@ -517,7 +517,7 @@ public:
         FilterMode mag_filter_mode,
         UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : Image<PLATFORM>(
-            TextureDescriptor
+            TextureDesc
             {
                 type,
                 format,
@@ -661,7 +661,7 @@ public:
         FilterMode mag_filter_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : Image<PLATFORM>(
-            TextureDescriptor
+            TextureDesc
             {
                 type,
                 format,
@@ -821,7 +821,7 @@ public:
         ImageType type,
         UniquePtr<StreamedData> &&streamed_data
     ) : Image<PLATFORM>(
-            TextureDescriptor
+            TextureDesc
             {
                 type,
                 format,
@@ -844,7 +844,7 @@ public:
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : Image<PLATFORM>(
-            TextureDescriptor
+            TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,

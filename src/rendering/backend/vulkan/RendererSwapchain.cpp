@@ -99,7 +99,7 @@ void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> 
 
     for (uint32 i = 0; i < image_count; i++) {
         m_images[i] = MakeRenderObject<Image<Platform::VULKAN>>(
-            TextureDescriptor
+            TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 image_format,

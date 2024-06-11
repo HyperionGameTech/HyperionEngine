@@ -370,7 +370,7 @@ private:
 #pragma region Texture
 
 Texture::Texture() : Texture(
-    TextureDescriptor
+    TextureDesc
     {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
@@ -384,11 +384,11 @@ Texture::Texture() : Texture(
 }
 
 Texture::Texture(
-    const TextureDescriptor &texture_descriptor,
+    const TextureDesc &texture_desc,
     UniquePtr<StreamedData> &&streamed_data
 ) : Texture(
         renderer::Image(
-            texture_descriptor,
+            texture_desc,
             std::move(streamed_data)
         )
     )

@@ -32,13 +32,15 @@ Handle<Texture> GlyphImageData::CreateTexture() const
 
     UniquePtr<StreamedData> streamed_texture_data(new MemoryStreamedData(byte_buffer));
 
-    Handle<Texture> texture = CreateObject<Texture>(Texture2D(
-        dimensions,
-        InternalFormat::R8,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+    Handle<Texture> texture = CreateObject<Texture>(
+        TextureDesc
+        {
+            ImageType::TEXTURE_TYPE_2D,
+            InternalFormat::R8,
+            Extent3D { dimensions.width, dimensions.height, 1 }
+        },
         std::move(streamed_texture_data)
-    ));
+    );
 
     InitObject(texture);
 

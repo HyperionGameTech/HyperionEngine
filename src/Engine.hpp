@@ -142,132 +142,107 @@ public:
     Engine();
     ~Engine();
 
-    [[nodiscard]]
+    HYP_NODISCARD
     const RC<AppContext> &GetAppContext() const
         { return m_app_context; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Instance *GetGPUInstance() const
         { return m_instance.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Device *GetGPUDevice() const
         { return m_instance ? m_instance->GetDevice() : nullptr; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     DeferredRenderer *GetDeferredRenderer() const
         { return m_deferred_renderer.Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     GBuffer &GetGBuffer()
         { return m_gbuffer; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const GBuffer &GetGBuffer() const
         { return m_gbuffer; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     RenderState &GetRenderState()
         { return render_state; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RenderState &GetRenderState() const
         { return render_state; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ShaderGlobals *GetRenderData() const
         { return m_render_data.Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     PlaceholderData *GetPlaceholderData() const
         { return m_placeholder_data.Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Handle<World> &GetWorld() const
         { return m_world; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Configuration &GetConfig()
         { return m_configuration; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Configuration &GetConfig() const
         { return m_configuration; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ShaderCompiler &GetShaderCompiler()
         { return m_shader_compiler; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ShaderCompiler &GetShaderCompiler() const
         { return m_shader_compiler; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     DebugDrawer &GetDebugDrawer()
         { return m_debug_drawer; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const DebugDrawer &GetDebugDrawer() const
         { return m_debug_drawer; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.At(type); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     FinalPass *GetFinalPass() const
         { return m_final_pass.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ScriptingService *GetScriptingService() const
         { return m_scripting_service.Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const DescriptorTableRef &GetGlobalDescriptorTable() const
         { return m_global_descriptor_table; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     MaterialDescriptorSetManager &GetMaterialDescriptorSetManager()
         { return m_material_descriptor_set_manager; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const MaterialDescriptorSetManager &GetMaterialDescriptorSetManager() const
         { return m_material_descriptor_set_manager; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     EngineDelegates &GetDelegates()
         { return m_delegates; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const EngineDelegates &GetDelegates() const
         { return m_delegates; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsShuttingDown() const
         { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 

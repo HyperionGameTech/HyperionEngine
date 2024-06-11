@@ -452,16 +452,16 @@ void ImagePlatformImpl<Platform::VULKAN>::SetSubResourceState(const ImageSubReso
 
 template <>
 Image<Platform::VULKAN>::Image(
-    const TextureDescriptor &texture_descriptor,
+    const TextureDesc &texture_desc,
     UniquePtr<StreamedData> &&streamed_data,
     ImageFlags flags
 ) : m_platform_impl { this },
-    m_texture_descriptor(texture_descriptor),
+    m_texture_descriptor(texture_desc),
     m_is_blended(false),
     m_is_rw_texture(false),
     m_is_attachment_texture(false),
     m_streamed_data(std::move(streamed_data)),
-    m_bpp(NumComponents(GetBaseFormat(texture_descriptor.format))),
+    m_bpp(NumComponents(GetBaseFormat(texture_desc.format))),
     m_flags(flags)
 {
     m_size = GetByteSize();

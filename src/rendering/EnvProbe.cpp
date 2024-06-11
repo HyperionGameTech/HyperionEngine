@@ -237,7 +237,7 @@ void EnvProbe::Init()
     if (!IsControlledByEnvGrid()) {
         if (IsReflectionProbe() || IsSkyProbe()) {
             m_texture = CreateObject<Texture>(
-                TextureDescriptor
+                TextureDesc
                 {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     reflection_probe_format,
@@ -248,7 +248,7 @@ void EnvProbe::Init()
             );
         } else if (IsShadowProbe()) {
             m_texture = CreateObject<Texture>(
-                TextureDescriptor
+                TextureDesc
                 {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     shadow_probe_format,

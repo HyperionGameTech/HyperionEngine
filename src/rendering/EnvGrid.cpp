@@ -545,7 +545,7 @@ void EnvGrid::CreateVoxelGridData()
 
     // Create our voxel grid texture
     m_voxel_grid_texture = CreateObject<Texture>(
-        TextureDescriptor
+        TextureDesc
         {
             ImageType::TEXTURE_TYPE_3D,
             voxel_grid_format,
@@ -554,7 +554,7 @@ void EnvGrid::CreateVoxelGridData()
             FilterMode::TEXTURE_FILTER_LINEAR,
         }
     );
-    
+
     AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
 
     m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);

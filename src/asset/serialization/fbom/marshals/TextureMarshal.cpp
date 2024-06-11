@@ -87,7 +87,7 @@ public:
         }
 
         out_object = CreateObject<Texture>(
-            TextureDescriptor
+            TextureDesc
             {
                 type,
                 format,

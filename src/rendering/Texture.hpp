@@ -38,7 +38,7 @@ public:
     );
 
     Texture(
-        const TextureDescriptor &texture_descriptor,
+        const TextureDesc &texture_desc,
         UniquePtr<StreamedData> &&streamed_data
     );
 
@@ -63,7 +63,7 @@ public:
         { return m_image_view; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    const TextureDescriptor &GetTextureDescriptor() const
+    const TextureDesc &GetTextureDescriptor() const
         { return m_image->GetTextureDescriptor(); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
@@ -127,7 +127,7 @@ public:
         WrapMode wrap_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : Texture(
-            TextureDescriptor
+            TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
@@ -146,7 +146,7 @@ public:
         InternalFormat format,
         UniquePtr<StreamedData> &&streamed_data
     ) : Texture(
-            TextureDescriptor
+            TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,

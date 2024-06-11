@@ -90,7 +90,7 @@ struct AttachmentMap
     )
     {
         ImageRef<PLATFORM> image = MakeRenderObject<Image<PLATFORM>>(
-            TextureDescriptor
+            TextureDesc
             {
                 type,
                 format,

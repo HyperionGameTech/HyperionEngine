@@ -845,11 +845,15 @@ void LightmapRenderer::HandleCompletedJob(LightmapJob *job)
         (void)streamed_data->Load();
 
         Handle<Texture> texture = CreateObject<Texture>(
-            Extent3D { uv_map.width, uv_map.height, 1 },
-            InternalFormat::RGBA32F,
-            ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_REPEAT,
+            TextureDesc
+            {
+                ImageType::TEXTURE_TYPE_2D,
+                InternalFormat::RGBA32F,
+                Extent3D { uv_map.width, uv_map.height, 1 },
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                WrapMode::TEXTURE_WRAP_REPEAT
+            },
             std::move(streamed_data)
         );
 

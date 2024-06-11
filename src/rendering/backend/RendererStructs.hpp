@@ -123,7 +123,7 @@ enum class TextureMode : uint32
     STORAGE
 };
 
-struct TextureDescriptor
+struct TextureDesc
 {
     ImageType       type = ImageType::TEXTURE_TYPE_2D;
     InternalFormat  format = InternalFormat::RGBA8;
@@ -508,7 +508,7 @@ using renderer::InternalFormat;
 using renderer::FilterMode;
 using renderer::WrapMode;
 using renderer::TextureMode;
-using renderer::TextureDescriptor;
+using renderer::TextureDesc;
 
 } // namespace hyperion
 
