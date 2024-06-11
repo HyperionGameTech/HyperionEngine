@@ -135,6 +135,16 @@ struct TextureDesc
     uint32          num_faces = 1;
 };
 
+struct TextureData
+{
+    TextureDesc desc;
+    ByteBuffer  buffer;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsValid() const
+        { return buffer.Any(); }
+};
+
 struct alignas(16) PackedVertex
 {
     float   position_x,
@@ -508,6 +518,7 @@ using renderer::InternalFormat;
 using renderer::FilterMode;
 using renderer::WrapMode;
 using renderer::TextureMode;
+using renderer::TextureData;
 using renderer::TextureDesc;
 
 } // namespace hyperion

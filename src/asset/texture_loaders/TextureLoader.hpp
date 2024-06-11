@@ -17,14 +17,6 @@ public:
     virtual ~TextureLoader() = default;
 
     virtual LoadedAsset LoadAsset(LoaderState &state) const override;
-
-    struct TextureData
-    {
-        int width;
-        int height;
-        int num_components;
-        InternalFormat format;
-    };
 };
 
 } // namespace hyperion

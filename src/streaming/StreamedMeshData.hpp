@@ -9,6 +9,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/Array.hpp>
+#include <core/utilities/Optional.hpp>
 
 #include <Types.hpp>
 
@@ -33,21 +34,18 @@ public:
     StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = default;
     virtual ~StreamedMeshData() override                            = default;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     const MeshData &GetMeshData() const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType NumVertices() const
         { return m_num_vertices; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType NumIndices() const
         { return m_num_indices; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     StreamedDataRef<StreamedMeshData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<StreamedMeshData>() }; }
 
@@ -61,13 +59,12 @@ protected:
 private:
     void LoadMeshData(const ByteBuffer &byte_buffer) const;
 
-    RC<StreamedData>    m_streamed_data;
+    RC<StreamedData>        m_streamed_data;
 
-    SizeType            m_num_vertices;
-    SizeType            m_num_indices;
+    SizeType                    m_num_vertices;
+    SizeType                    m_num_indices;
 
-    mutable MeshData    m_mesh_data;
-    mutable bool        m_mesh_data_loaded;
+    mutable Optional<MeshData>  m_mesh_data;
 };
 
 } // namespace hyperion
