@@ -53,6 +53,11 @@ struct FBOMNameTable : public IFBOMSerializable
         }
     }
 
+    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out) const
+        { return Visit(GetUniqueID(), writer, out); }
+
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
+
     [[nodiscard]]
     virtual String ToString() const override
     {

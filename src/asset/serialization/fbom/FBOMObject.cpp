@@ -177,6 +177,11 @@ void FBOMObject::AddChild(FBOMObject &&object, const String &external_object_key
     nodes->PushBack(std::move(object));
 }
 
+FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const
+{
+    return writer->Write(out, *this, id);
+}
+
 HashCode FBOMObject::GetHashCode() const
 {
     HashCode hc;

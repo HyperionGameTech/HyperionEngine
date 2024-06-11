@@ -659,6 +659,8 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
             reader->Read(&type);
             CheckEndianness(type);
 
+            IFBOMSerializable *serializable_object_ptr = nullptr;
+
             switch (type)
             {
             case FBOMStaticData::FBOM_STATIC_DATA_NONE:

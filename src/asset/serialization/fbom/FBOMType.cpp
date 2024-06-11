@@ -2,6 +2,7 @@
 
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
 
 namespace hyperion::fbom {
 
@@ -158,6 +159,11 @@ bool FBOMType::Extends(const FBOMType &other, bool allow_unbounded) const
     }
 
     return extends->Extends(other, allow_unbounded);
+}
+
+FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const
+{
+    return writer->Write(out, *this, id);
 }
 
 String FBOMType::ToString() const

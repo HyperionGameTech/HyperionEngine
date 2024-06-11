@@ -81,15 +81,7 @@ FBOMData FBOMData::FromObject(const FBOMObject &object)
     MemoryByteWriter byte_writer;
     
     FBOMWriter serializer;
-    AssertThrow(serializer.WriteObject(&byte_writer, object) == FBOMResult::FBOM_OK);
-
-    // return FBOMData::FromByteBuffer(byte_writer.GetBuffer());
-
-    // FBOMWriter serializer;
-    // serializer.Append(object);
-
-    // const FBOMResult serialize_result = serializer.Emit(&byte_writer);
-    // AssertThrowMsg(serialize_result == FBOMResult::FBOM_OK, "Failed to serialize object: %s", serialize_result.message.Data());
+    AssertThrow(object.Visit(&serializer, &byte_writer) == FBOMResult::FBOM_OK);
 
     auto value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
@@ -140,6 +132,11 @@ void FBOMData::SetBytes(SizeType count, const void *data)
 
     bytes.SetSize(count);
     bytes.SetData(count, data);
+}
+
+FBOMResult FBOMData::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const
+{
+    return writer->Write(out, *this, id);
 }
 
 } // namespace hyperion::fbom

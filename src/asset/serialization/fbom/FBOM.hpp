@@ -370,21 +370,10 @@ public:
     FBOMResult Append(const FBOMObject &object);
     FBOMResult Emit(ByteWriter *out);
 
-    FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object, UniqueID id);
-    FBOMResult WriteObject(ByteWriter *out, const FBOMObject &object)
-        { return WriteObject(out, object, object.GetUniqueID()); }
-
-    FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &type, UniqueID id);
-    FBOMResult WriteObjectType(ByteWriter *out, const FBOMType &type)
-        { return WriteObjectType(out, type, type.GetUniqueID()); }
-
-    FBOMResult WriteData(ByteWriter *out, const FBOMData &data, UniqueID id);
-    FBOMResult WriteData(ByteWriter *out, const FBOMData &data)
-        { return WriteData(out, data, data.GetUniqueID()); }
-
-    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
-    FBOMResult WriteNameTable(ByteWriter *out, const FBOMNameTable &name_table)
-        { return WriteNameTable(out, name_table, name_table.GetUniqueID()); }
+    FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id);
+    FBOMResult Write(ByteWriter *out, const FBOMType &type, UniqueID id);
+    FBOMResult Write(ByteWriter *out, const FBOMData &data, UniqueID id);
+    FBOMResult Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
 
 private:
     FBOMResult WriteExternalObjects();
