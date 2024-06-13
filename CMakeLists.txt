@@ -210,20 +210,17 @@ if (${NATIVE})
         )
     endif()
 
-    # TEMPORARILY DISABLE ZLIB
-
-    # if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
-    #     add_definitions(-DHYP_ZLIB=1)
-    #
-    #     include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-    #     add_subdirectory(submodules/zlib)
-    #
-    #     set(COMMON_LIBRARIES
-    #         ${COMMON_LIBRARIES}
-    #         zlibstatic
-    #     )
-    # endif()
-
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
+        add_definitions(-DHYP_ZLIB=1)
+    
+        include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+        add_subdirectory(submodules/zlib)
+    
+        set(COMMON_LIBRARIES
+            ${COMMON_LIBRARIES}
+            zlibstatic
+        )
+    endif()
 
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
         add_definitions(-DHYP_LIBDATACHANNEL=1)

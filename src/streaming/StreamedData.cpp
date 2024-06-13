@@ -165,20 +165,37 @@ const ByteBuffer &NullStreamedData::Load_Internal() const
 
 #pragma region MemoryStreamedData
 
-MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer)
-    : StreamedData(StreamedDataState::LOADED),
-      m_byte_buffer(byte_buffer),
+MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer, StreamedDataState initial_state)
+    : StreamedData(initial_state),
       m_hash_code { 0 }
 {
-    m_hash_code = m_byte_buffer->GetHashCode();
+    m_hash_code = byte_buffer.GetHashCode();
+
+    if (initial_state == StreamedDataState::LOADED) {
+        m_byte_buffer.Set(byte_buffer);
+    }
 }
 
-MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer)
-    : StreamedData(StreamedDataState::LOADED),
-      m_byte_buffer(std::move(byte_buffer)),
+MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataState initial_state)
+    : StreamedData(initial_state),
       m_hash_code { 0 }
 {
-    m_hash_code = m_byte_buffer->GetHashCode();
+    m_hash_code = byte_buffer.GetHashCode();
+
+    if (initial_state == StreamedDataState::LOADED) {
+        m_byte_buffer.Set(std::move(byte_buffer));
+    }
+}
+
+MemoryStreamedData::MemoryStreamedData(ConstByteView byte_view, StreamedDataState initial_state)
+    : StreamedData(initial_state),
+      m_hash_code { 0 }
+{
+    m_hash_code = byte_view.GetHashCode();
+
+    if (initial_state == StreamedDataState::LOADED) {
+        m_byte_buffer.Set(ByteBuffer(byte_view));
+    }
 }
 
 MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept

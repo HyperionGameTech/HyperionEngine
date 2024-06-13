@@ -103,48 +103,13 @@ protected:
     StreamedData(StreamedDataState initial_state);
 
 public:
-    friend class StreamedDataRefBase; // allow it to access m_use_count
+    friend class StreamedDataRefBase; // allow it to manipulate m_use_count
 
     StreamedData()                                      = default;
     StreamedData(const StreamedData &)                  = delete;
     StreamedData &operator=(const StreamedData &)       = delete;
     StreamedData(StreamedData &&) noexcept              = delete;
     StreamedData &operator=(StreamedData &&) noexcept   = delete;
-
-    // StreamedData(const StreamedData &other)
-    //     : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
-    // {
-    // }
-
-    // StreamedData &operator=(const StreamedData &other)
-    // {
-    //     if (this == &other) {
-    //         return *this;
-    //     }
-
-    //     m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE), MemoryOrder::RELEASE);
-
-    //     return *this;
-    // }
-
-    // StreamedData(StreamedData &&other) noexcept
-    //     : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
-    // {
-    //     other.m_use_count.Set(0u, MemoryOrder::RELEASE);
-    // }
-
-    // StreamedData &operator=(StreamedData &&other) noexcept
-    // {
-    //     if (this == &other) {
-    //         return *this;
-    //     }
-
-    //     m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
-    //     other.m_use_count.Set(0u, MemoryOrder::RELEASE);
-
-    //     return *this;
-    // }
-
     virtual ~StreamedData() = default;
 
     virtual bool IsNull() const = 0;
@@ -165,10 +130,6 @@ class HYP_API NullStreamedData : public StreamedData
 {
 public:
     NullStreamedData()                                          = default;
-    // NullStreamedData(const NullStreamedData &)                  = default;
-    // NullStreamedData &operator=(const NullStreamedData &)       = default;
-    // NullStreamedData(NullStreamedData &&) noexcept              = default;
-    // NullStreamedData &operator=(NullStreamedData &&) noexcept   = default;
     virtual ~NullStreamedData() override                        = default;
 
     StreamedDataRef<NullStreamedData> AcquireRef()
@@ -185,8 +146,9 @@ protected:
 class HYP_API MemoryStreamedData : public StreamedData
 {
 public:
-    MemoryStreamedData(const ByteBuffer &byte_buffer);
-    MemoryStreamedData(ByteBuffer &&byte_buffer);
+    MemoryStreamedData(const ByteBuffer &byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(ConstByteView byte_view, StreamedDataState initial_state = StreamedDataState::LOADED);
 
     MemoryStreamedData(const MemoryStreamedData &other)             = delete;
     MemoryStreamedData &operator=(const MemoryStreamedData &other)  = delete;
