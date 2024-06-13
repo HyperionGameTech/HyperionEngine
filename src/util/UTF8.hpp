@@ -95,7 +95,7 @@ inline void init()
 #endif
 }
 
-inline bool utf32_isspace(u32char ch)
+constexpr inline bool utf32_isspace(u32char ch)
 {
     return ch == u32char(' ')  ||
            ch == u32char('\n') ||
@@ -103,25 +103,25 @@ inline bool utf32_isspace(u32char ch)
            ch == u32char('\r');
 }
 
-inline bool utf32_isdigit(u32char ch)
+constexpr inline bool utf32_isdigit(u32char ch)
 {
     return (ch >= u32char('0')) && (ch <= u32char('9'));
 }
 
-inline bool utf32_isxdigit(u32char ch)
+constexpr inline bool utf32_isxdigit(u32char ch)
 {
     return (ch >= u32char('0')) && (ch <= u32char('9'))
         || ((ch >= u32char('A') && ch <= u32char('F')))
         || ((ch >= u32char('a') && ch <= u32char('f')));
 }
 
-inline bool utf32_isalpha(u32char ch)
+constexpr inline bool utf32_isalpha(u32char ch)
 {
     return (ch >= 0xC0) || ((ch >= u32char('A') && ch <= u32char('Z')) ||
                             (ch >= u32char('a') && ch <= u32char('z')));
 }
 
-inline int utf8_strlen(const char *first, const char *last, int *out_byte_index = nullptr)
+constexpr inline int utf8_strlen(const char *first, const char *last)
 {
     int i;
     int count = 0;
@@ -134,48 +134,82 @@ inline int utf8_strlen(const char *first, const char *last, int *out_byte_index 
         else if ((c & 0xF8) == 0xF0) i += 3;
         else return -1;//invalid utf8
     }
-    if (out_byte_index) {
-        *out_byte_index = i;
-    }
+    
     return count;
 }
 
-inline int utf8_strlen(const char *str, int *out_byte_index = nullptr)
+constexpr inline int utf8_strlen(const char *first, const char *last, int &out_num_bytes)
 {
-    const auto max = std::strlen(str);
-    int count = 0;
     int i;
-
-    for (i = 0; i < max; i++, count++) {
-        unsigned char c = (unsigned char)str[i];
+    int count = 0;
+    const char *pos = first;
+    for (i = 0; pos != last; ++pos, ++count) {
+        unsigned char c = (unsigned char)*pos;
         if (c >= 0 && c <= 127) i += 0;
         else if ((c & 0xE0) == 0xC0) i += 1;
         else if ((c & 0xF0) == 0xE0) i += 2;
         else if ((c & 0xF8) == 0xF0) i += 3;
         else return -1;//invalid utf8
     }
-
-    if (out_byte_index) {
-        *out_byte_index = i;
+    if (out_num_bytes) {
+        out_num_bytes = i;
     }
+    return count;
+}
+
+constexpr inline int utf8_strlen(const char *str, int &out_num_bytes)
+{
+    int count = 0;
+    int byte_index = 0;
+
+    for (; str[byte_index] != '\0'; count++) {
+        const char c = str[byte_index];
+
+        if (c >= 0 && c <= 127) byte_index += 1;
+        else if ((c & 0xE0) == 0xC0) byte_index += 2;
+        else if ((c & 0xF0) == 0xE0) byte_index += 3;
+        else if ((c & 0xF8) == 0xF0) byte_index += 4;
+        else return -1;//invalid utf8
+    }
+
+    out_num_bytes = byte_index;
 
     return count;
 }
 
+constexpr inline int utf8_strlen(const char *str)
+{
+    int num_bytes = 0;
+
+    return utf8_strlen(str, num_bytes);
+}
+
 template <class T, bool is_utf8>
-int utf_strlen(const T *str, int *out_byte_index = nullptr)
+constexpr int utf_strlen(const T *str)
 {
     if constexpr (is_utf8) {
-        return utf8_strlen(str, out_byte_index);
+        return utf8_strlen(str);
     }
 
     int count = 0;
     const T *pos = str;
     for (; *pos; ++pos, count++);
 
-    if (out_byte_index != nullptr) {
-        *out_byte_index = count;
+    return count;
+}
+
+template <class T, bool is_utf8>
+constexpr int utf_strlen(const T *str, int &out_num_bytes)
+{
+    if constexpr (is_utf8) {
+        return utf8_strlen(str, out_num_bytes);
     }
+
+    int count = 0;
+    const T *pos = str;
+    for (; *pos; ++pos, count++);
+
+    out_num_bytes = count;
 
     return count;
 }
@@ -289,20 +323,13 @@ inline u32char *utf32_strcpy(u32char *dst, const u32char *src)
     return dst;
 }
 
+#if 0
 inline char *utf8_strncpy(char *dst, const char *src, size_t n)
 {
     size_t i = 0;
     size_t count = 0;
 
-    size_t max = std::strlen(dst) + 1;
-
-    for (; src[i] != '\0'; i++, count++) {
-
-        if (count == n) {
-            // finished copying, jump to end
-            break;
-        }
-
+    for (; src[i] != '\0' && count < n; i++, count++) {
         unsigned char c = (unsigned char)src[i];
 
         if (c >= 0 && c <= 127) {
@@ -366,6 +393,7 @@ inline u32char *utf32_strcat(u32char *dst, const u32char *src)
     while ((*dst++ = *src++));
     return --dst;
 }
+#endif
 
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
@@ -410,41 +438,35 @@ inline u32char char8to32(const char *str, hyperion::SizeType max = sizeof(u32cha
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::uint8 *num_bytes_read_ptr)
+inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::uint8 &out_num_bytes)
 {
     union { u32char ret; char ret_bytes[sizeof(u32char)]; };
     ret = 0;
 
-    hyperion::uint8 num_bytes_read = 0;
-
-    if (!num_bytes_read_ptr) {
-        num_bytes_read_ptr = &num_bytes_read;
-    }
-
-    *num_bytes_read_ptr = 0;
+    out_num_bytes = 0;
 
     const unsigned char ch = (unsigned char)str[0];
 
     if (ch <= 0x7F) {
-        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
+        ret_bytes[0] = str[out_num_bytes++];
     } else if ((ch & 0xE0) == 0xC0) {
-        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
+        ret_bytes[0] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[1] = str[out_num_bytes++];
     } else if ((ch & 0xF0) == 0xE0) {
-        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[2] = str[(*num_bytes_read_ptr)++];
+        ret_bytes[0] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[1] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[2] = str[out_num_bytes++];
     } else if ((ch & 0xF8) == 0xF0) {
-        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[2] = str[(*num_bytes_read_ptr)++];
-        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
-        ret_bytes[3] = str[(*num_bytes_read_ptr)++];
+        ret_bytes[0] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[1] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[2] = str[out_num_bytes++];
+        HYP_UTF8_CHECK_BOUNDS(out_num_bytes, max);
+        ret_bytes[3] = str[out_num_bytes++];
     } else {
         // invalid utf-8
         return -1;
@@ -456,15 +478,9 @@ inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::uint
 /*! \brief Convert a single UTF-32 char to UTF-8 array of code points.
  *  The array at \ref{dst} MUST have a sizeof u32char (4 bytes)
  */
-inline void char32to8(u32char src, char *dst, int *out_length = nullptr)
+inline void char32to8(u32char src, char *dst, int &out_num_bytes)
 {
-    int len;
-
-    if (!out_length) {
-        out_length = &len;
-    }
-
-    *out_length = 0;
+    out_num_bytes = 0;
 
     // set all bytes to 0
     std::memset(dst, 0, sizeof(u32char));
@@ -472,17 +488,21 @@ inline void char32to8(u32char src, char *dst, int *out_length = nullptr)
     const char *src_bytes = reinterpret_cast<char *>(&src);
 
     for (hyperion::SizeType i = 0; i < sizeof(u32char); i++) {
-        if (src_bytes[i] == 0) {
+        if (src_bytes[i] == '\0') {
             // stop reading
             break;
         }
 
         dst[i] = src_bytes[i];
-        (*out_length)++;
+        out_num_bytes++;
     }
 }
 
-inline char *get_bytes(u32char &ch) { return reinterpret_cast<char*>(&ch); }
+inline void char32to8(u32char src, char *dst)
+{
+    int num_bytes = 0;
+    char32to8(src, dst, num_bytes);
+}
 
 inline void utf8to32(const char *src, u32char *dst, int size)
 {
@@ -746,6 +766,8 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
     // NULL terminate the string
     result[buffer_index] = 0;
 }
+
+inline char *get_bytes(u32char &ch) { return reinterpret_cast<char*>(&ch); }
 
 } // namespace utf
 

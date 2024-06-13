@@ -83,14 +83,16 @@ struct IntegerSequenceFromString;
 template <SizeType Sz>
 struct StaticString
 {
-    using Iterator = const char *;
-    using ConstIterator = const char *;
+    using CharType = char;
+
+    using Iterator = const CharType *;
+    using ConstIterator = const CharType *;
 
     static constexpr SizeType size = Sz;
 
-    char data[Sz];
+    CharType data[Sz];
 
-    constexpr StaticString(const char (&str)[Sz])
+    constexpr StaticString(const CharType (&str)[Sz])
     {
         for (SizeType i = 0; i < Sz; ++i) {
             data[i] = str[i];
@@ -186,7 +188,7 @@ struct StaticString
      *  \tparam Char The character to count.
      * 
      *  \returns The number of occurrences of the character in the StaticString. */
-    template <char Char>
+    template <CharType Char>
     constexpr auto Count() const
     {
         SizeType count = 0;
@@ -215,7 +217,7 @@ struct StaticString
     //     return TrimLeft().TrimRight();
     // }
 
-    constexpr const char *Data() const
+    constexpr const CharType *Data() const
         { return &data[0]; }
 
     constexpr SizeType Size() const
@@ -227,7 +229,7 @@ struct StaticString
         return HashCode::GetHashCode<Sz>(data);
     }
 
-    HYP_DEF_STL_BEGIN_END(
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(
         &data[0],
         &data[0] + Sz
     )
@@ -304,13 +306,16 @@ namespace detail {
 template <auto StaticString>
 struct IntegerSequenceFromString
 {
+    using StaticStringType = decltype(StaticString);
+    using CharType = typename StaticStringType::CharType;
+
 private:
-    constexpr static auto value = detail::make_seq<char>([] { return std::string_view { StaticString.data }; });
+    constexpr static auto value = detail::make_seq<CharType>([] { return std::string_view { StaticString.data }; });
 
 public:
     using Type = decltype(value);
 
-    static constexpr const char *Data()
+    static constexpr const CharType *Data()
         { return &StaticString.data[0]; }
 
     static constexpr SizeType Size()

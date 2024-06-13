@@ -151,14 +151,14 @@ Token Lexer::NextToken()
         int pos_change = 0;
         utf::u32char bad_token = m_source_stream.Next(pos_change);
 
-        char bad_token_str[sizeof(bad_token)] = { '\0' };
+        char bad_token_str[5] = { '\0' };
         utf::char32to8(bad_token, bad_token_str);
         
         m_compilation_unit->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_unexpected_token,
             location,
-            std::string(bad_token_str)
+            String(bad_token_str)
         ));
 
         m_source_location.GetColumn() += pos_change;
@@ -177,6 +177,9 @@ u32char Lexer::ReadEscapeCode()
         u32char esc = m_source_stream.Next(pos_change);
         m_source_location.GetColumn() += pos_change;
 
+        char esc_utf8[5] = { '\0' };
+        utf::char32to8(esc, esc_utf8);
+
         // TODO: add support for unicode escapes
         switch (esc) {
         case 't': return '\t';
@@ -194,7 +197,7 @@ u32char Lexer::ReadEscapeCode()
                 LEVEL_ERROR,
                 Msg_unrecognized_escape_sequence,
                 location,
-                std::string("\\") + utf::get_bytes(esc)
+                String("\\") + esc_utf8
             ));
         }
     }
@@ -475,7 +478,7 @@ Token Lexer::ReadDocumentation()
 {
     SourceLocation location = m_source_location;
 
-    std::string value;
+    String value;
 
     // read '/**'
     for (int i = 0; i < 3; i++) {
@@ -492,7 +495,7 @@ Token Lexer::ReadDocumentation()
             m_source_location.GetColumn() += pos_change;
             break;
         } else {
-            char ch[4] = {'\0'};
+            char ch[5] = { '\0' };
             utf::char32to8(m_source_stream.Peek(), ch);
             // append value
             value += ch;

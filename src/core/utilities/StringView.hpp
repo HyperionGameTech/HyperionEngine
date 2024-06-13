@@ -26,22 +26,22 @@ class StringView
 {
 public:
     template <int FirstStringType, int SecondStringType>
-    friend bool operator<(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+    friend constexpr bool operator<(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend bool operator<(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+    friend constexpr bool operator<(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend bool operator<(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
+    friend constexpr bool operator<(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend bool operator==(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+    friend constexpr bool operator==(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend bool operator==(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
+    friend constexpr bool operator==(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend bool operator==(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
+    friend constexpr bool operator==(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
     using CharType = typename containers::detail::StringTypeImpl<StringType>::CharType;
     using WidestCharType = typename containers::detail::StringTypeImpl<StringType>::WidestCharType;
@@ -63,51 +63,66 @@ public:
 
     static constexpr int string_type = StringType;
 
-    StringView()
+    constexpr StringView()
         : m_begin(nullptr),
           m_end(nullptr),
           m_length(0)
     {
     }
 
-    StringView(const detail::String<StringType> &str)
+    constexpr StringView(const detail::String<StringType> &str)
         : m_begin(str.Begin()),
           m_end(str.End()),
           m_length(str.Length())
     {
     }
 
-    StringView(const CharType str[])
+    template <SizeType Sz>
+    constexpr StringView(const CharType (&str)[Sz])
         : m_begin(&str[0]),
+          m_end(&str[0] + Sz),
+          m_length(utf::utf_strlen<CharType, is_utf8>(str))
+    {
+    }
+
+    constexpr StringView(const CharType *str)
+        : m_begin(str),
           m_end(nullptr),
           m_length(0)
     {
         int size = 0;
-        const int len = utf::utf_strlen<CharType, is_utf8>(str, &size);
+        const int len = utf::utf_strlen<CharType, is_utf8>(str, size);
 
         m_end = m_begin + size;
         m_length = len;
     }
 
-    template <SizeType Sz, std::enable_if_t<is_utf8 || is_ansi, int> = 0>
-    StringView(const StaticString<Sz> &str)
+    template <SizeType Sz, std::enable_if_t<std::is_same_v<CharType, typename StaticString<Sz>::CharType>, int> = 0>
+    constexpr StringView(const StaticString<Sz> &str)
         : m_begin(str.Begin()),
           m_end(str.End()),
           m_length(utf::utf_strlen<CharType, is_utf8>(str.data))
     {
     }
 
-    StringView(const ByteBuffer &byte_buffer)
+    constexpr StringView(const ByteBuffer &byte_buffer)
         : m_begin(reinterpret_cast<const CharType *>(byte_buffer.Data())),
           m_end(reinterpret_cast<const CharType *>(byte_buffer.Data() + byte_buffer.Size())),
           m_length(utf::utf_strlen<CharType, is_utf8>(reinterpret_cast<const CharType *>(byte_buffer.Data())))
     {
     }
 
-    StringView(const StringView &other)             = default;
+    constexpr StringView(ConstByteView byte_view)
+        : m_begin(reinterpret_cast<const CharType *>(byte_view.Data())),
+          m_end(reinterpret_cast<const CharType *>(byte_view.Data() + byte_view.Size())),
+          m_length(utf::utf_strlen<CharType, is_utf8>(reinterpret_cast<const CharType *>(byte_view.Data())))
+    {
+    }
+
+    constexpr StringView(const StringView &other)   = default;
     StringView &operator=(const StringView &other)  = default;
 
-    StringView(StringView &&other) noexcept
+    constexpr StringView(StringView &&other) noexcept
         : m_begin(other.m_begin),
           m_end(other.m_end),
           m_length(other.m_length)
@@ -130,30 +145,26 @@ public:
         return *this;
     }
 
-    ~StringView() = default;
+    constexpr ~StringView() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     operator detail::String<StringType>() const
         { return detail::String<StringType>(Data()); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator const CharType *() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr explicit operator const CharType *() const
         { return m_begin; }
 
     /*! \brief Convenience operator overload to return the raw string using the dereference operator
      *  \returns The raw string that the StringView has a pointer to. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const CharType *operator*() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr const CharType *operator*() const
         { return m_begin; }
 
     /*! \brief Inversion of the equality operator.
      *  \param other The other StringView object to compare against.
      *  \returns True if the strings are not equal, false otherwise. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator!=(const StringView &other) const
         { return !operator==(other); }
 
@@ -161,34 +172,28 @@ public:
      *  For other types, this is the number of characters.
      *  \note For UTF-8 strings, use the \ref{Length} function to get the number of characters.
      *  \returns The size of the string. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Size() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr SizeType Size() const
         { return SizeType(m_end - m_begin); }
 
     /*! \brief Return the length of the string. For UTF-8 strings, this is the number of characters.
      *  For other types, this is the same as the \ref{Size} function.
      *  \returns The length of the string in characters. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Length() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr SizeType Length() const
         { return m_length; }
 
     /*! \brief Return the raw string pointer.
      *  \returns The raw string pointer. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const CharType *Data() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr const CharType *Data() const
         { return m_begin; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(m_begin, m_end);
-    }
+        { return HashCode::GetHashCode(m_begin, m_end); }
 
-    HYP_DEF_STL_BEGIN_END(
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(
         m_begin,
         m_end
     )
@@ -200,7 +205,7 @@ private:
 };
 
 template <int StringType>
-bool operator<(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
+constexpr bool operator<(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -214,7 +219,7 @@ bool operator<(const StringView<StringType> &lhs, const StringView<StringType> &
 }
 
 template <int StringType>
-bool operator<(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
+constexpr bool operator<(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -228,7 +233,7 @@ bool operator<(const containers::detail::String<StringType> &lhs, const StringVi
 }
 
 template <int StringType>
-bool operator<(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
+constexpr bool operator<(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -242,7 +247,7 @@ bool operator<(const StringView<StringType> &lhs, const containers::detail::Stri
 }
 
 template <int StringType>
-bool operator==(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
+constexpr bool operator==(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;
@@ -252,7 +257,7 @@ bool operator==(const StringView<StringType> &lhs, const StringView<StringType> 
 }
 
 template <int StringType>
-bool operator==(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
+constexpr bool operator==(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;
@@ -262,7 +267,7 @@ bool operator==(const containers::detail::String<StringType> &lhs, const StringV
 }
 
 template <int StringType>
-bool operator==(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
+constexpr bool operator==(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;

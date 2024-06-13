@@ -19,16 +19,16 @@ struct Span
     T   *first;
     T   *last;
 
-    Span()
+    constexpr Span()
         : first(nullptr),
           last(nullptr)
     {
     }
 
-    Span(const Span &other) = default;
+    constexpr Span(const Span &other) = default;
 
     template <class OtherT>
-    Span(const Span<OtherT> &other)
+    constexpr Span(const Span<OtherT> &other)
         : first(other.first),
           last(other.last)
     {
@@ -49,7 +49,7 @@ struct Span
         return *this;
     }
 
-    Span(Span &&other) noexcept
+    constexpr Span(Span &&other) noexcept
         : first(other.first),
           last(other.last)
     {
@@ -58,7 +58,7 @@ struct Span
     }
 
     template <class OtherT, typename = std::enable_if_t<std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<OtherT>>>>
-    Span(Span<OtherT> &&other) noexcept
+    constexpr Span(Span<OtherT> &&other) noexcept
         : first(other.first),
           last(other.last)
     {
@@ -97,70 +97,68 @@ struct Span
         return *this;
     }
 
-    Span(T *first, T *last)
+    constexpr Span(T *first, T *last)
         : first(first),
           last(last)
     {
     }
 
-    Span(T *first, SizeType size)
+    constexpr Span(T *first, SizeType size)
         : first(first),
           last(first + size)
     {
     }
 
     template <SizeType Size>
-    Span(T (&ary)[Size])
+    constexpr Span(T (&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {
     }
 
-    ~Span() = default;
+    constexpr ~Span() = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(const Span &other) const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr bool operator==(const Span &other) const
         { return first == other.first && last == other.last; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const Span &other) const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr bool operator!=(const Span &other) const
         { return first != other.first || last != other.last; }
 
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr bool operator!() const
         { return ptrdiff_t(last - first) <= 0; }
 
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr explicit operator bool() const
         { return ptrdiff_t(last - first) > 0; }
 
-    HYP_FORCE_INLINE
-    T &operator[](SizeType index)
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr T &operator[](SizeType index)
         { return first[index]; }
 
-    HYP_FORCE_INLINE
-    const T &operator[](SizeType index) const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr const T &operator[](SizeType index) const
         { return first[index]; }
 
-    HYP_FORCE_INLINE
-    SizeType Size() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr SizeType Size() const
         { return SizeType(last - first); }
 
-    HYP_FORCE_INLINE
-    T *Data()
-        { return first; }
-
-    HYP_FORCE_INLINE
-    const T *Data() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr T *Data()
         { return first; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(reinterpret_cast<const char *>(Begin()), reinterpret_cast<const char *>(End()));
-    }
+    constexpr const T *Data() const
+        { return first; }
 
-    HYP_DEF_STL_BEGIN_END(
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr HashCode GetHashCode() const
+        { return HashCode::GetHashCode(reinterpret_cast<const char *>(Begin()), reinterpret_cast<const char *>(End())); }
+
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(
         first,
         last
     )

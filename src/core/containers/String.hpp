@@ -358,7 +358,7 @@ public:
             }
         } else {
             for (SizeType i = 0; i < size;) {
-                uint8 num_bytes_read = 0;
+                uint8 num_bytes = 0;
 
                 union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
                 char_u32 = 0;
@@ -366,10 +366,10 @@ public:
                 char_u32 = utf::char8to32(
                     Data() + i,
                     MathUtil::Min(sizeof(utf::u32char), size - i),
-                    &num_bytes_read
+                    num_bytes
                 );
 
-                i += num_bytes_read;
+                i += SizeType(num_bytes);
 
                 if (separator_values.Contains(char_u32)) {
                     tokens.PushBack(std::move(working_string));
@@ -379,15 +379,15 @@ public:
                 
                 working_string.Append(char_u8[0]);
 
-                if (num_bytes_read >= 2) {
+                if (num_bytes >= 2) {
                     working_string.Append(char_u8[1]);
                 }
                 
-                if (num_bytes_read >= 3) {
+                if (num_bytes >= 3) {
                     working_string.Append(char_u8[2]);
                 }
 
-                if (num_bytes_read == 4) {
+                if (num_bytes == 4) {
                     working_string.Append(char_u8[3]);
                 }
             }
@@ -431,7 +431,7 @@ public:
                     int separator_length = 0;
                     char separator_bytes[sizeof(utf::u32char)] = { '\0' };
 
-                    utf::char32to8(separator, separator_bytes, &separator_length);
+                    utf::char32to8(separator, separator_bytes, separator_length);
 
 #ifdef HYP_DEBUG_MODE
                     AssertThrow(separator_length <= sizeof(separator_bytes) / sizeof(separator_bytes[0]));
@@ -669,8 +669,8 @@ String<StringType>::String(const CharType *str)
         return;
     }
     
-    int count;
-    const int len = utf::utf_strlen<CharType, is_utf8>(str, &count);
+    int num_bytes;
+    const int len = utf::utf_strlen<CharType, is_utf8>(str, num_bytes);
 
     if (len == -1) {
         // invalid utf8 string
@@ -683,9 +683,9 @@ String<StringType>::String(const CharType *str)
     m_length = len;
     
     // reserves + 1 for null char
-    Reserve(count);
+    Reserve(num_bytes);
 
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < num_bytes; ++i) {
         Base::PushBack(str[i]);
     }
     
@@ -702,8 +702,8 @@ String<StringType>::String(const CharType *str, int max_len)
         return;
     }
 
-    int count;
-    const int len = MathUtil::Min(utf::utf_strlen<CharType, is_utf8>(str, &count), max_len);
+    int num_bytes;
+    const int len = MathUtil::Min(utf::utf_strlen<CharType, is_utf8>(str, num_bytes), max_len);
 
     if (len == -1) {
         // invalid utf8 string
@@ -716,9 +716,9 @@ String<StringType>::String(const CharType *str, int max_len)
     m_length = len;
     
     // reserves + 1 for null char
-    Reserve(count);
+    Reserve(num_bytes);
 
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < num_bytes; ++i) {
         Base::PushBack(str[i]);
     }
     
@@ -1081,7 +1081,7 @@ auto String<StringType>::ToLower() const -> String
 
     for (SizeType i = 0; i < Size();) {
         if constexpr (is_utf8) {
-            uint8 num_bytes_read = 0;
+            uint8 num_bytes = 0;
 
             union
             {
@@ -1090,12 +1090,12 @@ auto String<StringType>::ToLower() const -> String
             };
 
             // evil union byte magic
-            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), &num_bytes_read);
+            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), num_bytes);
             char_i32 = std::tolower(char_i32);
 
             result.Append(char_u32);
 
-            i += num_bytes_read;
+            i += SizeType(num_bytes);
         } else {
             result.Append(std::tolower(result[i]));
 
@@ -1244,18 +1244,17 @@ String<StringType> String<StringType>::Escape() const
         }
     } else {
         for (SizeType i = 0; i < size;) {
-            uint8 num_bytes_read = 0;
+            uint8 num_bytes = 0;
 
             union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
-            char_u32 = 0;
-
+            
             char_u32 = utf::char8to32(
                 Data() + i,
                 MathUtil::Min(sizeof(utf::u32char), size - i),
-                &num_bytes_read
+                num_bytes
             );
 
-            i += num_bytes_read;
+            i += SizeType(num_bytes);
 
             switch (char_u32) {
             case uint32('\n'):
@@ -1291,15 +1290,15 @@ String<StringType> String<StringType>::Escape() const
             default:
                 result.Append(char_u8[0]);
 
-                if (num_bytes_read >= 2) {
+                if (num_bytes >= 2) {
                     result.Append(char_u8[1]);
                 }
                 
-                if (num_bytes_read >= 3) {
+                if (num_bytes >= 3) {
                     result.Append(char_u8[2]);
                 }
 
-                if (num_bytes_read == 4) {
+                if (num_bytes == 4) {
                     result.Append(char_u8[3]);
                 }
 
@@ -1438,9 +1437,7 @@ SizeType String<StringType>::FindIndex(const String &other) const
 {
     if (auto *ptr = StrStr(other)) {
         if constexpr (is_utf8) {
-            const int len = utf8_strlen(Data(), ptr, nullptr);
-
-            return SizeType(len);
+            return SizeType(utf8_strlen(Data(), ptr));
         } else {
             return static_cast<SizeType>(ptr - Data());
         }

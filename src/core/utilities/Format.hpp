@@ -77,12 +77,22 @@ struct Formatter< StringType, StaticString< Size > >
         return StringType(value.Data());
     }
 };
+
 template <class StringType, int OtherStringType>
-struct Formatter< StringType, containers::detail::String < OtherStringType > >
+struct Formatter< StringType, containers::detail::String< OtherStringType > >
 {
     auto operator()(const containers::detail::String< OtherStringType > &value) const
     {
         return value.ToUTF8();
+    }
+};
+
+template <class StringType, int OtherStringType>
+struct Formatter< StringType, utilities::StringView< OtherStringType > >
+{
+    auto operator()(const utilities::StringView< OtherStringType > &value) const
+    {
+        return StringType(value);
     }
 };
 

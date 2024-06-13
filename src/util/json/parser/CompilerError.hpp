@@ -185,27 +185,40 @@ public:
     CompilerError(const CompilerError &other);
     ~CompilerError() = default;
 
-    ErrorLevel GetLevel() const { return m_level; }
-    ErrorMessage GetMessage() const { return m_msg; }
-    const SourceLocation &GetLocation() const { return m_location; }
+    HYP_NODISCARD HYP_FORCE_INLINE
+    ErrorLevel GetLevel() const
+        { return m_level; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    ErrorMessage GetMessage() const
+        { return m_msg; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const SourceLocation &GetLocation() const
+        { return m_location; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     const String &GetText() const { return m_text; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const CompilerError &other) const
         { return m_level == other.m_level
             && m_msg == other.m_msg
             && m_location == other.m_location
             && m_text == other.m_text; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(const CompilerError &other) const
         { return !(*this == other); }
 
     bool operator<(const CompilerError &other) const;
 
 private:
-    void MakeMessage(const char *format) { m_text += format; }
+    void MakeMessage(const char *format)
+        { m_text += format; }
 
     template <typename T, typename ... Args>
-    void MakeMessage(const char *format, T value, Args && ... args)
+    void MakeMessage(const char *format, const T &value, Args && ... args)
     {
         for (; *format; format++) {
             if (*format == '%') {

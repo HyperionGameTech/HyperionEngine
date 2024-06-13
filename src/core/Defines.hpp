@@ -154,26 +154,36 @@
     }
 
 #define HYP_DEF_STL_ITERATOR(container) \
-    [[nodiscard]] Iterator Begin()             { return container.begin(); }  \
-    [[nodiscard]] Iterator End()               { return container.end(); }    \
-    [[nodiscard]] ConstIterator Begin() const  { return container.begin(); }  \
-    [[nodiscard]] ConstIterator End() const    { return container.end(); }    \
-    [[nodiscard]] Iterator begin()             { return container.begin(); }  \
-    [[nodiscard]] Iterator end()               { return container.end(); }    \
-    [[nodiscard]] ConstIterator begin() const  { return container.begin(); }  \
-    [[nodiscard]] ConstIterator end() const    { return container.end(); }    \
-    [[nodiscard]] ConstIterator cbegin() const { return container.cbegin(); } \
-    [[nodiscard]] ConstIterator cend() const   { return container.cend(); }
+    HYP_NODISCARD Iterator Begin()             { return container.begin(); }  \
+    HYP_NODISCARD Iterator End()               { return container.end(); }    \
+    HYP_NODISCARD ConstIterator Begin() const  { return container.begin(); }  \
+    HYP_NODISCARD ConstIterator End() const    { return container.end(); }    \
+    HYP_NODISCARD Iterator begin()             { return container.begin(); }  \
+    HYP_NODISCARD Iterator end()               { return container.end(); }    \
+    HYP_NODISCARD ConstIterator begin() const  { return container.begin(); }  \
+    HYP_NODISCARD ConstIterator end() const    { return container.end(); }    \
+    HYP_NODISCARD ConstIterator cbegin() const { return container.cbegin(); } \
+    HYP_NODISCARD ConstIterator cend() const   { return container.cend(); }
 
 #define HYP_DEF_STL_BEGIN_END(_begin, _end) \
-    [[nodiscard]] Iterator Begin()             { return _begin; } \
-    [[nodiscard]] Iterator End()               { return _end; }   \
-    [[nodiscard]] ConstIterator Begin() const  { return _begin; } \
-    [[nodiscard]] ConstIterator End() const    { return _end; }   \
-    [[nodiscard]] Iterator begin()             { return _begin; } \
-    [[nodiscard]] Iterator end()               { return _end; }   \
-    [[nodiscard]] ConstIterator begin() const  { return _begin; } \
-    [[nodiscard]] ConstIterator end() const    { return _end; }
+    HYP_NODISCARD Iterator Begin()             { return _begin; } \
+    HYP_NODISCARD Iterator End()               { return _end; }   \
+    HYP_NODISCARD ConstIterator Begin() const  { return _begin; } \
+    HYP_NODISCARD ConstIterator End() const    { return _end; }   \
+    HYP_NODISCARD Iterator begin()             { return _begin; } \
+    HYP_NODISCARD Iterator end()               { return _end; }   \
+    HYP_NODISCARD ConstIterator begin() const  { return _begin; } \
+    HYP_NODISCARD ConstIterator end() const    { return _end; }
+
+#define HYP_DEF_STL_BEGIN_END_CONSTEXPR(_begin, _end) \
+    HYP_NODISCARD constexpr Iterator Begin()             { return _begin; } \
+    HYP_NODISCARD constexpr Iterator End()               { return _end; }   \
+    HYP_NODISCARD constexpr ConstIterator Begin() const  { return _begin; } \
+    HYP_NODISCARD constexpr ConstIterator End() const    { return _end; }   \
+    HYP_NODISCARD constexpr Iterator begin()             { return _begin; } \
+    HYP_NODISCARD constexpr Iterator end()               { return _end; }   \
+    HYP_NODISCARD constexpr ConstIterator begin() const  { return _begin; } \
+    HYP_NODISCARD constexpr ConstIterator end() const    { return _end; }
 
 #define HYP_ENABLE_IF(cond, return_type) \
     typename std::enable_if_t<cond, return_type>
