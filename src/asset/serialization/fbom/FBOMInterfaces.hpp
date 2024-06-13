@@ -30,7 +30,7 @@ public:
     virtual HashCode GetHashCode() const = 0;
 
     [[nodiscard]]
-    virtual String ToString() const = 0;
+    virtual String ToString(bool deep = true) const = 0;
 };
 
 } // namespace fbom

@@ -1,0 +1,66 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#ifndef HYPERION_STREAMED_TEXTURE_DATA_HPP
+#define HYPERION_STREAMED_TEXTURE_DATA_HPP
+
+#include <streaming/StreamedData.hpp>
+
+#include <rendering/backend/RendererStructs.hpp>
+
+#include <core/memory/RefCountedPtr.hpp>
+#include <core/containers/Array.hpp>
+#include <core/utilities/Optional.hpp>
+
+#include <Types.hpp>
+
+namespace hyperion {
+
+class HYP_API StreamedTextureData : public StreamedData
+{
+public:
+    static RC<StreamedTextureData> FromTextureData(TextureData);
+    
+    StreamedTextureData();
+    StreamedTextureData(const TextureData &texture_data);
+    StreamedTextureData(TextureData &&texture_data);
+    // StreamedTextureData(const StreamedTextureData &other)                   = default;
+    // StreamedTextureData &operator=(const StreamedTextureData &other)        = default;
+    // StreamedTextureData(StreamedTextureData &&other) noexcept               = default;
+    // StreamedTextureData &operator=(StreamedTextureData &&other) noexcept    = default;
+    virtual ~StreamedTextureData() override                                 = default;
+
+    HYP_NODISCARD
+    const TextureData &GetTextureData() const;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const TextureDesc &GetTextureDesc() const
+        { return m_texture_desc; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    uint32 GetBufferSize() const
+        { return m_buffer_size; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    StreamedDataRef<StreamedTextureData> AcquireRef()
+        { return { RefCountedPtrFromThis().CastUnsafe<StreamedTextureData>() }; }
+
+    virtual bool IsNull() const override;
+    virtual bool IsInMemory() const override;
+
+protected:
+    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Unpage_Internal() override;
+    
+private:
+    void LoadTextureData(const ByteBuffer &byte_buffer) const;
+
+    RC<StreamedData>                m_streamed_data;
+    
+    mutable Optional<TextureData>   m_texture_data;
+    mutable TextureDesc             m_texture_desc;
+    mutable uint32                  m_buffer_size;
+};
+
+} // namespace hyperion
+
+#endif

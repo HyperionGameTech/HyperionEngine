@@ -47,12 +47,7 @@ public:
     template <class Ty, class = std::enable_if_t<std::is_convertible_v<Ty, T>>>
     Optional &operator=(const Ty &value)
     {
-        if (m_has_value) {
-            Get() = value;
-        } else {
-            m_has_value = true;
-            new (&m_storage.data_buffer) T(value);
-        }
+        Set(value);
 
         return *this;
     }
@@ -67,12 +62,7 @@ public:
     template <class Ty, class = std::enable_if_t<std::is_convertible_v<Ty, T>>>
     Optional &operator=(Ty &&value) noexcept
     {
-        if (m_has_value) {
-            Get() = std::move(value);
-        } else {
-            m_has_value = true;
-            new (&m_storage.data_buffer) T(std::move(value));
-        }
+        Set(std::move(value));
 
         return *this;
     }
@@ -91,18 +81,10 @@ public:
             return *this;
         }
 
-        if (m_has_value) {
-            if (other.m_has_value) {
-                Get() = other.Get();
-            } else {
-                Get().~T();
-                m_has_value = false;
-            }
+        if (other.m_has_value) {
+            Set(other.Get());
         } else {
-            if (other.m_has_value) {
-                new (&m_storage.data_buffer) T(other.Get());
-                m_has_value = true;
-            }
+            Unset();
         }
 
         return *this;
@@ -111,29 +93,19 @@ public:
     Optional(Optional &&other) noexcept
         : m_has_value(other.m_has_value)
     {
-        if (m_has_value) {
+        if (other.m_has_value) {
             new (&m_storage.data_buffer) T(std::move(other.Get()));
         }
+
+        other.m_has_value = false;
     }
 
     Optional &operator=(Optional &&other) noexcept
     {
-        if (&other == this) {
-            return *this;
-        }
-
-        if (m_has_value) {
-            if (other.m_has_value) {
-                Get() = std::move(other.Get());
-            } else {
-                Get().~T();
-                m_has_value = false;
-            }
+        if (other.m_has_value) {
+            Set(std::move(other.Get()));
         } else {
-            if (other.m_has_value) {
-                new (&m_storage.data_buffer) T(std::move(other.Get()));
-                m_has_value = true;
-            }
+            Unset();
         }
 
         other.m_has_value = false;
@@ -211,13 +183,41 @@ public:
     HYP_FORCE_INLINE
     void Set(const T &value)
     {
-        *this = value;
+        if constexpr (std::is_copy_assignable_v<T>) {
+            if (m_has_value) {
+                Get() = value;
+            } else {
+                new (&m_storage.data_buffer) T(value);
+            }
+        } else {
+            if (m_has_value) {
+                Get().~T();
+            }
+
+            new (&m_storage.data_buffer) T(value);
+        }
+
+        m_has_value = true;
     }
     
     HYP_FORCE_INLINE
     void Set(T &&value)
     {
-        *this = std::move(value);
+        if constexpr (std::is_move_assignable_v<T>) {
+            if (m_has_value) {
+                Get() = std::move(value);
+            } else {
+                new (&m_storage.data_buffer) T(std::move(value));
+            }
+        } else {
+            if (m_has_value) {
+                Get().~T();
+            }
+
+            new (&m_storage.data_buffer) T(std::move(value));
+        }
+
+        m_has_value = true;
     }
 
     //! \brief Remove the held value, setting the Optional<> to a default state.

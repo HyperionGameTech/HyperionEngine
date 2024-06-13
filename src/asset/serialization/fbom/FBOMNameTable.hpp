@@ -59,7 +59,7 @@ struct FBOMNameTable : public IFBOMSerializable
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
 
     [[nodiscard]]
-    virtual String ToString() const override
+    virtual String ToString(bool deep = true) const override
     {
         String str;
 

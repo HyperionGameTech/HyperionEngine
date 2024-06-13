@@ -131,9 +131,9 @@ Handle<Mesh> MeshBuilder::Cube()
 
 Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
 {
-    const float step = 1.0f / static_cast<float>(num_divisions);
+    const float step = 1.0f / float(num_divisions);
 
-    static const Vector3 origins[6] = {
+    static const Vec3f origins[6] = {
         Vector3(-1.0f, -1.0f, -1.0f),
         Vector3(1.0f, -1.0f, -1.0f),
         Vector3(1.0f, -1.0f, 1.0f),
@@ -142,7 +142,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
         Vector3(-1.0f, -1.0f, 1.0f)
     };
 
-    static const Vector3 rights[6] = {
+    static const Vec3f rights[6] = {
         Vector3(2.0f, 0.0f, 0.0f),
         Vector3(0.0f, 0.0f, 2.0f),
         Vector3(-2.0f, 0.0f, 0.0f),
@@ -151,7 +151,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
         Vector3(2.0f, 0.0f, 0.0f)
     };
 
-    static const Vector3 ups[6] = {
+    static const Vec3f ups[6] = {
         Vector3(0.0f, 2.0f, 0.0f),
         Vector3(0.0f, 2.0f, 0.0f),
         Vector3(0.0f, 2.0f, 0.0f),
@@ -163,20 +163,20 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
     Array<Vertex> vertices;
     Array<Mesh::Index> indices;
 
-    for (uint face = 0; face < 6; face++) {
-        const Vector3 &origin = origins[face];
-        const Vector3 &right = rights[face];
-        const Vector3 &up = ups[face];
+    for (uint32 face = 0; face < 6; face++) {
+        const Vec3f &origin = origins[face];
+        const Vec3f &right = rights[face];
+        const Vec3f &up = ups[face];
 
-        for (uint j = 0; j < num_divisions + 1; j++) {
-            for (uint i = 0; i < num_divisions + 1; i++) {
-                const Vector3 point = (origin + Vector3(step) * (Vector3(i) * right + Vector3(j) * up)).Normalized();
-                Vector3 position = point;
-                Vector3 normal = point;
+        for (uint32 j = 0; j < num_divisions + 1; j++) {
+            for (uint32 i = 0; i < num_divisions + 1; i++) {
+                const Vec3f point = (origin + Vec3f(step) * (Vec3f(i) * right + Vec3f(j) * up)).Normalized();
+                Vec3f position = point;
+                Vec3f normal = point;
 
-                const Vector2 uv(
-                    static_cast<float>(j + (face * num_divisions)) / static_cast<float>(num_divisions * 6),
-                    static_cast<float>(i + (face * num_divisions)) / static_cast<float>(num_divisions * 6)
+                const Vec2f uv(
+                    float(j + (face * num_divisions)) / float(num_divisions * 6),
+                    float(i + (face * num_divisions)) / float(num_divisions * 6)
                 );
 
                 vertices.PushBack(Vertex(position, uv));
@@ -184,19 +184,19 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
         }
     }
 
-    const uint k = num_divisions + 1;
+    const uint32 k = num_divisions + 1;
 
-    for (uint face = 0; face < 6; face++) {
-        for (uint j = 0; j < num_divisions; j++) {
+    for (uint32 face = 0; face < 6; face++) {
+        for (uint32 j = 0; j < num_divisions; j++) {
             const bool is_bottom = j < (num_divisions / 2);
 
-            for (uint i = 0; i < num_divisions; i++) {
+            for (uint32 i = 0; i < num_divisions; i++) {
                 const bool is_left = i < (num_divisions / 2);
 
-                const uint a = (face * k + j) * k + i;
-                const uint b = (face * k + j) * k + i + 1;
-                const uint c = (face * k + j + 1) * k + i;
-                const uint d = (face * k + j + 1) * k + i + 1;
+                const uint32 a = (face * k + j) * k + i;
+                const uint32 b = (face * k + j) * k + i + 1;
+                const uint32 c = (face * k + j + 1) * k + i;
+                const uint32 d = (face * k + j + 1) * k + i + 1;
 
                 if (is_bottom ^ is_left) {
                     indices.PushBack(a);
@@ -217,12 +217,14 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint num_divisions)
         }
     }
 
-    auto mesh = CreateObject<Mesh>(
+    Handle<Mesh> mesh = CreateObject<Mesh>(
         vertices,
         indices,
         Topology::TRIANGLES,
         static_mesh_vertex_attributes
     );
+
+    AssertThrow(mesh->GetStreamedMeshData()->IsInMemory());
 
     mesh->CalculateNormals(true);
     mesh->CalculateTangents();

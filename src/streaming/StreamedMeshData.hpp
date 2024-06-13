@@ -28,10 +28,10 @@ public:
     
     StreamedMeshData();
     StreamedMeshData(MeshData &&mesh_data);
-    StreamedMeshData(const StreamedMeshData &other)                 = default;
-    StreamedMeshData &operator=(const StreamedMeshData &other)      = default;
-    StreamedMeshData(StreamedMeshData &&other) noexcept             = default;
-    StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = default;
+    // StreamedMeshData(const StreamedMeshData &other)                 = default;
+    // StreamedMeshData &operator=(const StreamedMeshData &other)      = default;
+    // StreamedMeshData(StreamedMeshData &&other) noexcept             = default;
+    // StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = default;
     virtual ~StreamedMeshData() override                            = default;
 
     HYP_NODISCARD
@@ -59,7 +59,7 @@ protected:
 private:
     void LoadMeshData(const ByteBuffer &byte_buffer) const;
 
-    RC<StreamedData>        m_streamed_data;
+    RC<StreamedData>            m_streamed_data;
 
     SizeType                    m_num_vertices;
     SizeType                    m_num_indices;

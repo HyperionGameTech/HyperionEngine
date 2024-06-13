@@ -204,7 +204,7 @@ HashCode FBOMObject::GetHashCode() const
     return hc;
 }
 
-String FBOMObject::ToString() const
+String FBOMObject::ToString(bool deep) const
 {
     std::stringstream ss;
 
@@ -213,14 +213,22 @@ String FBOMObject::ToString() const
     for (auto &prop : properties) {
         ss << *prop.first;
         ss << ": ";
-        ss << prop.second.ToString();
+        if (deep) {
+            ss << prop.second.ToString();
+        } else {
+            ss << "...";
+        }
         ss << ", ";
     }
 
     ss << " }, nodes: [ ";
 
-    for (auto &subobject : *nodes) {
-        ss << subobject.ToString();
+    if (deep) {
+        for (auto &subobject : *nodes) {
+            ss << subobject.ToString();
+        }
+    } else {
+        ss << nodes->Size();
     }
 
     ss << " ] ";

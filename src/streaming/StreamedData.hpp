@@ -17,6 +17,13 @@ HYP_DECLARE_LOG_CHANNEL(Streaming);
 
 class StreamedData;
 
+enum class StreamedDataState : uint32
+{
+    NONE = 0,
+    LOADED,
+    UNPAGED
+};
+
 /*! \brief Interface for a reference to a streamed data object.
 
     Used sort of like an RC pointer, but with some additional functionality.
@@ -38,7 +45,11 @@ public:
     StreamedDataRefBase &operator=(const StreamedDataRefBase &other);
     StreamedDataRefBase(StreamedDataRefBase &&other) noexcept;
     StreamedDataRefBase &operator=(StreamedDataRefBase &&other) noexcept;
-    ~StreamedDataRefBase();
+    virtual ~StreamedDataRefBase();
+
+protected:
+    void LoadStreamedData();
+    void UnpageStreamedData();
 };
 
 template <class T>
@@ -51,7 +62,7 @@ public:
     }
 
     StreamedDataRef(RC<T> &&owner)
-        : StreamedDataRefBase(owner)
+        : StreamedDataRefBase(std::move(owner))
     {
     }
 
@@ -77,7 +88,7 @@ public:
         return *this;
     }
 
-    ~StreamedDataRef() = default;
+    virtual ~StreamedDataRef() override = default;
 
     T *operator->()
         { return static_cast<T *>(m_owner.Get()); }
@@ -88,55 +99,64 @@ public:
 
 class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
 {
+protected:
+    StreamedData(StreamedDataState initial_state);
+
 public:
     friend class StreamedDataRefBase; // allow it to access m_use_count
 
-    StreamedData() = default;
+    StreamedData()                                      = default;
+    StreamedData(const StreamedData &)                  = delete;
+    StreamedData &operator=(const StreamedData &)       = delete;
+    StreamedData(StreamedData &&) noexcept              = delete;
+    StreamedData &operator=(StreamedData &&) noexcept   = delete;
 
-    StreamedData(const StreamedData &other)
-        : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
-    {
-    }
+    // StreamedData(const StreamedData &other)
+    //     : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
+    // {
+    // }
 
-    StreamedData &operator=(const StreamedData &other)
-    {
-        if (this == &other) {
-            return *this;
-        }
+    // StreamedData &operator=(const StreamedData &other)
+    // {
+    //     if (this == &other) {
+    //         return *this;
+    //     }
 
-        m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE), MemoryOrder::RELEASE);
+    //     m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE), MemoryOrder::RELEASE);
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
-    StreamedData(StreamedData &&other) noexcept
-        : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
-    {
-        other.m_use_count.Set(0u, MemoryOrder::RELEASE);
-    }
+    // StreamedData(StreamedData &&other) noexcept
+    //     : m_use_count { other.m_use_count.Get(MemoryOrder::ACQUIRE) }
+    // {
+    //     other.m_use_count.Set(0u, MemoryOrder::RELEASE);
+    // }
 
-    StreamedData &operator=(StreamedData &&other) noexcept
-    {
-        if (this == &other) {
-            return *this;
-        }
+    // StreamedData &operator=(StreamedData &&other) noexcept
+    // {
+    //     if (this == &other) {
+    //         return *this;
+    //     }
 
-        m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
-        other.m_use_count.Set(0u, MemoryOrder::RELEASE);
+    //     m_use_count.Set(other.m_use_count.Get(MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
+    //     other.m_use_count.Set(0u, MemoryOrder::RELEASE);
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
     virtual ~StreamedData() = default;
 
     virtual bool IsNull() const = 0;
     virtual bool IsInMemory() const = 0;
+
     virtual void Unpage() final;
     virtual const ByteBuffer &Load() const final;
 
 protected:
     virtual const ByteBuffer &Load_Internal() const = 0;
     virtual void Unpage_Internal() = 0;
+    virtual const ByteBuffer &GetByteBuffer() const;
 
     mutable AtomicVar<int>  m_use_count { 0 };
 };
@@ -145,10 +165,10 @@ class HYP_API NullStreamedData : public StreamedData
 {
 public:
     NullStreamedData()                                          = default;
-    NullStreamedData(const NullStreamedData &)                  = default;
-    NullStreamedData &operator=(const NullStreamedData &)       = default;
-    NullStreamedData(NullStreamedData &&) noexcept              = default;
-    NullStreamedData &operator=(NullStreamedData &&) noexcept   = default;
+    // NullStreamedData(const NullStreamedData &)                  = default;
+    // NullStreamedData &operator=(const NullStreamedData &)       = default;
+    // NullStreamedData(NullStreamedData &&) noexcept              = default;
+    // NullStreamedData &operator=(NullStreamedData &&) noexcept   = default;
     virtual ~NullStreamedData() override                        = default;
 
     StreamedDataRef<NullStreamedData> AcquireRef()
@@ -160,9 +180,6 @@ public:
 protected:
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
-
-private:
-    ByteBuffer  m_byte_buffer;
 };
 
 class HYP_API MemoryStreamedData : public StreamedData
@@ -188,10 +205,10 @@ public:
 protected:
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
+    virtual const ByteBuffer &GetByteBuffer() const override;
     
-    HashCode            m_hash_code;
-    mutable bool        m_is_in_memory;
-    mutable ByteBuffer  m_byte_buffer;
+    HashCode                        m_hash_code;
+    mutable Optional<ByteBuffer>    m_byte_buffer;
 };
 
 class HYP_API FileStreamedData : public StreamedData
@@ -216,8 +233,8 @@ public:
 protected:
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
+    virtual const ByteBuffer &GetByteBuffer() const override;
 
-protected:
     FilePath                        m_filepath;
     mutable Optional<ByteBuffer>    m_byte_buffer;
 };

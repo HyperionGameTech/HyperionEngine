@@ -50,7 +50,7 @@ struct FBOMData : public IFBOMSerializable
     [[nodiscard]]
     HYP_FORCE_INLINE
     explicit operator bool() const
-        { return bytes.Any(); }
+        { return !type.IsUnset() || bytes.Any(); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
@@ -359,7 +359,7 @@ struct FBOMData : public IFBOMSerializable
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
 
     [[nodiscard]]
-    virtual String ToString() const override
+    virtual String ToString(bool deep = true) const override
     {
         std::stringstream stream;
         stream << "FBOM[";
@@ -367,8 +367,12 @@ struct FBOMData : public IFBOMSerializable
         stream << "size: " << String::ToString(bytes.Size()) << ", ";
         stream << "data: { ";
 
-        for (SizeType i = 0; i < bytes.Size(); i++) {
-            stream << std::hex << int(bytes[i]) << " ";
+        if (deep) {
+            for (SizeType i = 0; i < bytes.Size(); i++) {
+                stream << std::hex << int(bytes[i]) << " ";
+            }
+        } else {
+            stream << bytes.Size();
         }
 
         stream << " } ";

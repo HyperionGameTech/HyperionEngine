@@ -44,7 +44,7 @@ public:
                 }
             }
         } else {
-            return { FBOMResult::FBOM_ERR, "vertices property missing" };
+            return { FBOMResult::FBOM_ERR, String("vertices property invalid on object ") + in.ToString(false) };
         }
 
         Array<uint32> indices;
@@ -60,7 +60,7 @@ public:
                 }
             }
         } else {
-            return { FBOMResult::FBOM_ERR, "indices property missing" };
+            return { FBOMResult::FBOM_ERR, "indices property invalid" };
         }
 
         out_object = MeshData {

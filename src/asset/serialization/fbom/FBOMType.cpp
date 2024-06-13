@@ -166,12 +166,12 @@ FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) con
     return writer->Write(out, *this, id);
 }
 
-String FBOMType::ToString() const
+String FBOMType::ToString(bool deep) const
 {
     String str = String(name) + " (" + String::ToString(size) + ") ";
 
     if (extends != nullptr && !extends->IsUnset()) {
-        str += "[" + extends->ToString() + "]";
+        str += "[" + extends->ToString(deep) + "]";
     }
 
     return str;

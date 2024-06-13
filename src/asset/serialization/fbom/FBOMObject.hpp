@@ -188,7 +188,7 @@ public:
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
 
     [[nodiscard]]
-    virtual String ToString() const override;
+    virtual String ToString(bool deep = true) const override;
     
     [[nodiscard]]
     virtual UniqueID GetUniqueID() const override

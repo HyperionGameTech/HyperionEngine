@@ -20,14 +20,16 @@ RC<StreamedMeshData> StreamedMeshData::FromMeshData(MeshData mesh_data)
 }
 
 StreamedMeshData::StreamedMeshData()
-    : m_streamed_data(RC<NullStreamedData>(new NullStreamedData())),
+    : StreamedData(StreamedDataState::NONE),
+      m_streamed_data(RC<NullStreamedData>(new NullStreamedData())),
       m_num_vertices(0),
       m_num_indices(0)
 {
 }
 
 StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
-    : m_streamed_data(nullptr),
+    : StreamedData(StreamedDataState::LOADED),
+      m_streamed_data(nullptr),
       m_num_vertices(mesh_data.vertices.Size()),
       m_num_indices(mesh_data.indices.Size())
 {
@@ -39,7 +41,8 @@ StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
 
     m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
 
-    m_mesh_data = std::move(mesh_data);
+    m_mesh_data.Set(std::move(mesh_data));
+    AssertThrow(StreamedMeshData::IsInMemory());
 }
 
 bool StreamedMeshData::IsNull() const
@@ -50,9 +53,7 @@ bool StreamedMeshData::IsNull() const
 
 bool StreamedMeshData::IsInMemory() const
 {
-    return m_streamed_data != nullptr
-        && m_streamed_data->IsInMemory()
-        && m_mesh_data.HasValue();
+    return m_mesh_data.HasValue();
 }
 
 void StreamedMeshData::Unpage_Internal()
@@ -81,6 +82,11 @@ const ByteBuffer &StreamedMeshData::Load_Internal() const
 
 void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
 {
+    AssertThrow(byte_buffer.Size() >= 3);
+    AssertThrow(byte_buffer.Data()[0] == 'H');
+    AssertThrow(byte_buffer.Data()[1] == 'Y');
+    AssertThrow(byte_buffer.Data()[2] == 'P');
+
     m_mesh_data.Unset();
 
     BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer.ToByteView())));
