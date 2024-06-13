@@ -4,6 +4,8 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/compression/Archive.hpp>
+
 #include <math/MathUtil.hpp>
 
 namespace hyperion {
@@ -212,16 +214,40 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
     return FBOMResult::FBOM_OK;
 }
 
+FBOMResult FBOMReader::ReadDataAttributes(BufferedReader *reader, EnumFlags<FBOMDataAttributes> &out_attributes, FBOMDataLocation &out_location)
+{
+    uint8 attributes_value = 0;
+    reader->Read(&attributes_value);
+    CheckEndianness(attributes_value);
+
+    out_attributes = EnumFlags<FBOMDataAttributes>(attributes_value);
+
+    if (out_attributes & FBOMDataAttributes::LOC_STATIC) {
+        out_location = FBOMDataLocation::LOC_STATIC;
+    } else if (out_attributes & FBOMDataAttributes::LOC_INPLACE) {
+        out_location = FBOMDataLocation::LOC_INPLACE;
+    } else if (out_attributes & FBOMDataAttributes::LOC_EXT_REF) {
+        out_location = FBOMDataLocation::LOC_EXT_REF;
+    } else {
+        return { FBOMResult::FBOM_ERR, "No data location on attributes" };
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
 FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type)
 {
     out_type = FBOMUnset();
 
-    uint8 data_location = FBOM_DATA_LOCATION_NONE;
-    reader->Read(&data_location);
-    CheckEndianness(data_location);
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
 
-    switch (data_location) {
-    case FBOM_DATA_LOCATION_INPLACE:
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    switch (location) {
+    case FBOMDataLocation::LOC_INPLACE:
     {
         FBOMType parent_type = FBOMUnset();
 
@@ -250,7 +276,7 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
 
         break;
     }
-    case FBOM_DATA_LOCATION_STATIC:
+    case FBOMDataLocation::LOC_STATIC:
     {
         // read offset as u32
         uint32 offset;
@@ -279,12 +305,14 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
 
 FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_name_table)
 {
-    // read data location
-    uint8 data_location = FBOM_DATA_LOCATION_NONE;
-    reader->Read(&data_location);
-    CheckEndianness(data_location);
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
 
-    if (data_location == FBOM_DATA_LOCATION_INPLACE) {
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    if (location == FBOMDataLocation::LOC_INPLACE) {
         uint32 count;
         reader->Read(&count);
         CheckEndianness(count);
@@ -303,7 +331,7 @@ FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_
 
             out_name_table.Add(str, WeakName(name_data));
         }
-    } else if (data_location == FBOM_DATA_LOCATION_STATIC) {
+    } else if (location == FBOMDataLocation::LOC_STATIC) {
         // read offset as u32
         uint32 offset;
         reader->Read(&offset);
@@ -325,12 +353,14 @@ FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_
 
 FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
 {
-    // read data location
-    uint8 data_location = FBOM_DATA_LOCATION_NONE;
-    reader->Read(&data_location);
-    CheckEndianness(data_location);
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
 
-    if (data_location == FBOM_DATA_LOCATION_INPLACE) {
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    if (location == FBOMDataLocation::LOC_INPLACE) {
         FBOMType object_type;
         
         if (FBOMResult err = ReadObjectType(reader, object_type)) {
@@ -346,20 +376,39 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
 
             out_data = FBOMData::FromObject(object);
         } else {
-            // Read bytebuffer of raw data
-            uint32 sz;
-            reader->Read(&sz);
-            CheckEndianness(sz);
+            ByteBuffer byte_buffer;
 
-            ByteBuffer byte_buffer = reader->ReadBytes(sz);
+            if (attributes & FBOMDataAttributes::COMPRESSED) {
+                // Read archive
+                Archive archive;
 
-            if (byte_buffer.Size() != sz) {
-                return { FBOMResult::FBOM_ERR, "File is corrupted" };
+                if (FBOMResult err = ReadArchive(reader, archive)) {
+                    return err;
+                }
+
+                if (!Archive::IsEnabled()) {
+                    return { FBOMResult::FBOM_ERR, "Cannot decompress archive because the Archive feature is not enabled" };
+                }
+
+                if (ArchiveResult err = archive.Decompress(byte_buffer)) {
+                    return { FBOMResult::FBOM_ERR, err.message.Data() };
+                }
+            } else {
+                // Read bytebuffer of raw data
+                uint32 sz;
+                reader->Read(&sz);
+                CheckEndianness(sz);
+
+                byte_buffer = reader->ReadBytes(sz);
+
+                if (byte_buffer.Size() != sz) {
+                    return { FBOMResult::FBOM_ERR, "File is corrupted" };
+                }
             }
 
             out_data = FBOMData(object_type, std::move(byte_buffer));
         }
-    } else if (data_location == FBOM_DATA_LOCATION_STATIC) {
+    } else if (location == FBOMDataLocation::LOC_STATIC) {
         // read offset as u32
         uint32 offset;
         reader->Read(&offset);
@@ -417,13 +466,15 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
     reader->Read(&unique_id);
     CheckEndianness(unique_id);
 
-    // read data location
-    uint8 data_location = FBOM_DATA_LOCATION_NONE;
-    reader->Read(&data_location);
-    CheckEndianness(data_location);
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
 
-    switch (data_location) {
-    case FBOM_DATA_LOCATION_STATIC:
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    switch (location) {
+    case FBOMDataLocation::LOC_STATIC:
     {
         // read offset as u32
         uint32 offset;
@@ -442,7 +493,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
 
         return FBOMResult::FBOM_OK;
     }
-    case FBOM_DATA_LOCATION_INPLACE:
+    case FBOMDataLocation::LOC_INPLACE:
     {
         // read string of "type" - loader to use
         FBOMType object_type;
@@ -515,7 +566,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
 
         break;
     }
-    case FBOM_DATA_LOCATION_EXT_REF:
+    case FBOMDataLocation::LOC_EXT_REF:
     {
         ANSIString ref_name;
         
@@ -583,6 +634,35 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
     //         uint64(object.m_unique_id)
     //     );
     // }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadArchive(BufferedReader *reader, Archive &out_archive)
+{
+    uint64 uncompressed_size = 0;
+
+    if (reader->Read<uint64>(&uncompressed_size) != sizeof(uint64)) {
+        return { FBOMResult::FBOM_ERR, "Failed to read uncompressed size" };
+    }
+
+    CheckEndianness(uncompressed_size);
+
+    uint64 compressed_size = 0;
+
+    if (reader->Read<uint64>(&compressed_size) != sizeof(uint64)) {
+        return { FBOMResult::FBOM_ERR, "Failed to read compressed size" };
+    }
+
+    CheckEndianness(compressed_size);
+
+    ByteBuffer compressed_buffer = reader->ReadBytes(compressed_size);
+
+    if (compressed_buffer.Size() != compressed_size) {
+        return { FBOMResult::FBOM_ERR, "Failed to read compressed buffer - buffer size mismatch" };
+    }
+
+    out_archive = Archive(std::move(compressed_buffer), uncompressed_size);
 
     return FBOMResult::FBOM_OK;
 }

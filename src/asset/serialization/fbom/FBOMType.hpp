@@ -34,30 +34,27 @@ struct FBOMType : public IFBOMSerializable
 
     FBOMType Extend(const FBOMType &object) const;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     bool Is(const FBOMType &other, bool allow_unbounded = true) const;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     bool IsOrExtends(const ANSIStringView &name) const;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true) const;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     bool Extends(const FBOMType &other, bool allow_unbounded = true) const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsUnbouned() const
         { return size == SizeType(-1); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsUnset() const
         { return name == "UNSET"; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const FBOMType &other) const
     {
         return name == other.name
@@ -70,14 +67,14 @@ struct FBOMType : public IFBOMSerializable
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual String ToString(bool deep = true) const override;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
-
-    [[nodiscard]]
+    
+    HYP_NODISCARD
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;

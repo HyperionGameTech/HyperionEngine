@@ -41,6 +41,12 @@
 
 namespace hyperion {
 
+namespace compression {
+class Archive;
+} // namespace compression
+
+using compression::Archive;
+
 enum class FBOMVersionCompareMode : uint32
 {
     MAJOR   = 0x1,
@@ -51,6 +57,30 @@ enum class FBOMVersionCompareMode : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMVersionCompareMode)
+
+enum class FBOMDataLocation : uint8
+{
+    LOC_STATIC,
+    LOC_INPLACE,
+    LOC_EXT_REF
+};
+
+enum class FBOMDataAttributes : uint8
+{
+    NONE        = 0x0,
+    COMPRESSED  = 0x1,
+
+    RESERVED0   = 0x2,
+    RESERVED1   = 0x4,
+    RESERVED2   = 0x8,
+    RESERVED3   = 0x10,
+
+    LOC_STATIC  = 0x20,
+    LOC_INPLACE = 0x40,
+    LOC_EXT_REF = 0x80
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMDataAttributes)
 
 namespace fbom {
 
@@ -140,14 +170,6 @@ enum FBOMCommand : uint8
     FBOM_STATIC_DATA_START,
     FBOM_STATIC_DATA_END,
     FBOM_DEFINE_PROPERTY
-};
-
-enum FBOMDataLocation
-{
-    FBOM_DATA_LOCATION_NONE = 0x00,
-    FBOM_DATA_LOCATION_STATIC = 0x01,
-    FBOM_DATA_LOCATION_INPLACE = 0x02,
-    FBOM_DATA_LOCATION_EXT_REF = 0x04
 };
 
 class HYP_API FBOM
@@ -241,8 +263,12 @@ private:
     FBOMCommand PeekCommand(BufferedReader *);
     FBOMResult Eat(BufferedReader *, FBOMCommand, bool read = true);
 
+    FBOMResult ReadDataAttributes(BufferedReader *, EnumFlags<FBOMDataAttributes> &out_attributes, FBOMDataLocation &out_location);
+
     template <class StringType>
     FBOMResult ReadString(BufferedReader *, StringType &out_string);
+
+    FBOMResult ReadArchive(BufferedReader *, Archive &out_archive);
 
     FBOMResult ReadRawData(BufferedReader *, SizeType count, ByteBuffer &out_byte_buffer);
 
@@ -379,6 +405,11 @@ public:
     FBOMResult Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
 
 private:
+    FBOMResult WriteArchive(ByteWriter *out, const Archive &archive) const;
+
+    FBOMResult WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const;
+    FBOMResult WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes, FBOMDataLocation location) const;
+
     FBOMResult WriteExternalObjects();
     void BuildStaticData();
     void Prune(const FBOMObject &);
@@ -395,7 +426,6 @@ private:
     UniqueID AddStaticData(const FBOMData &);
     UniqueID AddStaticData(const FBOMNameTable &);
 
-private:
     RC<FBOMWriteStream> m_write_stream;
 
     UniqueID AddStaticData(UniqueID id, FBOMStaticData &&static_data);

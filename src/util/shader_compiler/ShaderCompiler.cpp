@@ -995,7 +995,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         output_file_path
     );
 
-    if (auto err = reader.LoadFromFile(output_file_path, deserialized)) {
+    if (fbom::FBOMResult err = reader.LoadFromFile(output_file_path, deserialized)) {
         if (CanCompileShaders()) {
             HYP_LOG(
                 ShaderCompiler,
