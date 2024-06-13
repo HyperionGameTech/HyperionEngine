@@ -141,8 +141,7 @@ void TemporalBlending::CreateImageOutputs()
             m_image_format,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            nullptr
+            FilterMode::TEXTURE_FILTER_LINEAR
         ));
 
         image_output.image_view = MakeRenderObject<ImageView>();

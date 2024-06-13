@@ -215,8 +215,7 @@ void RTRadianceRenderer::CreateImages()
         m_extent,
         InternalFormat::RGBA8,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_texture->GetImage()->SetIsRWTexture(true);

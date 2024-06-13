@@ -215,8 +215,7 @@ void SampleStreamer::Init()
         window_size,
         InternalFormat::RGBA8,
         FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
     InitObject(m_texture);
     

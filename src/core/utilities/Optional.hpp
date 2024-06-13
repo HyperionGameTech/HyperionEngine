@@ -148,13 +148,11 @@ public:
         }
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return m_has_value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T *TryGet()
     {
         if (m_has_value) {
@@ -164,8 +162,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T *TryGet() const
     {
         if (m_has_value) {
@@ -175,8 +172,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T &Get()
     {
         AssertThrow(m_has_value);
@@ -184,8 +180,7 @@ public:
         return *static_cast<T *>(m_storage.GetPointer());
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T &Get() const
     {
         AssertThrow(m_has_value);
@@ -193,8 +188,7 @@ public:
         return *static_cast<const T *>(m_storage.GetPointer());
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T GetOr(T &&default_value) const &
     {
         if (m_has_value) {
@@ -204,8 +198,7 @@ public:
         return std::forward<T>(default_value);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T GetOr(T &&default_value) &&
     {
         if (m_has_value) {
@@ -237,43 +230,48 @@ public:
         }
     }
     
-    [[nodiscard]]
+    /*! \brief Construct the held value in-place. */
+    template <class... Args>
     HYP_FORCE_INLINE
+    void Emplace(Args &&... args)
+    {
+        if (m_has_value) {
+            Get().~T();
+        }
+
+        m_has_value = true;
+        new (&m_storage.data_buffer) T(std::forward<Args>(args)...);
+    }
+    
+    HYP_NODISCARD HYP_FORCE_INLINE
     T *operator->()
         { return static_cast<T *>(m_storage.GetPointer()); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T *operator->() const
         { return static_cast<const T *>(m_storage.GetPointer()); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T &operator*()
         { return Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T &operator*() const
         { return Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasValue() const
         { return m_has_value; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Any() const
         { return m_has_value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Empty() const
         { return !m_has_value; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         if (m_has_value) {
@@ -354,27 +352,23 @@ public:
 
     ~Optional() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return m_ptr != nullptr; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     typename std::remove_reference_t< T > *TryGet()
     {
         return m_ptr;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const typename std::remove_reference_t< T > *TryGet() const
     {
         return m_ptr;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     typename std::remove_reference_t< T > &Get()
     {
         AssertThrow(m_ptr != nullptr);
@@ -382,8 +376,7 @@ public:
         return *m_ptr;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const typename std::remove_reference_t< T > &Get() const
     {
         AssertThrow(m_ptr != nullptr);
@@ -391,50 +384,49 @@ public:
         return *m_ptr;
     }
 
-    //! \brief Remove the held value, setting the Optional<> to a default state.
+    /*! \brief Remove the held value, setting the Optional<> to a default state. */
     HYP_FORCE_INLINE
     void Unset()
     {
         m_ptr = nullptr;
     }
-    
-    [[nodiscard]]
+
+    /*! \brief Construct the held value in-place. */
     HYP_FORCE_INLINE
+    void Emplace(T &value)
+    {
+        m_ptr = &value;
+    }
+    
+    HYP_NODISCARD HYP_FORCE_INLINE
     std::remove_reference_t< T > *operator->()
         { return m_ptr; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const std::remove_reference_t< T > *operator->() const
         { return m_ptr; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     std::remove_reference_t< T > &operator*()
         { return Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const std::remove_reference_t< T > &operator*() const
         { return Get(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasValue() const
         { return m_ptr != nullptr; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Any() const
         { return m_ptr != nullptr; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Empty() const
         { return m_ptr == nullptr; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         if (m_ptr != nullptr) {

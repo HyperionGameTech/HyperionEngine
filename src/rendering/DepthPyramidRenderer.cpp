@@ -110,18 +110,19 @@ void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
     AssertThrow(depth_image.IsValid());
 
     // create depth pyramid image
-    m_depth_pyramid = MakeRenderObject<Image>(renderer::StorageImage(
+    m_depth_pyramid = MakeRenderObject<Image>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
+        InternalFormat::R32F,
         Extent3D {
             uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().width)),
             uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
             1
         },
-        InternalFormat::R32F,
-        ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        nullptr
-    ));
+        FilterMode::TEXTURE_FILTER_NEAREST
+    });
+
+    m_depth_pyramid->SetIsRWTexture(true);
 
     m_depth_pyramid->Create(g_engine->GetGPUDevice());
 

@@ -33,47 +33,56 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 {
     constexpr uint8 new_bpp = 4;
 
-    const InternalFormat format = self->GetTextureFormat();
+    const TextureDesc &current_desc = self->GetTextureDesc();
 
-    const uint32 num_faces = self->NumFaces();
     const uint32 size = self->m_size;
-    const uint32 face_offset_step = size / num_faces;
+    const uint32 face_offset_step = size / current_desc.num_faces;
 
     const uint8 bpp = self->m_bpp;
 
-    const Extent3D extent = self->GetExtent();
-
-    const uint32 new_size = num_faces * new_bpp * extent.width * extent.height * extent.depth;
-    const uint32 new_face_offset_step = new_size / num_faces;
+    const uint32 new_size = current_desc.num_faces * new_bpp * current_desc.extent.width * current_desc.extent.height * current_desc.extent.depth;
+    const uint32 new_face_offset_step = new_size / current_desc.num_faces;
     
-    const InternalFormat new_format = FormatChangeNumComponents(format, new_bpp);
+    const InternalFormat new_format = FormatChangeNumComponents(current_desc.format, new_bpp);
 
     if (self->HasAssignedImageData()) {
-        const ByteBuffer &byte_buffer = self->GetStreamedData()->Load();
-        AssertThrow(byte_buffer.Size() == size);
+        const auto ref = self->GetStreamedData()->AcquireRef();
+        const TextureData &texture_data = ref->GetTextureData();
+
+        AssertThrow(texture_data.buffer.Size() == size);
 
         ByteBuffer new_byte_buffer(new_size);
 
-        for (uint32 i = 0; i < num_faces; i++) {
+        for (uint32 i = 0; i < current_desc.num_faces; i++) {
             ImageUtil::ConvertBPP(
-                extent.width, extent.height, extent.depth,
+                current_desc.extent.width, current_desc.extent.height, current_desc.extent.depth,
                 bpp, new_bpp,
-                &byte_buffer.Data()[i * face_offset_step],
+                &texture_data.buffer.Data()[i * face_offset_step],
                 &new_byte_buffer.Data()[i * new_face_offset_step]
             );
         }
 
-        self->GetStreamedData()->Unpage();
+        self->m_streamed_data.Reset(new StreamedTextureData(TextureData {
+            TextureDesc {
+                current_desc.type,
+                new_format,
+                current_desc.extent,
+                current_desc.filter_mode_min,
+                current_desc.filter_mode_mag,
+                current_desc.wrap_mode,
+                current_desc.num_layers,
+                current_desc.num_faces
+            },
+            std::move(new_byte_buffer)
+        }));
 
-        self->m_streamed_data.Reset(new MemoryStreamedData(std::move(new_byte_buffer)));
+        self->m_texture_desc = self->m_streamed_data->GetTextureDesc();
     }
-
-    self->m_texture_descriptor.format = new_format;
 
     self->m_bpp = new_bpp;
     self->m_size = new_size;
 
-    *out_format = helpers::ToVkFormat(self->m_texture_descriptor.format);
+    *out_format = helpers::ToVkFormat(self->m_texture_desc.format);
 
     HYPERION_RETURN_OK;
 }
@@ -452,24 +461,65 @@ void ImagePlatformImpl<Platform::VULKAN>::SetSubResourceState(const ImageSubReso
 
 template <>
 Image<Platform::VULKAN>::Image(
-    const TextureDesc &texture_desc,
-    UniquePtr<StreamedData> &&streamed_data,
-    ImageFlags flags
+    const TextureDesc &texture_desc
 ) : m_platform_impl { this },
-    m_texture_descriptor(texture_desc),
+    m_texture_desc(texture_desc),
     m_is_blended(false),
     m_is_rw_texture(false),
     m_is_attachment_texture(false),
-    m_streamed_data(std::move(streamed_data)),
     m_bpp(NumComponents(GetBaseFormat(texture_desc.format))),
-    m_flags(flags)
+    m_flags(IMAGE_FLAGS_NONE)
 {
+    m_size = GetByteSize();
+
+    m_streamed_data.Reset(new StreamedTextureData(TextureData
+    {
+        m_texture_desc,
+        ByteBuffer()
+    }));
+}
+
+template <>
+Image<Platform::VULKAN>::Image(
+    const RC<StreamedTextureData> &streamed_data
+) : m_platform_impl { this },
+    m_streamed_data(streamed_data),
+    m_is_blended(false),
+    m_is_rw_texture(false),
+    m_is_attachment_texture(false),
+    m_bpp(0),
+    m_flags(IMAGE_FLAGS_NONE)
+{
+    AssertThrow(m_streamed_data != nullptr);
+
+    m_texture_desc = m_streamed_data->GetTextureDesc();
+    m_bpp = NumComponents(GetBaseFormat(m_texture_desc.format));
+
+    m_size = GetByteSize();
+}
+
+template <>
+Image<Platform::VULKAN>::Image(
+    RC<StreamedTextureData> &&streamed_data
+) : m_platform_impl { this },
+    m_streamed_data(std::move(streamed_data)),
+    m_is_blended(false),
+    m_is_rw_texture(false),
+    m_is_attachment_texture(false),
+    m_bpp(0),
+    m_flags(IMAGE_FLAGS_NONE)
+{
+    AssertThrow(m_streamed_data != nullptr);
+
+    m_texture_desc = m_streamed_data->GetTextureDesc();
+    m_bpp = NumComponents(GetBaseFormat(m_texture_desc.format));
+
     m_size = GetByteSize();
 }
 
 template <>
 Image<Platform::VULKAN>::Image(Image &&other) noexcept
-    : m_texture_descriptor(std::move(other.m_texture_descriptor)),
+    : m_texture_desc(other.m_texture_desc),
       m_is_blended(other.m_is_blended),
       m_is_rw_texture(other.m_is_rw_texture),
       m_is_attachment_texture(other.m_is_attachment_texture),
@@ -496,7 +546,7 @@ Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexc
     m_platform_impl.self = this;
     other.m_platform_impl = { &other };
 
-    m_texture_descriptor = std::move(other.m_texture_descriptor);
+    m_texture_desc = std::move(other.m_texture_desc);
     m_is_blended = other.m_is_blended;
     m_is_rw_texture = other.m_is_rw_texture;
     m_is_attachment_texture = other.m_is_attachment_texture;
@@ -539,9 +589,9 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
 
     for (uint32 face = 0; face < num_faces; face++) {
         for (int32 i = 1; i < int32(num_mipmaps + 1); i++) {
-            const auto mip_width = int32(helpers::MipmapSize(m_texture_descriptor.extent.width, i)),
-                mip_height = int32(helpers::MipmapSize(m_texture_descriptor.extent.height, i)),
-                mip_depth = int32(helpers::MipmapSize(m_texture_descriptor.extent.depth, i));
+            const auto mip_width = int32(helpers::MipmapSize(m_texture_desc.extent.width, i)),
+                mip_height = int32(helpers::MipmapSize(m_texture_desc.extent.height, i)),
+                mip_depth = int32(helpers::MipmapSize(m_texture_desc.extent.depth, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
@@ -595,9 +645,9 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
                 .srcOffsets = {
                     { 0, 0, 0 },
                     {
-                        int32(helpers::MipmapSize(m_texture_descriptor.extent.width, i - 1)),
-                        int32(helpers::MipmapSize(m_texture_descriptor.extent.height, i - 1)),
-                        int32(helpers::MipmapSize(m_texture_descriptor.extent.depth, i - 1))
+                        int32(helpers::MipmapSize(m_texture_desc.extent.width, i - 1)),
+                        int32(helpers::MipmapSize(m_texture_desc.extent.height, i - 1)),
+                        int32(helpers::MipmapSize(m_texture_desc.extent.depth, i - 1))
                     }
                 },
                 .dstSubresource = {
@@ -690,17 +740,18 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     if (HasAssignedImageData()) {
-        auto loaded_data = m_streamed_data->Load();
+        auto ref = m_streamed_data->AcquireRef();
+        const TextureData &texture_data = ref->GetTextureData();
 
         AssertThrowMsg(
-            m_size == loaded_data.Size(),
+            m_size == texture_data.buffer.Size(),
             "Invalid image size -- loaded data size (%llu) does not match image size (%llu)",
-            loaded_data.Size(),
+            texture_data.buffer.Size(),
             m_size
         );
 
         AssertThrowMsg(m_size % m_bpp == 0, "Invalid image size");
-        AssertThrowMsg((m_size / m_bpp) % NumFaces() == 0, "Invalid image size");
+        AssertThrowMsg((m_size / m_bpp) % texture_data.desc.num_faces == 0, "Invalid image size");
 
         HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
 
@@ -710,7 +761,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
             return result;            
         }
 
-        staging_buffer.Copy(device, m_size, loaded_data.Data());
+        staging_buffer.Copy(device, m_size, texture_data.buffer.Data());
 
         commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer)
         {
@@ -724,13 +775,12 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
         });
 
         // copy from staging to image
-        const uint32 num_faces = NumFaces();
-        const uint32 buffer_offset_step = uint(m_size) / num_faces;
+        const uint32 buffer_offset_step = uint(m_size) / texture_data.desc.num_faces;
 
         AssertThrowMsg(m_size % buffer_offset_step == 0, "Invalid image size");
-        AssertThrowMsg(m_size / buffer_offset_step == num_faces, "Invalid image size");
+        AssertThrowMsg(m_size / buffer_offset_step == texture_data.desc.num_faces, "Invalid image size");
 
-        for (uint32 i = 0; i < num_faces; i++) {
+        for (uint32 i = 0; i < texture_data.desc.num_faces; i++) {
             commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef<Platform::VULKAN> &command_buffer)
             {
                 const uint32 buffer_size = staging_buffer.GetPlatformImpl().size;
@@ -1017,8 +1067,8 @@ Result Image<Platform::VULKAN>::Blit(
         Rect<uint32> {
             .x0 = 0,
             .y0 = 0,
-            .x1 = m_texture_descriptor.extent.width,
-            .y1 = m_texture_descriptor.extent.height
+            .x1 = m_texture_desc.extent.width,
+            .y1 = m_texture_desc.extent.height
         }
     );
 }
@@ -1052,7 +1102,7 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
         region.imageSubresource.baseArrayLayer = i;
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = VkExtent3D { m_texture_descriptor.extent.width, m_texture_descriptor.extent.height, m_texture_descriptor.extent.depth };
+        region.imageExtent = VkExtent3D { m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth };
 
         vkCmdCopyBufferToImage(
             command_buffer->GetPlatformImpl().command_buffer,
@@ -1094,7 +1144,7 @@ void Image<Platform::VULKAN>::CopyToBuffer(
         region.imageSubresource.baseArrayLayer = i;
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = VkExtent3D { m_texture_descriptor.extent.width, m_texture_descriptor.extent.height, m_texture_descriptor.extent.depth };
+        region.imageExtent = VkExtent3D { m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth };
 
         vkCmdCopyImageToBuffer(
             command_buffer->GetPlatformImpl().command_buffer,

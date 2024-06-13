@@ -276,8 +276,7 @@ void ShadowPass::CreateShadowMap()
             GetExtent(),
             GetFormat(),
             FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         ));
 
         texture->GetImage()->SetIsRWTexture(true);

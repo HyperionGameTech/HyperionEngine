@@ -76,8 +76,7 @@ void TemporalAA::CreateImages()
         m_extent,
         InternalFormat::RGBA16F,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_result_texture->GetImage()->SetIsRWTexture(true);
@@ -87,8 +86,7 @@ void TemporalAA::CreateImages()
         m_extent,
         InternalFormat::RGBA16F,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_history_texture->GetImage()->SetIsRWTexture(true);

@@ -345,6 +345,9 @@ public:
 
     ~FBOMWriter();
 
+    const FBOMWriteStream *GetWriteStream() const
+        { return m_write_stream.Get(); }
+
     template <class T>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
     Append(const T &object, FBOMObjectFlags flags = FBOM_OBJECT_FLAGS_NONE)

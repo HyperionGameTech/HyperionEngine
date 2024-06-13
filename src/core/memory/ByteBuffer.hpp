@@ -268,7 +268,7 @@ public:
     [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
-        { return GetInternalArray().GetHashCode(); }
+        { return ToByteView().GetHashCode(); }
 
 private:
     InternalArray   m_internal;

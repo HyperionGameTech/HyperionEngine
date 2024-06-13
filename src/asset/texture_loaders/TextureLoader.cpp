@@ -77,25 +77,24 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     //data.width = 1;
     //data.height = 1;
-    TextureDesc desc {
-        ImageType::TEXTURE_TYPE_2D,
-        data.format,
-        Extent3D { uint32(data.width), uint32(data.height), 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_REPEAT
-    };
 
     const SizeType image_bytes_count = SizeType(data.width)
         * SizeType(data.height)
         * SizeType(data.num_components);
 
-    UniquePtr<MemoryStreamedData> memory_streamed_data = UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_bytes_count, image_bytes));
+    RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+        TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
+            data.format,
+            Extent3D { uint32(data.width), uint32(data.height), 1 },
+            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_REPEAT
+        },
+        ByteBuffer(image_bytes_count, image_bytes)
+    }));
 
-    Handle<Texture> texture = CreateObject<Texture>(
-        desc,
-        std::move(memory_streamed_data)
-    );
+    Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_data));
 
     stbi_image_free(image_bytes);
 

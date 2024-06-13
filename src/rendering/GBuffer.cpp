@@ -37,8 +37,7 @@ static void AddOwnedAttachment(
 
     ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
         extent,
-        format,
-        nullptr
+        format
     ));
 
     HYPERION_ASSERT_RESULT(attachment_image->Create(g_engine->GetGPUInstance()->GetDevice()));

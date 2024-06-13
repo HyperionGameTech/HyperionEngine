@@ -78,8 +78,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_3D,
                 FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(float) * 4))
+                FilterMode::TEXTURE_FILTER_LINEAR
             ));
 
             item.image_view = MakeRenderObject<ImageView>();

@@ -8,7 +8,7 @@
 #include <math/MathUtil.hpp>
 #include <math/Rect.hpp>
 
-#include <streaming/StreamedData.hpp>
+#include <streaming/StreamedTextureData.hpp>
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -179,11 +179,10 @@ public:
 
     static constexpr PlatformType platform = PLATFORM;
     
-    HYP_API Image(
-        const TextureDesc &texture_desc,
-        UniquePtr<StreamedData> &&streamed_data = nullptr,
-        ImageFlags flags = IMAGE_FLAGS_NONE
-    );
+    HYP_API Image(const TextureDesc &texture_desc);
+    
+    HYP_API Image(const RC<StreamedTextureData> &streamed_data);
+    HYP_API Image(RC<StreamedTextureData> &&streamed_data);
 
     Image(const Image &other)               = delete;
     Image &operator=(const Image &other)    = delete;
@@ -191,20 +190,17 @@ public:
     HYP_API Image &operator=(Image &&other) noexcept;
     HYP_API ~Image();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ImagePlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ImagePlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const TextureDesc &GetTextureDescriptor() const
-        { return m_texture_descriptor; }
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const TextureDesc &GetTextureDesc() const
+        { return m_texture_desc; }
 
     /*
      * Create the image. No texture data will be copied.
@@ -217,16 +213,13 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance, ResourceState state);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
-    [[nodiscard]]
-    HYP_API bool IsCreated() const;
+    HYP_NODISCARD HYP_API bool IsCreated() const;
 
-    [[nodiscard]]
-    HYP_API ResourceState GetResourceState() const;
+    HYP_NODISCARD HYP_API ResourceState GetResourceState() const;
 
     HYP_API void SetResourceState(ResourceState new_state);
 
-    [[nodiscard]]
-    HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
+    HYP_NODISCARD HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
 
     HYP_API void SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state);
 
@@ -284,11 +277,10 @@ public:
         GPUBuffer<PLATFORM> *dst_buffer
     ) const;
 
-    [[nodiscard]]
-    HYP_API ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
+    HYP_NODISCARD HYP_API
+    ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsRWTexture() const
         { return m_is_rw_texture; }
 
@@ -296,8 +288,7 @@ public:
     void SetIsRWTexture(bool is_rw_texture)
         { m_is_rw_texture = is_rw_texture; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsAttachmentTexture() const
         { return m_is_attachment_texture; }
 
@@ -305,29 +296,21 @@ public:
     void SetIsAttachmentTexture(bool is_attachment_texture)
         { m_is_attachment_texture = is_attachment_texture; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    StreamedData *GetStreamedData() const
-        { return m_streamed_data.Get(); }
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const RC<StreamedTextureData> &GetStreamedData() const
+        { return m_streamed_data; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasAssignedImageData() const
-        { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
+        { return m_streamed_data != nullptr && m_streamed_data->GetBufferSize() != 0; }
 
-    HYP_FORCE_INLINE
-    void CopyImageData(const ByteBuffer &byte_buffer)
-        { m_streamed_data.Reset(new MemoryStreamedData(byte_buffer)); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsDepthStencil() const
-        { return IsDepthFormat(m_texture_descriptor.format); }
+        { return IsDepthFormat(m_texture_desc.format); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSRGB() const
-        { return IsSRGBFormat(m_texture_descriptor.format); }
+        { return IsSRGBFormat(m_texture_desc.format); }
 
     HYP_FORCE_INLINE
     void SetIsSRGB(bool srgb)
@@ -338,10 +321,10 @@ public:
             return;
         }
 
-        const InternalFormat format = m_texture_descriptor.format;
+        const InternalFormat format = m_texture_desc.format;
 
         if (is_srgb) {
-            m_texture_descriptor.format = InternalFormat(int(format) - int(InternalFormat::SRGB));
+            m_texture_desc.format = InternalFormat(int(format) - int(InternalFormat::SRGB));
 
             return;
         }
@@ -356,11 +339,10 @@ public:
             );
         }
 
-        m_texture_descriptor.format = to_srgb_format;
+        m_texture_desc.format = to_srgb_format;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsBlended() const
         { return m_is_blended; }
 
@@ -368,124 +350,108 @@ public:
     void SetIsBlended(bool is_blended)
         { m_is_blended = is_blended; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasMipmaps() const
     {
-        return m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
-            || m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
-            || m_texture_descriptor.filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
+        return m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
+            || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
+            || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 NumMipmaps() const
     {
         return HasMipmaps()
-            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_descriptor.extent.width, m_texture_descriptor.extent.height, m_texture_descriptor.extent.depth))) + 1
+            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth))) + 1
             : 1;
     }
 
     /*! \brief Returns the byte-size of the image. Note, it's possible no CPU-side memory exists
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 GetByteSize() const
-        { return uint32(m_texture_descriptor.extent.Size())
-            * NumComponents(m_texture_descriptor.format)
-            * NumBytes(m_texture_descriptor.format)
+        { return uint32(m_texture_desc.extent.Size())
+            * NumComponents(m_texture_desc.format)
+            * NumBytes(m_texture_desc.format)
             * NumFaces(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint8 GetBPP() const
         { return m_bpp; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsTextureCube() const
-        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_CUBEMAP; }
+        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsPanorama() const
-        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_2D
-            && m_texture_descriptor.extent.width == m_texture_descriptor.extent.height * 2
-            && m_texture_descriptor.extent.depth == 1; }
+        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D
+            && m_texture_desc.extent.width == m_texture_desc.extent.height * 2
+            && m_texture_desc.extent.depth == 1; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsTextureArray() const
-        { return !IsTextureCube() && m_texture_descriptor.num_layers > 1; }
+        { return !IsTextureCube() && m_texture_desc.num_layers > 1; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsTexture3D() const
-        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_3D; }
+        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_3D; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsTexture2D() const
-        { return m_texture_descriptor.type == ImageType::TEXTURE_TYPE_2D; }
+        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 NumLayers() const
-        { return m_texture_descriptor.num_layers; }
+        { return m_texture_desc.num_layers; }
 
     HYP_FORCE_INLINE
     void SetNumLayers(uint32 num_layers)
     {
-        m_texture_descriptor.num_layers = num_layers;
+        m_texture_desc.num_layers = num_layers;
         m_size = GetByteSize();
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 NumFaces() const
         { return IsTextureCube()
             ? 6
             : IsTextureArray()
-                ? m_texture_descriptor.num_layers
+                ? m_texture_desc.num_layers
                 : 1; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     FilterMode GetMinFilterMode() const
-        { return m_texture_descriptor.filter_mode_min; }
+        { return m_texture_desc.filter_mode_min; }
 
     HYP_FORCE_INLINE
     void SetMinFilterMode(FilterMode filter_mode)
-        { m_texture_descriptor.filter_mode_min = filter_mode; }
+        { m_texture_desc.filter_mode_min = filter_mode; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     FilterMode GetMagFilterMode() const
-        { return m_texture_descriptor.filter_mode_mag; }
+        { return m_texture_desc.filter_mode_mag; }
 
     HYP_FORCE_INLINE
     void SetMagFilterMode(FilterMode filter_mode)
-        { m_texture_descriptor.filter_mode_mag = filter_mode; }
+        { m_texture_desc.filter_mode_mag = filter_mode; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Extent3D &GetExtent() const
-        { return m_texture_descriptor.extent; }
+        { return m_texture_desc.extent; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     InternalFormat GetTextureFormat() const
-        { return m_texture_descriptor.format; }
+        { return m_texture_desc.format; }
 
     HYP_FORCE_INLINE
     void SetTextureFormat(InternalFormat format)
-        { m_texture_descriptor.format = format; }
+        { m_texture_desc.format = format; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ImageType GetType() const
-        { return m_texture_descriptor.type; }
+        { return m_texture_desc.type; }
 
 protected:
     ImageFlags  m_flags;
@@ -494,8 +460,8 @@ private:
 
     ImagePlatformImpl<PLATFORM>                 m_platform_impl;
 
-    TextureDesc                           m_texture_descriptor;
-    UniquePtr<StreamedData>                     m_streamed_data;
+    TextureDesc                                 m_texture_desc;
+    RC<StreamedTextureData>                     m_streamed_data;
 
     bool                                        m_is_blended;
     bool                                        m_is_rw_texture;
@@ -514,8 +480,7 @@ public:
         InternalFormat format,
         ImageType type,
         FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data = nullptr
+        FilterMode mag_filter_mode
     ) : Image<PLATFORM>(
             TextureDesc
             {
@@ -526,8 +491,7 @@ public:
                 mag_filter_mode,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 1, 1
-            },
-            std::move(streamed_data)
+            }
         )
     {
         Image<PLATFORM>::SetIsRWTexture(true);
@@ -539,8 +503,7 @@ public:
             InternalFormat::RGBA16F,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            nullptr
+            FilterMode::TEXTURE_FILTER_NEAREST
         )
     {
     }
@@ -548,15 +511,13 @@ public:
     StorageImage(
         Extent3D extent,
         InternalFormat format,
-        ImageType type,
-        UniquePtr<StreamedData> &&streamed_data = nullptr
+        ImageType type
     ) : StorageImage(
             extent,
             format,
             type,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            std::move(streamed_data)
+            FilterMode::TEXTURE_FILTER_NEAREST
         )
     {
     }
@@ -579,236 +540,156 @@ public:
     ~StorageImage()                                     = default;
 };
 
-template <PlatformType PLATFORM>
-class StorageImage2D : public StorageImage<PLATFORM>
-{
-public:
-    StorageImage2D(
-        Extent2D extent,
-        InternalFormat format,
-        UniquePtr<StreamedData> &&streamed_data = nullptr
-    ) : StorageImage<PLATFORM>(
-            Extent3D(extent),
-            format,
-            ImageType::TEXTURE_TYPE_2D,
-            std::move(streamed_data)
-        )
-    {
-    }
-    
-    StorageImage2D(const StorageImage2D &other)             = delete;
-    StorageImage2D &operator=(const StorageImage2D &other)  = delete;
-
-    StorageImage2D(StorageImage2D &&other) noexcept
-        : StorageImage<PLATFORM>(std::move(other))
-    {
-    }
-
-    StorageImage2D &operator=(StorageImage2D &&other) noexcept
-    {
-        StorageImage<PLATFORM>::operator=(std::move(other));
-
-        return *this;
-    }
-
-    ~StorageImage2D()                                       = default;
-};
 
 template <PlatformType PLATFORM>
-class StorageImage3D : public StorageImage<PLATFORM>
+class SampledImage : public Image<PLATFORM>
 {
 public:
-    StorageImage3D(
-        Extent3D extent,
-        InternalFormat format,
-        UniquePtr<StreamedData> &&streamed_data = nullptr
-    ) : StorageImage<PLATFORM>(
-            extent,
-            format,
-            ImageType::TEXTURE_TYPE_3D,
-            std::move(streamed_data)
-        )
-    {
-    }
-
-    StorageImage3D(const StorageImage3D &other)             = delete;
-    StorageImage3D &operator=(const StorageImage3D &other)  = delete;
-
-    StorageImage3D(StorageImage3D &&other) noexcept
-        : StorageImage<PLATFORM>(std::move(other))
-    {
-    }
-
-    StorageImage3D &operator=(StorageImage3D &&other) noexcept
-    {
-        StorageImage<PLATFORM>::operator=(std::move(other));
-
-        return *this;
-    }
-
-    ~StorageImage3D()                                       = default;
-};
-
-template <PlatformType PLATFORM>
-class TextureImage : public Image<PLATFORM>
-{
-public:
-    TextureImage(
+    SampledImage(
         Extent3D extent,
         InternalFormat format,
         ImageType type,
         FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data
-    ) : Image<PLATFORM>(
-            TextureDesc
-            {
-                type,
-                format,
-                extent,
-                min_filter_mode,
-                mag_filter_mode,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                1, 1
-            },
-            std::move(streamed_data)
-        )   
+        FilterMode mag_filter_mode
+    ) : Image<PLATFORM>(TextureDesc {
+            type,
+            format,
+            extent,
+            min_filter_mode,
+            mag_filter_mode,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1, 1
+        })   
     {
     }
 
-    TextureImage(const TextureImage &other)             = delete;
-    TextureImage &operator=(const TextureImage &other)  = delete;
+    SampledImage(const SampledImage &other)             = delete;
+    SampledImage &operator=(const SampledImage &other)  = delete;
 
-    TextureImage(TextureImage &&other) noexcept
+    SampledImage(SampledImage &&other) noexcept
         : Image<PLATFORM>(std::move(other))
     {
     }
 
-    TextureImage &operator=(TextureImage &&other) noexcept
+    SampledImage &operator=(SampledImage &&other) noexcept
     {
         Image<PLATFORM>::operator=(std::move(other));
 
         return *this;
     }
 
-    ~TextureImage()                                     = default;
+    ~SampledImage()                                     = default;
 };
 
 template <PlatformType PLATFORM>
-class TextureImage2D : public TextureImage<PLATFORM>
+class SampledImage2D : public SampledImage<PLATFORM>
 {
 public:
-    TextureImage2D(
+    SampledImage2D(
         Extent2D extent,
         InternalFormat format,
         FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data
-    ) : TextureImage<PLATFORM>(
+        FilterMode mag_filter_mode
+    ) : SampledImage<PLATFORM>(
             Extent3D(extent),
             format,
             ImageType::TEXTURE_TYPE_2D,
             min_filter_mode,
-            mag_filter_mode,
-            std::move(streamed_data)
+            mag_filter_mode
         )
     {
     }
 
-    TextureImage2D(const TextureImage2D &other)             = delete;
-    TextureImage2D &operator=(const TextureImage2D &other)  = delete;
+    SampledImage2D(const SampledImage2D &other)             = delete;
+    SampledImage2D &operator=(const SampledImage2D &other)  = delete;
 
-    TextureImage2D(TextureImage2D &&other) noexcept
-        : TextureImage<PLATFORM>(std::move(other))
+    SampledImage2D(SampledImage2D &&other) noexcept
+        : SampledImage<PLATFORM>(std::move(other))
     {
     }
 
-    TextureImage2D &operator=(TextureImage2D &&other) noexcept
+    SampledImage2D &operator=(SampledImage2D &&other) noexcept
     {
-        TextureImage<PLATFORM>::operator=(std::move(other));
+        SampledImage<PLATFORM>::operator=(std::move(other));
 
         return *this;
     }
 
-    ~TextureImage2D()                                       = default;
+    ~SampledImage2D()                                       = default;
 };
 
 template <PlatformType PLATFORM>
-class TextureImage3D : public TextureImage<PLATFORM>
+class SampledImage3D : public SampledImage<PLATFORM>
 {
 public:
-    TextureImage3D(
+    SampledImage3D(
         Extent3D extent,
         InternalFormat format,
         FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data
-    ) : TextureImage<PLATFORM>(
+        FilterMode mag_filter_mode
+    ) : SampledImage<PLATFORM>(
             extent,
             format,
             ImageType::TEXTURE_TYPE_3D,
             min_filter_mode,
-            mag_filter_mode,
-            std::move(streamed_data)
+            mag_filter_mode
         )
     {
     }
 
-    TextureImage3D(const TextureImage3D &other)             = delete;
-    TextureImage3D &operator=(const TextureImage3D &other)  = delete;
+    SampledImage3D(const SampledImage3D &other)             = delete;
+    SampledImage3D &operator=(const SampledImage3D &other)  = delete;
 
-    TextureImage3D(TextureImage3D &&other) noexcept
-        : TextureImage<PLATFORM>(std::move(other))
+    SampledImage3D(SampledImage3D &&other) noexcept
+        : SampledImage<PLATFORM>(std::move(other))
     {
     }
 
-    TextureImage3D &operator=(TextureImage3D &&other) noexcept
+    SampledImage3D &operator=(SampledImage3D &&other) noexcept
     {
-        TextureImage<PLATFORM>::operator=(std::move(other));
+        SampledImage<PLATFORM>::operator=(std::move(other));
 
         return *this;
     }
 
-    ~TextureImage3D()                                       = default;
+    ~SampledImage3D()                                       = default;
 };
 
 template <PlatformType PLATFORM>
-class TextureImageCube : public TextureImage<PLATFORM>
+class SampledImageCube : public SampledImage<PLATFORM>
 {
 public:
-    TextureImageCube(
+    SampledImageCube(
         Extent2D extent,
         InternalFormat format,
         FilterMode min_filter_mode,
-        FilterMode mag_filter_mode,
-        UniquePtr<StreamedData> &&streamed_data
-    ) : TextureImage<PLATFORM>(
+        FilterMode mag_filter_mode
+    ) : SampledImage<PLATFORM>(
             Extent3D(extent),
             format,
             ImageType::TEXTURE_TYPE_CUBEMAP,
             min_filter_mode,
-            mag_filter_mode,
-            std::move(streamed_data)
+            mag_filter_mode
         )
     {
     }
 
-    TextureImageCube(const TextureImageCube &other)             = delete;
-    TextureImageCube &operator=(const TextureImageCube &other)  = delete;
+    SampledImageCube(const SampledImageCube &other)             = delete;
+    SampledImageCube &operator=(const SampledImageCube &other)  = delete;
 
-    TextureImageCube(TextureImageCube &&other) noexcept
-        : TextureImage<PLATFORM>(std::move(other))
+    SampledImageCube(SampledImageCube &&other) noexcept
+        : SampledImage<PLATFORM>(std::move(other))
     {
     }
 
-    TextureImageCube &operator=(TextureImageCube &&other) noexcept
+    SampledImageCube &operator=(SampledImageCube &&other) noexcept
     {
-        TextureImage<PLATFORM>::operator=(std::move(other));
+        SampledImage<PLATFORM>::operator=(std::move(other));
 
         return *this;
     }
 
-    ~TextureImageCube()                                         = default;
+    ~SampledImageCube()                                         = default;
 };
 
 template <PlatformType PLATFORM>
@@ -818,8 +699,7 @@ public:
     FramebufferImage(
         Extent3D extent,
         InternalFormat format,
-        ImageType type,
-        UniquePtr<StreamedData> &&streamed_data
+        ImageType type
     ) : Image<PLATFORM>(
             TextureDesc
             {
@@ -830,8 +710,7 @@ public:
                 FilterMode::TEXTURE_FILTER_NEAREST,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 1, 1
-            },
-            std::move(streamed_data)
+            }
         )
     {
         Image<PLATFORM>::SetIsAttachmentTexture(true);
@@ -866,13 +745,11 @@ class FramebufferImage2D : public FramebufferImage<PLATFORM>
 public:
     FramebufferImage2D(
         Extent2D extent,
-        InternalFormat format,
-        UniquePtr<StreamedData> &&streamed_data
+        InternalFormat format
     ) : FramebufferImage<PLATFORM>(
             Extent3D(extent),
             format,
-            ImageType::TEXTURE_TYPE_2D,
-            std::move(streamed_data)
+            ImageType::TEXTURE_TYPE_2D
         )
     {
     }
@@ -899,13 +776,11 @@ class FramebufferImageCube : public FramebufferImage<PLATFORM>
 public:
     FramebufferImageCube(
         Extent2D extent,
-        InternalFormat format,
-        UniquePtr<StreamedData> &&streamed_data
+        InternalFormat format
     ) : FramebufferImage<PLATFORM>(
             Extent3D(extent),
             format,
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            std::move(streamed_data)
+            ImageType::TEXTURE_TYPE_CUBEMAP
         )
     {
     }
@@ -941,12 +816,10 @@ namespace renderer {
 
 using Image = platform::Image<Platform::CURRENT>;
 using StorageImage = platform::StorageImage<Platform::CURRENT>;
-using StorageImage2D = platform::StorageImage2D<Platform::CURRENT>;
-using StorageImage3D = platform::StorageImage3D<Platform::CURRENT>;
-using TextureImage = platform::TextureImage<Platform::CURRENT>;
-using TextureImage2D = platform::TextureImage2D<Platform::CURRENT>;
-using TextureImage3D = platform::TextureImage3D<Platform::CURRENT>;
-using TextureImageCube = platform::TextureImageCube<Platform::CURRENT>;
+using SampledImage = platform::SampledImage<Platform::CURRENT>;
+using SampledImage2D = platform::SampledImage2D<Platform::CURRENT>;
+using SampledImage3D = platform::SampledImage3D<Platform::CURRENT>;
+using SampledImageCube = platform::SampledImageCube<Platform::CURRENT>;
 using FramebufferImage = platform::FramebufferImage<Platform::CURRENT>;
 using FramebufferImage2D = platform::FramebufferImage2D<Platform::CURRENT>;
 using FramebufferImageCube = platform::FramebufferImageCube<Platform::CURRENT>;

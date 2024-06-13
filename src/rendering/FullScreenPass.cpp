@@ -147,8 +147,7 @@ void FullScreenPass::CreateFramebuffer()
 
     ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
         m_extent,
-        m_image_format,
-        nullptr
+        m_image_format
     ));
 
     attachment_image->SetIsAttachmentTexture(true);

@@ -212,12 +212,16 @@ String FBOMObject::ToString() const
     ss << " { properties: { ";
     for (auto &prop : properties) {
         ss << *prop.first;
+        ss << ": ";
+        ss << prop.second.ToString();
         ss << ", ";
     }
 
     ss << " }, nodes: [ ";
 
-    ss << nodes->Size();
+    for (auto &subobject : *nodes) {
+        ss << subobject.ToString();
+    }
 
     ss << " ] ";
 

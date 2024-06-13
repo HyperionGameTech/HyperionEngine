@@ -13,8 +13,7 @@ ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Exte
           m_window_size,
           InternalFormat::RGBA8_SRGB,
           FilterMode::TEXTURE_FILTER_NEAREST,
-          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-          nullptr
+          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
       ))),
       m_screen_capture_mode(screen_capture_mode)
 {

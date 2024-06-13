@@ -841,12 +841,8 @@ void LightmapRenderer::HandleCompletedJob(LightmapJob *job)
     FixedArray<Handle<Texture>, 2> textures;
 
     for (uint i = 0; i < 2; i++) {
-        UniquePtr<StreamedData> streamed_data(new MemoryStreamedData(bitmaps[i].ToByteBuffer()));
-        (void)streamed_data->Load();
-
-        Handle<Texture> texture = CreateObject<Texture>(
-            TextureDesc
-            {
+        RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+            TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 InternalFormat::RGBA32F,
                 Extent3D { uv_map.width, uv_map.height, 1 },
@@ -854,9 +850,10 @@ void LightmapRenderer::HandleCompletedJob(LightmapJob *job)
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 WrapMode::TEXTURE_WRAP_REPEAT
             },
-            std::move(streamed_data)
-        );
+            bitmaps[i].ToByteBuffer()
+        }));
 
+        Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_data));
         InitObject(texture);
 
         textures[i] = std::move(texture);

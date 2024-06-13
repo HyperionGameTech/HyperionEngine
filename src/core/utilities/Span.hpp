@@ -4,6 +4,7 @@
 #define HYPERION_SPAN_HPP
 
 #include <core/Defines.hpp>
+#include <HashCode.hpp>
 #include <Types.hpp>
 
 namespace hyperion {
@@ -152,6 +153,12 @@ struct Span
     HYP_FORCE_INLINE
     const T *Data() const
         { return first; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(reinterpret_cast<const char *>(Begin()), reinterpret_cast<const char *>(End()));
+    }
 
     HYP_DEF_STL_BEGIN_END(
         first,

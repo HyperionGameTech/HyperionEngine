@@ -19,9 +19,11 @@ FBOMData::FBOMData()
 }
 
 FBOMData::FBOMData(const FBOMType &type)
-    : bytes(type.size),
-      type(type)
+    : type(type)
 {
+    if (!type.IsUnbouned()) {
+        bytes.SetSize(type.size);
+    }
 }
 
 FBOMData::FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer)

@@ -145,8 +145,7 @@ void FontAtlas::Render()
                 /* Grayscale 8-bit texture */
                 InternalFormat::R8,
                 FilterMode::TEXTURE_FILTER_NEAREST,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                nullptr
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
             )
         );
 

@@ -187,28 +187,40 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
         DeferCreate(m_ltc_sampler, g_engine->GetGPUDevice());
 
         ByteBuffer ltc_matrix_data(sizeof(s_ltc_matrix), s_ltc_matrix);
-        UniquePtr<StreamedData> streamed_matrix_data(new MemoryStreamedData(std::move(ltc_matrix_data)));
-
-        m_ltc_matrix_texture = CreateObject<Texture>(Texture2D(
-            { 64, 64 },
-            InternalFormat::RGBA16F,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            std::move(streamed_matrix_data)
+        RC<StreamedTextureData> streamed_matrix_data(new StreamedTextureData(
+            TextureData {
+                TextureDesc {
+                    ImageType::TEXTURE_TYPE_2D,
+                    InternalFormat::RGBA16F,
+                    Extent3D { 64, 64, 1 },
+                    FilterMode::TEXTURE_FILTER_LINEAR,
+                    FilterMode::TEXTURE_FILTER_LINEAR,
+                    WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+                },
+                std::move(ltc_matrix_data)
+            }
         ));
+
+        m_ltc_matrix_texture = CreateObject<Texture>(std::move(streamed_matrix_data));
 
         InitObject(m_ltc_matrix_texture);
 
         ByteBuffer ltc_brdf_data(sizeof(s_ltc_brdf), s_ltc_brdf);
-        UniquePtr<StreamedData> streamed_brdf_data(new MemoryStreamedData(std::move(ltc_brdf_data)));
-
-        m_ltc_brdf_texture = CreateObject<Texture>(Texture2D(
-            { 64, 64 },
-            InternalFormat::RGBA16F,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            std::move(streamed_brdf_data)
+        RC<StreamedTextureData> streamed_brdf_data(new StreamedTextureData(
+            TextureData {
+                TextureDesc {
+                    ImageType::TEXTURE_TYPE_2D,
+                    InternalFormat::RGBA16F,
+                    Extent3D { 64, 64, 1 },
+                    FilterMode::TEXTURE_FILTER_LINEAR,
+                    FilterMode::TEXTURE_FILTER_LINEAR,
+                    WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+                },
+                std::move(ltc_brdf_data)
+            }
         ));
+
+        m_ltc_brdf_texture = CreateObject<Texture>(std::move(streamed_brdf_data));
 
         InitObject(m_ltc_brdf_texture);
     }
@@ -501,8 +513,7 @@ void EnvGridPass::Create()
         m_extent,
         m_image_format,
         FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     InitObject(m_previous_texture);
@@ -773,8 +784,7 @@ void ReflectionProbePass::Create()
         m_extent,
         m_image_format,
         FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     InitObject(m_previous_texture);
@@ -1023,8 +1033,7 @@ void DeferredRenderer::Create()
         mip_chain_extent,
         mip_chain_format,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     InitObject(m_mip_chain);

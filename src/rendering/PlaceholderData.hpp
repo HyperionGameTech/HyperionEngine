@@ -18,9 +18,9 @@
 
 namespace hyperion {
 
-using renderer::TextureImage2D;
-using renderer::TextureImage3D;
-using renderer::TextureImageCube;
+using renderer::SampledImage2D;
+using renderer::SampledImage3D;
+using renderer::SampledImageCube;
 using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;

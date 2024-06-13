@@ -37,10 +37,9 @@ public:
         ImageViewRef image_view
     );
 
-    Texture(
-        const TextureDesc &texture_desc,
-        UniquePtr<StreamedData> &&streamed_data
-    );
+    Texture(const TextureDesc &texture_desc);
+    Texture(const RC<StreamedTextureData> &streamed_data);
+    Texture(RC<StreamedTextureData> &&streamed_data);
 
     Texture(
         Image &&image
@@ -63,16 +62,16 @@ public:
         { return m_image_view; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    const TextureDesc &GetTextureDescriptor() const
-        { return m_image->GetTextureDescriptor(); }
+    const TextureDesc &GetTextureDesc() const
+        { return m_image->GetTextureDesc(); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     ImageType GetType() const
-        { return GetTextureDescriptor().type; }
+        { return GetTextureDesc().type; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     uint32 NumFaces() const
-        { return GetTextureDescriptor().num_faces; }
+        { return GetTextureDesc().num_faces; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsTextureCube() const
@@ -84,27 +83,27 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE
     const Extent3D &GetExtent() const
-        { return GetTextureDescriptor().extent; }
+        { return GetTextureDesc().extent; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     InternalFormat GetFormat() const
-        { return GetTextureDescriptor().format; }
+        { return GetTextureDesc().format; }
 
     HYP_NODISCARD HYP_FORCE_INLINE HYP_DEPRECATED
     FilterMode GetFilterMode() const
-        { return GetTextureDescriptor().filter_mode_min; }
+        { return GetTextureDesc().filter_mode_min; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     FilterMode GetMinFilterMode() const
-        { return GetTextureDescriptor().filter_mode_min; }
+        { return GetTextureDesc().filter_mode_min; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     FilterMode GetMagFilterMode() const
-        { return GetTextureDescriptor().filter_mode_mag; }
+        { return GetTextureDesc().filter_mode_mag; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     WrapMode GetWrapMode() const
-        { return GetTextureDescriptor().wrap_mode; }
+        { return GetTextureDesc().wrap_mode; }
     
     void Init();
 
@@ -124,8 +123,7 @@ public:
         Extent2D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        WrapMode wrap_mode,
-        UniquePtr<StreamedData> &&streamed_data
+        WrapMode wrap_mode
     ) : Texture(
             TextureDesc
             {
@@ -135,24 +133,21 @@ public:
                 filter_mode,
                 filter_mode,
                 wrap_mode
-            },
-            std::move(streamed_data)
+            }
         )
     {
     }
 
     Texture2D(
         Extent2D extent,
-        InternalFormat format,
-        UniquePtr<StreamedData> &&streamed_data
+        InternalFormat format
     ) : Texture(
             TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
                 Extent3D { extent.width, extent.height, 1 }
-            },
-            std::move(streamed_data)
+            }
         )
     {
     }

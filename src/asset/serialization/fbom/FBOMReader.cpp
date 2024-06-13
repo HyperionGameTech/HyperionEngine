@@ -737,7 +737,7 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
         break;
     }
     default:
-        AssertThrowMsg(false, "Cannot process command %d in top level", static_cast<int>(command));
+        AssertThrowMsg(false, "Cannot process command %d in top level at position: %u", int(command), reader->Position() - sizeof(FBOMCommand));
 
         break;
     }

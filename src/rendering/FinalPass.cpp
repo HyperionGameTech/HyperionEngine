@@ -168,8 +168,7 @@ void FinalPass::SetUITexture(Handle<Texture> texture)
             Extent2D { 1, 1 },
             InternalFormat::RGBA8,
             FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_REPEAT,
-            nullptr
+            WrapMode::TEXTURE_WRAP_REPEAT
         ));
     }
 
@@ -246,13 +245,12 @@ void FinalPass::Create()
 
     // Create final image to hold last frame's color texture
 
-    m_last_frame_image = MakeRenderObject<Image>(renderer::TextureImage(
+    m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
         Extent3D { m_extent.width, m_extent.height, 1 },
         InternalFormat::RGBA8_SRGB,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        nullptr
+        FilterMode::TEXTURE_FILTER_NEAREST
     ));
 
     HYPERION_ASSERT_RESULT(m_last_frame_image->Create(g_engine->GetGPUDevice()));

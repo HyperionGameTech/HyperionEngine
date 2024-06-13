@@ -383,15 +383,21 @@ Texture::Texture() : Texture(
 {
 }
 
-Texture::Texture(
-    const TextureDesc &texture_desc,
-    UniquePtr<StreamedData> &&streamed_data
-) : Texture(
-        renderer::Image(
-            texture_desc,
-            std::move(streamed_data)
-        )
-    )
+Texture::Texture(const TextureDesc &texture_desc) : Texture(
+    renderer::Image(texture_desc)
+)
+{
+}
+
+Texture::Texture(const RC<StreamedTextureData> &streamed_data) : Texture(
+    renderer::Image(streamed_data)
+)
+{
+}
+
+Texture::Texture(RC<StreamedTextureData> &&streamed_data) : Texture(
+    renderer::Image(std::move(streamed_data))
+)
 {
 }
 
@@ -488,27 +494,25 @@ Vec4f Texture::Sample(Vec2f uv) const
         return Vec4f::Zero();
     }
 
-    const StreamedData *streamed_data = m_image->GetStreamedData();
+    const RC<StreamedTextureData> &streamed_data = m_image->GetStreamedData();
 
     if (!streamed_data) {
         return Vec4f::Zero();
     }
 
-    // @FIXME: Create StreamedTextureData class like StreamedMeshData
-    // where we can use AcquireRef() instead of Load() every time.
+    auto ref = streamed_data->AcquireRef();
+    const TextureData &texture_data = ref->GetTextureData();
 
-    const ByteBuffer &byte_buffer = streamed_data->Load();
-
-    if (byte_buffer.Size() == 0) {
+    if (texture_data.buffer.Size() == 0) {
         return Vec4f::Zero();
     }
 
     const Vec2u coord = {
-        uint32(uv.x * m_image->GetExtent().width),
-        uint32(uv.y * m_image->GetExtent().height)
+        uint32(uv.x * texture_data.desc.extent.width),
+        uint32(uv.y * texture_data.desc.extent.height)
     };
 
-    const uint bytes_per_pixel = renderer::NumBytes(m_image->GetTextureFormat());
+    const uint32 bytes_per_pixel = renderer::NumBytes(texture_data.desc.format);
 
     if (bytes_per_pixel != 1) {
         HYP_LOG(Texture, LogLevel::ERROR, "Texture::Sample: Unsupported bytes per pixel: {}", bytes_per_pixel);
@@ -516,15 +520,15 @@ Vec4f Texture::Sample(Vec2f uv) const
         return Vec4f::Zero();
     }
 
-    const uint num_components = renderer::NumComponents(m_image->GetTextureFormat());
+    const uint32 num_components = renderer::NumComponents(m_image->GetTextureFormat());
 
-    const uint32 index = coord.y * m_image->GetExtent().width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
+    const uint32 index = coord.y *  texture_data.desc.extent.width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
 
-    if (index >= byte_buffer.Size()) {
+    if (index >= texture_data.buffer.Size()) {
         return Vec4f::Zero();
     }
 
-    const uint8 *data = byte_buffer.Data() + index;
+    const uint8 *data = texture_data.buffer.Data() + index;
 
     switch (num_components) {
     case 1:

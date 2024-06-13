@@ -142,8 +142,7 @@ void SSRRenderer::Create()
         m_extent,
         ssr_format,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_image_outputs[0]->GetImage()->SetIsRWTexture(true);
@@ -153,8 +152,7 @@ void SSRRenderer::Create()
         m_extent,
         ssr_format,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_image_outputs[1]->GetImage()->SetIsRWTexture(true);
@@ -164,8 +162,7 @@ void SSRRenderer::Create()
         m_extent,
         ssr_format,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_image_outputs[2]->GetImage()->SetIsRWTexture(true);
@@ -175,8 +172,7 @@ void SSRRenderer::Create()
         m_extent,
         ssr_format,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
 
     m_image_outputs[3]->GetImage()->SetIsRWTexture(true);

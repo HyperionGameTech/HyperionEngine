@@ -383,8 +383,7 @@ void DDGI::CreateStorageBuffers()
         m_irradiance_image = MakeRenderObject<Image>(StorageImage(
             extent,
             irradiance_format,
-            ImageType::TEXTURE_TYPE_2D,
-            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * SizeType(NumComponents(irradiance_format))))
+            ImageType::TEXTURE_TYPE_2D
         ));
 
         PUSH_RENDER_COMMAND(CreateDDGIImage, m_irradiance_image);
@@ -408,8 +407,7 @@ void DDGI::CreateStorageBuffers()
         m_depth_image = MakeRenderObject<Image>(StorageImage(
             extent,
             depth_format,
-            ImageType::TEXTURE_TYPE_2D,
-            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * SizeType(NumComponents(depth_format))))
+            ImageType::TEXTURE_TYPE_2D
         ));
 
         PUSH_RENDER_COMMAND(CreateDDGIImage, m_depth_image);
