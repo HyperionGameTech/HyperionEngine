@@ -43,43 +43,35 @@ struct EnumFlags
     EnumFlags &operator=(EnumFlags &&other) noexcept    = default;
     ~EnumFlags()                                        = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr operator EnumType() const
         { return static_cast<EnumType>(value); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr operator UnderlyingType() const
         { return value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator==(const EnumFlags &other) const
         { return value == other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator==(Enum rhs) const
         { return *this == EnumFlags<Enum>(rhs); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator!=(const EnumFlags &other) const
         { return value != other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator!=(Enum rhs) const
         { return *this != EnumFlags<Enum>(rhs); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator~() const
         { return EnumFlags(~value); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator|(const EnumFlags &other) const
         { return EnumFlags(value | other.value); }
 
@@ -91,8 +83,7 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator|(EnumType flag) const
         { return EnumFlags(value | static_cast<UnderlyingType>(flag)); }
 
@@ -104,8 +95,7 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator&(const EnumFlags &other) const
         { return EnumFlags(value & other.value); }
 
@@ -117,8 +107,7 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator&(EnumType flag) const
         { return EnumFlags(value & static_cast<UnderlyingType>(flag)); }
 
@@ -130,8 +119,7 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator^(const EnumFlags &other) const
         { return EnumFlags(value ^ other.value); }
 
@@ -143,8 +131,7 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr EnumFlags operator^(EnumType flag) const
         { return EnumFlags(value ^ static_cast<UnderlyingType>(flag)); }
 
@@ -156,13 +143,11 @@ struct EnumFlags
         return *this;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool operator[](EnumType flag) const
         { return (value & static_cast<UnderlyingType>(flag)) != 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr HashCode GetHashCode() const
         { return HashCode::GetHashCode(value); }
 };

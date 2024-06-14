@@ -5,6 +5,7 @@
 
 #include <core/Name.hpp>
 #include <core/containers/String.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/system/Debug.hpp>
 
@@ -30,7 +31,8 @@
 
 #define FBOM_RETURN_OK return FBOMResult(FBOMResult::FBOM_OK)
 
-namespace hyperion::fbom {
+namespace hyperion {
+namespace fbom {
 
 class FBOMObject;
 class FBOMArray;
@@ -350,10 +352,10 @@ struct FBOMData : public IFBOMSerializable
         FBOM_RETURN_OK;
     }
 
-    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out) const
-        { return Visit(GetUniqueID(), writer, out); }
+    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
+        { return Visit(GetUniqueID(), writer, out, attributes); }
 
-    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
     HYP_NODISCARD
     virtual String ToString(bool deep = true) const override
@@ -404,7 +406,8 @@ private:
     FBOMType    type;
 };
 
-} // namespace hyperion::fbom
+} // namespace fbom
+} // namespace hyperion
 
 #undef FBOM_RETURN_OK
 #undef FBOM_ASSERT

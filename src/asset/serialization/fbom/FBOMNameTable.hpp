@@ -53,10 +53,10 @@ struct FBOMNameTable : public IFBOMSerializable
         }
     }
 
-    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out) const
-        { return Visit(GetUniqueID(), writer, out); }
+    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
+        { return Visit(GetUniqueID(), writer, out, attributes); }
 
-    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
     [[nodiscard]]
     virtual String ToString(bool deep = true) const override

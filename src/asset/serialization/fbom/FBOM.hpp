@@ -60,27 +60,10 @@ HYP_MAKE_ENUM_FLAGS(FBOMVersionCompareMode)
 
 enum class FBOMDataLocation : uint8
 {
-    LOC_STATIC,
+    LOC_STATIC  = 0,
     LOC_INPLACE,
     LOC_EXT_REF
 };
-
-enum class FBOMDataAttributes : uint8
-{
-    NONE        = 0x0,
-    COMPRESSED  = 0x1,
-
-    RESERVED0   = 0x2,
-    RESERVED1   = 0x4,
-    RESERVED2   = 0x8,
-    RESERVED3   = 0x10,
-
-    LOC_STATIC  = 0x20,
-    LOC_INPLACE = 0x40,
-    LOC_EXT_REF = 0x80
-};
-
-HYP_MAKE_ENUM_FLAGS(FBOMDataAttributes)
 
 namespace fbom {
 
@@ -270,8 +253,9 @@ private:
     FBOMResult ReadString(BufferedReader *, StringType &out_string);
 
     FBOMResult ReadArchive(BufferedReader *, Archive &out_archive);
+    FBOMResult ReadArchive(const ByteBuffer &in_buffer, ByteBuffer &out_buffer);
 
-    FBOMResult ReadRawData(BufferedReader *, SizeType count, ByteBuffer &out_byte_buffer);
+    FBOMResult ReadRawData(BufferedReader *, SizeType count, ByteBuffer &out_buffer);
 
     template <class T>
     FBOMResult ReadRawData(BufferedReader *reader, T *out_ptr)
@@ -365,6 +349,7 @@ public:
 
     FBOMWriter(const FBOMWriter &other)             = delete;
     FBOMWriter &operator=(const FBOMWriter &other)  = delete;
+    
     FBOMWriter(FBOMWriter &&other) noexcept;
     FBOMWriter &operator=(FBOMWriter &&other) noexcept;
 
@@ -398,11 +383,11 @@ public:
     FBOMResult Append(const FBOMObject &object);
     FBOMResult Emit(ByteWriter *out);
 
-    FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id);
-    FBOMResult Write(ByteWriter *out, const FBOMType &type, UniqueID id);
-    FBOMResult Write(ByteWriter *out, const FBOMData &data, UniqueID id);
-    FBOMResult Write(ByteWriter *out, const FBOMArray &array, UniqueID id);
-    FBOMResult Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
+    FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
+    FBOMResult Write(ByteWriter *out, const FBOMType &type, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
+    FBOMResult Write(ByteWriter *out, const FBOMData &data, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
+    FBOMResult Write(ByteWriter *out, const FBOMArray &array, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
+    FBOMResult Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
 
 private:
     FBOMResult WriteArchive(ByteWriter *out, const Archive &archive) const;

@@ -3,9 +3,9 @@
 
 namespace hyperion::fbom {
 
-FBOMResult FBOMNameTable::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const
+FBOMResult FBOMNameTable::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
 {
-    return writer->Write(out, *this, id);
+    return writer->Write(out, *this, id, attributes);
 }
 
 } // namespace hyperion::fbom

@@ -49,10 +49,10 @@ public:
     SizeType Size() const
         { return m_values.Size(); }
 
-    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out) const
-        { return Visit(GetUniqueID(), writer, out); }
+    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
+        { return Visit(GetUniqueID(), writer, out, attributes); }
 
-    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
     HYP_NODISCARD
     virtual String ToString(bool deep = true) const override;

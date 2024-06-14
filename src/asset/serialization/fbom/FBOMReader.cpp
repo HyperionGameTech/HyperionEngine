@@ -217,21 +217,25 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
 
 FBOMResult FBOMReader::ReadDataAttributes(BufferedReader *reader, EnumFlags<FBOMDataAttributes> &out_attributes, FBOMDataLocation &out_location)
 {
-    uint8 attributes_value = 0;
+    constexpr uint8 loc_static = (1u << uint32(FBOMDataLocation::LOC_STATIC)) << 5;
+    constexpr uint8 loc_inplace = (1u << uint32(FBOMDataLocation::LOC_INPLACE)) << 5;
+    constexpr uint8 loc_ext_ref = (1u << uint32(FBOMDataLocation::LOC_EXT_REF)) << 5;
+
+    uint8 attributes_value;
     reader->Read(&attributes_value);
     CheckEndianness(attributes_value);
 
-    out_attributes = EnumFlags<FBOMDataAttributes>(attributes_value);
-
-    if (out_attributes & FBOMDataAttributes::LOC_STATIC) {
+    if (attributes_value & loc_static) {
         out_location = FBOMDataLocation::LOC_STATIC;
-    } else if (out_attributes & FBOMDataAttributes::LOC_INPLACE) {
+    } else if (attributes_value & loc_inplace) {
         out_location = FBOMDataLocation::LOC_INPLACE;
-    } else if (out_attributes & FBOMDataAttributes::LOC_EXT_REF) {
+    } else if (attributes_value & loc_ext_ref) {
         out_location = FBOMDataLocation::LOC_EXT_REF;
     } else {
         return { FBOMResult::FBOM_ERR, "No data location on attributes" };
     }
+    
+    out_attributes = EnumFlags<FBOMDataAttributes>(attributes_value & ~uint8(FBOMDataAttributes::LOCATION_MASK));
 
     return FBOMResult::FBOM_OK;
 }
@@ -306,6 +310,8 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
 
 FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
 {
+    BufferedReader *reader_ptr = reader;
+
     EnumFlags<FBOMDataAttributes> attributes;
     FBOMDataLocation location;
 
@@ -320,10 +326,34 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
             return err;
         }
 
+        BufferedReader compressed_data_reader;
+
+        ByteBuffer byte_buffer;
+        
+        if (attributes & FBOMDataAttributes::COMPRESSED) {
+            // Read archive
+            Archive archive;
+
+            if (FBOMResult err = ReadArchive(reader, archive)) {
+                return err;
+            }
+
+            if (!Archive::IsEnabled()) {
+                return { FBOMResult::FBOM_ERR, "Cannot decompress archive because the Archive feature is not enabled" };
+            }
+
+            if (ArchiveResult err = archive.Decompress(byte_buffer)) {
+                return { FBOMResult::FBOM_ERR, err.message.Data() };
+            }
+
+            compressed_data_reader = BufferedReader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer.ToByteView())));
+            reader_ptr = &compressed_data_reader;
+        }
+
         if (object_type.IsOrExtends(FBOMBaseObjectType())) {
             FBOMObject object;
 
-            if (FBOMResult err = ReadObject(reader, object, nullptr)) {
+            if (FBOMResult err = ReadObject(reader_ptr, object, nullptr)) {
                 return err;
             }
 
@@ -331,40 +361,21 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
         } else if (object_type.IsOrExtends(FBOMArrayType())) {
             FBOMArray array;
 
-            if (FBOMResult err = ReadArray(reader, array)) {
+            if (FBOMResult err = ReadArray(reader_ptr, array)) {
                 return err;
             }
 
             out_data = FBOMData::FromArray(array);
         } else {
-            ByteBuffer byte_buffer;
+            // Read bytebuffer of raw data
+            uint32 sz;
+            reader_ptr->Read(&sz);
+            CheckEndianness(sz);
 
-            if (attributes & FBOMDataAttributes::COMPRESSED) {
-                // Read archive
-                Archive archive;
+            byte_buffer = reader_ptr->ReadBytes(sz);
 
-                if (FBOMResult err = ReadArchive(reader, archive)) {
-                    return err;
-                }
-
-                if (!Archive::IsEnabled()) {
-                    return { FBOMResult::FBOM_ERR, "Cannot decompress archive because the Archive feature is not enabled" };
-                }
-
-                if (ArchiveResult err = archive.Decompress(byte_buffer)) {
-                    return { FBOMResult::FBOM_ERR, err.message.Data() };
-                }
-            } else {
-                // Read bytebuffer of raw data
-                uint32 sz;
-                reader->Read(&sz);
-                CheckEndianness(sz);
-
-                byte_buffer = reader->ReadBytes(sz);
-
-                if (byte_buffer.Size() != sz) {
-                    return { FBOMResult::FBOM_ERR, "File is corrupted" };
-                }
+            if (byte_buffer.Size() != sz) {
+                return { FBOMResult::FBOM_ERR, "File is corrupted" };
             }
 
             out_data = FBOMData(object_type, std::move(byte_buffer));
@@ -721,13 +732,35 @@ FBOMResult FBOMReader::ReadArchive(BufferedReader *reader, Archive &out_archive)
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadRawData(BufferedReader *reader, SizeType count, ByteBuffer &out_byte_buffer)
+FBOMResult FBOMReader::ReadArchive(const ByteBuffer &in_buffer, ByteBuffer &out_buffer)
+{
+    // Read archive
+    Archive archive;
+
+    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(in_buffer.ToByteView())));
+
+    if (FBOMResult err = ReadArchive(&reader, archive)) {
+        return err;
+    }
+
+    if (!Archive::IsEnabled()) {
+        return { FBOMResult::FBOM_ERR, "Cannot decompress archive because the Archive feature is not enabled" };
+    }
+
+    if (ArchiveResult err = archive.Decompress(out_buffer)) {
+        return { FBOMResult::FBOM_ERR, err.message.Data() };
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadRawData(BufferedReader *reader, SizeType count, ByteBuffer &out_buffer)
 {
     if (reader->Position() + count > reader->Max()) {
         return { FBOMResult::FBOM_ERR, "File is corrupted: attempted to read past end" };
     }
 
-    out_byte_buffer = reader->ReadBytes(count);
+    out_buffer = reader->ReadBytes(count);
 
     return FBOMResult::FBOM_OK;
 }

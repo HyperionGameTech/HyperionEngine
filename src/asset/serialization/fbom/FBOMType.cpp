@@ -199,9 +199,9 @@ bool FBOMType::Extends(const FBOMType &other, bool allow_unbounded) const
     return extends->Extends(other, allow_unbounded);
 }
 
-FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const
+FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
 {
-    return writer->Write(out, *this, id);
+    return writer->Write(out, *this, id, attributes);
 }
 
 String FBOMType::ToString(bool deep) const

@@ -346,8 +346,14 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID id)
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID id, EnumFlags<FBOMDataAttributes> attributes)
 {
+    bool compress_properties = false;
+
+    if (Archive::IsEnabled() && !(attributes & FBOMDataAttributes::COMPRESSED)) {
+        // compress_properties = true;
+    }
+
     if (object.IsExternal()) {
         // defer writing it. instead we pass the object into our external data,
         // which we will later be write
@@ -366,7 +372,7 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
 
     const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
     
-    if (FBOMResult err = WriteDataAttributes(out, FBOMDataAttributes::NONE, data_location)) {
+    if (FBOMResult err = WriteDataAttributes(out, attributes, data_location)) {
         return err;
     }
 
@@ -383,7 +389,13 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
         }
 
         // add all properties
-        for (auto &it : object.properties) {
+        for (const auto &it : object.properties) {
+            EnumFlags<FBOMDataAttributes> property_attributes = FBOMDataAttributes::NONE;
+
+            if (compress_properties) {
+                property_attributes |= FBOMDataAttributes::COMPRESSED;
+            }
+
             out->Write<uint8>(FBOM_DEFINE_PROPERTY);
 
             // write key
@@ -392,7 +404,7 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
             }
 
             // write value
-            if (FBOMResult err = it.second.Visit(this, out)) {
+            if (FBOMResult err = it.second.Visit(this, out, property_attributes)) {
                 return err;
             }
         }
@@ -438,14 +450,14 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMType &type, UniqueID id)
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMType &type, UniqueID id, EnumFlags<FBOMDataAttributes> attributes)
 {
     const FBOMStaticData *static_data_ptr;
     String external_key;
 
     const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
     
-    if (FBOMResult err = WriteDataAttributes(out, FBOMDataAttributes::NONE, data_location)) {
+    if (FBOMResult err = WriteDataAttributes(out, attributes, data_location)) {
         return err;
     }
 
@@ -482,20 +494,12 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMType &type, UniqueID id)
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id, EnumFlags<FBOMDataAttributes> attributes)
 {
+    ByteWriter *writer_ptr = out;
+
     const FBOMStaticData *static_data_ptr;
     String external_key;
-
-    EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE;
-
-    if (Archive::IsEnabled()
-        && (
-            data.GetType().IsOrExtends(FBOMByteBuffer())
-            || data.GetType().IsOrExtends(FBOMSequence())
-        )) {
-        attributes |= FBOMDataAttributes::COMPRESSED;
-    }
 
     const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
     
@@ -522,6 +526,12 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
             return err;
         }
 
+        MemoryByteWriter writer;
+
+        if (attributes & FBOMDataAttributes::COMPRESSED) {
+            writer_ptr = &writer;
+        }
+
         if (data.IsObject()) {
             FBOMObject object;
             
@@ -537,7 +547,7 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
                 return err;
             }
 
-            if (FBOMResult err = object.Visit(this, out)) {
+            if (FBOMResult err = object.Visit(this, writer_ptr)) {
                 return err;
             }
         } else if (data.IsArray()) {
@@ -555,26 +565,26 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
                 return err;
             }
 
-            if (FBOMResult err = array.Visit(this, out)) {
+            if (FBOMResult err = array.Visit(this, writer_ptr)) {
                 return err;
             }
         } else {
-            if (attributes & FBOMDataAttributes::COMPRESSED) {
-                if (!Archive::IsEnabled()) {
-                    return { FBOMResult::FBOM_ERR, "Cannot write to archive because the Archive feature is not enabled" };
-                }
+            // raw bytebuffer - write size and then buffer
+            writer_ptr->Write<uint32>(uint32(sz));
+            writer_ptr->Write(byte_buffer.Data(), byte_buffer.Size());
+        }
 
-                // Write compressed data
-                ArchiveBuilder archive_builder;
-                archive_builder.Append(std::move(byte_buffer));
+        if (attributes & FBOMDataAttributes::COMPRESSED) {
+            if (!Archive::IsEnabled()) {
+                return { FBOMResult::FBOM_ERR, "Cannot write to archive because the Archive feature is not enabled" };
+            }
 
-                if (FBOMResult err = WriteArchive(out, archive_builder.Build())) {
-                    return err;
-                }
-            } else {
-                // raw bytebuffer - write size and then buffer
-                out->Write<uint32>(uint32(sz));
-                out->Write(byte_buffer.Data(), byte_buffer.Size());
+            // Write compressed data
+            ArchiveBuilder archive_builder;
+            archive_builder.Append(std::move(writer.GetBuffer()));
+
+            if (FBOMResult err = WriteArchive(out, archive_builder.Build())) {
+                return err;
             }
         }
 
@@ -588,14 +598,14 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMArray &array, UniqueID id)
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMArray &array, UniqueID id, EnumFlags<FBOMDataAttributes> attributes)
 {
     const FBOMStaticData *static_data_ptr;
     String external_key;
     
     const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
     
-    if (FBOMResult err = WriteDataAttributes(out, FBOMDataAttributes::NONE, data_location)) {
+    if (FBOMResult err = WriteDataAttributes(out, attributes, data_location)) {
         return err;
     }
 
@@ -632,14 +642,14 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMArray &array, UniqueID i
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id)
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id, EnumFlags<FBOMDataAttributes> attributes)
 {
     const FBOMStaticData *static_data_ptr;
     String external_key;
     
     const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
     
-    if (FBOMResult err = WriteDataAttributes(out, FBOMDataAttributes::NONE, data_location)) {
+    if (FBOMResult err = WriteDataAttributes(out, attributes, data_location)) {
         return err;
     }
 
@@ -685,22 +695,28 @@ FBOMResult FBOMWriter::WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAt
 
 FBOMResult FBOMWriter::WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes, FBOMDataLocation location) const
 {
+    constexpr uint8 loc_static = (1u << uint32(FBOMDataLocation::LOC_STATIC)) << 5;
+    constexpr uint8 loc_inplace = (1u << uint32(FBOMDataLocation::LOC_INPLACE)) << 5;
+    constexpr uint8 loc_ext_ref = (1u << uint32(FBOMDataLocation::LOC_EXT_REF)) << 5;
+
+    uint8 attributes_value = uint8(attributes);
+
     switch (location) {
     case FBOMDataLocation::LOC_STATIC:
-        attributes |= FBOMDataAttributes::LOC_STATIC;
+        attributes_value |= loc_static;
 
         break;
     case FBOMDataLocation::LOC_INPLACE:
-        attributes |= FBOMDataAttributes::LOC_INPLACE;
+        attributes_value |= loc_inplace;
 
         break;
     case FBOMDataLocation::LOC_EXT_REF:
-        attributes |= FBOMDataAttributes::LOC_EXT_REF;
+        attributes_value |= loc_ext_ref;
 
         break;
     }
 
-    out->Write<uint8>(uint8(attributes));
+    out->Write<uint8>(attributes_value);
 
     return FBOMResult::FBOM_OK;
 }
