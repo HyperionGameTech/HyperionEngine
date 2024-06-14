@@ -1,6 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
+
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
 
@@ -538,6 +540,24 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
             if (FBOMResult err = object.Visit(this, out)) {
                 return err;
             }
+        } else if (data.IsArray()) {
+            FBOMArray array;
+            
+            if (FBOMResult err = data.ReadArray(array)) {
+                return err;
+            }
+
+            BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer.ToByteView())));
+
+            FBOMReader deserializer(fbom::FBOMConfig { });
+
+            if (FBOMResult err = deserializer.ReadArray(&byte_reader, array)) {
+                return err;
+            }
+
+            if (FBOMResult err = array.Visit(this, out)) {
+                return err;
+            }
         } else {
             if (attributes & FBOMDataAttributes::COMPRESSED) {
                 if (!Archive::IsEnabled()) {
@@ -555,6 +575,50 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id)
                 // raw bytebuffer - write size and then buffer
                 out->Write<uint32>(uint32(sz));
                 out->Write(byte_buffer.Data(), byte_buffer.Size());
+            }
+        }
+
+        if (static_data_ptr) {
+            m_write_stream->MarkStaticDataWritten(id);
+        }
+    } else {
+        return FBOMResult::FBOM_ERR;
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMArray &array, UniqueID id)
+{
+    const FBOMStaticData *static_data_ptr;
+    String external_key;
+    
+    const FBOMDataLocation data_location = m_write_stream->GetDataLocation(id, &static_data_ptr, external_key);
+    
+    if (FBOMResult err = WriteDataAttributes(out, FBOMDataAttributes::NONE, data_location)) {
+        return err;
+    }
+
+    if (data_location == FBOMDataLocation::LOC_STATIC) {
+        AssertThrow(static_data_ptr != nullptr);
+
+        return WriteStaticDataUsage(out, *static_data_ptr);
+    }
+
+    if (data_location == FBOMDataLocation::LOC_INPLACE) {
+        // Write array size
+        out->Write<uint32>(uint32(array.Size()));
+
+        // Write each element
+        for (SizeType index = 0; index < array.Size(); index++) {
+            const FBOMData *value = array.TryGetElement(index);
+
+            if (!value) {
+                return { FBOMResult::FBOM_ERR, "Array had invalid element" };
+            }
+
+            if (FBOMResult err = value->Visit(this, out)) {
+                return err;
             }
         }
 
@@ -706,6 +770,11 @@ UniqueID FBOMWriter::AddStaticData(const FBOMObject &object)
     return AddStaticData(FBOMStaticData(object));
 }
 
+UniqueID FBOMWriter::AddStaticData(const FBOMArray &array)
+{
+    return AddStaticData(FBOMStaticData(array));
+}
+
 UniqueID FBOMWriter::AddStaticData(const FBOMData &data)
 {
     // Custom logic for `Name` objects: store their string data in the stream's name table
@@ -728,6 +797,13 @@ UniqueID FBOMWriter::AddStaticData(const FBOMData &data)
         // what to do?
 
         AddStaticData(object);
+    }
+
+    if (data.IsArray()) {
+        FBOMArray array;
+        AssertThrowMsg(data.ReadArray(array).value == FBOMResult::FBOM_OK, "Invalid array, cannot write to stream");
+
+        AddStaticData(array);
     }
 
     AddStaticData(data.GetType());

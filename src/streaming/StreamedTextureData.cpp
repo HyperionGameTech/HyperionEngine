@@ -45,7 +45,7 @@ StreamedTextureData::StreamedTextureData(const TextureData &texture_data)
     }
 
     // Do not keep in memory, we already have what we want - but we need to calculate the hash
-    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer().ToByteView(), StreamedDataState::NONE));
+    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer().ToByteView()));
 
     m_texture_data.Set(texture_data);
 }
@@ -69,7 +69,7 @@ StreamedTextureData::StreamedTextureData(TextureData &&texture_data)
     }
 
     // Do not keep in memory, we already have what we want - but we need to calculate the hash
-    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer().ToByteView(), StreamedDataState::NONE));
+    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
 
     m_texture_data.Set(texture_data);
 }

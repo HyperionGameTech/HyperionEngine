@@ -53,7 +53,7 @@ protected:
                     DebugLog(LogType::Debug, "Get Mesh property, ID = #%u\n", static_cast<const MeshComponent *>(component)->mesh.GetID().Value());
 
                     fbom::FBOMObject result_object;
-                    result_object.SetProperty(NAME("ID"), fbom::FBOMUnsignedInt(), static_cast<const MeshComponent *>(component)->mesh.GetID().Value());
+                    result_object.SetProperty(NAME("ID"), fbom::FBOMData::FromUnsignedInt(static_cast<const MeshComponent *>(component)->mesh.GetID().Value()));
 
                     *out = fbom::FBOMData::FromObject(result_object);
                 }

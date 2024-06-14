@@ -14,7 +14,7 @@ public:
 
     virtual FBOMResult Serialize(const SubShader &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("type"), FBOMUnsignedInt(), static_cast<uint32>(in_object.type));
+        out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(in_object.type));
         out.SetProperty(NAME("bytes"), FBOMSequence(FBOMByte(), in_object.spirv.bytes.Size()), in_object.spirv.bytes.Data());
 
         return { FBOMResult::FBOM_OK };

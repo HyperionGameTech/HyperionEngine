@@ -9,23 +9,40 @@
 
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>
 
 #include <cstddef>
 
-namespace hyperion::fbom {
+namespace hyperion {
+
+enum class FBOMTypeFlags : uint32
+{
+    NONE        = 0x0,
+    RAW_DATA    = 0x1,
+    CONTAINER   = 0x2, // needs custom handling
+
+    DEFAULT     = RAW_DATA
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMTypeFlags)
+
+namespace fbom {
 
 struct FBOMType : public IFBOMSerializable
 {
-    ANSIString  name;
-    SizeType    size;
-    FBOMType    *extends;
+    ANSIString                  name;
+    SizeType                    size;
+    EnumFlags<FBOMTypeFlags>    flags;
+    FBOMType                    *extends;
 
     FBOMType();
     FBOMType(const ANSIStringView &name, SizeType size);
     FBOMType(const ANSIStringView &name, SizeType size, const FBOMType &extends);
+    FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags);
+    FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends);
     FBOMType(const FBOMType &other);
     FBOMType &operator=(const FBOMType &other);
     FBOMType(FBOMType &&other) noexcept;
@@ -33,6 +50,9 @@ struct FBOMType : public IFBOMSerializable
     virtual ~FBOMType();
 
     FBOMType Extend(const FBOMType &object) const;
+
+    HYP_NODISCARD
+    bool HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents = true) const;
 
     HYP_NODISCARD
     bool Is(const FBOMType &other, bool allow_unbounded = true) const;
@@ -90,6 +110,7 @@ struct FBOMType : public IFBOMSerializable
     }
 };
 
-} // namespace hyperion::fbom
+} // namespace fbom
+} // namespace hyperion
 
 #endif

@@ -130,6 +130,14 @@ FBOMObject &FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
     return SetProperty(key, FBOMData(FBOMByteBuffer(bytes.Size()), ByteBuffer(bytes)));
 }
 
+FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, ByteBuffer &&byte_buffer)
+{
+    FBOMData data(type);
+    data.SetBytes(std::move(byte_buffer));
+
+    return SetProperty(key, std::move(data));
+}
+
 FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const ByteBuffer &byte_buffer)
 {
     FBOMData data(type);
@@ -214,7 +222,7 @@ String FBOMObject::ToString(bool deep) const
         ss << *prop.first;
         ss << ": ";
         if (deep) {
-            ss << prop.second.ToString();
+            ss << prop.second.ToString(deep);
         } else {
             ss << "...";
         }
@@ -225,7 +233,7 @@ String FBOMObject::ToString(bool deep) const
 
     if (deep) {
         for (auto &subobject : *nodes) {
-            ss << subobject.ToString();
+            ss << subobject.ToString(deep);
         }
     } else {
         ss << nodes->Size();

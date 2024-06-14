@@ -171,9 +171,9 @@ MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer, StreamedDa
 {
     m_hash_code = byte_buffer.GetHashCode();
 
-    if (initial_state == StreamedDataState::LOADED) {
+    // if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(byte_buffer);
-    }
+    // }
 }
 
 MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataState initial_state)
@@ -182,9 +182,9 @@ MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataSta
 {
     m_hash_code = byte_buffer.GetHashCode();
 
-    if (initial_state == StreamedDataState::LOADED) {
+    // if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(std::move(byte_buffer));
-    }
+    // }
 }
 
 MemoryStreamedData::MemoryStreamedData(ConstByteView byte_view, StreamedDataState initial_state)
@@ -193,9 +193,9 @@ MemoryStreamedData::MemoryStreamedData(ConstByteView byte_view, StreamedDataStat
 {
     m_hash_code = byte_view.GetHashCode();
 
-    if (initial_state == StreamedDataState::LOADED) {
+    // if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(ByteBuffer(byte_view));
-    }
+    // }
 }
 
 MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept

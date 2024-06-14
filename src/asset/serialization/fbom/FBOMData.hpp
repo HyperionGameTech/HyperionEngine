@@ -33,6 +33,7 @@
 namespace hyperion::fbom {
 
 class FBOMObject;
+class FBOMArray;
 
 struct FBOMData : public IFBOMSerializable
 {
@@ -47,23 +48,19 @@ struct FBOMData : public IFBOMSerializable
     FBOMData &operator=(FBOMData &&other) noexcept;
     virtual ~FBOMData();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return !type.IsUnset() || bytes.Any(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const FBOMType &GetType() const
         { return type; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ByteBuffer &GetBytes() const
         { return bytes; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType TotalSize() const
         { return bytes.Size(); }
 
@@ -151,8 +148,7 @@ struct FBOMData : public IFBOMSerializable
 
 #undef FBOM_TYPE_FUNCTIONS
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsString() const
         { return type.IsOrExtends(FBOMString()); }
 
@@ -178,8 +174,7 @@ struct FBOMData : public IFBOMSerializable
     }
     
     template <int string_type>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static FBOMData FromString(const StringView<string_type> &str)
     {
         static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
@@ -188,15 +183,13 @@ struct FBOMData : public IFBOMSerializable
     }
     
     template <int string_type>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static FBOMData FromString(const containers::detail::String<string_type> &str)
     {
         return FromString(StringView<string_type>(str));
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD  HYP_FORCE_INLINE
     bool IsByteBuffer() const
         { return type.IsOrExtends(FBOMByteBuffer()); }
 
@@ -210,8 +203,7 @@ struct FBOMData : public IFBOMSerializable
         FBOM_RETURN_OK;
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
     {
         FBOMData data(FBOMByteBuffer(byte_buffer.Size()));
@@ -220,13 +212,11 @@ struct FBOMData : public IFBOMSerializable
         return data;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsStruct(const char *type_name) const
         { return type.IsOrExtends(FBOMStruct(type_name, -1)); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsStruct(const char *type_name, SizeType size) const
         { return type.IsOrExtends(FBOMStruct(type_name, size)); }
 
@@ -260,8 +250,7 @@ struct FBOMData : public IFBOMSerializable
         return data;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsName() const
         { return IsStruct("Name"); }
 
@@ -269,40 +258,48 @@ struct FBOMData : public IFBOMSerializable
     FBOMResult ReadName(Name *out) const
         { return ReadStruct<Name>(out); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSequence() const
         { return type.IsOrExtends(FBOMSequence()); }
 
     // does NOT check that the types are exact, just that the size is a match
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSequenceMatching(const FBOMType &held_type, SizeType num_items) const
         { return type.IsOrExtends(FBOMSequence(held_type, num_items)); }
 
     // does the array size equal byte_size bytes?
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSequenceOfByteSize(SizeType byte_size) const
         { return type.IsOrExtends(FBOMSequence(FBOMByte(), byte_size)); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    // Object
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsObject() const
         { return type.IsOrExtends(FBOMBaseObjectType()); }
 
     FBOMResult ReadObject(FBOMObject &out_object) const;
     
-    [[nodiscard]]
+    HYP_NODISCARD
     static FBOMData FromObject(const FBOMObject &object);
+
+    // Array
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsArray() const
+        { return type.IsOrExtends(FBOMArrayType()); }
+
+    FBOMResult ReadArray(FBOMArray &out_array) const;
+    
+    HYP_NODISCARD
+    static FBOMData FromArray(const FBOMArray &array);
 
     /*! \brief If type is an sequence, return the number of elements,
         assuming the sequence contains the given type. Note, sequence could
         contain another type, and still a result will be returned.
         
         If type is /not/ an sequence, return zero. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType NumElements(const FBOMType &held_type) const
     {
         if (!IsSequence()) {
@@ -358,7 +355,7 @@ struct FBOMData : public IFBOMSerializable
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out) const override;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual String ToString(bool deep = true) const override
     {
         std::stringstream stream;
@@ -386,11 +383,11 @@ struct FBOMData : public IFBOMSerializable
         return String(stream.str().c_str());
     }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;

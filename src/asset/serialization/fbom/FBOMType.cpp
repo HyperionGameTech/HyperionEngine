@@ -9,6 +9,7 @@ namespace hyperion::fbom {
 FBOMType::FBOMType()
     : name("UNSET"),
       size(0),
+      flags(FBOMTypeFlags::DEFAULT),
       extends(nullptr)
 {
 }
@@ -16,6 +17,7 @@ FBOMType::FBOMType()
 FBOMType::FBOMType(const ANSIStringView &name, SizeType size)
     : name(name),
       size(size),
+      flags(FBOMTypeFlags::DEFAULT),
       extends(nullptr)
 {
 }
@@ -23,6 +25,23 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size)
 FBOMType::FBOMType(const ANSIStringView &name, SizeType size, const FBOMType &extends)
     : name(name),
       size(size),
+      flags(FBOMTypeFlags::DEFAULT),
+      extends(new FBOMType(extends))
+{
+}
+
+FBOMType::FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags)
+    : name(name),
+      size(size),
+      flags(flags),
+      extends(nullptr)
+{
+}
+
+FBOMType::FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends)
+    : name(name),
+      size(size),
+      flags(flags),
       extends(new FBOMType(extends))
 {
 }
@@ -30,6 +49,7 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size, const FBOMType &ex
 FBOMType::FBOMType(const FBOMType &other)
     : name(other.name),
       size(other.size),
+      flags(other.flags),
       extends(nullptr)
 {
     if (other.extends != nullptr) {
@@ -45,6 +65,7 @@ FBOMType &FBOMType::operator=(const FBOMType &other)
 
     name = other.name;
     size = other.size;
+    flags = other.flags;
     extends = nullptr;
 
     if (other.extends != nullptr) {
@@ -57,9 +78,11 @@ FBOMType &FBOMType::operator=(const FBOMType &other)
 FBOMType::FBOMType(FBOMType &&other) noexcept
     : name(std::move(other.name)),
       size(other.size),
+      flags(other.flags),
       extends(other.extends)
 {
     other.size = 0;
+    other.flags = FBOMTypeFlags::NONE;
     other.extends = nullptr;
 }
 
@@ -71,9 +94,11 @@ FBOMType &FBOMType::operator=(FBOMType &&other) noexcept
 
     name = std::move(other.name);
     size = other.size;
+    flags = other.flags;
     extends = other.extends;
 
     other.size = 0;
+    other.flags = FBOMTypeFlags::NONE;
     other.extends = nullptr;
 
     return *this;
@@ -89,6 +114,19 @@ FBOMType::~FBOMType()
 FBOMType FBOMType::Extend(const FBOMType &object) const
 {
     return FBOMType(object.name, -1, *this);
+}
+
+bool FBOMType::HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents) const
+{
+    if (this->flags & flags) {
+        return true;
+    }
+
+    if (include_parents && extends) {
+        return extends->HasAnyFlagsSet(flags, true);
+    }
+
+    return false;
 }
 
 bool FBOMType::IsOrExtends(const ANSIStringView &name) const

@@ -17,6 +17,7 @@
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
 #include <asset/serialization/fbom/FBOMNameTable.hpp>
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
 
@@ -48,9 +49,9 @@ struct FBOMStaticData
         FBOM_STATIC_DATA_OBJECT = 0x01,
         FBOM_STATIC_DATA_TYPE = 0x02,
         FBOM_STATIC_DATA_DATA = 0x04,
-        FBOM_STATIC_DATA_NAME_TABLE = 0x08
+        FBOM_STATIC_DATA_ARRAY = 0x08,
+        FBOM_STATIC_DATA_NAME_TABLE = 0x10
     } type;
-
 
     int64                           offset;
     UniquePtr<IFBOMSerializable>    data;
@@ -82,6 +83,14 @@ struct FBOMStaticData
     explicit FBOMStaticData(const FBOMData &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
           data(new FBOMData(value)),
+          offset(offset),
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
+
+    explicit FBOMStaticData(const FBOMArray &value, int64 offset = -1)
+        : type(FBOM_STATIC_DATA_ARRAY),
+          data(new FBOMArray(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -119,6 +128,14 @@ struct FBOMStaticData
     {
     }
 
+    explicit FBOMStaticData(FBOMArray &&value, int64 offset = -1) noexcept
+        : type(FBOM_STATIC_DATA_ARRAY),
+          data(new FBOMArray(std::move(value))),
+          offset(offset),
+          flags(FBOMStaticDataFlags::NONE)
+    {
+    }
+
     explicit FBOMStaticData(FBOMNameTable &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_NAME_TABLE),
           data(new FBOMNameTable(std::move(value))),
@@ -129,26 +146,6 @@ struct FBOMStaticData
 
     FBOMStaticData(const FBOMStaticData &other)             = delete;
     FBOMStaticData &operator=(const FBOMStaticData &other)  = delete;
-
-    // FBOMStaticData(const FBOMStaticData &other)
-    //     : type(other.type),
-    //       data(other.data),
-    //       offset(other.offset),
-    //       flags(other.flags),
-    //       m_id(other.m_id)
-    // {
-    // }
-
-    // FBOMStaticData &operator=(const FBOMStaticData &other)
-    // {
-    //     type = other.type;
-    //     data = other.data;
-    //     offset = other.offset;
-    //     flags = other.flags;
-    //     m_id = other.m_id;
-
-    //     return *this;
-    // }
 
     FBOMStaticData(FBOMStaticData &&other) noexcept
         : type(other.type),
@@ -179,13 +176,11 @@ struct FBOMStaticData
 
     ~FBOMStaticData() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator<(const FBOMStaticData &other) const
         { return offset < other.offset; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsWritten() const
         { return flags & FBOMStaticDataFlags::WRITTEN; }
 
@@ -208,8 +203,7 @@ struct FBOMStaticData
     void UnsetCustomUniqueID()
         { m_id.Unset(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     UniqueID GetUniqueID() const
     {
         if (m_id.HasValue()) {
@@ -221,23 +215,9 @@ struct FBOMStaticData
         }
 
         return UniqueID::Invalid();
-
-        // switch (type) {
-        // case FBOM_STATIC_DATA_OBJECT:
-        //     return data.Get<FBOMObject>().GetUniqueID();
-        // case FBOM_STATIC_DATA_TYPE:
-        //     return data.Get<FBOMType>().GetUniqueID();
-        // case FBOM_STATIC_DATA_DATA:
-        //     return data.Get<FBOMData>().GetUniqueID();
-        // case FBOM_STATIC_DATA_NAME_TABLE:
-        //     return data.Get<FBOMNameTable>().GetUniqueID();
-        // default:
-        //     return UniqueID(0);
-        // }
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         if (data != nullptr) {
@@ -245,12 +225,9 @@ struct FBOMStaticData
         }
 
         return HashCode(0);
-
-        // return hash_code;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     String ToString() const
     {
         if (data != nullptr) {

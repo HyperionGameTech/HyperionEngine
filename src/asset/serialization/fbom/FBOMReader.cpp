@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -303,54 +304,6 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_name_table)
-{
-    EnumFlags<FBOMDataAttributes> attributes;
-    FBOMDataLocation location;
-
-    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
-        return err;
-    }
-
-    if (location == FBOMDataLocation::LOC_INPLACE) {
-        uint32 count;
-        reader->Read(&count);
-        CheckEndianness(count);
-
-        for (uint32 i = 0; i < count; i++) {
-            ANSIString str;
-            NameID name_data;
-
-            if (FBOMResult err = ReadString(reader, str)) {
-                return err;
-            }
-
-            if (FBOMResult err = ReadRawData<NameID>(reader, &name_data)) {
-                return err;
-            }
-
-            out_name_table.Add(str, WeakName(name_data));
-        }
-    } else if (location == FBOMDataLocation::LOC_STATIC) {
-        // read offset as u32
-        uint32 offset;
-        reader->Read(&offset);
-        CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
-
-        // grab from static data pool
-        FBOMNameTable *as_name_table = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMNameTable>();
-        AssertThrow(as_name_table != nullptr);
-        out_name_table = *as_name_table;
-    }
-
-    return FBOMResult::FBOM_OK;
-}
-
 FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
 {
     EnumFlags<FBOMDataAttributes> attributes;
@@ -375,6 +328,14 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
             }
 
             out_data = FBOMData::FromObject(object);
+        } else if (object_type.IsOrExtends(FBOMArrayType())) {
+            FBOMArray array;
+
+            if (FBOMResult err = ReadArray(reader, array)) {
+                return err;
+            }
+
+            out_data = FBOMData::FromArray(array);
         } else {
             ByteBuffer byte_buffer;
 
@@ -423,6 +384,99 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
         FBOMData *as_data = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMData>();
         AssertThrow(as_data != nullptr);
         out_data = *as_data;
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadArray(BufferedReader *reader, FBOMArray &out_array)
+{
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
+
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    if (location == FBOMDataLocation::LOC_INPLACE) {
+        // Read array size
+        uint32 sz;
+        reader->Read(&sz);
+        CheckEndianness(sz);
+
+        // Read array items
+        for (uint32 index = 0; index < sz; index++) {
+            FBOMData element_data;
+
+            if (FBOMResult err = ReadData(reader, element_data)) {
+                return err;
+            }
+
+            out_array.AddElement(std::move(element_data));
+        }
+    } else if (location == FBOMDataLocation::LOC_STATIC) {
+        // read offset as u32
+        uint32 offset;
+        reader->Read(&offset);
+        CheckEndianness(offset);
+        
+        AssertThrowMsg(offset < m_static_data_pool.Size(),
+            "Offset out of bounds of static data pool: %u >= %u",
+            offset,
+            m_static_data_pool.Size());
+
+        // grab from static data pool
+        FBOMArray *as_array = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMArray>();
+        AssertThrow(as_array != nullptr);
+        out_array = *as_array;
+    }
+
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_name_table)
+{
+    EnumFlags<FBOMDataAttributes> attributes;
+    FBOMDataLocation location;
+
+    if (FBOMResult err = ReadDataAttributes(reader, attributes, location)) {
+        return err;
+    }
+
+    if (location == FBOMDataLocation::LOC_INPLACE) {
+        uint32 count;
+        reader->Read(&count);
+        CheckEndianness(count);
+
+        for (uint32 i = 0; i < count; i++) {
+            ANSIString str;
+            NameID name_data;
+
+            if (FBOMResult err = ReadString(reader, str)) {
+                return err;
+            }
+
+            if (FBOMResult err = ReadRawData<NameID>(reader, &name_data)) {
+                return err;
+            }
+
+            out_name_table.Add(str, WeakName(name_data));
+        }
+    } else if (location == FBOMDataLocation::LOC_STATIC) {
+        // read offset as u32
+        uint32 offset;
+        reader->Read(&offset);
+        CheckEndianness(offset);
+        
+        AssertThrowMsg(offset < m_static_data_pool.Size(),
+            "Offset out of bounds of static data pool: %u >= %u",
+            offset,
+            m_static_data_pool.Size());
+
+        // grab from static data pool
+        FBOMNameTable *as_name_table = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMNameTable>();
+        AssertThrow(as_name_table != nullptr);
+        out_name_table = *as_name_table;
     }
 
     return FBOMResult::FBOM_OK;
@@ -780,6 +834,18 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
                 }
 
                 m_static_data_pool[offset] = FBOMStaticData(std::move(data), offset);
+
+                break;
+            }
+            case FBOMStaticData::FBOM_STATIC_DATA_ARRAY:
+            {
+                FBOMArray array;
+
+                if (FBOMResult err = ReadArray(reader, array)) {
+                    return err;
+                }
+
+                m_static_data_pool[offset] = FBOMStaticData(std::move(array), offset);
 
                 break;
             }

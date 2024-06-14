@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/backend/RendererShader.hpp>
@@ -17,50 +18,34 @@ public:
 
     virtual FBOMResult Serialize(const Material &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("name"), FBOMName(), in_object.GetName());
+        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetName()));
         out.SetProperty(NAME("attributes"), FBOMData::FromObject(
             FBOMObject()
-                .SetProperty(NAME("bucket"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().bucket))
-                .SetProperty(NAME("flags"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().flags))
-                .SetProperty(NAME("cull_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().cull_faces))
-                .SetProperty(NAME("fill_mode"), FBOMUnsignedInt(), uint32(in_object.GetRenderAttributes().fill_mode))
+                .SetProperty(NAME("bucket"), uint32(in_object.GetRenderAttributes().bucket))
+                .SetProperty(NAME("flags"), uint32(in_object.GetRenderAttributes().flags))
+                .SetProperty(NAME("cull_mode"), uint32(in_object.GetRenderAttributes().cull_faces))
+                .SetProperty(NAME("fill_mode"), uint32(in_object.GetRenderAttributes().fill_mode))
         ));
 
-        out.SetProperty(NAME("params.size"), FBOMUnsignedInt(), uint32(in_object.GetParameters().Size()));
+        FBOMArray params_array;
 
         for (SizeType i = 0; i < in_object.GetParameters().Size(); i++) {
             const auto key_value = in_object.GetParameters().KeyValueAt(i);
-
-            out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("params.") + ANSIString::ToString(uint32(key_value.first)) + ".key"),
-                FBOMUnsignedLong(),
-                key_value.first
-            );
-
-            out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("params.") + ANSIString::ToString(uint32(key_value.first)) + ".type"),
-                FBOMUnsignedInt(),
-                key_value.second.type
-            );
+            
+            FBOMObject param_object;
+            param_object.SetProperty(NAME("key"), uint64(key_value.first));
+            param_object.SetProperty(NAME("type"), uint32(key_value.second.type));
 
             if (key_value.second.IsIntType()) {
-                for (uint32 j = 0; j < 4; j++) {
-                    out.SetProperty(
-                        CreateNameFromDynamicString(ANSIString("params.") + ANSIString::ToString(uint32(key_value.first)) + ".values[" + ANSIString::ToString(j) + "]"),
-                        FBOMInt(),
-                        key_value.second.values.int_values[j]
-                    );
-                }
+                param_object.SetProperty(NAME("data"), FBOMSequence(FBOMInt(), ArraySize(key_value.second.values.int_values)), &key_value.second.values.int_values[0]); 
             } else if (key_value.second.IsFloatType()) {
-                for (uint32 j = 0; j < 4; j++) {
-                    out.SetProperty(
-                        CreateNameFromDynamicString(ANSIString("params.") + ANSIString::ToString(uint32(key_value.first)) + ".values[" + ANSIString::ToString(j) + "]"),
-                        FBOMFloat(),
-                        key_value.second.values.float_values[j]
-                    );
-                }
+                param_object.SetProperty(NAME("data"), FBOMSequence(FBOMFloat(), ArraySize(key_value.second.values.float_values)), &key_value.second.values.float_values[0]); 
             }
+
+            params_array.AddElement(FBOMData::FromObject(std::move(param_object)));
         }
+        
+        out.SetProperty(NAME("params"), FBOMData::FromArray(std::move(params_array)));
 
         uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
@@ -70,7 +55,7 @@ public:
             const auto &value = in_object.GetTextures().ValueAt(i);
 
             if (value) {
-                if (FBOMResult err = out.AddChild(*value, FBOM_OBJECT_FLAGS_EXTERNAL)) {
+                if (FBOMResult err = out.AddChild(*value, FBOMObjectFlags::EXTERNAL)) {
                     return err;
                 }
 
@@ -115,44 +100,44 @@ public:
         attributes_object.GetProperty("cull_mode").ReadUnsignedInt(&attributes.cull_faces);
         attributes_object.GetProperty("fill_mode").ReadUnsignedInt(&attributes.fill_mode);
 
-        uint32 num_parameters;
+        FBOMArray params_array;
 
-        // load parameters
-        if (FBOMResult err = in.GetProperty("params.size").ReadUnsignedInt(&num_parameters)) {
+        if (FBOMResult err = in.GetProperty("params").ReadArray(params_array)) {
             return err;
         }
 
-        for (uint32 i = 0; i < num_parameters; i++) {
-            const ANSIString param_string = ANSIString("params.") + ANSIString::ToString(i);
-
-            Material::MaterialKey key;
+        for (SizeType i = 0; i < params_array.Size(); i++) {
             Material::Parameter param;
 
-            if (FBOMResult err = in.GetProperty(param_string).ReadElements(FBOMFloat(), 4, &param.values)) {
-                continue;
-            }
+            if (const FBOMData &element = params_array.GetElement(i)) {
+                FBOMObject param_object;
 
-            if (FBOMResult err = in.GetProperty(param_string + ".key").ReadUnsignedLong(&key)) {
-                continue;
-            }
-
-            if (FBOMResult err = in.GetProperty(param_string + ".type").ReadUnsignedInt(&param.type)) {
-                continue;
-            }
-
-            if (param.IsIntType()) {
-                for (uint32 j = 0; j < 4; j++) {
-                    in.GetProperty(param_string + ".values[" + ANSIString::ToString(j) + "]")
-                        .ReadInt(&param.values.int_values[j]);
+                if (FBOMResult err = element.ReadObject(param_object)) {
+                    return err;
                 }
-            } else if (param.IsFloatType()) {
-                for (uint32 j = 0; j < 4; j++) {
-                    in.GetProperty(param_string + ".values[" + ANSIString::ToString(j) + "]")
-                        .ReadFloat(&param.values.float_values[j]);
-                }
-            }
 
-            parameters.Set(key, param);
+                Material::MaterialKey param_key;
+
+                if (FBOMResult err = param_object.GetProperty("key").ReadUnsignedLong(&param_key)) {
+                    return err;
+                }
+
+                if (FBOMResult err = param_object.GetProperty("type").ReadUnsignedInt(&param.type)) {
+                    return err;
+                }
+
+                if (param.IsIntType()) {
+                    if (FBOMResult err = param_object.GetProperty("data").ReadElements(FBOMInt(), ArraySize(param.values.int_values), &param.values.int_values[0])) {
+                        return err;
+                    }
+                } else if (param.IsFloatType()) {
+                    if (FBOMResult err = param_object.GetProperty("data").ReadElements(FBOMFloat(), ArraySize(param.values.float_values), &param.values.float_values[0])) {
+                        return err;
+                    }
+                }
+
+                parameters.Set(param_key, param);
+            }
         }
 
         uint32 texture_keys[Material::max_textures];

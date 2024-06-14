@@ -29,13 +29,9 @@ public:
             return { FBOMResult::FBOM_ERR, "No component map found for entity" };
         }
 
-        out.SetProperty(NAME("num_components"), FBOMUnsignedInt(), uint32(all_components->Size()));
-
-        uint32 component_index = 0;
+        FBOMArray components_array;
 
         for (const auto &it : *all_components) {
-            const ANSIString component_property_name = ANSIString("component_") + ANSIString::ToString(component_index);
-
             const void *component_ptr = entity_manager->TryGetComponent(it.first, entity.GetID());
 
             ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(it.first);
@@ -47,12 +43,11 @@ public:
 
             // write all properties
             FBOMObject component_object;
-            component_object.SetProperty(NAME("type_id"), FBOMUnsignedInt(), component_interface->GetTypeID().Value());
+            component_object.SetProperty(NAME("type_id"), FBOMData::FromUnsignedInt(component_interface->GetTypeID().Value()));
             component_object.SetProperty(NAME("type_name"), component_interface->GetTypeName());
-            component_object.SetProperty(NAME("num_properties"), FBOMUnsignedInt(), uint32(component_interface->GetProperties().Size()));
 
-            // @TODO: Fix up when it is easy to create an array similar to how FBOMObject works. FBOMArray?
-            uint32 property_index = 0;
+            FBOMArray properties_array;
+
             for (const ComponentProperty &property : component_interface->GetProperties()) {
                 if (!property.IsReadable()) {
                     continue;
@@ -61,21 +56,19 @@ public:
                 FBOMData property_value;
                 property.GetGetter()(component_ptr, &property_value);
 
-                const ANSIString property_name = ANSIString("property_") + ANSIString::ToString(property_index);
-
                 FBOMObject property_object;
-                property_object.SetProperty(NAME("name"), FBOMName(), property.GetName());
+                property_object.SetProperty(NAME("name"), FBOMData::FromName(property.GetName()));
                 property_object.SetProperty(NAME("value"), std::move(property_value));
 
-                component_object.SetProperty(CreateNameFromDynamicString(property_name), FBOMData::FromObject(property_object));
-
-                property_index++;
+                properties_array.AddElement(FBOMData::FromObject(property_object));
             }
 
-            out.SetProperty(CreateNameFromDynamicString(component_property_name), FBOMData::FromObject(component_object));
+            component_object.SetProperty(NAME("properties"), FBOMData::FromArray(std::move(properties_array)));
 
-            component_index++;
+            components_array.AddElement(FBOMData::FromObject(component_object));
         }
+
+        out.SetProperty(NAME("components"), FBOMData::FromArray(std::move(components_array)));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -87,18 +80,14 @@ public:
 
         const ID<Entity> entity = entity_manager->AddEntity();
 
-        uint32 num_components;
+        FBOMArray components_array;
 
-        if (FBOMResult err = in.GetProperty("num_components").ReadUnsignedInt(&num_components)) {
+        if (FBOMResult err = in.GetProperty("components").ReadArray(components_array)) {
             return err;
         }
 
-        for (uint32 component_index = 0; component_index < num_components; component_index++) {
+        for (SizeType component_index = 0; component_index < components_array.Size(); component_index++) {
             FBOMObject component_object;
-
-            if (FBOMResult err = in.GetProperty(CreateWeakNameFromDynamicString(ANSIString("component_") + ANSIString::ToString(component_index))).ReadObject(component_object)) {
-                return err;
-            }
 
             uint32 component_type_id_value;
 
@@ -115,16 +104,16 @@ public:
             UniquePtr<void> component_ptr = component_interface->CreateComponent();
             AssertThrow(component_ptr != nullptr);
 
-            uint32 num_properties;
+            FBOMArray properties_array;
 
-            if (FBOMResult err = component_object.GetProperty("num_properties").ReadUnsignedInt(&num_properties)) {
+            if (FBOMResult err = component_object.GetProperty("properties").ReadArray(properties_array)) {
                 return err;
             }
 
-            for (uint32 property_index = 0; property_index < num_properties; property_index++) {
+            for (SizeType property_index = 0; property_index < properties_array.Size(); property_index++) {
                 FBOMObject property_object;
 
-                if (FBOMResult err = component_object.GetProperty(ANSIString("property_") + ANSIString::ToString(property_index)).ReadObject(property_object)) {
+                if (FBOMResult err = properties_array.GetElement(property_index).ReadObject(property_object)) {
                     return err;
                 }
 

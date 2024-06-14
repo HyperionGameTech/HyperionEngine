@@ -89,6 +89,7 @@ struct FBOMObjectType;
 class FBOMObject;
 class FBOMReader;
 class FBOMWriter;
+class FBOMArray;
 
 struct FBOMVersion
 {
@@ -237,8 +238,9 @@ public:
 
     FBOMResult ReadObject(BufferedReader *, FBOMObject &out_object, FBOMObject *root);
     FBOMResult ReadObjectType(BufferedReader *, FBOMType &out_type);
-    FBOMResult ReadNameTable(BufferedReader *, FBOMNameTable &out_name_table);
     FBOMResult ReadData(BufferedReader *, FBOMData &out_data);
+    FBOMResult ReadArray(BufferedReader *, FBOMArray &out_array);
+    FBOMResult ReadNameTable(BufferedReader *, FBOMNameTable &out_name_table);
     FBOMResult ReadPropertyName(BufferedReader *, Name &out_property_name);
 
 private:
@@ -254,8 +256,7 @@ private:
         }
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasCustomLoaderForType(const FBOMType &type) const
         { return FBOM::GetInstance().GetLoader(type.name) != nullptr; }
 
@@ -339,13 +340,11 @@ struct FBOMWriteStream
     void UnlockStaticDataWriting()
         { m_static_data_write_locked = false; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsStaticDataWritingLocked() const
         { return m_static_data_write_locked; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     FBOMNameTable &GetNameTable()
     {
         auto it = m_static_data.Find(m_name_table_id);
@@ -376,7 +375,7 @@ public:
 
     template <class T>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
-    Append(const T &object, FBOMObjectFlags flags = FBOM_OBJECT_FLAGS_NONE)
+    Append(const T &object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
         FBOMMarshalerBase *marshal = FBOM::GetInstance().GetLoader<NormalizedType<T>>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
@@ -402,6 +401,7 @@ public:
     FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id);
     FBOMResult Write(ByteWriter *out, const FBOMType &type, UniqueID id);
     FBOMResult Write(ByteWriter *out, const FBOMData &data, UniqueID id);
+    FBOMResult Write(ByteWriter *out, const FBOMArray &array, UniqueID id);
     FBOMResult Write(ByteWriter *out, const FBOMNameTable &name_table, UniqueID id);
 
 private:
@@ -424,6 +424,7 @@ private:
     UniqueID AddStaticData(const FBOMType &);
     UniqueID AddStaticData(const FBOMObject &);
     UniqueID AddStaticData(const FBOMData &);
+    UniqueID AddStaticData(const FBOMArray &);
     UniqueID AddStaticData(const FBOMNameTable &);
 
     RC<FBOMWriteStream> m_write_stream;

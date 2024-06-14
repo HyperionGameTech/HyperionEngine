@@ -115,12 +115,12 @@ struct FBOMString : FBOMType
 struct FBOMBaseObjectType : FBOMType
 {
     FBOMBaseObjectType()
-        : FBOMType("object", 0)
+        : FBOMType("object", 0, FBOMTypeFlags::CONTAINER)
     {
     }
 
     FBOMBaseObjectType(const FBOMType &extends)
-        : FBOMType("object", 0, extends)
+        : FBOMType("object", 0, FBOMTypeFlags::CONTAINER, extends)
     {
     }
 };
@@ -128,16 +128,29 @@ struct FBOMBaseObjectType : FBOMType
 struct FBOMObjectType : FBOMType
 {
     FBOMObjectType(const ANSIStringView &name)
-        : FBOMType(name, 0, FBOMBaseObjectType())
+        : FBOMType(name, 0, FBOMTypeFlags::CONTAINER, FBOMBaseObjectType())
     {
     }
 
     FBOMObjectType(const ANSIStringView &name, const FBOMType &extends)
-        : FBOMType(name, 0, extends)
+        : FBOMType(name, 0, FBOMTypeFlags::CONTAINER, extends)
     {
         AssertThrowMsg(extends.IsOrExtends(FBOMBaseObjectType()),
             "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
             name.Data(), extends.name.Data());
+    }
+};
+
+struct FBOMArrayType : FBOMType
+{
+    FBOMArrayType()
+        : FBOMType("array", 0, FBOMTypeFlags::CONTAINER)
+    {
+    }
+
+    FBOMArrayType(const FBOMType &extends)
+        : FBOMType("array", 0, FBOMTypeFlags::CONTAINER, extends)
+    {
     }
 };
 

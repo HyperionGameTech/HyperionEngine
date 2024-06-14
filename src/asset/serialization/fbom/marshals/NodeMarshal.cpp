@@ -50,7 +50,7 @@ public:
             Handle<Entity> entity_handle { entity };
             entity_handle->SetID(entity);
 
-            if (FBOMResult err = out.AddChild(*entity_handle, FBOM_OBJECT_FLAGS_EXTERNAL)) {
+            if (FBOMResult err = out.AddChild(*entity_handle, FBOMObjectFlags::EXTERNAL)) {
                 return err;
             }
         }
@@ -60,7 +60,7 @@ public:
                 continue;
             }
 
-            if (FBOMResult err = out.AddChild(*child.Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE)) {
+            if (FBOMResult err = out.AddChild(*child.Get(), FBOMObjectFlags::KEEP_UNIQUE)) {
                 return err;
             }
         }

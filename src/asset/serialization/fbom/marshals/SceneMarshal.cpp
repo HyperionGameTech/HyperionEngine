@@ -14,10 +14,10 @@ public:
 
     virtual FBOMResult Serialize(const Scene &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("name"), FBOMName(), in_object.GetName());
+        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetName()));
 
         if (in_object.GetRoot()) {
-            if (FBOMResult err = out.AddChild(*in_object.GetRoot().Get(), FBOM_OBJECT_FLAGS_KEEP_UNIQUE)) {
+            if (FBOMResult err = out.AddChild(*in_object.GetRoot().Get(), FBOMObjectFlags::KEEP_UNIQUE)) {
                 return err;
             }
         }

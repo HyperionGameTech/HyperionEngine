@@ -18,7 +18,7 @@ public:
     {
         out.AddChild(data.desc);
 
-        out.SetProperty(NAME("buffer"), FBOMByteBuffer(), data.buffer);
+        out.SetProperty(NAME("buffer"), data.buffer);
 
         return { FBOMResult::FBOM_OK };
     }

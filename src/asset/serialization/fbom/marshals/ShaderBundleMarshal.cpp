@@ -19,9 +19,9 @@ public:
         }
 
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
-        out.SetProperty(NAME("global_descriptor_table_version"), FBOMUnsignedLong(), renderer::g_static_descriptor_table_decl->GetHashCode().Value());
+        out.SetProperty(NAME("global_descriptor_table_version"), FBOMData::FromUnsignedLong(renderer::g_static_descriptor_table_decl->GetHashCode().Value()));
 
-        out.SetProperty(NAME("name"), FBOMName(), in_object.GetDefinition().name);
+        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetDefinition().name));
 
         out.SetProperty(NAME("entry_point_name"), FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
 
@@ -36,8 +36,8 @@ public:
         for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++) {
             const DescriptorUsage &item = in_object.GetDescriptorUsages()[index];
 
-            const ANSIString descriptor_name_string(item.descriptor_name.LookupString());
-            const ANSIString set_name_string(item.set_name.LookupString());
+            const ANSIString descriptor_name_string(*item.descriptor_name);
+            const ANSIString set_name_string(*item.set_name);
 
             out.SetProperty(
                 CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".slot"),
@@ -125,7 +125,7 @@ public:
         }
 
         for (SizeType index = 0; index < in_object.modules.Size(); index++) {
-            const auto &byte_buffer = in_object.modules[index];
+            const ByteBuffer &byte_buffer = in_object.modules[index];
 
             if (byte_buffer.Size()) {
                 out.SetProperty(CreateNameFromDynamicString(ANSIString("module[") + ANSIString::ToString(index) + "]"), byte_buffer);

@@ -81,12 +81,37 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
 FBOMData FBOMData::FromObject(const FBOMObject &object)
 {
     MemoryByteWriter byte_writer;
-    
     FBOMWriter serializer;
     AssertThrow(object.Visit(&serializer, &byte_writer) == FBOMResult::FBOM_OK);
 
-    auto value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
+    FBOMData value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+    return value;
+}
+
+FBOMResult FBOMData::ReadArray(FBOMArray &out_array) const
+{
+    if (!IsArray()) {
+        return { FBOMResult::FBOM_ERR, "Not an array" };
+    }
+
+    BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
+    
+    FBOMReader deserializer(fbom::FBOMConfig { });
+    return deserializer.ReadArray(&byte_reader, out_array);
+}
+
+FBOMData FBOMData::FromArray(const FBOMArray &array)
+{
+    MemoryByteWriter byte_writer;
+    FBOMWriter serializer;
+
+    if (FBOMResult err = array.Visit(&serializer, &byte_writer)) {
+        AssertThrowMsg(false, "Failed to serialize array: %s", err.message.Data());
+    }
+
+    FBOMData value = FBOMData(FBOMArrayType(), std::move(byte_writer.GetBuffer()));
+    AssertThrowMsg(value.IsArray(), "Expected value to be arary: Got type: %s", value.GetType().ToString().Data());
     return value;
 }
 

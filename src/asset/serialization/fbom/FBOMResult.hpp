@@ -5,19 +5,21 @@
 
 #include <core/containers/String.hpp>
 
+#include <core/utilities/StringView.hpp>
+
 namespace hyperion::fbom {
 
 struct FBOMResult
 {
     enum
     {
-        FBOM_OK = 0,
-        FBOM_ERR = 1
+        FBOM_OK     = 0,
+        FBOM_ERR    = 1
     } value;
 
-    String message = "";
+    String message;
 
-    FBOMResult(decltype(FBOM_OK) value = FBOM_OK, const String &message = "")
+    FBOMResult(decltype(FBOM_OK) value = FBOM_OK, UTF8StringView message = "")
         : value(value),
           message(message)
     {

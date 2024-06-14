@@ -16,14 +16,14 @@ public:
 
     virtual FBOMResult Serialize(const TextureDesc &desc, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("type"), FBOMUnsignedInt(), uint32(desc.type));
-        out.SetProperty(NAME("format"), FBOMUnsignedInt(), uint32(desc.format));
+        out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(uint32(desc.type)));
+        out.SetProperty(NAME("format"), FBOMData::FromUnsignedInt(uint32(desc.format)));
         out.SetProperty(NAME("extent"), FBOMStruct::Create<Extent3D>(), &desc.extent);
-        out.SetProperty(NAME("filter_mode_min"), FBOMUnsignedInt(), uint32(desc.filter_mode_min));
-        out.SetProperty(NAME("filter_mode_mag"), FBOMUnsignedInt(), uint32(desc.filter_mode_mag));
-        out.SetProperty(NAME("wrap_mode"), FBOMUnsignedInt(), uint32(desc.wrap_mode));
-        out.SetProperty(NAME("num_layers"), FBOMUnsignedInt(), uint32(desc.num_layers));
-        out.SetProperty(NAME("num_faces"), FBOMUnsignedInt(), uint32(desc.num_faces));
+        out.SetProperty(NAME("filter_mode_min"), FBOMData::FromUnsignedInt(uint32(desc.filter_mode_min)));
+        out.SetProperty(NAME("filter_mode_mag"), FBOMData::FromUnsignedInt(uint32(desc.filter_mode_mag)));
+        out.SetProperty(NAME("wrap_mode"), FBOMData::FromUnsignedInt(uint32(desc.wrap_mode)));
+        out.SetProperty(NAME("num_layers"), FBOMData::FromUnsignedInt(uint32(desc.num_layers)));
+        out.SetProperty(NAME("num_faces"), FBOMData::FromUnsignedInt(uint32(desc.num_faces)));
 
         return { FBOMResult::FBOM_OK };
     }
