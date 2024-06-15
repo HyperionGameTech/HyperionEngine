@@ -22,33 +22,6 @@ namespace hyperion {
 
 class AssetManager;
 
-struct EnqueuedAsset
-{
-    String      path;
-    LoadedAsset asset;
-
-    // /*! \brief Retrieve the value of the loaded asset. If the requested type does not match
-    //     the type of the value, if any, held within the variant, no error should occur and an 
-    //     empty container will be returned. */
-    // template <class T>
-    // HYP_FORCE_INLINE
-    // auto ExtractAs() -> typename AssetLoaderWrapper<T>::CastedType
-    //     { return AssetLoaderWrapper<T>::ExtractAssetValue(value); }
-
-    // /*! \brief Alias for ExtractAs<T> */
-    // template <class T>
-    // HYP_FORCE_INLINE
-    // auto Get() -> typename AssetLoaderWrapper<T>::CastedType
-    //     { return ExtractAs<T>(); }
-    
-    // HYP_FORCE_INLINE
-    // explicit operator bool() const
-    //     { return result.status == LoaderResult::Status::OK && value.HasValue(); }
-
-    explicit operator bool() const
-        { return bool(asset); }
-};
-
 using AssetMap = FlatMap<String, LoadedAsset>;
 
 
@@ -98,11 +71,11 @@ struct LoadObjectWrapper
         AssetBatchCallbacks *callbacks
     )
     {
-        LoadedAsset &asset = (*map)[key];
-        asset = asset_manager->template Load<T>(path);
+        auto it = map->Find(key);
+        AssertThrow(it != map->End());
 
-        // EnqueuedAsset &asset = (*map)[key];
-        // asset.value = AssetLoaderWrapper<T>::MakeResultType(asset_manager->template Load<T>(asset.path, asset.result));
+        LoadedAsset &asset = it->second;
+        asset = asset_manager->template Load<T>(path);
 
         if (asset.IsOK()) {
             if (callbacks) {

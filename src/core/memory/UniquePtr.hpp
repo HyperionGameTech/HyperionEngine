@@ -347,7 +347,7 @@ public:
     bool operator<(const UniquePtr &other) const
         { return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get()); }
     
-    /*! \brief Drops any currently held valeu and constructs a new value using \ref{value}.
+    /*! \brief Drops any currently held value and constructs a new value using \ref{value}.
         
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */

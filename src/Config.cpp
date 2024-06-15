@@ -8,6 +8,7 @@
 
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <asset/Assets.hpp>
 #include <asset/ByteWriter.hpp>
 
 namespace hyperion {

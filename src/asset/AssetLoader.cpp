@@ -25,6 +25,7 @@ FilePath AssetLoader::GetRebasedFilepath(const AssetManager &asset_manager, cons
 LoadedAsset AssetLoader::Load(AssetManager &asset_manager, const String &path) const
 {
     LoadedAsset asset;
+
     asset.result = LoaderResult {
         LoaderResult::Status::ERR_NOT_FOUND,
         "File could not be found"

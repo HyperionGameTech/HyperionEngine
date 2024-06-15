@@ -132,7 +132,6 @@ struct Proc : detail::ProcBase
     using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
-
     Proc()
         : functor { }
     {
@@ -149,6 +148,8 @@ public:
         using FunctorNormalized = NormalizedType<Functor>;
 
         static_assert(!std::is_base_of_v<detail::ProcBase, FunctorNormalized>, "Object should not be ProcBase");
+
+        // if constexpr (std::is_function_v<std::remove_pointer_t<FunctorNormalized>>) {
 
         functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FunctorNormalized>;
 
@@ -183,11 +184,11 @@ public:
 
     ~Proc() = default;
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return functor.HasValue(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsValid() const
         { return functor.HasValue(); }
 

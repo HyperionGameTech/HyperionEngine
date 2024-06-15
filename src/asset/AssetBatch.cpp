@@ -61,10 +61,7 @@ AssetMap AssetBatch::AwaitResults()
 
     AwaitCompletion();
 
-    AssetMap results = std::move(*enqueued_assets);
-    // enqueued_assets is cleared now
-
-    return results;
+    return std::move(*enqueued_assets);
 }
 
 AssetMap AssetBatch::ForceLoad()
@@ -77,10 +74,7 @@ AssetMap AssetBatch::ForceLoad()
 
     procs.Clear();
 
-    AssetMap results = std::move(*enqueued_assets);
-    // enqueued_assets is cleared now
-
-    return results;
+    return std::move(*enqueued_assets);
 }
 
 void AssetBatch::Add(const String &key, const String &path)

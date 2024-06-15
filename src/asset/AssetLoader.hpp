@@ -25,10 +25,15 @@ using AssetValue = Any;
 template <class T>
 struct AssetLoaderWrapper;
 
+template <class T>
+struct LoadedAssetInstance;
+
 struct LoadedAsset
 {
-    LoaderResult    result;
-    AssetValue      value;
+    LoaderResult                result;
+    AssetValue                  value;
+
+    Proc<void, LoadedAsset *>   OnPostLoadProc;
 
     LoadedAsset() = default;
 
@@ -61,26 +66,45 @@ struct LoadedAsset
     HYP_NODISCARD HYP_FORCE_INLINE
     typename AssetLoaderWrapper<T>::CastedType ExtractAs()
     {
-        using ReturnType = typename AssetLoaderWrapper<T>::CastedType;
+        return static_cast<LoadedAssetInstance<T> *>(this)->Result();
+    }
 
-        if (!IsOK()) {
-            return ReturnType { };
+    HYP_FORCE_INLINE
+    void OnPostLoad()
+    {
+        if (!OnPostLoadProc.IsValid()) {
+            return;
         }
 
-        if (!value.Is<ReturnType>()) {
-            return ReturnType { };
-        }
-
-        return value.Get<ReturnType>();
+        OnPostLoadProc(this);
     }
 };
 
 template <class T>
 struct LoadedAssetInstance : LoadedAsset
 {
-    LoadedAssetInstance()                                                   = default;
+    using CastedType = typename AssetLoaderWrapper<T>::CastedType;
+
+    LoadedAssetInstance()
+    {
+        InitCallbacks();
+    }
+
+    LoadedAssetInstance(LoaderResult result)
+        : LoadedAsset(std::move(result))
+    {
+        InitCallbacks();
+    }
+
+    LoadedAssetInstance(LoaderResult result, AssetValue &&value)
+        : LoadedAsset(std::move(result), std::move(value))
+    {
+        InitCallbacks();
+    }
+
     LoadedAssetInstance(const LoadedAssetInstance &other)                   = delete;
     LoadedAssetInstance &operator=(const LoadedAssetInstance &other)        = delete;
+
     LoadedAssetInstance(LoadedAssetInstance &&other) noexcept
         : LoadedAsset(static_cast<LoadedAsset &&>(other))
     {
@@ -96,22 +120,36 @@ struct LoadedAssetInstance : LoadedAsset
     LoadedAssetInstance(LoadedAsset &&other) noexcept
         : LoadedAsset(std::move(other))
     {
+        InitCallbacks();
     }
     
     LoadedAssetInstance &operator=(LoadedAsset &&other) noexcept
     {
         static_cast<LoadedAsset &>(*this) = std::move(other);
 
+        InitCallbacks();
+
         return *this;
     }
 
-    T &Result()
+    CastedType &Result()
     {
-        AssertThrowMsg(IsOK() && value.Is<T>(), "Asset did not load successfully");
+        AssertThrowMsg(IsOK() && value.Is<CastedType>(), "Asset did not load successfully");
 
-        return value.Get<T>();
+        return value.Get<CastedType>();
+    }
+
+private:
+    void InitCallbacks()
+    {
+        OnPostLoadProc = [](LoadedAsset *asset)
+        {
+            AssetLoaderWrapper<T>::OnPostLoad(static_cast<LoadedAssetInstance *>(asset)->Result());
+        };
     }
 };
+
+// static_assert(sizeof(LoadedAssetInstance) == sizeof(LoadedAsset), "sizeof(LoadedAssetInstance<T>) must match the size of its parent class, to enable type punning");
 
 class AssetLoaderBase
 {
@@ -137,6 +175,7 @@ public:
 
     AssetLoaderBase &loader;
 
+    HYP_DEPRECATED
     static inline CastedType ExtractAssetValue(AssetValue &value)
     {   
         if constexpr (is_handle) {
@@ -155,10 +194,13 @@ public:
     {
     }
 
-    LoadedAssetInstance<CastedType> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
+    HYP_NODISCARD HYP_FORCE_INLINE
+    LoadedAssetInstance<T> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
     {
-        return LoadedAssetInstance<CastedType>(loader.Load(asset_manager, path));
+        return LoadedAssetInstance<T>(loader.Load(asset_manager, path));
     }
+
+    static void OnPostLoad(CastedType &value) { }
 };
 
 template <class T>
@@ -170,6 +212,7 @@ public:
 
     AssetLoaderBase &loader;
 
+    HYP_DEPRECATED
     static inline CastedType ExtractAssetValue(AssetValue &value)
     {   
         return value.Get<RC<T>>();
@@ -180,10 +223,13 @@ public:
     {
     }
 
-    LoadedAssetInstance<CastedType> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
+    HYP_NODISCARD HYP_FORCE_INLINE
+    LoadedAssetInstance<RC<T>> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
     {
-        return LoadedAssetInstance<CastedType>(loader.Load(asset_manager, path));
+        return LoadedAssetInstance<RC<T>>(loader.Load(asset_manager, path));
     }
+
+    static void OnPostLoad(CastedType &value) { }
 };
 
 template <>
@@ -194,6 +240,7 @@ struct AssetLoaderWrapper<Node>
 
     AssetLoaderBase &loader;
 
+    HYP_DEPRECATED
     static inline CastedType ExtractAssetValue(AssetValue &value)
     {
         NodeProxy *result = value.TryGet<NodeProxy>();
@@ -203,7 +250,7 @@ struct AssetLoaderWrapper<Node>
         }
 
         if (result->IsValid()) {
-            (*result)->SetScene(nullptr); // sets scene to be the "detached" scene for the current thread we're on.
+            (*result)->SetScene(nullptr); 
         }
 
         return *result;
@@ -214,9 +261,25 @@ struct AssetLoaderWrapper<Node>
     {
     }
 
-    LoadedAssetInstance<CastedType> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
+    HYP_NODISCARD HYP_FORCE_INLINE
+    LoadedAssetInstance<Node> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
     {
-        return LoadedAssetInstance<CastedType>(loader.Load(asset_manager, path));
+        LoadedAssetInstance<Node> result(loader.Load(asset_manager, path));
+
+        if (result.IsOK()) {
+            NodeProxy &node_proxy = result.Result();
+
+            if (node_proxy.IsValid()) {
+                node_proxy->SetScene(nullptr); // sets scene to be the "detached" scene for the current thread we're on.
+            }
+        }
+
+        return result;
+    }
+
+    static void OnPostLoad(CastedType &value)
+    {
+        value->SetScene(nullptr);
     }
 };
 

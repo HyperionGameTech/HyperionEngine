@@ -71,36 +71,6 @@ public:
     {
         return const_cast<FBOMDeserializedObject *>(this)->template Get<T>();
     }
-
-    template <class T>
-    void Set(typename AssetLoaderWrapper<T>::ResultType &&value)
-    {
-        m_value = std::move(value);
-    }
-
-    /*! \brief Drops ownership of the object held.
-        Be sure to call delete on it when no longer needed!
-
-        If no value is currently held, no changes to the underlying object will
-        occur. Otherwise, the held value is set to nullptr, and nullptr is returned.
-    */
-    // template <class T>
-    // [[nodiscard]] T *Release()
-    // {
-    //     // AssertThrow(false);
-    //     return nullptr;
-    //     // auto *ptr = RefCountedPtr<void>::Get();
-        
-    //     // if (!ptr) {
-    //     //     return nullptr;
-    //     // }
-
-    //     // auto *ptr = any_ptr->Release<NormalizedType<T>>();
-
-    //     // RefCountedPtr<Any>::Reset();
-
-    //     // return held_ptr;
-    // }
 };
 
 } // namespace hyperion::fbom

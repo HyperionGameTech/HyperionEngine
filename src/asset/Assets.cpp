@@ -141,6 +141,10 @@ void AssetManager::Update(GameCounter::TickUnit delta)
 
     for (const RC<AssetBatch> &batch : m_completed_batches) {
         AssetMap results = batch->AwaitResults();
+
+        for (auto &it : results) {
+            it.second.OnPostLoad();
+        }
         
         batch->OnComplete.Broadcast(results);
     }

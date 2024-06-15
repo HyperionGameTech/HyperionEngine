@@ -5,9 +5,6 @@
 
 #include <Config.hpp>
 
-#include <asset/Assets.hpp>
-
-#include <rendering/PostFX.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -17,7 +14,6 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
-#include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <scene/World.hpp>
@@ -29,9 +25,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
 #include <core/containers/FlatMap.hpp>
-#include <core/containers/TypeMap.hpp>
 #include <core/functional/Delegate.hpp>
-#include <core/ObjectPool.hpp>
 
 #include <rendering/CrashHandler.hpp>
 
@@ -56,6 +50,7 @@ class Game;
 class GameThread;
 class ShaderGlobals;
 class ScriptingService;
+class AssetManager;
 
 extern Engine               *g_engine;
 extern AssetManager         *g_asset_manager;

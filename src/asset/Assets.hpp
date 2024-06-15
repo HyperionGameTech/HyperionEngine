@@ -125,33 +125,14 @@ public:
             return UniquePtr<ProcessAssetFunctorBase>(new ProcessAssetFunctor<ResultType>(key, path, callbacks_ptr));
         });
     }
-    
-
-    // /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
-    //     type corresponding to the provided template type.
-    //     If any errors occur, an empty result is returned.
-    //     Node -> NodeProxy
-    //     T -> Handle<T> */
-    // template <class T>
-    // auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType>
-    // {
-    //     LoaderResult result;
-
-    //     auto value = Load<T>(path, result, flags);
-
-    //     if (result.status != LoaderResult::Status::OK) {
-    //         return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
-    //     }
-
-    //     return value;
-    // }
 
     /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
         type corresponding to the provided template type.
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType>
+    HYP_NODISCARD
+    LoadedAssetInstance<NormalizedType<T>> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
         using Normalized = NormalizedType<T>;
 
@@ -166,12 +147,9 @@ public:
         const AssetLoaderDefinition *loader_definition = GetLoader(path, TypeID::ForType<Normalized>());
 
         if (!loader_definition) {
-            return LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType> {
-                LoadedAsset {
-                    { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" }
-                }
+            return LoadedAssetInstance<NormalizedType<T>> {
+                { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" }
             };
-            // return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
 
         AssetLoaderBase *loader = loader_definition->loader.Get();
@@ -179,15 +157,6 @@ public:
 
         return AssetLoaderWrapper<Normalized>(*loader)
             .GetLoadedAsset(*this, path);
-
-        // const auto result = AssetLoaderWrapper<Normalized>(*loader)
-        //     .LoadAndExtractAssetValue(*this, path, out_result);
-
-        // if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_WRITE)) {
-        //     cache_pool->Set(path, result);
-        // }
-
-        // return result;
     }
 
     HYP_API RC<AssetBatch> CreateBatch();

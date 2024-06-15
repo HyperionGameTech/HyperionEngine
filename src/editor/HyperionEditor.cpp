@@ -652,6 +652,8 @@ void HyperionEditor::Init()
     batch->OnComplete.Bind([this](AssetMap &results)
     {
         NodeProxy node = results["test_model"].ExtractAs<Node>();
+        GetScene()->GetRoot()->AddChild(node);
+
         node.Scale(0.0125f);
         node.SetName("test_model");
         node.LockTransform();
@@ -696,8 +698,6 @@ void HyperionEditor::Init()
 
             zombie.SetName("zombie");
         }
-
-        GetScene()->GetRoot()->AddChild(node);
 
 
         FileByteWriter byte_writer("Scene.hypscene");

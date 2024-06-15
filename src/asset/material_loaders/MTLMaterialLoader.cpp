@@ -285,17 +285,13 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         }
 
         for (auto &it : item.textures) {
-            // Handle<Texture> texture = loaded_textures[String(texture_path.c_str())].Get<Texture>();
-            AssertThrow(loaded_textures[it.name].value.Is<Handle<Texture>>());
-            AssertThrow(loaded_textures[it.name].value.Get<Handle<Texture>>().IsValid());
-
-            Handle<Texture> texture = loaded_textures[it.name].ExtractAs<Texture>();
-
-            if (!texture.IsValid()) {
+            if (!loaded_textures[it.name].IsOK()) {
                 HYP_LOG(Assets, LogLevel::WARNING, "OBJ material loader: Texture {} could not be used because it could not be loaded!", it.name);
 
                 continue;
             }
+            
+            Handle<Texture> texture = loaded_textures[it.name].ExtractAs<Texture>();
 
             texture->GetImage()->SetIsSRGB(it.mapping.srgb);
             texture->GetImage()->SetMinFilterMode(it.mapping.filter_mode);
