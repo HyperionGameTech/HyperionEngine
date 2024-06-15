@@ -249,7 +249,23 @@ struct FBOMData : public IFBOMSerializable
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
 
-        return ReadStruct(TypeNameWithoutNamespace<T>().Data(), sizeof(T), out);
+        return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(T), out);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE
+    T ReadStruct() const
+    {
+        static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
+        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
+
+        ValueStorage<NormalizedType<T>> result_storage;
+        
+        if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), result_storage.GetPointer())) {
+            AssertThrowMsg(false, "Failed to read struct of type %s: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data(), *err.message);
+        }
+
+        return result_storage.Get();
     }
 
     static FBOMData FromName(Name name)

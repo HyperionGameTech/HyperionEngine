@@ -11,6 +11,8 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/memory/Any.hpp>
 
+#include <asset/serialization/Serialization.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -30,22 +32,21 @@ struct HypClassPropertyDebugInfo
 
 struct HypClassPropertyGetter
 {
-    Proc<Any, const void *>     proc;
-    IHypClassPropertySerializer *serializer = nullptr;
+    Proc<fbom::FBOMData, const void *>  proc;
 
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
-    HypClassPropertyDebugInfo   debug_info;
+    HypClassPropertyDebugInfo           debug_info;
 #endif
 
     HypClassPropertyGetter() = default;
 
     template <class ReturnType, class TargetType>
     HypClassPropertyGetter(ReturnType(TargetType::*MemFn)())
-        : proc([MemFn](const void *target) -> Any
+        : proc([MemFn](const void *target) -> fbom::FBOMData
           {
-              return Any::Construct<ReturnType>(std::forward<ReturnType>((static_cast<const TargetType *>(target)->*MemFn)()));
-          }),
-          serializer(GetClassPropertySerializer<NormalizedType<ReturnType>>())
+              return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize((static_cast<TargetType *>(target)->*MemFn)());
+            //   return Any::Construct<ReturnType>(std::forward<ReturnType>((static_cast<const TargetType *>(target)->*MemFn)()));
+          })
     {
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
         debug_info.return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
@@ -54,11 +55,11 @@ struct HypClassPropertyGetter
 
     template <class ReturnType, class TargetType>
     HypClassPropertyGetter(ReturnType(TargetType::*MemFn)() const)
-        : proc([MemFn](const void *target) -> Any
+        : proc([MemFn](const void *target) -> fbom::FBOMData
           {
-              return Any::Construct<ReturnType>(std::forward<ReturnType>((static_cast<const TargetType *>(target)->*MemFn)()));
-          }),
-          serializer(GetClassPropertySerializer<NormalizedType<ReturnType>>())
+              return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize((static_cast<const TargetType *>(target)->*MemFn)());
+            //   return Any::Construct<ReturnType>(std::forward<ReturnType>((static_cast<const TargetType *>(target)->*MemFn)()));
+          })
     {
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
         debug_info.return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
@@ -74,7 +75,7 @@ struct HypClassPropertyGetter
         { return proc.IsValid(); }
 
     template <class TargetType>
-    Any Invoke(const TargetType &target) const
+    fbom::FBOMData operator()(const TargetType &target) const
     {
         AssertThrow(IsValid());
 
@@ -85,35 +86,41 @@ struct HypClassPropertyGetter
         return proc(&target);
     }
 
-    template <class TargetType>
-    Any Invoke(const TargetType *target) const
+    template <class ReturnType, class TargetType>
+    auto Invoke(const TargetType &target) const
+    {
+        return GetClassPropertySerializer<NormalizedType<ReturnType>>().Deserialize((*this)(target));
+    }
+
+    template <class ReturnType, class TargetType>
+    auto Invoke(const TargetType *target) const
     {
         AssertThrow(target != nullptr);
 
-        return Invoke<TargetType>(*target);
+        return Invoke<ReturnType, TargetType>(*target);
     }
 };
 
 struct HypClassPropertySetter
 {
-    Proc<void, void *, const void *>    proc;
-    IHypClassPropertySerializer         *serializer = nullptr;
+    Proc<void, void *, const fbom::FBOMData &>  proc;
 
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
-    HypClassPropertyDebugInfo           debug_info;
+    HypClassPropertyDebugInfo                   debug_info;
 #endif
 
     HypClassPropertySetter() = default;
 
     template <class ReturnType, class TargetType, class ValueType>
     HypClassPropertySetter(ReturnType(TargetType::*MemFn)(ValueType))
-        : proc([MemFn](void *target, const void *in) -> void
+        : proc([MemFn](void *target, const fbom::FBOMData &data) -> void
           {
-              using ReturnTypePtr = std::add_pointer_t< std::add_const_t< NormalizedType< ValueType > > >;
+            //   using ReturnTypePtr = std::add_pointer_t< std::add_const_t< NormalizedType< ValueType > > >;
 
-              (static_cast<TargetType *>(target)->*MemFn)(*static_cast< ReturnTypePtr >(in));
-          }),
-          serializer(GetClassPropertySerializer<NormalizedType<ValueType>>())
+            //   (static_cast<TargetType *>(target)->*MemFn)(*static_cast< ReturnTypePtr >(in));
+
+              (static_cast<TargetType *>(target)->*MemFn)(GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
+          })
     {
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
         debug_info.return_type_id = TypeID::ForType<ReturnType>();
@@ -129,17 +136,26 @@ struct HypClassPropertySetter
     bool IsValid() const
         { return proc.IsValid(); }
 
-    template <class TargetType, class ValueType>
-    void Invoke(TargetType &target, ValueType &&value) const
+    template <class TargetType>
+    void operator()(TargetType &target, const fbom::FBOMData &value) const
     {
         AssertThrow(IsValid());
 
 #ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
         AssertThrowMsg(TypeID::ForType<NormalizedType<TargetType>>() == debug_info.target_type_id, "Target type mismatch");
+#endif
+
+        proc(&target, value);
+    }
+
+    template <class TargetType, class ValueType>
+    void Invoke(TargetType &target, ValueType &&value) const
+    {
+#ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
         AssertThrowMsg(TypeID::ForType<NormalizedType<ValueType>>() == debug_info.value_type_id, "Value type mismatch");
 #endif
 
-        proc(&target, &value);
+        (*this)(target, GetClassPropertySerializer<NormalizedType<ValueType>>().Serialize(std::forward<ValueType>(value)));
     }
 
     template <class TargetType, class ValueType>
@@ -186,9 +202,19 @@ struct HypClassProperty
     bool HasGetter() const
         { return getter.IsValid(); }
 
+    template <class ReturnType, class TargetType>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    ReturnType InvokeGetter(TargetType &target) const
+        { return getter.Invoke<ReturnType, TargetType>(&target); }
+
     HYP_NODISCARD HYP_FORCE_INLINE
     bool HasSetter() const
         { return setter.IsValid(); }
+
+    template <class TargetType, class ValueType>
+    HYP_FORCE_INLINE
+    void InvokeSetter(TargetType &target, ValueType &&value) const
+        { setter.Invoke<TargetType, ValueType>(&target, std::forward<ValueType>(value)); }
 };
 
 } // namespace hyperion

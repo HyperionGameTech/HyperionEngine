@@ -24,6 +24,14 @@ struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1) { } };
 
 struct FBOMStruct : FBOMType
 {
+    template <class T>
+    static constexpr bool is_valid_struct_type = !std::is_pointer_v<T>
+        && !std::is_reference_v<T>
+        && !std::is_const_v<T>
+        && !std::is_volatile_v<T>
+        && std::is_standard_layout_v<T>
+        && std::is_trivially_copyable_v<T>;
+
     FBOMStruct()
         : FBOMType("struct", -1)
     {

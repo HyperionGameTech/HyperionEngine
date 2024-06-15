@@ -79,15 +79,19 @@ int main(int argc, char **argv)
     Mesh m;
     m.SetID(ID<Mesh>{ 123 });
 
+    for (HypClassProperty *property : cls->GetProperties()) {
+        HYP_LOG(Core, LogLevel::INFO, "Property: {}", property->name);
+    }
+
     if (HypClassProperty *property = cls->GetProperty(NAME("AABB"))) {
-        property->setter.Invoke(m, BoundingBox { -100, 100 });
+        property->InvokeSetter(m, BoundingBox { -100, 100 });
 
-        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->getter.Invoke(m).Get<BoundingBox>());
+        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter<BoundingBox>(m));
     }
 
-    if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-        HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    }
+    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // }
 
     HYP_BREAKPOINT;
 
