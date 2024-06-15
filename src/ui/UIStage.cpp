@@ -102,13 +102,12 @@ void UIStage::Init()
     }
 
     if (!m_default_font_atlas) {
-        LoaderResult loader_result;
-        RC<FontAtlas> font_atlas = g_asset_manager->Load<RC<FontAtlas>>("fonts/default.json", loader_result);
+        auto font_atlas_asset = g_asset_manager->Load<RC<FontAtlas>>("fonts/default.json");
 
-        if (font_atlas != nullptr) {
-            m_default_font_atlas = std::move(font_atlas);
+        if (font_atlas_asset.IsOK()) {
+            m_default_font_atlas = font_atlas_asset.Result();
         } else {
-            HYP_LOG(UI, LogLevel::ERROR, "Failed to load default font atlas! Error was: {}", loader_result.message);
+            HYP_LOG(UI, LogLevel::ERROR, "Failed to load default font atlas! Error was: {}", font_atlas_asset.result.message);
         }
     }
 

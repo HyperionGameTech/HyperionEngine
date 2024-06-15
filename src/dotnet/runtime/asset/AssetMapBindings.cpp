@@ -18,7 +18,7 @@ HYP_EXPORT void AssetMap_Destroy(ManagedAssetMap managed_map)
     delete managed_map.map;
 }
 
-HYP_EXPORT EnqueuedAsset *AssetMap_GetAsset(ManagedAssetMap managed_map, const char *key)
+HYP_EXPORT LoadedAsset *AssetMap_GetAsset(ManagedAssetMap managed_map, const char *key)
 {
     AssertThrowMsg(managed_map.map != nullptr, "ManagedAssetMap map is null");
 

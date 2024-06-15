@@ -44,11 +44,16 @@ void SkydomeRenderer::Init()
 
 void SkydomeRenderer::InitGame()
 {
-    auto dome_node = g_asset_manager->Load<Node>("models/inv_sphere.obj");
-    dome_node.Scale(Vec3f(10.0f));
-    dome_node.LockTransform();
+    auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
-    m_virtual_scene->GetRoot()->AddChild(dome_node);
+    if (dome_node_asset.IsOK()) {
+        NodeProxy &dome_node = dome_node_asset.Result();
+
+        dome_node.Scale(Vec3f(10.0f));
+        dome_node.LockTransform();
+
+        m_virtual_scene->GetRoot()->AddChild(dome_node);
+    }
 }
 
 void SkydomeRenderer::OnRemoved()

@@ -127,67 +127,67 @@ public:
     }
     
 
+    // /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
+    //     type corresponding to the provided template type.
+    //     If any errors occur, an empty result is returned.
+    //     Node -> NodeProxy
+    //     T -> Handle<T> */
+    // template <class T>
+    // auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType>
+    // {
+    //     LoaderResult result;
+
+    //     auto value = Load<T>(path, result, flags);
+
+    //     if (result.status != LoaderResult::Status::OK) {
+    //         return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
+    //     }
+
+    //     return value;
+    // }
+
     /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
         type corresponding to the provided template type.
-        If any errors occur, an empty result is returned.
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
-    {
-        LoaderResult result;
-
-        auto value = Load<T>(path, result, flags);
-
-        if (result.status != LoaderResult::Status::OK) {
-            return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
-        }
-
-        return value;
-    }
-
-    /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
-        type corresponding to the provided template type.
-        Node -> NodeProxy
-        T -> Handle<T> */
-    template <class T>
-    auto Load(const String &path, LoaderResult &out_result, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
+    auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType>
     {
         using Normalized = NormalizedType<T>;
 
-        AssetCachePool<Normalized> *cache_pool = m_asset_cache->GetPool<Normalized>();
+        // AssetCachePool<Normalized> *cache_pool = m_asset_cache->GetPool<Normalized>();
 
-        if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_READ) && cache_pool->Has(path)) {
-            out_result = { };
+        // if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_READ) && cache_pool->Has(path)) {
+        //     out_result = { };
 
-            return cache_pool->Get(path);
-        }
+        //     return cache_pool->Get(path);
+        // }
 
         const AssetLoaderDefinition *loader_definition = GetLoader(path, TypeID::ForType<Normalized>());
 
         if (!loader_definition) {
-            out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" };
-
-            return AssetLoaderWrapper<Normalized>::EmptyResult();
+            return LoadedAssetInstance<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType> {
+                LoadedAsset {
+                    { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" }
+                }
+            };
+            // return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
 
         AssetLoaderBase *loader = loader_definition->loader.Get();
         AssertThrow(loader != nullptr);
 
-        const auto result = AssetLoaderWrapper<Normalized>(*loader)
-            .Load(*this, path, out_result);
+        return AssetLoaderWrapper<Normalized>(*loader)
+            .GetLoadedAsset(*this, path);
 
-        if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_WRITE)) {
-            cache_pool->Set(path, result);
-        }
+        // const auto result = AssetLoaderWrapper<Normalized>(*loader)
+        //     .LoadAndExtractAssetValue(*this, path, out_result);
 
-        return result;
-    }
+        // if (asset_cache_enabled && (flags & ASSET_LOAD_FLAGS_CACHE_WRITE)) {
+        //     cache_pool->Set(path, result);
+        // }
 
-    template <class T>
-    auto LoadForBatch(const String &path) -> typename AssetLoaderWrapper<NormalizedType<T>>::ResultType
-    {
-        return Load<T>(path);
+        // return result;
     }
 
     HYP_API RC<AssetBatch> CreateBatch();

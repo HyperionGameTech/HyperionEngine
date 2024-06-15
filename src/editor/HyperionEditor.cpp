@@ -100,15 +100,15 @@ private:
 
 void HyperionEditorImpl::CreateFontAtlas()
 {
-    RC<FontFace> font_face = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
+    auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
-    if (!font_face) {
+    if (!font_face_asset.IsOK()) {
         HYP_LOG(Editor, LogLevel::ERROR, "Failed to load font face!");
 
         return;
     }
 
-    RC<FontAtlas> atlas(new FontAtlas(std::move(font_face)));
+    RC<FontAtlas> atlas(new FontAtlas(std::move(font_face_asset.Result())));
     atlas->Render();
 
     GetUIStage()->SetDefaultFontAtlas(std::move(atlas));
@@ -649,7 +649,7 @@ void HyperionEditor::Init()
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->Add("house", "models/house.obj");
 
-    batch->OnComplete.Bind([this](AssetMap &&results)
+    batch->OnComplete.Bind([this](AssetMap &results)
     {
         NodeProxy node = results["test_model"].ExtractAs<Node>();
         node.Scale(0.0125f);
@@ -678,7 +678,8 @@ void HyperionEditor::Init()
             env_grid_node.SetName("EnvGrid");
         }
 
-        if (auto zombie = results["zombie"].Get<Node>()) {
+        if (auto &zombie_asset = results["zombie"]; zombie_asset.IsOK()) {
+            auto zombie = zombie_asset.ExtractAs<Node>();
             zombie.Scale(0.25f);
             zombie.Translate(Vec3f(0, 2.0f, -1.0f));
             auto zombie_entity = zombie[0].GetEntity();

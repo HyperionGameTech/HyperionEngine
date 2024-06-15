@@ -24,42 +24,45 @@ class AssetManager;
 
 struct EnqueuedAsset
 {
-    String          path;
-    LoaderResult    result;
-    AssetValue      value;
+    String      path;
+    LoadedAsset asset;
 
-    /*! \brief Retrieve the value of the loaded asset. If the requested type does not match
-        the type of the value, if any, held within the variant, no error should occur and an 
-        empty container will be returned. */
-    template <class T>
-    HYP_FORCE_INLINE
-    auto ExtractAs() -> typename AssetLoaderWrapper<T>::CastedType
-        { return AssetLoaderWrapper<T>::ExtractAssetValue(value); }
+    // /*! \brief Retrieve the value of the loaded asset. If the requested type does not match
+    //     the type of the value, if any, held within the variant, no error should occur and an 
+    //     empty container will be returned. */
+    // template <class T>
+    // HYP_FORCE_INLINE
+    // auto ExtractAs() -> typename AssetLoaderWrapper<T>::CastedType
+    //     { return AssetLoaderWrapper<T>::ExtractAssetValue(value); }
 
-    /*! \brief Alias for ExtractAs<T> */
-    template <class T>
-    HYP_FORCE_INLINE
-    auto Get() -> typename AssetLoaderWrapper<T>::CastedType
-        { return ExtractAs<T>(); }
+    // /*! \brief Alias for ExtractAs<T> */
+    // template <class T>
+    // HYP_FORCE_INLINE
+    // auto Get() -> typename AssetLoaderWrapper<T>::CastedType
+    //     { return ExtractAs<T>(); }
     
-    HYP_FORCE_INLINE
+    // HYP_FORCE_INLINE
+    // explicit operator bool() const
+    //     { return result.status == LoaderResult::Status::OK && value.HasValue(); }
+
     explicit operator bool() const
-        { return result.status == LoaderResult::Status::OK && value.HasValue(); }
+        { return bool(asset); }
 };
 
-using AssetMap = FlatMap<String, EnqueuedAsset>;
+using AssetMap = FlatMap<String, LoadedAsset>;
+
 
 struct AssetBatchCallbackData
 {
-    using EnqueuedAssetDataType = Pair<std::reference_wrapper<const String>, std::reference_wrapper<EnqueuedAsset>>;
-    using DataType = Variant<EnqueuedAssetDataType, std::reference_wrapper<AssetMap>>;
+    using AssetKeyValuePair = Pair<const String &, LoadedAsset &>;
+    using DataType = Variant<AssetKeyValuePair, std::reference_wrapper<AssetMap>>;
 
     DataType data;
 
     AssetBatchCallbackData() = default;
 
-    AssetBatchCallbackData(const String &asset_key, EnqueuedAsset &asset)
-        : data { EnqueuedAssetDataType { asset_key, asset } }
+    AssetBatchCallbackData(const String &asset_key, LoadedAsset &asset)
+        : data { AssetKeyValuePair { asset_key, asset } }
     {
     }
 
@@ -70,10 +73,10 @@ struct AssetBatchCallbackData
     ~AssetBatchCallbackData()                                               = default;
 
     const String &GetAssetKey()
-        { return data.Get<EnqueuedAssetDataType>().first.get(); }
+        { return data.Get<AssetKeyValuePair>().first; }
 
-    const EnqueuedAsset &GetAsset()
-        { return data.Get<EnqueuedAssetDataType>().second.get(); }
+    const LoadedAsset &GetAsset()
+        { return data.Get<AssetKeyValuePair>().second; }
 };
 
 struct AssetBatchCallbacks
@@ -87,17 +90,21 @@ struct LoadObjectWrapper
 {
     template <class AssetManager>
     HYP_FORCE_INLINE
-    void operator()(
+    void Process(
         AssetManager *asset_manager,
         AssetMap *map,
         const String &key,
+        const String &path,
         AssetBatchCallbacks *callbacks
     )
     {
-        EnqueuedAsset &asset = (*map)[key];
-        asset.value = AssetLoaderWrapper<T>::MakeResultType(asset_manager->template Load<T>(asset.path, asset.result));
+        LoadedAsset &asset = (*map)[key];
+        asset = asset_manager->template Load<T>(path);
 
-        if (asset.result == LoaderResult::Status::OK) {
+        // EnqueuedAsset &asset = (*map)[key];
+        // asset.value = AssetLoaderWrapper<T>::MakeResultType(asset_manager->template Load<T>(asset.path, asset.result));
+
+        if (asset.IsOK()) {
             if (callbacks) {
                 callbacks->OnItemComplete(AssetBatchCallbackData(key, asset));
             }
@@ -141,7 +148,7 @@ struct ProcessAssetFunctor : public ProcessAssetFunctorBase
 
     virtual void operator()(AssetManager *asset_manager, AssetMap *asset_map) override
     {
-        LoadObjectWrapper<T>()(asset_manager, asset_map, key, callbacks);
+        LoadObjectWrapper<T>{}.Process(asset_manager, asset_map, key, path, callbacks);
     }
 };
 
@@ -203,7 +210,7 @@ public:
 
     /*! \brief Functions bound to this delegates are called in
      *  the game thread. */
-    Delegate<void, AssetMap>                    OnComplete;
+    Delegate<void, AssetMap &>                  OnComplete;
 
 private:
     Array<UniquePtr<ProcessAssetFunctorBase>>   procs;

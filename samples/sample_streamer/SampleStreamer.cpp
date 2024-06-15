@@ -187,26 +187,28 @@ void SampleStreamer::Init()
 #endif
 
     // // Test freetype font rendering
-    auto font_face = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
+    auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
-    RC<FontAtlas> atlas(new FontAtlas(font_face));
-    atlas->Render();
+    if (font_face_asset.IsOK()) {
+        RC<FontAtlas> atlas(new FontAtlas(font_face_asset.Result()));
+        atlas->Render();
 
-    // atlas.RenderSync();
+        // atlas.RenderSync();
 
-    // ByteBuffer atlas_byte_buffer;
-    // atlas.WriteToBuffer(atlas_byte_buffer);
+        // ByteBuffer atlas_byte_buffer;
+        // atlas.WriteToBuffer(atlas_byte_buffer);
 
-    GetUIStage()->SetDefaultFontAtlas(atlas);
+        GetUIStage()->SetDefaultFontAtlas(atlas);
 
-    // auto font_bitmap = atlas->GenerateBitmap();
-    // font_bitmap.Write("font_bitmap.bmp");
-    
-    auto font_metadata_json = atlas->GenerateMetadataJSON("font_bitmap.bmp");
+        // auto font_bitmap = atlas->GenerateBitmap();
+        // font_bitmap.Write("font_bitmap.bmp");
+        
+        auto font_metadata_json = atlas->GenerateMetadataJSON("font_bitmap.bmp");
 
-    FileByteWriter bw("res/fonts/default.json");
-    bw.WriteString(font_metadata_json.ToString(true) + '\n');
-    bw.Close();
+        FileByteWriter bw("res/fonts/default.json");
+        bw.WriteString(font_metadata_json.ToString(true) + '\n');
+        bw.Close();
+    }
 
 
     const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
@@ -247,9 +249,11 @@ void SampleStreamer::Init()
     m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
     if (false) {
-        auto gun = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
+        auto gun_asset = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
 
-        if (gun) {
+        if (gun_asset.IsOK()) {
+            NodeProxy gun = gun_asset.Result();
+
             auto gun_parent = m_scene->GetRoot()->AddChild();
             gun_parent.SetName("gun");
 
@@ -262,9 +266,11 @@ void SampleStreamer::Init()
     }
 
     if (false) {
-        auto box = AssetManager::GetInstance()->Load<Node>("models/cube.obj");
+        auto box_asset = AssetManager::GetInstance()->Load<Node>("models/cube.obj");
 
-        if (box) {
+        if (box_asset.IsOK()) {
+            NodeProxy box = box_asset.Result();
+
             m_scene->GetRoot()->AddChild(box);
 
             MeshComponent &mesh_component = m_scene->GetEntityManager()->GetComponent<MeshComponent>(box[0].GetEntity());
@@ -487,6 +493,12 @@ void SampleStreamer::Init()
             1.0f
         ));
 
+        Handle<Texture> dummy_light_texture;
+
+        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
+            dummy_light_texture = dummy_light_texture_asset.Result();
+        }
+
         light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
             {
                .shader_definition = ShaderDefinition {
@@ -500,7 +512,7 @@ void SampleStreamer::Init()
             {
                 {
                     Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
-                    AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
+                    std::move(dummy_light_texture)
                 }
             }
         ));
@@ -588,7 +600,7 @@ void SampleStreamer::Init()
         }
 
 #if 0
-        if (auto zombie = results["zombie"].Get<Node>()) {
+        if (auto zombie = results["zombie"].ExtractAs<Node>()) {
             zombie.Scale(0.25f);
             auto zombie_entity = zombie[0].GetEntity();
 
@@ -721,7 +733,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
     AssetMap loaded_assets = batch->AwaitResults();
 
     if (name == HYP_NAME(GaussianSplatting)) {
-        json::JSONValue cameras_json = *loaded_assets["cameras json"].Get<json::JSONValue>();
+        json::JSONValue cameras_json = *loaded_assets["cameras json"].ExtractAs<json::JSONValue>();
 
         struct GaussianSplattingCameraDefinition
         {
@@ -809,7 +821,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
         DebugLog(LogType::Debug, "Up direction = %f, %f, %f\n", up_direction.x, up_direction.y, up_direction.z);
 
-        PLYModelLoader::PLYModel ply_model = *loaded_assets["ply model"].Get<PLYModelLoader::PLYModel>();
+        PLYModelLoader::PLYModel ply_model = *loaded_assets["ply model"].ExtractAs<PLYModelLoader::PLYModel>();
 
         const SizeType num_points = ply_model.vertices.Size();
 

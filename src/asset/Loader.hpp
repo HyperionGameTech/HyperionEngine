@@ -26,6 +26,7 @@ struct LoaderResult
 {
     enum class Status
     {
+        INVALID = -1,
         OK,
         ERR,
         ERR_NOT_FOUND,
@@ -33,12 +34,12 @@ struct LoaderResult
         ERR_EOF
     };
 
-    Status status = Status::OK;
+    Status status = Status::INVALID;
     String message;
 
-    operator bool() const { return status == Status::OK; }
-    bool operator==(Status status) const { return this->status == status; }
-    bool operator!=(Status status) const { return this->status != status; }
+    constexpr explicit operator bool() const { return status == Status::OK; }
+    constexpr bool operator==(Status status) const { return this->status == status; }
+    constexpr bool operator!=(Status status) const { return this->status != status; }
 };
 
 } // namespace hyperion

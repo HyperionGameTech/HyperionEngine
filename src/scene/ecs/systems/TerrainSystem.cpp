@@ -301,12 +301,15 @@ void TerrainSystem::Process(GameCounter::TickUnit delta)
             mesh_component.material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             mesh_component.material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 1.0f);
 
-            if (auto albedo_texture = g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
+            if (auto albedo_texture_asset = g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
+                Handle<Texture> albedo_texture = albedo_texture_asset.Result();
                 albedo_texture->GetImage()->SetIsSRGB(true);
                 mesh_component.material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
             }
 
-            mesh_component.material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"));
+            if (auto ground_texture_asset = g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png")) {
+                mesh_component.material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, ground_texture_asset.Result());
+            }
 
             InitObject(mesh_component.material);
 

@@ -95,7 +95,7 @@ void AssetBatch::Add(const String &key, const String &path)
         "AssetBatch is in invalid state"
     );
 
-    enqueued_assets->Set(key, EnqueuedAsset { path });
+    enqueued_assets->Emplace(key);
 
     UniquePtr<ProcessAssetFunctorBase> functor_ptr = asset_manager->CreateProcessAssetFunctor(
         key,

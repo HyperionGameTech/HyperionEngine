@@ -11,11 +11,11 @@
 using namespace hyperion;
 
 extern "C" {
-HYP_EXPORT void Asset_GetNode(EnqueuedAsset *asset, ManagedNode *node)
+HYP_EXPORT void Asset_GetNode(LoadedAsset *asset, ManagedNode *node)
 {
     AssertThrow(asset != nullptr);
 
-    if (!asset->result) {
+    if (!asset->IsOK()) {
         return;
     }
     
@@ -24,11 +24,11 @@ HYP_EXPORT void Asset_GetNode(EnqueuedAsset *asset, ManagedNode *node)
     *node = CreateManagedNodeFromNodeProxy(std::move(value));
 }
 
-HYP_EXPORT void Asset_GetTexture(EnqueuedAsset *asset, ManagedHandle *handle)
+HYP_EXPORT void Asset_GetTexture(LoadedAsset *asset, ManagedHandle *handle)
 {
     AssertThrow(asset != nullptr);
 
-    if (!asset->result) {
+    if (!asset->IsOK()) {
         return;
     }
 

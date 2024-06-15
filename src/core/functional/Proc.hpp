@@ -17,7 +17,7 @@ namespace hyperion {
 namespace functional {
 namespace detail {
 
-template <class MemoryType, class ReturnType, class ...Args>
+template <class MemoryType, class ReturnType, class... Args>
 struct ProcFunctorInternal
 {
     Variant<MemoryType, void *> memory;
@@ -93,7 +93,7 @@ struct ProcFunctorInternal
         { return invoke_fn(GetPointer(), std::forward<Args>(args)...); }
 };
 
-template <class ReturnType, class ...Args>
+template <class ReturnType, class... Args>
 struct Invoker
 {
     template <class Functor>
@@ -105,7 +105,7 @@ struct Invoker
 };
 
 // void return type specialization
-template <class ...Args>
+template <class... Args>
 struct Invoker<void, Args...>
 {
     template <class Functor>

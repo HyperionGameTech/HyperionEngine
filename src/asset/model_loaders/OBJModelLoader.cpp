@@ -283,11 +283,12 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             material_library_path += ".mtl";
         }
 
-        LoaderResult result;
-        material_library = state.asset_manager->Load<MaterialGroup>(material_library_path, result);
+        auto material_library_asset = state.asset_manager->Load<MaterialGroup>(material_library_path);
 
-        if (result.status != LoaderResult::Status::OK || !material_library) {
-            HYP_LOG(Assets, LogLevel::WARNING, "Obj model loader: Could not load material library at {}", material_library_path);
+        if (material_library_asset.IsOK()) {
+            material_library = material_library_asset.Result();
+        } else {
+            HYP_LOG(Assets, LogLevel::WARNING, "Obj model loader: Could not load material library at {}: {}", material_library_path, material_library_asset.result.message);
         }
     }
 

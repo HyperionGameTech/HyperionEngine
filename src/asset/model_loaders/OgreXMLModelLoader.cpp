@@ -211,10 +211,11 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     if (!model.skeleton_name.Empty()) {
         const String skeleton_path((StringUtil::BasePath(model.filepath.Data()).c_str() + String("/") + model.skeleton_name + ".xml").Data());
 
-        LoaderResult result;
-        skeleton = state.asset_manager->Load<Skeleton>(skeleton_path, result);
+        auto skeleton_asset = state.asset_manager->Load<Skeleton>(skeleton_path);
 
-        if (result.status != LoaderResult::Status::OK || !skeleton) {
+        if (skeleton_asset.IsOK()) {
+            skeleton = skeleton_asset.Result();
+        } else {
             HYP_LOG(Assets, LogLevel::WARNING, "Ogre XML parser: Could not load skeleton at {}", skeleton_path);
         }
     }

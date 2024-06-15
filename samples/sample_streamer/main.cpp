@@ -72,28 +72,28 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    const HypClass *cls = GetClass<Mesh>();
-    HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
-    HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
+    // const HypClass *cls = GetClass<Mesh>();
+    // HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
+    // HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
 
-    Mesh m;
-    m.SetID(ID<Mesh>{ 123 });
+    // Mesh m;
+    // m.SetID(ID<Mesh>{ 123 });
 
-    for (HypClassProperty *property : cls->GetProperties()) {
-        HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, property->getter(m).ToString());
-    }
-
-    if (HypClassProperty *property = cls->GetProperty("AABB")) {
-        property->InvokeSetter(m, BoundingBox { -124, 124 });
-
-        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter(m).ToString());
-    }
-
-    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // for (HypClassProperty *property : cls->GetProperties()) {
+    //     HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, property->getter(m).ToString());
     // }
 
-    HYP_BREAKPOINT;
+    // if (HypClassProperty *property = cls->GetProperty("AABB")) {
+    //     property->InvokeSetter(m, BoundingBox { -124, 124 });
+
+    //     HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter(m).ToString());
+    // }
+
+    // // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    // //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // // }
+
+    // HYP_BREAKPOINT;
 
 #if 0
     fbom::FBOMObject test_obj(fbom::FBOMObjectType("FooBarbazz"));

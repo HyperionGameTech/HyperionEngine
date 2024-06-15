@@ -35,9 +35,11 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
     Handle<Texture> bitmap_texture;
 
     if (auto bitmap_filepath_value = json_value["bitmap_filepath"]) {
-        bitmap_texture = state.asset_manager ->Load<Texture>(bitmap_filepath_value.AsString());
+        auto bitmap_texture_asset = state.asset_manager->Load<Texture>(bitmap_filepath_value.AsString());
 
-        if (!bitmap_texture.IsValid()) {
+        if (bitmap_texture_asset.IsOK()) {
+            bitmap_texture = bitmap_texture_asset.Result();
+        } else {
             return { { LoaderResult::Status::ERR, "Failed to load bitmap texture" } };
         }
 

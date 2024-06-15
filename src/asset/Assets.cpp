@@ -140,7 +140,9 @@ void AssetManager::Update(GameCounter::TickUnit delta)
     }
 
     for (const RC<AssetBatch> &batch : m_completed_batches) {
-        batch->OnComplete.Broadcast(batch->AwaitResults());
+        AssetMap results = batch->AwaitResults();
+        
+        batch->OnComplete.Broadcast(results);
     }
 
     m_completed_batches.Clear();
