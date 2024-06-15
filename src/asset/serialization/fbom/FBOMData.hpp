@@ -109,30 +109,8 @@ struct FBOMData : public IFBOMSerializable
         data.SetBytes(sizeof(c_type), &value); \
         return data; \
     } \
-    template <SizeType Sz> \
-    static FBOMData FromArray(const FixedArray<c_type, Sz> &items) \
-    { \
-        FBOMSequence type(FBOM##type_name(), items.Size()); \
-        FBOMData data(type); \
-        data.SetBytes(sizeof(c_type) * items.Size(), items.Data()); \
-        return data; \
-    } \
-    template <SizeType Sz> \
-    static FBOMData FromArray(const c_type (&items)[Sz]) \
-    { \
-        FBOMSequence type(FBOM##type_name(), Sz); \
-        FBOMData data(type); \
-        data.SetBytes(sizeof(c_type) * Sz, items); \
-        return data; \
-    } \
-    static FBOMData FromArray(const Array<c_type> &items) \
-    { \
-        FBOMSequence type(FBOM##type_name(), items.Size()); \
-        AssertThrowMsg(sizeof(c_type) * items.Size() == type.size, "sizeof(" #c_type ") * %llu must be equal to %llu", items.Size(), type.size); \
-        FBOMData data(type); \
-        data.SetBytes(sizeof(c_type) * items.Size(), items.Data()); \
-        return data; \
-    }
+    explicit FBOMData(const c_type &value) : FBOMData(From##type_name(value)) { } \
+    explicit FBOMData(c_type &&value) : FBOMData(From##type_name(std::move(value))) { }
 
     FBOM_TYPE_FUNCTIONS(UnsignedInt, uint32)
     FBOM_TYPE_FUNCTIONS(UnsignedLong, uint64)
@@ -150,6 +128,7 @@ struct FBOMData : public IFBOMSerializable
 
 #undef FBOM_TYPE_FUNCTIONS
 
+#pragma region String
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsString() const
         { return type.IsOrExtends(FBOMString()); }
@@ -191,6 +170,16 @@ struct FBOMData : public IFBOMSerializable
         return FromString(StringView<string_type>(str));
     }
 
+    template <int string_type>
+    explicit FBOMData(const StringView<string_type> &str) : FBOMData(FromString(str)) { }
+
+    template <int string_type>
+    explicit FBOMData(const containers::detail::String<string_type> &str) : FBOMData(FromString(str)) { }
+
+#pragma endregion String
+
+#pragma region ByteBuffer
+
     HYP_NODISCARD  HYP_FORCE_INLINE
     bool IsByteBuffer() const
         { return type.IsOrExtends(FBOMByteBuffer()); }
@@ -214,6 +203,11 @@ struct FBOMData : public IFBOMSerializable
         return data;
     }
 
+    explicit FBOMData(const ByteBuffer &byte_buffer) : FBOMData(FromByteBuffer(byte_buffer)) { }
+
+#pragma endregion ByteBuffer
+
+#pragma region Struct
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsStruct(const char *type_name) const
         { return type.IsOrExtends(FBOMStruct(type_name, -1)); }
@@ -221,14 +215,6 @@ struct FBOMData : public IFBOMSerializable
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsStruct(const char *type_name, SizeType size) const
         { return type.IsOrExtends(FBOMStruct(type_name, size)); }
-
-
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMData FromStruct(const T &value)
-    {
-        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
-    }
 
     HYP_FORCE_INLINE
     FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
@@ -260,13 +246,34 @@ struct FBOMData : public IFBOMSerializable
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
 
         ValueStorage<NormalizedType<T>> result_storage;
-        
+
         if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), result_storage.GetPointer())) {
             AssertThrowMsg(false, "Failed to read struct of type %s: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data(), *err.message);
         }
 
         return result_storage.Get();
     }
+
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    static FBOMData FromStruct(const T &value)
+    {
+        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
+    }
+
+    template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > > >
+    explicit FBOMData(const T &value) : FBOMData(FromStruct(value)) { }
+
+#pragma endregion Struct
+
+#pragma region Name
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsName() const
+        { return IsStruct("Name"); }
+
+    HYP_FORCE_INLINE
+    FBOMResult ReadName(Name *out) const
+        { return ReadStruct<Name>(out); }
 
     static FBOMData FromName(Name name)
     {
@@ -276,13 +283,11 @@ struct FBOMData : public IFBOMSerializable
         return data;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsName() const
-        { return IsStruct("Name"); }
+    explicit FBOMData(Name name) : FBOMData(FromName(name)) { }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadName(Name *out) const
-        { return ReadStruct<Name>(out); }
+#pragma endregion Name
+
+#pragma region Sequence
 
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSequence() const
@@ -297,28 +302,6 @@ struct FBOMData : public IFBOMSerializable
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSequenceOfByteSize(SizeType byte_size) const
         { return type.IsOrExtends(FBOMSequence(FBOMByte(), byte_size)); }
-
-    // Object
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsObject() const
-        { return type.IsOrExtends(FBOMBaseObjectType()); }
-
-    FBOMResult ReadObject(FBOMObject &out_object) const;
-    
-    HYP_NODISCARD
-    static FBOMData FromObject(const FBOMObject &object);
-
-    // Array
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsArray() const
-        { return type.IsOrExtends(FBOMArrayType()); }
-
-    FBOMResult ReadArray(FBOMArray &out_array) const;
-    
-    HYP_NODISCARD
-    static FBOMData FromArray(const FBOMArray &array);
 
     /*! \brief If type is an sequence, return the number of elements,
         assuming the sequence contains the given type. Note, sequence could
@@ -341,16 +324,6 @@ struct FBOMData : public IFBOMSerializable
         return TotalSize() / held_type_size;
     }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
-    {
-        FBOM_ASSERT(count <= bytes.Size(), "Attempt to read past max size of object");
-
-        out = ByteBuffer(count, bytes.Data());
-
-        FBOM_RETURN_OK;
-    }
-
     // count is number of ELEMENTS
     HYP_FORCE_INLINE
     FBOMResult ReadElements(const FBOMType &held_type, SizeType num_items, void *out) const
@@ -360,6 +333,48 @@ struct FBOMData : public IFBOMSerializable
         FBOM_ASSERT(IsSequence(), "Object is not an sequence");
 
         ReadBytes(held_type.size * num_items, out);
+
+        FBOM_RETURN_OK;
+    }
+
+#pragma endregion Sequence
+
+#pragma region Object
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsObject() const
+        { return type.IsOrExtends(FBOMBaseObjectType()); }
+
+    FBOMResult ReadObject(FBOMObject &out_object) const;
+    
+    HYP_NODISCARD
+    static FBOMData FromObject(const FBOMObject &object);
+
+    explicit FBOMData(const FBOMObject &object) : FBOMData(FromObject(object)) { }
+
+#pragma endregion Object
+
+#pragma region Array
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsArray() const
+        { return type.IsOrExtends(FBOMArrayType()); }
+
+    FBOMResult ReadArray(FBOMArray &out_array) const;
+    
+    HYP_NODISCARD
+    static FBOMData FromArray(const FBOMArray &array);
+
+    explicit FBOMData(const FBOMArray &array) : FBOMData(FromArray(array)) { }
+
+#pragma endregion Array
+
+    HYP_FORCE_INLINE
+    FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
+    {
+        FBOM_ASSERT(count <= bytes.Size(), "Attempt to read past max size of object");
+
+        out = ByteBuffer(count, bytes.Data());
 
         FBOM_RETURN_OK;
     }

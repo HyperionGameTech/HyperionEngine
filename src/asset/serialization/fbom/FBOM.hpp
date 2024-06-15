@@ -177,22 +177,25 @@ public:
      *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type
      */
     template <class T>
-    [[nodiscard]] HYP_FORCE_INLINE FBOMMarshalerBase *GetLoader() const
-        { return GetLoader(TypeID::ForType<NormalizedType<T>>()); }
+    HYP_NODISCARD HYP_FORCE_INLINE
+    FBOMMarshalerBase *GetMarshal() const
+        { return GetMarshal(TypeID::ForType<NormalizedType<T>>()); }
 
     /*! \brief Get a registered loader for the given object TypeID.
      *  \example Use the TypeID for MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
      *  \param object_type_id The TypeID of the class to get the loader for
      *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given TypeID
      */
-    [[nodiscard]] FBOMMarshalerBase *GetLoader(TypeID object_type_id) const;
+    HYP_NODISCARD
+    FBOMMarshalerBase *GetMarshal(TypeID object_type_id) const;
 
     /*! \brief Get a registered loader for the given object type name.
      *  \example Use the string "MyStruct" to get a registered instance of FBOMMarshaler<MyStruct> (assuming GetObjectType() has not been overridden in the marshaler class)
      *  \param type_name The name of the class to get the loader for
      *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type name
      */
-    [[nodiscard]] FBOMMarshalerBase *GetLoader(const ANSIStringView &type_name) const;
+    HYP_NODISCARD
+    FBOMMarshalerBase *GetMarshal(const ANSIStringView &type_name) const;
 
 private:
     FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
@@ -239,8 +242,8 @@ private:
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasCustomLoaderForType(const FBOMType &type) const
-        { return FBOM::GetInstance().GetLoader(type.name) != nullptr; }
+    bool HasMarshalForType(const FBOMType &type) const
+        { return FBOM::GetInstance().GetMarshal(type.name) != nullptr; }
 
     FBOMCommand NextCommand(BufferedReader *);
     FBOMCommand PeekCommand(BufferedReader *);
@@ -361,10 +364,10 @@ public:
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
     Append(const T &object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
-        FBOMMarshalerBase *marshal = FBOM::GetInstance().GetLoader<NormalizedType<T>>();
+        FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal<NormalizedType<T>>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
-        FBOMObjectMarshalerBase<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMObjectMarshalerBase<NormalizedType<T>> *>(marshal);
+        FBOMMarshaler<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMMarshaler<NormalizedType<T>> *>(marshal);
         AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
         FBOMObject base(marshal_derived->GetObjectType());

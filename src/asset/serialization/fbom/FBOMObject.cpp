@@ -246,9 +246,9 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-FBOMMarshalerBase *FBOMObject::GetLoader(TypeID object_type_id)
+FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID object_type_id)
 {
-    return FBOM::GetInstance().GetLoader(object_type_id);
+    return FBOM::GetInstance().GetMarshal(object_type_id);
 }
 
 } // namespace hyperion::fbom

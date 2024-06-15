@@ -103,16 +103,8 @@ public:
     HYP_NODISCARD
     bool HasProperty(WeakName key) const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasProperty(const ANSIStringView &key) const
-        { return HasProperty(CreateWeakNameFromDynamicString(key)); }
-
     HYP_NODISCARD
     const FBOMData &GetProperty(WeakName key) const;
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMData &GetProperty(const ANSIStringView &key) const
-        { return GetProperty(CreateWeakNameFromDynamicString(key)); }
 
     FBOMObject &SetProperty(Name key, const FBOMData &data);
     FBOMObject &SetProperty(Name key, FBOMData &&data);
@@ -132,7 +124,7 @@ public:
 
     HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, bool value)
-        { return SetProperty(key, FBOMBool(), sizeof(uint8) /* bool = 1 byte*/, &value); }
+        { return SetProperty(key, FBOMBool(), sizeof(uint8) /* bool = 1 byte */, &value); }
 
     HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, uint8 value)
@@ -162,22 +154,13 @@ public:
     HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, const T &value)
     {
-        // static_assert(!std::is_pointer_v<NormalizedType<T>>, "Cannot set a pointer type as a property value");
-        // static_assert(!std::is_reference_v<NormalizedType<T>>, "Cannot set a reference type as a property value");
-        // static_assert(IsPODType<NormalizedType<T>>, "Cannot set a non-POD type as a property value");
-
-        // return SetProperty(key, type, sizeof(NormalizedType<T>), &value);
-
-        FBOMMarshalerBase *marshal = GetLoader(TypeID::ForType<NormalizedType<T>>());
+        FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
-        FBOMObjectMarshalerBase<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMObjectMarshalerBase<NormalizedType<T>> *>(marshal);
-        AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
-
-        FBOMObject object(marshal_derived->GetObjectType());
+        FBOMObject object(marshal->GetObjectType());
         object.GenerateUniqueID(value, FBOMObjectFlags::NONE);
 
-        if (FBOMResult err = marshal_derived->Serialize(value, object)) {
+        if (FBOMResult err = marshal->Serialize(value, object)) {
             AssertThrowMsg(false, "Failed to serialize object: %s", *err.message);
         }
 
@@ -194,20 +177,17 @@ public:
     typename std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>, FBOMResult>
     AddChild(const T &object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
-        FBOMMarshalerBase *marshal = GetLoader(TypeID::ForType<NormalizedType<T>>());
+        FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
-
-        FBOMObjectMarshalerBase<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMObjectMarshalerBase<NormalizedType<T>> *>(marshal);
-        AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
         String external_object_key;
 
-        FBOMObject out_object(marshal_derived->GetObjectType());
+        FBOMObject out_object(marshal->GetObjectType());
         out_object.GenerateUniqueID(object, flags);
 
         if (flags & FBOMObjectFlags::EXTERNAL) {
             if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
-                const String class_name_lower = marshal_derived->GetObjectType().name.ToLower();
+                const String class_name_lower = marshal->GetObjectType().name.ToLower();
                 external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
             } else {
                 external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hypdata";
@@ -216,16 +196,16 @@ public:
             AssertThrow(external_object_key.Any());
         }
 
-        if (FBOMResult err = marshal_derived->Serialize(object, out_object)) {
+        if (FBOMResult err = marshal->Serialize(object, out_object)) {
             return err;
         }
 
-        // TODO: Check if external object already exists.
-        // if it does, do not build the file again.
         AddChild(std::move(out_object), external_object_key);
 
         return { FBOMResult::FBOM_OK };
     }
+
+    void AddChild(FBOMObject &&object, const String &external_object_key = String::empty);
 
     FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
         { return Visit(GetUniqueID(), writer, out, attributes); }
@@ -264,49 +244,93 @@ public:
         }
     }
 
-    void AddChild(FBOMObject &&object, const String &external_object_key = String::empty);
+    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+    static FBOMResult Serialize(const T &in, FBOMObject &out_object)
+    {
+        FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
+        
+        if (!marshal) {
+            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+        }
+
+        // Explicit overload call forces a linker error if the marshal class is not registered.
+        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(in, out_object)) {
+            return err;
+        }
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+    static FBOMObject Serialize(const T &in)
+    {
+        FBOMObject object;
+
+        FBOMResult result = Serialize(in, object);
+        AssertThrowMsg(result.IsOK(), "Failed to serialize object: %s", *result.message);
+
+        return object;
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+    static FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out)
+    {
+        FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
+        
+        if (!marshal) {
+            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+        }
+
+        Any any_value;
+
+        // Explicit overload call forces a linker error if the marshal class is not registered.
+        const FBOMResult result = marshal->FBOMMarshaler<NormalizedType<T>>::Deserialize(in, any_value);
+
+        if (result.IsOK()) {
+            AssertThrow(any_value.HasValue());
+            
+            out.m_value = std::move(any_value);
+        }
+
+        return result;
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+    static FBOMDeserializedObject Deserialize(const FBOMObject &in)
+    {
+        FBOMDeserializedObject deserialized;
+
+        FBOMResult result = Deserialize<T>(in, deserialized);
+        AssertThrowMsg(result.IsOK(), "Failed to deserialize object: %s", *result.message);
+
+        return deserialized;
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+    HYP_NODISCARD HYP_FORCE_INLINE
+    static bool HasMarshal()
+        { return GetMarshal<T>() != nullptr; }
 
 private:
     HYP_NODISCARD
-    static FBOMMarshalerBase *GetLoader(TypeID object_type_id);
+    static FBOMMarshalerBase *GetMarshal(TypeID object_type_id);
+
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    static FBOMMarshaler<NormalizedType<T>> *GetMarshal()
+    {
+        FBOMMarshalerBase *marshal = GetMarshal(TypeID::ForType<NormalizedType<T>>());
+
+        if (!marshal) {
+            return nullptr;
+        }
+
+        return dynamic_cast<FBOMMarshaler<NormalizedType<T>> *>(marshal);
+    }
 };
 
-// class FBOMNodeHolder {
-// public:
-//     FBOMNodeHolder
-//         : Array<FBOMObject>()
-//     {
-//     }
-
-//     FBOMNodeHolder(const Array<FBOMObject> &other)
-//         : Array<FBOMObject>(other)
-//     {
-//     }
-
-//     FBOMNodeHolder &FBOMNodeHolder::operator=(const Array<FBOMObject> &other)
-//     {
-//         Array<FBOMObject>::operator=(other);
-
-//         return *this;
-//     }
-
-//     FBOMNodeHolder(Array<FBOMObject> &&other) noexcept
-//         : Array<FBOMObject>(std::move(other))
-//     {
-//     }
-
-//     FBOMNodeHolder &FBOMNodeHolder::operator=(Array<FBOMObject> &&other) noexcept
-//     {
-//         Array<FBOMObject>::operator=(std::move(other));
-
-//         return *this;
-//     }
-
-// private:
-//     Array<FBOMObject> objects;
-// };
-
-class FBOMNodeHolder : public Array<FBOMObject> {
+class FBOMNodeHolder : public Array<FBOMObject>
+{
 public:
     FBOMNodeHolder()
         : Array<FBOMObject>()

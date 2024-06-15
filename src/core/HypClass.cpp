@@ -33,9 +33,9 @@ HypClass::~HypClass()
     }
 }
 
-HypClassProperty *HypClass::GetProperty(Name name) const
+HypClassProperty *HypClass::GetProperty(WeakName name) const
 {
-    const auto it = m_properties_by_name.Find(name);
+    const auto it = m_properties_by_name.FindAs(name);
 
     if (it == m_properties_by_name.End()) {
         return nullptr;

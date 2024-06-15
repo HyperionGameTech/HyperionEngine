@@ -27,6 +27,31 @@ StreamedMeshData::StreamedMeshData()
 {
 }
 
+StreamedMeshData::StreamedMeshData(const MeshData &mesh_data)
+    : StreamedData(StreamedDataState::LOADED),
+      m_streamed_data(nullptr),
+      m_num_vertices(mesh_data.vertices.Size()),
+      m_num_indices(mesh_data.indices.Size())
+{
+    MemoryByteWriter writer;
+
+    fbom::FBOMWriter serializer;
+    
+    if (fbom::FBOMResult err = serializer.Append(mesh_data)) {
+        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+    }
+
+    if (fbom::FBOMResult err = serializer.Emit(&writer)) {
+        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+    }
+
+    // Do not keep in memory, we already have what we want - but we need to calculate the hash
+    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
+
+    m_mesh_data.Set(mesh_data);
+    AssertThrow(StreamedMeshData::IsInMemory());
+}
+
 StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
     : StreamedData(StreamedDataState::LOADED),
       m_streamed_data(nullptr),

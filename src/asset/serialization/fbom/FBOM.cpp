@@ -33,7 +33,7 @@ void FBOM::RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal
     m_marshals.Set(name, std::move(marshal));
 }
 
-FBOMMarshalerBase *FBOM::GetLoader(TypeID object_type_id) const
+FBOMMarshalerBase *FBOM::GetMarshal(TypeID object_type_id) const
 {
     for (const auto &it : m_marshals) {
         if (!it.second) {
@@ -48,7 +48,7 @@ FBOMMarshalerBase *FBOM::GetLoader(TypeID object_type_id) const
     return nullptr;
 }
 
-FBOMMarshalerBase *FBOM::GetLoader(const ANSIStringView &type_name) const
+FBOMMarshalerBase *FBOM::GetMarshal(const ANSIStringView &type_name) const
 {
     const auto it = m_marshals.FindAs(type_name);
 

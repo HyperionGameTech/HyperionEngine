@@ -40,7 +40,6 @@ public:
     FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)
     {
         m_value = other.m_value;
-        AssertThrow(m_value.GetTypeID() == other.m_value.GetTypeID());
 
         return *this;
     }
@@ -52,9 +51,7 @@ public:
 
     FBOMDeserializedObject &operator=(FBOMDeserializedObject &&other) noexcept
     {
-        auto type_value = other.m_value.GetTypeID();
         m_value = std::move(other.m_value);
-        AssertThrow(m_value.GetTypeID() == type_value);
 
         return *this;
     }

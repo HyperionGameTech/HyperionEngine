@@ -85,7 +85,7 @@ class HypClassPropertySerializer<uint8> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint8 value) const
     {
-        return fbom::FBOMData::FromByte(value);
+        return fbom::FBOMData(value);
     }
 
     uint8 Deserialize(const fbom::FBOMData &value) const
@@ -106,7 +106,7 @@ class HypClassPropertySerializer<uint32> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint32 value) const
     {
-        return fbom::FBOMData::FromUnsignedInt(value);
+        return fbom::FBOMData(value);
     }
 
     uint32 Deserialize(const fbom::FBOMData &value) const
@@ -127,7 +127,7 @@ class HypClassPropertySerializer<uint64> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint64 value) const
     {
-        return fbom::FBOMData::FromUnsignedLong(value);
+        return fbom::FBOMData(value);
     }
 
     uint64 Deserialize(const fbom::FBOMData &value) const
@@ -148,7 +148,7 @@ class HypClassPropertySerializer<int32> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(int32 value) const
     {
-        return fbom::FBOMData::FromInt(value);
+        return fbom::FBOMData(value);
     }
 
     int32 Deserialize(const fbom::FBOMData &value) const
@@ -169,7 +169,7 @@ class HypClassPropertySerializer<int64> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(int64 value) const
     {
-        return fbom::FBOMData::FromLong(value);
+        return fbom::FBOMData(value);
     }
 
     int64 Deserialize(const fbom::FBOMData &value) const
@@ -190,7 +190,7 @@ class HypClassPropertySerializer<float> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(float value) const
     {
-        return fbom::FBOMData::FromFloat(value);
+        return fbom::FBOMData(value);
     }
 
     float Deserialize(const fbom::FBOMData &value) const
@@ -211,7 +211,7 @@ class HypClassPropertySerializer<bool> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(bool value) const
     {
-        return fbom::FBOMData::FromBool(value);
+        return fbom::FBOMData(value);
     }
 
     bool Deserialize(const fbom::FBOMData &value) const
@@ -227,23 +227,67 @@ public:
 };
 
 template <class T>
-class HypClassPropertySerializer<T, std::enable_if_t< fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> > > > : public IHypClassPropertySerializer
+class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const NormalizedType<T> &value) const
     {
-        return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
+        if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
+            return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
+        } else if constexpr (implementation_exists< fbom::detail::FBOMMarshalerRegistration< NormalizedType<T>, fbom::FBOMMarshaler< NormalizedType<T> > > >) {
+            return fbom::FBOMData::FromObject(fbom::FBOMObject::Serialize(value));
+        } else {
+            static_assert(resolution_failure<T>, "No serializer found for type T");
+        }
     }
 
-    NormalizedType<T> Deserialize(const fbom::FBOMData &value) const
+    auto Deserialize(const fbom::FBOMData &value) const
     {
-        NormalizedType<T> result { };
+        if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
+            NormalizedType<T> result { };
 
-        if (fbom::FBOMResult err = value.ReadStruct(&result)) {
+            if (fbom::FBOMResult err = value.ReadStruct(&result)) {
+                return result;
+            }
+
             return result;
+        } else if constexpr (implementation_exists< fbom::detail::FBOMMarshalerRegistration< NormalizedType<T>, fbom::FBOMMarshaler< NormalizedType<T> > > >) {
+            fbom::FBOMDeserializedObject deserialized_object;
+
+            fbom::FBOMObject object;
+
+            fbom::FBOMResult result = value.ReadObject(object);
+            AssertThrowMsg(result.IsOK(), "Failed to read object: %s", *result.message);
+
+            result = fbom::FBOMObject::Deserialize< NormalizedType<T> >(object, deserialized_object);
+            AssertThrowMsg(result.IsOK(), "Failed to deserialize object: %s", *result.message);
+
+            return deserialized_object.Get< NormalizedType<T> >();
+        } else {
+            static_assert(resolution_failure<T>, "No serializer found for type T");
+        }
+    }
+};
+template <class T>
+class HypClassPropertySerializer< RC<T> > : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const RC<T> &value) const
+    {
+        if (!value) {
+            return fbom::FBOMData { };
         }
 
-        return result;
+        return HypClassPropertySerializer<T>().Serialize(*value);
+    }
+
+    RC<T> Deserialize(const fbom::FBOMData &value) const
+    {
+        if (!value) {
+            return { };
+        }
+
+        return RC<T>(std::move(*HypClassPropertySerializer<T>().Deserialize(value)));
     }
 };
 
@@ -253,7 +297,7 @@ class HypClassPropertySerializer< ID<T> > : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const ID<T> &id) const
     {
-        return fbom::FBOMData::FromUnsignedInt(id.value);
+        return fbom::FBOMData(uint32(id.value));
     }
 
     ID<T> Deserialize(const fbom::FBOMData &value) const

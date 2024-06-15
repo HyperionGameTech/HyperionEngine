@@ -27,6 +27,7 @@ public:
     static RC<StreamedMeshData> FromMeshData(MeshData);
     
     StreamedMeshData();
+    StreamedMeshData(const MeshData &mesh_data);
     StreamedMeshData(MeshData &&mesh_data);
     // StreamedMeshData(const StreamedMeshData &other)                 = default;
     // StreamedMeshData &operator=(const StreamedMeshData &other)      = default;

@@ -324,7 +324,7 @@ public:
 
         for (FBOMObject &node : *in.nodes) {
             if (node.GetType().IsOrExtends("CompiledShader")) {
-                Optional<CompiledShader> compiled_shader = node.deserialized.Get<CompiledShader>();
+                Optional<CompiledShader &> compiled_shader = node.deserialized.Get<CompiledShader>();
 
                 if (compiled_shader.HasValue()) {
                     batch.compiled_shaders.PushBack(*compiled_shader);

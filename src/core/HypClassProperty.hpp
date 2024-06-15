@@ -202,16 +202,26 @@ struct HypClassProperty
     bool HasGetter() const
         { return getter.IsValid(); }
 
+    template <class TargetType>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    fbom::FBOMData InvokeGetter(TargetType &target) const
+        { return getter(target); }
+
     template <class ReturnType, class TargetType>
     HYP_NODISCARD HYP_FORCE_INLINE
-    ReturnType InvokeGetter(TargetType &target) const
+    auto InvokeGetter(TargetType &target) const
         { return getter.Invoke<ReturnType, TargetType>(&target); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     bool HasSetter() const
         { return setter.IsValid(); }
 
-    template <class TargetType, class ValueType>
+    template <class TargetType>
+    HYP_FORCE_INLINE
+    void InvokeSetter(TargetType &target, const fbom::FBOMData &value) const
+        { setter(target, value); }
+
+    template <class TargetType, class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, ValueType > > >
     HYP_FORCE_INLINE
     void InvokeSetter(TargetType &target, ValueType &&value) const
         { setter.Invoke<TargetType, ValueType>(&target, std::forward<ValueType>(value)); }

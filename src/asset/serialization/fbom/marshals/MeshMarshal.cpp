@@ -23,18 +23,9 @@ public:
             auto ref = streamed_mesh_data->AcquireRef();
             const MeshData &mesh_data = ref->GetMeshData();
 
-            // dump vertices and indices
-            out.SetProperty(NAME("num_vertices"), uint32(mesh_data.vertices.Size()));
-            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>()), ByteBuffer(mesh_data.vertices.Size(), mesh_data.vertices.Data()));
-
-            out.SetProperty(NAME("num_indices"), uint32(mesh_data.indices.Size()));
-            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt()), ByteBuffer(mesh_data.indices.Size(), mesh_data.indices.Data()));
-        } else {
-            out.SetProperty(NAME("num_vertices"), uint32(0));
-            out.SetProperty(NAME("vertices"), FBOMSequence(FBOMStruct::Create<Vertex>()), ByteBuffer());
-
-            out.SetProperty(NAME("num_indices"), uint32(0));
-            out.SetProperty(NAME("indices"), FBOMSequence(FBOMUnsignedInt()), ByteBuffer());
+            if (FBOMResult err = out.AddChild(mesh_data)) {
+                return err;
+            }
         }
 
         return { FBOMResult::FBOM_OK };
@@ -54,37 +45,21 @@ public:
             return err;
         }
 
-        Array<Vertex> vertices;
+        RC<StreamedMeshData> streamed_mesh_data;
 
-        if (const FBOMData &vertices_property = in.GetProperty("vertices")) {
-            const SizeType num_vertices = vertices_property.NumElements(FBOMStruct::Create<Vertex>());
+        const auto mesh_data_it = in.nodes->FindIf([](const FBOMObject &item)
+        {
+            return item.GetType().IsOrExtends("MeshData");
+        });
 
-            if (num_vertices != 0) {
-                vertices.Resize(num_vertices);
+        if (mesh_data_it != in.nodes->End()) {
+            streamed_mesh_data.Reset(new StreamedMeshData(*mesh_data_it->deserialized.Get<MeshData>()));
 
-                if (FBOMResult err = vertices_property.ReadElements(FBOMStruct::Create<Vertex>(), num_vertices, vertices.Data())) {
-                    return err;
-                }
-            }
-        }
-
-        Array<Mesh::Index> indices;
-
-        if (const FBOMData &indices_property = in.GetProperty("indices")) {
-            const SizeType num_indices = indices_property.NumElements(FBOMUnsignedInt());
-
-            if (num_indices != 0) {
-                indices.Resize(num_indices);
-
-                if (FBOMResult err = indices_property.ReadElements(FBOMUnsignedInt(), num_indices, indices.Data())) {
-                    return err;
-                }
-            }
+            return { FBOMResult::FBOM_OK };
         }
 
         out_object = CreateObject<Mesh>(
-            vertices,
-            indices,
+            std::move(streamed_mesh_data),
             topology,
             vertex_attributes
         );

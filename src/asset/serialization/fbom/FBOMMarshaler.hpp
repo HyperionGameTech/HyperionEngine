@@ -38,6 +38,12 @@ class FBOMObjectMarshalerBase;
 template <class T>
 class FBOMMarshaler;
 
+template <class T, class MarshalerType>
+struct FBOMHasMarshal
+{
+    static constexpr bool value = false;
+};
+
 namespace detail {
 
 struct FBOMMarshalerRegistrationBase
@@ -72,14 +78,13 @@ public:
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const = 0;
 
-private:
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override final
     {
         Any any_value;
 
-        auto result = Deserialize(in, any_value);
+        FBOMResult result = Deserialize(in, any_value);
 
-        if (result.value == FBOMResult::FBOM_OK) {
+        if (result.IsOK()) {
             AssertThrow(any_value.HasValue());
             
             out.m_value = std::move(any_value);
@@ -98,7 +103,15 @@ public:
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType) \
+    template <> \
+    struct FBOMHasMarshal<T, MarshalType> \
+    { \
+        static constexpr bool value = true; \
+    }; \
     static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> T##_Marshal { }
+
+#define HYP_HAS_MARSHAL(T, MarshalType) \
+    (::hyperion::fbom::FBOMHasMarshal<T, MarshalType>::value)
 
 } // namespace hyperion::fbom
 

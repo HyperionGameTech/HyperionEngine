@@ -64,13 +64,13 @@ FBOMReader::~FBOMReader() = default;
 
 FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
 {
-    const FBOMMarshalerBase *loader = FBOM::GetInstance().GetLoader(in.m_object_type.name);
+    const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
 
-    if (!loader) {
-        return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
+    if (!marshal) {
+        return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
     }
 
-    return loader->Deserialize(in, out_object);
+    return marshal->Deserialize(in, out_object);
 }
 
 FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
@@ -589,7 +589,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                 break;
             }
             case FBOM_OBJECT_END:
-                if (HasCustomLoaderForType(object_type)) {
+                if (HasMarshalForType(object_type)) {
                     // call deserializer function, writing into object.deserialized
                     if (FBOMResult err = Deserialize(out_object, out_object.deserialized)) {
                         return err;

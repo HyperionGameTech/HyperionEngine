@@ -183,7 +183,7 @@ public:
      *
      * \ref{index} must be less than \ref{Size()}.
      */
-    [[nodiscard]]
+    HYP_NODISCARD
     const CharType operator[](SizeType index) const;
 
     /*! \brief Get a char from the String at the given index.
@@ -192,97 +192,87 @@ public:
      *
      * \ref{index} must be less than \ref{Length()}.
      */
-    [[nodiscard]]
+    HYP_NODISCARD
     WidestCharType GetChar(SizeType index) const;
 
     /*! \brief Return the data size in characters. Note, UTF-8 strings can have a shorter length than size. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType Size() const
         { return Base::Size() - 1; /* for NT char */ }
 
     /*! \brief Return the length of the string in characters. Note, UTF-8 strings can have a shorter length than size. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType Length() const
         { return m_length; }
 
     /*! \brief Access the raw data of the string.
         \note For UTF-8 strings, ensure proper care is taken when accessing the data, as indexing via a character index may not
               yield a valid character. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     typename Base::ValueType *Data()
         { return Base::Data(); }
 
     /*! \brief Access the raw data of the string.
         \note For UTF-8 strings, ensure proper care is taken when accessing the data, as indexing via a character index may not
               yield a valid character. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const typename Base::ValueType *Data() const
         { return Base::Data(); }
 
     /*! \brief Dereference operator overload to return the raw data of the string. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     operator const CharType *() const
         { return Base::Data(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    /*! \brief Dereference operator overload to return the raw data of the string. */
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const CharType * operator*() const
+        { return Base::Data(); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     typename Base::ValueType &Front()
         { return Base::Front(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const typename Base::ValueType &Front() const
         { return Base::Front(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     typename Base::ValueType &Back()
         { return Base::GetBuffer()[Base::m_size - 2]; /* for NT char */ }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const typename Base::ValueType &Back() const
         { return Base::GetBuffer()[Base::m_size - 2]; /* for NT char */ }
 
     /*! \brief Check if the string contains the given character. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Contains(const CharType &ch) const
         { return ch != CharType { 0 } && Base::Contains(ch); }
 
     /*! \brief Check if the string contains the given string. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Contains(const String &str) const
         { return FindIndex(str) != not_found; }
 
     /*! \brief Find the index of the first occurrence of the character in the string.
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType FindIndex(const String &str) const;
 
     /*! \brief Check if the string is empty. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Empty() const
         { return Size() == 0; }
 
     /*! \brief Check if the string contains any characters. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Any() const
         { return Size() != 0; }
 
     /*! \brief Check if the string contains multi-byte characters. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasMultiByteChars() const
         { return Size() > Length(); }
 
@@ -331,7 +321,7 @@ public:
     String ReplaceAll(const String &search, const String &replace) const;
 
     template <class ... SeparatorType>
-    [[nodiscard]]
+    HYP_NODISCARD
     Array<String> Split(SeparatorType ... separators) const 
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separator_values { WidestCharType(separators)... };
@@ -418,7 +408,7 @@ public:
     }
 
     template <class Container>
-    [[nodiscard]]
+    HYP_NODISCARD
     static String Join(const Container &container, WidestCharType separator)
     {
         String result;
@@ -449,7 +439,7 @@ public:
         return result;
     }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     static String Base64Encode(const Array<ubyte> &bytes)
     {
         static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -480,7 +470,7 @@ public:
         return out;
     }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     static Array<ubyte> Base64Decode(const String &in)
     {
         static const int lookup_table[] = {
@@ -540,7 +530,7 @@ public:
         return out;
     }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     String<UTF8> ToUTF8() const
     {
         if constexpr (is_utf8) {
@@ -598,7 +588,7 @@ public:
     }
 
     template <class Integral>
-    [[nodiscard]]
+    HYP_NODISCARD
     static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, String>
     ToString(Integral value)
     {
@@ -622,18 +612,15 @@ public:
         return result;
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static String ToString(const String &value)
         { return value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static String ToString(String &&value)
         { return value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
         { return HashCode::GetHashCode(Data()); }
 

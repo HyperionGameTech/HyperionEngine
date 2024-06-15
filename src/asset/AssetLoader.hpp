@@ -69,7 +69,7 @@ public:
     static constexpr bool is_handle = has_opaque_handle_defined<T>;
 
     using ResultType = Any;
-    using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T>>;
+    using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T &>>;
 
     AssetLoaderBase &loader;
 
@@ -82,7 +82,7 @@ public:
 
             return Handle<T>::empty;
         } else {
-            return Optional<T>(value.TryGet<T>());
+            return Optional<T &>(value.TryGet<T>());
         }
     }
 

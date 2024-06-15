@@ -95,8 +95,7 @@ struct Name
 
     /*! \brief For convenience, operator* is overloaded to return the string representation of the name,
      *  if it is found in the name registry. Otherwise, it returns an empty string. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const char *operator*() const
         { return LookupString(); }
 
@@ -105,8 +104,7 @@ struct Name
 
     /*! \brief Returns the string representation of the name, if it is found in the name registry.
      *  Otherwise, it returns an empty string. */
-    [[nodiscard]]
-    HYP_API const char *LookupString() const;
+    HYP_NODISCARD HYP_API const char *LookupString() const;
 
     HYP_API static NameRegistry *GetRegistry();
 
@@ -115,13 +113,12 @@ struct Name
     /*! \brief Generates a unique name with a prefix. */
     HYP_API static Name Unique(const char *prefix);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static constexpr Name Invalid()
         { return Name { 0 }; };
 
     // template <class StaticStringType>
-    // [[nodiscard]]
+    // HYP_NODISCARD
     // HYP_FORCE_INLINE
     // static constexpr Name FromStaticString(StaticStringType static_string)
     //     { return Name { (CreateNameFromStaticString_WithLock<HashCode::GetHashCode(StaticString)>(StaticString.data).hash_code) }; }
@@ -154,7 +151,25 @@ struct WeakName
     {
     }
     
-    explicit constexpr WeakName(const ANSIStringView &str)
+    template <SizeType Sz>
+    constexpr WeakName(const char (&str)[Sz])
+        : hash_code(HashCode::GetHashCode(str).Value())
+    {
+    }
+    
+    constexpr WeakName(const char *str)
+        : hash_code(HashCode::GetHashCode(str).Value())
+    {
+    }
+    
+    template <int StringType, typename = std::enable_if_t< std::is_same_v< typename StringView<StringType>::CharType, char > > >
+    constexpr WeakName(const StringView<StringType> &str)
+        : hash_code(HashCode::GetHashCode(str).Value())
+    {
+    }
+    
+    template <int StringType, typename = std::enable_if_t< std::is_same_v< typename containers::detail::String<StringType>::CharType, char > > >
+    constexpr WeakName(const containers::detail::String<StringType> &str)
         : hash_code(HashCode::GetHashCode(str).Value())
     {
     }
@@ -191,8 +206,7 @@ struct WeakName
     constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     static constexpr WeakName Invalid()
         { return WeakName { }; };
 };

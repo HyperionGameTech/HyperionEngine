@@ -21,7 +21,10 @@ HYP_DEFINE_CLASS(
     Mesh,
     HypClassProperty(NAME("ID"), &Mesh::GetID, &Mesh::SetID),
     HypClassProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
-    HypClassProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes)
+    HypClassProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes),
+    HypClassProperty(NAME("Topology"), &Mesh::GetTopology),
+    HypClassProperty(NAME("NumIndices"), &Mesh::NumIndices),
+    HypClassProperty(NAME("StreamedMeshData"), &Mesh::GetStreamedMeshData)
 );
 
 using renderer::Result;

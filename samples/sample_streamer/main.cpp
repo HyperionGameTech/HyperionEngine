@@ -74,19 +74,19 @@ int main(int argc, char **argv)
 
     const HypClass *cls = GetClass<Mesh>();
     HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
-    HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty(NAME("AABB"))->name);
+    HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
 
     Mesh m;
     m.SetID(ID<Mesh>{ 123 });
 
     for (HypClassProperty *property : cls->GetProperties()) {
-        HYP_LOG(Core, LogLevel::INFO, "Property: {}", property->name);
+        HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, property->getter(m).ToString());
     }
 
-    if (HypClassProperty *property = cls->GetProperty(NAME("AABB"))) {
-        property->InvokeSetter(m, BoundingBox { -100, 100 });
+    if (HypClassProperty *property = cls->GetProperty("AABB")) {
+        property->InvokeSetter(m, BoundingBox { -124, 124 });
 
-        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter<BoundingBox>(m));
+        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter(m).ToString());
     }
 
     // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {

@@ -39,7 +39,7 @@ public:
         { return false; }
 
     HYP_NODISCARD
-    HypClassProperty *GetProperty(Name name) const;
+    HypClassProperty *GetProperty(WeakName name) const;
 
     HYP_NODISCARD HYP_FORCE_INLINE
     const Array<HypClassProperty *> &GetProperties() const
