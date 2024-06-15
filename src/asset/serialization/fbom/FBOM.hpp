@@ -15,7 +15,6 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/ClassInfo.hpp>
 
 #include <math/MathUtil.hpp>
 

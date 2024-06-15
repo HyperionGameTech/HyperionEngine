@@ -2,9 +2,13 @@
 
 #include <physics/RigidBody.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::physics {
+
+HYP_DEFINE_CLASS(RigidBody);
 
 RigidBody::~RigidBody()
 {

@@ -25,6 +25,12 @@ struct Span
     {
     }
 
+    constexpr Span(std::nullptr_t)
+        : first(nullptr),
+          last(nullptr)
+    {
+    }
+
     constexpr Span(const Span &other) = default;
 
     template <class OtherT>
@@ -111,6 +117,13 @@ struct Span
 
     template <SizeType Size>
     constexpr Span(T (&ary)[Size])
+        : first(&ary[0]),
+          last(&ary[Size])
+    {
+    }
+
+    template <SizeType Size>
+    constexpr Span(T (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {

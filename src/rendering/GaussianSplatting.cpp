@@ -12,6 +12,8 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <math/MathUtil.hpp>
 #include <math/Color.hpp>
 
@@ -24,6 +26,9 @@
 //#define HYP_GAUSSIAN_SPLATTING_CPU_SORT
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(GaussianSplatting);
+HYP_DEFINE_CLASS(GaussianSplattingInstance);
 
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;

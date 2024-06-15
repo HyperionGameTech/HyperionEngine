@@ -2,12 +2,15 @@
 
 #include <rendering/PostFX.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
+HYP_DEFINE_CLASS(PostProcessingEffect);
 
 PostFXPass::PostFXPass(InternalFormat image_format)
     : FullScreenPass(nullptr, image_format)

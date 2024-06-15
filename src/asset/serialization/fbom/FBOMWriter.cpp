@@ -10,6 +10,11 @@
 
 #include <core/compression/Archive.hpp>
 
+#include <core/util/ForEach.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Constants.hpp>
 
 #include <algorithm>
@@ -149,7 +154,10 @@ FBOMResult FBOMWriter::WriteExternalObjects()
         DebugLog(LogType::Debug, "Writing %u external objects\n", m_write_stream->m_external_objects.Size());
     }
 
-    for (const KeyValuePair<String, FBOMExternalData> &it : m_write_stream->m_external_objects) {
+    AtomicVar<bool> any_errors = false;
+
+    ParallelForEach(m_write_stream->m_external_objects, [&any_errors](const KeyValuePair<String, FBOMExternalData> &it, uint, uint)
+    {
         const String external_object_path = it.first;
 
         FBOMWriter chunk_writer;
@@ -161,18 +169,26 @@ FBOMResult FBOMWriter::WriteExternalObjects()
             object.SetExternalObjectInfo(FBOMExternalObjectInfo { });
 
             if (FBOMResult err = chunk_writer.Append(object)) {
-                return err;
+                HYP_LOG(Serialization, LogLevel::ERROR, "Failed to write external object: {}", err.message);
+
+                any_errors.Set(true, MemoryOrder::RELAXED);
+
+                return;
             }
         }
 
         FileByteWriter byte_writer(external_object_path);
 
         if (FBOMResult err = chunk_writer.Emit(&byte_writer)) {
-            return err;
-        }
-    }
+            HYP_LOG(Serialization, LogLevel::ERROR, "Failed to write external object: {}", err.message);
 
-    return FBOMResult::FBOM_OK;
+            any_errors.Set(true, MemoryOrder::RELAXED);
+        }
+    });
+
+    return any_errors.Get(MemoryOrder::RELAXED)
+        ? FBOMResult::FBOM_ERR
+        : FBOMResult::FBOM_OK;
 }
 
 void FBOMWriter::BuildStaticData()

@@ -57,7 +57,11 @@ public:
     static Any Construct(Args &&... args)
     {
         Any any;
-        any.Emplace<NormalizedType<T>>(std::forward<Args>(args)...);
+
+        if constexpr (!std::is_void_v<T>) {
+            any.Emplace<NormalizedType<T>>(std::forward<Args>(args)...);
+        }
+
         return any;
     }
 

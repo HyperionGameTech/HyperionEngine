@@ -1,9 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/Lightmap.hpp>
+
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Lightmap);
 
 Lightmap::Lightmap(Handle<Texture> radiance_texture, Handle<Texture> irradiance_texture)
     : BasicObject(),

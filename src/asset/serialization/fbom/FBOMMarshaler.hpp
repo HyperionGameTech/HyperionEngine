@@ -29,7 +29,6 @@ public:
     virtual TypeID GetTypeID() const = 0;
 
 protected:
-    // virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const = 0;
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
 };
 
@@ -84,12 +83,6 @@ private:
             AssertThrow(any_value.HasValue());
             
             out.m_value = std::move(any_value);
-
-            /*// @TODO Come back to this
-            UniquePtr<AssetLoaderWrapper<T>::ResultType> result_ptr = ptr.Cast<AssetLoaderWrapper<T>::ResultType>();
-            AssertThrow(result_ptr != nullptr);
-
-            out.Set<T>(std::move(*result_ptr));*/
         }
 
         return result;
@@ -106,7 +99,6 @@ public:
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType) \
     static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> T##_Marshal { }
-
 
 } // namespace hyperion::fbom
 

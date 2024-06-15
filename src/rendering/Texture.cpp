@@ -9,12 +9,16 @@
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererSampler.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Texture);
 
 using renderer::Result;
 

@@ -4,11 +4,15 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(World);
 
 using renderer::RTUpdateStateFlags;
 

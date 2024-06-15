@@ -222,6 +222,14 @@ struct FBOMData : public IFBOMSerializable
     bool IsStruct(const char *type_name, SizeType size) const
         { return type.IsOrExtends(FBOMStruct(type_name, size)); }
 
+
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    static FBOMData FromStruct(const T &value)
+    {
+        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
+    }
+
     HYP_FORCE_INLINE
     FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
     {

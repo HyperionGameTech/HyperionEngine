@@ -5,6 +5,8 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -14,6 +16,13 @@
 #include <cstring>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(
+    Mesh,
+    HypClassProperty(NAME("ID"), &Mesh::GetID, &Mesh::SetID),
+    HypClassProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
+    HypClassProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes)
+);
 
 using renderer::Result;
 using renderer::GPUBufferType;

@@ -5,14 +5,17 @@
 #include <math/Halton.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
-
 #include <rendering/backend/RendererFramebuffer.hpp>
+
+#include <core/HypClassUtils.hpp>
 
 #include <core/system/AppContext.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Camera);
 
 using renderer::Result;
 

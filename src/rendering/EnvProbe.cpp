@@ -7,11 +7,13 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
 
-class EnvProbe;
+HYP_DEFINE_CLASS(EnvProbe);
 
 using renderer::Result;
 

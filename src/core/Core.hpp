@@ -4,6 +4,8 @@
 #define HYP_CORE_CORE_HPP
 
 #include <core/Defines.hpp>
+#include <core/HypClassRegistry.hpp>
+#include <core/ID.hpp>
 
 #include <rendering/backend/Platform.hpp>
 
@@ -22,6 +24,7 @@ using Device = platform::Device<Platform::CURRENT>;
 namespace hyperion {
 
 class Engine;
+class HypClass;
 class ObjectPool;
 
 template <class T>
@@ -30,17 +33,70 @@ struct Handle;
 HYP_API Engine *GetEngine();
 HYP_API renderer::Device *GetEngineDevice();
 
-template <class T, class EngineImpl>
-static HYP_FORCE_INLINE bool InitObject_Internal(EngineImpl *engine, Handle<T> &handle)
+template <class T>
+HYP_NODISCARD HYP_FORCE_INLINE
+Handle<T> CreateObject()
 {
-    return engine->template InitObject<T>(handle);
+    auto &container = Handle<T>::GetContainer();
+
+    const uint index = container.NextIndex();
+    container.ConstructAtIndex(index);
+
+    return Handle<T>(ID<T>::FromIndex(index));
 }
 
-/*! \brief Initializes an object with the engine. This is a wrapper around the engine's InitObject function. */
-template <class T>
-static HYP_FORCE_INLINE bool InitObject(Handle<T> &handle)
+template <class T, class ... Args>
+HYP_NODISCARD HYP_FORCE_INLINE
+Handle<T> CreateObject(Args &&... args)
 {
-    return InitObject_Internal(GetEngine(), handle);
+    auto &container = Handle<T>::GetContainer();
+
+    const uint index = container.NextIndex();
+
+    container.ConstructAtIndex(
+        index,
+        std::forward<Args>(args)...
+    );
+
+    return Handle<T>(ID<T>::FromIndex(index));
+}
+
+template <class T>
+HYP_FORCE_INLINE
+bool InitObject(Handle<T> &handle)
+{
+    if (!handle) {
+        return false;
+    }
+
+    if (!handle->GetID()) {
+        return false;
+    }
+
+    handle->Init();
+
+    return true;
+}
+
+template <class T>
+HYP_NODISCARD HYP_FORCE_INLINE
+const HypClass *GetClass()
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+template <class T>
+HYP_NODISCARD HYP_FORCE_INLINE
+const HypClass *GetClass(const T *ptr)
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+template <class T>
+HYP_NODISCARD HYP_FORCE_INLINE
+const HypClass *GetClass(const Handle<T> &handle)
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
 } // namespace hyperion

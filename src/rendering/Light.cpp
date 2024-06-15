@@ -3,13 +3,15 @@
 #include <rendering/Light.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
-class Light;
+HYP_DEFINE_CLASS(Light);
 
 #pragma region Render commands
 

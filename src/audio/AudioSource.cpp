@@ -3,9 +3,13 @@
 #include <audio/AudioSource.hpp>
 #include <audio/AudioManager.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(AudioSource);
 
 AudioSource::AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType freq)
     : BasicObject(),

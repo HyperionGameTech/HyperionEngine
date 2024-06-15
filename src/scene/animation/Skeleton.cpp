@@ -7,9 +7,13 @@
 
 #include <rendering/backend/RendererResult.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Skeleton);
 
 using renderer::Result;
 

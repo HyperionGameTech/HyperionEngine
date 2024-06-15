@@ -1,13 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <Engine.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
-
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_CLASS(RenderEnvironment);
 
 using renderer::Result;
 

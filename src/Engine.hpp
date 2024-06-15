@@ -275,48 +275,6 @@ public:
 
     AtomicVar<bool> m_stop_requested;
 
-    template <class T, class ... Args>
-    Handle<T> CreateObject(Args &&... args)
-    {
-        auto &container = Handle<T>::GetContainer();
-
-        const uint index = container.NextIndex();
-
-        container.ConstructAtIndex(
-            index,
-            std::forward<Args>(args)...
-        );
-
-        return Handle<T>(ID<T>::FromIndex(index));
-    }
-
-    template <class T>
-    Handle<T> CreateObject()
-    {
-        auto &container = Handle<T>::GetContainer();
-
-        const uint index = container.NextIndex();
-        container.ConstructAtIndex(index);
-
-        return Handle<T>(ID<T>::FromIndex(index));
-    }
-
-    template <class T>
-    bool InitObject(Handle<T> &handle)
-    {
-        if (!handle) {
-            return false;
-        }
-
-        if (!handle->GetID()) {
-            return false;
-        }
-
-        handle->Init();
-
-        return true;
-    }
-
     void FinalizeStop();
 
 private:

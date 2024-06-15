@@ -12,6 +12,9 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/UUID.hpp>
 
+#include <core/HypClass.hpp>
+#include <core/HypClassProperty.hpp>
+
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/Format.hpp>
 
@@ -60,12 +63,33 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
+struct TestStruct{ Name name; };
+
 int main(int argc, char **argv)
 {
     signal(SIGINT, HandleSignal);
     
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
+
+    const HypClass *cls = GetClass<Mesh>();
+    HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
+    HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty(NAME("AABB"))->name);
+
+    Mesh m;
+    m.SetID(ID<Mesh>{ 123 });
+
+    if (HypClassProperty *property = cls->GetProperty(NAME("AABB"))) {
+        property->setter.Invoke(m, BoundingBox { -100, 100 });
+
+        HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->getter.Invoke(m).Get<BoundingBox>());
+    }
+
+    if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+        HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    }
+
+    HYP_BREAKPOINT;
 
 #if 0
     fbom::FBOMObject test_obj(fbom::FBOMObjectType("FooBarbazz"));

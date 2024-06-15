@@ -10,6 +10,8 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/util/ForEach.hpp>
 
 #include <math/MathUtil.hpp>
@@ -19,6 +21,9 @@
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(ParticleSpawner);
+HYP_DEFINE_CLASS(ParticleSystem);
 
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;

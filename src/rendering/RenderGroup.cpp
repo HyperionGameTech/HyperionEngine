@@ -8,6 +8,8 @@
 
 #include <scene/Entity.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/util/ForEach.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -17,6 +19,8 @@
 #include <Constants.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(RenderGroup);
 
 using renderer::Result;
 using renderer::CommandBufferType;

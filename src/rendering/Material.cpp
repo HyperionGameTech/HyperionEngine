@@ -6,6 +6,8 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -15,6 +17,9 @@
 #include <Types.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Material);
+HYP_DEFINE_CLASS(MaterialGroup);
 
 using renderer::Result;
 
@@ -453,7 +458,7 @@ const Handle<Texture> &Material::GetTextureAtIndex(uint index) const
 
 Handle<Material> Material::Clone() const
 {
-    auto handle = g_engine->CreateObject<Material>(
+    Handle<Material> handle = CreateObject<Material>(
         m_name,
         m_render_attributes,
         m_parameters,
@@ -551,7 +556,7 @@ Handle<Material> MaterialCache::CreateMaterial(
         };
     }
 
-    auto handle = g_engine->CreateObject<Material>(
+    Handle<Material> handle = CreateObject<Material>(
         Name::Unique("material"),
         attributes,
         parameters,
@@ -595,7 +600,7 @@ Handle<Material> MaterialCache::GetOrCreate(
         }
     }
 
-    auto handle = g_engine->CreateObject<Material>(
+    Handle<Material> handle = CreateObject<Material>(
         CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value())),
         attributes,
         parameters,
