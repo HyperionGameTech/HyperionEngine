@@ -117,6 +117,7 @@ public:
      *
      *  \return Reference to the elements array of this set.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<Element> &GetElements() const
         { return m_elements; }
 
@@ -124,6 +125,7 @@ public:
      *
      *  \return Reference to the entities in this set.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const EntityContainer &GetEntityContainer() const
         { return m_entities; }
 

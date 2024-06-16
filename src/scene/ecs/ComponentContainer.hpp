@@ -192,8 +192,7 @@ public:
         return &it->second;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Component &GetComponent(ComponentID id)
     {
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
@@ -201,8 +200,7 @@ public:
         return m_components.At(id);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Component &GetComponent(ComponentID id) const
     {
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
@@ -210,8 +208,7 @@ public:
         return m_components.At(id);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ComponentID AddComponent(Component &&component)
     {
         ComponentID id = ++m_component_id_counter;
@@ -259,8 +256,7 @@ public:
         return { };
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType Size() const
         { return m_components.Size(); }
 

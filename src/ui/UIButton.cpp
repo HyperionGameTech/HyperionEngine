@@ -40,6 +40,14 @@ void UIButton::SetText(const String &text)
     }
 }
 
+void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
+{
+    UIObject::SetFocusState_Internal(focus_state);
+
+    UpdateMaterial(false);
+    UpdateMeshData();
+}
+
 Handle<Material> UIButton::GetMaterial() const
 {
     return g_material_system->GetOrCreate(

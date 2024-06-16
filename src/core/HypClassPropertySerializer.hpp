@@ -5,6 +5,7 @@
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
+#include <core/Handle.hpp>
 #include <core/functional/Proc.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/containers/TypeMap.hpp>
@@ -268,6 +269,7 @@ public:
         }
     }
 };
+
 template <class T>
 class HypClassPropertySerializer< RC<T> > : public IHypClassPropertySerializer
 {
@@ -288,6 +290,31 @@ public:
         }
 
         return RC<T>(std::move(*HypClassPropertySerializer<T>().Deserialize(value)));
+    }
+};
+
+template <class T>
+class HypClassPropertySerializer< Handle<T> > : public IHypClassPropertySerializer
+{
+public:
+    static_assert(has_opaque_handle_defined<T>, "Type must have Handle<T> defined");
+
+    fbom::FBOMData Serialize(const Handle<T> &value) const
+    {
+        if (!value) {
+            return fbom::FBOMData { };
+        }
+
+        return HypClassPropertySerializer<T>().Serialize(*value);
+    }
+
+    Handle<T> Deserialize(const fbom::FBOMData &value) const
+    {
+        if (!value) {
+            return { };
+        }
+
+        return HypClassPropertySerializer<T>().Deserialize(value);
     }
 };
 

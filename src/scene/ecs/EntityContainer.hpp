@@ -20,20 +20,25 @@ struct EntityData
     TypeMap<ComponentID>    components;
 
     template <class Component>
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasComponent() const
         { return components.Contains<Component>(); }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasComponent(TypeID component_type_id) const
         { return components.Contains(component_type_id); }
 
     template <class ... Components>
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasComponents() const
         { return (HasComponent<Components>() && ...); }
 
     template <class Component>
+    HYP_NODISCARD HYP_FORCE_INLINE
     ComponentID GetComponentID() const
         { return components.At<Component>(); }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     ComponentID GetComponentID(TypeID component_type_id) const
         { return components.At(component_type_id); }
 };

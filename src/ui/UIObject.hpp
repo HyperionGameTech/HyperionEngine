@@ -533,6 +533,8 @@ public:
     Delegate<UIEventHandlerResult, const KeyboardEvent &>      OnKeyUp;
 
 protected:
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state);
+
     virtual void Update_Internal(GameCounter::TickUnit delta);
 
     virtual void OnAttached_Internal(UIObject *parent);

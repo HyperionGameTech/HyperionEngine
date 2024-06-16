@@ -311,13 +311,13 @@ public:
      *
      *  \return The thread mask.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ThreadMask GetOwnerThreadMask() const
         { return m_owner_thread_mask; }
 
     /*! \brief Sets the thread mask of the thread that owns this EntityManager.
      *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
+    HYP_FORCE_INLINE
     void SetOwnerThreadMask(ThreadMask owner_thread_mask)
         { m_owner_thread_mask = owner_thread_mask; }
 
@@ -325,8 +325,7 @@ public:
      *
      *  \return Pointer to the Scene.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Scene *GetScene() const
         { return m_scene; }
 
@@ -334,8 +333,7 @@ public:
      *
      *  \return Reference to the command queue.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     EntityManagerCommandQueue &GetCommandQueue()
         { return m_command_queue; }
 
@@ -343,8 +341,7 @@ public:
      *
      *  \return Reference to the command queue.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const EntityManagerCommandQueue &GetCommandQueue() const
         { return m_command_queue; }
 
@@ -353,7 +350,7 @@ public:
      *
      *  \return The Entity that was added.
      */
-    [[nodiscard]]
+    HYP_NODISCARD
     ID<Entity> AddEntity();
 
     /*! \brief Removes an entity from the EntityManager.
@@ -373,8 +370,7 @@ public:
      */
     void MoveEntity(ID<Entity> entity, EntityManager &other);
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasEntity(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -387,12 +383,9 @@ public:
     }
 
     template <EntityTag tag>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasTag(ID<Entity> entity) const
-    {
-        return HasComponent<EntityTagComponent<tag>>(entity);
-    }
+        { return HasComponent<EntityTagComponent<tag>>(entity); }
 
     template <EntityTag tag>
     HYP_FORCE_INLINE
@@ -416,8 +409,7 @@ public:
         RemoveComponent<EntityTagComponent<tag>>(entity);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Array<EntityTag> GetTags(ID<Entity> entity) const
     {
         Array<EntityTag> tags;
@@ -426,8 +418,7 @@ public:
         return tags;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 GetTagsMask(ID<Entity> entity) const
     {
         uint32 mask = 0;
@@ -437,8 +428,7 @@ public:
     }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasComponent(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -451,8 +441,7 @@ public:
         return it->second.HasComponent<Component>();
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool HasComponent(TypeID component_type_id, ID<Entity> entity)
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -466,8 +455,7 @@ public:
     }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Component &GetComponent(ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
@@ -490,14 +478,12 @@ public:
     }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Component &GetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->GetComponent<Component>(entity); }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Component *TryGetComponent(ID<Entity> entity)
     {
         // temp removed
@@ -534,8 +520,7 @@ public:
     }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Component *TryGetComponent(ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent<Component>(entity); }
 
@@ -546,8 +531,7 @@ public:
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
@@ -579,28 +563,24 @@ public:
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const void *TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent(component_type_id, entity); }
 
     template <class ... Components>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Tuple< Components &... > GetComponents(ID<Entity> entity)
         { return Tie(GetComponent<Components>(entity)...); }
 
     template <class ... Components>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Tuple< const Components &... > GetComponents(ID<Entity> entity) const
         { return Tie(GetComponent<Components>(entity)...); }
 
     /*! \brief Get a map of all component types to respective component IDs for a given Entity.
      *  \param entity The entity to lookup components for
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -754,7 +734,7 @@ public:
      *  \return Reference to the entity set.
      */
     template <class ... Components>
-    [[nodiscard]]
+    HYP_NODISCARD
     EntitySet<Components...> &GetEntitySet()
     {
         Mutex::Guard guard(m_entity_sets_mutex);
@@ -818,8 +798,7 @@ private:
     }
 
     template <class Component>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ComponentContainer<Component> &GetContainer()
     {
         auto it = m_containers.Find<Component>();
@@ -831,8 +810,7 @@ private:
         return static_cast<ComponentContainer<Component> &>(*it->second);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ComponentContainerBase *TryGetContainer(TypeID component_type_id)
     {
         auto it = m_containers.Find(component_type_id);

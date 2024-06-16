@@ -48,6 +48,14 @@ void UITab::SetTitle(const String &title)
     }
 }
 
+void UITab::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
+{
+    UIObject::SetFocusState_Internal(focus_state);
+
+    UpdateMaterial(false);
+    UpdateMeshData();
+}
+
 Handle<Material> UITab::GetMaterial() const
 {
     Color color;

@@ -47,6 +47,8 @@ public:
     virtual void Init() override;
 
 protected:
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
+
     virtual Handle<Material> GetMaterial() const override;
 
     String      m_text;

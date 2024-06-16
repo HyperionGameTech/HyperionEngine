@@ -17,7 +17,8 @@ HYP_DEFINE_CLASS(World);
 using renderer::RTUpdateStateFlags;
 
 World::World()
-    : BasicObject()
+    : BasicObject(),
+      m_detached_scenes(this)
 {
 }
 
@@ -34,7 +35,6 @@ World::~World()
     m_scenes.Clear();
     m_scenes_pending_addition.Clear();
     m_scenes_pending_removal.Clear();
-    m_detached_scenes.Clear();
 
     m_physics_world.Teardown();
 }
@@ -189,26 +189,29 @@ const Handle<Scene> &World::GetDetachedScene(ThreadName thread_name)
 
 const Handle<Scene> &World::GetDetachedScene(ThreadID thread_id)
 {
-    Mutex::Guard guard(m_detached_scenes_mutex);
+    return m_detached_scenes.GetDetachedScene(thread_id);
 
-    auto it = m_detached_scenes.Find(thread_id);
 
-    if (it == m_detached_scenes.End()) {
-        Handle<Scene> scene = CreateObject<Scene>(
-            Handle<Camera>::empty,
-            thread_id
-        );
+    // Mutex::Guard guard(m_detached_scenes_mutex);
 
-        scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));
+    // auto it = m_detached_scenes.Find(thread_id);
 
-        InitObject(scene);
+    // if (it == m_detached_scenes.End()) {
+    //     Handle<Scene> scene = CreateObject<Scene>(
+    //         Handle<Camera>::empty,
+    //         thread_id
+    //     );
 
-        scene->SetWorld(this);
+    //     scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));
 
-        it = m_detached_scenes.Insert(thread_id, std::move(scene)).first;
-    }
+    //     InitObject(scene);
 
-    return it->second;
+    //     scene->SetWorld(this);
+
+    //     it = m_detached_scenes.Insert(thread_id, std::move(scene)).first;
+    // }
+
+    // return it->second;
 }
 
 } // namespace hyperion

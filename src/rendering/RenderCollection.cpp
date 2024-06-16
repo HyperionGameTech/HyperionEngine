@@ -191,7 +191,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AddRenderProxy(proxy_list, proxy, attributes, pass_type);
         }
 
-        for (const ID<Entity> &entity : removed_proxies) {
+        for (ID<Entity> entity : removed_proxies) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
@@ -207,9 +207,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
         }
 
-        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}", proxy_list.GetAddedEntities().Count());
-        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Removed Proxies: {}", proxy_list.GetRemovedEntities().Count());
-        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Changed Proxies: {}", proxy_list.GetChangedEntities().Count());
+        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}", proxy_list.GetAddedEntities().Count());
+        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Removed Proxies: {}", proxy_list.GetRemovedEntities().Count());
+        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Changed Proxies: {}", proxy_list.GetChangedEntities().Count());
 
         proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
         

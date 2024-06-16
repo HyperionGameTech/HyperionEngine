@@ -5,26 +5,11 @@
 
 #include <core/utilities/Variant.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
 
-template <class T>
-struct Property
-{
-    void    *parent;
-    T       value;
-
-    Property(void *parent)
-        : parent(parent)
-    {
-    }
-
-    template <class... Args>
-    Property(void *parent, Args &&... args)
-        : parent(parent),
-          value(std::forward<Args>(args)...)
-    {
-    }
-};
+HYP_DEFINE_CLASS(MeshComponent);
 
 template <>
 class ComponentInterface<MeshComponent> : public ComponentInterfaceBase

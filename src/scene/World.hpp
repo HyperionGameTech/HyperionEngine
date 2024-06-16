@@ -189,8 +189,10 @@ private:
     PhysicsWorld                        m_physics_world;
     RenderListContainer                 m_render_list_container;
 
-    FlatMap<ThreadID, Handle<Scene>>    m_detached_scenes;
-    Mutex                               m_detached_scenes_mutex;
+    // FlatMap<ThreadID, Handle<Scene>>    m_detached_scenes;
+    // Mutex                               m_detached_scenes_mutex;
+
+    DetachedScenesContainer             m_detached_scenes;
 
     FlatSet<Handle<Scene>>              m_scenes;
     FlatSet<Handle<Scene>>              m_scenes_pending_addition;

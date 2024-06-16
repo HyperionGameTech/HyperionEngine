@@ -27,8 +27,7 @@ public:
      * 
      * \return The title of the tab.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const String &GetTitle() const
         { return m_title; }
 
@@ -38,14 +37,15 @@ public:
      */
     void SetTitle(const String &title);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     RC<UIPanel> GetContents() const
         { return m_contents; }
 
     virtual void Init() override;
 
 protected:
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
+
     virtual Handle<Material> GetMaterial() const override;
 
 private:
@@ -76,8 +76,7 @@ public:
      * 
      * \return The index of the selected tab.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint GetSelectedTabIndex() const
         { return m_selected_tab_index; }
 
@@ -87,8 +86,7 @@ public:
      */
     void SetSelectedTabIndex(uint index);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<RC<UITab>> &GetTabs() const
         { return m_tabs; }
 
@@ -105,7 +103,7 @@ public:
      * \param name The name of the tab.
      * \return A reference counted pointer to tab, or nullptr if the tab does not exist.
      */
-    [[nodiscard]]
+    HYP_NODISCARD
     RC<UITab> GetTab(Name name) const;
 
     /*! \brief Get the tab index by name. Returns ~0u if the tab does not exist.
@@ -113,7 +111,7 @@ public:
      * \param name The name of the tab.
      * \return The index of the tab.
      */
-    [[nodiscard]]
+    HYP_NODISCARD
     uint GetTabIndex(Name name) const;
 
     /*! \brief Remove a tab by name.

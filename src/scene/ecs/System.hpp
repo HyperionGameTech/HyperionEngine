@@ -21,9 +21,11 @@ class HYP_API SystemBase
 public:
     virtual ~SystemBase() = default;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsEntityInitialized(ID<Entity> entity) const
         { return m_initialized_entities.Contains(entity); }
 
+    HYP_NODISCARD
     virtual bool AllowParallelExecution() const
         { return true; }
 
@@ -32,6 +34,7 @@ public:
      *
      *  \return The TypeIDs of the components this System operates on.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<TypeID> &GetComponentTypeIDs() const
         { return m_component_type_ids; }
 

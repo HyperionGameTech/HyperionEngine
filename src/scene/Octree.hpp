@@ -59,53 +59,43 @@ struct OctantID
     OctantID &operator=(OctantID &&other) noexcept  = default;
     ~OctantID()                                     = default;
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsInvalid() const // This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
         { return index_bits & invalid_bits; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const OctantID &other) const
         { return index_bits == other.index_bits && depth == other.depth; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(const OctantID &other) const
         { return !(*this == other); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint8 GetIndex(uint8 depth) const
         { return (index_bits >> (uint64(depth) * 3ull)) & 0x7; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint8 GetIndex() const
         { return GetIndex(depth); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint8 GetDepth() const
         { return depth; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsSiblingOf(OctantID other) const
         { return depth == other.depth && (index_bits & ~(~0ull << (uint64(depth) * 3ull))) == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull))); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsChildOf(OctantID other) const
         { return depth > other.depth && (index_bits & ~(~0ull << (uint64(other.depth) * 3ull))) == other.index_bits; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsParentOf(OctantID other) const
         { return depth < other.depth && index_bits == (other.index_bits & ~(~0ull << (uint64(depth) * 3ull))); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     OctantID GetParent() const
     {
         if (depth == 0) {
@@ -115,8 +105,7 @@ struct OctantID
         return OctantID(index_bits & ~(~0ull << (uint64(depth) * 3ull)), depth - 1);
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

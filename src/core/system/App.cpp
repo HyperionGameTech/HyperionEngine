@@ -8,6 +8,7 @@
 
 #include <HyperionEngine.hpp>
 
+#define HYP_LOG_FRAMES_PER_SECOND
 
 namespace hyperion {
 namespace sys {
@@ -37,11 +38,35 @@ void App::RunMainLoop(Game *game)
 {
     SystemEvent event;
 
+#ifdef HYP_LOG_FRAMES_PER_SECOND
+    uint32 num_frames = 0;
+    float delta_time_accum = 0.0f;
+
+    GameCounter counter;
+#endif
+
     while (Engine::GetInstance()->IsRenderLoopActive()) {
         // input manager stuff
         while (m_app_context->PollEvent(event)) {
             game->PushEvent(std::move(event));
         }
+
+#ifdef HYP_LOG_FRAMES_PER_SECOND
+        counter.NextTick();
+        delta_time_accum += counter.delta;
+        num_frames++;
+
+        if (delta_time_accum >= 1.0f) {
+            DebugLog(
+                LogType::Debug,
+                "Render FPS: %f\n",
+                1.0f / (delta_time_accum / float(num_frames))
+            );
+
+            delta_time_accum = 0.0f;
+            num_frames = 0;
+        }
+#endif
 
         Engine::GetInstance()->RenderNextFrame(game);
     }

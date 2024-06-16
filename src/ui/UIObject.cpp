@@ -450,10 +450,14 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset)
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
 {
-    m_focus_state = focus_state;
+    if (focus_state != m_focus_state) {
+        SetFocusState_Internal(focus_state);
+    }
+}
 
-    UpdateMaterial();
-    UpdateMeshData();
+void UIObject::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
+{
+    m_focus_state = focus_state;
 }
 
 int UIObject::GetComputedDepth() const

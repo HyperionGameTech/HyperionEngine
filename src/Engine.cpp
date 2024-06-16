@@ -179,6 +179,16 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_placeholder_data->Create();
 
+    // Create script compilation service
+    m_scripting_service.Reset(new ScriptingService(
+        g_asset_manager->GetBasePath() / "scripts" / "src",
+        g_asset_manager->GetBasePath() / "scripts" / "projects",
+        g_asset_manager->GetBasePath() / "scripts" / "bin"
+    ));
+
+    m_scripting_service->Start();
+
+    // Create world (must happen after scripting service is created)
     m_world = CreateObject<World>();
     InitObject(m_world);
 
@@ -289,14 +299,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_final_pass.Reset(new FinalPass);
     m_final_pass->Create();
-
-    m_scripting_service.Reset(new ScriptingService(
-        g_asset_manager->GetBasePath() / "scripts" / "src",
-        g_asset_manager->GetBasePath() / "scripts" / "projects",
-        g_asset_manager->GetBasePath() / "scripts" / "bin"
-    ));
-
-    m_scripting_service->Start();
 
     Compile();
 }

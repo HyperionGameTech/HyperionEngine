@@ -115,20 +115,17 @@ public:
     ~NodeProxy();
 
     /*! \brief Return the Node pointer held by the NodeProxy. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Node *Get() const
         { return Base::Get(); }
 
     template <class T>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Is() const
         { return Base::Is<T>(); }
 
     template <class T>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T *Cast() const
     {
         if (Base::Is<T>()) {
@@ -139,68 +136,56 @@ public:
     }
 
     /*! \brief Checks if the NodeProxy is not empty */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Any() const
         { return Get() != nullptr; }
 
     /*! \brief Checks if the NodeProxy is empty */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool Empty() const
         { return Get() == nullptr; }
 
     /*! \brief Checks if the NodeProxy is in a valid state. (equivalent to Any()) */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsValid() const
         { return Any(); }
 
     /*! \brief Conversion operator to bool. Checks if the NodeProxy is not empty. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return Any(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!() const
         { return Empty(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const NodeProxy &other) const
         { return Get() == other.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(const NodeProxy &other) const
         { return Get() != other.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return Get() == nullptr; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Node *operator->() const
         { return Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Node &operator*() const
         { return *Get(); }
 
     /*! \brief If the Node is present, returns a child Node at the given index.
         If the index is out of bounds, returns an empty NodeProxy. If no Node is present, returns an empty NodeProxy. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     NodeProxy operator[](SizeType index)
         { return GetChild(index); }
 
@@ -358,8 +343,7 @@ public:
     uint CalculateDepth() const;
 
     /*! \brief Conversion operator to Weak<Node>. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     operator Weak<Node>() const
         { return Weak<Node>(static_cast<const RC<Node> &>(*this)); }
 
