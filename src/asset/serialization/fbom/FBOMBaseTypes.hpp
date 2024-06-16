@@ -92,20 +92,20 @@ struct FBOMByteBuffer : FBOMType
     }
 };
 
-struct FBOMVec2f : FBOMSequence { FBOMVec2f() : FBOMSequence(FBOMFloat(), 2) {} };
-struct FBOMVec3f : FBOMSequence { FBOMVec3f() : FBOMSequence(FBOMFloat(), 4 /* 3 + 1 for padding */) {} };
-struct FBOMVec4f : FBOMSequence { FBOMVec4f() : FBOMSequence(FBOMFloat(), 4) {} };
-struct FBOMVec2i : FBOMSequence { FBOMVec2i() : FBOMSequence(FBOMInt(), 2) {} };
-struct FBOMVec3i : FBOMSequence { FBOMVec3i() : FBOMSequence(FBOMInt(), 4 /* 3 + 1 for padding */) {} };
-struct FBOMVec4i : FBOMSequence { FBOMVec4i() : FBOMSequence(FBOMInt(), 4) {} };
-struct FBOMVec2ui : FBOMSequence { FBOMVec2ui() : FBOMSequence(FBOMUnsignedInt(), 2) {} };
-struct FBOMVec3ui : FBOMSequence { FBOMVec3ui() : FBOMSequence(FBOMUnsignedInt(), 4 /* 3 + 1 for padding */) {} };
-struct FBOMVec4ui : FBOMSequence { FBOMVec4ui() : FBOMSequence(FBOMUnsignedInt(), 4) {} };
+struct FBOMVec2f : FBOMType { FBOMVec2f() : FBOMType("vec2f", 8, FBOMSequence(FBOMFloat(), 2)) {} };
+struct FBOMVec3f : FBOMType { FBOMVec3f() : FBOMType("vec3f", 16, FBOMSequence(FBOMFloat(), 4 /* 3 + 1 for padding */)) {} };
+struct FBOMVec4f : FBOMType { FBOMVec4f() : FBOMType("vec4f", 16, FBOMSequence(FBOMFloat(), 4)) {} };
+struct FBOMVec2i : FBOMType { FBOMVec2i() : FBOMType("vec2i", 8, FBOMSequence(FBOMInt(), 2)) {} };
+struct FBOMVec3i : FBOMType { FBOMVec3i() : FBOMType("vec3i", 16, FBOMSequence(FBOMInt(), 4 /* 3 + 1 for padding */)) {} };
+struct FBOMVec4i : FBOMType { FBOMVec4i() : FBOMType("vec4i", 16, FBOMSequence(FBOMInt(), 4)) {} };
+struct FBOMVec2u : FBOMType { FBOMVec2u() : FBOMType("vec2u", 8, FBOMSequence(FBOMUnsignedInt(), 2)) {} };
+struct FBOMVec3u : FBOMType { FBOMVec3u() : FBOMType("vec3u", 16, FBOMSequence(FBOMUnsignedInt(), 4 /* 3 + 1 for padding */)) {} };
+struct FBOMVec4u : FBOMType { FBOMVec4u() : FBOMType("vec4u", 16, FBOMSequence(FBOMUnsignedInt(), 4)) {} };
 
-struct FBOMMat3 : FBOMSequence { FBOMMat3() : FBOMSequence(FBOMFloat(), 9) {} };
-struct FBOMMat4 : FBOMSequence { FBOMMat4() : FBOMSequence(FBOMFloat(), 16) {} };
+struct FBOMMat3f : FBOMType { FBOMMat3f() : FBOMType("mat3f", 48, FBOMSequence(FBOMFloat(), 12)) {} };
+struct FBOMMat4f : FBOMType { FBOMMat4f() : FBOMType("mat4f", 64, FBOMSequence(FBOMFloat(), 16)) {} };
 
-struct FBOMQuaternion : FBOMVec4f { FBOMQuaternion() : FBOMVec4f() {} };
+struct FBOMQuat4f : FBOMType { FBOMQuat4f() : FBOMType("quat4f", 16, FBOMSequence(FBOMFloat(), 4)) {} };
 
 struct FBOMString : FBOMType
 {

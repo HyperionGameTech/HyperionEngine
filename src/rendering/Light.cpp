@@ -11,7 +11,10 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Light);
+HYP_DEFINE_CLASS(
+    Light,
+    HypClassProperty(NAME("type"), &Light::GetType)
+);
 
 #pragma region Render commands
 

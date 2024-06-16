@@ -24,6 +24,12 @@ struct LightComponent
     Handle<Light>                   light;
     HashCode                        transform_hash_code;
     EnumFlags<LightComponentFlags>  flags = LightComponentFlags::NONE;
+
+    const Handle<Light> &GetLight() const
+        { return light; }
+        
+    void SetLight(const Handle<Light> &light)
+        { this->light = light; }
 };
 
 static_assert(sizeof(LightComponent) == 24, "LightComponent size mismatch with C#");

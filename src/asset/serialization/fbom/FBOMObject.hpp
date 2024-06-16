@@ -160,7 +160,7 @@ public:
         FBOMObject object(marshal->GetObjectType());
         object.GenerateUniqueID(value, FBOMObjectFlags::NONE);
 
-        if (FBOMResult err = marshal->Serialize(value, object)) {
+        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(value, object)) {
             AssertThrowMsg(false, "Failed to serialize object: %s", *err.message);
         }
 
@@ -196,7 +196,7 @@ public:
             AssertThrow(external_object_key.Any());
         }
 
-        if (FBOMResult err = marshal->Serialize(object, out_object)) {
+        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(object, out_object)) {
             return err;
         }
 

@@ -6,6 +6,9 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(LightComponent);
+HYP_DEFINE_CLASS(
+    LightComponent,
+    HypClassProperty(NAME("Light"), &LightComponent::GetLight, &LightComponent::SetLight)
+);
 
 } // namespace hyperion

@@ -25,6 +25,8 @@
 #include "asset/font_loaders/FontAtlasLoader.hpp"
 #include "asset/ui_loaders/UILoader.hpp"
 
+#include <scene/ecs/components/LightComponent.hpp>
+
 using namespace hyperion;
 
 namespace hyperion {
@@ -72,16 +74,17 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    // const HypClass *cls = GetClass<Mesh>();
-    // HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
-    // HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
+    const HypClass *cls = GetClass<LightComponent>();
+    HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
 
-    // Mesh m;
-    // m.SetID(ID<Mesh>{ 123 });
+    LightComponent light_component;
+    light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
 
-    // for (HypClassProperty *property : cls->GetProperties()) {
-    //     HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, property->getter(m).ToString());
-    // }
+    for (HypClassProperty *property : cls->GetProperties()) {
+        fbom::FBOMObject data_object;
+        property->getter(light_component).ReadObject(data_object);
+        HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, data_object.ToString());
+    }
 
     // if (HypClassProperty *property = cls->GetProperty("AABB")) {
     //     property->InvokeSetter(m, BoundingBox { -124, 124 });
@@ -89,11 +92,11 @@ int main(int argc, char **argv)
     //     HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter(m).ToString());
     // }
 
-    // // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    // //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // // }
+    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // }
 
-    // HYP_BREAKPOINT;
+    HYP_BREAKPOINT;
 
 #if 0
     fbom::FBOMObject test_obj(fbom::FBOMObjectType("FooBarbazz"));

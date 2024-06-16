@@ -119,12 +119,18 @@ struct FBOMData : public IFBOMSerializable
     FBOM_TYPE_FUNCTIONS(Float, float)
     FBOM_TYPE_FUNCTIONS(Bool, bool)
     FBOM_TYPE_FUNCTIONS(Byte, ubyte)
-    FBOM_TYPE_FUNCTIONS(Mat3, Matrix3)
-    FBOM_TYPE_FUNCTIONS(Mat4, Matrix4)
+    FBOM_TYPE_FUNCTIONS(Mat3f, Matrix3)
+    FBOM_TYPE_FUNCTIONS(Mat4f, Matrix4)
     FBOM_TYPE_FUNCTIONS(Vec2f, Vec2f)
     FBOM_TYPE_FUNCTIONS(Vec3f, Vec3f)
     FBOM_TYPE_FUNCTIONS(Vec4f, Vec4f)
-    FBOM_TYPE_FUNCTIONS(Quaternion, Quaternion)
+    FBOM_TYPE_FUNCTIONS(Vec2i, Vec2i)
+    FBOM_TYPE_FUNCTIONS(Vec3i, Vec3i)
+    FBOM_TYPE_FUNCTIONS(Vec4i, Vec4i)
+    FBOM_TYPE_FUNCTIONS(Vec2u, Vec2u)
+    FBOM_TYPE_FUNCTIONS(Vec3u, Vec3u)
+    FBOM_TYPE_FUNCTIONS(Vec4u, Vec4u)
+    FBOM_TYPE_FUNCTIONS(Quat4f, Quaternion)
 
 #undef FBOM_TYPE_FUNCTIONS
 

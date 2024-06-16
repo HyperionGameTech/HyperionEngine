@@ -18,10 +18,10 @@ public:
     {
         out.SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetTranslation()));
         out.SetProperty(NAME("direction"), FBOMData::FromVec3f(in_object.GetDirection()));
-        out.SetProperty(NAME("up"),FBOMData::FromVec3f(in_object.GetUpVector()));
-        out.SetProperty(NAME("view_matrix"), FBOMData::FromMat4(in_object.GetViewMatrix()));
-        out.SetProperty(NAME("projection_matrix"), FBOMData::FromMat4(in_object.GetProjectionMatrix()));
-        out.SetProperty(NAME("view_projection_matrix"), FBOMData::FromMat4(in_object.GetViewProjectionMatrix()));
+        out.SetProperty(NAME("up"), FBOMData::FromVec3f(in_object.GetUpVector()));
+        out.SetProperty(NAME("view_matrix"), FBOMData::FromMat4f(in_object.GetViewMatrix()));
+        out.SetProperty(NAME("projection_matrix"), FBOMData::FromMat4f(in_object.GetProjectionMatrix()));
+        out.SetProperty(NAME("view_projection_matrix"), FBOMData::FromMat4f(in_object.GetViewProjectionMatrix()));
         out.SetProperty(NAME("width"), FBOMData::FromUnsignedInt(uint32(in_object.GetWidth())));
         out.SetProperty(NAME("height"), FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
         out.SetProperty(NAME("near"), FBOMData::FromFloat(in_object.GetNear()));
@@ -79,17 +79,17 @@ public:
         
         {
             Vec3f translation, direction, up_vector;
-            in.GetProperty("translation").ReadElements(FBOMFloat(), 3, &translation);
-            in.GetProperty("direction").ReadElements(FBOMFloat(), 3, &direction);
-            in.GetProperty("up").ReadElements(FBOMFloat(), 3, &up_vector);
+            in.GetProperty("translation").ReadVec3f(&translation);
+            in.GetProperty("direction").ReadVec3f(&direction);
+            in.GetProperty("up").ReadVec3f(&up_vector);
 
             camera_handle->SetTranslation(translation);
             camera_handle->SetDirection(direction);
             camera_handle->SetUpVector(up_vector);
             
-            in.GetProperty("view_matrix").ReadMat4(&camera_handle->GetViewMatrix());
-            in.GetProperty("projection_matrix").ReadMat4(&camera_handle->GetProjectionMatrix());
-            in.GetProperty("view_projection_matrix").ReadMat4(&camera_handle->GetViewProjectionMatrix());
+            in.GetProperty("view_matrix").ReadMat4f(&camera_handle->GetViewMatrix());
+            in.GetProperty("projection_matrix").ReadMat4f(&camera_handle->GetProjectionMatrix());
+            in.GetProperty("view_projection_matrix").ReadMat4f(&camera_handle->GetViewProjectionMatrix());
         }
 
         { // frustum

@@ -22,14 +22,14 @@ public:
         out.SetProperty(NAME("local_transform"), FBOMData::FromObject(
             FBOMObject()
                 .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()))
-                .SetProperty(NAME("rotation"), FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()))
+                .SetProperty(NAME("rotation"), FBOMData::FromQuat4f(in_object.GetLocalTransform().GetRotation()))
                 .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()))
         ));
 
         out.SetProperty(NAME("world_transform"), FBOMData::FromObject(
             FBOMObject()
                 .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()))
-                .SetProperty(NAME("rotation"), FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()))
+                .SetProperty(NAME("rotation"), FBOMData::FromQuat4f(in_object.GetWorldTransform().GetRotation()))
                 .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()))
         ));
 
@@ -102,15 +102,15 @@ public:
                 return err;
             }
 
-            if (FBOMResult err = local_transform_object.GetProperty("translation").ReadElements(FBOMFloat(), 3, &transform.GetTranslation())) {
+            if (FBOMResult err = local_transform_object.GetProperty("translation").ReadVec3f(&transform.GetTranslation())) {
                 return err;
             }
         
-            if (FBOMResult err = local_transform_object.GetProperty("rotation").ReadElements(FBOMFloat(), 4, &transform.GetRotation())) {
+            if (FBOMResult err = local_transform_object.GetProperty("rotation").ReadQuat4f(&transform.GetRotation())) {
                 return err;
             }
 
-            if (FBOMResult err = local_transform_object.GetProperty("scale").ReadElements(FBOMFloat(), 3, &transform.GetScale())) {
+            if (FBOMResult err = local_transform_object.GetProperty("scale").ReadVec3f(&transform.GetScale())) {
                 return err;
             }
 
@@ -127,15 +127,15 @@ public:
                 return err;
             }
 
-            if (FBOMResult err = world_transform_object.GetProperty("translation").ReadElements(FBOMFloat(), 3, &transform.GetTranslation())) {
+            if (FBOMResult err = world_transform_object.GetProperty("translation").ReadVec3f(&transform.GetTranslation())) {
                 return err;
             }
         
-            if (FBOMResult err = world_transform_object.GetProperty("rotation").ReadElements(FBOMFloat(), 4, &transform.GetRotation())) {
+            if (FBOMResult err = world_transform_object.GetProperty("rotation").ReadQuat4f(&transform.GetRotation())) {
                 return err;
             }
 
-            if (FBOMResult err = world_transform_object.GetProperty("scale").ReadElements(FBOMFloat(), 3, &transform.GetScale())) {
+            if (FBOMResult err = world_transform_object.GetProperty("scale").ReadVec3f(&transform.GetScale())) {
                 return err;
             }
 
