@@ -33,12 +33,18 @@ public:
     {
         // @TODO
 
+        float intensity = 0.0f;
+        in.GetProperty("intensity").ReadFloat(&intensity);
+
+        float radius;
+        in.GetProperty("radius").ReadFloat(&radius);
+
         out_object = CreateObject<Light>(
-            LightType::SPOT,
+            LightType::POINT,
             Vec3f { },
             Color { },
-            0.0f,
-            0.0f
+            intensity,
+            radius
         );
 
         return { FBOMResult::FBOM_OK };

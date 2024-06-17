@@ -40,6 +40,10 @@
 #include <util/Profile.hpp>
 #include <core/system/SystemEvent.hpp>
 
+// temp
+#include <core/HypClass.hpp>
+#include <core/HypClassProperty.hpp>
+
 namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
@@ -492,6 +496,62 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
+
+
+    const HypClass *cls = GetClass<Mesh>();
+    HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
+
+    Handle<Mesh> mesh = CreateObject<Mesh>();
+    
+    if (HypClassProperty *property = cls->GetProperty("VertexAttributes")) {
+        auto vertex_attributes_value = property->InvokeGetter(mesh);
+        HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
+    }
+
+    // HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
+
+#if 0
+    const HypClass *cls = GetClass<LightComponent>();
+    HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
+
+    LightComponent light_component;
+    light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
+
+    // for (HypClassProperty *property : cls->GetProperties()) {
+    //     fbom::FBOMObject data_object;
+    //     property->getter(light_component).ReadObject(data_object);
+    //     HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, data_object.ToString());
+    // }
+
+    if (HypClassProperty *property = cls->GetProperty("Light")) {
+        // property->InvokeSetter(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
+
+        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->InvokeGetter(light_component).ToString());
+
+        if (const HypClass *light_class = property->GetHypClass()) {
+            AssertThrow(property->GetTypeID() == TypeID::ForType<Light>());
+            HYP_LOG(Editor, LogLevel::INFO, "light_class: {}", light_class->GetName());
+            HypClassProperty *light_radius_property = light_class->GetProperty("radius");
+            AssertThrow(light_radius_property != nullptr);
+
+            light_radius_property->InvokeSetter(property->InvokeGetter(light_component), 123.4f);
+        }
+
+        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->InvokeGetter<Handle<Light>>(light_component)->GetRadius());
+    }
+#endif
+
+    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // }
+
+    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
+    // }
+
+    HYP_BREAKPOINT;
+
+
 
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
 

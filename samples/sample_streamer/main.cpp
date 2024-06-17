@@ -12,9 +12,6 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/UUID.hpp>
 
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
-
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/Format.hpp>
 
@@ -24,8 +21,6 @@
 
 #include "asset/font_loaders/FontAtlasLoader.hpp"
 #include "asset/ui_loaders/UILoader.hpp"
-
-#include <scene/ecs/components/LightComponent.hpp>
 
 using namespace hyperion;
 
@@ -73,30 +68,6 @@ int main(int argc, char **argv)
     
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
-
-    const HypClass *cls = GetClass<LightComponent>();
-    HYP_LOG(Core, LogLevel::INFO, "my class: {}", cls->GetName());
-
-    LightComponent light_component;
-    light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
-
-    for (HypClassProperty *property : cls->GetProperties()) {
-        fbom::FBOMObject data_object;
-        property->getter(light_component).ReadObject(data_object);
-        HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, data_object.ToString());
-    }
-
-    // if (HypClassProperty *property = cls->GetProperty("AABB")) {
-    //     property->InvokeSetter(m, BoundingBox { -124, 124 });
-
-    //     HYP_LOG(Core, LogLevel::INFO, "Mesh aabb: {}", property->InvokeGetter(m).ToString());
-    // }
-
-    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // }
-
-    HYP_BREAKPOINT;
 
 #if 0
     fbom::FBOMObject test_obj(fbom::FBOMObjectType("FooBarbazz"));

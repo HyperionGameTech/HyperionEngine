@@ -13,6 +13,7 @@
 #include <Constants.hpp>
 
 #include <asset/Loader.hpp>
+#include <asset/serialization/SerializationWrapper.hpp>
 
 namespace hyperion {
 
@@ -64,7 +65,7 @@ struct LoadedAsset
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE
-    typename AssetLoaderWrapper<T>::CastedType ExtractAs()
+    typename SerializationWrapper<T>::Type ExtractAs()
     {
         return static_cast<LoadedAssetInstance<T> *>(this)->Result();
     }
@@ -83,7 +84,7 @@ struct LoadedAsset
 template <class T>
 struct LoadedAssetInstance : LoadedAsset
 {
-    using CastedType = typename AssetLoaderWrapper<T>::CastedType;
+    using Type = typename SerializationWrapper<T>::Type;
 
     LoadedAssetInstance()
     {
@@ -132,11 +133,11 @@ struct LoadedAssetInstance : LoadedAsset
         return *this;
     }
 
-    CastedType &Result()
+    Type &Result()
     {
-        AssertThrowMsg(IsOK() && value.Is<CastedType>(), "Asset did not load successfully");
+        AssertThrowMsg(IsOK() && value.Is<Type>(), "Asset did not load successfully");
 
-        return value.Get<CastedType>();
+        return value.Get<Type>();
     }
 
 private:
@@ -144,7 +145,7 @@ private:
     {
         OnPostLoadProc = [](LoadedAsset *asset)
         {
-            AssetLoaderWrapper<T>::OnPostLoad(static_cast<LoadedAssetInstance *>(asset)->Result());
+            SerializationWrapper<T>::OnPostLoad(static_cast<LoadedAssetInstance *>(asset)->Result());
         };
     }
 };
@@ -189,18 +190,11 @@ public:
         }
     }
 
+    HYP_DEPRECATED
     AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
     }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    LoadedAssetInstance<T> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
-    {
-        return LoadedAssetInstance<T>(loader.Load(asset_manager, path));
-    }
-
-    static void OnPostLoad(CastedType &value) { }
 };
 
 template <class T>
@@ -218,18 +212,11 @@ public:
         return value.Get<RC<T>>();
     }
 
+    HYP_DEPRECATED
     AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
     }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    LoadedAssetInstance<RC<T>> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
-    {
-        return LoadedAssetInstance<RC<T>>(loader.Load(asset_manager, path));
-    }
-
-    static void OnPostLoad(CastedType &value) { }
 };
 
 template <>
@@ -256,30 +243,10 @@ struct AssetLoaderWrapper<Node>
         return *result;
     }
 
+    HYP_DEPRECATED
     AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
-    }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    LoadedAssetInstance<Node> GetLoadedAsset(AssetManager &asset_manager, const UTF8StringView &path)
-    {
-        LoadedAssetInstance<Node> result(loader.Load(asset_manager, path));
-
-        if (result.IsOK()) {
-            NodeProxy &node_proxy = result.Result();
-
-            if (node_proxy.IsValid()) {
-                node_proxy->SetScene(nullptr); // sets scene to be the "detached" scene for the current thread we're on.
-            }
-        }
-
-        return result;
-    }
-
-    static void OnPostLoad(CastedType &value)
-    {
-        value->SetScene(nullptr);
     }
 };
 

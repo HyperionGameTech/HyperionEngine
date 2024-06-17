@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 #include <core/HypClassRegistry.hpp>
 #include <core/ID.hpp>
+#include <core/utilities/TypeID.hpp>
 
 #include <rendering/backend/Platform.hpp>
 
@@ -35,7 +36,7 @@ HYP_API renderer::Device *GetEngineDevice();
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE
-Handle<T> CreateObject()
+inline Handle<T> CreateObject()
 {
     auto &container = Handle<T>::GetContainer();
 
@@ -47,7 +48,7 @@ Handle<T> CreateObject()
 
 template <class T, class ... Args>
 HYP_NODISCARD HYP_FORCE_INLINE
-Handle<T> CreateObject(Args &&... args)
+inline Handle<T> CreateObject(Args &&... args)
 {
     auto &container = Handle<T>::GetContainer();
 
@@ -63,7 +64,7 @@ Handle<T> CreateObject(Args &&... args)
 
 template <class T>
 HYP_FORCE_INLINE
-bool InitObject(Handle<T> &handle)
+inline bool InitObject(Handle<T> &handle)
 {
     if (!handle) {
         return false;
@@ -80,23 +81,29 @@ bool InitObject(Handle<T> &handle)
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE
-const HypClass *GetClass()
+inline const HypClass *GetClass()
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE
-const HypClass *GetClass(const T *ptr)
+inline const HypClass *GetClass(const T *ptr)
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE
-const HypClass *GetClass(const Handle<T> &handle)
+inline const HypClass *GetClass(const Handle<T> &handle)
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+HYP_NODISCARD HYP_FORCE_INLINE
+inline const HypClass *GetClass(TypeID type_id)
+{
+    return HypClassRegistry::GetInstance().GetClass(type_id);
 }
 
 } // namespace hyperion

@@ -733,7 +733,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
     AssetMap loaded_assets = batch->AwaitResults();
 
     if (name == HYP_NAME(GaussianSplatting)) {
-        json::JSONValue cameras_json = *loaded_assets["cameras json"].ExtractAs<json::JSONValue>();
+        json::JSONValue cameras_json = loaded_assets["cameras json"].ExtractAs<json::JSONValue>();
 
         struct GaussianSplattingCameraDefinition
         {
@@ -821,7 +821,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
 
         DebugLog(LogType::Debug, "Up direction = %f, %f, %f\n", up_direction.x, up_direction.y, up_direction.z);
 
-        PLYModelLoader::PLYModel ply_model = *loaded_assets["ply model"].ExtractAs<PLYModelLoader::PLYModel>();
+        PLYModelLoader::PLYModel ply_model = loaded_assets["ply model"].ExtractAs<PLYModelLoader::PLYModel>();
 
         const SizeType num_points = ply_model.vertices.Size();
 

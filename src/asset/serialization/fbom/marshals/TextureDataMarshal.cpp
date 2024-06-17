@@ -36,11 +36,7 @@ public:
             return { FBOMResult::FBOM_ERR, "No TextureDesc child object on TextureData" };
         }
 
-        if (!desc_it->deserialized.Get<TextureDesc>()) {
-            return { FBOMResult::FBOM_ERR, "Invalid TextureDesc child object on TextureData" };
-        }
-
-        result.desc = *desc_it->deserialized.Get<TextureDesc>();
+        result.desc = desc_it->deserialized.Get<TextureDesc>();
 
         if (FBOMResult err = in.GetProperty("buffer").ReadByteBuffer(result.buffer)) {
             return err;

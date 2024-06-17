@@ -55,7 +55,7 @@ public:
         });
 
         if (mesh_data_it != in.nodes->End()) {
-            streamed_mesh_data.Reset(new StreamedMeshData(*mesh_data_it->deserialized.Get<MeshData>()));
+            streamed_mesh_data.Reset(new StreamedMeshData(mesh_data_it->deserialized.Get<MeshData>()));
 
             return { FBOMResult::FBOM_OK };
         }

@@ -34,7 +34,8 @@ FBOMData::FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer)
 
 FBOMData::FBOMData(const FBOMData &other)
     : type(other.type),
-      bytes(other.bytes)
+      bytes(other.bytes),
+      m_deserialized_object(other.m_deserialized_object)
 {
 }
 
@@ -42,13 +43,15 @@ FBOMData &FBOMData::operator=(const FBOMData &other)
 {
     type = other.type;
     bytes = other.bytes;
+    m_deserialized_object = other.m_deserialized_object;
 
     return *this;
 }
 
 FBOMData::FBOMData(FBOMData &&other) noexcept
     : bytes(std::move(other.bytes)),
-      type(std::move(other.type))
+      type(std::move(other.type)),
+      m_deserialized_object(std::move(other.m_deserialized_object))
 {
     other.type = FBOMUnset();
 }
@@ -57,6 +60,7 @@ FBOMData &FBOMData::operator=(FBOMData &&other) noexcept
 {
     bytes = std::move(other.bytes);
     type = std::move(other.type);
+    m_deserialized_object = std::move(other.m_deserialized_object);
 
     other.type = FBOMUnset();
 
@@ -74,11 +78,16 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
     BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
     
     FBOMReader deserializer(fbom::FBOMConfig { });
+
     // return deserializer.Deserialize(byte_reader, out_object);
-    return deserializer.ReadObject(&byte_reader, out_object, nullptr);
+    if (FBOMResult err = deserializer.ReadObject(&byte_reader, out_object, nullptr)) {
+        return err;
+    }
+
+    return { FBOMResult::FBOM_OK };
 }
 
-FBOMData FBOMData::FromObject(const FBOMObject &object)
+FBOMData FBOMData::FromObject(const FBOMObject &object, bool keep_native_object)
 {
     MemoryByteWriter byte_writer;
     FBOMWriter serializer;
@@ -89,6 +98,34 @@ FBOMData FBOMData::FromObject(const FBOMObject &object)
 
     FBOMData value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+
+    if (keep_native_object) {
+        AssertThrowMsg(object.deserialized.m_value.HasValue(), "If keep_native_object is true, expected object to have a deserialized value");
+
+        value.m_deserialized_object = object.deserialized;
+    }
+
+    return value;
+}
+
+FBOMData FBOMData::FromObject(FBOMObject &&object, bool keep_native_object)
+{
+    MemoryByteWriter byte_writer;
+    FBOMWriter serializer;
+
+    if (FBOMResult err = object.Visit(&serializer, &byte_writer)) {
+        AssertThrowMsg(false, "Failed to serialize object: %s", err.message.Data());
+    }
+
+    FBOMData value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
+    AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+
+    if (keep_native_object) {
+        AssertThrowMsg(object.deserialized.m_value.HasValue(), "If keep_native_object is true, expected object to have a deserialized value");
+
+        value.m_deserialized_object = std::move(object.deserialized);
+    }
+
     return value;
 }
 

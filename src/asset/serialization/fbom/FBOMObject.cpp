@@ -3,6 +3,8 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
 
+#include <core/HypClassRegistry.hpp>
+
 namespace hyperion::fbom {
 
 FBOMObject::FBOMObject()
@@ -190,6 +192,27 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, E
     return writer->Write(out, *this, id, attributes);
 }
 
+FBOMResult FBOMObject::Deserialize(TypeID type_id, const FBOMObject &in, FBOMDeserializedObject &out)
+{
+    FBOMMarshalerBase *marshal = GetMarshal(type_id);
+    
+    if (!marshal) {
+        return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+    }
+
+    Any any_value;
+
+    const FBOMResult result = marshal->Deserialize(in, any_value);
+
+    if (result.IsOK()) {
+        AssertThrow(any_value.HasValue());
+        
+        out.m_value = std::move(any_value);
+    }
+
+    return result;
+}
+
 HashCode FBOMObject::GetHashCode() const
 {
     HashCode hc;
@@ -244,6 +267,15 @@ String FBOMObject::ToString(bool deep) const
     ss << " } ";
 
     return String(ss.str().data());
+}
+
+const HypClass *FBOMObject::GetHypClass() const
+{
+    if (const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(GetType().name)) {
+        return GetClass(marshal->GetTypeID());
+    }
+
+    return nullptr;
 }
 
 FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID object_type_id)

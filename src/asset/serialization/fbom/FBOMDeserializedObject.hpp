@@ -14,7 +14,7 @@
 
 #include <asset/AssetBatch.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/SerializationWrapper.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -58,18 +58,50 @@ public:
 
     ~FBOMDeserializedObject() = default;
 
+    template <class T>
+    HYP_FORCE_INLINE
+    void Set(const typename SerializationWrapper<T>::Type &value)
+    {
+        return m_value.Set<typename SerializationWrapper<T>::Type>(value);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE
+    void Set(typename SerializationWrapper<T>::Type &&value)
+    {
+        return m_value.Set<typename SerializationWrapper<T>::Type>(std::move(value));
+    }
+
     /*! \brief Extracts the value held inside */
     template <class T>
-    auto Get() -> typename AssetLoaderWrapper<T>::CastedType
+    HYP_NODISCARD HYP_FORCE_INLINE
+    typename SerializationWrapper<T>::Type &Get()
     {
-        return AssetLoaderWrapper<T>::ExtractAssetValue(m_value);
+        return m_value.Get<typename SerializationWrapper<T>::Type>();
     }
 
     /*! \brief Extracts the value held inside the Any */
     template <class T>
-    auto Get() const -> const typename AssetLoaderWrapper<T>::CastedType
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const typename SerializationWrapper<T>::Type &Get() const
     {
-        return const_cast<FBOMDeserializedObject *>(this)->template Get<T>();
+        return m_value.Get<typename SerializationWrapper<T>::Type>();
+    }
+
+    /*! \brief Extracts the value held inside. Returns nullptr if not valid */
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    typename std::remove_reference_t<typename SerializationWrapper<T>::Type> *TryGet()
+    {
+        return m_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
+    }
+
+    /*! \brief Extracts the value held inside. Returns nullptr if not valid */
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const std::remove_reference_t<typename SerializationWrapper<T>::Type> *TryGet() const
+    {
+        return m_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
     }
 };
 

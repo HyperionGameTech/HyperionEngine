@@ -30,6 +30,8 @@
 
 namespace hyperion {
 
+class HypClass;
+
 enum class FBOMObjectFlags : uint32
 {
     NONE        = 0x0,
@@ -57,7 +59,7 @@ struct FBOMExternalObjectInfo
         { return key.GetHashCode(); }
 };
 
-class FBOMObject : public IFBOMSerializable
+class HYP_API FBOMObject : public IFBOMSerializable
 {
 public:
     FBOMType                            m_object_type;
@@ -272,9 +274,13 @@ public:
         return object;
     }
 
+    static FBOMResult Deserialize(TypeID type_id, const FBOMObject &in, FBOMDeserializedObject &out);
+
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
     static FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out)
     {
+        // return Deserialize(TypeID::ForType<NormalizedType<T>>(), in, out);
+
         FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
         
         if (!marshal) {
@@ -310,6 +316,12 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     static bool HasMarshal()
         { return GetMarshal<T>() != nullptr; }
+
+    /*! \brief Returns the associated HypClass for this object type, if applicable.
+     *  The type must be registered using the HYP_DEFINE_CLASS() macro, and a marshal class must exist.
+     *  If no HypClass has been registered for the type, nullptr will be returned. */
+    HYP_NODISCARD
+    const HypClass *GetHypClass() const;
 
 private:
     HYP_NODISCARD

@@ -135,7 +135,7 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
         return;
     }
 
-    m_mesh_data = *object.Get<MeshData>();
+    m_mesh_data = object.Get<MeshData>();
 
     if (m_mesh_data->vertices.Size() != m_num_vertices) {
         HYP_LOG(Streaming, LogLevel::WARNING, "StreamedMeshData: Vertex count mismatch! Expected {} vertices, but loaded data has {} vertices", m_num_vertices, m_mesh_data->vertices.Size());

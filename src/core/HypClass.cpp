@@ -16,9 +16,9 @@ HypClass::HypClass(TypeID type_id, Span<HypClassProperty> properties)
     for (HypClassProperty &property : properties) {
         HypClassProperty *property_ptr = new HypClassProperty(std::move(property));
 
-#ifdef HYP_CLASS_PROPERTY_DEBUG_INFO
-        property_ptr->getter.debug_info.target_type_id = type_id;
-        property_ptr->setter.debug_info.target_type_id = type_id;
+#ifdef HYP_DEBUG_MODE
+        property_ptr->getter.type_info.target_type_id = type_id;
+        property_ptr->setter.type_info.target_type_id = type_id;
 #endif
 
         m_properties.PushBack(property_ptr);

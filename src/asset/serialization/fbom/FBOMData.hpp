@@ -12,6 +12,7 @@
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
+#include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
 
 #include <math/MathUtil.hpp>
 #include <math/Vector2.hpp>
@@ -354,7 +355,10 @@ struct FBOMData : public IFBOMSerializable
     FBOMResult ReadObject(FBOMObject &out_object) const;
     
     HYP_NODISCARD
-    static FBOMData FromObject(const FBOMObject &object);
+    static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = false);
+
+    HYP_NODISCARD
+    static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = false);
 
     explicit FBOMData(const FBOMObject &object) : FBOMData(FromObject(object)) { }
 
@@ -402,6 +406,22 @@ struct FBOMData : public IFBOMSerializable
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
+    Optional<FBOMDeserializedObject &> GetDeserializedObject()
+    {
+        return m_deserialized_object.m_value.HasValue()
+            ? Optional<FBOMDeserializedObject &> { m_deserialized_object }
+            : Optional<FBOMDeserializedObject &> { };
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    Optional<const FBOMDeserializedObject &> GetDeserializedObject() const
+    {
+        return m_deserialized_object.m_value.HasValue()
+            ? Optional<const FBOMDeserializedObject &> { m_deserialized_object }
+            : Optional<const FBOMDeserializedObject &> { };
+    }
+
     HYP_NODISCARD
     virtual String ToString(bool deep = true) const override
     {
@@ -447,8 +467,10 @@ struct FBOMData : public IFBOMSerializable
     }
 
 private:
-    ByteBuffer  bytes;
-    FBOMType    type;
+    ByteBuffer              bytes;
+    FBOMType                type;
+
+    FBOMDeserializedObject  m_deserialized_object;
 };
 
 } // namespace fbom

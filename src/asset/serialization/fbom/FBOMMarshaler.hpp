@@ -28,6 +28,8 @@ public:
     virtual FBOMType GetObjectType() const = 0;
     virtual TypeID GetTypeID() const = 0;
 
+    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const = 0;
+
 protected:
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
 };
@@ -76,7 +78,8 @@ public:
         { return TypeID::ForType<T>(); }
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const = 0;
+
+    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override = 0;
 
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override final
     {
@@ -99,7 +102,7 @@ class FBOMMarshaler : public FBOMObjectMarshalerBase<T>
 {
 public:
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const override;
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override;
+    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override;
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType) \

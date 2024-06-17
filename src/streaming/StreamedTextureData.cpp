@@ -127,7 +127,7 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
         return;
     }
 
-    m_texture_data = *object.Get<TextureData>();
+    m_texture_data = object.Get<TextureData>();
     
     m_texture_desc = m_texture_data->desc;
     m_buffer_size = m_texture_data->buffer.Size();

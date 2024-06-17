@@ -40,7 +40,7 @@ public:
 
         if (texture_data_it != in.nodes->End()) {
             out_object = CreateObject<Texture>(RC<StreamedTextureData>(new StreamedTextureData(
-                *texture_data_it->deserialized.Get<TextureData>()
+                texture_data_it->deserialized.Get<TextureData>()
             )));
 
             return { FBOMResult::FBOM_OK };
@@ -52,7 +52,7 @@ public:
         });
 
         if (texture_desc_it != in.nodes->End()) {
-            out_object = CreateObject<Texture>(*texture_desc_it->deserialized.Get<TextureDesc>());
+            out_object = CreateObject<Texture>(texture_desc_it->deserialized.Get<TextureDesc>());
 
             return { FBOMResult::FBOM_OK };
         }

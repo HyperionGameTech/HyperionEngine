@@ -155,8 +155,7 @@ public:
         AssetLoaderBase *loader = loader_definition->loader.Get();
         AssertThrow(loader != nullptr);
 
-        return AssetLoaderWrapper<Normalized>(*loader)
-            .GetLoadedAsset(*this, path);
+        return LoadedAssetInstance<NormalizedType<T>>(loader->Load(*this, path));
     }
 
     HYP_API RC<AssetBatch> CreateBatch();
