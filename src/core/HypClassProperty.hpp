@@ -30,16 +30,12 @@ struct HypClassPropertyTypeInfo
 namespace detail {
 
 template <class T>
-constexpr TypeID GetUnwrappedTypeID()
+using UnwrappedSerializationType = NormalizedType<typename SerializationWrapperReverseMapping<NormalizedType<T>>::Type>;
+
+template <class T>
+constexpr TypeID GetUnwrappedSerializationTypeID()
 {
-    // using UnwrappedType = decltype(SerializationWrapper<T>::Unwrap(std::declval< typename SerializationWrapper< NormalizedType< T > >::Type >()));
-    // using UnwrappedType = decltype(SerializationWrapper<T>::Unwrap(std::declval< NormalizedType< T > >()));
-
-    // return TypeID::ForType< NormalizedType< UnwrappedType > >();
-
-    using UnwrappedType = typename SerializationWrapperReverseMapping< NormalizedType< T > >::Type;
-
-    return TypeID::ForType< NormalizedType< UnwrappedType > >();
+    return TypeID::ForType<UnwrappedSerializationType<T>>();
 }
 
 } // namespace detail
@@ -72,7 +68,7 @@ struct HypClassPropertyGetter
           })
 
     {
-        type_info.value_type_id = detail::GetUnwrappedTypeID<ReturnType>();
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -94,7 +90,7 @@ struct HypClassPropertyGetter
               return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize((unwrapped.*MemFn)());
           })
     {
-        type_info.value_type_id = detail::GetUnwrappedTypeID<ReturnType>();
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE
@@ -173,7 +169,7 @@ struct HypClassPropertySetter
               (unwrapped.*MemFn)(GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
           })
     {
-        type_info.value_type_id = detail::GetUnwrappedTypeID<ValueType>();
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE
@@ -290,12 +286,12 @@ struct HypClassProperty
 
     template <class TargetType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > > >
     HYP_NODISCARD HYP_FORCE_INLINE
-    fbom::FBOMData InvokeGetter(TargetType &target) const
+    fbom::FBOMData InvokeGetter(const TargetType &target) const
         { return getter(target); }
 
     template <class ReturnType, class TargetType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > > >
     HYP_NODISCARD HYP_FORCE_INLINE
-    decltype(auto) InvokeGetter(TargetType &target) const
+    decltype(auto) InvokeGetter(const TargetType &target) const
         { return getter.Invoke<ReturnType, TargetType>(&target); }
 
     HYP_NODISCARD HYP_FORCE_INLINE

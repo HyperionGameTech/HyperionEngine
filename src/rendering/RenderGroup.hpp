@@ -88,6 +88,8 @@ class HYP_API RenderGroup
 public:
     using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
 
+    RenderGroup();
+
     RenderGroup(
         const ShaderRef &shader,
         const RenderableAttributeSet &renderable_attributes,
@@ -105,20 +107,29 @@ public:
     RenderGroup &operator=(const RenderGroup &other)    = delete;
     ~RenderGroup();
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const GraphicsPipelineRef &GetPipeline() const
         { return m_pipeline; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ShaderRef &GetShader() const
         { return m_shader; }
 
+    void SetShader(const ShaderRef &shader);
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
+    void SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes);
+
+    HYP_FORCE_INLINE
     void AddFramebuffer(FramebufferRef framebuffer)
         { m_fbos.PushBack(std::move(framebuffer)); }
 
     void RemoveFramebuffer(const FramebufferRef &framebuffer);
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<FramebufferRef> &GetFramebuffers() const
         { return m_fbos; }
 

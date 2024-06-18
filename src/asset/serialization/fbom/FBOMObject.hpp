@@ -13,6 +13,7 @@
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/TypeAttributes.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/Name.hpp>
@@ -102,6 +103,10 @@ public:
     const FBOMType &GetType() const
         { return m_object_type; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const FlatMap<Name, FBOMData> &GetProperties() const
+        { return properties; }
+
     HYP_NODISCARD
     bool HasProperty(WeakName key) const;
 
@@ -154,15 +159,15 @@ public:
 
     template <class T, typename = typename std::enable_if_t< !std::is_pointer_v<NormalizedType<T> > && !std::is_fundamental_v<NormalizedType<T> > > >
     HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, const T &value)
+    FBOMObject &SetProperty(Name key, const T &in)
     {
         FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
 
         FBOMObject object(marshal->GetObjectType());
-        object.GenerateUniqueID(value, FBOMObjectFlags::NONE);
+        object.GenerateUniqueID(in, FBOMObjectFlags::NONE);
 
-        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(value, object)) {
+        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(in, object)) {
             AssertThrowMsg(false, "Failed to serialize object: %s", *err.message);
         }
 
@@ -177,7 +182,7 @@ public:
         @param flags Options to use for loading */
     template <class T>
     typename std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>, FBOMResult>
-    AddChild(const T &object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    AddChild(const T &in, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
         FBOMMarshaler<NormalizedType<T>> *marshal = GetMarshal<T>();
         AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
@@ -185,7 +190,7 @@ public:
         String external_object_key;
 
         FBOMObject out_object(marshal->GetObjectType());
-        out_object.GenerateUniqueID(object, flags);
+        out_object.GenerateUniqueID(in, flags);
 
         if (flags & FBOMObjectFlags::EXTERNAL) {
             if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
@@ -198,7 +203,7 @@ public:
             AssertThrow(external_object_key.Any());
         }
 
-        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(object, out_object)) {
+        if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(in, out_object)) {
             return err;
         }
 
@@ -255,6 +260,9 @@ public:
             return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
         }
 
+        out_object = FBOMObject(marshal->GetObjectType());
+        out_object.GenerateUniqueID(in, FBOMObjectFlags::NONE);
+
         // Explicit overload call forces a linker error if the marshal class is not registered.
         if (FBOMResult err = marshal->FBOMMarshaler<NormalizedType<T>>::Serialize(in, out_object)) {
             return err;
@@ -274,7 +282,7 @@ public:
         return object;
     }
 
-    static FBOMResult Deserialize(TypeID type_id, const FBOMObject &in, FBOMDeserializedObject &out);
+    static FBOMResult Deserialize(const TypeAttributes &type_attributes, const FBOMObject &in, FBOMDeserializedObject &out);
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
     static FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out)
@@ -325,13 +333,13 @@ public:
 
 private:
     HYP_NODISCARD
-    static FBOMMarshalerBase *GetMarshal(TypeID object_type_id);
+    static FBOMMarshalerBase *GetMarshal(const TypeAttributes &);
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE
     static FBOMMarshaler<NormalizedType<T>> *GetMarshal()
     {
-        FBOMMarshalerBase *marshal = GetMarshal(TypeID::ForType<NormalizedType<T>>());
+        FBOMMarshalerBase *marshal = GetMarshal(TypeAttributes::ForType<T>());
 
         if (!marshal) {
             return nullptr;

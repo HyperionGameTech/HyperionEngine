@@ -70,7 +70,7 @@ FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject 
         return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
     }
 
-    return marshal->Deserialize(in, out_object);
+    return marshal->Deserialize(in, out_object.m_value);
 }
 
 FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)

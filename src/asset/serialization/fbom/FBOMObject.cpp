@@ -192,9 +192,9 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(TypeID type_id, const FBOMObject &in, FBOMDeserializedObject &out)
+FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const FBOMObject &in, FBOMDeserializedObject &out)
 {
-    FBOMMarshalerBase *marshal = GetMarshal(type_id);
+    FBOMMarshalerBase *marshal = GetMarshal(type_attributes);
     
     if (!marshal) {
         return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
@@ -278,9 +278,9 @@ const HypClass *FBOMObject::GetHypClass() const
     return nullptr;
 }
 
-FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID object_type_id)
+FBOMMarshalerBase *FBOMObject::GetMarshal(const TypeAttributes &type_attributes)
 {
-    return FBOM::GetInstance().GetMarshal(object_type_id);
+    return FBOM::GetInstance().GetMarshal(type_attributes);
 }
 
 } // namespace hyperion::fbom

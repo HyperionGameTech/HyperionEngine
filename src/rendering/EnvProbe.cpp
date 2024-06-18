@@ -148,18 +148,28 @@ void EnvProbe::UpdateRenderData(
     g_engine->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
 }
 
+EnvProbe::EnvProbe() : EnvProbe(
+    Handle<Scene> { },
+    BoundingBox::Empty(),
+    Extent2D { 1, 1 },
+    EnvProbeType::ENV_PROBE_TYPE_INVALID,
+    nullptr
+)
+{
+}
+
 EnvProbe::EnvProbe(
     const Handle<Scene> &parent_scene,
     const BoundingBox &aabb,
     const Extent2D &dimensions,
     EnvProbeType env_probe_type
 ) : EnvProbe(
-    parent_scene,
-    aabb,
-    dimensions,
-    env_probe_type,
-    nullptr
-)
+        parent_scene,
+        aabb,
+        dimensions,
+        env_probe_type,
+        nullptr
+    )
 {
 }
 

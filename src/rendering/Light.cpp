@@ -85,6 +85,16 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+Light::Light() : Light(
+    LightType::POINT,
+    Vec3f::Zero(),
+    Color { 1.0f, 1.0f, 1.0f, 1.0f },
+    1.0f,
+    1.0f
+)
+{
+}
+
 Light::Light(
     LightType type,
     const Vec3f &position,

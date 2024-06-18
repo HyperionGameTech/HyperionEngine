@@ -100,11 +100,8 @@ inline const HypClass *GetClass(const Handle<T> &handle)
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
-HYP_NODISCARD HYP_FORCE_INLINE
-inline const HypClass *GetClass(TypeID type_id)
-{
-    return HypClassRegistry::GetInstance().GetClass(type_id);
-}
+HYP_NODISCARD
+HYP_API const HypClass *GetClass(TypeID type_id);
 
 } // namespace hyperion
 

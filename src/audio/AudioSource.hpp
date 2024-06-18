@@ -31,27 +31,41 @@ public:
         PAUSED
     };
 
+    AudioSource();
     AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType freq);
+
+    AudioSource(const AudioSource &other)               = delete;
+    AudioSource &operator=(const AudioSource &other)    = delete;
+
+    AudioSource(AudioSource &&other) noexcept;
+    AudioSource &operator=(AudioSource &&other) noexcept;
+
     ~AudioSource();
 
     void Init();
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     Format GetFormat() const
         { return m_format; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType GetFreq() const
         { return m_freq; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ByteBuffer &GetByteBuffer() const
         { return m_data; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 GetSampleLength() const
         { return m_sample_length; }
 
     /*! \brief Get duration in seconds. */
+    HYP_NODISCARD HYP_FORCE_INLINE
     double GetDuration() const
         { return double(m_sample_length) / double(m_freq); }
 
+    HYP_NODISCARD
     State GetState() const;
 
     void SetPosition(const Vec3f &vec);

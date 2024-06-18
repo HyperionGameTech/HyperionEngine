@@ -219,33 +219,285 @@ public:
     }
 };
 
+template <>
+class HypClassPropertySerializer<Vec2i> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec2i &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec2i Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec2i result;
+
+        if (fbom::FBOMResult err = value.ReadVec2i(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec3i> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec3i &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec3i Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec3i result;
+
+        if (fbom::FBOMResult err = value.ReadVec3i(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec4i> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec4i &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec4i Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec4i result;
+
+        if (fbom::FBOMResult err = value.ReadVec4i(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec2u> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec2u &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec2u Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec2u result;
+
+        if (fbom::FBOMResult err = value.ReadVec2u(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec3u> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec3u &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec3u Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec3u result;
+
+        if (fbom::FBOMResult err = value.ReadVec3u(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec4u> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec4u &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec4u Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec4u result;
+
+        if (fbom::FBOMResult err = value.ReadVec4u(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec2f> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec2f &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec2f Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec2f result;
+
+        if (fbom::FBOMResult err = value.ReadVec2f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec3f> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec3f &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec3f Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec3f result;
+
+        if (fbom::FBOMResult err = value.ReadVec3f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Vec4f> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Vec4f &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Vec4f Deserialize(const fbom::FBOMData &value) const
+    {
+        Vec4f result;
+
+        if (fbom::FBOMResult err = value.ReadVec4f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Matrix3> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Matrix3 &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Matrix3 Deserialize(const fbom::FBOMData &value) const
+    {
+        Matrix3 result;
+
+        if (fbom::FBOMResult err = value.ReadMat3f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Matrix4> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Matrix4 &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Matrix4 Deserialize(const fbom::FBOMData &value) const
+    {
+        Matrix4 result;
+
+        if (fbom::FBOMResult err = value.ReadMat4f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypClassPropertySerializer<Quaternion> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const Quaternion &value) const
+    {
+        return fbom::FBOMData(value);
+    }
+
+    Quaternion Deserialize(const fbom::FBOMData &value) const
+    {
+        Quaternion result;
+
+        if (fbom::FBOMResult err = value.ReadQuat4f(&result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
 template <class T>
 class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const NormalizedType<T> &value) const
     {
-        if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
-            return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
-        } else {
+        // if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
+        //     return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
+        // } else {
             fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
             object.deserialized.m_value.Set<T>(value);
 
             return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
-        }
+        // }
     }
 
     decltype(auto) Deserialize(const fbom::FBOMData &value) const
     {
-        if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
-            NormalizedType<T> result { };
+        // if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
+        //     NormalizedType<T> result { };
 
-            if (fbom::FBOMResult err = value.ReadStruct(&result)) {
-                return result;
-            }
+        //     if (fbom::FBOMResult err = value.ReadStruct(&result)) {
+        //         return result;
+        //     }
 
-            return result;
-        } else {
+        //     return result;
+        // } else {
             Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject();
             AssertThrow(deserialized_object_opt.HasValue());
 
@@ -270,7 +522,7 @@ public:
                 return deserialized_object.Get< NormalizedType<T> >();
             }
 #endif
-        }
+        // }
     }
 };
 

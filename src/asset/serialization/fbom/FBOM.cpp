@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>
@@ -19,30 +20,48 @@ FBOM &FBOM::GetInstance()
     return instance;
 }
 
-FBOM::FBOM()    = default;
-FBOM::~FBOM()   = default;
+FBOM::FBOM()
+    : m_hyp_class_instance_marshal(new HypClassInstanceMarshal())
+{
+}
+
+FBOM::~FBOM()
+{
+    delete m_hyp_class_instance_marshal;
+}
 
 void FBOM::RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal)
 {
     AssertThrow(marshal != nullptr);
 
-    const String &name = marshal->GetObjectType().name;
+    const auto &name = marshal->GetObjectType().name;
 
     HYP_LOG(Serialization, LogLevel::INFO, "Registered FBOM loader {}", name);
 
     m_marshals.Set(name, std::move(marshal));
 }
 
-FBOMMarshalerBase *FBOM::GetMarshal(TypeID object_type_id) const
+FBOMMarshalerBase *FBOM::GetMarshal(const TypeAttributes &type_attributes) const
 {
     for (const auto &it : m_marshals) {
         if (!it.second) {
             continue;
         }
 
-        if (it.second->GetTypeID() == object_type_id) {
+        if (it.second->GetTypeID() == type_attributes.id) {
             return it.second.Get();
         }
+    }
+
+    // No custom marshal found.
+
+    // If the type has a HypClass defined, then use the default HypClass instance marshal
+    if (type_attributes.HasHypClass()) {
+        return m_hyp_class_instance_marshal;
+    }
+
+    if (type_attributes.IsPOD()) {
+        // @TODO Use POD marshaller to serialize/deserialize struct
     }
 
     return nullptr;

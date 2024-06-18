@@ -149,6 +149,8 @@ class HYP_API EnvProbe : public BasicObject<STUB_CLASS(EnvProbe)>
 public:
     friend struct RENDER_COMMAND(UpdateEnvProbeDrawProxy);
     friend struct RENDER_COMMAND(DestroyCubemapRenderPass);
+
+    EnvProbe();
     
     EnvProbe(
         const Handle<Scene> &parent_scene,

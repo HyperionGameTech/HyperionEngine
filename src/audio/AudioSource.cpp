@@ -11,6 +11,16 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(AudioSource);
 
+AudioSource::AudioSource()
+    : BasicObject(),
+      m_format(Format::MONO8),
+      m_freq(0),
+      m_buffer_id(~0u),
+      m_source_id(~0u),
+      m_sample_length(0)
+{
+}
+
 AudioSource::AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType freq)
     : BasicObject(),
       m_format(format),
@@ -20,6 +30,40 @@ AudioSource::AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType 
       m_source_id(~0u),
       m_sample_length(0)
 {
+}
+
+AudioSource::AudioSource(AudioSource &&other) noexcept
+    : BasicObject(),
+      m_format(other.m_format),
+      m_freq(other.m_freq),
+      m_data(std::move(other.m_data)),
+      m_buffer_id(other.m_buffer_id),
+      m_source_id(other.m_source_id),
+      m_sample_length(other.m_sample_length)
+{
+    other.m_format = Format::MONO8;
+    other.m_freq = 0;
+    other.m_buffer_id = ~0u;
+    other.m_source_id = ~0u;
+    other.m_sample_length = 0;
+}
+
+AudioSource &AudioSource::operator=(AudioSource &&other) noexcept
+{
+    m_format = other.m_format;
+    m_freq = other.m_freq;
+    m_data = std::move(other.m_data);
+    m_buffer_id = other.m_buffer_id;
+    m_source_id = other.m_source_id;
+    m_sample_length = other.m_sample_length;
+
+    other.m_format = Format::MONO8;
+    other.m_freq = 0;
+    other.m_buffer_id = ~0u;
+    other.m_source_id = ~0u;
+    other.m_sample_length = 0;
+
+    return *this;
 }
 
 AudioSource::~AudioSource()

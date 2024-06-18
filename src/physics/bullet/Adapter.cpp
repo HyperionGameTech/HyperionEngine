@@ -12,14 +12,14 @@
 
 namespace hyperion::physics {
 
-static inline btVector3 ToBtVector(const Vector3 &vec)
+static inline btVector3 ToBtVector(const Vec3f &vec)
 {
     return btVector3(vec.x, vec.y, vec.z);
 }
 
-static inline Vector3 FromBtVector(const btVector3 &vec)
+static inline Vec3f FromBtVector(const btVector3 &vec)
 {
-    return Vector3(vec.x(), vec.y(), vec.z());
+    return Vec3f(vec.x(), vec.y(), vec.z());
 }
 
 static inline btQuaternion ToBtQuaternion(const Quaternion &quat)
@@ -136,13 +136,13 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase *world, GameCounter::TickUnitHi
 
     m_dynamics_world->stepSimulation(delta);
 
-    for (auto &rigid_body : world->GetRigidBodies()) {
-        auto *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
+    for (Handle<RigidBody> &rigid_body : world->GetRigidBodies()) {
+        RigidBodyInternalData *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
 
         btTransform bt_transform;
         internal_data->motion_state->getWorldTransform(bt_transform);
 
-        auto &rigid_body_transform = rigid_body->GetTransform();
+        Transform &rigid_body_transform = rigid_body->GetTransform();
         rigid_body_transform.GetTranslation() = FromBtVector(bt_transform.getOrigin());
         rigid_body_transform.GetRotation() = FromBtQuaternion(bt_transform.getRotation()).Invert();
         rigid_body_transform.UpdateMatrix();
@@ -200,7 +200,7 @@ void BulletPhysicsAdapter::OnRigidBodyRemoved(const Handle<RigidBody> &rigid_bod
 
     AssertThrow(m_dynamics_world != nullptr);
 
-    auto *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
+    RigidBodyInternalData *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
     AssertThrow(internal_data != nullptr);
 
     m_dynamics_world->removeRigidBody(internal_data->rigid_body.Get());
@@ -214,7 +214,7 @@ void BulletPhysicsAdapter::OnChangePhysicsShape(RigidBody *rigid_body)
 
     AssertThrow(m_dynamics_world != nullptr);
     
-    auto *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
+    RigidBodyInternalData *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
     AssertThrow(internal_data != nullptr);
 
     AssertThrow(internal_data->rigid_body != nullptr);
@@ -242,7 +242,7 @@ void BulletPhysicsAdapter::OnChangePhysicsMaterial(RigidBody *rigid_body)
 
     AssertThrow(m_dynamics_world != nullptr);
     
-    auto *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
+    RigidBodyInternalData *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
     AssertThrow(internal_data != nullptr);
 
     AssertThrow(internal_data->rigid_body != nullptr);
@@ -262,7 +262,7 @@ void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody *rigid_body, const V
 
     AssertThrow(m_dynamics_world != nullptr);
     
-    auto *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
+    RigidBodyInternalData *internal_data = static_cast<RigidBodyInternalData *>(rigid_body->GetHandle().Get());
     AssertThrow(internal_data != nullptr);
 
     AssertThrow(internal_data->rigid_body != nullptr);

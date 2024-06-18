@@ -55,6 +55,8 @@ class HYP_API Light : public BasicObject<STUB_CLASS(Light)>
     friend struct RENDER_COMMAND(UpdateLightShaderData);
 
 public:
+    Light();
+
     Light(
         LightType type,
         const Vec3f &position,
@@ -86,6 +88,7 @@ public:
      *
      * \return The mutation state.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
@@ -93,13 +96,27 @@ public:
      *
      * \return The type.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     LightType GetType() const
         { return m_type; }
+
+    /*! \brief Set the type of the light. */
+    HYP_FORCE_INLINE
+    void SetType(LightType type)
+    {
+        if (m_type == type) {
+            return;
+        }
+
+        m_type = type;
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
 
     /*! \brief Get the position for the light. For directional lights, this is the direction the light is pointing.
      *
      * \return The position or direction.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec3f GetPosition() const
         { return m_position; }
 
@@ -107,6 +124,7 @@ public:
      *
      * \param position The position or direction to set.
      */
+    HYP_FORCE_INLINE
     void SetPosition(Vec3f position)
     {
         if (m_position == position) {
@@ -121,6 +139,7 @@ public:
      *
      * \return The normal.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec3f GetNormal() const
         { return m_normal; }
 
@@ -128,6 +147,7 @@ public:
      *
      * \param normal The normal to set.
      */
+    HYP_FORCE_INLINE
     void SetNormal(Vec3f normal)
     {
         if (m_normal == normal) {
@@ -142,6 +162,7 @@ public:
      *
      * \return The area size. (x = width, y = height)
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2f GetAreaSize() const
         { return m_area_size; }
 
@@ -149,6 +170,7 @@ public:
      *
      * \param area_size The area size to set. (x = width, y = height)
      */
+    HYP_FORCE_INLINE
     void SetAreaSize(Vec2f area_size)
     {
         if (m_area_size == area_size) {
@@ -163,6 +185,7 @@ public:
      *
      * \return The color.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Color GetColor() const
         { return m_color; }
 
@@ -170,6 +193,7 @@ public:
      *
      * \param color The color to set.
      */
+    HYP_FORCE_INLINE
     void SetColor(Color color)
     {
         if (m_color == color) {
@@ -184,6 +208,7 @@ public:
      *
      * \return The intensity.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     float GetIntensity() const
         { return m_intensity; }
 
@@ -191,6 +216,7 @@ public:
      *
      * \param intensity The intensity to set.
      */
+    HYP_FORCE_INLINE
     void SetIntensity(float intensity)
     {
         if (m_intensity == intensity) {
@@ -205,6 +231,7 @@ public:
      *
      * \return The radius.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     float GetRadius() const
     {
         switch (m_type) {
@@ -221,6 +248,7 @@ public:
      *
      * \param radius The radius to set.
      */
+    HYP_FORCE_INLINE
     void SetRadius(float radius)
     {
         if (m_type != LightType::POINT) {
@@ -239,6 +267,7 @@ public:
      *
      * \return The falloff.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     float GetFalloff() const
         { return m_falloff; }
 
@@ -246,6 +275,7 @@ public:
      *
      * \param falloff The falloff to set.
      */
+    HYP_FORCE_INLINE
     void SetFalloff(float falloff)
     {
         if (m_type != LightType::POINT) {
@@ -264,6 +294,7 @@ public:
      *
      * \return The spotlight angles.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2f GetSpotAngles() const
         { return m_spot_angles; }
 
@@ -271,6 +302,7 @@ public:
      *
      * \param spot_angles The angles to set for the spotlight.
      */
+    HYP_FORCE_INLINE
     void SetSpotAngles(Vec2f spot_angles)
     {
         if (m_type != LightType::SPOT) {
@@ -289,6 +321,7 @@ public:
      *
      * \return The shadow map index.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint GetShadowMapIndex() const
         { return m_shadow_map_index; }
 
@@ -296,6 +329,7 @@ public:
      *
      * \param shadow_map_index The shadow map index to set.
      */
+    HYP_FORCE_INLINE
     void SetShadowMapIndex(uint shadow_map_index)
     {
         if (shadow_map_index == m_shadow_map_index) {
@@ -310,6 +344,7 @@ public:
      *
      * \return The material handle associated with the Light.
      */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Handle<Material> &GetMaterial() const
         { return m_material; }
 
@@ -324,6 +359,7 @@ public:
      * \param camera_id The camera to check visibility for.
      * \return True if the light is visible, false otherwise.
      */
+    HYP_NODISCARD
     bool IsVisible(ID<Camera> camera_id) const;
 
     /*! \brief Set the visibility of the light to the camera.
@@ -333,9 +369,13 @@ public:
      */
     void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
+    HYP_NODISCARD
     BoundingBox GetAABB() const;
+
+    HYP_NODISCARD
     BoundingSphere GetBoundingSphere() const;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const LightDrawProxy &GetProxy() const
         { return m_proxy; }
 
@@ -387,9 +427,11 @@ public:
     {
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec3f GetDirection() const
         { return GetPosition(); }
 
+    HYP_FORCE_INLINE
     void SetDirection(Vec3f direction)
         { SetPosition(direction); }
 };
@@ -444,9 +486,11 @@ public:
         SetSpotAngles(angles);
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec3f GetDirection() const
         { return GetNormal(); }
 
+    HYP_FORCE_INLINE
     void SetDirection(Vec3f direction)
         { SetNormal(direction); }
 };

@@ -1,5 +1,4 @@
 DEF_HANDLE(Texture,                      65536)
-DEF_HANDLE(Lightmap,                     32768)
 DEF_HANDLE(Camera,                       64)
 DEF_HANDLE(Entity,                       32768)
 DEF_HANDLE(Bone,                         65536)

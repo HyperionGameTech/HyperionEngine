@@ -52,6 +52,7 @@ public:
         SORT_STAGE_MAX
     };
 
+    GaussianSplattingInstance();
     GaussianSplattingInstance(RC<GaussianSplattingModelData> model);
     GaussianSplattingInstance(const GaussianSplattingInstance &other) = delete;
     GaussianSplattingInstance &operator=(const GaussianSplattingInstance &other) = delete;

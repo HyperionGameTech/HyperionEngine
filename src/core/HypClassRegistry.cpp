@@ -32,6 +32,12 @@ public:
 
         return name;
     }
+
+protected:
+    virtual void CreateInstance_Internal(void *out_ptr) const override
+    {
+        // Do nothing
+    }
 };
 } // namespace detail
 
@@ -51,7 +57,7 @@ const HypClass *HypClassRegistry::GetClass(TypeID type_id)
     const auto it = m_registered_classes.Find(type_id);
 
     if (it == m_registered_classes.End()) {
-        return &GetNullHypClassInstance();
+        return nullptr;//&GetNullHypClassInstance();
     }
 
     return it->second;

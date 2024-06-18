@@ -11,8 +11,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(RenderEnvironment);
-
 using renderer::Result;
 
 #pragma region Render commands

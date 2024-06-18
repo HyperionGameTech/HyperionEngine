@@ -20,8 +20,6 @@ class FBOMObject;
 
 class FBOMMarshalerBase
 {
-    friend class FBOMReader;
-
 public:
     virtual ~FBOMMarshalerBase() = default;
 
@@ -30,8 +28,9 @@ public:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const = 0;
 
-protected:
-    virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
+private:
+    HYP_DEPRECATED
+    FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const;
 };
 
 template <class T>
@@ -77,24 +76,9 @@ public:
     virtual TypeID GetTypeID() const override final
         { return TypeID::ForType<T>(); }
 
-    virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
+    virtual FBOMResult Serialize(const T &in, FBOMObject &out) const = 0;
 
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override = 0;
-
-    virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override final
-    {
-        Any any_value;
-
-        FBOMResult result = Deserialize(in, any_value);
-
-        if (result.IsOK()) {
-            AssertThrow(any_value.HasValue());
-            
-            out.m_value = std::move(any_value);
-        }
-
-        return result;
-    }
 };
 
 template <class T>

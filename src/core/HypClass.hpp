@@ -9,6 +9,10 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Array.hpp>
 
+#include <core/utilities/ValueStorage.hpp>
+
+#include <core/memory/UniquePtr.hpp>
+
 #include <core/utilities/Span.hpp>
 
 namespace hyperion {
@@ -45,7 +49,19 @@ public:
     const Array<HypClassProperty *> &GetProperties() const
         { return m_properties; }
 
+    template <class T>
+    HYP_FORCE_INLINE
+    void CreateInstance(T *out_ptr) const
+    {
+        AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
+            TypeID::ForType<T>().Value(), GetTypeID().Value());
+
+        CreateInstance_Internal(out_ptr);
+    }
+
 protected:
+    virtual void CreateInstance_Internal(void *out_ptr) const = 0;
+
     TypeID                              m_type_id;
     Array<HypClassProperty *>           m_properties;
     HashMap<Name, HypClassProperty *>   m_properties_by_name;
@@ -80,11 +96,25 @@ public:
     {
         return true;
     }
+
+    T CreateInstance() const
+    {
+        ValueStorage<T> result_storage;
+        CreateInstance_Internal(result_storage.GetPointer());
+
+        return result_storage.Get();
+    }
+
+protected:
+    virtual void CreateInstance_Internal(void *out_ptr) const override
+        { Memory::Construct<T>(out_ptr); }
 };
 
-// Bad class result (not registered)
+// Leave implementation empty - stub class
 template <>
 class HypClassInstance<void>;
+
+using HypClassInstanceStub = HypClassInstance<void>;
 
 } // namespace hyperion
 

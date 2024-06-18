@@ -10,6 +10,24 @@ namespace hyperion::physics {
 
 HYP_DEFINE_CLASS(RigidBody);
 
+RigidBody::RigidBody()
+    : RigidBody(nullptr, { })
+{
+}
+
+RigidBody::RigidBody(const PhysicsMaterial &physics_material)
+    : RigidBody(nullptr, physics_material)
+{
+}
+
+RigidBody::RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material)
+    : BasicObject(),
+      m_shape(std::move(shape)),
+      m_physics_material(physics_material),
+      m_is_kinematic(true)
+{
+}
+
 RigidBody::~RigidBody()
 {
 }
@@ -21,8 +39,6 @@ void RigidBody::Init()
     }
 
     BasicObject::Init();
-
-    // do nothing
 }
 
 void RigidBody::SetShape(RC<PhysicsShape> &&shape)

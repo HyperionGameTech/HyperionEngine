@@ -218,6 +218,10 @@ struct RENDER_COMMAND(CreateGaussianSplattingCommandBuffers) : renderer::RenderC
     }
 };
 
+GaussianSplattingInstance::GaussianSplattingInstance()
+{
+}
+
 GaussianSplattingInstance::GaussianSplattingInstance(RC<GaussianSplattingModelData> model)
     : m_model(std::move(model))
 {

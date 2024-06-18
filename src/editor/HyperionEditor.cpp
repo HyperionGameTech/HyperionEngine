@@ -504,7 +504,10 @@ void HyperionEditor::Init()
     Handle<Mesh> mesh = CreateObject<Mesh>();
     
     if (HypClassProperty *property = cls->GetProperty("VertexAttributes")) {
-        auto vertex_attributes_value = property->InvokeGetter(mesh);
+        auto vertex_attributes_value = property->InvokeGetter(*mesh);
+        HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
+
+        auto vertex_attributes_value1 = property->InvokeGetter<VertexAttributeSet>(*mesh);
         HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
     }
 

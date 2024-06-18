@@ -306,7 +306,7 @@ public:
 
     /*! \brief Construct a new pointer into the Any. Any current value will be destroyed. */
     template <class T, class ...Args>
-    void Emplace(Args &&... args)
+    T &Emplace(Args &&... args)
     {
         if (HasValue()) {
             m_dtor(m_ptr);
@@ -316,6 +316,8 @@ public:
         m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
         m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
+
+        return *static_cast<NormalizedType<T> *>(m_ptr);
     }
 
     /*! \brief Drop ownership of the object, giving it to the caller.

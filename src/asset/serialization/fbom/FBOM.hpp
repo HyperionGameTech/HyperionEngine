@@ -12,6 +12,7 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/TypeAttributes.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -72,6 +73,8 @@ class FBOMObject;
 class FBOMReader;
 class FBOMWriter;
 class FBOMArray;
+
+class HypClassInstanceMarshal;
 
 struct FBOMVersion
 {
@@ -179,7 +182,7 @@ public:
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE
     FBOMMarshalerBase *GetMarshal() const
-        { return GetMarshal(TypeID::ForType<NormalizedType<T>>()); }
+        { return GetMarshal(TypeAttributes::ForType<T>()); }
 
     /*! \brief Get a registered loader for the given object TypeID.
      *  \example Use the TypeID for MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
@@ -187,7 +190,7 @@ public:
      *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given TypeID
      */
     HYP_NODISCARD
-    FBOMMarshalerBase *GetMarshal(TypeID object_type_id) const;
+    FBOMMarshalerBase *GetMarshal(const TypeAttributes &type_attributes) const;
 
     /*! \brief Get a registered loader for the given object type name.
      *  \example Use the string "MyStruct" to get a registered instance of FBOMMarshaler<MyStruct> (assuming GetObjectType() has not been overridden in the marshaler class)
@@ -199,6 +202,7 @@ public:
 
 private:
     FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
+    HypClassInstanceMarshal                             *m_hyp_class_instance_marshal;
 };
 
 struct FBOMConfig

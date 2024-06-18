@@ -118,6 +118,12 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
 
 #pragma region RenderGroup
 
+RenderGroup::RenderGroup() : BasicObject(),
+    m_flags(RenderGroupFlags::NONE),
+    m_pipeline(MakeRenderObject<GraphicsPipeline>())
+{
+}
+
 RenderGroup::RenderGroup(
     const ShaderRef &shader,
     const RenderableAttributeSet &renderable_attributes,
@@ -155,9 +161,8 @@ RenderGroup::~RenderGroup()
         m_indirect_renderer->Destroy();
     }
     
-    m_shader.Reset();
-
-    m_fbos.Clear();
+    SafeRelease(std::move(m_shader));
+    SafeRelease(std::move(m_fbos));
 
     if (m_command_buffers != nullptr) {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -168,6 +173,22 @@ RenderGroup::~RenderGroup()
     }
 
     SafeRelease(std::move(m_pipeline));
+}
+
+void RenderGroup::SetShader(const ShaderRef &shader)
+{
+    SafeRelease(std::move(m_shader));
+
+    m_shader = shader;
+
+    if (m_pipeline != nullptr) {
+        m_pipeline->SetShader(m_shader);
+    }
+}
+
+void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes)
+{
+    m_renderable_attributes = renderable_attributes;
 }
 
 void RenderGroup::RemoveFramebuffer(const FramebufferRef &framebuffer)
@@ -195,7 +216,7 @@ void RenderGroup::Init()
             m_indirect_renderer->Destroy();
         }
         
-        m_shader.Reset();
+        SafeRelease(std::move(m_shader));
 
         SafeRelease(std::move(m_fbos));
 

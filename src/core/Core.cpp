@@ -18,4 +18,9 @@ Device *GetEngineDevice()
     return g_engine->GetGPUDevice();
 }
 
+const HypClass *GetClass(TypeID type_id)
+{
+    return HypClassRegistry::GetInstance().GetClass(type_id);
+}
+
 } // namespace hyperion

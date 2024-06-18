@@ -4,16 +4,17 @@
 #define HYPERION_PHYSICS_RIGID_BODY_HPP
 
 #include <core/Base.hpp>
+#include <core/Defines.hpp>
 
 #include <math/Transform.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/BoundingSphere.hpp>
 #include <math/Vector3.hpp>
+#include <math/Vector4.hpp>
 
 #include <physics/PhysicsMaterial.hpp>
 
 #include <Types.hpp>
-#include <core/Defines.hpp>
 
 #include <type_traits>
 
@@ -37,6 +38,11 @@ enum class PhysicsShapeType : uint32
 class PhysicsShape
 {
 public:
+    PhysicsShape()
+        : m_type(PhysicsShapeType::NONE)
+    {
+    }
+
     PhysicsShape(PhysicsShapeType type)
         : m_type(type)
     {
@@ -44,26 +50,30 @@ public:
 
     ~PhysicsShape() = default;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     PhysicsShapeType GetType() const
         { return m_type; }
 
     /*! \brief Return the handle specific to the physics engine in use */
+    HYP_NODISCARD HYP_FORCE_INLINE
     UniquePtr<void> &GetHandle()
         { return m_handle; }
 
     /*! \brief Return the handle specific to the physics engine in use */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const UniquePtr<void> &GetHandle() const
         { return m_handle; }
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
+    HYP_FORCE_INLINE
     void SetHandle(UniquePtr<void> &&handle)
         { m_handle = std::move(handle); }
 
 protected:
-    const PhysicsShapeType m_type;
+    PhysicsShapeType    m_type;
 
-    UniquePtr<void> m_handle;
+    UniquePtr<void>     m_handle;
 };
 
 class BoxPhysicsShape : public PhysicsShape
@@ -99,13 +109,13 @@ public:
         { return m_sphere; }
 
 protected:
-    BoundingSphere m_sphere;
+    BoundingSphere  m_sphere;
 };
 
 class PlanePhysicsShape : public PhysicsShape
 {
 public:
-    PlanePhysicsShape(const Vector4 &plane)
+    PlanePhysicsShape(const Vec4f &plane)
         : PhysicsShape(PhysicsShapeType::PLANE),
           m_plane(plane)
     {
@@ -113,17 +123,17 @@ public:
 
     ~PlanePhysicsShape() = default;
 
-    const Vector4 &GetPlane() const
+    const Vec4f &GetPlane() const
         { return m_plane; }
 
 protected:
-    Vector4 m_plane;
+    Vec4f   m_plane;
 };
 
 class ConvexHullPhysicsShape : public PhysicsShape
 {
 public:
-    ConvexHullPhysicsShape(const Array<Vector3> &vertices)
+    ConvexHullPhysicsShape(const Array<Vec3f> &vertices)
         : PhysicsShape(PhysicsShapeType::CONVEX_HULL)
     {
         m_vertices.Resize(vertices.Size() * 3);
@@ -144,27 +154,18 @@ public:
         { return m_vertices.Size() / 3; }
 
 protected:
-    Array<float> m_vertices;
+    Array<float>    m_vertices;
 };
 
 class HYP_API RigidBody : public BasicObject<STUB_CLASS(RigidBody)>
 {
 public:
-    RigidBody(const PhysicsMaterial &physics_material)
-        : RigidBody(nullptr, physics_material)
-    {
-    }
+    RigidBody();
+    RigidBody(const PhysicsMaterial &physics_material);
+    RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material);
 
-    RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material)
-        : BasicObject(),
-          m_shape(std::move(shape)),
-          m_physics_material(physics_material),
-          m_is_kinematic(true)
-    {
-    }
-
-    RigidBody(const RigidBody &other) = delete;
-    RigidBody &operator=(const RigidBody &other) = delete;
+    RigidBody(const RigidBody &other)               = delete;
+    RigidBody &operator=(const RigidBody &other)    = delete;
     ~RigidBody();
 
     void Init();
@@ -172,60 +173,73 @@ public:
     /*! \brief Get the world-space transform of this RigidBody.
         If changed, you will have to flag that the transform has changed,
         so that the physics engine's internal rigidbody will have its transform updated. */
+    HYP_NODISCARD HYP_FORCE_INLINE
     Transform &GetTransform()
         { return m_transform; }
 
     /*! \brief Get the world-space transform of this RigidBody. */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Transform &GetTransform() const
         { return m_transform; }
     
+    HYP_FORCE_INLINE
     void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     RC<PhysicsShape> &GetShape()
         { return m_shape; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RC<PhysicsShape> &GetShape() const
         { return m_shape; }
 
+    HYP_FORCE_INLINE
     void SetShape(RC<PhysicsShape> &&shape);
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     PhysicsMaterial &GetPhysicsMaterial()
         { return m_physics_material; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const PhysicsMaterial &GetPhysicsMaterial() const
         { return m_physics_material; }
 
     void SetPhysicsMaterial(const PhysicsMaterial &physics_material);
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsKinematic() const
         { return m_is_kinematic; }
 
+    HYP_FORCE_INLINE
     void SetIsKinematic(bool is_kinematic)
         { m_is_kinematic = is_kinematic; }
 
     /*! \brief Return the handle specific to the physics engine in use */
+    HYP_NODISCARD HYP_FORCE_INLINE
     UniquePtr<void> &GetHandle()
         { return m_handle; }
 
     /*! \brief Return the handle specific to the physics engine in use */
+    HYP_NODISCARD HYP_FORCE_INLINE
     const UniquePtr<void> &GetHandle() const
         { return m_handle; }
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
+    HYP_FORCE_INLINE
     void SetHandle(UniquePtr<void> &&handle)
         { m_handle = std::move(handle); }
 
-    void ApplyForce(const Vector3 &force);
+    void ApplyForce(const Vec3f &force);
 
 private:
-    Transform m_transform;
-    RC<PhysicsShape> m_shape;
-    PhysicsMaterial m_physics_material;
-    bool m_is_kinematic;
+    Transform           m_transform;
+    RC<PhysicsShape>    m_shape;
+    PhysicsMaterial     m_physics_material;
+    bool                m_is_kinematic;
 
-    UniquePtr<void> m_handle;
+    UniquePtr<void>     m_handle;
 };
 
 } // namespace hyperion::physics

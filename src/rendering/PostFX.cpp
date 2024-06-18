@@ -10,8 +10,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(PostProcessingEffect);
-
 PostFXPass::PostFXPass(InternalFormat image_format)
     : FullScreenPass(nullptr, image_format)
 {
