@@ -14,6 +14,12 @@ struct BLASComponent
     BLASRef     blas;
     
     HashCode    transform_hash_code;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        return HashCode();
+    }
 };
 
 } // namespace hyperion

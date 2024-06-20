@@ -32,17 +32,8 @@ public:
     {
     }
 
-    FBOMDeserializedObject(const FBOMDeserializedObject &other)
-        : m_value(other.m_value)
-    {
-    }
-
-    FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)
-    {
-        m_value = other.m_value;
-
-        return *this;
-    }
+    FBOMDeserializedObject(const FBOMDeserializedObject &other)             = delete;
+    FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)  = delete;
 
     FBOMDeserializedObject(FBOMDeserializedObject &&other) noexcept
         : m_value(std::move(other.m_value))

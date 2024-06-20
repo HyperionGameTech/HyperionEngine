@@ -100,9 +100,9 @@ FBOMData FBOMData::FromObject(const FBOMObject &object, bool keep_native_object)
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
     if (keep_native_object) {
-        AssertThrowMsg(object.deserialized.m_value.HasValue(), "If keep_native_object is true, expected object to have a deserialized value");
+        AssertThrowMsg(object.m_deserialized_object != nullptr, "If keep_native_object is true, expected object to have a deserialized value");
 
-        value.m_deserialized_object = object.deserialized;
+        value.m_deserialized_object = object.m_deserialized_object;
     }
 
     return value;
@@ -121,9 +121,9 @@ FBOMData FBOMData::FromObject(FBOMObject &&object, bool keep_native_object)
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
     if (keep_native_object) {
-        AssertThrowMsg(object.deserialized.m_value.HasValue(), "If keep_native_object is true, expected object to have a deserialized value");
+        AssertThrowMsg(object.m_deserialized_object != nullptr, "If keep_native_object is true, expected object to have a deserialized value");
 
-        value.m_deserialized_object = std::move(object.deserialized);
+        value.m_deserialized_object = std::move(object.m_deserialized_object);
     }
 
     return value;

@@ -156,9 +156,9 @@ public:
 
         for (auto &sub_object : *in.nodes) {
             if (sub_object.GetType().IsOrExtends("Node")) {
-                node->AddChild(sub_object.deserialized.Get<Node>());
+                node->AddChild(sub_object.m_deserialized_object->Get<Node>());
             } else if (sub_object.GetType().IsOrExtends("Entity")) {
-                node->SetEntity(sub_object.deserialized.Get<Entity>().GetID());
+                node->SetEntity(sub_object.m_deserialized_object->Get<Entity>().GetID());
             }
         }
 

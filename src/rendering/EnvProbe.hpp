@@ -11,7 +11,6 @@
 #include <math/BoundingBox.hpp>
 
 #include <rendering/Texture.hpp>
-#include <rendering/DrawProxy.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Buffers.hpp>
 
@@ -63,11 +62,6 @@ enum EnvProbeType : uint
 };
 
 class EnvProbe;
-
-template <>
-struct DrawProxy<STUB_CLASS(EnvProbe)>;
-
-using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
 
 struct EnvProbeIndex
 {
@@ -128,8 +122,7 @@ struct EnvProbeIndex
     }
 };
 
-template <>
-struct DrawProxy<STUB_CLASS(EnvProbe)>
+struct EnvProbeDrawProxy
 {
     ID<EnvProbe>                id;
     BoundingBox                 aabb;
@@ -141,8 +134,6 @@ struct DrawProxy<STUB_CLASS(EnvProbe)>
     uint32                      grid_slot;
     uint64                      visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
 };
-
-using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
 
 class HYP_API EnvProbe : public BasicObject<STUB_CLASS(EnvProbe)>
 {

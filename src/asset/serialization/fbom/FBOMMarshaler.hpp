@@ -5,6 +5,8 @@
 
 #include <core/Core.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/Any.hpp>
+#include <core/memory/AnyRef.hpp>
 #include <core/Util.hpp>
 
 #include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
@@ -26,6 +28,7 @@ public:
     virtual FBOMType GetObjectType() const = 0;
     virtual TypeID GetTypeID() const = 0;
 
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const = 0;
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const = 0;
 
 private:
@@ -76,6 +79,19 @@ public:
     virtual TypeID GetTypeID() const override final
         { return TypeID::ForType<T>(); }
 
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override final
+    {
+        if (!in.Is<T>()) {
+#ifdef HYP_DEBUG_MODE
+            AssertThrowMsg(false, "Cannot serialize - given object is not of expected type");
+#endif
+
+            return { FBOMResult::FBOM_ERR, "Cannot serialize - given object is not of expected type" };
+        }
+
+        return Serialize(in.Get<T>(), out);
+    }
+
     virtual FBOMResult Serialize(const T &in, FBOMObject &out) const = 0;
 
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override = 0;
@@ -85,20 +101,12 @@ template <class T>
 class FBOMMarshaler : public FBOMObjectMarshalerBase<T>
 {
 public:
-    virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const override;
+    virtual FBOMResult Serialize(const T &in, FBOMObject &out) const override;
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override;
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType) \
-    template <> \
-    struct FBOMHasMarshal<T, MarshalType> \
-    { \
-        static constexpr bool value = true; \
-    }; \
     static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> T##_Marshal { }
-
-#define HYP_HAS_MARSHAL(T, MarshalType) \
-    (::hyperion::fbom::FBOMHasMarshal<T, MarshalType>::value)
 
 } // namespace hyperion::fbom
 

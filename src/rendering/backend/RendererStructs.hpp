@@ -133,6 +133,22 @@ struct TextureDesc
     WrapMode        wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
     uint32          num_layers = 1;
     uint32          num_faces = 1;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(type);
+        hc.Add(format);
+        hc.Add(Vec3u(extent));
+        hc.Add(filter_mode_min);
+        hc.Add(filter_mode_mag);
+        hc.Add(wrap_mode);
+        hc.Add(num_layers);
+        hc.Add(num_faces);
+
+        return hc;
+    }
 };
 
 struct TextureData
@@ -143,6 +159,16 @@ struct TextureData
     HYP_NODISCARD HYP_FORCE_INLINE
     bool IsValid() const
         { return buffer.Any(); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(desc.GetHashCode());
+        hc.Add(buffer.GetHashCode());
+
+        return hc;
+    }
 };
 
 struct alignas(16) PackedVertex

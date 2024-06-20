@@ -3,7 +3,11 @@
 #include <math/BoundingBox.hpp>
 #include <math/MathUtil.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_CLASS(BoundingBox);
 
 BoundingBox::BoundingBox()
     : min(MathUtil::MaxSafeValue<Vec3f>()),

@@ -31,30 +31,18 @@ public:
     virtual TypeID GetTypeID() const override final
         { return TypeID::ForType<HypClassInstanceStub>(); }
 
-    template <class T>
-    FBOMResult Serialize(const T &in, FBOMObject &out) const
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override
     {
-        const HypClass *hyp_class = GetClass<T>();
+        const HypClass *hyp_class = GetClass(in.GetTypeID());
 
         if (!hyp_class) {
             return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
         }
 
-        // out = hyp_class->SerializeInstance<T>();
-
-        // for (HypClassProperty *property : hyp_class->GetProperties()) {
-        //     AssertThrow(property != nullptr);
-
-        //     if (!property->HasGetter()) {
-        //         continue;
-        //     }
-
-        //     fbom::FBOMData property_value = property->InvokeGetter(in);
-        //     out.SetProperty(property->name, std::move(property_value));
-        // }
-
         out = fbom::FBOMObject(FBOMObjectType(hyp_class->GetName().LookupString()));
-        out.GenerateUniqueID(in, FBOMObjectFlags::NONE);
+
+        const HashCode hash_code = hyp_class->GetInstanceHashCode(in);
+        out.m_unique_id = fbom::FBOMObject::GenerateUniqueID(hash_code, FBOMObjectFlags::NONE);
 
         for (HypClassProperty *property : hyp_class->GetProperties()) {
             AssertThrow(property != nullptr);
@@ -70,8 +58,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    template <class T>
-    FBOMResult Deserialize(const FBOMObject &in, T &out) const
+    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override
     {
         const HypClass *hyp_class = in.GetHypClass();
 
@@ -79,7 +66,7 @@ public:
             return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
         }
 
-        hyp_class->CreateInstance<T>(&out);
+        hyp_class->CreateInstance(out);
         
         for (const KeyValuePair<Name, FBOMData> &it : in.GetProperties()) {
             if (const HypClassProperty *property = hyp_class->GetProperty(it.first)) {
@@ -96,13 +83,6 @@ public:
         }
 
         return { FBOMResult::FBOM_OK };
-    }
-
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override
-    {
-        AssertThrowMsg(false, "Not implemented, use templated function");
-
-        return FBOMResult::FBOM_ERR;
     }
 };
 

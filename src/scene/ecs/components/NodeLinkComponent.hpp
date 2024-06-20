@@ -14,6 +14,12 @@ class Node;
 struct NodeLinkComponent
 {
     Weak<Node>  node;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        return HashCode();
+    }
 };
 
 static_assert(sizeof(NodeLinkComponent) == 8, "NodeLinkComponent must be 8 bytes");

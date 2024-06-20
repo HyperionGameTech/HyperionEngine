@@ -33,6 +33,16 @@ struct ScriptComponent
     UniquePtr<dotnet::Object>       object;
 
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(script);
+
+        return hash_code;
+    }
 };
 
 } // namespace hyperion

@@ -171,7 +171,9 @@ FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMDeserializedObject &
         return err;
     }
 
-    out = object.deserialized;
+    if (object.m_deserialized_object != nullptr) {
+        out = std::move(*object.m_deserialized_object);
+    }
 
     return { FBOMResult::FBOM_OK };
 }
@@ -590,8 +592,10 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
             }
             case FBOM_OBJECT_END:
                 if (HasMarshalForType(object_type)) {
-                    // call deserializer function, writing into object.deserialized
-                    if (FBOMResult err = Deserialize(out_object, out_object.deserialized)) {
+                    // call deserializer function, writing into deserialized object
+                    out_object.m_deserialized_object.Reset(new FBOMDeserializedObject());
+
+                    if (FBOMResult err = Deserialize(out_object, *out_object.m_deserialized_object)) {
                         return err;
                     }
                 }

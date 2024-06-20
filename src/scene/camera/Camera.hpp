@@ -3,7 +3,7 @@
 #ifndef HYPERION_CAMERA_HPP
 #define HYPERION_CAMERA_HPP
 
-#include <GameCounter.hpp>
+#include <core/Base.hpp>
 
 #include <core/containers/Queue.hpp>
 #include <core/memory/UniquePtr.hpp>
@@ -13,10 +13,13 @@
 #include <math/Vector4.hpp>
 #include <math/Matrix4.hpp>
 #include <math/Frustum.hpp>
-
-#include <rendering/DrawProxy.hpp>
+#include <math/Extent.hpp>
 
 #include <input/InputHandler.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+
+#include <GameCounter.hpp>
 
 #include <atomic>
 #include <mutex>
@@ -134,8 +137,7 @@ class OrthoCameraController;
 class FirstPersonCameraController;
 class FollowCameraController;
 
-template <>
-struct DrawProxy<STUB_CLASS(Camera)>
+struct CameraDrawProxy
 {
     Matrix4     view;
     Matrix4     projection;
@@ -152,8 +154,6 @@ struct DrawProxy<STUB_CLASS(Camera)>
     uint64      visibility_bitmask;
     uint16      visibility_nonce;
 };
-
-using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
 
 class HYP_API Camera : public BasicObject<STUB_CLASS(Camera)>
 {

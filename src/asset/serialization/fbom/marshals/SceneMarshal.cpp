@@ -45,9 +45,9 @@ public:
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                scene_handle->SetRoot(node.deserialized.Get<Node>());
+                scene_handle->SetRoot(node.m_deserialized_object->Get<Node>());
             } else if (node.GetType().IsOrExtends("Camera")) {
-                scene_handle->SetCamera(node.deserialized.Get<Camera>());
+                scene_handle->SetCamera(node.m_deserialized_object->Get<Camera>());
             }
         }
 

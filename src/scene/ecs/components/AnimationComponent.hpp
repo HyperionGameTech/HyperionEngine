@@ -6,6 +6,8 @@
 #include <core/Handle.hpp>
 #include <scene/animation/Skeleton.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 enum AnimationPlaybackStatus
@@ -28,11 +30,35 @@ struct AnimationPlaybackState
     AnimationLoopMode       loop_mode = ANIMATION_LOOP_MODE_ONCE;
     float                   speed = 1.0f;
     float                   current_time = 0.0f;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(animation_index);
+        hc.Add(status);
+        hc.Add(loop_mode);
+        hc.Add(speed);
+        hc.Add(current_time);
+
+        return hc;
+    }
 };
 
 struct AnimationComponent
 {
     AnimationPlaybackState  playback_state;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(playback_state);
+
+        return hc;
+    }
 };
 
 } // namespace hyperion

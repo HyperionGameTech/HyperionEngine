@@ -481,7 +481,9 @@ public:
         //     return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
         // } else {
             fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
-            object.deserialized.m_value.Set<T>(value);
+
+            object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
+            object.m_deserialized_object->m_value.Set<T>(value);
 
             return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
         // }
@@ -537,7 +539,9 @@ public:
         }
 
         fbom::FBOMObject object = fbom::FBOMObject::Serialize(*value);
-        object.deserialized.Set<T>(value);
+
+        object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
+        object.m_deserialized_object->Set<T>(value);
 
         return fbom::FBOMData::FromObject(object, /* keep_native_object */ true);
     }

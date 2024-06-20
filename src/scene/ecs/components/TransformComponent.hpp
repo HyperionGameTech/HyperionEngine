@@ -5,11 +5,23 @@
 
 #include <math/Transform.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 struct TransformComponent
 {
     Transform   transform;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(transform);
+
+        return hash_code;
+    }
 };
 
 static_assert(sizeof(TransformComponent) == 112, "TransformComponent must be 112 bytes to match C# struct size");

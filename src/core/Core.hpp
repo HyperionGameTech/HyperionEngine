@@ -6,6 +6,8 @@
 #include <core/Defines.hpp>
 #include <core/HypClassRegistry.hpp>
 #include <core/ID.hpp>
+
+#include <core/utilities/StringView.hpp>
 #include <core/utilities/TypeID.hpp>
 
 #include <rendering/backend/Platform.hpp>
@@ -102,6 +104,9 @@ inline const HypClass *GetClass(const Handle<T> &handle)
 
 HYP_NODISCARD
 HYP_API const HypClass *GetClass(TypeID type_id);
+
+HYP_NODISCARD
+HYP_API const HypClass *GetClass(WeakName type_name);
 
 } // namespace hyperion
 

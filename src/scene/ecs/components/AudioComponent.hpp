@@ -5,6 +5,7 @@
 
 #include <audio/AudioSource.hpp>
 #include <core/Handle.hpp>
+
 #include <HashCode.hpp>
 #include <GameCounter.hpp>
 
@@ -37,6 +38,19 @@ struct AudioPlaybackState
     AudioLoopMode       loop_mode = AUDIO_LOOP_MODE_ONCE;
     float               speed = 1.0f;
     float               current_time = 0.0f;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(status);
+        hash_code.Add(loop_mode);
+        hash_code.Add(speed);
+        hash_code.Add(current_time);
+
+        return hash_code;
+    }
 };
 
 struct AudioComponent
@@ -48,6 +62,17 @@ struct AudioComponent
 
     Vec3f                   last_position;
     GameCounter::TickUnit   timer = 0.0f;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(audio_source);
+        hash_code.Add(playback_state);
+
+        return hash_code;
+    }
 };
 
 } // namespace hyperion

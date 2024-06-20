@@ -11,6 +11,8 @@
 
 #include <math/Vector2.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 class UIObject;
@@ -30,6 +32,13 @@ HYP_MAKE_ENUM_FLAGS(UIEventHandlerResult)
 struct UIComponent
 {
     RC<UIObject>    ui_object;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        // @TODO
+        return HashCode();
+    }
 };
 
 static_assert(sizeof(UIComponent) == 8, "UIComponent should be 8 bytes to match C# struct size");

@@ -8,6 +8,8 @@
 #include <scene/VisibilityState.hpp>
 #include <scene/Octree.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 using VisibilityStateFlags = uint32;
@@ -27,6 +29,12 @@ struct VisibilityStateComponent
     VisibilityState         *visibility_state = nullptr;
 
     HashCode                last_aabb_hash;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        return HashCode();
+    }
 };
 static_assert(sizeof(VisibilityStateComponent) == 40, "VisibilityStateComponent must match C# struct size");
 

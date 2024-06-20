@@ -19,6 +19,18 @@ struct MeshData
 {
     Array<Vertex>   vertices;
     Array<uint32>   indices;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        // @FIXME: Find a better way to hash it without needing to hash the entire mesh data
+
+        HashCode hc;
+        hc.Add(vertices.GetHashCode());
+        hc.Add(indices.GetHashCode());
+
+        return hc;
+    }
 };
 
 class HYP_API StreamedMeshData : public StreamedData

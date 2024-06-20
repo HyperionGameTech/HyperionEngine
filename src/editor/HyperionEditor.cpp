@@ -497,23 +497,23 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+#if 0
+    // const HypClass *cls = GetClass<Mesh>();
+    // HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
 
-    const HypClass *cls = GetClass<Mesh>();
-    HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
-
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    // Handle<Mesh> mesh = CreateObject<Mesh>();
     
-    if (HypClassProperty *property = cls->GetProperty("VertexAttributes")) {
-        auto vertex_attributes_value = property->InvokeGetter(*mesh);
-        HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
+    // if (HypClassProperty *property = cls->GetProperty("VertexAttributes")) {
+    //     auto vertex_attributes_value = property->InvokeGetter(*mesh);
+    //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
 
-        auto vertex_attributes_value1 = property->InvokeGetter<VertexAttributeSet>(*mesh);
-        HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
-    }
+    //     decltype(auto) vertex_attributes_value1 = property->InvokeGetter<VertexAttributeSet>(*mesh);
+    //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
+    // }
 
     // HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
 
-#if 0
+#if 1
     const HypClass *cls = GetClass<LightComponent>();
     HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
 
@@ -553,7 +553,7 @@ void HyperionEditor::Init()
     // }
 
     HYP_BREAKPOINT;
-
+#endif
 
 
     GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));

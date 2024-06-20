@@ -9,8 +9,9 @@ namespace hyperion {
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, Span<HypClassProperty> properties)
-    : m_type_id(type_id)
+HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
+    : m_type_id(type_id),
+      m_flags(flags)
 {
     // initialize properties containers
     for (HypClassProperty &property : properties) {

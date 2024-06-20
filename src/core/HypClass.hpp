@@ -10,10 +10,11 @@
 #include <core/containers/Array.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
+#include <core/utilities/Span.hpp>
 
 #include <core/memory/UniquePtr.hpp>
-
-#include <core/utilities/Span.hpp>
+#include <core/memory/Any.hpp>
+#include <core/memory/AnyRef.hpp>
 
 namespace hyperion {
 
@@ -24,7 +25,7 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, Span<HypClassProperty> properties);
+    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -37,6 +38,10 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     TypeID GetTypeID() const
         { return m_type_id; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    EnumFlags<HypClassFlags> GetFlags() const
+        { return m_flags; }
 
     HYP_NODISCARD
     virtual bool IsValid() const
@@ -59,10 +64,28 @@ public:
         CreateInstance_Internal(out_ptr);
     }
 
+    HYP_FORCE_INLINE
+    void CreateInstance(Any &out) const
+    {
+        CreateInstance_Internal(out);
+    }
+
+    HYP_FORCE_INLINE
+    HashCode GetInstanceHashCode(ConstAnyRef ref) const
+    {
+        AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
+            ref.GetTypeID().Value(), GetTypeID().Value());
+
+        return GetInstanceHashCode_Internal(ref);
+    }
+
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const = 0;
+    virtual void CreateInstance_Internal(Any &out) const = 0;
+    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
     TypeID                              m_type_id;
+    EnumFlags<HypClassFlags>            m_flags;
     Array<HypClassProperty *>           m_properties;
     HashMap<Name, HypClassProperty *>   m_properties_by_name;
 };
@@ -71,15 +94,15 @@ template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(Span<HypClassProperty> properties)
+    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
     {
-        static HypClassInstance instance { properties };
+        static HypClassInstance instance { flags, properties };
 
         return instance;
     }
 
-    HypClassInstance(Span<HypClassProperty> properties)
-        : HypClass(TypeID::ForType<T>(), properties)
+    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
+        : HypClass(TypeID::ForType<T>(), flags, properties)
     {
     }
 
@@ -108,6 +131,12 @@ public:
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const override
         { Memory::Construct<T>(out_ptr); }
+
+    virtual void CreateInstance_Internal(Any &out) const override
+        { out.Emplace<T>(); }
+
+    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
+        { return HashCode::GetHashCode(ref.Get<T>()); }
 };
 
 // Leave implementation empty - stub class

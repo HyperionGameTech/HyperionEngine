@@ -23,6 +23,18 @@ struct EnvGridComponent
     RC<EnvGrid> render_component;
 
     HashCode    transform_hash_code;
+
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(env_grid_type);
+        hash_code.Add(grid_size);
+
+        return hash_code;
+    }
 };
 
 } // namespace hyperion

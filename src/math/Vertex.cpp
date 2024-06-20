@@ -2,9 +2,16 @@
 
 #include <math/Vertex.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
 
 #pragma region VertexAttributeSet
+
+HYP_DEFINE_CLASS(
+    VertexAttributeSet,
+    HypClassProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
+);
 
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
 {

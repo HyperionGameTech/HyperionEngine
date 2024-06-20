@@ -32,13 +32,6 @@ class Scene;
 class EnvProbe;
 class Light;
 
-template <class T>
-struct DrawProxy
-{
-private:
-    DrawProxy(); // break intentionally; needs specialization
-};
-
 } // namespace hyperion
 
 #endif

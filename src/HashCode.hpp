@@ -13,19 +13,16 @@
 
 namespace hyperion {
 
-template <class T, class HashCode>
+template <class T, class HashCode, class Enabled = void>
 struct HasGetHashCode
 {
-    template <class U, HashCode(U::*)() const>
-    struct Resolve {};
+    static constexpr bool value = false;
+};
 
-    template <class U>
-    static char Test(Resolve<U, &U::GetHashCode> *);
-
-    template <class U>
-    static int Test(...);
-
-    static constexpr bool value = sizeof(Test<T>(0)) == sizeof(char);
+template <class T, class HashCode>
+struct HasGetHashCode< T, HashCode, std::enable_if_t< std::is_member_function_pointer_v< decltype(&T::GetHashCode) > > >
+{
+    static constexpr bool value = std::is_member_function_pointer_v< decltype(&T::GetHashCode) >;
 };
 
 struct HashCode
@@ -101,12 +98,12 @@ struct HashCode
         return hc;
     }
 
-    template <SizeType size>
-    static constexpr inline HashCode GetHashCode(const char (&str)[size])
+    template <SizeType Size>
+    static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
         HashCode hc;
 
-        for (SizeType i = 0; i < size; ++i) {
+        for (SizeType i = 0; i < Size; ++i) {
             hc.HashCombine(str[i]);
         }
 

@@ -10,6 +10,7 @@
 #include <core/functional/Proc.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/memory/Any.hpp>
+#include <core/memory/AnyRef.hpp>
 
 #include <asset/serialization/Serialization.hpp>
 #include <asset/serialization/SerializationWrapper.hpp>
@@ -114,30 +115,21 @@ struct HypClassPropertyGetter
         return GetClassPropertySerializer<NormalizedType<ReturnType>>().Deserialize((*this)(target));
     }
 
-    template <class TargetType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    fbom::FBOMData operator()(const TargetType &target) const
+    fbom::FBOMData operator()(ConstAnyRef target) const
     {
         AssertThrow(IsValid());
 
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(TypeID::ForType<NormalizedType<TargetType>>() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
 #endif
 
-        return GetterForTargetPointer(&target);
+        return GetterForTargetPointer(target.GetPointer());
     }
 
-    template <class ReturnType, class TargetType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    decltype(auto) Invoke(const TargetType &target) const
+    template <class ReturnType>
+    decltype(auto) Invoke(ConstAnyRef target) const
     {
         return GetClassPropertySerializer<NormalizedType<ReturnType>>().Deserialize((*this)(target));
-    }
-
-    template <class ReturnType, class TargetType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    decltype(auto) Invoke(const TargetType *target) const
-    {
-        AssertThrow(target != nullptr);
-
-        return Invoke<ReturnType, TargetType>(*target);
     }
 };
 
@@ -193,34 +185,21 @@ struct HypClassPropertySetter
         (*this)(target, GetClassPropertySerializer<NormalizedType<ValueType>>().Serialize(std::forward<ValueType>(value)));
     }
 
-    template <class TargetType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    void operator()(TargetType &target, const fbom::FBOMData &value) const
+    void operator()(AnyRef target, const fbom::FBOMData &value) const
     {
         AssertThrow(IsValid());
 
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(TypeID::ForType<NormalizedType<TargetType>>() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
 #endif
 
-        SetterForTargetPointer(&target, value);
+        SetterForTargetPointer(target.GetPointer(), value);
     }
 
-    template <class TargetType, class ValueType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    void Invoke(TargetType &target, ValueType &&value) const
+    template <class ValueType>
+    void Invoke(AnyRef target, ValueType &&value) const
     {
-#ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(TypeID::ForType<NormalizedType<ValueType>>() == type_info.value_type_id, "Value type mismatch");
-#endif
-
         (*this)(target, GetClassPropertySerializer<NormalizedType<ValueType>>().Serialize(std::forward<ValueType>(value)));
-    }
-
-    template <class TargetType, class ValueType, typename = std::enable_if_t< !std::is_same_v<TargetType, fbom::FBOMData> > >
-    void Invoke(TargetType *target, ValueType &&value) const
-    {
-        AssertThrow(target != nullptr);
-
-        return Invoke<TargetType, ValueType>(*target, std::forward<ValueType>(value));
     }
 };
 
@@ -271,6 +250,8 @@ struct HypClassProperty
     bool IsValid() const
         { return type_id != TypeID::Void() && HasGetter(); }
 
+    // getter
+
     HYP_NODISCARD HYP_FORCE_INLINE
     bool HasGetter() const
         { return getter.IsValid(); }
@@ -284,15 +265,16 @@ struct HypClassProperty
     decltype(auto) InvokeGetter(const fbom::FBOMData &target) const
         { return getter.Invoke<ReturnType>(target); }
 
-    template <class TargetType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > > >
     HYP_NODISCARD HYP_FORCE_INLINE
-    fbom::FBOMData InvokeGetter(const TargetType &target) const
+    fbom::FBOMData InvokeGetter(ConstAnyRef target) const
         { return getter(target); }
 
-    template <class ReturnType, class TargetType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > > >
+    template <class ReturnType>
     HYP_NODISCARD HYP_FORCE_INLINE
-    decltype(auto) InvokeGetter(const TargetType &target) const
-        { return getter.Invoke<ReturnType, TargetType>(&target); }
+    decltype(auto) InvokeGetter(ConstAnyRef target) const
+        { return getter.Invoke<ReturnType>(target); }
+
+    // setter
 
     HYP_NODISCARD HYP_FORCE_INLINE
     bool HasSetter() const
@@ -324,16 +306,19 @@ struct HypClassProperty
     void InvokeSetter(fbom::FBOMData &&target, ValueType &&value) const
         { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 
-    template <class TargetType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > > >
+
     HYP_FORCE_INLINE
-    void InvokeSetter(TargetType &target, const fbom::FBOMData &value) const
+    void InvokeSetter(AnyRef target, const fbom::FBOMData &value) const
         { setter(target, value); }
 
-    template <class TargetType, class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, TargetType > && !std::is_same_v< fbom::FBOMData, ValueType > > >
     HYP_FORCE_INLINE
-    void InvokeSetter(TargetType &target, ValueType &&value) const
-        { setter.Invoke<TargetType, ValueType>(&target, std::forward<ValueType>(value)); }
+    void InvokeSetter(AnyRef target, fbom::FBOMData &&value) const
+        { setter(target, std::move(value)); }
 
+    template <class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, ValueType > > >
+    HYP_FORCE_INLINE
+    void InvokeSetter(AnyRef target, ValueType &&value) const
+        { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
     HYP_API const HypClass *GetHypClass() const;

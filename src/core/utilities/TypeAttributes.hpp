@@ -20,12 +20,13 @@ enum class TypeAttributeFlags : uint32
     NONE                = 0x0,
     POD_TYPE            = 0x1,
     CLASS_TYPE          = 0x2,
-    FUNDAMENTAL_TYPE    = 0x4,
-    MATH_TYPE           = 0x8,
-    INTEGRAL_TYPE       = 0x10,
-    FLOAT_TYPE          = 0x20,
+    ENUM_TYPE           = 0x4,
+    FUNDAMENTAL_TYPE    = 0x8,
+    MATH_TYPE           = 0x10,
+    INTEGRAL_TYPE       = 0x20,
+    FLOAT_TYPE          = 0x40,
 
-    HYP_CLASS           = 0x40
+    HYP_CLASS           = 0x1000
 };
 
 HYP_MAKE_ENUM_FLAGS(TypeAttributeFlags)
@@ -69,6 +70,10 @@ struct TypeAttributes
                 flags |= TypeAttributeFlags::POD_TYPE;
             }
         }
+
+        if constexpr (std::is_enum_v<NormalizedType<T>>) {
+            flags |= TypeAttributeFlags::ENUM_TYPE;
+        }
         
         if constexpr (std::is_fundamental_v<NormalizedType<T>>) {
             flags |= TypeAttributeFlags::FUNDAMENTAL_TYPE;
@@ -102,6 +107,10 @@ struct TypeAttributes
     HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool IsClass() const
         { return flags & TypeAttributeFlags::CLASS_TYPE; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr bool IsEnum() const
+        { return flags & TypeAttributeFlags::ENUM_TYPE; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     constexpr bool IsFundamental() const

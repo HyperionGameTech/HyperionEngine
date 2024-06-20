@@ -157,7 +157,7 @@ public:
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Texture")) {
                 if (texture_index < std::size(texture_keys)) {
-                    if (Handle<Texture> texture = node.deserialized.Get<Texture>()) {
+                    if (Handle<Texture> texture = node.m_deserialized_object->Get<Texture>()) {
                         textures.Set(
                             Material::TextureKey(texture_keys[texture_index]), 
                             std::move(texture)

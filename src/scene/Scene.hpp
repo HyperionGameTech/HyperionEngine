@@ -18,7 +18,6 @@
 #include <rendering/Shader.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
-#include <rendering/DrawProxy.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -44,8 +43,8 @@ struct FogParams
     float   end_distance = 1000.0f;
 };
 
-template<>
-struct ComponentInitInfo<STUB_CLASS(Scene)>
+template <>
+struct ComponentInitInfo<Scene>
 {
     enum Flags : ComponentFlags
     {
@@ -57,13 +56,10 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
     ComponentFlags  flags = SCENE_FLAGS_NONE;
 };
 
-template <>
-struct DrawProxy<STUB_CLASS(Scene)>
+struct SceneDrawProxy
 {
     uint32 frame_counter;
 };
-
-using SceneDrawProxy = DrawProxy<STUB_CLASS(Scene)>;
 
 class HYP_API Scene : public BasicObject<STUB_CLASS(Scene)>
 {
@@ -111,10 +107,10 @@ public:
     const RenderList &GetRenderList() const
         { return m_render_list; }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     NodeProxy FindNodeWithEntity(ID<Entity>) const;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     NodeProxy FindNodeByName(const String &) const;
     
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */

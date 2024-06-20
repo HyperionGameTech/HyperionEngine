@@ -172,37 +172,48 @@ public:
     FBOM &operator=(const FBOM &other)  = delete;
     ~FBOM();
     
+    /*! \brief Register a custom marshal class to be used for serializng and deserializing
+     *  an object, based on its type ID. */
     void RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
 
-    /*! \brief Get a registered loader for the given object type.
-     *  \example Use the type MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
-     *  \tparam T The type of the class to get the loader for
-     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type ID,
+     *  that marshal will be used. Otherwise, the default marshal for the type will be used:
+     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      For POD types, the basic struct marshal will be used.
+     *      Otherwise, no marshal will be used, and this function will return nullptr.
+     *  \tparam T The type of the class to get the marshal for
+     *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE
     FBOMMarshalerBase *GetMarshal() const
         { return GetMarshal(TypeAttributes::ForType<T>()); }
 
-    /*! \brief Get a registered loader for the given object TypeID.
-     *  \example Use the TypeID for MyStruct to get a registered instance of FBOMMarshaler<MyStruct>
-     *  \param object_type_id The TypeID of the class to get the loader for
-     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given TypeID
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type ID,
+     *  that marshal will be used. Otherwise, the default marshal for the type will be used:
+     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      For POD types, the basic struct marshal will be used.
+     *      Otherwise, no marshal will be used, and this function will return nullptr.
+     *  \param type_attributes The type attributes of the class to get the marshal for
+     *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
     HYP_NODISCARD
     FBOMMarshalerBase *GetMarshal(const TypeAttributes &type_attributes) const;
 
-    /*! \brief Get a registered loader for the given object type name.
-     *  \example Use the string "MyStruct" to get a registered instance of FBOMMarshaler<MyStruct> (assuming GetObjectType() has not been overridden in the marshaler class)
-     *  \param type_name The name of the class to get the loader for
-     *  \return A pointer to the loader instance, or nullptr if no loader is registered for the given type name
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type name,
+     *  that marshal will be used. Otherwise, the default marshal for the type will be used:
+     *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
+     *      Otherwise, no marshal will be used, and this function will return nullptr.
+     *  \note If POD types are used, this function will return nullptr as we cannot discern if the type is a POD type by name alone.
+     *  \param type_name The name of the class to get the marshal for
+     *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type (or if the type is a POD type)
      */
     HYP_NODISCARD
     FBOMMarshalerBase *GetMarshal(const ANSIStringView &type_name) const;
 
 private:
     FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
-    HypClassInstanceMarshal                             *m_hyp_class_instance_marshal;
+    UniquePtr<HypClassInstanceMarshal>                  m_hyp_class_instance_marshal;
 };
 
 struct FBOMConfig
@@ -366,27 +377,22 @@ public:
 
     template <class T>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
-    Append(const T &object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    Append(const T &in, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
-        FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal<NormalizedType<T>>();
-        AssertThrowMsg(marshal != nullptr, "No registered marshal class for type: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
+        FBOMObject object;
 
-        FBOMMarshaler<NormalizedType<T>> *marshal_derived = dynamic_cast<FBOMMarshaler<NormalizedType<T>> *>(marshal);
-        AssertThrowMsg(marshal_derived != nullptr, "Marshal class type mismatch for type %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data());
-
-        FBOMObject base(marshal_derived->GetObjectType());
-        base.GenerateUniqueID(object, flags);
-
-        if (FBOMResult err = marshal_derived->Serialize(object, base)) {
+        if (FBOMResult err = FBOMObject::Serialize(in, object, flags)) {
             m_write_stream->m_last_result = err;
 
             return err;
         }
 
-        return Append(base);
+        return Append(std::move(object));
     }
 
     FBOMResult Append(const FBOMObject &object);
+    FBOMResult Append(FBOMObject &&object);
+
     FBOMResult Emit(ByteWriter *out);
 
     FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
@@ -411,6 +417,7 @@ private:
     FBOMResult WriteStaticDataUsage(ByteWriter *out, const FBOMStaticData &) const;
 
     void AddObjectData(const FBOMObject &, UniqueID id);
+    void AddObjectData(FBOMObject &&, UniqueID id);
     
     UniqueID AddStaticData(const FBOMType &);
     UniqueID AddStaticData(const FBOMObject &);

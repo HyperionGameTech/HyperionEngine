@@ -30,6 +30,16 @@ struct LightComponent
         
     void SetLight(const Handle<Light> &light)
         { this->light = light; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(light);
+
+        return hash_code;
+    }
 };
 
 static_assert(sizeof(LightComponent) == 24, "LightComponent size mismatch with C#");

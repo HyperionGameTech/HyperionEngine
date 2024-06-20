@@ -39,6 +39,18 @@ struct MeshComponent
     Matrix4                 previous_model_matrix;
 
     MeshComponentUserData   user_data;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(mesh);
+        hash_code.Add(material);
+        hash_code.Add(skeleton);
+
+        return hash_code;
+    }
 };
 
 static_assert(sizeof(MeshComponent) == 112, "MeshComponent size must match C# struct size");

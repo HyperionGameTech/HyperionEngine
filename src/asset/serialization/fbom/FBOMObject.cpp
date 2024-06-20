@@ -24,7 +24,7 @@ FBOMObject::FBOMObject(const FBOMObject &other)
     : m_object_type(other.m_object_type),
       nodes(nullptr),
       properties(other.properties),
-      deserialized(other.deserialized),
+      m_deserialized_object(other.m_deserialized_object),
       m_external_info(other.m_external_info),
       m_unique_id(other.m_unique_id)
 {
@@ -49,7 +49,7 @@ FBOMObject &FBOMObject::operator=(const FBOMObject &other)
 
     m_object_type = other.m_object_type;
     properties = other.properties;
-    deserialized = other.deserialized;
+    m_deserialized_object = other.m_deserialized_object;
     m_external_info = other.m_external_info;
     m_unique_id = other.m_unique_id;
 
@@ -60,7 +60,7 @@ FBOMObject::FBOMObject(FBOMObject &&other) noexcept
     : m_object_type(std::move(other.m_object_type)),
       nodes(other.nodes),
       properties(std::move(other.properties)),
-      deserialized(std::move(other.deserialized)),
+      m_deserialized_object(std::move(other.m_deserialized_object)),
       m_external_info(std::move(other.m_external_info)),
       m_unique_id(std::move(other.m_unique_id))
 {
@@ -77,7 +77,7 @@ FBOMObject &FBOMObject::operator=(FBOMObject &&other) noexcept
 
     m_object_type = std::move(other.m_object_type);
     properties = std::move(other.properties);
-    deserialized = std::move(other.deserialized);
+    m_deserialized_object = std::move(other.m_deserialized_object);
     m_external_info = std::move(other.m_external_info);
     m_unique_id = std::move(other.m_unique_id);
 

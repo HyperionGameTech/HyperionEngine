@@ -15,6 +15,8 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/core/RefCountedPtrBindings.hpp>
 
+#include <scene/camera/Camera.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
 namespace hyperion {

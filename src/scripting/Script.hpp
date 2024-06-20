@@ -11,6 +11,8 @@
 
 #include <core/filesystem/FilePath.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 namespace dotnet {
@@ -40,7 +42,6 @@ struct ScriptDesc
     FilePath    path;
 };
 
-
 static constexpr SizeType script_max_path_length = 1024;
 static constexpr SizeType script_max_class_name_length = 1024;
 
@@ -53,6 +54,20 @@ struct ManagedScript
     uint32  state;
     int32   hot_reload_version;
     uint64  last_modified_timestamp;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(uuid);
+        hash_code.Add(&path[0]);
+        hash_code.Add(&assembly_path[0]);
+        hash_code.Add(&class_name[0]);
+        hash_code.Add(state);
+
+        return hash_code;
+    }
 };
 
 static_assert(std::is_standard_layout_v<ManagedScript>, "ManagedScript struct must be standard layout");
@@ -69,27 +84,24 @@ public:
     Script &operator=(Script &&other) noexcept  = delete;
     ~Script();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ScriptDesc &GetDescriptor() const
         { return m_desc; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const CompiledScript &GetCompiledScript() const
         { return m_compiled_script; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ManagedScript &GetManagedScript()
         { return m_managed_script; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ManagedScript &GetManagedScript() const
         { return m_managed_script; }
 
-    [[nodiscard]] EnumFlags<CompiledScriptState> GetState() const;
+    HYP_NODISCARD
+    EnumFlags<CompiledScriptState> GetState() const;
 
 private:
     ScriptDesc          m_desc;

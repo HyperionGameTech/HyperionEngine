@@ -28,8 +28,7 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-class HYP_API Mesh
-    : public BasicObject<STUB_CLASS(Mesh)>
+class HYP_API Mesh final : public BasicObject<STUB_CLASS(Mesh)>
 {
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
@@ -131,6 +130,23 @@ public:
     ) const;
 
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
+
+    // HYP_NODISCARD HYP_FORCE_INLINE
+    // HashCode GetHashCode() const
+    // {
+    //     HashCode hc;
+
+    //     // @FIXME
+
+    //     // if (m_streamed_mesh_data != nullptr) {
+    //     //     hc.Add(m_streamed_mesh_data->GetHashCode());
+    //     // }
+
+    //     hc.Add(m_mesh_attributes);
+    //     hc.Add(m_aabb);
+
+    //     return hc;
+    // }
 
 private:
     void CalculateAABB();

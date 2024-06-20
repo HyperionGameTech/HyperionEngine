@@ -5,6 +5,8 @@
 
 #include <core/Handle.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 class SkydomeRenderer;
@@ -12,6 +14,12 @@ class SkydomeRenderer;
 struct SkyComponent
 {
     RC<SkydomeRenderer> render_component;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        return HashCode();
+    }
 };
 
 } // namespace hyperion

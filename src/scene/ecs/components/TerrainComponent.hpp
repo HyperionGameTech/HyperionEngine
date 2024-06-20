@@ -8,6 +8,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 using TerrainPatchCoord = Vec2i;
@@ -35,6 +37,19 @@ struct TerrainPatchInfo
     TerrainPatchState                   state { TerrainPatchState::UNLOADED };
     float                               unload_timer { 0.0f };
     FixedArray<TerrainPatchNeighbor, 8> neighbors { };
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(Vec3u(extent));
+        hash_code.Add(coord);
+        hash_code.Add(scale);
+        hash_code.Add(state);
+
+        return hash_code;
+    }
 };
 
 using TerrainComponentFlags = uint32;
@@ -51,17 +66,41 @@ struct TerrainPatchComponent
 
     Vec2f GetCenter() const
         { return Vec2f(patch_info.coord) - 0.5f; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(patch_info);
+
+        return hash_code;
+    }
 };
 
 struct TerrainComponent
 {
     uint32                  seed = 0;
     Extent3D                patch_size = { 32, 32, 32 };
-    Vec3f                   camera_position = Vec3f::Zero();
     Vec3f                   scale = Vec3f::One();
     float                   max_distance = 2.0f;
 
+    Vec3f                   camera_position = Vec3f::Zero();
     TerrainComponentFlags   flags = TERRAIN_COMPONENT_FLAG_NONE;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(seed);
+        hash_code.Add(Vec3u(patch_size));
+        hash_code.Add(camera_position);
+        hash_code.Add(scale);
+        hash_code.Add(max_distance);
+
+        return hash_code;
+    }
 };
 
 } // namespace hyperion

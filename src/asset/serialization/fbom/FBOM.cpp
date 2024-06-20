@@ -27,7 +27,6 @@ FBOM::FBOM()
 
 FBOM::~FBOM()
 {
-    delete m_hyp_class_instance_marshal;
 }
 
 void FBOM::RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal)
@@ -57,7 +56,7 @@ FBOMMarshalerBase *FBOM::GetMarshal(const TypeAttributes &type_attributes) const
 
     // If the type has a HypClass defined, then use the default HypClass instance marshal
     if (type_attributes.HasHypClass()) {
-        return m_hyp_class_instance_marshal;
+        return m_hyp_class_instance_marshal.Get();
     }
 
     if (type_attributes.IsPOD()) {
@@ -71,11 +70,15 @@ FBOMMarshalerBase *FBOM::GetMarshal(const ANSIStringView &type_name) const
 {
     const auto it = m_marshals.FindAs(type_name);
 
-    if (it == m_marshals.End()) {
-        return nullptr;
+    if (it != m_marshals.End()) {
+        return it->second.Get();
     }
 
-    return it->second.Get();
+    if (const HypClass *hyp_class = GetClass(type_name)) {
+        return m_hyp_class_instance_marshal.Get();
+    }
+
+    return nullptr;
 }
 
 } // namespace hyperion::fbom

@@ -3,6 +3,8 @@
 #ifndef HYPERION_PHYSICS_MATERIAL_HPP
 #define HYPERION_PHYSICS_MATERIAL_HPP
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 class Engine;
@@ -20,6 +22,16 @@ struct PhysicsMaterial
 
     void SetMass(float value)
         { mass = value; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    HashCode GetHashCode() const
+    {
+        HashCode hash_code;
+
+        hash_code.Add(mass);
+
+        return hash_code;
+    }
 };
 
 } // namespace hyperion::physics

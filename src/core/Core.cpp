@@ -23,4 +23,9 @@ const HypClass *GetClass(TypeID type_id)
     return HypClassRegistry::GetInstance().GetClass(type_id);
 }
 
+const HypClass *GetClass(WeakName type_name)
+{
+    return HypClassRegistry::GetInstance().GetClass(type_name);
+}
+
 } // namespace hyperion

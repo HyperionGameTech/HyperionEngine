@@ -114,12 +114,11 @@ public:
     void SetFlags(NodeFlags flags)
         { m_flags = flags; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Node *GetParent() const
         { return m_parent_node; }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     bool IsOrHasParent(const Node *node) const;
 
     /*! \returns A pointer to the Scene this Node and its children are attached to. May be null. */
