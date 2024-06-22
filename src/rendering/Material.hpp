@@ -22,8 +22,7 @@
 
 namespace hyperion {
 
-class HYP_API Material
-    : public BasicObject<STUB_CLASS(Material)>
+class HYP_API Material : public BasicObject<Material>
 {
 public:
     static constexpr uint max_parameters = 32u;
@@ -541,7 +540,7 @@ private:
     mutable DataMutationState                           m_mutation_state;
 };
 
-class MaterialGroup : public BasicObject<STUB_CLASS(MaterialGroup)>
+class MaterialGroup : public BasicObject<MaterialGroup>
 {
 public:
     MaterialGroup();

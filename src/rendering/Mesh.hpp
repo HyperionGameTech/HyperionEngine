@@ -28,7 +28,7 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-class HYP_API Mesh final : public BasicObject<STUB_CLASS(Mesh)>
+class HYP_API Mesh final : public BasicObject<Mesh>
 {
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);

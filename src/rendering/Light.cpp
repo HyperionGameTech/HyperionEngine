@@ -13,9 +13,9 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Light,
-    HypClassProperty(NAME("type"), &Light::GetType),
-    HypClassProperty(NAME("radius"), &Light::GetRadius, &Light::SetRadius),
-    HypClassProperty(NAME("spot_angles"), &Light::GetSpotAngles)
+    HypClassProperty(NAME("Type"), &Light::GetType),
+    HypClassProperty(NAME("Radius"), &Light::GetRadius, &Light::SetRadius),
+    HypClassProperty(NAME("SpotAngles"), &Light::GetSpotAngles)
 );
 
 #pragma region Render commands

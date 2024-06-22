@@ -46,7 +46,7 @@ struct LightDrawProxy
 
 struct RENDER_COMMAND(UpdateLightShaderData);
 
-class HYP_API Light : public BasicObject<STUB_CLASS(Light)>
+class HYP_API Light : public BasicObject<Light>
 {
     friend struct RENDER_COMMAND(UpdateLightShaderData);
 

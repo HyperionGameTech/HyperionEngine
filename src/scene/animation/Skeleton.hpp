@@ -56,7 +56,7 @@ struct SkeletonBoneData
 };
 
 class HYP_API Skeleton
-    : public BasicObject<STUB_CLASS(Skeleton)>
+    : public BasicObject<Skeleton>
 {
 public:
     Skeleton();

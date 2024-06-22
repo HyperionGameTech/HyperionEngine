@@ -41,7 +41,7 @@ struct ParticleSpawnerParams
 };
 
 class HYP_API ParticleSpawner
-    : public BasicObject<STUB_CLASS(ParticleSpawner)>
+    : public BasicObject<ParticleSpawner>
 {
 public:
     ParticleSpawner();
@@ -88,7 +88,7 @@ private:
 };
 
 class HYP_API ParticleSystem
-    : public BasicObject<STUB_CLASS(ParticleSystem)>
+    : public BasicObject<ParticleSystem>
 {
 public:
     ParticleSystem();

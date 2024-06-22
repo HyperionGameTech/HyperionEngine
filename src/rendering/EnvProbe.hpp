@@ -135,7 +135,7 @@ struct EnvProbeDrawProxy
     uint64                      visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
 };
 
-class HYP_API EnvProbe : public BasicObject<STUB_CLASS(EnvProbe)>
+class HYP_API EnvProbe : public BasicObject<EnvProbe>
 {
 public:
     friend struct RENDER_COMMAND(UpdateEnvProbeDrawProxy);

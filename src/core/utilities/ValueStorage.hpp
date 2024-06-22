@@ -65,23 +65,19 @@ struct alignas(Alignment) ValueStorage
     void Destruct()
         { Memory::Destruct<T>(static_cast<void *>(data_buffer)); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T &Get()
         { return *reinterpret_cast<T *>(&data_buffer); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T &Get() const
         { return *reinterpret_cast<const T *>(&data_buffer); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     void *GetPointer()
         { return &data_buffer[0]; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const void *GetPointer() const
         { return &data_buffer[0]; }
 };
@@ -102,43 +98,35 @@ struct ValueStorageArray
 {
     ValueStorage<T, Alignment>  data[Count];
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ValueStorage<T, Alignment> &operator[](uint index)
         { return data[index]; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ValueStorage<T, Alignment> &operator[](uint index) const
         { return data[index]; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     T *GetPointer()
         { return static_cast<T *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const T *GetPointer() const
-        { return static_cast<T *>(&data[0]); }
+        { return static_cast<const T *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     void *GetRawPointer()
         { return static_cast<void *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const void *GetRawPointer() const
         { return static_cast<const void *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr uint Size() const
-        { return Size; }
+        { return Count; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr uint TotalSize() const
         { return Count * sizeof(T); }
 };
@@ -148,23 +136,19 @@ struct ValueStorageArray<T, 0, Alignment>
 {
     ValueStorage<char>  data[1];
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     void *GetRawPointer()
         { return static_cast<void *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const void *GetRawPointer() const
         { return static_cast<const void *>(&data[0]); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr uint Size() const
         { return 0; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr uint TotalSize() const
         { return 0; }
 };

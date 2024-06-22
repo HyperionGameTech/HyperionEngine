@@ -66,7 +66,7 @@ protected:
     uint                m_effect_index;
 };
 
-class HYP_API PostProcessingEffect : public BasicObject<STUB_CLASS(PostProcessingEffect)>
+class HYP_API PostProcessingEffect : public BasicObject<PostProcessingEffect>
 {
 public:
     PostProcessingEffect(

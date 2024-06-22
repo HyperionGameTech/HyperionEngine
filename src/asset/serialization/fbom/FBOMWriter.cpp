@@ -44,7 +44,7 @@ FBOMDataLocation FBOMWriteStream::GetDataLocation(const UniqueID &unique_id, con
         }
     }
 
-    // check external files
+    // check external objects
     for (auto &it : m_external_objects) {
         const FBOMExternalData &external_data = it.second;
 

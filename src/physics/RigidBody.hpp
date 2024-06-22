@@ -157,7 +157,7 @@ protected:
     Array<float>    m_vertices;
 };
 
-class HYP_API RigidBody : public BasicObject<STUB_CLASS(RigidBody)>
+class HYP_API RigidBody : public BasicObject<RigidBody>
 {
 public:
     RigidBody();

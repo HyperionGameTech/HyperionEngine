@@ -174,16 +174,6 @@ void FBOMObject::AddChild(FBOMObject &&object, const String &external_object_key
         object.SetExternalObjectInfo(FBOMExternalObjectInfo { external_object_key });
     }
 
-    // // debug sanity check
-    // if (object.GetType().IsOrExtends("Node")) {
-    //     FlatSet<UniqueID> subobject_ids;
-
-    //     for (FBOMObject &subobject : *nodes) {
-    //         auto insert_result = subobject_ids.Insert(subobject.GetUniqueID());
-    //         AssertThrow(insert_result.second);
-    //     }
-    // }
-
     nodes->PushBack(std::move(object));
 }
 

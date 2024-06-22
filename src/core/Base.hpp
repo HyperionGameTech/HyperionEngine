@@ -5,7 +5,6 @@
 
 #include <core/Core.hpp>
 #include <core/ObjectPool.hpp>
-#include <core/ClassInfo.hpp>
 #include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Defines.hpp>
@@ -24,28 +23,6 @@
 
 namespace hyperion {
 
-template <class T, class ClassName>
-struct StubbedClass : public ClassInfo<ClassName>
-{
-    using InnerType = T;
-
-    StubbedClass() = default;
-    ~StubbedClass() = default;
-
-    /*! \brief Create a new UniquePtr instance of the type. */
-    template <class ...Args>
-    static UniquePtr<T> Construct(Args &&... args)
-        { return UniquePtr<T>::Construct(std::forward<Args>(args)...); }
-};
-
-template <auto X>
-struct ClassName
-{
-    using Sequence = containers::detail::IntegerSequenceFromString<X>;
-};
-
-#define STUB_CLASS(name) ::hyperion::StubbedClass<name, ClassName<StaticString(HYP_STR(name))>>
-
 using ComponentFlags = uint;
 
 template <class T>
@@ -58,13 +35,12 @@ struct ComponentInitInfo
 
 class BasicObjectBase
 {
-
 };
 
-template <class Type>
+template <class T>
 class BasicObject : public BasicObjectBase
 {
-    using InnerType = typename Type::InnerType;
+    using InnerType = T;
 
     static constexpr auto type_name = TypeNameWithoutNamespace<InnerType>();
 
@@ -175,8 +151,7 @@ public:
     }
 
 protected:
-    using ClassType = Type;
-    using Base = BasicObject<Type>;
+    using Base = BasicObject<T>;
     
     void SetReady(bool is_ready)
     {

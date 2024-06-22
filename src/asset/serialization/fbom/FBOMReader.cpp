@@ -5,6 +5,9 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <core/compression/Archive.hpp>
 
 #include <math/MathUtil.hpp>
@@ -62,30 +65,7 @@ FBOMReader::FBOMReader(const FBOMConfig &config)
 
 FBOMReader::~FBOMReader() = default;
 
-FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
-{
-    const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
-
-    if (!marshal) {
-        return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
-    }
-
-    return marshal->Deserialize(in, out_object.m_value);
-}
-
-FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
-{
-    FBOMObject obj;
-    FBOMResult res = Deserialize(reader, obj);
-
-    if (res.value != FBOMResult::FBOM_OK) {
-        return res;
-    }
-
-    return Deserialize(obj, out_object);
-}
-
-FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObjectLibrary &out)
 {
     if (reader.Eof()) {
         return { FBOMResult::FBOM_ERR, "Stream not open" };
@@ -143,11 +123,68 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
         return { FBOMResult::FBOM_ERR, "> 1 objects added to root (not supported in current implementation)" };
     }
 
-    out = root.nodes->Front();
+    out = FBOMObjectLibrary { *root.nodes };
 
     return { FBOMResult::FBOM_OK };
 }
 
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
+{
+    FBOMObjectLibrary library;
+
+    if (FBOMResult err = Deserialize(reader, library)) {
+        return err;
+    }
+
+    if (library.objects.Empty()) {
+        return { FBOMResult::FBOM_ERR, "Loaded library contains no objects." };
+    }
+
+    if (library.objects.Size() > 1) {
+        HYP_LOG(Serialization, LogLevel::WARNING, "Loaded libary contains more than one object when attempting to load a single object. The first object will be used.");
+    }
+
+    out = std::move(library.objects.Front());
+
+    return { FBOMResult::FBOM_OK };
+}
+
+FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
+{
+    const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
+
+    if (!marshal) {
+        return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
+    }
+
+    return marshal->Deserialize(in, out_object.m_value);
+}
+
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
+{
+    FBOMObject obj;
+    FBOMResult res = Deserialize(reader, obj);
+
+    if (res.value != FBOMResult::FBOM_OK) {
+        return res;
+    }
+
+    return Deserialize(obj, out_object);
+}
+
+FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMObjectLibrary &out)
+{
+    // Include our root dir as part of the path
+    if (m_config.base_path.Empty()) {
+        m_config.base_path = FileSystem::RelativePath(StringUtil::BasePath(path.Data()), FileSystem::CurrentPath()).c_str();
+    }
+
+    const FilePath read_path { FileSystem::Join(m_config.base_path.Data(), FilePath(path).Basename().Data()).c_str()};
+
+    BufferedReader reader(RC<FileBufferedReaderSource>(new FileBufferedReaderSource(read_path)));
+
+    return Deserialize(reader, out);
+}
 
 FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMObject &out)
 {
@@ -215,6 +252,56 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
     }
 
     return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMReader::RequestExternalObject(const ANSIStringView &key, uint32 index, FBOMObject &out_object)
+{
+    String base_path = m_config.base_path;
+
+    if (base_path.Empty()) {
+        base_path = FilePath::Current();
+    }
+
+    const String ref_path(FileSystem::Join(FileSystem::CurrentPath(), base_path.Data(), key.Data()).data());
+    const String relative_path(FileSystem::RelativePath(std::string(ref_path.Data()), FileSystem::CurrentPath()).data());
+
+    { // check in cache
+        const auto it = m_config.external_data_cache.Find(relative_path);
+
+        if (it != m_config.external_data_cache.End()) {
+            if (FBOMObject *found_object = it->second.TryGet(index)) {
+                out_object = *found_object;
+
+                return { FBOMResult::FBOM_OK };
+            } else {
+                return { FBOMResult::FBOM_ERR, "Object not found in library" };
+            }
+        }
+    }
+
+    FBOMObjectLibrary library;
+
+    if (FBOMResult err = FBOMReader(m_config).LoadFromFile(ref_path, library)) {
+        if (!m_config.continue_on_external_load_error) {
+            return err;
+        }
+    }
+
+    // cache it
+    auto insert_result = m_config.external_data_cache.Set(relative_path, std::move(library));
+    AssertThrow(insert_result.second);
+
+    auto it = insert_result.first;
+    
+    if (FBOMObject *found_object = it->second.TryGet(index)) {
+        out_object = *found_object;
+
+        return { FBOMResult::FBOM_OK };
+    } else {
+        return { FBOMResult::FBOM_ERR, "Object not found in library" };
+    }
+
+    return { FBOMResult::FBOM_OK };
 }
 
 FBOMResult FBOMReader::ReadDataAttributes(BufferedReader *reader, EnumFlags<FBOMDataAttributes> &out_attributes, FBOMDataLocation &out_location)
@@ -642,8 +729,6 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         if (FBOMResult err = ReadString(reader, ref_name)) {
             return err;
         }
-
-        DebugLog(LogType::Debug, "FBOM: Ext ref: %s\n", ref_name.Data());
         
         // read object_index as u32,
         // for now this should just be zero but
@@ -658,36 +743,9 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         reader->Read(&flags);
         CheckEndianness(flags);
 
-        // load the file {ref_name}.chunk relative to current file
-        // this could also be stored in a map
-
-        String base_path = m_config.base_path;
-
-        if (base_path.Empty()) {
-            base_path = FilePath::Current();
+        if (FBOMResult err = RequestExternalObject(ref_name, object_index, out_object)) {
+            return err;
         }
-
-        const String ref_path(FileSystem::Join(FileSystem::CurrentPath(), base_path.Data(), ref_name.Data()).data());
-        const String relative_path(FileSystem::RelativePath(std::string(ref_path.Data()), FileSystem::CurrentPath()).data());
-
-        { // check in cache
-            const auto it = m_config.external_data_cache.Find(Pair<String, uint32> { relative_path, object_index });
-
-            if (it != m_config.external_data_cache.End()) {
-                out_object = it->second;
-
-                break;
-            }
-        }
-
-        if (FBOMResult err = FBOMReader(m_config).LoadFromFile(ref_path, out_object)) {
-            if (!m_config.continue_on_external_load_error) {
-                return err;
-            }
-        }
-
-        // cache it
-        m_config.external_data_cache.Set(Pair<String, uint32> { relative_path, object_index }, out_object);
 
         break;
     }
@@ -829,8 +887,6 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
             uint8 type;
             reader->Read(&type);
             CheckEndianness(type);
-
-            IFBOMSerializable *serializable_object_ptr = nullptr;
 
             switch (type)
             {

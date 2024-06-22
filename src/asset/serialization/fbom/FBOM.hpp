@@ -216,11 +216,45 @@ private:
     UniquePtr<HypClassInstanceMarshal>                  m_hyp_class_instance_marshal;
 };
 
+struct FBOMObjectLibrary
+{
+    Array<FBOMObject>   objects;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    FBOMObject *TryGet(uint32 index)
+    {
+        if (index >= objects.Size()) {
+            return nullptr;
+        }
+
+        return &objects[index];
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const FBOMObject *TryGet(uint32 index) const
+    {
+        if (index >= objects.Size()) {
+            return nullptr;
+        }
+
+        return &objects[index];
+    }
+
+    void Put(uint32 index, FBOMObject &&object)
+    {
+        if (objects.Size() >= index) {
+            objects.Resize(index + 1);
+        }
+
+        objects[index] = std::move(object);
+    }
+};
+
 struct FBOMConfig
 {
-    bool                                        continue_on_external_load_error = false;
-    String                                      base_path;
-    FlatMap<Pair<String, uint32>, FBOMObject>   external_data_cache;
+    bool                                continue_on_external_load_error = false;
+    String                              base_path;
+    FlatMap<String, FBOMObjectLibrary>  external_data_cache;
 };
 
 class FBOMReader
@@ -229,10 +263,12 @@ public:
     FBOMReader(const FBOMConfig &config);
     ~FBOMReader();
 
+    FBOMResult Deserialize(BufferedReader &reader, FBOMObjectLibrary &out);
+    FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out);
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object);
     FBOMResult Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object);
-    FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out);
 
+    FBOMResult LoadFromFile(const String &path, FBOMObjectLibrary &out);
     FBOMResult LoadFromFile(const String &path, FBOMObject &out);
     FBOMResult LoadFromFile(const String &path, FBOMDeserializedObject &out);
 
@@ -259,6 +295,8 @@ private:
     HYP_NODISCARD HYP_FORCE_INLINE
     bool HasMarshalForType(const FBOMType &type) const
         { return FBOM::GetInstance().GetMarshal(type.name) != nullptr; }
+
+    FBOMResult RequestExternalObject(const ANSIStringView &key, uint32 index, FBOMObject &out_object);
 
     FBOMCommand NextCommand(BufferedReader *);
     FBOMCommand PeekCommand(BufferedReader *);

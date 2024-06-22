@@ -42,7 +42,7 @@ struct GaussianSplattingModelData
 };
 
 class HYP_API GaussianSplattingInstance
-    : public BasicObject<STUB_CLASS(GaussianSplattingInstance)>
+    : public BasicObject<GaussianSplattingInstance>
 {
 public:
     enum SortStage
@@ -104,7 +104,7 @@ private:
 };
 
 class HYP_API GaussianSplatting
-    : public BasicObject<STUB_CLASS(GaussianSplatting)>
+    : public BasicObject<GaussianSplatting>
 {
 public:
     GaussianSplatting();

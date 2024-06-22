@@ -135,7 +135,7 @@ private:
     }
 };
 
-class HYP_API World : public BasicObject<STUB_CLASS(World)>
+class HYP_API World : public BasicObject<World>
 {
 public:
     World();

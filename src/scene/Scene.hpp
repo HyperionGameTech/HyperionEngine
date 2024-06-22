@@ -61,7 +61,7 @@ struct SceneDrawProxy
     uint32 frame_counter;
 };
 
-class HYP_API Scene : public BasicObject<STUB_CLASS(Scene)>
+class HYP_API Scene : public BasicObject<Scene>
 {
     friend class Entity;
     friend class World;

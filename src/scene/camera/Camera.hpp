@@ -155,7 +155,7 @@ struct CameraDrawProxy
     uint16      visibility_nonce;
 };
 
-class HYP_API Camera : public BasicObject<STUB_CLASS(Camera)>
+class HYP_API Camera : public BasicObject<Camera>
 {
 public:
     friend class CameraController;

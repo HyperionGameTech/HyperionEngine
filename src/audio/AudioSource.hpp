@@ -12,7 +12,7 @@ namespace hyperion {
 
 class Engine;
 
-class AudioSource : public BasicObject<STUB_CLASS(AudioSource)>
+class AudioSource : public BasicObject<AudioSource>
 {
 public:
     enum class Format : uint

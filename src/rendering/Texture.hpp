@@ -25,7 +25,7 @@
 namespace hyperion {
 
 class HYP_API Texture
-    : public BasicObject<STUB_CLASS(Texture)>
+    : public BasicObject<Texture>
 {
 public:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;

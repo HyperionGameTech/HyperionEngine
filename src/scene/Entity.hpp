@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-class Entity : public BasicObject<STUB_CLASS(Entity)>
+class Entity : public BasicObject<Entity>
 {
 private:
     Entity() = default;

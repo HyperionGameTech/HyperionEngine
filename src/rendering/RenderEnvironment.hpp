@@ -40,7 +40,7 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 };
 
 class HYP_API RenderEnvironment
-    : public BasicObject<STUB_CLASS(RenderEnvironment)>
+    : public BasicObject<RenderEnvironment>
 {
     using RenderComponentPendingRemovalEntry = Pair<TypeID, Name>;
 
