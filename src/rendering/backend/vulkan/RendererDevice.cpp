@@ -112,11 +112,11 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
     /* Find dedicated queues */
     for (uint32_t i = 0; i < families.Size() && !indices.IsComplete(); i++) {
-        AssertContinueMsg(
-            families[i].queueCount != 0,
-            "Queue family %d supports no queues, skipping\n",
-            i
-        );
+        if (families[i].queueCount == 0) {
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Queue family {} supports no queues, skipping", i);
+
+            continue;
+        }
 
         if (!indices.present_family.HasValue()) {
             VkBool32 supports_presentation = false;
@@ -169,11 +169,11 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
 
     /* Fallback -- find queue families (non-dedicated) */
     for (uint32 i = 0; i < families.Size() && !indices.IsComplete(); i++) {
-        AssertContinueMsg(
-            families[i].queueCount != 0,
-            "Queue family %d supports no queues, skipping\n",
-            i
-        );
+        if (families[i].queueCount == 0) {
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Queue family {} supports no queues, skipping", i);
+
+            continue;
+        }
 
         if (!indices.transfer_family.HasValue()) {
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, false)) {

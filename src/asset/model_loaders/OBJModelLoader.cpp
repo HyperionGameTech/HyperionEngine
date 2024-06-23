@@ -119,15 +119,13 @@ Vector GetIndexedVertexProperty(int64 vertex_index, const Array<Vector> &vectors
         ? vertex_index
         : static_cast<int64>(vectors.Size()) + (vertex_index);
 
-    AssertReturnMsg(
-        vertex_absolute >= 0 && vertex_absolute < static_cast<int64>(vectors.Size()),
-        Vector(),
-        "Vertex index of %lld (absolute: %lld) is out of bounds (%llu)\n",
-        vertex_index,
-        vertex_absolute,
-        vectors.Size()
-    );
+    if (vertex_absolute < 0 || vertex_absolute >= static_cast<int64>(vectors.Size())) {
+        HYP_LOG(Assets, LogLevel::WARNING, "Vertex index of {} (absolute: {}) is out of bounds ({})",
+            vertex_index, vertex_absolute, vectors.Size());
 
+        return Vector();
+    }
+    
     return vectors[vertex_absolute];
 }
 

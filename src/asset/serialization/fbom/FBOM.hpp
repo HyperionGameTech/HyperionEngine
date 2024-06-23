@@ -65,6 +65,16 @@ enum class FBOMDataLocation : uint8
     LOC_EXT_REF
 };
 
+enum class FBOMObjectLibraryFlags : uint8
+{
+    NONE                = 0x0,
+    LOCATION_INLINE     = 0x1,
+    LOCATION_EXTERNAL   = 0x2,
+    LOCATION_MASK       = LOCATION_INLINE | LOCATION_EXTERNAL
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMObjectLibraryFlags)
+
 namespace fbom {
 
 struct FBOMObjectType;
@@ -155,7 +165,9 @@ enum FBOMCommand : uint8
     FBOM_OBJECT_END,
     FBOM_STATIC_DATA_START,
     FBOM_STATIC_DATA_END,
-    FBOM_DEFINE_PROPERTY
+    FBOM_DEFINE_PROPERTY,
+    FBOM_OBJECT_LIBRARY_START,
+    FBOM_OBJECT_LIBRARY_END
 };
 
 class HYP_API FBOM
@@ -218,35 +230,63 @@ private:
 
 struct FBOMObjectLibrary
 {
-    Array<FBOMObject>   objects;
+    UUID                uuid;
+    Array<FBOMObject>   object_data;
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    FBOMObject *TryGet(uint32 index)
+    bool TryGet(uint32 index, FBOMObject &out) const
     {
-        if (index >= objects.Size()) {
-            return nullptr;
+        if (index >= object_data.Size()) {
+            return false;
         }
 
-        return &objects[index];
+        out = object_data[index];
+
+        return true;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMObject *TryGet(uint32 index) const
+    uint32 Put(const FBOMObject &object)
     {
-        if (index >= objects.Size()) {
-            return nullptr;
-        }
+        const uint32 next_index = uint32(object_data.Size());
+        object_data.Resize(next_index + 1);
 
-        return &objects[index];
+        object_data[next_index] = object;
+
+        return next_index;
     }
 
-    void Put(uint32 index, FBOMObject &&object)
+    uint32 Put(FBOMObject &&object)
     {
-        if (objects.Size() >= index) {
-            objects.Resize(index + 1);
-        }
+        const uint32 next_index = uint32(object_data.Size());
+        object_data.Resize(next_index + 1);
 
-        objects[index] = std::move(object);
+        object_data[next_index] = std::move(object);
+
+        return next_index;
+    }
+
+    // uint32 Put(FBOMData &&data)
+    // {
+    //     const uint32 next_index = uint32(object_data.Size());
+    //     object_data.Resize(next_index + 1);
+
+    //     object_data[next_index] = std::move(data);
+
+    //     return next_index;
+    // }
+    
+    HYP_NODISCARD
+    SizeType CalculateTotalSize() const
+    {
+        // SizeType size = 0;
+
+        // for (const FBOMData &data : object_data) {
+        //     size += data.TotalSize();
+        // }
+
+        // return size;
+
+        return object_data.Size();
     }
 };
 
@@ -254,7 +294,7 @@ struct FBOMConfig
 {
     bool                                continue_on_external_load_error = false;
     String                              base_path;
-    FlatMap<String, FBOMObjectLibrary>  external_data_cache;
+    FlatMap<UUID, FBOMObjectLibrary>    external_data_cache;
 };
 
 class FBOMReader
@@ -263,7 +303,7 @@ public:
     FBOMReader(const FBOMConfig &config);
     ~FBOMReader();
 
-    FBOMResult Deserialize(BufferedReader &reader, FBOMObjectLibrary &out);
+    FBOMResult Deserialize(BufferedReader &reader, FBOMObjectLibrary &out, bool read_header = true);
     FBOMResult Deserialize(BufferedReader &reader, FBOMObject &out);
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object);
     FBOMResult Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object);
@@ -274,6 +314,7 @@ public:
 
     FBOMResult ReadObject(BufferedReader *, FBOMObject &out_object, FBOMObject *root);
     FBOMResult ReadObjectType(BufferedReader *, FBOMType &out_type);
+    FBOMResult ReadObjectLibrary(BufferedReader *, FBOMObjectLibrary &out_library);
     FBOMResult ReadData(BufferedReader *, FBOMData &out_data);
     FBOMResult ReadArray(BufferedReader *, FBOMArray &out_array);
     FBOMResult ReadNameTable(BufferedReader *, FBOMNameTable &out_name_table);
@@ -296,7 +337,7 @@ private:
     bool HasMarshalForType(const FBOMType &type) const
         { return FBOM::GetInstance().GetMarshal(type.name) != nullptr; }
 
-    FBOMResult RequestExternalObject(const ANSIStringView &key, uint32 index, FBOMObject &out_object);
+    FBOMResult RequestExternalObject(UUID library_id, uint32 index, FBOMObject &out_object);
 
     FBOMCommand NextCommand(BufferedReader *);
     FBOMCommand PeekCommand(BufferedReader *);
@@ -344,20 +385,16 @@ private:
     bool                    m_swap_endianness;
 };
 
-struct FBOMExternalData
-{
-    FlatMap<UniqueID, FBOMObject> objects;
-};
-
 struct FBOMWriteStream
 {
     // FBOMNameTable                       m_name_table;
     UniqueID                            m_name_table_id;
-    FlatMap<String, FBOMExternalData>   m_external_objects; // map filepath -> external object
+    Array<FBOMObjectLibrary>            m_object_libraries;
     HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
     bool                                m_static_data_write_locked = false; // is writing to static data locked? (prevents iterator invalidation)
     FlatMap<UniqueID, int>              m_hash_use_count_map;
-    Array<FBOMObject>                   m_object_data;// TODO: make multiple root objects be supported by the loader
+    Array<FBOMObject>                   m_object_data;
+    bool                                m_object_data_write_locked = false; // is writing to object data locked? (prevents iterator invalidation)
     SizeType                            m_static_data_offset = 0;
     FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
 
@@ -368,7 +405,7 @@ struct FBOMWriteStream
     FBOMWriteStream &operator=(FBOMWriteStream &&other) noexcept    = default;
     ~FBOMWriteStream()                                              = default;
 
-    FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, String &out_external_key) const;
+    FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, const FBOMExternalObjectInfo **out_external_object_info) const;
     void MarkStaticDataWritten(const UniqueID &unique_id);
 
     HYP_FORCE_INLINE
@@ -383,17 +420,22 @@ struct FBOMWriteStream
     bool IsStaticDataWritingLocked() const
         { return m_static_data_write_locked; }
 
+    HYP_FORCE_INLINE
+    void LockObjectDataWriting()
+        { m_object_data_write_locked = true; }
+
+    HYP_FORCE_INLINE
+    void UnlockObjectDataWriting()
+        { m_object_data_write_locked = false; }
+
     HYP_NODISCARD HYP_FORCE_INLINE
-    FBOMNameTable &GetNameTable()
-    {
-        auto it = m_static_data.Find(m_name_table_id);
-        AssertThrow(it != m_static_data.End());
+    bool IsObjectDataWritingLocked() const
+        { return m_object_data_write_locked; }
 
-        FBOMNameTable *name_table_ptr = it->second.data.TryGetAsDynamic<FBOMNameTable>();
-        AssertThrow(name_table_ptr != nullptr);
+    HYP_NODISCARD
+    FBOMNameTable &GetNameTable();
 
-        return *name_table_ptr;
-    }
+    void AddToObjectLibrary(FBOMObject &object);
 };
 
 class FBOMWriter
@@ -431,7 +473,7 @@ public:
     FBOMResult Append(const FBOMObject &object);
     FBOMResult Append(FBOMObject &&object);
 
-    FBOMResult Emit(ByteWriter *out);
+    FBOMResult Emit(ByteWriter *out, bool write_header = true);
 
     FBOMResult Write(ByteWriter *out, const FBOMObject &object, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
     FBOMResult Write(ByteWriter *out, const FBOMType &type, UniqueID id, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE);
@@ -445,9 +487,10 @@ private:
     FBOMResult WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const;
     FBOMResult WriteDataAttributes(ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes, FBOMDataLocation location) const;
 
-    FBOMResult WriteExternalObjects();
+    FBOMResult WriteExternalObjects(ByteWriter *out);
+    
     void BuildStaticData();
-    void Prune(const FBOMObject &);
+    void Prune(FBOMObject &);
 
     FBOMResult WriteHeader(ByteWriter *out);
     FBOMResult WriteStaticData(ByteWriter *out);
@@ -471,6 +514,7 @@ private:
     UniqueID AddStaticData(FBOMStaticData &&static_data)
     {
         const UniqueID id = static_data.GetUniqueID();
+        AssertThrow(id != UniqueID::Invalid());
 
         return AddStaticData(id, std::move(static_data));
     }

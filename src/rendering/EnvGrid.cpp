@@ -82,7 +82,10 @@ struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
         updates(std::move(updates))
     {
         AssertThrow(grid != nullptr);
-        AssertSoftMsg(this->updates.Any(), "Pushed update command with zero updates, redundant\n");
+
+        if (this->updates.Empty()) {
+            HYP_LOG(EnvGrid, LogLevel::WARNING, "Pushed update command with zero updates, redundant command invocation");
+        }
     }
 
     virtual Result operator()() override

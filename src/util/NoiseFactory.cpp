@@ -147,7 +147,7 @@ void NoiseFactory::Release(NoiseGenerationType type, Seed seed)
 {
     const auto it = m_noise_generators.find(std::make_pair(type, seed));
 
-    AssertExit(it != m_noise_generators.end());
+    AssertThrow(it != m_noise_generators.end());
 
     if (!--it->second.uses) {
         delete it->second.noise;

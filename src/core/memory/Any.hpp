@@ -111,7 +111,7 @@ public:
     template <class T, typename = std::enable_if_t< !std::is_base_of_v< detail::AnyBase, T > > >
     Any &operator=(T &&value) noexcept
     {
-        const auto new_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
 
         if constexpr (std::is_move_assignable_v<NormalizedType<T>>) {
             if (m_type_id == new_type_id) {
@@ -438,7 +438,7 @@ public:
     template <class T, typename = std::enable_if_t< !std::is_base_of_v< detail::AnyBase, T > > >
     CopyableAny &operator=(T &&value) noexcept
     {
-        const auto new_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
 
         if constexpr (std::is_move_assignable_v<NormalizedType<T>>) {
             if (m_type_id == new_type_id) {

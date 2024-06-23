@@ -47,9 +47,10 @@ public:
     template <class T>
     void Write(const T &value)
     {
-        static_assert(!std::is_pointer_v<T>, "Expected to choose other overload");
+        static_assert(!std::is_pointer_v<NormalizedType<T>>, "Expected to choose other overload");
+        static_assert(IsPODType<NormalizedType<T>>, "T must be a POD type to use this overload");
 
-        WriteBytes(reinterpret_cast<const char *>(&value), sizeof(T));
+        WriteBytes(reinterpret_cast<const char *>(&value), sizeof(NormalizedType<T>));
     }
 
     template <int StringType>

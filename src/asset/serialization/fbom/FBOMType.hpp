@@ -18,7 +18,7 @@
 
 namespace hyperion {
 
-enum class FBOMTypeFlags : uint32
+enum class FBOMTypeFlags : uint8
 {
     NONE        = 0x0,
     RAW_DATA    = 0x1,

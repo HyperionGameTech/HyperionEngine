@@ -6,6 +6,7 @@
 
 namespace hyperion::fbom {
 
+HYP_DISABLE_OPTIMIZATION;
 template <>
 class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledShader>
 {
@@ -172,19 +173,26 @@ public:
             compiled_shader.entry_point_name = "main";
         }
 
-        VertexAttributeSet required_vertex_attributes;
-        in.GetProperty("required_vertex_attributes").ReadUnsignedLong(&required_vertex_attributes.flag_mask);
+        VertexAttributeSet required_vertex_attributes { };
 
-        VertexAttributeSet optional_vertex_attributes;
-        in.GetProperty("optional_vertex_attributes").ReadUnsignedLong(&optional_vertex_attributes.flag_mask);
+        if (FBOMResult err = in.GetProperty("required_vertex_attributes").ReadUnsignedLong(&required_vertex_attributes.flag_mask)) {
+            return err;
+        }
 
         compiled_shader.GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
+
+        VertexAttributeSet optional_vertex_attributes { };
+        
+        if (FBOMResult err = in.GetProperty("optional_vertex_attributes").ReadUnsignedLong(&optional_vertex_attributes.flag_mask)) {
+            return err;
+        }
+
         compiled_shader.GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
 
         uint32 num_descriptor_usages = 0;
 
         if (in.HasProperty("num_descriptor_usages")) {
-            in.GetProperty("num_descriptor_usages").ReadUnsignedInt(&num_descriptor_usages);
+           in.GetProperty("num_descriptor_usages").ReadUnsignedInt(&num_descriptor_usages);
 
             if (num_descriptor_usages != 0) {
                 for (uint32 i = 0; i < num_descriptor_usages; i++) {
@@ -195,6 +203,7 @@ public:
                     ANSIString descriptor_name_string;
                     ANSIString set_name_string;
 
+                    // sanity checks
                     WeakName wn = descriptor_usage_index_string + ".slot";
                     if (i == 0) {
                         constexpr bool b = HasGetHashCode<ANSIString, HashCode>::value;
@@ -327,6 +336,7 @@ public:
                 }
             }
         }
+
         if (!compiled_shader.IsValid()) {
             return { FBOMResult::FBOM_ERR, "Cannot deserialize invalid compiled shader instance" };
         }
@@ -376,4 +386,5 @@ public:
 
 HYP_DEFINE_MARSHAL(CompiledShaderBatch, FBOMMarshaler<CompiledShaderBatch>);
 
+HYP_ENABLE_OPTIMIZATION;
 } // namespace hyperion::fbom

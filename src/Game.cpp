@@ -40,7 +40,7 @@ Game::Game(Optional<ManagedGameInfo> managed_game_info)
 
 Game::~Game()
 {
-    AssertExitMsg(
+    AssertThrowMsg(
         !m_is_init,
         "Expected Game to have called Teardown() before destructor call"
     );

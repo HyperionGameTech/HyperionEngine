@@ -82,7 +82,7 @@ FBOMType::FBOMType(FBOMType &&other) noexcept
       extends(other.extends)
 {
     other.size = 0;
-    other.flags = FBOMTypeFlags::NONE;
+    other.flags = FBOMTypeFlags::DEFAULT;
     other.extends = nullptr;
 }
 
@@ -98,7 +98,7 @@ FBOMType &FBOMType::operator=(FBOMType &&other) noexcept
     extends = other.extends;
 
     other.size = 0;
-    other.flags = FBOMTypeFlags::NONE;
+    other.flags = FBOMTypeFlags::DEFAULT;
     other.extends = nullptr;
 
     return *this;
@@ -113,7 +113,7 @@ FBOMType::~FBOMType()
 
 FBOMType FBOMType::Extend(const FBOMType &object) const
 {
-    return FBOMType(object.name, -1, *this);
+    return FBOMType(object.name, -1, object.flags, *this);
 }
 
 bool FBOMType::HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents) const

@@ -995,7 +995,9 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         output_file_path
     );
 
-    if (fbom::FBOMResult err = reader.LoadFromFile(output_file_path, deserialized)) {
+    fbom::FBOMResult err = fbom::FBOMResult::FBOM_OK;
+
+    if ((err = reader.LoadFromFile(output_file_path, deserialized))) {
         if (CanCompileShaders()) {
             HYP_LOG(
                 ShaderCompiler,
@@ -1019,11 +1021,40 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         if (!CompileBundle(bundle, properties, out)) {
             return false;
         }
-    } else if (CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>()) {
-        out = *compiled_shader_batch;
-    } else {
+
+        if ((err = reader.LoadFromFile(output_file_path, deserialized))) {
+            HYP_LOG(
+                ShaderCompiler,
+                LogLevel::ERROR,
+                "Failed to compile shader at path: {}\n\tMessage: {}",
+                output_file_path,
+                err.message
+            );
+
+            return false;
+        }
+    }
+
+    AssertThrowMsg(deserialized.m_value.Is<CompiledShaderBatch>(),
+        "Expected to be type %u but got %u",
+        TypeID::ForType<CompiledShaderBatch>().Value(),
+        deserialized.m_value.GetTypeID().Value());
+
+    CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>();
+
+    if (!compiled_shader_batch) {
+        HYP_LOG(
+            ShaderCompiler,
+            LogLevel::ERROR,
+            "Failed to load compiled shader at path: {}\n\tMessage: {}",
+            output_file_path,
+            "Failed to deserialize CompiledShaderBatch"
+        );
+
         return false;
     }
+
+    out = *compiled_shader_batch;
 
     return HandleCompiledShaderBatch(bundle, properties, output_file_path, out);
 }
@@ -1706,6 +1737,8 @@ bool ShaderCompiler::CompileBundle(
             bundle.entry_point_name
         );
 
+        AssertThrow(compiled_shader.GetDefinition());
+
         AtomicVar<bool> any_files_compiled { false };
         AtomicVar<bool> any_files_errored { false };
 
@@ -1713,7 +1746,7 @@ bool ShaderCompiler::CompileBundle(
         {
             // check if a file exists w/ same hash
             
-            const auto output_filepath = item.GetOutputFilepath(
+            const FilePath output_filepath = item.GetOutputFilepath(
                 g_asset_manager->GetBasePath(),
                 compiled_shader
             );
@@ -1853,15 +1886,21 @@ bool ShaderCompiler::CompileBundle(
 
     FileByteWriter byte_writer(final_output_path.Data());
 
-    fbom::FBOMWriter writer;
-    writer.Append(out);
+    fbom::FBOMWriter serializer;
+    
+    if (fbom::FBOMResult err = serializer.Append(out)) {
+        HYP_BREAKPOINT_DEBUG_MODE;
 
-    auto err = writer.Emit(&byte_writer);
-    byte_writer.Close();
-
-    if (err.value != fbom::FBOMResult::FBOM_OK) {
         return false;
     }
+
+    if (fbom::FBOMResult err = serializer.Emit(&byte_writer)) {
+        HYP_BREAKPOINT_DEBUG_MODE;
+
+        return false;
+    }
+
+    byte_writer.Close();
 
     m_cache.Set(bundle.name, out);
 

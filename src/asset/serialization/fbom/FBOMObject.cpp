@@ -123,16 +123,16 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMData &data)
 FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
 {
     // sanity check
-    ANSIString str = key.LookupString();
-    AssertThrowMsg(key.hash_code == str.GetHashCode().Value(),
-        "Expected hash for %s (len: %u) (%llu) to equal hash of %s (len: %u) (%llu)",
-        key.LookupString(),
-        std::strlen(key.LookupString()),
-        key.hash_code,
-        str.Data(),
-        str.Size(),
-        str.GetHashCode().Value());
-    AssertThrow(key.hash_code == CreateNameFromDynamicString(str).hash_code);
+    // ANSIString str = key.LookupString();
+    // AssertThrowMsg(key.hash_code == str.GetHashCode().Value(),
+    //     "Expected hash for %s (len: %u) (%llu) to equal hash of %s (len: %u) (%llu)",
+    //     key.LookupString(),
+    //     std::strlen(key.LookupString()),
+    //     key.hash_code,
+    //     str.Data(),
+    //     str.Size(),
+    //     str.GetHashCode().Value());
+    // AssertThrow(key.hash_code == CreateNameFromDynamicString(str).hash_code);
 
     properties.Set(key, std::move(data));
 
@@ -180,12 +180,8 @@ const FBOMData &FBOMObject::operator[](WeakName key) const
     return GetProperty(key);
 }
 
-void FBOMObject::AddChild(FBOMObject &&object, const String &external_object_key)
+void FBOMObject::AddChild(FBOMObject &&object)
 {
-    if (external_object_key.Length() != 0) {
-        object.SetExternalObjectInfo(FBOMExternalObjectInfo { external_object_key });
-    }
-
     nodes->PushBack(std::move(object));
 }
 
@@ -202,26 +198,16 @@ FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const 
         return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
     }
 
-    Any any_value;
-
-    const FBOMResult result = marshal->Deserialize(in, any_value);
-
-    if (result.IsOK()) {
-        AssertThrow(any_value.HasValue());
-        
-        out.m_value = std::move(any_value);
-    }
-
-    return result;
+    return marshal->Deserialize(in, out.m_value);
 }
 
 HashCode FBOMObject::GetHashCode() const
 {
     HashCode hc;
 
-    if (IsExternal()) {
-        hc.Add(m_external_info.GetHashCode());
-    } else {
+    // if (IsExternal()) {
+    //     hc.Add(m_external_info->GetHashCode());
+    // } else {
         hc.Add(m_object_type.GetHashCode());
 
         for (const auto &it : properties) {
@@ -229,10 +215,12 @@ HashCode FBOMObject::GetHashCode() const
             hc.Add(it.second.GetHashCode());
         }
 
+        hc.Add(nodes->Size());
+
         for (const FBOMObject &subobject : *nodes) {
             hc.Add(subobject.GetHashCode());
         }
-    }
+    // }
 
     return hc;
 }

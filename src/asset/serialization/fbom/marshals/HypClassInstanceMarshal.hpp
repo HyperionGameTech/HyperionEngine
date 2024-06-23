@@ -42,7 +42,7 @@ public:
         out = fbom::FBOMObject(FBOMObjectType(hyp_class->GetName().LookupString()));
 
         const HashCode hash_code = hyp_class->GetInstanceHashCode(in);
-        out.m_unique_id = fbom::FBOMObject::GenerateUniqueID(hash_code, FBOMObjectFlags::NONE);
+        out.m_unique_id = UniqueID(hash_code);
 
         for (HypClassProperty *property : hyp_class->GetProperties()) {
             AssertThrow(property != nullptr);

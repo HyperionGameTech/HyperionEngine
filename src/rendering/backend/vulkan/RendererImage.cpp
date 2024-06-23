@@ -11,6 +11,9 @@
 #include <util/img/ImageUtil.hpp>
 #include <core/system/Debug.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
@@ -146,7 +149,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
 
     if (has_mipmaps) {
         /* Mipmapped image needs linear blitting. */
-        DebugLog(LogType::Debug, "Mipmapped image needs blitting support. Enabling...\n");
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Mipmapped image needs blitting support. Enabling...");
 
         vk_format_features |= VK_FORMAT_FEATURE_BLIT_DST_BIT
             | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
@@ -165,13 +168,13 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
     }
 
     if (is_blended) {
-        DebugLog(LogType::Debug, "Image requires blending, enabling format flag...\n");
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Image requires blending, enabling format flag...");
 
         vk_format_features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
     }
 
     if (is_cubemap) {
-        DebugLog(LogType::Debug, "Creating cubemap , enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.\n");
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
 
         vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
@@ -210,20 +213,26 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
         }
 
         for (auto &fix : potential_fixes) {
-            DebugLog(LogType::Debug, "Attempting fix: '%s' ...\n", fix.first);
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Attempting fix '{}'...\n", fix.first);
 
             auto fix_result = fix.second();
 
-            AssertContinueMsg(fix_result, "Image fix function returned an invalid result: %s\n", fix_result.message);
+            if (!fix_result) {
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Fix '{}' failed: {}", fix.first, fix_result.message);
+
+                continue;
+            }
 
             // try checking format support result again
             if ((format_support_result = device->GetFeatures().GetImageFormatProperties(
                 vk_format, vk_image_type, tiling, usage_flags, vk_image_create_flags, &vk_image_format_properties))) {
-                DebugLog(LogType::Debug, "Fix '%s' successful!\n", fix.first);
+                
+                HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Fix '{}' succeeded.\n", fix.first);
+
                 break;
             }
 
-            DebugLog(LogType::Warn, "Fix '%s' did not change image state to valid.\n", fix.first);
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Fix '{}' failed: {}", fix.first, format_support_result.message);
         }
 
         HYPERION_BUBBLE_ERRORS(format_support_result);
@@ -338,9 +347,10 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
     }
 
     if (handle == VK_NULL_HANDLE) {
-        DebugLog(
-            LogType::Warn,
-            "Attempt to insert a resource barrier but image was not defined\n"
+        HYP_LOG(
+            RenderingBackend,
+            LogLevel::WARNING,
+            "Attempt to insert a resource barrier but image was not defined"
         );
 
         return;
@@ -388,9 +398,10 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertSubResourceBarrier(
 )
 {
     if (handle == VK_NULL_HANDLE) {
-        DebugLog(
-            LogType::Warn,
-            "Attempt to insert a resource barrier but image was not defined\n"
+        HYP_LOG(
+            RenderingBackend,
+            LogLevel::DEBUG,
+            "Attempt to insert a resource barrier but image was not defined"
         );
 
         return;

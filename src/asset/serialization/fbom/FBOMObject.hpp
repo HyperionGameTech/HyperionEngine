@@ -49,16 +49,25 @@ class FBOMNodeHolder;
 
 struct FBOMExternalObjectInfo
 {
-    String key;
+    UUID    library_id = UUID::Invalid();
+    uint32  index = ~0u;
 
-    explicit operator bool() const
-        { return key.Any(); }
-
+    HYP_NODISCARD HYP_FORCE_INLINE
     UniqueID GetUniqueID() const
-        { return UniqueID(key); }
+        { return UniqueID(GetHashCode()); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    bool IsLinked() const
+        { return library_id != UUID::Invalid() && index != ~0u; }
 
     HashCode GetHashCode() const
-        { return key.GetHashCode(); }
+    {
+        HashCode hc;
+        hc.Add(library_id);
+        hc.Add(index);
+
+        return hc;
+    }
 };
 
 class HYP_API FBOMObject : public IFBOMSerializable
@@ -83,22 +92,23 @@ public:
     bool IsExternal() const
         { return m_external_info.HasValue(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const String &GetExternalObjectKey() const
-        { return IsExternal() ? m_external_info->key : String::empty; }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMExternalObjectInfo *GetExternalObjectInfo() const
-        { return IsExternal() ? m_external_info.TryGet() : nullptr; }
-
-    void SetExternalObjectInfo(const FBOMExternalObjectInfo &info)
+    HYP_FORCE_INLINE
+    void SetIsExternal(bool is_external)
     {
-        if (info) {
-            m_external_info.Set(info);
+        if (is_external) {
+            m_external_info.Set({ });
         } else {
             m_external_info.Unset();
         }
     }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    FBOMExternalObjectInfo *GetExternalObjectInfo()
+        { return IsExternal() ? m_external_info.TryGet() : nullptr; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const FBOMExternalObjectInfo *GetExternalObjectInfo() const
+        { return IsExternal() ? m_external_info.TryGet() : nullptr; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     const FBOMType &GetType() const
@@ -194,7 +204,7 @@ public:
         return FBOMResult::FBOM_OK;
     }
 
-    void AddChild(FBOMObject &&object, const String &external_object_key = String::empty);
+    void AddChild(FBOMObject &&object);
 
     FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
         { return Visit(GetUniqueID(), writer, out, attributes); }
@@ -211,15 +221,6 @@ public:
     HYP_NODISCARD
     virtual HashCode GetHashCode() const override;
 
-    static UniqueID GenerateUniqueID(const HashCode &hash_code, EnumFlags<FBOMObjectFlags> flags)
-    {
-        if (flags & FBOMObjectFlags::KEEP_UNIQUE) {
-            return UniqueID::Generate();
-        }
-
-        return UniqueID(hash_code);
-    }
-
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
     static FBOMResult Serialize(const T &in, FBOMObject &out_object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
     {
@@ -229,7 +230,7 @@ public:
             return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
         }
         
-        String external_object_key;
+        ANSIString external_object_key;
 
         out_object = FBOMObject(marshal->GetObjectType());
 
@@ -239,24 +240,19 @@ public:
         }
 
         if constexpr (HasGetHashCode<NormalizedType<T>, HashCode>::value) {
-            out_object.m_unique_id = FBOMObject::GenerateUniqueID(HashCode::GetHashCode(in), flags);
+            if (flags & FBOMObjectFlags::KEEP_UNIQUE) {
+                out_object.m_unique_id = UniqueID::Generate();
+            } else {
+                const HashCode hash_code = HashCode::GetHashCode(TypeID::ForType<T>()).Add(HashCode::GetHashCode(in));
+
+                out_object.m_unique_id = UniqueID(hash_code);
+            }
         } else {
-            out_object.m_unique_id = FBOMObject::GenerateUniqueID(UUID().GetHashCode(), flags);
+            out_object.m_unique_id = UniqueID::Generate();
         }
 
         if (flags & FBOMObjectFlags::EXTERNAL) {
-            if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
-                const String class_name_lower = marshal->GetObjectType().name.ToLower();
-                external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
-            } else {
-                external_object_key = String::ToString(uint64(out_object.GetUniqueID())) + ".hypdata";
-            }
-
-            AssertThrow(external_object_key.Any());
-        }
-
-        if (external_object_key.Any()) {
-            out_object.SetExternalObjectInfo(FBOMExternalObjectInfo { external_object_key });
+            out_object.SetIsExternal(true);
         }
 
         return FBOMResult::FBOM_OK;
@@ -267,8 +263,9 @@ public:
     {
         FBOMObject object;
 
-        FBOMResult result = Serialize(in, object, flags);
-        AssertThrowMsg(result.IsOK(), "Failed to serialize object: %s", *result.message);
+        if (FBOMResult err = Serialize(in, object, flags)) {
+            HYP_FAIL("Failed to serialize object: %s", *err.message);
+        }
 
         return object;
     }
@@ -284,15 +281,9 @@ public:
             return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
         }
 
-        Any any_value;
-
         // Explicit overload call forces a linker error if the marshal class is not registered.
-        const FBOMResult result = marshal->Deserialize(in, any_value);
-
-        if (result.IsOK()) {
-            AssertThrow(any_value.HasValue());
-            
-            out.m_value = std::move(any_value);
+        if (FBOMResult err = marshal->Deserialize(in, out.m_value)) {
+            HYP_FAIL("Failed to deserialize object: %s", *err.message);
         }
 
         return result;
@@ -303,8 +294,9 @@ public:
     {
         FBOMDeserializedObject deserialized;
 
-        FBOMResult result = Deserialize<T>(in, deserialized);
-        AssertThrowMsg(result.IsOK(), "Failed to deserialize object: %s", *result.message);
+        if (FBOMResult err = Deserialize<T>(in, deserialized)) {
+            HYP_FAIL("Failed to deserialize object: %s", *err.message);
+        }
 
         return deserialized;
     }
