@@ -622,7 +622,7 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
-        { return HashCode(::hyperion::detail::FNV1::Hash(Data())); }
+        { return HashCode(::hyperion::detail::FNV1::HashString(Data())); }
 
     HYP_DEF_STL_BEGIN_END(
         Base::Begin(),

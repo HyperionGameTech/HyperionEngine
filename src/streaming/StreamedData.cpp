@@ -204,7 +204,7 @@ MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept
     m_byte_buffer = std::move(other.m_byte_buffer);
 
     m_hash_code = other.m_hash_code;
-    other.m_hash_code = { 0 };
+    other.m_hash_code = HashCode();
 }
 
 MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) noexcept
@@ -212,7 +212,7 @@ MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) no
     m_byte_buffer = std::move(other.m_byte_buffer);
     m_hash_code = other.m_hash_code;
 
-    other.m_hash_code = { 0 };
+    other.m_hash_code = HashCode();
 
     return *this;
 }

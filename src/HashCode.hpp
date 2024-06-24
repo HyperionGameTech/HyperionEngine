@@ -35,7 +35,7 @@ struct FNV1
     static constexpr uint64 fnv_prime = 1099511628211ull;
 
     template <class CharType, SizeType Size>
-    static constexpr uint64 Hash(const CharType (&str)[Size])
+    static constexpr uint64 HashString(const CharType (&str)[Size])
     {
         uint64 hash = offset_basis;
 
@@ -52,7 +52,7 @@ struct FNV1
     }
 
     template <class CharType>
-    static constexpr uint64 Hash(const CharType *str)
+    static constexpr uint64 HashString(const CharType *str)
     {
         uint64 hash = offset_basis;
 
@@ -67,11 +67,25 @@ struct FNV1
     }
 
     template <class CharType>
-    static constexpr uint64 Hash(const CharType *_begin, const CharType *_end)
+    static constexpr uint64 HashString(const CharType *_begin, const CharType *_end)
     {
         uint64 hash = offset_basis;
 
         while (*_begin && _begin != _end) {
+            hash ^= *_begin;
+            hash *= fnv_prime;
+
+            ++_begin;
+        }
+
+        return hash;
+    }
+
+    static constexpr uint64 HashBytes(const ubyte *_begin, const ubyte *_end)
+    {
+        uint64 hash = offset_basis;
+
+        while (_begin != _end) {
             hash ^= *_begin;
             hash *= fnv_prime;
 
@@ -93,7 +107,7 @@ struct HashCode
     {
     }
 
-    constexpr HashCode(ValueType value)
+    constexpr explicit HashCode(ValueType value)
         : hash(value)
     {
     }
@@ -127,14 +141,22 @@ struct HashCode
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
-    static constexpr inline
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && implementation_exists< std::hash< DecayedType > >, HashCode>
+    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value
+        && !std::is_pointer_v<DecayedType> && std::is_fundamental_v<DecayedType>, HashCode>
     GetHashCode(const T &value)
     {
-        return HashCode(ValueType(std::hash<DecayedType>()(value)));
+        return HashCode(detail::FNV1::HashBytes(reinterpret_cast<const ubyte *>(&value), reinterpret_cast<const ubyte *>(&value) + sizeof(T)));
     }
 
-    template <class T>
+    template <class T, class DecayedType = std::decay_t<T>>
+    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value
+        && !std::is_pointer_v<DecayedType> && std::is_enum_v<DecayedType>, HashCode>
+    GetHashCode(const T &value)
+    {
+        return GetHashCode(static_cast<std::underlying_type_t<DecayedType>>(value));
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v<T, char> >>
     static constexpr inline HashCode GetHashCode(const T *ptr)
     {
         return GetHashCode(uintptr_t(ptr));
@@ -148,17 +170,17 @@ struct HashCode
     template <SizeType Size>
     static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
-        return HashCode(detail::FNV1::Hash<char, Size>(str));
+        return HashCode(detail::FNV1::HashString<char, Size>(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char *str)
     {
-        return HashCode(detail::FNV1::Hash(str));
+        return HashCode(detail::FNV1::HashString(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char *_begin, const char *_end)
     {
-        return HashCode(detail::FNV1::Hash(_begin, _end));
+        return HashCode(detail::FNV1::HashString(_begin, _end));
     }
 
     constexpr void HashCombine(const HashCode &other)

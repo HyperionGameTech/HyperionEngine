@@ -125,10 +125,12 @@ FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
     // sanity check
     ANSIString str = key.LookupString();
     AssertThrowMsg(key.hash_code == str.GetHashCode().Value(),
-        "Expected hash for %s (%llu) to equal hash of %s (%llu)",
+        "Expected hash for %s (len: %u) (%llu) to equal hash of %s (len: %u) (%llu)",
         key.LookupString(),
+        std::strlen(key.LookupString()),
         key.hash_code,
         str.Data(),
+        str.Size(),
         str.GetHashCode().Value());
     AssertThrow(key.hash_code == CreateNameFromDynamicString(str).hash_code);
 

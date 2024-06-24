@@ -62,7 +62,7 @@ struct NameRegistration
         static constexpr NameID name_id = HashedName::hash_code.Value();
 
         Name::GetRegistry()->RegisterName(name_id, hashed_name.data, lock);
-
+        
         return NameRegistration { name_id };
     }
     

@@ -226,7 +226,7 @@ struct StaticString
 
     constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode<Sz>(data);
+        return HashCode::GetHashCode(data);
     }
 
     HYP_DEF_STL_BEGIN_END_CONSTEXPR(
