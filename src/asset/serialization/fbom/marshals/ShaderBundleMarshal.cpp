@@ -195,6 +195,42 @@ public:
                     ANSIString descriptor_name_string;
                     ANSIString set_name_string;
 
+                    WeakName wn = descriptor_usage_index_string + ".slot";
+                    if (i == 0) {
+                        constexpr bool b = HasGetHashCode<ANSIString, HashCode>::value;
+                        HashCode hc;
+                        hc.Add(ANSIString("descriptor_usages.0.slot").GetHashCode());
+
+                        static const char *ch = "descriptor_usages.0.slot";
+
+                        // HashCode hc2;
+                        // hc2.Add(ch);
+
+                        HashCode hc2;
+                        hc2.Add(ch);
+                        
+                        constexpr HashCode hc3 = ANSIStringView("descriptor_usages.0.slot").GetHashCode();
+
+                        AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == hc);
+                        AssertThrow(hc2 == hc3);
+                        AssertThrow(hc == hc2);
+                        AssertThrow(hc == ANSIString("descriptor_usages.0.slot").GetHashCode());
+                        AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == ANSIString("descriptor_usages.0.slot").GetHashCode());
+                        AssertThrow(wn == WeakName("descriptor_usages.0.slot"));
+                    }
+
+                    if (!in.HasProperty(descriptor_usage_index_string + ".slot")) {
+                        for (auto &it : in.properties) {
+                            const auto first = (descriptor_usage_index_string + ".slot");
+                            const auto second = ANSIString(it.first.LookupString());
+                            DebugLog(LogType::Debug, "Property: %s\t%llu != %llu\n", *it.first, it.first.hash_code, wn.hash_code);
+                            AssertThrow(wn.hash_code != it.first.hash_code);
+                            AssertThrowMsg(first != second, "Property: %s\t%s == %s\n", *it.first, first.Data(), second.Data());
+                        }
+
+                        AssertThrow(false);
+                    }
+
                     if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
                         return err;
                     }

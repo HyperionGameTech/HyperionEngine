@@ -22,6 +22,11 @@ public:
     {
     }
 
+    UniqueID(const HashCode &hash_code)
+        : value(hash_code.Value())
+    {
+    }
+
     template <class T, typename = std::enable_if_t< !std::is_same_v< NormalizedType< T >, UniqueID > > >
     UniqueID(const T &value)
         : value(HashCode::GetHashCode(value).Value())

@@ -11,6 +11,8 @@
 #include <string>
 #include <cstring>
 
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3876.pdf
+
 namespace hyperion {
 
 template <class T, class HashCode, class Enabled = void>
@@ -24,6 +26,63 @@ struct HasGetHashCode< T, HashCode, std::enable_if_t< std::is_member_function_po
 {
     static constexpr bool value = std::is_member_function_pointer_v< decltype(&T::GetHashCode) >;
 };
+
+namespace detail {
+
+struct FNV1
+{
+    static constexpr uint64 offset_basis = 14695981039346656037ull;
+    static constexpr uint64 fnv_prime = 1099511628211ull;
+
+    template <class CharType, SizeType Size>
+    static constexpr uint64 Hash(const CharType (&str)[Size])
+    {
+        uint64 hash = offset_basis;
+
+        for (SizeType i = 0; i < Size; ++i) {
+            if (!str[i]) {
+                break;
+            }
+
+            hash ^= str[i];
+            hash *= fnv_prime;
+        }
+
+        return hash;
+    }
+
+    template <class CharType>
+    static constexpr uint64 Hash(const CharType *str)
+    {
+        uint64 hash = offset_basis;
+
+        while (*str) {
+            hash ^= *str;
+            hash *= fnv_prime;
+
+            ++str;
+        }
+
+        return hash;
+    }
+
+    template <class CharType>
+    static constexpr uint64 Hash(const CharType *_begin, const CharType *_end)
+    {
+        uint64 hash = offset_basis;
+
+        while (*_begin && _begin != _end) {
+            hash ^= *_begin;
+            hash *= fnv_prime;
+
+            ++_begin;
+        }
+
+        return hash;
+    }
+};
+
+} // namespace detail
 
 struct HashCode
 {
@@ -53,94 +112,68 @@ struct HashCode
     constexpr bool operator>=(const HashCode &other) const { return hash >= other.hash; }
 
     template<class T>
-    typename std::enable_if_t<std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>, HashCode &>
-    Add(const T &hash_code) { HashCombine(hash_code.Value()); return *this; }
+    HashCode &Add(const T &value)
+        { HashCombine(GetHashCode(value)); return *this; }
 
-    //template<class T, class DecayedType = std::decay_t<T>>
-   // typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && implementation_exists<std::hash<DecayedType>>>
-    //Add(const T &value) { HashCombine(std::hash<DecayedType>()(value)); }
+    constexpr ValueType Value() const
+        { return hash; }
 
-    template<class T, class DecayedType = std::decay_t<T>>
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value &&
-        (std::is_fundamental_v<DecayedType> || std::is_pointer_v<DecayedType> || std::is_enum_v<DecayedType>), HashCode &>
-    Add(const T &value)
+    template <class T, class DecayedType = std::decay_t<T>>
+    static constexpr inline
+    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HasGetHashCode<DecayedType, HashCode>::value, HashCode>
+    GetHashCode(const T &value)
     {
-        static_assert(sizeof(T) <= sizeof(uintmax_t));
-
-        uintmax_t value_raw;
-
-        if constexpr (sizeof(uintmax_t) > sizeof(T)) {
-            std::memset(&value_raw, 0, sizeof(uintmax_t));
-        }
-
-        std::memcpy(&value_raw, &value, sizeof(T));
-
-        HashCombine(value_raw);
-
-        return *this;
+        return value.GetHashCode();
     }
 
-    template<class T, class DecayedType = std::decay_t<T>>
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HasGetHashCode<DecayedType, HashCode>::value, HashCode &>
-    Add(const T &value) { HashCombine(value.GetHashCode().Value()); return *this; }
-
-    template<class T, class DecayedType = std::decay_t<T>>
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && !implementation_exists<std::hash<DecayedType>>, HashCode &>
-    Add(const T &value) { static_assert(resolution_failure<T>, "No GetHashCode() method"); return *this; }
-
-    constexpr ValueType Value() const { return hash; }
+    template <class T, class DecayedType = std::decay_t<T>>
+    static constexpr inline
+    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value && implementation_exists< std::hash< DecayedType > >, HashCode>
+    GetHashCode(const T &value)
+    {
+        return HashCode(ValueType(std::hash<DecayedType>()(value)));
+    }
 
     template <class T>
-    static constexpr inline HashCode GetHashCode(const T &value)
+    static constexpr inline HashCode GetHashCode(const T *ptr)
     {
-        HashCode hc;
-        hc.Add(value);
-        return hc;
+        return GetHashCode(uintptr_t(ptr));
+    }
+
+    static constexpr inline HashCode GetHashCode(const HashCode &hash_code)
+    {
+        return hash_code;
     }
 
     template <SizeType Size>
     static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
-        HashCode hc;
-
-        for (SizeType i = 0; i < Size; ++i) {
-            hc.HashCombine(str[i]);
-        }
-
-        return hc;
+        return HashCode(detail::FNV1::Hash<char, Size>(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char *str)
     {
-        HashCode hc;
-
-        while (*str) {
-            hc.HashCombine(*str);
-            ++str;
-        }
-
-        return hc;
+        return HashCode(detail::FNV1::Hash(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char *_begin, const char *_end)
     {
-        HashCode hc;
+        return HashCode(detail::FNV1::Hash(_begin, _end));
+    }
 
-        while (*_begin && _begin != _end) {
-            hc.HashCombine(*_begin);
-            ++_begin;
+    constexpr void HashCombine(const HashCode &other)
+    {
+        if (hash == 0) {
+            hash = other.hash;
+
+            return;
         }
 
-        return hc;
+        hash ^= other.hash + 0x9e3779b9 + (hash << 6) + (hash >> 2);
     }
 
 private:
     ValueType hash;
-
-    constexpr void HashCombine(ValueType other)
-    {
-        hash ^= other + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-    }
 };
 } // namespace hyperion
 

@@ -163,7 +163,7 @@ struct RayHit
         hc.Add(normal.GetHashCode());
         hc.Add(barycentric_coords.GetHashCode());
         hc.Add(id);
-        hc.Add(user_data);
+        hc.Add(uintptr_t(user_data));
 
         return hc;
     }

@@ -122,6 +122,16 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMData &data)
 
 FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
 {
+    // sanity check
+    ANSIString str = key.LookupString();
+    AssertThrowMsg(key.hash_code == str.GetHashCode().Value(),
+        "Expected hash for %s (%llu) to equal hash of %s (%llu)",
+        key.LookupString(),
+        key.hash_code,
+        str.Data(),
+        str.GetHashCode().Value());
+    AssertThrow(key.hash_code == CreateNameFromDynamicString(str).hash_code);
+
     properties.Set(key, std::move(data));
 
     return *this;
