@@ -50,7 +50,7 @@ public:
             Handle<Entity> entity_handle { entity };
             entity_handle->SetID(entity);
 
-            if (FBOMResult err = out.AddChild(*entity_handle, FBOMObjectFlags::EXTERNAL)) {
+            if (FBOMResult err = out.AddChild(*entity_handle)) {
                 return err;
             }
         }

@@ -53,8 +53,8 @@ public:
     );
 
 private:
-    HashMap<ShaderDefinition, ShaderWeakRef> m_map;
-    Mutex                                           m_mutex;
+    HashMap<ShaderDefinition, ShaderWeakRef>    m_map;
+    Mutex                                       m_mutex;
 };
 
 } // namespace hyperion

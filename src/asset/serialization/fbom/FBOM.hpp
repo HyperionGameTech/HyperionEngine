@@ -165,6 +165,8 @@ enum FBOMCommand : uint8
     FBOM_OBJECT_END,
     FBOM_STATIC_DATA_START,
     FBOM_STATIC_DATA_END,
+    FBOM_STATIC_DATA_HEADER_START,
+    FBOM_STATIC_DATA_HEADER_END,
     FBOM_DEFINE_PROPERTY,
     FBOM_OBJECT_LIBRARY_START,
     FBOM_OBJECT_LIBRARY_END
@@ -175,7 +177,7 @@ class HYP_API FBOM
 public:
     static constexpr SizeType header_size = 32;
     static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
-    static constexpr FBOMVersion version = FBOMVersion { 1, 7, 0 };
+    static constexpr FBOMVersion version = FBOMVersion { 1, 8, 0 };
 
     static FBOM &GetInstance();
 
@@ -321,6 +323,41 @@ public:
     FBOMResult ReadPropertyName(BufferedReader *, Name &out_property_name);
 
 private:
+    struct FBOMStaticDataIndexMap
+    {
+        struct Element
+        {
+            FBOMStaticData::Type            type = FBOMStaticData::FBOM_STATIC_DATA_NONE;
+            SizeType                        offset = 0;
+            SizeType                        size = 0;
+            UniquePtr<IFBOMSerializable>    ptr;
+
+            HYP_NODISCARD HYP_FORCE_INLINE
+            bool IsValid() const
+            {
+                return type != FBOMStaticData::FBOM_STATIC_DATA_NONE && size != 0;
+            }
+
+            HYP_NODISCARD HYP_FORCE_INLINE
+            bool IsInitialized() const
+            {
+                return ptr != nullptr;
+            }
+
+            FBOMResult Initialize(FBOMReader *reader);
+        };
+
+        Array<Element>  elements;
+
+        void Initialize(SizeType size)
+        {
+            elements.Resize(size);
+        }
+
+        IFBOMSerializable *GetOrInitializeElement(FBOMReader *reader, SizeType index);
+        void SetElementDesc(SizeType index, FBOMStaticData::Type type, SizeType offset, SizeType size);
+    };
+
     template <class T>
     void CheckEndianness(T &value)
     {
@@ -380,22 +417,22 @@ private:
     FBOMConfig              m_config;
 
     bool                    m_in_static_data;
-    Array<FBOMStaticData>   m_static_data_pool;
+    FBOMStaticDataIndexMap  m_static_data_index_map;
+    ByteBuffer              m_static_data_buffer;
 
     bool                    m_swap_endianness;
 };
 
 struct FBOMWriteStream
 {
-    // FBOMNameTable                       m_name_table;
     UniqueID                            m_name_table_id;
     Array<FBOMObjectLibrary>            m_object_libraries;
     HashMap<UniqueID, FBOMStaticData>   m_static_data;    // map hashcodes to static data to be stored.
-    bool                                m_static_data_write_locked = false; // is writing to static data locked? (prevents iterator invalidation)
+    bool                                m_is_writing_static_data = false; // is writing to static data locked? (prevents iterator invalidation)
+    SizeType                            m_static_data_offset = 0;
     FlatMap<UniqueID, int>              m_hash_use_count_map;
     Array<FBOMObject>                   m_object_data;
     bool                                m_object_data_write_locked = false; // is writing to object data locked? (prevents iterator invalidation)
-    SizeType                            m_static_data_offset = 0;
     FBOMResult                          m_last_result = FBOMResult::FBOM_OK;
 
     FBOMWriteStream();
@@ -409,16 +446,16 @@ struct FBOMWriteStream
     void MarkStaticDataWritten(const UniqueID &unique_id);
 
     HYP_FORCE_INLINE
-    void LockStaticDataWriting()
-        { m_static_data_write_locked = true; }
+    void BeginStaticDataWriting()
+        { m_is_writing_static_data = true; }
 
     HYP_FORCE_INLINE
-    void UnlockStaticDataWriting()
-        { m_static_data_write_locked = false; }
+    void EndStaticDataWriting()
+        { m_is_writing_static_data = false; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsStaticDataWritingLocked() const
-        { return m_static_data_write_locked; }
+    bool IsWritingStaticData() const
+        { return m_is_writing_static_data; }
 
     HYP_FORCE_INLINE
     void LockObjectDataWriting()
@@ -519,7 +556,6 @@ private:
         return AddStaticData(id, std::move(static_data));
     }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace fbom
 } // namespace hyperion

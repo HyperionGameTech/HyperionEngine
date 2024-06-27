@@ -26,10 +26,10 @@ LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
 
     HYP_LOG(Assets, LogLevel::DEBUG, "Begin loading serialized object at {}", state.filepath);
 
-    if (auto err = reader.LoadFromFile(state.filepath, object)) {
+    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, object)) {
         return { { LoaderResult::Status::ERR, err.message } };
     }
-    return { { LoaderResult::Status::OK }, std::move(object.m_value) };
+    return { { LoaderResult::Status::OK }, std::move(object.any_value) };
 }
 
 } // namespace hyperion

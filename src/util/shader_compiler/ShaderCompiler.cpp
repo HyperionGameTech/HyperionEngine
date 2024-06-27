@@ -1019,6 +1019,13 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         }
 
         if (!CompileBundle(bundle, properties, out)) {
+            HYP_LOG(
+                ShaderCompiler,
+                LogLevel::ERROR,
+                "Failed to compile shader bundle {}",
+                name
+            );
+
             return false;
         }
 
@@ -1034,11 +1041,6 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
             return false;
         }
     }
-
-    AssertThrowMsg(deserialized.m_value.Is<CompiledShaderBatch>(),
-        "Expected to be type %u but got %u",
-        TypeID::ForType<CompiledShaderBatch>().Value(),
-        deserialized.m_value.GetTypeID().Value());
 
     CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>();
 
@@ -1737,7 +1739,7 @@ bool ShaderCompiler::CompileBundle(
             bundle.entry_point_name
         );
 
-        AssertThrow(compiled_shader.GetDefinition());
+        AssertThrow(compiled_shader.GetDefinition().IsValid());
 
         AtomicVar<bool> any_files_compiled { false };
         AtomicVar<bool> any_files_errored { false };
@@ -1975,6 +1977,10 @@ bool ShaderCompiler::GetCompiledShader(
 
     auto it = batch.compiled_shaders.FindIf([final_properties_hash](const CompiledShader &compiled_shader)
     {
+        if (!compiled_shader.IsValid()) {
+            return false;
+        }
+
         return compiled_shader.GetDefinition().GetProperties().GetHashCode() == final_properties_hash;
     });
 
@@ -2001,6 +2007,8 @@ bool ShaderCompiler::GetCompiledShader(
         final_properties_hash.Value(),
         final_properties.ToString()
     );
+
+    AssertThrow(out.GetDefinition().IsValid());
 
     return true;
 }

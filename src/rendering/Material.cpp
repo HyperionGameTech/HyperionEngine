@@ -376,6 +376,10 @@ void Material::SetShader(const ShaderRef &shader)
         ? shader->GetCompiledShader()->GetDefinition()
         : ShaderDefinition { };
 
+    if (!bool(m_render_attributes.shader_definition)) {
+        HYP_BREAKPOINT;
+    }
+
     m_shader = shader;
 
     if (IsInitCalled()) {

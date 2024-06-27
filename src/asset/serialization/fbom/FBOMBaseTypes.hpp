@@ -69,13 +69,13 @@ struct FBOMSequence : FBOMType
     FBOMSequence(const FBOMType &held_type)
         : FBOMType("seq", -1)
     {
-        AssertThrowMsg(!held_type.IsUnbouned(), "Cannot create sequence of unbounded type");
+        AssertThrowMsg(!held_type.IsUnbounded(), "Cannot create sequence of unbounded type");
     }
 
     FBOMSequence(const FBOMType &held_type, SizeType count)
         : FBOMType("seq", held_type.size * count)
     {
-        AssertThrowMsg(!held_type.IsUnbouned(), "Cannot create sequence of unbounded type");
+        AssertThrowMsg(!held_type.IsUnbounded(), "Cannot create sequence of unbounded type");
     }
 };
 

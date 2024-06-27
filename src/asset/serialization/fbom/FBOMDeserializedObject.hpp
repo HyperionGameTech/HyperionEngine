@@ -23,44 +23,32 @@
 
 namespace hyperion::fbom {
 
-class FBOMDeserializedObject
+struct FBOMDeserializedObject
 {
-public:
-    AssetValue m_value;
-    
-    FBOMDeserializedObject()
-    {
-    }
+    Any any_value;
 
-    FBOMDeserializedObject(const FBOMDeserializedObject &other)             = delete;
-    FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)  = delete;
+    FBOMDeserializedObject()                                                    = default;
 
-    FBOMDeserializedObject(FBOMDeserializedObject &&other) noexcept
-        : m_value(std::move(other.m_value))
-    {
-    }
+    FBOMDeserializedObject(const FBOMDeserializedObject &other)                 = delete;
+    FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)      = delete;
 
-    FBOMDeserializedObject &operator=(FBOMDeserializedObject &&other) noexcept
-    {
-        m_value = std::move(other.m_value);
+    FBOMDeserializedObject(FBOMDeserializedObject &&other) noexcept             = default;
+    FBOMDeserializedObject &operator=(FBOMDeserializedObject &&other) noexcept  = default;
 
-        return *this;
-    }
-
-    ~FBOMDeserializedObject() = default;
+    ~FBOMDeserializedObject()                                                   = default;
 
     template <class T>
     HYP_FORCE_INLINE
     void Set(const typename SerializationWrapper<T>::Type &value)
     {
-        return m_value.Set<typename SerializationWrapper<T>::Type>(value);
+        return any_value.Set<typename SerializationWrapper<T>::Type>(value);
     }
 
     template <class T>
     HYP_FORCE_INLINE
     void Set(typename SerializationWrapper<T>::Type &&value)
     {
-        return m_value.Set<typename SerializationWrapper<T>::Type>(std::move(value));
+        return any_value.Set<typename SerializationWrapper<T>::Type>(std::move(value));
     }
 
     /*! \brief Extracts the value held inside */
@@ -68,7 +56,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     typename SerializationWrapper<T>::Type &Get()
     {
-        return m_value.Get<typename SerializationWrapper<T>::Type>();
+        return any_value.Get<typename SerializationWrapper<T>::Type>();
     }
 
     /*! \brief Extracts the value held inside the Any */
@@ -76,7 +64,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     const typename SerializationWrapper<T>::Type &Get() const
     {
-        return m_value.Get<typename SerializationWrapper<T>::Type>();
+        return any_value.Get<typename SerializationWrapper<T>::Type>();
     }
 
     /*! \brief Extracts the value held inside. Returns nullptr if not valid */
@@ -84,7 +72,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     typename std::remove_reference_t<typename SerializationWrapper<T>::Type> *TryGet()
     {
-        return m_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
+        return any_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
     }
 
     /*! \brief Extracts the value held inside. Returns nullptr if not valid */
@@ -92,7 +80,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE
     const std::remove_reference_t<typename SerializationWrapper<T>::Type> *TryGet() const
     {
-        return m_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
+        return any_value.TryGet<std::remove_reference_t<typename SerializationWrapper<T>::Type>>();
     }
 };
 

@@ -26,7 +26,7 @@ public:
         out.SetProperty(NAME("height"), FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
         out.SetProperty(NAME("near"), FBOMData::FromFloat(in_object.GetNear()));
         out.SetProperty(NAME("far"), FBOMData::FromFloat(in_object.GetFar()));
-        out.SetProperty(NAME("frustum"), FBOMSequence(FBOMVec4f(), in_object.GetFrustum().GetPlanes().Size()), ByteBuffer(in_object.GetFrustum().GetPlanes().Size(), in_object.GetFrustum().GetPlanes().Data()));
+        out.SetProperty(NAME("frustum"), FBOMSequence(FBOMVec4f(), in_object.GetFrustum().GetPlanes().Size()), ByteBuffer(in_object.GetFrustum().GetPlanes().ByteSize(), in_object.GetFrustum().GetPlanes().Data()));
         out.SetProperty(NAME("fov"), FBOMData::FromFloat(in_object.GetFOV()));
         out.SetProperty(NAME("left"), FBOMData::FromFloat(in_object.GetLeft()));
         out.SetProperty(NAME("right"), FBOMData::FromFloat(in_object.GetRight()));

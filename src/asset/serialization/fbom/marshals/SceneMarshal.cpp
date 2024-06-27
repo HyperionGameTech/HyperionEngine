@@ -43,11 +43,11 @@ public:
 
         scene_handle->SetName(name);
 
-        for (auto &node : *in.nodes) {
-            if (node.GetType().IsOrExtends("Node")) {
-                scene_handle->SetRoot(node.m_deserialized_object->Get<Node>());
-            } else if (node.GetType().IsOrExtends("Camera")) {
-                scene_handle->SetCamera(node.m_deserialized_object->Get<Camera>());
+        for (auto &subobject : *in.nodes) {
+            if (subobject.GetType().IsOrExtends("Node")) {
+                scene_handle->SetRoot(subobject.m_deserialized_object->Get<Node>());
+            } else if (subobject.GetType().IsOrExtends("Camera")) {
+                scene_handle->SetCamera(subobject.m_deserialized_object->Get<Camera>());
             }
         }
 

@@ -6,7 +6,6 @@
 
 namespace hyperion::fbom {
 
-HYP_DISABLE_OPTIMIZATION;
 template <>
 class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledShader>
 {
@@ -22,14 +21,14 @@ public:
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
         out.SetProperty(NAME("global_descriptor_table_version"), FBOMData::FromUnsignedLong(renderer::g_static_descriptor_table_decl->GetHashCode().Value()));
 
-        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetDefinition().name));
+        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.definition.name));
 
         out.SetProperty(NAME("entry_point_name"), FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
 
-        const VertexAttributeSet required_vertex_attributes = in_object.GetDefinition().GetProperties().GetRequiredVertexAttributes();
+        const VertexAttributeSet required_vertex_attributes = in_object.definition.properties.GetRequiredVertexAttributes();
         out.SetProperty(NAME("required_vertex_attributes"), FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
 
-        const VertexAttributeSet optional_vertex_attributes = in_object.GetDefinition().GetProperties().GetOptionalVertexAttributes();
+        const VertexAttributeSet optional_vertex_attributes = in_object.definition.properties.GetOptionalVertexAttributes();
         out.SetProperty(NAME("optional_vertex_attributes"), FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
 
         out.SetProperty(NAME("num_descriptor_usages"), FBOMData::FromUnsignedInt(uint32(in_object.GetDescriptorUsages().Size())));
@@ -84,7 +83,7 @@ public:
             }
         }
 
-        auto properties_array = in_object.GetDefinition().GetProperties().GetPropertySet().ToArray();
+        Array<ShaderProperty> properties_array = in_object.definition.properties.GetPropertySet().ToArray();
         out.SetProperty(NAME("properties.size"), FBOMData::FromUnsignedInt(uint32(properties_array.Size())));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
@@ -159,9 +158,7 @@ public:
 
         CompiledShader compiled_shader;
 
-        Name name;
-
-        if (FBOMResult err = in.GetProperty("name").ReadName(&name)) {
+        if (FBOMResult err = in.GetProperty("name").ReadName(&compiled_shader.definition.name)) {
             return err;
         }
 
@@ -179,7 +176,7 @@ public:
             return err;
         }
 
-        compiled_shader.GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
+        compiled_shader.definition.properties.SetRequiredVertexAttributes(required_vertex_attributes);
 
         VertexAttributeSet optional_vertex_attributes { };
         
@@ -187,7 +184,7 @@ public:
             return err;
         }
 
-        compiled_shader.GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
+        compiled_shader.definition.properties.SetOptionalVertexAttributes(optional_vertex_attributes);
 
         uint32 num_descriptor_usages = 0;
 
@@ -324,7 +321,7 @@ public:
                 }
             }
 
-            compiled_shader.GetDefinition().properties.Set(property);
+            compiled_shader.definition.properties.Set(property);
         }
 
         for (SizeType index = 0; index < ShaderModuleType::MAX; index++) {
@@ -335,10 +332,6 @@ public:
                     return err;
                 }
             }
-        }
-
-        if (!compiled_shader.IsValid()) {
-            return { FBOMResult::FBOM_ERR, "Cannot deserialize invalid compiled shader instance" };
         }
 
         out_object = std::move(compiled_shader);
@@ -386,5 +379,4 @@ public:
 
 HYP_DEFINE_MARSHAL(CompiledShaderBatch, FBOMMarshaler<CompiledShaderBatch>);
 
-HYP_ENABLE_OPTIMIZATION;
 } // namespace hyperion::fbom

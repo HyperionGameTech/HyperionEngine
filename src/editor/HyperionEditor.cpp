@@ -498,20 +498,6 @@ void HyperionEditor::Init()
     Game::Init();
 
 
-    // fbom::FBOMDeserializedObject obj;
-    // fbom::FBOMReader reader({});
-    // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-    //     AssertThrowMsg(false, "failed to load: %s", err.message.Data());
-    // }
-
-    // Handle<Scene> loaded_scene = obj.Get<Scene>();
-    // DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
-
-    // HYP_BREAKPOINT;
-
-    // return;
-
-
 #if 0
     // const HypClass *cls = GetClass<Mesh>();
     // HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
@@ -787,6 +773,17 @@ void HyperionEditor::Init()
         if (err != fbom::FBOMResult::FBOM_OK) {
             HYP_THROW("Failed to save scene");
         }
+
+        fbom::FBOMDeserializedObject obj;
+        fbom::FBOMReader reader({});
+        if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
+            AssertThrowMsg(false, "failed to load: %s", err.message.Data());
+        }
+
+        Handle<Scene> loaded_scene = obj.Get<Scene>();
+        DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+
+        HYP_BREAKPOINT;
     }).Detach();
 
     batch->LoadAsync();

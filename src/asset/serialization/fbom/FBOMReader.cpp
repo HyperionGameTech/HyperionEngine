@@ -28,6 +28,132 @@ struct Formatter<StringType, fbom::FBOMVersion>
 
 namespace fbom {
 
+#pragma region FBOMStaticDataIndexMap
+
+FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMReader *reader)
+{
+    AssertThrow(reader != nullptr);
+
+    AssertThrow(IsValid());
+
+    if (IsInitialized()) {
+        return { FBOMResult::FBOM_OK };
+    }
+
+    ConstByteView view = reader->m_static_data_buffer.ToByteView()
+        .Slice(offset, size);
+
+    // @TODO: Do not require this allocation to initialize an object
+    BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(view)));
+
+    switch (type) {
+    case FBOMStaticData::FBOM_STATIC_DATA_NONE:
+        return { FBOMResult::FBOM_ERR, "Cannot process static data type, unknown type" };
+    case FBOMStaticData::FBOM_STATIC_DATA_OBJECT:
+    {
+        ptr.Reset(new FBOMObject());
+
+        if (FBOMResult err = reader->ReadObject(&byte_reader, *static_cast<FBOMObject *>(ptr.Get()), nullptr)) {
+            ptr.Reset();
+            
+            return err;
+        }
+
+        break;
+    }
+    case FBOMStaticData::FBOM_STATIC_DATA_TYPE:
+    {
+        ptr.Reset(new FBOMType());
+
+        if (FBOMResult err = reader->ReadObjectType(&byte_reader, *static_cast<FBOMType *>(ptr.Get()))) {
+            ptr.Reset();
+            
+            return err;
+        }
+
+        break;
+    }
+    case FBOMStaticData::FBOM_STATIC_DATA_DATA:
+    {
+        ptr.Reset(new FBOMData());
+
+        if (FBOMResult err = reader->ReadData(&byte_reader, *static_cast<FBOMData *>(ptr.Get()))) {
+            ptr.Reset();
+
+            return err;
+        }
+
+        AssertThrow(static_cast<FBOMData *>(ptr.Get())->TotalSize() != 0);
+
+        break;
+    }
+    case FBOMStaticData::FBOM_STATIC_DATA_ARRAY:
+    {
+        ptr.Reset(new FBOMArray());
+
+        if (FBOMResult err = reader->ReadArray(&byte_reader, *static_cast<FBOMArray *>(ptr.Get()))) {
+            ptr.Reset();
+
+            return err;
+        }
+
+        break;
+    }
+    case FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE:
+    {
+        ptr.Reset(new FBOMNameTable());
+
+        if (FBOMResult err = reader->ReadNameTable(&byte_reader, *static_cast<FBOMNameTable *>(ptr.Get()))) {
+            ptr.Reset();
+            
+            return err;
+        }
+
+        break;
+    }
+    default:
+        return { FBOMResult::FBOM_ERR, "Cannot process static data type, unknown type" };
+    }
+
+    return { FBOMResult::FBOM_OK };
+}
+
+IFBOMSerializable *FBOMReader::FBOMStaticDataIndexMap::GetOrInitializeElement(FBOMReader *reader, SizeType index)
+{
+    if (index >= elements.Size()) {
+        return nullptr;
+    }
+
+    Element &element = elements[index];
+
+    if (!element.IsValid()) {
+        return nullptr;
+    }
+
+    if (!element.IsInitialized()) {
+        if (FBOMResult err = element.Initialize(reader)) {
+            HYP_LOG(Serialization, LogLevel::ERROR, "Error initializing static data element at index {}: {}", index, err.message);
+
+            return nullptr;
+        }
+    }
+
+    return element.ptr.Get();
+}
+
+void FBOMReader::FBOMStaticDataIndexMap::SetElementDesc(SizeType index, FBOMStaticData::Type type, SizeType offset, SizeType size)
+{
+    if (index >= elements.Size()) {
+        elements.Resize(index + 1);
+    }
+
+    elements[index] = Element { type, offset, size };
+}
+
+#pragma endregion FBOMStaticDataIndexMap
+
+#pragma region FBOMReader
+
 template <class StringType>
 FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string)
 {
@@ -102,7 +228,8 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObjectLibrary &ou
         }
     }
 
-    m_static_data_pool.Clear();
+    m_static_data_index_map = FBOMStaticDataIndexMap();
+    m_static_data_buffer = ByteBuffer();
     m_in_static_data = false;
 
     // expect first FBOMObject defined
@@ -117,21 +244,8 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObjectLibrary &ou
     }
 
     if (root.nodes->Empty()) {
-        HYP_BREAKPOINT;
         return { FBOMResult::FBOM_ERR, "No object added to root" };
     }
-
-    if (root.nodes->Size() > 1) {
-        HYP_BREAKPOINT;
-        return { FBOMResult::FBOM_ERR, "> 1 objects added to root (not supported in current implementation)" };
-    }
-
-    // Array<FBOMData> object_data;
-    // object_data.Reserve(root.nodes->Size());
-
-    // for (FBOMObject &object : *root.nodes) {
-    //     object_data.PushBack(FBOMData::FromObject(std::move(object)));
-    // }
 
     out.object_data = std::move(static_cast<Array<FBOMObject> &&>(*root.nodes));
 
@@ -169,12 +283,9 @@ FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject 
         return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
     }
 
-    if (FBOMResult err = marshal->Deserialize(in, out_object.m_value)) {
+    if (FBOMResult err = marshal->Deserialize(in, out_object.any_value)) {
         return err;
     }
-
-    AssertThrow(out_object.m_value.HasValue());
-    AssertThrow(out_object.m_value.GetTypeID() == marshal->GetTypeID());
 
     return { FBOMResult::FBOM_OK };
 }
@@ -375,16 +486,25 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
         uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
 
-        // grab from static data pool
-        FBOMType *as_type = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMType>();
-        AssertThrow(as_type != nullptr);
-        out_type = *as_type;
+        IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
+        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
+
+        if (FBOMType *as_type = dynamic_cast<FBOMType *>(element)) {
+            out_type = *as_type;
+        } else {
+            return { FBOMResult::FBOM_ERR, "Invalid type in static data pool" };
+        }
+        
+        // AssertThrowMsg(offset < m_static_data_pool.Size(),
+        //     "Offset out of bounds of static data pool: %u >= %u",
+        //     offset,
+        //     m_static_data_pool.Size());
+
+        // // grab from static data pool
+        // FBOMType *as_type = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMType>();
+        // AssertThrowMsg(as_type != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // out_type = *as_type;
 
         break;
     }
@@ -527,7 +647,6 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
             byte_buffer = reader_ptr->ReadBytes(sz);
 
             if (byte_buffer.Size() != sz) {
-                HYP_BREAKPOINT;
                 return { FBOMResult::FBOM_ERR, "Buffer is corrupted - size mismatch" };
             }
 
@@ -538,16 +657,17 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
         uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
 
-        // grab from static data pool
-        FBOMData *as_data = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMData>();
-        AssertThrow(as_data != nullptr);
-        out_data = *as_data;
+        IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
+        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
+
+        if (FBOMData *as_data = dynamic_cast<FBOMData *>(element)) {
+            out_data = *as_data;
+        } else {
+            return { FBOMResult::FBOM_ERR, "Invalid data in static data pool" };
+        }
+    } else {
+        return { FBOMResult::FBOM_ERR, "Unhandled data location" };
     }
 
     return FBOMResult::FBOM_OK;
@@ -583,16 +703,25 @@ FBOMResult FBOMReader::ReadArray(BufferedReader *reader, FBOMArray &out_array)
         uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
 
-        // grab from static data pool
-        FBOMArray *as_array = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMArray>();
-        AssertThrow(as_array != nullptr);
-        out_array = *as_array;
+        IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
+        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
+
+        if (FBOMArray *as_array = dynamic_cast<FBOMArray *>(element)) {
+            out_array = *as_array;
+        } else {
+            return { FBOMResult::FBOM_ERR, "Invalid array in static data pool" };
+        }
+        
+        // AssertThrowMsg(offset < m_static_data_pool.Size(),
+        //     "Offset out of bounds of static data pool: %u >= %u",
+        //     offset,
+        //     m_static_data_pool.Size());
+
+        // // grab from static data pool
+        // FBOMArray *as_array = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMArray>();
+        // AssertThrowMsg(as_array != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // out_array = *as_array;
     }
 
     return FBOMResult::FBOM_OK;
@@ -631,16 +760,25 @@ FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_
         uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
 
-        // grab from static data pool
-        FBOMNameTable *as_name_table = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMNameTable>();
-        AssertThrow(as_name_table != nullptr);
-        out_name_table = *as_name_table;
+        IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
+        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
+
+        if (FBOMNameTable *as_name_table = dynamic_cast<FBOMNameTable *>(element)) {
+            out_name_table = *as_name_table;
+        } else {
+            return { FBOMResult::FBOM_ERR, "Invalid name table in static data pool" };
+        }
+        
+        // AssertThrowMsg(offset < m_static_data_pool.Size(),
+        //     "Offset out of bounds of static data pool: %u >= %u",
+        //     offset,
+        //     m_static_data_pool.Size());
+
+        // // grab from static data pool
+        // FBOMNameTable *as_name_table = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMNameTable>();
+        // AssertThrowMsg(as_name_table != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // out_name_table = *as_name_table;
     }
 
     return FBOMResult::FBOM_OK;
@@ -654,6 +792,8 @@ FBOMResult FBOMReader::ReadPropertyName(BufferedReader *reader, Name &out_proper
         return err;
     }
 
+    AssertThrow(name_data.TotalSize() != 0);
+
     if (FBOMResult err = name_data.ReadName(&out_property_name)) {
         const FBOMType *root_type = &name_data.GetType();
 
@@ -665,7 +805,7 @@ FBOMResult FBOMReader::ReadPropertyName(BufferedReader *reader, Name &out_proper
 
         HYP_BREAKPOINT;
 
-        return FBOMResult(FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `Name`");
+        return FBOMResult { FBOMResult::FBOM_ERR, "Invalid property name: Expected data to be of type `Name`" };
     }
 
     return FBOMResult::FBOM_OK;
@@ -698,16 +838,25 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         uint32 offset;
         reader->Read(&offset);
         CheckEndianness(offset);
-        
-        AssertThrowMsg(offset < m_static_data_pool.Size(),
-            "Offset out of bounds of static data pool: %u >= %u",
-            offset,
-            m_static_data_pool.Size());
 
-        // grab from static data pool
-        FBOMObject *as_object = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMObject>();
-        AssertThrow(as_object != nullptr);
-        out_object = std::move(*as_object);
+        IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
+        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
+
+        if (FBOMObject *as_object = dynamic_cast<FBOMObject *>(element)) {
+            out_object = *as_object;
+        } else {
+            return { FBOMResult::FBOM_ERR, "Invalid object in static data pool" };
+        }
+        
+        // AssertThrowMsg(offset < m_static_data_pool.Size(),
+        //     "Offset out of bounds of static data pool: %u >= %u",
+        //     offset,
+        //     m_static_data_pool.Size());
+
+        // // grab from static data pool
+        // FBOMObject *as_object = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMObject>();
+        // AssertThrowMsg(as_object != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // out_object = *as_object;
 
         return FBOMResult::FBOM_OK;
     }
@@ -740,6 +889,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                 break;
             }
             case FBOM_OBJECT_END:
+            {
                 if (HasMarshalForType(object_type)) {
                     // call deserializer function, writing into deserialized object
                     out_object.m_deserialized_object.Reset(new FBOMDeserializedObject());
@@ -752,6 +902,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                 }
 
                 break;
+            }
             case FBOM_DEFINE_PROPERTY:
             {
                 if (FBOMResult err = Eat(reader, FBOM_DEFINE_PROPERTY)) {
@@ -905,6 +1056,10 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
     }
     case FBOM_STATIC_DATA_START:
     {
+        if (m_static_data_index_map.elements.Size() != 0) {
+            return { FBOMResult::FBOM_ERR, "Static data pool already exists!" };
+        }
+
         AssertThrow(!m_in_static_data);
 
         if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_START)) {
@@ -913,108 +1068,58 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
 
         m_in_static_data = true;
 
-        // read u32 describing size of static data pool
-        uint32 static_data_size;
-        reader->Read(&static_data_size);
-        CheckEndianness(static_data_size);
+        if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_HEADER_START)) {
+            return err;
+        }
 
-        const uint32 initial_static_data_size = static_data_size;
+        // read u32 describing number of elements
+        uint32 num_elements;
+        reader->Read(&num_elements);
+        CheckEndianness(num_elements);
 
-        // skip 8 bytes of padding
-        uint64 tmp;
-        reader->Read(&tmp);
-        CheckEndianness(tmp);
+        // read u64 describing static data buffer size
+        uint64 static_data_buffer_size;
+        reader->Read(&static_data_buffer_size);
+        CheckEndianness(static_data_buffer_size);
 
-        m_static_data_pool.Resize(static_data_size);
+        m_static_data_index_map.Initialize(num_elements);
 
-        // now read each item
-        //   u32 as index/offset
-        //   u8 as type of static data
-        //   then, the actual size of the data will vary depending on the held type
-        for (uint32 i = 0; i < static_data_size; i++) {
-            uint32 offset;
-            reader->Read(&offset);
-            CheckEndianness(offset);
+        for (uint32 i = 0; i < num_elements; i++) {
+            uint32 index;
+            reader->Read(&index);
+            CheckEndianness(index);
 
-            if (offset >= initial_static_data_size) {
-                return FBOMResult(FBOMResult::FBOM_ERR, "Offset out of bounds of static data pool");
+            if (index >= num_elements) {
+                return FBOMResult(FBOMResult::FBOM_ERR, "Element index out of bounds of static data pool");
             }
 
             uint8 type;
             reader->Read(&type);
             CheckEndianness(type);
 
-            switch (type)
-            {
-            case FBOMStaticData::FBOM_STATIC_DATA_NONE:
-                m_static_data_pool[offset] = FBOMStaticData();
+            uint64 offset;
+            reader->Read(&offset);
+            CheckEndianness(offset);
 
-                break;
-            case FBOMStaticData::FBOM_STATIC_DATA_OBJECT:
-            {
-                FBOMObject object;
+            uint64 size;
+            reader->Read(&size);
+            CheckEndianness(size);
 
-                if (FBOMResult err = ReadObject(reader, object, nullptr)) {
-                    return err;
-                }
-
-                m_static_data_pool[offset] = FBOMStaticData(std::move(object), offset);
-
-                break;
+            if (offset + size > static_data_buffer_size) {
+                return FBOMResult(FBOMResult::FBOM_ERR, "Offset out of bounds of static data buffer");
             }
-            case FBOMStaticData::FBOM_STATIC_DATA_TYPE:
-            {
-                FBOMType type;
 
-                if (FBOMResult err = ReadObjectType(reader, type)) {
-                    return err;
-                }
+            m_static_data_index_map.SetElementDesc(index, FBOMStaticData::Type(type), offset, size);
+        }
 
-                m_static_data_pool[offset] = FBOMStaticData(std::move(type), offset);
+        if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_HEADER_END)) {
+            return err;
+        }
 
-                break;
-            }
-            case FBOMStaticData::FBOM_STATIC_DATA_DATA:
-            {
-                FBOMData data;
+        m_static_data_buffer = reader->ReadBytes(static_data_buffer_size);
 
-                if (FBOMResult err = ReadData(reader, data)) {
-                    return err;
-                }
-
-                m_static_data_pool[offset] = FBOMStaticData(std::move(data), offset);
-
-                break;
-            }
-            case FBOMStaticData::FBOM_STATIC_DATA_ARRAY:
-            {
-                FBOMArray array;
-
-                if (FBOMResult err = ReadArray(reader, array)) {
-                    return err;
-                }
-
-                m_static_data_pool[offset] = FBOMStaticData(std::move(array), offset);
-
-                break;
-            }
-            case FBOMStaticData::FBOM_STATIC_DATA_NAME_TABLE:
-            {
-                FBOMNameTable name_table;
-
-                if (FBOMResult err = ReadNameTable(reader, name_table)) {
-                    return err;
-                }
-
-                name_table.RegisterAllNamesGlobally();
-
-                m_static_data_pool[offset] = FBOMStaticData(std::move(name_table), offset);
-
-                break;
-            }
-            default:
-                return { FBOMResult::FBOM_ERR, "Cannot process static data type, unknown type" };
-            }
+        if (m_static_data_buffer.Size() != static_data_buffer_size) {
+            return { FBOMResult::FBOM_ERR, "Static data buffer size mismatch" };
         }
 
         if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_END)) {
@@ -1045,6 +1150,8 @@ FBOMResult FBOMReader::Handle(BufferedReader *reader, FBOMCommand command, FBOMO
 
     return FBOMResult::FBOM_OK;
 }
+
+#pragma endregion FBOMReader
 
 } // namespace fbom
 } // namespace hyperion

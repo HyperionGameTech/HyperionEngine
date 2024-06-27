@@ -149,6 +149,10 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, ByteBuffer &
     FBOMData data(type);
     data.SetBytes(std::move(byte_buffer));
 
+    if (!type.IsUnbounded()) {
+        AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
+    }
+
     return SetProperty(key, std::move(data));
 }
 
@@ -157,6 +161,10 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const ByteBu
     FBOMData data(type);
     data.SetBytes(byte_buffer);
 
+    if (!type.IsUnbounded()) {
+        AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
+    }
+
     return SetProperty(key, std::move(data));
 }
 
@@ -164,6 +172,10 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType siz
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
+
+    if (!type.IsUnbounded()) {
+        AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
+    }
 
     return SetProperty(key, std::move(data));
 }
@@ -198,7 +210,7 @@ FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const 
         return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
     }
 
-    return marshal->Deserialize(in, out.m_value);
+    return marshal->Deserialize(in, out.any_value);
 }
 
 HashCode FBOMObject::GetHashCode() const

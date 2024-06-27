@@ -199,11 +199,15 @@ ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 
     CompiledShader compiled_shader;
 
-    const bool is_valid_compiled_shader = g_engine->GetShaderCompiler().GetCompiledShader(
+    bool is_valid_compiled_shader = true;
+    
+    is_valid_compiled_shader &= g_engine->GetShaderCompiler().GetCompiledShader(
         definition.GetName(),
         definition.GetProperties(),
         compiled_shader
     );
+
+    is_valid_compiled_shader &= compiled_shader.GetDefinition().IsValid();
     
     AssertThrowMsg(
         is_valid_compiled_shader,

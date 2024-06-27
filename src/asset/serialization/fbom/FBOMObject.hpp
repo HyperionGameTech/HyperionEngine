@@ -282,11 +282,11 @@ public:
         }
 
         // Explicit overload call forces a linker error if the marshal class is not registered.
-        if (FBOMResult err = marshal->Deserialize(in, out.m_value)) {
+        if (FBOMResult err = marshal->Deserialize(in, out.any_value)) {
             HYP_FAIL("Failed to deserialize object: %s", *err.message);
         }
 
-        return result;
+        return { FBOMResult::FBOM_OK };
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >

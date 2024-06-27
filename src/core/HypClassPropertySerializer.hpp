@@ -483,7 +483,7 @@ public:
             fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
 
             object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
-            object.m_deserialized_object->m_value.Set<T>(value);
+            object.m_deserialized_object->any_value.Set<T>(value);
 
             return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
         // }

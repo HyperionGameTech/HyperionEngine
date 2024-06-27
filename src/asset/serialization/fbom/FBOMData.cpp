@@ -21,7 +21,7 @@ FBOMData::FBOMData()
 FBOMData::FBOMData(const FBOMType &type)
     : type(type)
 {
-    if (!type.IsUnbouned()) {
+    if (!type.IsUnbounded()) {
         bytes.SetSize(type.size);
     }
 }
@@ -157,7 +157,7 @@ FBOMData FBOMData::FromArray(const FBOMArray &array)
 
 SizeType FBOMData::ReadBytes(SizeType n, void *out) const
 {
-    if (!type.IsUnbouned()) {
+    if (!type.IsUnbounded()) {
         AssertThrowMsg(n <= bytes.Size(), "Attempt to read past max size of object");
     }
 
@@ -173,7 +173,7 @@ ByteBuffer FBOMData::ReadBytes() const
 
 ByteBuffer FBOMData::ReadBytes(SizeType n) const
 {
-    if (!type.IsUnbouned()) {
+    if (!type.IsUnbounded()) {
         AssertThrowMsg(n <= bytes.Size(), "Attempt to read past max size of object");
     }
 
@@ -184,7 +184,7 @@ ByteBuffer FBOMData::ReadBytes(SizeType n) const
 
 void FBOMData::SetBytes(const ByteBuffer &byte_buffer)
 {
-    if (!type.IsUnbouned()) {
+    if (!type.IsUnbounded()) {
         AssertThrowMsg(byte_buffer.Size() <= type.size, "Attempt to insert data past size max size of object (%llu > %llu)", byte_buffer.Size(), type.size);
     }
 
@@ -193,7 +193,7 @@ void FBOMData::SetBytes(const ByteBuffer &byte_buffer)
 
 void FBOMData::SetBytes(SizeType count, const void *data)
 {
-    if (!type.IsUnbouned()) {
+    if (!type.IsUnbounded()) {
         AssertThrowMsg(count <= type.size, "Attempt to insert data past size max size of object (%llu > %llu)", count, type.size);
     }
 

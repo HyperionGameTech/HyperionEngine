@@ -55,7 +55,7 @@ public:
             const auto &value = in_object.GetTextures().ValueAt(i);
 
             if (value) {
-                if (FBOMResult err = out.AddChild(*value, FBOMObjectFlags::EXTERNAL)) {
+                if (FBOMResult err = out.AddChild(*value)) {
                     return err;
                 }
 

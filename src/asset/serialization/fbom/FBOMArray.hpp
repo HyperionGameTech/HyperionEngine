@@ -65,6 +65,7 @@ public:
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
+        hc.Add(m_values.Size());
         hc.Add(m_values.GetHashCode());
 
         return hc;

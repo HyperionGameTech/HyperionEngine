@@ -168,6 +168,24 @@ struct Span
         { return first; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
+    Span Slice(SizeType offset, SizeType count) const
+    {
+        if (offset >= Size()) {
+            return Span();
+        }
+
+        if (count == 0) {
+            return Span();
+        }
+
+        if (offset + count > Size()) {
+            count = Size() - offset;
+        }
+
+        return Span(first + offset, first + offset + count);
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr HashCode GetHashCode() const
         { return HashCode::GetHashCode(reinterpret_cast<const char *>(Begin()), reinterpret_cast<const char *>(End())); }
 

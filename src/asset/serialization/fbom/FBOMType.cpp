@@ -177,7 +177,7 @@ bool FBOMType::IsOrExtends(const FBOMType &other, bool allow_unbounded) const
     //     return true;
     // }
 
-    // if (allow_unbounded && (IsUnbouned() || other.IsUnbouned())) {
+    // if (allow_unbounded && (IsUnbounded() || other.IsUnbounded())) {
     //     if (name == other.name && extends == other.extends) { // don't size check
     //         return true;
     //     }

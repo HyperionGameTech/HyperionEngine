@@ -313,6 +313,7 @@ public:
     /*! \brief Shift the array to the left by {count} times */
     void Shift(SizeType count);
 
+    HYP_NODISCARD
     Array<T, NumInlineBytes> Slice(int first, int last) const;
 
     void Concat(const Array &other);

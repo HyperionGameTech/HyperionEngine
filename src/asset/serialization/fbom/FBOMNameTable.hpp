@@ -58,7 +58,7 @@ struct FBOMNameTable : public IFBOMSerializable
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual String ToString(bool deep = true) const override
     {
         String str;
@@ -70,11 +70,11 @@ struct FBOMNameTable : public IFBOMSerializable
         return str;
     }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
 
-    [[nodiscard]]
+    HYP_NODISCARD
     virtual HashCode GetHashCode() const override
         { return values.GetHashCode(); }
 };

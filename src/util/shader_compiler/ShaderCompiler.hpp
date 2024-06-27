@@ -612,8 +612,9 @@ struct DescriptorUsage
         return *this;
     }
 
-    ~DescriptorUsage()                                              = default;
+    ~DescriptorUsage()  = default;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const DescriptorUsage &other) const
     {
         return slot == other.slot
@@ -623,6 +624,7 @@ struct DescriptorUsage
             && params == other.params;
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator<(const DescriptorUsage &other) const
     {
         if (slot != other.slot) {
@@ -644,6 +646,7 @@ struct DescriptorUsage
         return false;
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint GetCount() const
     {
         uint value = 1;
@@ -661,6 +664,7 @@ struct DescriptorUsage
         return 1;
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint GetSize() const
     {
         uint value = uint(-1);
@@ -678,6 +682,7 @@ struct DescriptorUsage
         return uint(-1);
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
@@ -696,35 +701,46 @@ struct DescriptorUsageSet
 {
     FlatSet<DescriptorUsage>    descriptor_usages;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     DescriptorUsage &operator[](SizeType index)
         { return descriptor_usages[index]; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const DescriptorUsage &operator[](SizeType index) const
         { return descriptor_usages[index]; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const DescriptorUsageSet &other) const
         { return descriptor_usages == other.descriptor_usages; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     SizeType Size() const
         { return descriptor_usages.Size(); }
 
+    HYP_FORCE_INLINE
     void Add(DescriptorUsage descriptor_usage)
         { descriptor_usages.Insert(descriptor_usage); }
 
+    HYP_FORCE_INLINE
     void Merge(const Array<DescriptorUsage> &other)
         { descriptor_usages.Merge(other); }
 
+    HYP_FORCE_INLINE
     void Merge(Array<DescriptorUsage> &&other)
         { descriptor_usages.Merge(std::move(other)); }
 
+    HYP_FORCE_INLINE
     void Merge(const DescriptorUsageSet &other)
         { descriptor_usages.Merge(other.descriptor_usages); }
 
+    HYP_FORCE_INLINE
     void Merge(DescriptorUsageSet &&other)
         { descriptor_usages.Merge(std::move(other.descriptor_usages)); }
 
+    HYP_NODISCARD
     DescriptorTableDeclaration BuildDescriptorTable() const;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
         { return descriptor_usages.GetHashCode(); }
 };
@@ -734,43 +750,43 @@ struct ShaderDefinition
     Name                name;
     ShaderProperties    properties;
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Name GetName() const
         { return name; }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ShaderProperties &GetProperties()
         { return properties; }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ShaderProperties &GetProperties() const
         { return properties; }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return name.IsValid(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsValid() const
         { return name.IsValid(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const ShaderDefinition &other) const
         { return GetHashCode() == other.GetHashCode(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(const ShaderDefinition &other) const
         { return GetHashCode() != other.GetHashCode(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator<(const ShaderDefinition &other) const
         { return GetHashCode() < other.GetHashCode(); }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator HashedShaderDefinition() const
         { return HashedShaderDefinition { name, properties.GetPropertySetHashCode(), properties.GetRequiredVertexAttributes() }; }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         // ensure they return the same hash codes so they can be compared.
@@ -799,47 +815,50 @@ struct CompiledShader
     CompiledShader &operator=(CompiledShader &&other) noexcept  = default;
     ~CompiledShader()                                           = default;
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsValid() const
-        { return modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); }); }
+    {
+        return definition.IsValid()
+            && modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); });
+    }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Name GetName() const
         { return definition.name; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ShaderDefinition &GetDefinition()
         { return definition; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ShaderDefinition &GetDefinition() const
         { return definition; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     DescriptorUsageSet &GetDescriptorUsages()
         { return descriptor_usages; }
 
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const DescriptorUsageSet &GetDescriptorUsages() const
         { return descriptor_usages; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const String &GetEntryPointName() const
         { return entry_point_name; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const ShaderProperties &GetProperties() const
         { return definition.properties; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const HeapArray<ByteBuffer, ShaderModuleType::MAX> &GetModules() const
         { return modules; }
     
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

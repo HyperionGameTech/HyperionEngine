@@ -47,8 +47,6 @@ namespace fbom {
 class FBOMObject;
 class FBOMArray;
 
-HYP_DISABLE_OPTIMIZATION;
-
 struct FBOMData : public IFBOMSerializable
 {
     static const FBOMData UNSET;
@@ -87,7 +85,7 @@ struct FBOMData : public IFBOMSerializable
     void SetBytes(SizeType count, const void *data);
 
 #define FBOM_TYPE_FUNCTIONS(type_name, c_type) \
-    bool Is##type_name() const { return type == FBOM##type_name(); } \
+    bool Is##type_name() const { return type.Is(FBOM##type_name(), /* allow_unbounded */ true); } \
     FBOMResult Read##type_name(c_type *out) const \
     { \
         FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
@@ -471,8 +469,8 @@ struct FBOMData : public IFBOMSerializable
         HashCode hc;
 
         hc.Add(bytes.Size());
-        hc.Add(type);
-        hc.Add(bytes);
+        hc.Add(type.GetHashCode());
+        hc.Add(bytes.GetHashCode());
 
         return hc;
     }
@@ -483,8 +481,6 @@ private:
 
     RC<FBOMDeserializedObject>  m_deserialized_object;
 };
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace fbom
 } // namespace hyperion

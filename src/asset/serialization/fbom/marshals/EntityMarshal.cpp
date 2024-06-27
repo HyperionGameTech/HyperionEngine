@@ -5,6 +5,9 @@
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -89,13 +92,25 @@ public:
         for (SizeType component_index = 0; component_index < components_array.Size(); component_index++) {
             FBOMObject component_object;
 
+            if (FBOMResult err = components_array.GetElement(component_index).ReadObject(component_object)) {
+                return err;
+            }
+
             uint32 component_type_id_value;
 
             if (FBOMResult err = component_object.GetProperty("type_id").ReadUnsignedInt(&component_type_id_value)) {
                 return err;
             }
 
-            ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(TypeID { component_type_id_value });
+            const TypeID component_type_id { component_type_id_value };
+
+            if (entity_manager->HasComponent(component_type_id, entity)) {
+                HYP_LOG(Serialization, LogLevel::WARNING, "Entity already has component of type {}", component_type_id.Value());
+
+                continue;
+            }
+
+            ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(component_type_id);
 
             if (!component_interface) {
                 return { FBOMResult::FBOM_ERR, "No ComponentInterface for component" };
@@ -138,7 +153,7 @@ public:
                 component_property->GetSetter()(component_ptr.Get(), &property_value);
             }
 
-            entity_manager->AddComponent(entity, TypeID { component_type_id_value }, std::move(component_ptr));
+            entity_manager->AddComponent(entity, component_type_id, std::move(component_ptr));
         }
 
         out_object = Handle<Entity> { entity };

@@ -67,7 +67,7 @@ struct FBOMType : public IFBOMSerializable
     bool Extends(const FBOMType &other, bool allow_unbounded = true) const;
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsUnbouned() const
+    bool IsUnbounded() const
         { return size == SizeType(-1); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
