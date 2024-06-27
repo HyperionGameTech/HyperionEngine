@@ -371,6 +371,34 @@ public:
     template <SizeType OtherNumInlineBytes>
     [[nodiscard]] bool operator!=(const Array<T, OtherNumInlineBytes> &other) const
         { return !operator==(other); }
+
+    /*! \brief Returns a ByteView of the Array's data. */
+    ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
+    {
+        if (offset >= Size()) {
+            return ByteView();
+        }
+
+        if (size > Size()) {
+            size = Size();
+        }
+
+        return ByteView(Data() + offset, size);
+    }
+
+    /*! \brief Returns a ConstByteView of the Array's data. */
+    ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
+    {
+        if (offset >= Size()) {
+            return ConstByteView();
+        }
+
+        if (size > Size()) {
+            size = Size();
+        }
+
+        return ConstByteView(Data() + offset, size);
+    }
     
     HYP_DEF_STL_BEGIN_END(
         GetBuffer() + m_start_offset,

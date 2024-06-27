@@ -41,13 +41,13 @@ public:
     /*! \brief Gets the number of columns in the row.
      * 
      * \return The number of columns in the row. */
-    uint GetNumColumns() const
+    SizeType GetNumColumns() const
         { return m_columns.Size(); }
 
     /*! \brief Sets the number of columns in the row.
      * 
      * \param num_columns The number of columns to set. */
-    void SetNumColumns(uint num_columns);
+    void SetNumColumns(SizeType num_columns);
     
     /*! \brief Adds a new column to the row.
      * 
@@ -59,7 +59,7 @@ public:
      * \param index The index of the column to retrieve.
      * \return A reference counted pointer to the column at the specified index.
      *  If the index is out of bounds, a null pointer is returned. */
-    RC<UIGridColumn> GetColumn(uint index) const
+    RC<UIGridColumn> GetColumn(SizeType index) const
         { return index < m_columns.Size() ? m_columns[index] : nullptr; }
 
     /*! \brief Finds the first empty column in the row.
@@ -95,24 +95,26 @@ public:
     /*! \brief Gets the number of columns in the grid.
      * 
      * \return The number of columns in the grid. */
-    uint GetNumColumns() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    SizeType GetNumColumns() const
         { return m_num_columns; }
 
     /*! \brief Sets the number of columns in the grid.
      * 
      * \param num_columns The number of columns to set. */
-    void SetNumColumns(uint num_columns);
+    void SetNumColumns(SizeType num_columns);
 
     /*! \brief Gets the number of rows in the grid.
      * 
      * \return The number of rows in the grid. */
-    uint GetNumRows() const
+    HYP_NODISCARD HYP_FORCE_INLINE
+    SizeType GetNumRows() const
         { return m_rows.Size(); }
 
     /*! \brief Sets the number of rows in the grid.
      * 
      * \param num_rows The number of rows to set. */
-    void SetNumRows(uint num_rows);
+    void SetNumRows(SizeType num_rows);
 
     RC<UIGridRow> AddRow();
 
@@ -126,7 +128,7 @@ public:
 private:
     void UpdateLayout();
 
-    uint                    m_num_columns;
+    SizeType                m_num_columns;
 
     RC<UIPanel>             m_container;
 

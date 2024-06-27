@@ -64,22 +64,21 @@ public:
     /*! \brief Get the size of the surface that the UI objects are rendered on.
      * 
      *  \return The size of the surface. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2i GetSurfaceSize() const
         { return m_surface_size; }
 
     /*! \brief Get the scene that contains the UI objects.
      * 
      *  \return Handle to the scene. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     virtual Scene *GetScene() const override;
 
     /*! \brief Get the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      * 
      *  \return The default font atlas. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     const RC<FontAtlas> &GetDefaultFontAtlas() const;
 
     /*! \brief Set the default font atlas to use for text rendering.
@@ -91,7 +90,7 @@ public:
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \note Because the focused object is a weak reference, a lock is required to access the object.
      *  \return The focused UI object. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     HYP_FORCE_INLINE
     RC<UIObject> GetFocusedObject() const
         { return m_focused_object.Lock(); }
@@ -105,6 +104,7 @@ public:
      *  \param attach_to_root Whether to attach the UI object to the root of the UI scene immediately.
      *  \return A handle to the created UI object. */
     template <class T>
+    HYP_NODISCARD
     RC<T> CreateUIObject(
         Name name,
         Vec2i position,
@@ -152,6 +152,7 @@ public:
      *  thread than the one specified. This method is not thread-safe. */
     void SetOwnerThreadID(ThreadID thread_id);
 
+    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return true; }
 

@@ -15,9 +15,6 @@ namespace hyperion {
 
 using ByteArray = Array<ubyte>;
 
-using ByteView = Span<ubyte>;
-using ConstByteView = Span<const ubyte>;
-
 namespace memory {
 
 class ByteBuffer
@@ -80,11 +77,6 @@ public:
     }
 
     ~ByteBuffer() = default;
-    
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return true; }
 
     void Write(SizeType count, SizeType offset, const void *data)
     {

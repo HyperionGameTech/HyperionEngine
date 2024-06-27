@@ -153,23 +153,19 @@ struct UIObjectSize
     UIObjectSize &operator=(UIObjectSize &&other) noexcept  = default;
     ~UIObjectSize()                                         = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Vec2i &GetValue() const
         { return value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Flags GetFlagsX() const
         { return flags[0]; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Flags GetFlagsY() const
         { return flags[1]; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Flags GetAllFlags() const
         { return flags[0] | flags[1]; }
 
@@ -237,67 +233,73 @@ public:
     virtual void Init();
     virtual void Update(GameCounter::TickUnit delta) final;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const UIObjectID &GetID() const
         { return m_id; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     UIObjectType GetType() const
         { return m_type; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     ID<Entity> GetEntity() const
         { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : ID<Entity>::invalid; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     UIStage *GetStage() const
         { return m_stage; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsInit() const
         { return m_is_init; }
 
+    HYP_NODISCARD
     Name GetName() const;
+    
     void SetName(Name name);
 
+    HYP_NODISCARD
     Vec2i GetPosition() const;
+
     void SetPosition(Vec2i position);
 
+    HYP_NODISCARD
     Vec2f GetOffsetPosition() const;
+
+    HYP_NODISCARD
     Vec2f GetAbsolutePosition() const;
 
+    HYP_NODISCARD
     UIObjectSize GetSize() const;
+
     void SetSize(UIObjectSize size);
 
+    HYP_NODISCARD
     UIObjectSize GetInnerSize() const;
+
     void SetInnerSize(UIObjectSize size);
 
+    HYP_NODISCARD
     UIObjectSize GetMaxSize() const;
+
     void SetMaxSize(UIObjectSize size);
     
     /*! \brief Get the computed size (in pixels) of the UI object.
      *  The actual size of the UI object is calculated based on the size of the parent object and the size of the object itself.
      *  \return The computed size of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2i GetActualSize() const
         { return m_actual_size; }
 
     /*! \brief Get the computed inner size (in pixels) of the UI object.
      *  \return The computed inner size of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2i GetActualInnerSize() const
         { return m_actual_inner_size; }
 
     /*! \brief Get the scroll offset (in pixels) of the UI object.
      *  \return The scroll offset of the UI object */
-    [[nodiscard]]
+    HYP_NODISCARD 
     Vec2i GetScrollOffset() const;
 
     /*! \brief Set the scroll offset (in pixels) of the UI object.
@@ -307,24 +309,25 @@ public:
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
      *  \return The depth of the UI object */
+    HYP_NODISCARD
     int GetComputedDepth() const;
 
     /*! \brief Get the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \return The depth of the UI object */
+    HYP_NODISCARD
     int GetDepth() const;
 
     /*! \brief Set the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  Set the depth to a value between UIStage::min_depth and UIStage::max_depth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
-     *  \param depth The depth of the UI object
-     */
+     *  \param depth The depth of the UI object */
     void SetDepth(int depth);
 
     /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
      *  \return True if the this object accepts focus, false otherwise */
-    [[nodiscard]]
+    HYP_NODISCARD 
     virtual bool AcceptsFocus() const
         { return m_accepts_focus; }
 
@@ -346,14 +349,14 @@ public:
      *  Container types can have objects that sit outside and move independently of this object itself,
      *  and is useful for things like tab views, panels that scroll, etc. However, it comes with the added cost
      *  of more bookkeeping and more RenderGroup creation for rendering. See \ref{CollectObjects} and \ref{UIRenderer::OnUpdate} for example. */
+    HYP_NODISCARD
     virtual bool IsContainer() const
         { return false; }
 
     /*! \brief Get the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \return The border radius of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 GetBorderRadius() const
         { return m_border_radius; }
 
@@ -366,24 +369,26 @@ public:
      *  \details The border flags of the UI object are used to determine which borders of the object should be rounded, if the border radius is set to a non-zero value.
      *  \example To display a border radius the top left and right corners of the object, set the border flags to \code{UOB_TOP | UOB_LEFT | UOB_RIGHT}.
      *  \return The border flags of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     EnumFlags<UIObjectBorderFlags> GetBorderFlags() const
         { return m_border_flags; }
 
     void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
+    HYP_NODISCARD
     UIObjectAlignment GetOriginAlignment() const;
+
     void SetOriginAlignment(UIObjectAlignment alignment);
 
+    HYP_NODISCARD
     UIObjectAlignment GetParentAlignment() const;
+
     void SetParentAlignment(UIObjectAlignment alignment);
 
     /*! \brief Get the padding of the UI object
      * The padding of the UI object is used to add space around the object's content.
      * \return The padding of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Vec2i GetPadding() const
         { return m_padding; }
 
@@ -394,8 +399,7 @@ public:
 
     /*! \brief Get the background color of the UI object
      * \return The background color of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Color GetBackgroundColor() const;
 
     /*! \brief Set the background color of the UI object
@@ -404,8 +408,7 @@ public:
 
     /*! \brief Get the text color of the UI object
      * \return The text color of the UI object */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     Color GetTextColor() const;
 
     /*! \brief Set the text color of the UI object
@@ -414,7 +417,7 @@ public:
 
     /*! \brief Check if the UI object is set to visible or not. This does not include computed visibility.
      *  \returns True if the object is visible, false otherwise. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     bool IsVisible() const;
 
     /*! \brief Set the visibility of the UI object.
@@ -423,8 +426,7 @@ public:
      *  \param is_visible Whether to set the object as visible or not. */
     void SetIsVisible(bool is_visible);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool GetComputedVisibility() const
         { return m_computed_visibility; }
 
@@ -432,7 +434,7 @@ public:
      *  \details The focus state of the UI object is used to determine if the object is currently focused.
      *  \param include_children If true, check if any child objects have focus.
      *  \return True if the object has focus, false otherwise. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     bool HasFocus(bool include_children = true) const;
 
     /*! \brief Check if \ref{other} is either a parent of this object or is equal to the current object.
@@ -441,12 +443,12 @@ public:
      *  \param other The UIObject to check if it is a parent of this object.
      *  \return Whether \ref{other} is a parent of this object or equal to the current object.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     bool IsOrHasParent(const UIObject *other) const;
 
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     RC<UIObject> GetParentUIObject() const;
 
     virtual void AddChildUIObject(UIObject *ui_object);
@@ -469,24 +471,31 @@ public:
      *  If no child UIObject with the specified Name is found, nullptr is returned.
      *  \param name The Name of the child UIObject to find.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
+    HYP_NODISCARD
     RC<UIObject> FindChildUIObject(Name name) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
+    HYP_NODISCARD
     RC<UIObject> FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */
-    [[nodiscard]]
+    HYP_NODISCARD 
     bool HasChildUIObjects() const;
 
+    HYP_NODISCARD
     const NodeProxy &GetNode() const;
 
+    HYP_NODISCARD
     virtual Scene *GetScene() const;
 
+    HYP_NODISCARD
     BoundingBox GetLocalAABB() const;
+
+    HYP_NODISCARD
     BoundingBox GetWorldAABB() const;
 
     virtual void UpdatePosition(bool update_children = true);
@@ -495,8 +504,7 @@ public:
     /*! \brief Get the focus state of the UI object.
      *  \details The focus state of the UI object is used to determine if the object is currently focused, hovered, pressed, etc.
      *  \return The focus state of the UI object. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     EnumFlags<UIObjectFocusState> GetFocusState() const
         { return m_focus_state; }
 
@@ -516,21 +524,22 @@ public:
     /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
      *  \param coords The screen coordinates to transform.
      *  \return The relative coordinates within the UIObject. */
+    HYP_NODISCARD
     Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
 
     // Events
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseDown;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseUp;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseDrag;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseHover;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseLeave;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnMouseMove;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnGainFocus;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnLoseFocus;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnScroll;
-    Delegate<UIEventHandlerResult, const MouseEvent &>    OnClick;
-    Delegate<UIEventHandlerResult, const KeyboardEvent &>      OnKeyDown;
-    Delegate<UIEventHandlerResult, const KeyboardEvent &>      OnKeyUp;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseUp;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDrag;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseHover;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseLeave;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseMove;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnGainFocus;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnLoseFocus;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnScroll;
+    Delegate<UIEventHandlerResult, const MouseEvent &>      OnClick;
+    Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyDown;
+    Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
 
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state);

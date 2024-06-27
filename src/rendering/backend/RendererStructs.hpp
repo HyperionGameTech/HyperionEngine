@@ -4,6 +4,7 @@
 #define HYPERION_BACKEND_RENDERER_STRUCTS_HPP
 
 #include <core/containers/String.hpp>
+#include <core/memory/ByteBuffer.hpp>
 #include <core/Defines.hpp>
 #include <util/EnumOptions.hpp>
 #include <math/Extent.hpp>

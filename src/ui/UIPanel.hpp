@@ -24,6 +24,7 @@ public:
     UIPanel &operator=(UIPanel &&other) noexcept    = delete;
     virtual ~UIPanel() override                     = default;
 
+    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return false; }
 

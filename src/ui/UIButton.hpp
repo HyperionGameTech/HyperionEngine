@@ -24,8 +24,7 @@ public:
      * 
      * \return The text of the button.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const String &GetText() const
         { return m_text; }
 
@@ -39,8 +38,7 @@ public:
      * 
      * \return The text element of the button.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RC<UIText> &GetTextElement() const
         { return m_text_element; }
 

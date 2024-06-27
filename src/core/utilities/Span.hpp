@@ -194,10 +194,17 @@ struct Span
         last
     )
 };
+
+using ByteView = Span<ubyte>;
+using ConstByteView = Span<const ubyte>;
+
 } // namespace utilities
 
 template <class T>
 using Span = utilities::Span<T>;
+
+using ByteView = utilities::ByteView;
+using ConstByteView = utilities::ConstByteView;
 
 } // namespace hyperion
 

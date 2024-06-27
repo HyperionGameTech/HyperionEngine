@@ -274,7 +274,7 @@ static LoaderResult ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXProp
             if (type == 'R') {
                 out_value.Set(std::move(byte_buffer));
             } else {
-                out_value.Set(String(byte_buffer));
+                out_value.Set(String(byte_buffer.ToByteView()));
             }
 
             return { };
@@ -472,7 +472,7 @@ static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePt
     ByteBuffer name_buffer;
     reader.Read(name_length, name_buffer);
 
-    out->name = String(name_buffer);
+    out->name = String(name_buffer.ToByteView());
 
     for (uint32 index = 0; index < num_properties; ++index) {
         FBXProperty property;

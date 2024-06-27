@@ -177,7 +177,7 @@ FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string length mismatch");
     }
 
-    out_string = StringType(string_buffer);
+    out_string = StringType(string_buffer.ToByteView());
 
     return FBOMResult::FBOM_OK;
 }

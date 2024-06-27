@@ -1547,9 +1547,9 @@ bool ShaderCompiler::CompileBundle(
                 return;
             }
 
-            ByteBuffer byte_buffer = reader.ReadBytes();
-
-            String source_string = String(byte_buffer);
+            const ByteBuffer byte_buffer = reader.ReadBytes();
+            String source_string(byte_buffer.ToByteView());
+            
             ProcessResult result = ProcessShaderSource(source_string);
 
             if (result.errors.Any()) {
@@ -1557,7 +1557,7 @@ bool ShaderCompiler::CompileBundle(
                     ShaderCompiler,
                     LogLevel::ERROR,
                     "{} shader processing errors:",
-                    uint(result.errors.Size())
+                    result.errors.Size()
                 );
 
                 process_errors[index] = result.errors;

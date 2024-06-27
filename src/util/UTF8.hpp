@@ -504,38 +504,6 @@ inline void char32to8(u32char src, char *dst)
     char32to8(src, dst, num_bytes);
 }
 
-inline void utf8to32(const char *src, u32char *dst, int size)
-{
-    int max = size * (int)sizeof(u32char);
-    char *dst_bytes = reinterpret_cast<char*>(dst);
-
-    const char *pos = src;
-
-    for (int i = 0; *pos && i < max; i += sizeof(u32char)) {
-        unsigned char c = (unsigned char)*pos;
-
-        if (c >= 0 && c <= 127) {
-            dst_bytes[i] = *(pos++);
-        } else if ((c & 0xE0) == 0xC0) {
-            dst_bytes[i] = *(pos++);
-            dst_bytes[i + 1] = *(pos++);
-        } else if ((c & 0xF0) == 0xE0) {
-            dst_bytes[i] = *(pos++);
-            dst_bytes[i + 1] = *(pos++);
-            dst_bytes[i + 2] = *(pos++);
-        } else if ((c & 0xF8) == 0xF0) {
-            dst_bytes[i] = *(pos++);
-            dst_bytes[i + 1] = *(pos++);
-            dst_bytes[i + 2] = *(pos++);
-            dst_bytes[i + 3] = *(pos++);
-        } else {
-            // invalid utf-8
-            break;
-        }
-    }
-}
-
-
 inline u32char utf8_charat(const char *str, hyperion::SizeType max, hyperion::SizeType index)
 {
     hyperion::SizeType character_index = 0;
@@ -692,6 +660,79 @@ inline uint32 wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *res
     static_assert(sizeof(wchar_t) == sizeof(u32char), "wchar_t must be the same size as u32char");
     return utf::utf32_to_utf8(reinterpret_cast<const u32char *>(start), reinterpret_cast<const u32char *>(end), result);
 #endif
+}
+
+inline uint32 utf8_to_wide(const u8char *start, const u8char *end, wchar_t *result)
+{
+    uint32 len = 0;
+
+#ifdef _WIN32
+    if (result) {
+        len = MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), result, 0);
+        MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), result, len);
+    } else {
+        len = MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), NULL, 0);
+    }
+#else
+    char *dst_bytes = reinterpret_cast<char *>(result);
+
+    const u8char *pos = start;
+
+    uint32 i = 0;
+
+    while (*pos && pos != end) {
+        unsigned char c = (unsigned char)*pos;
+
+        if (c >= 0 && c <= 127) {
+            dst_bytes[i] = *(pos++);
+        } else if ((c & 0xE0) == 0xC0) {
+            dst_bytes[i] = *(pos++);
+            dst_bytes[i + 1] = *(pos++);
+        } else if ((c & 0xF0) == 0xE0) {
+            dst_bytes[i] = *(pos++);
+            dst_bytes[i + 1] = *(pos++);
+            dst_bytes[i + 2] = *(pos++);
+        } else if ((c & 0xF8) == 0xF0) {
+            dst_bytes[i] = *(pos++);
+            dst_bytes[i + 1] = *(pos++);
+            dst_bytes[i + 2] = *(pos++);
+            dst_bytes[i + 3] = *(pos++);
+        } else {
+            // invalid utf-8
+            break;
+        }
+
+        ++len;
+    }
+#endif
+
+    return len;
+}
+
+inline uint32 utf16_to_wide(const u16char *start, const u16char *end, wchar_t *result)
+{
+    uint32 len = end - start;
+
+    if (result) {
+        for (uint32 i = 0; i < len; i++) {
+            result[i] = (wchar_t)start[i];
+        }
+    }
+
+    return len;
+}
+
+inline uint32 utf32_to_wide(const u32char *start, const u32char *end, wchar_t *result)
+{
+    uint32 len = end - start;
+
+    if (result) {
+        for (uint32 i = 0; i < len; i++) {
+            result[i] = (wchar_t)start[i];
+        }
+    }
+
+    return len;
 }
 
 /*! \brief How to use:

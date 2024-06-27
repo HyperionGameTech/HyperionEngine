@@ -16,13 +16,13 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
     AssertThrow(state.asset_manager != nullptr);
     JSONValue json;
 
-    ByteBuffer byte_buffer = state.stream.ReadBytes();
+    const ByteBuffer byte_buffer = state.stream.ReadBytes();
 
     if (!byte_buffer.Size()) {
         return { { LoaderResult::Status::ERR_EOF } };
     }
 
-    const String json_string(byte_buffer);
+    const String json_string(byte_buffer.ToByteView());
 
     const auto json_parse_result = JSON::Parse(json_string);
 

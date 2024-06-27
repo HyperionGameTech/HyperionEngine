@@ -54,7 +54,7 @@ struct Formatter< StringType, float >
             result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value);
         }
 
-        return StringType(byte_buffer);
+        return StringType(byte_buffer.ToByteView());
     }
 };
 
@@ -157,7 +157,7 @@ struct Formatter< StringType, math::detail::Vec2< T > >
             result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y);
         }
 
-        return StringType(byte_buffer);
+        return StringType(byte_buffer.ToByteView());
     }
 };
 
@@ -205,7 +205,7 @@ struct Formatter< StringType, math::detail::Vec3< T > >
             result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z);
         }
 
-        return StringType(byte_buffer);
+        return StringType(byte_buffer.ToByteView());
     }
 };
 
@@ -253,7 +253,7 @@ struct Formatter< StringType, math::detail::Vec4< T > >
             result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w);
         }
 
-        return StringType(byte_buffer);
+        return StringType(byte_buffer.ToByteView());
     }
 };
 

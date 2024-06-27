@@ -984,7 +984,7 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
                         return;
                     }
 
-                    json::ParseResult json_parse_result = json::JSON::Parse(String(data.bytes.Get()));
+                    json::ParseResult json_parse_result = json::JSON::Parse(String(data.bytes->ToByteView()));
 
                     if (!json_parse_result.ok) {
                         DebugLog(LogType::Warn, "Failed to parse message as JSON\n");

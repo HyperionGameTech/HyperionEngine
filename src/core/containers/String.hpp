@@ -7,7 +7,7 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <core/utilities/Span.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/Defines.hpp>
 
@@ -123,7 +123,7 @@ public:
     String(const CharType *str);
     String(const CharType *str, int max_len);
     explicit String(const CharArray<CharType> &char_array);
-    explicit String(const ByteBuffer &byte_buffer);
+    explicit String(ConstByteView byte_view);
 
     template <int OtherStringType, std::enable_if_t<OtherStringType != StringType, int> = 0>
     String(const String<OtherStringType> &other)
@@ -544,14 +544,12 @@ public:
                 return String<UTF8>::empty;
             }
 
-            utf::u8char *buffer = new utf::u8char[len + 1];
-            utf::utf16_to_utf8(Data(), Data() + Size(), buffer);
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
 
-            String<UTF8> result(reinterpret_cast<const char *>(buffer));
+            utf::utf16_to_utf8(Data(), Data() + Size(), buffer.Data());
 
-            delete[] buffer;
-
-            return result;
+            return String<UTF8>(buffer.ToByteView());
         } else if constexpr (is_utf32) {
             uint32 len = utf::utf32_to_utf8(Data(), Data() + Size(), nullptr);
 
@@ -559,14 +557,12 @@ public:
                 return String<UTF8>::empty;
             }
 
-            utf::u8char *buffer = new utf::u8char[len + 1];
-            utf::utf32_to_utf8(Data(), Data() + Size(), buffer);
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
 
-            String<UTF8> result(reinterpret_cast<const char *>(buffer));
+            utf::utf32_to_utf8(Data(), Data() + Size(), buffer.Data());
 
-            delete[] buffer;
-
-            return result;
+            return String<UTF8>(buffer.ToByteView());
         } else if constexpr (is_wide) {
             uint32 len = utf::wide_to_utf8(Data(), Data() + Size(), nullptr);
 
@@ -574,16 +570,63 @@ public:
                 return String<UTF8>::empty;
             }
 
-            utf::u8char *buffer = new utf::u8char[len + 1];
-            utf::wide_to_utf8(Data(), Data() + Size(), buffer);
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
 
-            String<UTF8> result(reinterpret_cast<const char *>(buffer));
+            utf::wide_to_utf8(Data(), Data() + Size(), buffer.Data());
 
-            delete[] buffer;
-
-            return result;
+            return String<UTF8>(buffer.ToByteView());
         } else {
-            return String<UTF8>();
+            return String<UTF8>::empty;
+        }
+    }
+
+    HYP_NODISCARD
+    String<WIDE_CHAR> ToWide() const
+    {
+        if constexpr (is_wide) {
+            return *this;
+        } else if constexpr (is_utf8 || is_ansi) {
+            uint32 len = utf::utf8_to_wide(Data(), Data() + Size(), nullptr);
+
+            if (len == 0) {
+                return String<WIDE_CHAR>::empty;
+            }
+
+            Array<wchar_t> buffer;
+            buffer.Resize(len + 1);
+
+            utf::utf8_to_wide(Data(), Data() + Size(), buffer.Data());
+
+            return String<WIDE_CHAR>(buffer.ToByteView());
+        } else if constexpr (is_utf16) {
+            uint32 len = utf::utf16_to_wide(Data(), Data() + Size(), nullptr);
+
+            if (len == 0) {
+                return String<WIDE_CHAR>::empty;
+            }
+
+            Array<wchar_t> buffer;
+            buffer.Resize(len + 1);
+
+            utf::utf16_to_wide(Data(), Data() + Size(), buffer.Data());
+
+            return String<WIDE_CHAR>(buffer.ToByteView());
+        } else if constexpr (is_utf32) {
+            uint32 len = utf::utf32_to_wide(Data(), Data() + Size(), nullptr);
+
+            if (len == 0) {
+                return String<WIDE_CHAR>::empty;
+            }
+            
+            Array<wchar_t> buffer;
+            buffer.Resize(len + 1);
+
+            utf::utf32_to_wide(Data(), Data() + Size(), buffer.Data());
+
+            return String<WIDE_CHAR>(buffer.ToByteView());
+        } else {
+            return String<WIDE_CHAR>::empty;
         }
     }
 
@@ -600,14 +643,14 @@ public:
         String result;
         result.Reserve(result_size - 1);  // String class automatically adds 1 for null character
 
-        CharType *data = new CharType[result_size];
-        utf::utf_to_str<Integral, CharType>(value, result_size, data);
+        Array<CharType> buffer;
+        buffer.Resize(result_size);
+        
+        utf::utf_to_str<Integral, CharType>(value, result_size, buffer.Data());
 
         for (SizeType i = 0; i < result_size - 1; i++) {
-            result.Append(data[i]);
+            result.Append(buffer[i]);
         }
-
-        delete[] data;
 
         return result;
     }
@@ -746,19 +789,19 @@ String<StringType>::String(const CharArray<CharType> &char_array)
 }
 
 template <int StringType>
-String<StringType>::String(const ByteBuffer &byte_buffer)
+String<StringType>::String(ConstByteView byte_view)
     : Base(),
       m_length(0)
 {
-    SizeType size = byte_buffer.Size();
+    SizeType size = byte_view.Size();
 
     for (SizeType index = 0; index < size; ++index) {
 
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(byte_buffer.Data()[index] >= 0 && byte_buffer.Data()[index] <= 255, "Out of character range");
+        AssertThrowMsg(byte_view.Data()[index] >= 0 && byte_view.Data()[index] <= 255, "Out of character range");
 #endif
 
-        if (byte_buffer.Data()[index] == 0x00) {
+        if (byte_view.Data()[index] == 0x0) {
             size = index;
 
             break;
@@ -766,7 +809,7 @@ String<StringType>::String(const ByteBuffer &byte_buffer)
     }
 
     Base::Resize((size / sizeof(CharType)) + 1); // +1 for null char
-    Memory::MemCpy(Data(), byte_buffer.Data(), size / sizeof(CharType));
+    Memory::MemCpy(Data(), byte_view.Data(), size / sizeof(CharType));
 
     m_length = utf::utf_strlen<CharType, is_utf8>(Base::Data());
 }

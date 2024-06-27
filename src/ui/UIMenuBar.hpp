@@ -38,8 +38,7 @@ public:
      * 
      * \return The text of the menu item.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const String &GetText() const
         { return m_text; }
 
@@ -59,7 +58,7 @@ public:
      * 
      * \return The array of DropDownMenuItems.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     const Array<DropDownMenuItem> &GetDropDownMenuItems() const
         { return m_drop_down_menu_items; }
 
@@ -74,7 +73,7 @@ public:
      * \param name The name of the dropdown menu item.
      * \return The dropdown menu item.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     DropDownMenuItem *GetDropDownMenuItem(Name name);
 
     /*! \brief Get a dropdown menu item by name.
@@ -82,15 +81,14 @@ public:
      * \param name The name of the dropdown menu item.
      * \return The dropdown menu item.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     const DropDownMenuItem *GetDropDownMenuItem(Name name) const;
 
     /*! \brief Gets the drop down menu element.
      * 
      * \return The drop down menu element.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
@@ -132,8 +130,7 @@ public:
      * 
      * \return The index of the selected menu item.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint GetSelectedMenuItemIndex() const
         { return m_selected_menu_item_index; }
 
@@ -147,8 +144,7 @@ public:
      * 
      * \return The menu items in the menu bar.
      */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<RC<UIMenuItem>> &GetMenuItems() const
         { return m_menu_items; }
 
@@ -165,7 +161,7 @@ public:
      * \param name The name of the menu item to get.
      * \return The menu item, or nullptr if the menu item was not found.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     RC<UIMenuItem> GetMenuItem(Name name) const;
 
     /*! \brief Gets the index of a menu item by name. Returns ~0u if the menu item was not found.
@@ -173,7 +169,7 @@ public:
      * \param name The name of the menu item to get the index of.
      * \return The index of the menu item, or ~0u if the menu item was not found.
      */
-    [[nodiscard]]
+    HYP_NODISCARD 
     uint GetMenuItemIndex(Name name) const;
 
     /*! \brief Removes a menu item by name.
