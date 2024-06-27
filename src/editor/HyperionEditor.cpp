@@ -575,6 +575,21 @@ void HyperionEditor::Init()
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());
     m_impl->Initialize();
 
+
+    fbom::FBOMDeserializedObject obj;
+    fbom::FBOMReader reader({});
+    if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
+        HYP_FAIL("failed to load: %s", *err.message);
+    }
+
+    Handle<Scene> loaded_scene = obj.Get<Scene>();
+    m_scene->SetRoot(loaded_scene->GetRoot());
+
+    return;
+
+
+
+
     // add sun
     auto sun = CreateObject<Light>(DirectionalLight(
         Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
@@ -771,16 +786,17 @@ void HyperionEditor::Init()
         byte_writer.Close();
 
         if (err != fbom::FBOMResult::FBOM_OK) {
-            HYP_THROW("Failed to save scene");
+            HYP_FAIL("Failed to save scene");
         }
 
         fbom::FBOMDeserializedObject obj;
         fbom::FBOMReader reader({});
         if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-            AssertThrowMsg(false, "failed to load: %s", err.message.Data());
+            HYP_FAIL("failed to load: %s", *err.message);
         }
 
         Handle<Scene> loaded_scene = obj.Get<Scene>();
+        
         DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
 
         HYP_BREAKPOINT;
