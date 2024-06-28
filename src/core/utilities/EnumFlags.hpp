@@ -44,6 +44,10 @@ struct EnumFlags
     ~EnumFlags()                                        = default;
 
     HYP_NODISCARD HYP_FORCE_INLINE
+    constexpr explicit operator bool() const
+        { return bool(value); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     constexpr operator EnumType() const
         { return static_cast<EnumType>(value); }
 

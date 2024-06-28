@@ -93,7 +93,7 @@ Node::Node(Node &&other) noexcept
       m_delegates(std::move(other.m_delegates))
 {
     other.m_type = Type::NODE;
-    other.m_flags = NODE_FLAG_NONE;
+    other.m_flags = NodeFlags::NONE;
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
@@ -131,7 +131,7 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_type = Type::NODE;
 
     m_flags = other.m_flags;
-    other.m_flags = NODE_FLAG_NONE;
+    other.m_flags = NodeFlags::NONE;
 
     m_parent_node = other.m_parent_node;
     other.m_parent_node = nullptr;
@@ -633,20 +633,20 @@ void Node::UpdateWorldTransform()
 
     const Transform transform_before = m_world_transform;
 
-    if (m_parent_node != nullptr && !(m_flags & NODE_FLAG_IGNORE_PARENT_TRANSFORM)) {
+    if (m_parent_node != nullptr && !(m_flags & NodeFlags::IGNORE_PARENT_TRANSFORM)) {
         m_world_transform = m_parent_node->GetWorldTransform() * m_local_transform;
     } else if (m_parent_node != nullptr) {
         m_world_transform = m_local_transform;
         
-        if (!(m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)) {
+        if (!(m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)) {
             m_world_transform.GetTranslation() = (m_local_transform.GetTranslation() + m_parent_node->GetWorldTransform().GetTranslation());
         }
 
-        if (!(m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)) {
+        if (!(m_flags & NodeFlags::IGNORE_PARENT_ROTATION)) {
             m_world_transform.GetRotation() = (m_local_transform.GetRotation() * m_parent_node->GetWorldTransform().GetRotation());
         }
 
-        if (!(m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)) {
+        if (!(m_flags & NodeFlags::IGNORE_PARENT_SCALE)) {
             m_world_transform.GetScale() = (m_local_transform.GetScale() * m_parent_node->GetWorldTransform().GetScale());
         }
 

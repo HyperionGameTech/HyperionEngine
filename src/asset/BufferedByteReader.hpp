@@ -111,7 +111,7 @@ class BufferedReader
 {
 public:
     static constexpr SizeType buffer_size = 2048;
-    static constexpr uint32 eof_pos = ~0u;
+    static constexpr SizeType eof_pos = ~0u;
 
     BufferedReader()
         : pos(eof_pos)

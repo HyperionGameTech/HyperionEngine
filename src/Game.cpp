@@ -15,6 +15,8 @@
 #include <dotnet/runtime/ManagedHandle.hpp>
 #include <dotnet/core/RefCountedPtrBindings.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <scene/camera/Camera.hpp>
 
 #include <scripting/ScriptingService.hpp>
@@ -48,6 +50,8 @@ Game::~Game()
 
 void Game::Init_Internal()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     AssertThrowMsg(m_game_thread == nullptr, "Game thread already initialized!");
@@ -98,6 +102,8 @@ void Game::Init_Internal()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     g_engine->GetScriptingService()->Update();
 
     Logic(delta);
@@ -115,6 +121,8 @@ void Game::Update(GameCounter::TickUnit delta)
 
 void Game::Init()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     m_ui_stage->Init();
@@ -134,6 +142,8 @@ void Game::Init()
 
 void Game::Teardown()
 {
+    HYP_SCOPE;
+
     if (m_scene) {
         g_engine->GetWorld()->RemoveScene(m_scene->GetID());
         m_scene.Reset();
@@ -144,6 +154,8 @@ void Game::Teardown()
 
 void Game::RequestStop()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(~ThreadName::THREAD_GAME);
 
     // Stop game thread and wait for it to finish
@@ -166,6 +178,8 @@ void Game::RequestStop()
 
 void Game::HandleEvent(SystemEvent &&event)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_INPUT);
 
     if (m_input_manager == nullptr) {
@@ -179,6 +193,8 @@ void Game::HandleEvent(SystemEvent &&event)
 
 void Game::PushEvent(SystemEvent &&event)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     if (event.GetType() == SystemEventType::EVENT_SHUTDOWN) {
@@ -197,6 +213,8 @@ void Game::PushEvent(SystemEvent &&event)
 
 void Game::OnInputEvent(const SystemEvent &event)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_INPUT);
     
     // forward to UI
@@ -270,6 +288,8 @@ void Game::OnInputEvent(const SystemEvent &event)
 
 void Game::OnFrameBegin(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     g_engine->GetRenderState().AdvanceFrameCounter();
@@ -282,6 +302,8 @@ void Game::OnFrameBegin(Frame *frame)
 
 void Game::OnFrameEnd(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (m_scene->GetCamera()) {

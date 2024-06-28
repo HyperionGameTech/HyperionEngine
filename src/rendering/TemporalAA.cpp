@@ -11,6 +11,8 @@
 #include <math/MathUtil.hpp>
 #include <math/Halton.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -150,6 +152,8 @@ void TemporalAA::CreateComputePipelines()
 
 void TemporalAA::Render(Frame *frame)
 {
+    HYP_NAMED_SCOPE("Temporal AA");
+
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 

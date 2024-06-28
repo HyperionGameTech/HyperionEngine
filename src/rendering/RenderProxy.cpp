@@ -3,6 +3,8 @@
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 extern HYP_API SafeDeleter *g_safe_deleter;
@@ -55,6 +57,8 @@ void RenderProxyList::MarkToRemove(ID<Entity> entity)
 
 void RenderProxyList::GetRemovedEntities(Array<ID<Entity>> &out_entities)
 {
+    HYP_SCOPE;
+
     Bitset removed_bits = GetRemovedEntities();
 
     out_entities.Reserve(removed_bits.Count());
@@ -70,6 +74,8 @@ void RenderProxyList::GetRemovedEntities(Array<ID<Entity>> &out_entities)
 
 void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool include_changed)
 {
+    HYP_SCOPE;
+    
     Bitset newly_added_bits = GetAddedEntities();
 
     if (include_changed) {
@@ -105,6 +111,8 @@ RenderProxy *RenderProxyList::GetProxyForEntity(ID<Entity> entity)
 
 void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
 {
+    HYP_SCOPE;
+
     { // Remove proxies for removed bits
         for (Bitset::BitIndex index : GetRemovedEntities()) {
             const ID<Entity> entity = ID<Entity>::FromIndex(index);

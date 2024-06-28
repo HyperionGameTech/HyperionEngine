@@ -8,6 +8,8 @@
 
 #include <rendering/RenderEnvironment.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -62,6 +64,8 @@ void World::Init()
 
 void World::PerformSceneUpdates()
 {
+    HYP_SCOPE;
+
     Mutex::Guard guard(m_scene_update_mutex);
 
     for (Handle<Scene> &scene : m_scenes_pending_removal) {
@@ -103,6 +107,8 @@ void World::PerformSceneUpdates()
 
 void World::Update(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertReady();
@@ -124,6 +130,8 @@ void World::Update(GameCounter::TickUnit delta)
 
 void World::PreRender(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     AssertReady();
@@ -131,6 +139,8 @@ void World::PreRender(Frame *frame)
 
 void World::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     AssertReady();
@@ -156,6 +166,8 @@ void World::AddScene(Handle<Scene> &&scene)
         return;
     }
 
+    HYP_SCOPE;
+
     InitObject(scene);
 
     Mutex::Guard guard(m_scene_update_mutex);
@@ -170,6 +182,8 @@ void World::RemoveScene(ID<Scene> id)
     if (!id) {
         return;
     }
+
+    HYP_SCOPE;
 
     Mutex::Guard guard(m_scene_update_mutex);
 
@@ -190,28 +204,6 @@ const Handle<Scene> &World::GetDetachedScene(ThreadName thread_name)
 const Handle<Scene> &World::GetDetachedScene(ThreadID thread_id)
 {
     return m_detached_scenes.GetDetachedScene(thread_id);
-
-
-    // Mutex::Guard guard(m_detached_scenes_mutex);
-
-    // auto it = m_detached_scenes.Find(thread_id);
-
-    // if (it == m_detached_scenes.End()) {
-    //     Handle<Scene> scene = CreateObject<Scene>(
-    //         Handle<Camera>::empty,
-    //         thread_id
-    //     );
-
-    //     scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));
-
-    //     InitObject(scene);
-
-    //     scene->SetWorld(this);
-
-    //     it = m_detached_scenes.Insert(thread_id, std::move(scene)).first;
-    // }
-
-    // return it->second;
 }
 
 } // namespace hyperion

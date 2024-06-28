@@ -164,6 +164,8 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
         case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
             vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
             break;
+        default:
+            break;
         }
     }
 

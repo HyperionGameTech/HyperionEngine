@@ -44,6 +44,7 @@ struct LightmapRay
     uint        triangle_index;
     uint        texel_index;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator==(const LightmapRay &other) const
     {
         return ray == other.ray
@@ -52,6 +53,7 @@ struct LightmapRay
             && texel_index == other.texel_index;
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool operator!=(const LightmapRay &other) const
         { return !(*this == other); }
 };
@@ -83,6 +85,7 @@ public:
     LightmapPathTracer &operator=(LightmapPathTracer &&other) noexcept  = delete;
     ~LightmapPathTracer();
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RaytracingPipelineRef &GetPipeline() const
         { return m_raytracing_pipeline; }
 
@@ -119,27 +122,35 @@ public:
     LightmapJob &operator=(LightmapJob &&other) noexcept    = delete;
     ~LightmapJob()                                          = default;
     
+    HYP_NODISCARD HYP_FORCE_INLINE
     LightmapUVMap &GetUVMap()
         { return m_uv_map; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const LightmapUVMap &GetUVMap() const
         { return m_uv_map; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     Scene *GetScene() const
         { return m_scene; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<LightmapEntity> &GetEntities() const
         { return m_entities; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 GetTexelIndex() const
         { return m_texel_index; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<uint> &GetTexelIndices() const
         { return m_texel_indices; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<LightmapRay> &GetPreviousFrameRays(uint frame_index) const
         { return m_previous_frame_rays[frame_index]; }
-
+        
+    HYP_FORCE_INLINE
     void SetPreviousFrameRays(uint frame_index, Array<LightmapRay> rays)
         { m_previous_frame_rays[frame_index] = std::move(rays); }
 
@@ -159,8 +170,13 @@ public:
      */
     void IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint num_hits, LightmapShadingType shading_type);
 
+    HYP_NODISCARD
     bool IsCompleted() const;
+
+    HYP_NODISCARD
     bool IsStarted() const;
+
+    HYP_NODISCARD HYP_FORCE_INLINE
     bool IsReady() const
         { return m_is_ready.Get(MemoryOrder::RELAXED); }
 

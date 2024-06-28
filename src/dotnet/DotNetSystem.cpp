@@ -16,6 +16,8 @@
 #include <util/fs/FsUtil.hpp>
 #include <util/json/JSON.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <dotnet/Class.hpp>
 
 #ifdef HYP_DOTNET
@@ -56,6 +58,8 @@ using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, M
 
 static Optional<FilePath> FindAssemblyFilePath(const char *path)
 {
+    HYP_NAMED_SCOPE("Find .NET Assembly File Path");
+
     FilePath filepath = FilePath::Current() / path;
 
     if (!filepath.Exists() && g_engine->GetAppContext() != nullptr) {
@@ -464,6 +468,8 @@ UniquePtr<Assembly> DotNetSystem::LoadAssembly(const char *path) const
         return nullptr;
     }
 
+    HYP_NAMED_SCOPE("Load .NET Assembly");
+
     return m_impl->LoadAssembly(path);
 }
 
@@ -472,6 +478,8 @@ bool DotNetSystem::UnloadAssembly(ManagedGuid guid) const
     if (!EnsureInitialized()) {
         return false;
     }
+
+    HYP_NAMED_SCOPE("Unload .NET Assembly");
 
     return m_impl->UnloadAssembly(guid);
 }
@@ -518,6 +526,8 @@ void DotNetSystem::Initialize()
         return;
     }
 
+    HYP_NAMED_SCOPE("Initialize .NET System");
+
     AssertThrow(m_impl == nullptr);
 
     m_impl.Reset(new detail::DotNetImpl());
@@ -535,6 +545,8 @@ void DotNetSystem::Shutdown()
     if (!IsInitialized()) {
         return;
     }
+
+    HYP_NAMED_SCOPE("Shutdown .NET System");
 
     m_impl.Reset();
 

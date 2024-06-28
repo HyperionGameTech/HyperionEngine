@@ -772,7 +772,6 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMNameTable &name_table, U
         }
 
         if (static_data_ptr) {
-            DebugLog(LogType::Debug, "Marked static data ptr %p as written\n", static_data_ptr);
             m_write_stream->MarkStaticDataWritten(id);
         }
     } else {

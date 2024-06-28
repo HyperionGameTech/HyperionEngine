@@ -167,7 +167,7 @@ public:
         { return Size() != 0; }
     
     template <class ...Args>
-    void EmplaceBack(Args &&... args)
+    ValueType &EmplaceBack(Args &&... args)
     {
         Node *new_node = new Node;
         new_node->previous = m_tail;
@@ -182,10 +182,12 @@ public:
         }
 
         ++m_size;
+
+        return new_node->value.Get();
     }
 
     template <class ...Args>
-    void EmplaceFront(Args &&... args)
+    ValueType &EmplaceFront(Args &&... args)
     {
         Node *new_node = new Node;
         new_node->next = m_head;
@@ -200,6 +202,8 @@ public:
 
         m_head = new_node;
         ++m_size;
+
+        return new_node->value.Get();
     }
     
     /*! \brief Push an item to the back of the container.*/

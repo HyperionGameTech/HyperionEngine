@@ -4,6 +4,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/Defines.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <math/MathUtil.hpp>
@@ -54,6 +56,8 @@ void GameThread::operator()(Game *game)
 #endif
 
         counter.NextTick();
+        
+        HYP_PROFILE_BEGIN;
 
         g_asset_manager->Update(counter.delta);
         

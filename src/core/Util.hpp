@@ -98,23 +98,19 @@ constexpr auto ParseTypeName()
 template <class T>
 constexpr auto TypeName()
 {
+    constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
+
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
-    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
-
     // auto hyperion::TypeName() [T = hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr< name, 31, sizeof(__PRETTY_FUNCTION__) - 2 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2 >::value;
 #elif defined(HYP_GCC)
-    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
-
     // constexpr auto hyperion::TypeName() [with T = hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr< name, 47, sizeof(__PRETTY_FUNCTION__) - 2 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2 >::value;
 #endif
 #elif defined(HYP_MSVC)
-    constexpr StaticString<sizeof(__FUNCSIG__)> name(__FUNCSIG__);
-
     //  auto __cdecl hyperion::TypeName<class hyperion::Task<int,int>>(void)
-    constexpr auto substr = containers::helpers::Substr< name, 32, sizeof(__FUNCSIG__) - 8 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 32, sizeof(HYP_FUNCTION_NAME_LIT) - 8 >::value;
 
 #else
     static_assert(false, "Unsupported compiler for TypeName()");
@@ -132,29 +128,99 @@ constexpr auto TypeName()
 template <class T>
 constexpr auto TypeNameWithoutNamespace()
 {
+    constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
-    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
 
     // auto hyperion::TypeNameWithoutNamespace() [T = hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr< name, 47, sizeof(__PRETTY_FUNCTION__) - 2 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2 >::value;
 #elif defined(HYP_GCC)
-    constexpr StaticString<sizeof(__PRETTY_FUNCTION__)> name(__PRETTY_FUNCTION__);
-
     // constexpr auto hyperion::TypeNameWithoutNamespace() [with T = hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr< name, 63, sizeof(__PRETTY_FUNCTION__) - 2 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 63, sizeof(HYP_FUNCTION_NAME_LIT) - 2 >::value;
 #endif
 #elif defined(HYP_MSVC)
-    constexpr StaticString<sizeof(__FUNCSIG__)> name(__FUNCSIG__);
-
     //  auto __cdecl hyperion::TypeNameWithoutNamespace<class hyperion::Task<int,int>>(void)
-    constexpr auto substr = containers::helpers::Substr< name, 48, sizeof(__FUNCSIG__) - 8 >::value;
+    constexpr auto substr = containers::helpers::Substr< name, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8 >::value;
 #else
     static_assert(false, "Unsupported compiler for TypeNameWithoutNamespace()");
 #endif
     
     return detail::ParseTypeName< substr, true >();
 }
+
+namespace detail {
+
+template <auto Str>
+constexpr auto StripReturnType()
+{
+    constexpr auto first_space_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString(" ") > >();
+
+    if constexpr (first_space_index == SizeType(-1)) {
+        return Str;
+    } else {
+        constexpr auto without_return_type = containers::helpers::Substr< Str, first_space_index + 1, Str.Size() >::value;
+
+        constexpr auto left_angle_bracket_index = without_return_type.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("<") > >();
+        constexpr auto left_parenthesis_index = without_return_type.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("(") > >();
+
+        constexpr auto first_token_index = left_angle_bracket_index != SizeType(-1) && (left_parenthesis_index == SizeType(-1) || left_angle_bracket_index < left_parenthesis_index)
+            ? left_angle_bracket_index
+            : left_parenthesis_index;
+
+        constexpr auto second_space_index = without_return_type.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString(" ") > >();
+
+        if constexpr (second_space_index != SizeType(-1) && first_token_index != SizeType(-1) && second_space_index < first_token_index) {
+            return containers::helpers::Substr< without_return_type, second_space_index + 1, without_return_type.Size() >::value;
+        } else {
+            return without_return_type;
+        }
+    }
+}
+
+template <auto Str>
+constexpr auto StripNamespaceFromFunctionName()
+{
+    if constexpr (Str.Size() == 0) {
+        return Str;
+    } else if constexpr (Str.data[0] >= 'A' && Str.data[0] <= 'Z') {
+        // function and class names start with uppercase letters in hyperion
+        return Str;
+    } else {
+        constexpr auto first_colon_index = Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("::") > >();
+
+        if constexpr (first_colon_index != SizeType(-1)) {
+            constexpr auto substr = containers::helpers::Substr< Str, first_colon_index + 2, Str.Size() >::value;
+
+            return StripNamespaceFromFunctionName< substr >();
+        } else {
+            return Str;
+        }
+    }
+}
+
+} // namespace detail
+
+/*! \brief Normalizes the input string, removing the return type and parameters from the function signature. */
+template <auto Str>
+constexpr auto PrettyFunctionName()
+{
+    constexpr auto without_return_type = detail::StripReturnType< Str >();
+
+    constexpr auto left_angle_bracket_index = without_return_type.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("<") > >();
+    constexpr auto left_parenthesis_index = without_return_type.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString("(") > >();
+
+    if constexpr (left_parenthesis_index != SizeType(-1)) {
+        if constexpr (left_angle_bracket_index != SizeType(-1) && left_angle_bracket_index < left_parenthesis_index) {
+            return detail::StripNamespaceFromFunctionName< containers::helpers::Substr< without_return_type, 0, left_angle_bracket_index >::value >();
+        } else {
+            return detail::StripNamespaceFromFunctionName< containers::helpers::Substr< without_return_type, 0, left_parenthesis_index >::value >();
+        }
+    } else {
+        return without_return_type;
+    }
+}
+
+#define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName< StaticString(HYP_FUNCTION_NAME_LIT) >()
 
 template <class T>
 struct TypeWrapper

@@ -36,6 +36,8 @@
 
 #include <math/Halton.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
@@ -241,17 +243,25 @@ NodeProxy Scene::FindNodeByName(const String &name) const
 
 void Scene::Update(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertReady();
     
-    // Rebuild any octants that have had structural changes
-    // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
-    // stored on VisibilityStateComponent.
-    m_octree.PerformUpdates();
-    m_octree.NextVisibilityState();
+    {
+        HYP_NAMED_SCOPE("Update octree");
+
+        // Rebuild any octants that have had structural changes
+        // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
+        // stored on VisibilityStateComponent.
+        m_octree.PerformUpdates();
+        m_octree.NextVisibilityState();
+    }
 
     if (m_camera.IsValid()) {
+        HYP_NAMED_SCOPE("Update camera and calculate visibility");
+
         m_camera->Update(delta);
 
         m_octree.CalculateVisibility(m_camera);
@@ -279,6 +289,8 @@ RenderListCollectionResult Scene::CollectEntities(
     bool skip_frustum_culling
 ) const
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     if (!camera.IsValid()) {
@@ -328,6 +340,8 @@ RenderListCollectionResult Scene::CollectDynamicEntities(
     bool skip_frustum_culling
 ) const
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     if (!camera.IsValid()) {
@@ -378,7 +392,9 @@ RenderListCollectionResult Scene::CollectStaticEntities(
     bool skip_frustum_culling
 ) const
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     if (!camera.IsValid()) {
         // if camera is invalid, update without adding any entities
@@ -398,7 +414,6 @@ RenderListCollectionResult Scene::CollectStaticEntities(
             if (!visibility_state_component.visibility_state) {
                 continue;
             }
-
 
             if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
@@ -427,6 +442,8 @@ RenderListCollectionResult Scene::CollectStaticEntities(
 
 void Scene::EnqueueRenderUpdates()
 {
+    HYP_SCOPE;
+
     struct RENDER_COMMAND(UpdateSceneRenderData) : renderer::RenderCommand
     {
         ID<Scene>           id;
@@ -487,6 +504,8 @@ void Scene::EnqueueRenderUpdates()
 
 bool Scene::CreateTLAS()
 {
+    HYP_SCOPE;
+
     AssertThrowMsg(IsWorldScene(), "Can only create TLAS for world scenes");
     AssertIsInitCalled();
 

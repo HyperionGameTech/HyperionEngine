@@ -122,7 +122,11 @@ public:
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE
     bool Is() const
-        { return Base::Is<T>(); }
+    {
+        static_assert(std::is_base_of_v<Node, T>, "T must be a subclass of Node");
+
+        return Base::Is<T>();
+    }
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE

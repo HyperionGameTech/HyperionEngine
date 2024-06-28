@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_PROFILE_HPP
 #define HYPERION_PROFILE_HPP
 
@@ -46,8 +47,8 @@ public:
 
 private:
     ProfileFunction m_lambda;
-    double m_result;
-    SizeType m_iteration;
+    double          m_result;
+    SizeType        m_iteration;
 };
 
 } // namespace hyperion

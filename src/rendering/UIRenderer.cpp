@@ -16,6 +16,8 @@
 
 #include <util/fs/FsUtil.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -57,6 +59,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet &entity_attributes) const
     {
+        HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: GetMergedRenderableAttributes");
+
         RenderableAttributeSet attributes = entity_attributes;
 
         // @FIXME: This is going to be quite slow, adding a reference for each item.
@@ -99,6 +103,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     void BuildProxyGroupsInOrder()
     {
+        HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: BuildProxyGroupsInOrder");
+
         collection->ClearProxyGroups();
 
         struct
@@ -182,6 +188,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
+        HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
+
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (RenderProxy &proxy : added_proxies) {
@@ -232,6 +240,8 @@ void UIRenderList::PushEntityToRender(ID<Entity> entity, const RenderProxy &prox
 
 void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
 
@@ -272,6 +282,8 @@ void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const
 
 void UIRenderList::CollectDrawCalls(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
@@ -307,6 +319,8 @@ void UIRenderList::CollectDrawCalls(Frame *frame)
 
 void UIRenderList::ExecuteDrawCalls(Frame *frame) const
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     
     AssertThrow(m_draw_collection != nullptr);
@@ -332,10 +346,14 @@ void UIRenderList::ExecuteDrawCalls(Frame *frame) const
         }
     }
 
-    std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
     {
-        return lhs->first.GetDrawableLayer() < rhs->first.GetDrawableLayer();
-    });
+        HYP_NAMED_SCOPE("Sort proxy groups by layer");
+
+        std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
+        {
+            return lhs->first.GetDrawableLayer() < rhs->first.GetDrawableLayer();
+        });
+    }
 
     for (SizeType index = 0; index < iterators.Size(); index++) {
         const auto &it = *iterators[index];
@@ -383,6 +401,8 @@ UIRenderer::~UIRenderer()
 
 void UIRenderer::Init()
 {
+    HYP_SCOPE;
+
     CreateFramebuffer();
 
     AssertThrow(m_ui_stage != nullptr);
@@ -415,6 +435,8 @@ void UIRenderer::OnRemoved()
 
 void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     m_render_list.ResetOrdering();
 
     m_ui_stage->CollectObjects([this](UIObject *object)
@@ -441,6 +463,8 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
+    HYP_SCOPE;
+
     g_engine->GetRenderState().BindScene(m_ui_stage->GetScene());
 
     m_render_list.CollectDrawCalls(

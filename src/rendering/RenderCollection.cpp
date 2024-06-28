@@ -17,6 +17,8 @@
 #include <scene/camera/Camera.hpp>
 #include <scene/animation/Skeleton.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -58,6 +60,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
     RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy &proxy) const
     {
+        HYP_SCOPE;
+        
         const Handle<Mesh> &mesh = proxy.mesh;
         AssertThrow(mesh.IsValid());
 
@@ -108,6 +112,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
     void AddRenderProxy(RenderProxyList &proxy_list, const RenderProxy &proxy, const RenderableAttributeSet &attributes, PassType pass_type)
     {
+        HYP_SCOPE;
+
         const ID<Entity> entity = proxy.entity;
 
         // Add proxy to group
@@ -145,6 +151,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
     bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, PassType pass_type)
     {
+        HYP_SCOPE;
+
         bool removed = false;
 
         for (auto &proxy_groups : collection->GetProxyGroups()) {
@@ -160,6 +168,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
+        HYP_SCOPE;
+
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (const auto &it : changed_proxies) {
@@ -330,6 +340,8 @@ const RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type
 
 void EntityDrawCollection::ClearProxyGroups(bool reset_render_groups)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
@@ -347,6 +359,8 @@ void EntityDrawCollection::ClearProxyGroups(bool reset_render_groups)
 
 void EntityDrawCollection::RemoveEmptyProxyGroups()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     for (auto &proxy_groups : GetProxyGroups()) {
@@ -382,6 +396,8 @@ RenderList::~RenderList()
 
 RenderListCollectionResult RenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
 
@@ -449,6 +465,8 @@ void RenderList::CollectDrawCalls(
     const CullData *cull_data
 )
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
@@ -550,6 +568,8 @@ void RenderList::ExecuteDrawCalls(
     PushConstantData push_constant
 ) const
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     
     AssertThrow(m_draw_collection != nullptr);
@@ -606,6 +626,8 @@ void RenderList::ExecuteDrawCalls(
 
 void RenderList::Reset()
 {
+    HYP_NAMED_SCOPE("RenderList Reset");
+
     AssertThrow(m_draw_collection != nullptr);
     // Threads::AssertOnThread(ThreadName::THREAD_GAME);
 

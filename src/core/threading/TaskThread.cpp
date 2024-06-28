@@ -2,6 +2,8 @@
 
 #include <core/threading/TaskThread.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 namespace threading {
 
@@ -26,20 +28,31 @@ void TaskThread::operator()()
     m_num_tasks.Set(0, MemoryOrder::RELAXED);
 
     while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
-        m_scheduler.WaitForTasks(m_task_queue);
+        {
+            // HYP_PROFILE_BEGIN;
+            // HYP_NAMED_SCOPE("Waiting for tasks");
+
+            m_scheduler.WaitForTasks(m_task_queue);
+        }
+
+        HYP_PROFILE_BEGIN;
 
         const uint32 num_tasks = m_task_queue.Size();
         m_num_tasks.Set(num_tasks, MemoryOrder::RELAXED);
 
         BeforeExecuteTasks();
+
+        {
+            HYP_NAMED_SCOPE("Executing tasks");
         
-        // execute all tasks outside of lock
-        while (m_task_queue.Any()) {
-            m_task_queue.Pop().Execute();
-        }
-        
-        if (num_tasks != 0) {
-            m_num_tasks.Decrement(num_tasks, MemoryOrder::RELAXED);
+            // execute all tasks outside of lock
+            while (m_task_queue.Any()) {
+                m_task_queue.Pop().Execute();
+            }
+            
+            if (num_tasks != 0) {
+                m_num_tasks.Decrement(num_tasks, MemoryOrder::RELAXED);
+            }
         }
 
         AfterExecuteTasks();

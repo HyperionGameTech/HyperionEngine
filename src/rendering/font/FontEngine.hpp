@@ -29,8 +29,10 @@ public:
     FontEngine();
     ~FontEngine();
 
+    HYP_NODISCARD
     FontFace LoadFont(const FilePath &path);
 
+    HYP_NODISCARD
     Backend GetFontBackend();
 
 private:

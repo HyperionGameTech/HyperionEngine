@@ -11,6 +11,8 @@
 
 #include <asset/BufferedByteReader.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 #pragma region StreamedDataRefBase
@@ -117,6 +119,8 @@ const ByteBuffer &StreamedData::Load() const
     if (IsInMemory()) {
         return GetByteBuffer();
     }
+
+    HYP_NAMED_SCOPE("Load streamed data");
     
     return Load_Internal();
 }
@@ -126,6 +130,8 @@ void StreamedData::Unpage()
     if (!IsInMemory()) {
         return;
     }
+
+    HYP_NAMED_SCOPE("Unpage streamed data");
 
     Unpage_Internal();
 }

@@ -1,8 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
+
 #include <math/MathUtil.hpp>
+
 #include <core/threading/Threads.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -11,6 +16,8 @@ namespace hyperion {
 
 void AssetBatch::LoadAsync(uint num_batches)
 {
+    HYP_SCOPE;
+
     AssertThrowMsg(enqueued_assets != nullptr, "AssetBatch is in invalid state");
 
     if (enqueued_assets->Empty()) {
@@ -44,6 +51,8 @@ void AssetBatch::LoadAsync(uint num_batches)
 
         AddTask([asset_manager = asset_manager, batch_procs = std::move(batch_procs), asset_map = enqueued_assets.Get()](...) mutable
         {
+            HYP_NAMED_SCOPE("Processing assets in batch");
+
             for (auto &proc : batch_procs) {
                 proc->operator()(asset_manager, asset_map);
             }

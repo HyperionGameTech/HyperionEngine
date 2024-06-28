@@ -15,6 +15,8 @@
 
 #include <scripting/ScriptingService.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -89,6 +91,8 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             script_component.object = class_ptr->NewObject();
 
             if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
+                HYP_NAMED_SCOPE("Call BeforeInit() on script component");
+
                 script_component.object->InvokeMethod<void, ManagedHandle>(
                     before_init_method_ptr,
                     CreateManagedHandleFromID(GetEntityManager().GetScene()->GetID())
@@ -96,6 +100,8 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             }
 
             if (auto *init_method_ptr = class_ptr->GetMethod("Init")) {
+                HYP_NAMED_SCOPE("Call Init() on script component");
+
                 script_component.object->InvokeMethod<void, ManagedEntity>(
                     init_method_ptr,
                     ManagedEntity { entity.Value() }
@@ -134,6 +140,8 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
     if (script_component.object != nullptr) {
         if (dotnet::Class *class_ptr = script_component.object->GetClass()) {
             if (class_ptr->HasMethod("Destroy")) {
+                HYP_NAMED_SCOPE("Call Destroy() on script component");
+
                 script_component.object->InvokeMethodByName<void>("Destroy");
             }
         }
@@ -159,7 +167,7 @@ void ScriptSystem::Process(GameCounter::TickUnit delta)
                     continue;
                 }
 
-                HYP_LOG(Script, LogLevel::DEBUG, "ScriptSystem::Process: Calling Update on entity {}", entity_id.Value());
+                HYP_NAMED_SCOPE("Call Update() on script component");
 
                 script_component.object->InvokeMethod<void, float>(update_method_ptr, float(delta));
             }

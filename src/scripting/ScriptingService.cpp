@@ -10,12 +10,11 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <type_traits>
 
 namespace hyperion {
-
-#pragma region Interop structs
-#pragma endregion Interop structs
 
 #pragma region ScriptTracker
 
@@ -92,25 +91,33 @@ protected:
     {
         m_is_running.Set(true, MemoryOrder::RELAXED);
 
-        m_script_tracker->GetObject()->InvokeMethodByName<void>(
-            "Initialize",
-            m_watch_directory.Data(),
-            m_intermediate_directory.Data(),
-            m_binary_output_directory.Data(),
-            m_callback,
-            m_callback_self_ptr
-        );
+        {
+            HYP_NAMED_SCOPE("Scripting service: Initialize");
+
+            m_script_tracker->GetObject()->InvokeMethodByName<void>(
+                "Initialize",
+                m_watch_directory.Data(),
+                m_intermediate_directory.Data(),
+                m_binary_output_directory.Data(),
+                m_callback,
+                m_callback_self_ptr
+            );
+        }
 
         Queue<Scheduler::ScheduledTask> tasks;
 
         while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
             if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
+                HYP_NAMED_SCOPE("Scripting service: Execute enqueued tasks");
+
                 m_scheduler.AcceptAll(tasks);
 
                 while (tasks.Any()) {
                     tasks.Pop().Execute();
                 }
             }
+
+            HYP_NAMED_SCOPE("Scripting service: invoke update on managed side");
 
             m_script_tracker->InvokeUpdate();
             Threads::Sleep(1000);
@@ -141,6 +148,8 @@ ScriptingService::ScriptingService(const FilePath &watch_directory, const FilePa
         this
       ))
 {
+    HYP_NAMED_SCOPE("ScriptingService: Initialize directories");
+
     if (!watch_directory.Exists()) {
         watch_directory.MkDir();
     }
@@ -175,9 +184,13 @@ void ScriptingService::Update()
         return;
     }
 
+    HYP_NAMED_SCOPE("ScriptingService: Update");
+
     Queue<ScriptEvent> script_event_queue;
 
     { // pull events from queue
+        HYP_NAMED_SCOPE("ScriptingService: Pull events from queue");
+
         Mutex::Guard guard(m_script_event_queue_mutex);
 
         script_event_queue = std::move(m_script_event_queue);
@@ -185,16 +198,24 @@ void ScriptingService::Update()
         m_script_event_queue_count.Decrement(1, MemoryOrder::RELEASE);
     }
 
-    for (ScriptEvent &event : script_event_queue) {
-        switch (event.type) {
-        case ScriptEventType::STATE_CHANGED:
-            OnScriptStateChanged.Broadcast(*event.script);
+    if (script_event_queue.Empty()) {
+        return;
+    }
 
-            break;
-        default:
-            HYP_LOG(ScriptingService, LogLevel::ERROR, "Unknown script event received: {}", uint32(event.type));
+    {
+        HYP_NAMED_SCOPE("ScriptingService: Process events");
 
-            break;
+        for (ScriptEvent &event : script_event_queue) {
+            switch (event.type) {
+            case ScriptEventType::STATE_CHANGED:
+                OnScriptStateChanged.Broadcast(*event.script);
+
+                break;
+            default:
+                HYP_LOG(ScriptingService, LogLevel::ERROR, "Unknown script event received: {}", uint32(event.type));
+
+                break;
+            }
         }
     }
 }

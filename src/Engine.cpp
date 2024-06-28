@@ -16,6 +16,7 @@
 
 #include <core/threading/GameThread.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
 #include <util/MeshBuilder.hpp>
 #include <util/fs/FsUtil.hpp>
 
@@ -356,6 +357,8 @@ void Engine::RequestStop()
 
 void Engine::FinalizeStop()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     m_is_shutting_down.Set(true, MemoryOrder::SEQUENTIAL);
@@ -408,6 +411,8 @@ void Engine::FinalizeStop()
 
 HYP_API void Engine::RenderNextFrame(Game *game)
 {
+    HYP_PROFILE_BEGIN;
+
     // if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
     //     FinalizeStop();
 
@@ -468,6 +473,8 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     EnumFlags<RenderGroupFlags> flags
 )
 {
+    HYP_SCOPE;
+
     const ShaderDefinition &shader_definition = renderable_attributes.GetShaderDefinition();
     AssertThrowMsg(shader_definition, "Shader definition is unset");
 
@@ -504,6 +511,8 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     EnumFlags<RenderGroupFlags> flags
 )
 {
+    HYP_SCOPE;
+
     if (!shader.IsValid()) {
         HYP_LOG(Engine, LogLevel::ERROR, "Shader is empty; Cannot create RenderGroup.");
 
@@ -532,6 +541,8 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 
 void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 {
+    HYP_SCOPE;
+
     std::lock_guard guard(m_render_group_mapping_mutex);
 
     AddRenderGroupInternal(render_group, true);
@@ -539,6 +550,8 @@ void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 
 void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
 {
+    HYP_SCOPE;
+
     if (cache) {
         HYP_LOG(Engine, LogLevel::DEBUG, "Insert RenderGroup in mapping for renderable attribute set hash {}",
             render_group->GetRenderableAttributes().GetHashCode().Value());
@@ -556,6 +569,8 @@ void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cach
 
 void Engine::PreFrameUpdate(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
@@ -572,6 +587,8 @@ void Engine::ResetRenderState(RenderStateMask mask)
 
 void Engine::UpdateBuffersAndDescriptors(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     m_render_data->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
@@ -599,6 +616,8 @@ void Engine::UpdateBuffersAndDescriptors(Frame *frame)
 
 void Engine::RenderDeferred(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     m_deferred_renderer->Render(frame, render_state.GetScene().render_environment);

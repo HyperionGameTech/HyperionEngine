@@ -7,6 +7,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 namespace renderer {
 
@@ -54,6 +56,8 @@ Result RenderCommands::Flush()
         HYPERION_RETURN_OK;
     }
 
+    HYP_NAMED_SCOPE("Flush render commands");
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     Array<RenderCommand *> commands;
@@ -83,10 +87,6 @@ Result RenderCommands::Flush()
     for (SizeType index = 0; index < num_commands; index++) {
         RenderCommand *front = commands[index];
 
-#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        HYP_LOG(RenderCommands, LogLevel::DEBUG, "Executing render command {}", front->_debug_name);
-#endif
-
         const Result command_result = front->Call();
         AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.error_code, command_result.message);
         front->~RenderCommand();
@@ -108,8 +108,10 @@ Result RenderCommands::Flush()
     for (SizeType index = 0; index < num_commands; index++) {
         RenderCommand *front = commands[index];
 
-#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        HYP_LOG(RenderCommands, LogLevel::DEBUG, "Executing render command {}", front->_debug_name);
+#ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
+        HYP_NAMED_SCOPE(front->_debug_name);
+#else
+        HYP_NAMED_SCOPE("Executing render command");
 #endif
 
         const Result command_result = front->Call();
@@ -131,6 +133,8 @@ Result RenderCommands::Flush()
 
 Result RenderCommands::FlushOrWait()
 {
+    HYP_SCOPE;
+
     if (Count() == 0) {
         HYPERION_RETURN_OK;
     }
@@ -146,6 +150,8 @@ Result RenderCommands::FlushOrWait()
 
 void RenderCommands::Wait()
 {
+    HYP_SCOPE;
+
     if (Count() == 0) {
         return;
     }

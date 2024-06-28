@@ -78,7 +78,6 @@ public:
         enum Status { RESULT_OK, RESULT_ERR }   status;
 
         String                                  message;
-
         LightmapUVMap                           uv_map;
 
         Result()
@@ -96,6 +95,7 @@ public:
               uv_map(std::move(uv_map))
         { }
 
+        HYP_NODISCARD HYP_FORCE_INLINE
         explicit operator bool() const
             { return status == RESULT_OK; }
     };
@@ -103,6 +103,7 @@ public:
     LightmapUVBuilder(const LightmapUVBuilderParams &params);
     ~LightmapUVBuilder() = default;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<LightmapMeshData> &GetMeshData() const
         { return m_mesh_data; }
     

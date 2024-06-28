@@ -7,6 +7,8 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -312,6 +314,8 @@ void SSRRenderer::CreateComputePipelines()
 
 void SSRRenderer::Render(Frame *frame)
 {
+    HYP_NAMED_SCOPE("Screen Space Reflections");
+
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
     const uint camera_index = g_engine->render_state.GetCamera().id.ToIndex();
 

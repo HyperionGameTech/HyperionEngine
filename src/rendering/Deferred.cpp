@@ -14,7 +14,10 @@
 
 #include <util/BlueNoise.hpp>
 
+#include <util/Float16.hpp>
 #include <util/fs/FsUtil.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
@@ -288,6 +291,8 @@ void DeferredPass::Create()
 
 void DeferredPass::Record(uint frame_index)
 {
+    HYP_SCOPE;
+
     if (m_is_indirect_pass) {
         FullScreenPass::Record(frame_index);
 
@@ -415,6 +420,8 @@ void DeferredPass::Record(uint frame_index)
 
 void DeferredPass::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     FullScreenPass::Render(frame);
 }
 
@@ -552,6 +559,8 @@ void EnvGridPass::Record(uint frame_index)
 
 void EnvGridPass::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
@@ -823,6 +832,8 @@ void ReflectionProbePass::Record(uint frame_index)
 
 void ReflectionProbePass::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
@@ -1158,6 +1169,8 @@ void DeferredRenderer::Destroy()
 
 void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     CommandBuffer *primary = frame->GetCommandBuffer();
@@ -1406,6 +1419,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
+    HYP_SCOPE;
+
     CommandBuffer *primary = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 
@@ -1438,6 +1453,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 
 void DeferredRenderer::ApplyCameraJitter()
 {
+    HYP_SCOPE;
+
     Vector4 jitter;
 
     const ID<Camera> camera_id = g_engine->GetRenderState().GetCamera().id;
@@ -1464,6 +1481,8 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (uint index = 0; index < num_render_lists; index++) {
@@ -1477,6 +1496,8 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 
 void DeferredRenderer::RenderSkybox(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (uint index = 0; index < num_render_lists; index++) {
@@ -1491,6 +1512,8 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
 
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (uint index = 0; index < num_render_lists; index++) {
@@ -1505,6 +1528,8 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (uint index = 0; index < num_render_lists; index++) {

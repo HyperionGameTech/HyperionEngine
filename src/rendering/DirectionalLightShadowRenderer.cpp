@@ -13,7 +13,7 @@
 
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
@@ -539,6 +539,8 @@ void DirectionalLightShadowRenderer::InitGame()
 
 void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertThrow(m_shadow_pass != nullptr);
@@ -630,6 +632,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void DirectionalLightShadowRenderer::OnRender(Frame *frame)
 {
+    HYP_SCOPE;
+    
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     AssertThrow(m_shadow_pass != nullptr);

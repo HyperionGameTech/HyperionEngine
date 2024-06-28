@@ -25,8 +25,7 @@ public:
     LogChannelIDGenerator &operator=(LogChannelIDGenerator &&other) noexcept    = delete;
     ~LogChannelIDGenerator()                                                    = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint32 Next()
     {
         return m_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
@@ -91,9 +90,7 @@ LogChannel *Logger::CreateDynamicLogChannel(Name name, LogChannel *parent_channe
 {
     Mutex::Guard guard(m_dynamic_log_channels_mutex);
 
-    m_dynamic_log_channels.EmplaceBack(name, parent_channel);
-
-    return &m_dynamic_log_channels.Back();
+    return &m_dynamic_log_channels.EmplaceBack(name, parent_channel);
 }
 
 void Logger::DestroyDynamicLogChannel(Name name)

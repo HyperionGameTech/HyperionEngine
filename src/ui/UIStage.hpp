@@ -124,7 +124,7 @@ public:
         }
         
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        node_proxy->SetFlags(node_proxy->GetFlags() | NODE_FLAG_IGNORE_PARENT_SCALE);
+        node_proxy->SetFlags(node_proxy->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
         RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node_proxy, false /* init */);
 

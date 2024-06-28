@@ -37,7 +37,7 @@
 #include <scripting/ScriptingService.hpp>
 
 // temp
-#include <util/Profile.hpp>
+#include <util/profiling/Profile.hpp>
 #include <core/system/SystemEvent.hpp>
 
 // temp
@@ -576,17 +576,16 @@ void HyperionEditor::Init()
     m_impl->Initialize();
 
 
-    fbom::FBOMDeserializedObject obj;
-    fbom::FBOMReader reader({});
-    if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-        HYP_FAIL("failed to load: %s", *err.message);
-    }
+    // fbom::FBOMDeserializedObject obj;
+    // fbom::FBOMReader reader({});
+    // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
+    //     HYP_FAIL("failed to load: %s", *err.message);
+    // }
 
-    Handle<Scene> loaded_scene = obj.Get<Scene>();
-    m_scene->SetRoot(loaded_scene->GetRoot());
+    // Handle<Scene> loaded_scene = obj.Get<Scene>();
+    // m_scene->SetRoot(loaded_scene->GetRoot());
 
-    return;
-
+    // return;
 
 
 
@@ -779,27 +778,27 @@ void HyperionEditor::Init()
         }
 
 
-        FileByteWriter byte_writer("Scene.hypscene");
-        fbom::FBOMWriter writer;
-        writer.Append(*GetScene());
-        auto err = writer.Emit(&byte_writer);
-        byte_writer.Close();
+        // FileByteWriter byte_writer("Scene.hypscene");
+        // fbom::FBOMWriter writer;
+        // writer.Append(*GetScene());
+        // auto err = writer.Emit(&byte_writer);
+        // byte_writer.Close();
 
-        if (err != fbom::FBOMResult::FBOM_OK) {
-            HYP_FAIL("Failed to save scene");
-        }
+        // if (err != fbom::FBOMResult::FBOM_OK) {
+        //     HYP_FAIL("Failed to save scene");
+        // }
 
-        fbom::FBOMDeserializedObject obj;
-        fbom::FBOMReader reader({});
-        if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-            HYP_FAIL("failed to load: %s", *err.message);
-        }
+        // fbom::FBOMDeserializedObject obj;
+        // fbom::FBOMReader reader({});
+        // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
+        //     HYP_FAIL("failed to load: %s", *err.message);
+        // }
 
-        Handle<Scene> loaded_scene = obj.Get<Scene>();
+        // Handle<Scene> loaded_scene = obj.Get<Scene>();
         
-        DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+        // DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
 
-        HYP_BREAKPOINT;
+        // HYP_BREAKPOINT;
     }).Detach();
 
     batch->LoadAsync();
@@ -834,6 +833,7 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
 
 void HyperionEditor::OnFrameEnd(Frame *frame)
 {
+    Game::OnFrameEnd(frame);
 }
 
 #pragma endregion HyperionEditor

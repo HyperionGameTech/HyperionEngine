@@ -27,13 +27,14 @@ struct HYP_API FontAtlasTextureSet
 
     ~FontAtlasTextureSet();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Handle<Texture> &GetMainAtlas() const
         { return main_atlas; }
+    
+    HYP_NODISCARD
+    Handle<Texture> GetAtlasForPixelSize(uint pixel_size) const;
 
     void AddAtlas(uint pixel_size, Handle<Texture> texture, bool is_main_atlas = false);
-    Handle<Texture> GetAtlasForPixelSize(uint pixel_size) const;
 };
 
 class FontAtlas
@@ -60,19 +61,19 @@ public:
 
     HYP_API void Render();
 
-    [[nodiscard]]
+    HYP_NODISCARD HYP_FORCE_INLINE
     const GlyphMetricsBuffer &GetGlyphMetrics() const
         { return m_glyph_metrics; }
 
-    [[nodiscard]]
+    HYP_NODISCARD HYP_FORCE_INLINE
     const RC<FontAtlasTextureSet> &GetAtlases() const
         { return m_atlases; }
 
-    [[nodiscard]]
+    HYP_NODISCARD HYP_FORCE_INLINE
     Extent2D GetCellDimensions() const
         { return m_cell_dimensions; }
 
-    [[nodiscard]]
+    HYP_NODISCARD HYP_FORCE_INLINE
     const SymbolList &GetSymbolList() const
         { return m_symbol_list; }
 

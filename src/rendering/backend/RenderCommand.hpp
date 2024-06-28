@@ -11,6 +11,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/containers/LinkedList.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/utilities/StringView.hpp>
 #include <core/Util.hpp>
 
 #include <Types.hpp>
@@ -121,8 +122,8 @@ struct RenderCommandList
 
 struct RenderCommand
 {
-#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-    String _debug_name;
+#ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
+    ANSIStringView  _debug_name;
 #endif
 
     virtual ~RenderCommand() = default;
@@ -211,8 +212,10 @@ public:
         void *mem = Alloc<T>(buffer_index);
         T *ptr = new (mem) T(std::forward<Args>(args)...);
 
-#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        ptr->_debug_name = TypeName<T>().Data();
+#ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
+        static const auto type_name = TypeName<T>();
+        
+        ptr->_debug_name = type_name.Data();
 #endif
 
         scheduler.Commit(ptr);

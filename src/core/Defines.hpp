@@ -230,9 +230,10 @@
 #endif
 
 #if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-    #define HYP_DEBUG_FUNC_SHORT __FUNCTION__
-    #define HYP_DEBUG_FUNC       __PRETTY_FUNCTION__
-    #define HYP_DEBUG_LINE       (__LINE__)
+    #define HYP_DEBUG_FUNC_SHORT    (__FUNCTION__)
+    #define HYP_DEBUG_FUNC          (__PRETTY_FUNCTION__)
+    #define HYP_DEBUG_LINE          (__LINE__)
+    #define HYP_FUNCTION_NAME_LIT   (__PRETTY_FUNCTION__)
 
     #if HYP_ENABLE_BREAKPOINTS
         #if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
@@ -242,16 +243,20 @@
         #endif
     #endif
 #elif defined(HYP_MSVC) && HYP_MSVC
-    #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
-    #define HYP_DEBUG_FUNC       (__FUNCSIG__)
-    #define HYP_DEBUG_LINE       (__LINE__)
+    #define HYP_DEBUG_FUNC_SHORT    (__FUNCTION__)
+    #define HYP_DEBUG_FUNC          (__FUNCSIG__)
+    #define HYP_DEBUG_LINE          (__LINE__)
+    #define HYP_FUNCTION_NAME_LIT   (__FUNCSIG__)
+
     #if HYP_ENABLE_BREAKPOINTS
-        #define HYP_BREAKPOINT       (__debugbreak())
+        #define HYP_BREAKPOINT (__debugbreak())
     #endif
 #else
     #define HYP_DEBUG_FUNC_SHORT ""
     #define HYP_DEBUG_FUNC ""
     #define HYP_DEBUG_LINE (0)
+    #define HYP_FUNCTION_NAME_LIT ""
+
     #if HYP_ENABLE_BREAKPOINTS
         #define HYP_BREAKPOINT       (void(0))
     #endif
@@ -368,9 +373,12 @@
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
-// #define HYP_LOG_MEMORY_OPERATIONS
-// #define HYP_LOG_DESCRIPTOR_SET_UPDATES
-// #define HYP_DEBUG_LOG_RENDER_COMMANDS
+#ifdef HYP_DEBUG_MODE
+    // #define HYP_LOG_MEMORY_OPERATIONS
+    // #define HYP_LOG_DESCRIPTOR_SET_UPDATES
+
+    #define HYP_RENDER_COMMANDS_DEBUG_NAME
+#endif
 
 #if !defined(HYP_EDITOR) || !HYP_EDITOR
     #define HYP_NO_EDITOR

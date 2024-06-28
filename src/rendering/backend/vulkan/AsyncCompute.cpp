@@ -12,6 +12,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion::renderer {
 
 namespace platform {
@@ -44,6 +46,8 @@ AsyncCompute<Platform::VULKAN>::~AsyncCompute()
 template <>
 Result AsyncCompute<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
+    HYP_SCOPE;
+
     AssertThrow(device->GetQueueFamilyIndices().IsComplete());
 
     DeviceQueue<Platform::VULKAN> *queue = &device->GetComputeQueue();
@@ -74,6 +78,8 @@ Result AsyncCompute<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 template <>
 Result AsyncCompute<Platform::VULKAN>::Submit(Device<Platform::VULKAN> *device, Frame<Platform::VULKAN> *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->End(device));
@@ -86,6 +92,8 @@ Result AsyncCompute<Platform::VULKAN>::Submit(Device<Platform::VULKAN> *device, 
 template <>
 Result AsyncCompute<Platform::VULKAN>::PrepareForFrame(Device<Platform::VULKAN> *device, Frame<Platform::VULKAN> *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
     
     HYPERION_BUBBLE_ERRORS(WaitForFence(device, frame));
@@ -98,6 +106,8 @@ Result AsyncCompute<Platform::VULKAN>::PrepareForFrame(Device<Platform::VULKAN> 
 template <>
 Result AsyncCompute<Platform::VULKAN>::WaitForFence(Device<Platform::VULKAN> *device, Frame<Platform::VULKAN> *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     Result result = m_fences[frame_index]->WaitForGPU(device);
@@ -118,6 +128,8 @@ void AsyncCompute<Platform::VULKAN>::InsertBarrier(
     ResourceState resource_state
 ) const
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     buffer->InsertBarrier(m_command_buffers[frame_index], resource_state, ShaderModuleType::COMPUTE);
@@ -130,6 +142,8 @@ void AsyncCompute<Platform::VULKAN>::Dispatch(
     Extent3D extent
 ) const
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     ref->Bind(m_command_buffers[frame_index]);
@@ -145,6 +159,8 @@ void AsyncCompute<Platform::VULKAN>::Dispatch(
     const ArrayMap<Name, ArrayMap<Name, uint>> &offsets
 ) const
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
 
     descriptor_table->Bind<ComputePipelineRef<Platform::VULKAN>>(

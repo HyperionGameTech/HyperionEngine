@@ -4,6 +4,8 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 using renderer::Platform;
@@ -19,6 +21,8 @@ void RenderObjectDeleter<Platform::CURRENT>::Initialize()
 template <>
 void RenderObjectDeleter<Platform::CURRENT>::Iterate()
 {
+    HYP_NAMED_SCOPE("Destroy enqueued rendering resources");
+
     DeletionQueueBase **queue = queues.Data();
 
     while (*queue) {
@@ -30,6 +34,8 @@ void RenderObjectDeleter<Platform::CURRENT>::Iterate()
 template <>
 void RenderObjectDeleter<Platform::CURRENT>::ForceDeleteAll()
 {
+    HYP_NAMED_SCOPE("Force delete all rendering resources");
+
     FixedArray<AtomicVar<int32> *, queues.Size()> queue_num_items { };
 
     { // init atomic vars

@@ -4,6 +4,7 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
@@ -24,6 +25,8 @@ FilePath AssetLoader::GetRebasedFilepath(const AssetManager &asset_manager, cons
 
 LoadedAsset AssetLoader::Load(AssetManager &asset_manager, const String &path) const
 {
+    HYP_SCOPE;
+
     LoadedAsset asset;
 
     asset.result = LoaderResult {

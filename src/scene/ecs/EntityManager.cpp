@@ -5,6 +5,8 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -44,6 +46,8 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 
 void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     switch (m_policy) {
     case ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD: {
         const uint32 current_buffer_index = m_buffer_index.Get(MemoryOrder::ACQUIRE);
@@ -119,6 +123,8 @@ EntityManager::~EntityManager()
 
 ID<Entity> EntityManager::AddEntity()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(m_owner_thread_mask);
     
     const uint32 index = Handle<Entity>::GetContainer().NextIndex();
@@ -131,6 +137,8 @@ ID<Entity> EntityManager::AddEntity()
 
 bool EntityManager::RemoveEntity(ID<Entity> entity)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(m_owner_thread_mask);
 
     if (!entity.IsValid()) {
@@ -184,6 +192,8 @@ bool EntityManager::RemoveEntity(ID<Entity> entity)
 
 void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
 {
+    HYP_SCOPE;
+
     /// @TODO: Ensure that it is thread-safe to move an entity from one EntityManager to another
     // As the other EntityManager may be owned by a different thread.
 
@@ -279,6 +289,8 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
 
 void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
 {
+    HYP_SCOPE;
+
     AssertThrow(entity.IsValid());
 
     Array<TypeID> component_type_ids;
@@ -303,6 +315,8 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
 
 void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
 {
+    HYP_SCOPE;
+    
     AssertThrow(entity.IsValid());
 
     Array<TypeID> component_type_ids;
@@ -328,6 +342,8 @@ ComponentInterfaceBase *EntityManager::GetComponentInterface(TypeID type_id)
 
 void EntityManager::Update(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+    
     if (m_command_queue.HasUpdates()) {
         m_command_queue.Execute(*this, delta);
     }
@@ -355,6 +371,8 @@ void EntityManager::Update(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::Process(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
     Array<Pair<ThreadMask, double>> times;
     times.Resize(m_systems.Size());
@@ -367,6 +385,8 @@ void SystemExecutionGroup::Process(GameCounter::TickUnit delta)
             m_systems,
             [&, delta](auto &it, uint32 index, uint32)
             {
+                // HYP_NAMED_SCOPE(it.first.Name().LookupString());
+
 #ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
                 const auto start = std::chrono::high_resolution_clock::now();
 #endif

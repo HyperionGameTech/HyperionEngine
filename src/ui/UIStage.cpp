@@ -24,6 +24,8 @@
 
 #include <input/InputManager.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -156,6 +158,8 @@ void UIStage::AddChildUIObject(UIObject *ui_object)
 
 void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
+    HYP_NAMED_SCOPE("Update UI stage");
+
     m_scene->Update(delta);
 
     for (auto &it : m_mouse_button_pressed_states) {

@@ -9,8 +9,11 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
 #include <util/MiscUtil.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -156,6 +159,8 @@ ShaderManagerSystem *ShaderManagerSystem::GetInstance()
 
 ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 {
+    HYP_NAMED_SCOPE("Get shader from cache or create");
+
     const auto EnsureContainsProperties = [](const ShaderProperties &expected, const ShaderProperties &received) -> bool
     {
         if (!received.HasRequiredVertexAttributes(expected.GetRequiredVertexAttributes())) {

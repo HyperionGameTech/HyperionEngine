@@ -188,6 +188,6 @@ using logging::LogLevel;
     hyperion::logging::LogChannel Log_##name(HYP_NAME_UNSAFE(name), &Log_##parent_name)
 
 #define HYP_LOG(channel, level, fmt, ...) \
-    hyperion::logging::Logger::GetInstance().Log< level, hyperion::StaticString(HYP_DEBUG_FUNC_SHORT), hyperion::StaticString(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
+    hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, hyperion::StaticString(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
 
 #endif

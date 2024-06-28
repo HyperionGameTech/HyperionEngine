@@ -8,6 +8,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/functional/Delegate.hpp>
 #include <core/utilities/UUID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/NodeProxy.hpp>
@@ -24,16 +25,16 @@ namespace hyperion {
 class Engine;
 class Scene;
 
-using NodeFlags = uint32;
-
-enum NodeFlagBits : NodeFlags
+enum NodeFlags : uint32
 {
-    NODE_FLAG_NONE                      = 0x0,
-    NODE_FLAG_IGNORE_PARENT_TRANSLATION = 0x1,
-    NODE_FLAG_IGNORE_PARENT_SCALE       = 0x2,
-    NODE_FLAG_IGNORE_PARENT_ROTATION    = 0x4,
-    NODE_FLAG_IGNORE_PARENT_TRANSFORM   = NODE_FLAG_IGNORE_PARENT_TRANSLATION | NODE_FLAG_IGNORE_PARENT_SCALE | NODE_FLAG_IGNORE_PARENT_ROTATION,
+    NONE                        = 0x0,
+    IGNORE_PARENT_TRANSLATION   = 0x1,
+    IGNORE_PARENT_SCALE         = 0x2,
+    IGNORE_PARENT_ROTATION      = 0x4,
+    IGNORE_PARENT_TRANSFORM     = IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE | IGNORE_PARENT_ROTATION
 };
+
+HYP_MAKE_ENUM_FLAGS(NodeFlags)
 
 class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
 {
@@ -289,12 +290,15 @@ public:
         }
 
         Transform offset_transform;
-        offset_transform.GetTranslation() = (m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)
-            ? transform.GetTranslation() : transform.GetTranslation() - m_parent_node->GetWorldTranslation();
-        offset_transform.GetScale() = (m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)
-            ? transform.GetScale() : transform.GetScale() / m_parent_node->GetWorldScale();
-        offset_transform.GetRotation() = (m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)
-            ? transform.GetRotation() : Quaternion(m_parent_node->GetWorldRotation()).Invert() * transform.GetRotation();
+        offset_transform.GetTranslation() = (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)
+            ? transform.GetTranslation()
+            : transform.GetTranslation() - m_parent_node->GetWorldTranslation();
+        offset_transform.GetScale() = (m_flags & NodeFlags::IGNORE_PARENT_SCALE)
+            ? transform.GetScale()
+            : transform.GetScale() / m_parent_node->GetWorldScale();
+        offset_transform.GetRotation() = (m_flags & NodeFlags::IGNORE_PARENT_ROTATION)
+            ? transform.GetRotation()
+            : Quaternion(m_parent_node->GetWorldRotation()).Invert() * transform.GetRotation();
 
         offset_transform.UpdateMatrix();
 
@@ -308,7 +312,7 @@ public:
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
     void SetWorldTranslation(const Vec3f &translation)
     {
-        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_TRANSLATION)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)) {
             SetLocalTranslation(translation);
 
             return;
@@ -324,7 +328,7 @@ public:
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
     void SetWorldScale(const Vec3f &scale)
     {
-        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_SCALE)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_SCALE)) {
             SetLocalScale(scale);
 
             return;
@@ -340,7 +344,7 @@ public:
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     void SetWorldRotation(const Quaternion &rotation)
     {
-        if (m_parent_node == nullptr || (m_flags & NODE_FLAG_IGNORE_PARENT_ROTATION)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_ROTATION)) {
             SetLocalRotation(rotation);
 
             return;
@@ -445,7 +449,7 @@ protected:
     void OnNestedNodeRemoved(const NodeProxy &node, bool direct);
 
     Type                    m_type = Type::NODE;
-    NodeFlags               m_flags = NODE_FLAG_NONE;
+    EnumFlags<NodeFlags>    m_flags = NodeFlags::NONE;
     String                  m_name;
     Node                    *m_parent_node;
     NodeList                m_child_nodes;

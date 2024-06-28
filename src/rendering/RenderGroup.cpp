@@ -15,6 +15,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 #include <Constants.hpp>
 
@@ -296,6 +298,8 @@ void RenderGroup::Init()
 
 void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
 
     AssertReady();
@@ -351,6 +355,8 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
 void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
 {
+    HYP_SCOPE;
+
     if constexpr (!use_draw_indirect) {
         return;
     }
@@ -403,6 +409,8 @@ RenderAll(
     const DrawCallCollection &draw_state
 )
 {
+    HYP_SCOPE;
+
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
     if (draw_state.draw_calls.Empty()) {
@@ -520,6 +528,8 @@ RenderAll_Parallel(
     const DrawCallCollection &draw_state
 )
 {
+    HYP_SCOPE;
+
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
     if (draw_state.draw_calls.Empty()) {
@@ -683,6 +693,8 @@ RenderAll_Parallel(
 
 void RenderGroup::PerformRendering(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
 
@@ -714,6 +726,8 @@ void RenderGroup::PerformRendering(Frame *frame)
 
 void RenderGroup::PerformRenderingIndirect(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
 

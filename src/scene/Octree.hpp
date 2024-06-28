@@ -123,7 +123,7 @@ class Octree;
 
 struct OctreeState
 {
-    HashMap<ID<Entity>, Octree *>   node_to_octree;
+    HashMap<ID<Entity>, Octree *>   entity_to_octree;
     uint8                           visibility_cursor { 0u };
 
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
@@ -183,26 +183,26 @@ public:
         BoundingBox         aabb;
     };
 
-    struct Node
+    struct Entry
     {
         ID<Entity>  id;
         BoundingBox aabb;
 
-        Node() = default;
+        Entry() = default;
 
-        Node(ID<Entity> id, const BoundingBox &aabb)
+        Entry(ID<Entity> id, const BoundingBox &aabb)
             : id(id),
               aabb(aabb)
         {
         }
 
-        Node(const Node &other)
+        Entry(const Entry &other)
             : id(other.id),
               aabb(other.aabb)
         {
         }
 
-        Node &operator=(const Node &other)
+        Entry &operator=(const Entry &other)
         {
             id = other.id;
             aabb = other.aabb;
@@ -210,7 +210,7 @@ public:
             return *this;
         }
 
-        Node(Node &&other) noexcept
+        Entry(Entry &&other) noexcept
             : id(other.id),
               aabb(other.aabb)
         {
@@ -218,7 +218,7 @@ public:
             other.aabb = BoundingBox::Empty();
         }
 
-        Node &operator=(Node &&other) noexcept
+        Entry &operator=(Entry &&other) noexcept
         {
             id = other.id;
             aabb = other.aabb;
@@ -229,17 +229,17 @@ public:
             return *this;
         }
 
-        ~Node() = default;
+        ~Entry() = default;
 
         HYP_FORCE_INLINE
-        bool operator==(const Node &other) const
+        bool operator==(const Entry &other) const
         {
             return id == other.id
                 && aabb == other.aabb;
         }
 
         HYP_FORCE_INLINE
-        bool operator!=(const Node &other) const
+        bool operator!=(const Entry &other) const
             { return !(*this == other); }
 
         HashCode GetHashCode() const
@@ -279,8 +279,8 @@ public:
     const BoundingBox &GetAABB() const
         { return m_aabb; }
 
-    const Array<Node> &GetNodes() const
-        { return m_nodes; }
+    const Array<Entry> &GetEntries() const
+        { return m_entries; }
 
     OctantID GetOctantID() const
         { return m_octant_id; }
@@ -349,27 +349,30 @@ public:
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
 private:
-    void ResetNodesHash();
-    void RebuildNodesHash(uint level = 0);
+    void ResetEntriesHash();
+    void RebuildEntriesHash(uint level = 0);
 
-    void ClearInternal(Array<Node> &out_nodes);
-    void Clear(Array<Node> &out_nodes);
+    void ClearInternal(Array<Entry> &out_entries);
+    void Clear(Array<Entry> &out_entries);
 
     /*! \brief Move the entity to a new octant. If allow_rebuild is true, the octree will be rebuilt if the entity doesn't fit in the new octant,
         and subdivided octants will be collapsed if they are empty + new octants will be created if they are needed.
      */
-    InsertResult Move(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild, const Array<Node>::Iterator *it = nullptr);
+    InsertResult Move(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild, const Array<Entry>::Iterator *it = nullptr);
 
-    auto FindNode(ID<Entity> id)
+    auto FindEntry(ID<Entity> id)
     {
-        return m_nodes.FindIf([id](const Node &item)
+        return m_entries.FindIf([id](const Entry &entry)
         {
-            return item.id == id;
+            return entry.id == id;
         });
     }
 
-    bool IsRoot() const { return m_parent == nullptr; }
-    bool Empty() const { return m_nodes.Empty(); }
+    bool IsRoot() const
+        { return m_parent == nullptr; }
+
+    bool Empty() const
+        { return m_entries.Empty(); }
     
     void SetParent(Octree *parent);
     bool EmptyDeep(int depth = DEPTH_SEARCH_INF, uint8 octant_mask = 0xff) const;
@@ -380,7 +383,7 @@ private:
 
     void Invalidate();
 
-    /*! \brief If \ref{allow_rebuild} is true, removes any potentially empty octants above the node.
+    /*! \brief If \ref{allow_rebuild} is true, removes any potentially empty octants above the entry.
         If \ref{allow_rebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allow_rebuild);
@@ -395,7 +398,7 @@ private:
 
     RC<EntityManager>                                   m_entity_manager;
     
-    Array<Node>                                         m_nodes;
+    Array<Entry>                                        m_entries;
     FixedArray<HashCode, 1u << uint(EntityTag::MAX)>    m_entry_hashes;
     Octree                                              *m_parent;
     BoundingBox                                         m_aabb;

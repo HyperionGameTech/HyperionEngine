@@ -4,6 +4,8 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderGroup.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <Engine.hpp>
@@ -307,6 +309,8 @@ void FinalPass::Record(uint frame_index)
 
 void FinalPass::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();

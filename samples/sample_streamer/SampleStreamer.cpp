@@ -53,7 +53,7 @@
 
 #include <asset/model_loaders/PLYModelLoader.hpp>
 
-#include "util/Profile.hpp"
+#include <util/profiling/Profile.hpp>
 
 #include "rendering/RenderEnvironment.hpp"
 #include "rendering/UIRenderer.hpp"

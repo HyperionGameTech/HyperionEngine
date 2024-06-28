@@ -38,9 +38,11 @@ public:
     ScreenCaptureRenderComponent &operator=(ScreenCaptureRenderComponent &&other) noexcept  = delete;
     virtual ~ScreenCaptureRenderComponent() override;
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const GPUBufferRef &GetBuffer() const
         { return m_buffer; }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
