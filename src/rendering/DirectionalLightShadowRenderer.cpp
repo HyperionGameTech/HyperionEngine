@@ -386,7 +386,9 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
-        if (m_should_rerender_static_objects_signal.Consume()) {
+        if (GetShouldRerenderStaticObjectsSignal().Consume()) {
+            HYP_LOG(Shadows, LogLevel::DEBUG, "Rerendering static objects for shadow map");
+
             m_render_list_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
@@ -565,36 +567,33 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     const HashCode octant_hash_statics = fitting_octant->GetEntryListHash<EntityTag::STATIC>()
         .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
 
-    // Need to re-render static objects if octant's statics hash code has changed,
-    // or if camera view has cached
-    // bool needs_statics_rerender = false;
-    // needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
-    // needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
+    RenderListCollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
+        m_shadow_pass->GetRenderListStatics(),
+        m_camera,
+        renderable_attribute_set
+    );
 
-    // if (needs_statics_rerender) {
-    //     DebugLog(LogType::Debug, "Should re-render shadow statics with light dir: %f, %f, %f\n",
-    //         m_camera->GetDirection().x,
-    //         m_camera->GetDirection().y,
-    //         m_camera->GetDirection().z);
+    // Need to re-render static objects if:
+    // * octant's statics hash code has changed
+    // * camera view has changed
+    // * static objects have been added, removed or changed
+    
+    bool needs_statics_rerender = false;
+    needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
+    needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
+    needs_statics_rerender |= statics_collection_result.NeedsUpdate();
 
-        // m_cached_view_matrix = m_camera->GetViewMatrix();
-        // m_cached_octant_hash_code_statics = octant_hash_statics;
+    if (needs_statics_rerender) {
+        HYP_LOG(Shadows, LogLevel::DEBUG, "statics collection result: {}, {}, {}", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
+        
+        m_cached_view_matrix = m_camera->GetViewMatrix();
 
-        RenderListCollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
-            m_shadow_pass->GetRenderListStatics(),
-            m_camera,
-            renderable_attribute_set
-        );
+        // Force static objects to re-render for a few frames
+        m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(5);
 
-        if (statics_collection_result.NeedsUpdate() || m_cached_view_matrix != m_camera->GetViewMatrix()) {
-            HYP_LOG(Shadows, LogLevel::DEBUG, "statics collection result: {}, {}, {}", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
-            
-            m_cached_view_matrix = m_camera->GetViewMatrix();
-
-            // Force static objects to re-render for a few frames
-            m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(10);
-        }
-    // }
+        m_cached_view_matrix = m_camera->GetViewMatrix();
+        m_cached_octant_hash_code_statics = octant_hash_statics;
+    }
 
     GetParent()->GetScene()->CollectDynamicEntities(
         m_shadow_pass->GetRenderListDynamics(),

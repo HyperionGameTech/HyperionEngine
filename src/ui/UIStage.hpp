@@ -47,6 +47,16 @@ struct UIObjectPressedState
     float                       held_time = 0.0f;
 };
 
+enum class UIRayTestFlags : uint32
+{
+    NONE            = 0x0,
+    ONLY_VISIBLE    = 0x1,
+
+    DEFAULT         = ONLY_VISIBLE
+};
+
+HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
+
 class HYP_API UIStage : public UIObject
 {
 public:
@@ -144,7 +154,7 @@ public:
     );
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    bool TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects);
+    bool TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);
 
     /*! \brief Set the owner thread ID for the UIStage, as well as its
      *  underlying UIObjects.

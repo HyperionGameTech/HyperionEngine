@@ -285,7 +285,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     // Mouse hover: set selected menu item index if this menu bar has focus
     menu_item->OnMouseHover.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
     {
-        if (HasFocus(true)) {
+        if (m_container->HasFocus(true)) {
             const uint menu_item_index = GetMenuItemIndex(name);
 
             SetSelectedMenuItemIndex(menu_item_index);

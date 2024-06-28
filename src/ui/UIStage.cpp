@@ -158,7 +158,7 @@ void UIStage::AddChildUIObject(UIObject *ui_object)
 
 void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
-    HYP_NAMED_SCOPE("Update UI stage");
+    HYP_SCOPE;
 
     m_scene->Update(delta);
 
@@ -200,7 +200,7 @@ void UIStage::SetOwnerThreadID(ThreadID thread_id)
     }
 }
 
-bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
+bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags)
 {
     Threads::AssertOnThread(m_owner_thread_id);
 
@@ -215,6 +215,10 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
 
     for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
         if (!ui_component.ui_object) {
+            continue;
+        }
+
+        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_component.ui_object->IsVisible()) {
             continue;
         }
 
@@ -235,7 +239,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects)
     out_objects.Reserve(ray_test_results.Size());
 
     for (const RayHit &hit : ray_test_results) {
-        if (auto ui_object = GetUIObjectForEntity(ID<Entity>(hit.id))) {
+        if (RC<UIObject> ui_object = GetUIObjectForEntity(ID<Entity>(hit.id))) {
             out_objects.PushBack(std::move(ui_object));
         }
     }
