@@ -85,7 +85,7 @@ public:
 
         m_root_entry.SaveDiff();
         
-        if (profile_iteration++ == 25) {
+        if (profile_iteration++ == 100) {
             DebugLogProfileScopeEntry(&m_root_entry);
             profile_iteration = 0;
         }

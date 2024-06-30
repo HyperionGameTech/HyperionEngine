@@ -394,11 +394,11 @@ RenderList::~RenderList()
 {
 }
 
-RenderListCollectionResult RenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
     AssertThrow(m_draw_collection != nullptr);
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
@@ -450,7 +450,7 @@ void RenderList::PushEntityToRender(
     const RenderProxy &proxy
 )
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     AssertThrow(entity.IsValid());
     AssertThrow(proxy.mesh.IsValid());

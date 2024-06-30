@@ -3,6 +3,10 @@
 #ifndef HYPERION_MUTEX_HPP
 #define HYPERION_MUTEX_HPP
 
+#ifdef HYP_UNIX
+#include <pthread.h>
+#endif
+
 #include <mutex>
 
 namespace hyperion {
@@ -42,13 +46,29 @@ public:
     ~Mutex()                                    = default;
 
     void Lock()
-        { m_mutex.lock(); }
+    {
+#ifdef HYP_UNIX
+        pthread_mutex_lock(&m_mutex);
+#else
+        m_mutex.lock();
+#endif
+    }
 
     void Unlock()
-        { m_mutex.unlock(); }
+    {
+#ifdef HYP_UNIX
+        pthread_mutex_unlock(&m_mutex);
+#else
+        m_mutex.unlock();
+#endif
+    }
 
 private:
+#ifdef HYP_UNIX
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+#else
     std::mutex m_mutex;
+#endif
 };
 
 } // namespace threading

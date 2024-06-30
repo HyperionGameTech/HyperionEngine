@@ -23,8 +23,6 @@ struct ThreadSignal
     ThreadSignal &operator=(ThreadSignal &&other) noexcept  = delete;
     ~ThreadSignal()                                         = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
     bool Consume()
     {
         ValueType current_value = value.Get(MemoryOrder::ACQUIRE);

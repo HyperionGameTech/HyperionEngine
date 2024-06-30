@@ -45,7 +45,7 @@ void RTCServer::EnqueueClientRemoval(String client_id)
 {
     AssertThrow(m_thread != nullptr && m_thread->IsRunning());
 
-    m_thread->GetScheduler().Enqueue([this, id = std::move(client_id)](...) mutable
+    m_thread->GetScheduler().Enqueue([this, id = std::move(client_id)]() mutable
     {
         Optional<RC<RTCClient>> client = m_client_list.Get(id);
 
@@ -56,7 +56,7 @@ void RTCServer::EnqueueClientRemoval(String client_id)
         client.Get()->Disconnect();
 
         m_client_list.Remove(id);
-    });
+    }, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 
@@ -172,7 +172,7 @@ void LibDataChannelRTCServer::Start()
         DebugLog(LogType::Debug, "Attempting to connect websocket server to url: %s\n", websocket_url.Data());
 
         m_websocket->open(websocket_url.Data());
-    });
+    }, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void LibDataChannelRTCServer::Stop()
@@ -189,7 +189,7 @@ void LibDataChannelRTCServer::Stop()
                     ws->close();
                 }
             }
-        });
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
     } else {
         m_websocket.Reset();
     }
@@ -227,7 +227,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
                 Optional<RTCServerError>(RTCServerError { "Message could not be sent" })
             });
         }
-    });
+    }, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void LibDataChannelRTCServer::SendToClient(String client_id, const ByteBuffer &bytes)

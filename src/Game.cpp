@@ -204,10 +204,10 @@ void Game::PushEvent(SystemEvent &&event)
     }
 
     if (m_game_thread->IsRunning()) {
-        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable
+        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)](GameCounter::TickUnit delta) mutable -> void
         {
             HandleEvent(std::move(event));
-        });
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 

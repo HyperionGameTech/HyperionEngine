@@ -73,9 +73,9 @@ void GameThread::operator()(Game *game)
     }
 
     // flush scheduler
-    m_scheduler.Flush([](auto &fn)
+    m_scheduler.Flush([](auto &operation)
     {
-        fn(MathUtil::epsilon_f);
+        operation.Execute(MathUtil::epsilon_f);
     });
 
     game->Teardown();

@@ -81,10 +81,14 @@ VkFilter ToVkFilter(FilterMode filter_mode)
 {
     switch (filter_mode) {
     case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
-    case FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP: return VK_FILTER_NEAREST;
+    case FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP:
+        return VK_FILTER_NEAREST;
     case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP: // fallthrough
     case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP: // fallthrough
-    case FilterMode::TEXTURE_FILTER_LINEAR: return VK_FILTER_LINEAR;
+    case FilterMode::TEXTURE_FILTER_LINEAR:
+        return VK_FILTER_LINEAR;
+    default:
+        break;
     }
 
     AssertThrowMsg(false, "Unhandled texture filter mode case %d", int(filter_mode));

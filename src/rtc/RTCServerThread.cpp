@@ -32,8 +32,9 @@ void RTCServerThread::operator()(RTCServer *server)
     }
 
     // flush scheduler
-    m_scheduler.Flush([](auto &fn) {
-        fn();
+    m_scheduler.Flush([](auto &operation)
+    {
+        operation.Execute();
     });
 }
 

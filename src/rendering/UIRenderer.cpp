@@ -238,7 +238,7 @@ void UIRenderList::PushEntityToRender(ID<Entity> entity, const RenderProxy &prox
     m_proxy_ordering.PushBack(entity);
 }
 
-void UIRenderList::UpdateOnRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+void UIRenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -458,7 +458,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         );
     });
 
-    m_render_list.UpdateOnRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
+    m_render_list.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
 }
 
 void UIRenderer::OnRender(Frame *frame)

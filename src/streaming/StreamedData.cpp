@@ -242,11 +242,11 @@ void MemoryStreamedData::Unpage_Internal()
     m_hash_code = m_byte_buffer->GetHashCode();
 
     // Enqueue task to write file to disk
-    TaskSystem::GetInstance().ScheduleTask([byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code]
+    TaskSystem::GetInstance().Enqueue([byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code]
     {
         auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
         data_store.Write(String::ToString(hash_code.Value()), byte_buffer);
-    });
+    }, TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_byte_buffer.Unset();
 }

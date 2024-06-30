@@ -399,7 +399,7 @@ public:
 
     /*! \brief Get the background color of the UI object
      * \return The background color of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_NODISCARD
     Color GetBackgroundColor() const;
 
     /*! \brief Set the background color of the UI object
@@ -408,7 +408,7 @@ public:
 
     /*! \brief Get the text color of the UI object
      * \return The text color of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_NODISCARD
     Color GetTextColor() const;
 
     /*! \brief Set the text color of the UI object

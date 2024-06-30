@@ -76,19 +76,21 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
     batch->num_completed.Set(0, MemoryOrder::RELAXED);
     batch->num_enqueued = 0u;
-    batch->task_refs.Resize(batch->tasks.Size());
+    batch->task_refs.Resize(batch->executors.Size());
 
     const ThreadID &current_thread_id = Threads::CurrentThreadID();
 
     TaskThreadPool &pool = GetPool(batch->pool);
 
-    const uint num_threads_in_pool = uint(pool.threads.Size());
-    const uint max_spins = num_threads_in_pool;
+    const uint32 num_threads_in_pool = uint32(pool.threads.Size());
+    const uint32 max_spins = num_threads_in_pool;
 
-    for (SizeType i = 0; i < batch->tasks.Size(); i++) {
-        auto &task = batch->tasks[i];
+    uint32 task_index = 0;
 
-        uint cycle = pool.cycle.Get(MemoryOrder::RELAXED);
+    for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it, ++task_index) {
+        TaskExecutor<> &executor = *it;
+
+        uint32 cycle = pool.cycle.Get(MemoryOrder::RELAXED);
 
         TaskThread *task_thread = nullptr;
         uint num_spins = 0;
@@ -119,25 +121,24 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         if (was_busy) {
             HYP_LOG(Tasks, LogLevel::WARNING, "On task thread {}: All other task threads busy; Executing task inline", current_thread_id.name);
 
-            task.Execute();
+            executor.Execute();
 
             continue;
         }
 
-        const TaskID task_id = task_thread->ScheduleTask(std::move(task), &batch->num_completed);
+        AssertThrow(task_thread != nullptr);
+
+        const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(&executor, &batch->num_completed);
 
         ++batch->num_enqueued;
 
-        batch->task_refs[i] = TaskRef {
-            task_thread,
-            task_id
+        batch->task_refs[task_index] = TaskRef {
+            task_id,
+            &task_thread->GetScheduler()
         };
 
         pool.cycle.Set(cycle, MemoryOrder::RELAXED);
     }
-
-    // all have been moved
-    batch->tasks.Clear();
 
     return batch;
 }
@@ -157,11 +158,11 @@ Array<bool> TaskSystem::DequeueBatch(TaskBatch *batch)
     for (SizeType i = 0; i < batch->task_refs.Size(); i++) {
         const TaskRef &task_ref = batch->task_refs[i];
 
-        if (task_ref.runner == nullptr) {
+        if (!task_ref.IsValid()) {
             continue;
         }
 
-        results[i] = task_ref.runner->GetScheduler().Dequeue(task_ref.id);
+        results[i] = task_ref.assigned_scheduler->Dequeue(task_ref.id);
     }
 
     return results;

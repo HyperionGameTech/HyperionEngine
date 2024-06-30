@@ -340,7 +340,7 @@ ComponentInterfaceBase *EntityManager::GetComponentInterface(TypeID type_id)
     return ComponentInterfaceRegistry::GetInstance().GetComponentInterface(type_id);
 }
 
-void EntityManager::Update(GameCounter::TickUnit delta)
+void EntityManager::BeginUpdate(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
     
@@ -350,97 +350,44 @@ void EntityManager::Update(GameCounter::TickUnit delta)
 
     // Process the execution groups in sequential order
     for (auto &system_execution_group : m_system_execution_groups) {
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-        const auto start = std::chrono::high_resolution_clock::now();
-
-        puts("----------");
-#endif
-
-        system_execution_group.Process(delta);
-
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-        const auto stop = std::chrono::high_resolution_clock::now();
-
-        const double ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count();
-
-        printf("Total time: (%f ms)\n", ms);
-        puts("----------");
-#endif
+        system_execution_group.StartProcessing(delta);
     }
 }
 
-void SystemExecutionGroup::Process(GameCounter::TickUnit delta)
+void EntityManager::EndUpdate()
+{
+    HYP_SCOPE;
+    
+    for (auto &system_execution_group : m_system_execution_groups) {
+        system_execution_group.FinishProcessing();
+    }
+}
+
+void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-    Array<Pair<ThreadMask, double>> times;
-    times.Resize(m_systems.Size());
-#endif
+    AssertThrow(m_tasks.Empty());
 
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
-    if (m_systems.Size() >= systems_execution_parallel_threshold) {
-        TaskSystem::GetInstance().ParallelForEach(
-            TaskThreadPoolName::THREAD_POOL_GENERIC,
-            m_systems,
-            [&, delta](auto &it, uint32 index, uint32)
-            {
-                // HYP_NAMED_SCOPE(it.first.Name().LookupString());
+    m_tasks.Reserve(m_systems.Size());
 
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-                const auto start = std::chrono::high_resolution_clock::now();
-#endif
+    for (auto &it : m_systems) {
+        m_tasks.PushBack(TaskSystem::GetInstance().Enqueue([system = it.second.Get(), delta]
+        {
+            HYP_NAMED_SCOPE("Processing system");
 
-                it.second->Process(delta);
-
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-                auto stop = std::chrono::high_resolution_clock::now();
-
-                // set to ms
-                times[index] = {
-                    Threads::CurrentThreadID(),
-                    std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count()
-                };
-#endif
-            }
-        );
-    } else {
-#endif
-        for (SizeType i = 0; i < m_systems.Size(); i++) {
-            const auto &it = *(m_systems.Begin() + i);
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-            const auto start = std::chrono::high_resolution_clock::now();
-#endif
-
-            it.second->Process(delta);
-
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-            const auto stop = std::chrono::high_resolution_clock::now();
-
-            // set to ms
-            times[i] = {
-                Threads::CurrentThreadID(),
-                (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop - start).count())
-            };
-#endif
-        }
-
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
+            system->Process(delta);
+        }));
     }
-#endif
+}
 
-#ifdef HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-    for (SizeType i = 0; i < m_systems.Size(); i++) {
-        printf(
-            "%s (%f ms, thread: %d)\t",
-            (*(m_systems.Begin() + i)).first.Name().LookupString(),
-            times[i].second,
-            times[i].first
-        );
+void SystemExecutionGroup::FinishProcessing()
+{
+    for (Task<void> &task : m_tasks) {
+        task.Await();
     }
 
-    puts("");
-#endif
+    m_tasks.Clear();
 }
 
 #pragma endregion EntityManager

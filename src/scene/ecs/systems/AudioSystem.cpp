@@ -79,6 +79,8 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
 
                 audio_component.audio_source->Play();
                 break;
+            default:
+                break;
             }
 
             const Vec3f &position = transform_component.transform.GetTranslation();

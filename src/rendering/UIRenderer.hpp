@@ -35,7 +35,7 @@ public:
         const RenderProxy &proxy
     );
 
-    void UpdateOnRenderThread(
+    void PushUpdatesToRenderThread(
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );

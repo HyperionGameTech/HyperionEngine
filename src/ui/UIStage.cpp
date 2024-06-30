@@ -160,7 +160,8 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    m_scene->Update(delta);
+    m_scene->BeginUpdate(delta);
+    m_scene->EndUpdate();
 
     for (auto &it : m_mouse_button_pressed_states) {
         it.second.held_time += delta;

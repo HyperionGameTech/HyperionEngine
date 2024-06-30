@@ -296,7 +296,7 @@
 
 #define HYP_WAIT_IDLE() \
     do { \
-        volatile int x = 0; \
+        volatile uint32 x = 0; \
         x = x + 1; \
     } while (0)
 

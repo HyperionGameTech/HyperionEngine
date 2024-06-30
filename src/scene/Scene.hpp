@@ -194,7 +194,8 @@ public:
         by the World, unless you are using a Scene as a non-world scene.
         * @param delta The delta time since the last update.
     */
-    void Update(GameCounter::TickUnit delta);
+    void BeginUpdate(GameCounter::TickUnit delta);
+    void EndUpdate();
 
     RenderListCollectionResult CollectEntities(
         RenderList &render_list, 
@@ -242,6 +243,8 @@ private:
     bool                            m_is_non_world_scene;
 
     bool                            m_is_audio_listener;
+
+    GameCounter::TickUnit           m_previous_delta;
                                  
     mutable DataMutationState       m_mutation_state;
 

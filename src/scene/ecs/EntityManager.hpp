@@ -128,14 +128,19 @@ public:
         return m_systems.Erase(id);
     }
 
-    /*! \brief Processes all Systems in the SystemExecutionGroup.
+    /*! \brief Start processing all Systems in the SystemExecutionGroup.
      *
      *  \param[in] delta The delta time value
      */
-    void Process(GameCounter::TickUnit delta);
+    void StartProcessing(GameCounter::TickUnit delta);
+
+    /*! \brief Waits on all processing tasks to complete */
+    void FinishProcessing();
 
 private:
     TypeMap<UniquePtr<SystemBase>>  m_systems;
+
+    Array<Task<void>>               m_tasks;
 };
 
 using EntityListenerID = uint;
@@ -777,7 +782,8 @@ public:
         return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>(new SystemType(*this, std::forward<Args>(args)...))));
     }
 
-    void Update(GameCounter::TickUnit delta);
+    void BeginUpdate(GameCounter::TickUnit delta);
+    void EndUpdate();
 
     void PushCommand(EntityManagerCommandProc &&command)
         { m_command_queue.Push(std::move(command)); }

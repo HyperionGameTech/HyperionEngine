@@ -17,9 +17,11 @@ namespace threading {
 
 struct ThreadID;
 
-class TaskThread : public Thread<Scheduler<Task<void>>>
+class TaskThread : public Thread<Scheduler<>>
 {
 public:
+    using Scheduler = Thread::Scheduler;
+
     TaskThread(const ThreadID &thread_id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
     virtual ~TaskThread() override = default;

@@ -126,6 +126,8 @@ void FirstPersonCameraController::RespondToCommand(const CameraCommand &command,
             m_move_deltas += m_dir_cross_y;// * speed;
 
             break;
+        default:
+            break;
         }
     
         break;

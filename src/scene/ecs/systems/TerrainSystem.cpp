@@ -504,7 +504,7 @@ void TerrainSystem::Process(GameCounter::TickUnit delta)
                 });
 
                 // add task to generation queue
-                const TaskRef generation_task_ref = TaskSystem::GetInstance().ScheduleTask([patch_info, generation_queue = state->patch_generation_queue_shared, noise_combinator = state->noise_combinator]()
+                Task<void> generation_task = TaskSystem::GetInstance().Enqueue([patch_info, generation_queue = state->patch_generation_queue_shared, noise_combinator = state->noise_combinator]()
                 {
                     terrain::TerrainMeshBuilder mesh_builder(patch_info);
                     mesh_builder.GenerateHeights(*noise_combinator);
@@ -531,7 +531,7 @@ void TerrainSystem::Process(GameCounter::TickUnit delta)
                     );
                 }, TaskThreadPoolName::THREAD_POOL_GENERIC);
 
-                state->patch_generation_tasks.Insert(patch_info.coord, generation_task_ref);
+                state->patch_generation_tasks.Insert(patch_info.coord, std::move(generation_task));
 
                 break;
             }
@@ -545,9 +545,9 @@ void TerrainSystem::Process(GameCounter::TickUnit delta)
                 const auto patch_generation_task_it = state->patch_generation_tasks.Find(update.coord);
 
                 if (patch_generation_task_it != state->patch_generation_tasks.End()) {
-                    const TaskRef patch_generation_task = patch_generation_task_it->second;
+                    const Task<void> &patch_generation_task = patch_generation_task_it->second;
 
-                    TaskSystem::GetInstance().Unschedule(patch_generation_task);
+                    TaskSystem::GetInstance().CancelTask(patch_generation_task);
 
                     state->patch_generation_tasks.Erase(patch_generation_task_it);
                 }

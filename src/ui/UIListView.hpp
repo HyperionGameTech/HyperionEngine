@@ -44,8 +44,7 @@ public:
     /*! \brief Get the number of items in the list view.
      * 
      * \return The number of items in the list view. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
+    HYP_NODISCARD HYP_FORCE_INLINE
     uint NumListViewItems() const
         { return m_list_view_items.Size(); }
 

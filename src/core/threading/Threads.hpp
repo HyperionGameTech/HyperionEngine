@@ -64,8 +64,13 @@ public:
     HYP_API static bool IsThreadInMask(const ThreadID &thread_id, ThreadMask mask);
     HYP_API static bool IsOnThread(ThreadMask mask);
     HYP_API static bool IsOnThread(const ThreadID &thread_id);
+
+    HYP_API static ThreadBase *CurrentThreadObject();
+
     HYP_API static ThreadID GetThreadID(ThreadName thread_name);
     HYP_API static ThreadID CurrentThreadID();
+
+    HYP_API static void SetCurrentThreadObject(ThreadBase *);
     HYP_API static void SetCurrentThreadID(ThreadID id);
     HYP_API static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 

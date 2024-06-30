@@ -18,6 +18,8 @@ HYP_DEFINE_CLASS(World);
 
 using renderer::RTUpdateStateFlags;
 
+#define HYP_WORLD_ASYNC_SCENE_UPDATES
+
 World::World()
     : BasicObject(),
       m_detached_scenes(this)
@@ -119,13 +121,41 @@ void World::Update(GameCounter::TickUnit delta)
         PerformSceneUpdates();
     }
 
-    for (Handle<Scene> &scene : m_scenes) {
-        scene->Update(delta);
+#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+    Array<Task<void>> collect_entities_tasks;
+    collect_entities_tasks.Reserve(m_scenes.Size());
+#endif
 
-        RenderList &render_list = m_render_list_container.GetRenderListForScene(scene->GetID());
+    for (uint32 index = 0; index < m_scenes.Size(); index++) {
+        HYP_NAMED_SCOPE("Begin scene updates");
 
-        scene->CollectEntities(render_list, scene->GetCamera());
+        m_scenes[index]->BeginUpdate(delta);
     }
+
+    for (uint32 index = 0; index < m_scenes.Size(); index++) {
+        HYP_NAMED_SCOPE("End scene updates");
+
+        const Handle<Scene> &scene = m_scenes[index];
+
+        scene->EndUpdate();
+
+#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+        collect_entities_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, index]
+        {
+            const Handle<Scene> &scene = m_scenes[index];
+
+            RenderList &render_list = m_render_list_container.GetRenderListForScene(scene->GetID());
+
+            scene->CollectEntities(render_list, scene->GetCamera());
+        }));
+#endif
+    }
+
+#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+    for (Task<void> &task : collect_entities_tasks) {
+        task.Await();
+    }
+#endif
 }
 
 void World::PreRender(Frame *frame)

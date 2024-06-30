@@ -62,7 +62,7 @@ protected:
 
 };
 
-class HYP_API SocketServerThread final : public Thread<Scheduler<Task<void>>, SocketServer *>
+class HYP_API SocketServerThread final : public Thread<Scheduler<>, SocketServer *>
 {
 public:
     SocketServerThread(const String &socket_name);

@@ -59,7 +59,7 @@ private:
 
     struct TerrainGenerationState
     {
-        FlatMap<TerrainPatchCoord, TaskRef>     patch_generation_tasks;
+        FlatMap<TerrainPatchCoord, Task<void>>  patch_generation_tasks;
         Queue<TerrainGenerationResult>          patch_generation_queue_owned;
         RC<TerrainGenerationQueue>              patch_generation_queue_shared;
 

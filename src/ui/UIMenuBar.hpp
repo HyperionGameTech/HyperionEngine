@@ -58,7 +58,7 @@ public:
      * 
      * \return The array of DropDownMenuItems.
      */
-    HYP_NODISCARD 
+    HYP_NODISCARD HYP_FORCE_INLINE
     const Array<DropDownMenuItem> &GetDropDownMenuItems() const
         { return m_drop_down_menu_items; }
 
@@ -92,6 +92,7 @@ public:
     const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
+    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return false; }
 

@@ -6,6 +6,7 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
+#include <core/containers/LinkedList.hpp>
 #include <core/memory/UniquePtr.hpp>
 #include <core/logging/LoggerFwd.hpp>
 #include <core/Defines.hpp>
@@ -36,55 +37,51 @@ enum TaskThreadPoolName : uint
     THREAD_POOL_MAX
 };
 
-struct TaskRef
-{
-    TaskThread  *runner;
-    TaskID      id;
-};
-
 struct TaskBatch
 {
-    AtomicVar<uint>                     num_completed;
-    uint                                num_enqueued = 0;
+    AtomicVar<uint32>                       num_completed;
+    uint32                                  num_enqueued = 0;
 
     /*! \brief The priority / pool lane for which to place
      * all of the threads in this batch into
      */
-    TaskThreadPoolName                  pool = THREAD_POOL_GENERIC;
+    TaskThreadPoolName                      pool = THREAD_POOL_GENERIC;
 
     /* Number of tasks must remain constant from creation of the TaskBatch,
      * to completion. */
-    Array<TaskThread::Scheduler::Task>  tasks;
+    LinkedList<TaskExecutorInstance<void>>  executors;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
      * each task has been scheduled to. */
-    Array<TaskRef>                      task_refs;
+    Array<TaskRef>                          task_refs;
 
     /*! \brief Add a task to be ran with this batch. Note: adding a task while the batch is already running
      * does not mean the newly added task will be ran! You'll need to re-enqueue the batch after the previous one has been completed.
      */
-    HYP_FORCE_INLINE void AddTask(TaskThread::Scheduler::Task &&task)
-        { tasks.PushBack(std::move(task)); }
+    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
+        { executors.PushBack(std::move(executor)); }
 
     HYP_FORCE_INLINE bool IsCompleted() const
         { return num_completed.Get(MemoryOrder::RELAXED) >= num_enqueued; }
 
     /*! \brief Block the current thread until all tasks have been marked as completed. */
-    HYP_FORCE_INLINE void AwaitCompletion() const
+    HYP_FORCE_INLINE void AwaitCompletion()
     {
         while (!IsCompleted()) {
             HYP_WAIT_IDLE();
         }
+
+        executors.Clear();
     }
 
     /*! \brief Execute each non-enqueued task in serial (not async). */
     void ExecuteBlocking()
     {
-        for (auto &task : tasks) {
-            task.Execute();
+        for (TaskThread::Scheduler::TaskExecutorType &executor : executors) {
+            executor.Execute();
         }
 
-        tasks.Clear();
+        executors.Clear();
     }
 };
 
@@ -98,7 +95,7 @@ class TaskSystem
 
     struct TaskThreadPoolInfo
     {
-        uint                num_task_threads = 0u;
+        uint32              num_task_threads = 0u;
         ThreadPriorityValue priority = ThreadPriorityValue::NORMAL;
     };
 
@@ -111,7 +108,7 @@ public:
     {
         ThreadMask mask = THREAD_TASK_0;
 
-        for (uint i = 0; i < THREAD_POOL_MAX; i++) {
+        for (uint32 i = 0; i < THREAD_POOL_MAX; i++) {
             const TaskThreadPoolName pool_name { i };
 
             auto thread_pool_infos_it = s_thread_pool_infos.Find(pool_name);
@@ -153,30 +150,25 @@ public:
     TaskThreadPool &GetPool(TaskThreadPoolName pool_name)
         { return m_pools[uint(pool_name)]; }
 
-    template <class Task>
-    TaskRef ScheduleTask(Task &&task, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC)
+    template <class Lambda>
+    auto Enqueue(Lambda &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC) -> Task<typename FunctionTraits<Lambda>::ReturnType>
     {
         AssertThrowMsg(
             IsRunning(),
             "TaskSystem::Start() must be called before enqueuing tasks"
         );
-
+        
         TaskThreadPool &pool = GetPool(pool_name);
 
-        const uint cycle = pool.cycle.Get(MemoryOrder::RELAXED);
+        const uint32 cycle = pool.cycle.Get(MemoryOrder::RELAXED);
 
         TaskThread *task_thread = pool.threads[cycle].Get();
-        const TaskID task_id = task_thread->ScheduleTask(std::forward<Task>(task));
-
         pool.cycle.Set((cycle + 1) % pool.threads.Size(), MemoryOrder::RELAXED);
 
-        return TaskRef {
-            task_thread,
-            task_id
-        };
+        return task_thread->GetScheduler().Enqueue(std::forward<Lambda>(fn), flags);
     }
 
-    /*! \brief Enqueue a batch of multiple Tasks. Each Task will be enqueued to run in parallel.
+    /*! \brief Enqueue a batch of multiple Tasks. Each task will be enqueued to run in parallel.
      * You will need to call AwaitCompletion() before the underlying TaskBatch is destroyed.
      */
     HYP_API TaskBatch *EnqueueBatch(TaskBatch *batch);
@@ -184,7 +176,7 @@ public:
     /*! \brief Dequeue each task in a TaskBatch. A potentially expensive operation,
      * as each task will have to individually be dequeued, performing a lock operation.
      * @param batch Pointer to the TaskBatch to dequeue
-     * @returns A Array<bool> containing for each Task that has been enqueued, whether or not
+     * @returns A Array<bool> containing for each task that has been enqueued, whether or not
      * it was successfully dequeued.
      */
     HYP_API Array<bool> DequeueBatch(TaskBatch *batch);
@@ -193,7 +185,7 @@ public:
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class Lambda>
-    void ParallelForEach(TaskThreadPoolName pool, uint num_batches, uint num_items, Lambda &&lambda)
+    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, uint32 num_items, Lambda &&lambda)
     {
         if (num_items == 0) {
             return;
@@ -204,24 +196,24 @@ public:
         TaskBatch batch;
         batch.pool = pool;
 
-        const uint items_per_batch = (num_items + num_batches - 1) / num_batches;
+        const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
-        for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
+        for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
             batch.AddTask([batch_index, items_per_batch, num_items, &lambda](...)
             {
-                const uint offset_index = batch_index * items_per_batch;
-                const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+                const uint32 offset_index = batch_index * items_per_batch;
+                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
-                for (uint i = offset_index; i < max_index; i++) {
+                for (uint32 i = offset_index; i < max_index; i++) {
                     lambda(i, batch_index);
                 }
             });
         }
 
-        if (batch.tasks.Size() > 1) {
+        if (batch.executors.Size() > 1) {
             EnqueueBatch(&batch);
             batch.AwaitCompletion();
-        } else if (batch.tasks.Size() == 1) {
+        } else if (batch.executors.Size() == 1) {
             // no point in enqueing for just 1 task, execute immediately
             batch.ExecuteBlocking();
         }
@@ -231,13 +223,13 @@ public:
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
     template <class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, uint num_items, Lambda &&lambda)
+    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, uint32 num_items, Lambda &&lambda)
     {
         const auto &pool = GetPool(priority);
 
         ParallelForEach(
             priority,
-            uint(pool.threads.Size()),
+            pool.threads.Size(),
             num_items,
             std::forward<Lambda>(lambda)
         );
@@ -247,14 +239,14 @@ public:
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
     template <class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(uint num_items, Lambda &&lambda)
+    HYP_FORCE_INLINE void ParallelForEach(uint32 num_items, Lambda &&lambda)
     {
         constexpr auto priority = THREAD_POOL_GENERIC;
         const auto &pool = GetPool(priority);
 
         ParallelForEach(
             priority,
-            uint(pool.threads.Size()),
+            pool.threads.Size(),
             num_items,
             std::forward<Lambda>(lambda)
         );
@@ -264,11 +256,11 @@ public:
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class Container, class Lambda>
-    void ParallelForEach(TaskThreadPoolName pool, uint num_batches, Container &&items, Lambda &&lambda)
+    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, Container &&items, Lambda &&lambda)
     {
         //static_assert(Container::is_contiguous, "Container must be contiguous to use ParallelForEach");
 
-        const uint num_items = uint(items.Size());
+        const uint32 num_items = uint32(items.Size());
 
         if (num_items == 0) {
             return;
@@ -279,26 +271,26 @@ public:
         TaskBatch batch;
         batch.pool = pool;
 
-        const uint items_per_batch = (num_items + num_batches - 1) / num_batches;
+        const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         auto *data_ptr = items.Data();
 
-        for (uint batch_index = 0; batch_index < num_batches; batch_index++) {
+        for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
             batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, &lambda](...)
             {
-                const uint offset_index = batch_index * items_per_batch;
-                const uint max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+                const uint32 offset_index = batch_index * items_per_batch;
+                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
-                for (uint i = offset_index; i < max_index; i++) {
+                for (uint32 i = offset_index; i < max_index; i++) {
                     lambda(*(data_ptr + i), i, batch_index);
                 }
             });
         }
 
-        if (batch.tasks.Size() > 1) {
+        if (batch.executors.Size() > 1) {
             EnqueueBatch(&batch);
             batch.AwaitCompletion();
-        } else if (batch.tasks.Size() == 1) {
+        } else if (batch.executors.Size() == 1) {
             // no point in enqueing for just 1 task, execute immediately
             batch.ExecuteBlocking();
         }
@@ -314,7 +306,7 @@ public:
 
         ParallelForEach(
             priority,
-            uint(pool.threads.Size()),
+            pool.threads.Size(),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );
@@ -331,14 +323,20 @@ public:
 
         ParallelForEach(
             priority,
-            uint(pool.threads.Size()),
+            pool.threads.Size(),
             std::forward<Container>(items),
             std::forward<Lambda>(lambda)
         );
     }
 
-    HYP_FORCE_INLINE bool Unschedule(const TaskRef &task_ref)
-        { return task_ref.runner->GetScheduler().Dequeue(task_ref.id); }
+    HYP_FORCE_INLINE bool CancelTask(const TaskRef &task_ref)
+    {
+        if (!task_ref.IsValid()) {
+            return false;
+        }
+
+        return task_ref.assigned_scheduler->Dequeue(task_ref.id);
+    }
 
 private:
     FixedArray<TaskThreadPool, THREAD_POOL_MAX> m_pools;

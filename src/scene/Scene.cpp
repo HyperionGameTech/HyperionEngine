@@ -119,6 +119,7 @@ Scene::Scene(
     m_is_audio_listener(false),
     m_entity_manager(new EntityManager(owner_thread_id.GetMask(), this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
+    m_previous_delta(0.01667f),
     m_mutation_state(DataMutationState::DIRTY)
 {
     m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
@@ -241,7 +242,7 @@ NodeProxy Scene::FindNodeByName(const String &name) const
     return m_root_node_proxy->FindChildByName(name);
 }
 
-void Scene::Update(GameCounter::TickUnit delta)
+void Scene::BeginUpdate(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
@@ -272,11 +273,24 @@ void Scene::Update(GameCounter::TickUnit delta)
         }
     }
 
-    m_entity_manager->Update(delta);
+    m_entity_manager->BeginUpdate(delta);
+
+    m_previous_delta = delta;
+}
+
+void Scene::EndUpdate()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+
+    AssertReady();
+
+    m_entity_manager->EndUpdate();
 
     if (IsWorldScene()) {
         // update render environment
-        m_environment->Update(delta);
+        m_environment->Update(m_previous_delta);
     }
 
     EnqueueRenderUpdates();
@@ -327,7 +341,7 @@ RenderListCollectionResult Scene::CollectEntities(
         );
     }
 
-    return render_list.UpdateOnRenderThread(
+    return render_list.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
@@ -379,7 +393,7 @@ RenderListCollectionResult Scene::CollectDynamicEntities(
         );
     }
 
-    return render_list.UpdateOnRenderThread(
+    return render_list.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
@@ -394,11 +408,11 @@ RenderListCollectionResult Scene::CollectStaticEntities(
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     if (!camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return render_list.UpdateOnRenderThread(
+        return render_list.PushUpdatesToRenderThread(
             camera->GetFramebuffer(),
             override_attributes
         );
@@ -434,7 +448,7 @@ RenderListCollectionResult Scene::CollectStaticEntities(
         );
     }
 
-    return render_list.UpdateOnRenderThread(
+    return render_list.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );

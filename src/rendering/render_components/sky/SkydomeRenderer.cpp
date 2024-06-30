@@ -77,7 +77,9 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_env_probe->SetNeedsUpdate(true);
     m_env_probe->SetNeedsRender(true);
 
-    m_virtual_scene->Update(delta);
+    m_virtual_scene->BeginUpdate(delta);
+    m_virtual_scene->EndUpdate();
+    
     m_env_probe->Update(delta);
 }
 

@@ -19,6 +19,8 @@
 
 namespace hyperion {
 
+#define HYP_SHADOW_RENDER_COLLECTION_ASYNC
+
 using renderer::RenderPassStage;
 using renderer::RenderPassMode;
 using renderer::LoadOperation;
@@ -561,23 +563,69 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         }
     );
 
-    Octree const *fitting_octant = &octree;
-    octree.GetFittingOctant(m_aabb, fitting_octant);
-    
-    const HashCode octant_hash_statics = fitting_octant->GetEntryListHash<EntityTag::STATIC>()
-        .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
+    // Render data update
+    EnumFlags<ShadowFlags> flags = ShadowFlags::NONE;
 
+    switch (m_shadow_pass->GetShadowMode()) {
+    case ShadowMode::VSM:
+        flags |= ShadowFlags::VSM;
+        break;
+    case ShadowMode::CONTACT_HARDENED:
+        flags |= ShadowFlags::CONTACT_HARDENED;
+        break;
+    case ShadowMode::PCF:
+        flags |= ShadowFlags::PCF;
+        break;
+    default:
+        break;
+    }
+
+#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
+    Task<RenderListCollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    {
+        return GetParent()->GetScene()->CollectStaticEntities(
+            m_shadow_pass->GetRenderListStatics(),
+            m_camera,
+            renderable_attribute_set
+        );
+    });
+
+    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    {
+        GetParent()->GetScene()->CollectDynamicEntities(
+            m_shadow_pass->GetRenderListDynamics(),
+            m_camera,
+            renderable_attribute_set
+        );
+    });
+#else
     RenderListCollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
         m_shadow_pass->GetRenderListStatics(),
         m_camera,
         renderable_attribute_set
     );
 
+    GetParent()->GetScene()->CollectDynamicEntities(
+        m_shadow_pass->GetRenderListDynamics(),
+        m_camera,
+        renderable_attribute_set
+    );
+#endif
+
+    Octree const *fitting_octant = &octree;
+    octree.GetFittingOctant(m_aabb, fitting_octant);
+    
+    const HashCode octant_hash_statics = fitting_octant->GetEntryListHash<EntityTag::STATIC>()
+        .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
+
+#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
+    RenderListCollectionResult &statics_collection_result = statics_collection_task.Await();
+#endif
+
     // Need to re-render static objects if:
     // * octant's statics hash code has changed
     // * camera view has changed
     // * static objects have been added, removed or changed
-    
     bool needs_statics_rerender = false;
     needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
     needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
@@ -595,28 +643,9 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         m_cached_octant_hash_code_statics = octant_hash_statics;
     }
 
-    GetParent()->GetScene()->CollectDynamicEntities(
-        m_shadow_pass->GetRenderListDynamics(),
-        m_camera,
-        renderable_attribute_set
-    );
-
-    // Render data update
-    EnumFlags<ShadowFlags> flags = ShadowFlags::NONE;
-
-    switch (m_shadow_pass->GetShadowMode()) {
-    case ShadowMode::VSM:
-        flags |= ShadowFlags::VSM;
-        break;
-    case ShadowMode::CONTACT_HARDENED:
-        flags |= ShadowFlags::CONTACT_HARDENED;
-        break;
-    case ShadowMode::PCF:
-        flags |= ShadowFlags::PCF;
-        break;
-    default:
-        break;
-    }
+#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
+    dynamics_collection_task.Await();
+#endif
 
     PUSH_RENDER_COMMAND(
         UpdateShadowMapRenderData,

@@ -149,8 +149,6 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
 
     if (has_mipmaps) {
         /* Mipmapped image needs linear blitting. */
-        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Mipmapped image needs blitting support. Enabling...");
-
         vk_format_features |= VK_FORMAT_FEATURE_BLIT_DST_BIT
             | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 

@@ -26,16 +26,33 @@ const FlatMap<ThreadName, ThreadID> Threads::thread_ids = {
     { THREAD_TASK_10,   ThreadID { uint(THREAD_TASK_10),    HYP_NAME_UNSAFE(TaskThread10) } }
 };
 
+thread_local ThreadBase *g_current_thread = nullptr;
+
 #ifdef HYP_ENABLE_THREAD_ID
-thread_local ThreadID current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
+thread_local ThreadID g_current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
 #else
-static const ThreadID current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
+static const ThreadID g_current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
 #endif
+
+ThreadBase *Threads::CurrentThreadObject()
+{
+    return g_current_thread;
+}
+
+void Threads::SetCurrentThreadObject(ThreadBase *thread)
+{
+    AssertThrow(thread != nullptr);
+
+    g_current_thread = thread;
+
+    SetCurrentThreadID(thread->GetID());
+    SetCurrentThreadPriority(thread->GetPriority());
+}
 
 void Threads::SetCurrentThreadID(ThreadID id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    current_thread_id = id;
+    g_current_thread_id = id;
 #endif
 
 #ifdef HYP_WINDOWS
@@ -58,14 +75,14 @@ void Threads::AssertOnThread(ThreadMask mask, const char *message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    const auto &current = current_thread_id;
+    const ThreadID current_thread_id = g_current_thread_id;
 
     AssertThrowMsg(
-        (mask & current.value),
+        (mask & current_thread_id.value),
         "Expected current thread to be in mask %u, but got %u (%s). Message: %s",
         mask,
-        current.value,
-        current.name.LookupString(),
+        current_thread_id.value,
+        current_thread_id.name.LookupString(),
         message ? message : "(no message)"
     );
 
@@ -79,15 +96,15 @@ void Threads::AssertOnThread(const ThreadID &thread_id, const char *message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    const auto &current = current_thread_id;
+    const ThreadID current_thread_id = g_current_thread_id;
 
     AssertThrowMsg(
-        thread_id == current,
+        thread_id == current_thread_id,
         "Expected current thread to be %u (%s), but got %u (%s). Message: %s",
         thread_id.value,
         thread_id.name.LookupString(),
-        current.value,
-        current.name.LookupString(),
+        current_thread_id.value,
+        current_thread_id.name.LookupString(),
         message ? message : "(no message)"
     );
 #else
@@ -108,7 +125,7 @@ bool Threads::IsThreadInMask(const ThreadID &thread_id, ThreadMask mask)
 bool Threads::IsOnThread(ThreadMask mask)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    if (mask & current_thread_id.value) {
+    if (mask & g_current_thread_id.value) {
         return true;
     }
 
@@ -122,7 +139,7 @@ bool Threads::IsOnThread(ThreadMask mask)
 bool Threads::IsOnThread(const ThreadID &thread_id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    if (thread_id == current_thread_id) {
+    if (thread_id == g_current_thread_id) {
         return true;
     }
 
@@ -146,7 +163,7 @@ ThreadID Threads::GetThreadID(ThreadName thread_name)
 
 ThreadID Threads::CurrentThreadID()
 {
-    return current_thread_id;
+    return g_current_thread_id;
 }
 
 ThreadType Threads::GetThreadType()

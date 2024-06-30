@@ -90,15 +90,30 @@ struct ThreadID
 static_assert(std::is_trivially_destructible_v<ThreadID>,
     "ThreadID must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
 
+class ThreadBase
+{
+public:
+    virtual ~ThreadBase() = default;
+
+    /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
+    HYP_NODISCARD
+    virtual const ThreadID &GetID() const = 0;
+
+
+    /*! \brief Get the priority of this thread. */
+    HYP_NODISCARD
+    virtual ThreadPriorityValue GetPriority() const = 0;
+};
+
+extern HYP_API void SetCurrentThreadObject(ThreadBase *);
 extern HYP_API void SetCurrentThreadID(const ThreadID &thread_id);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class SchedulerType, class ...Args>
-class Thread
+class Thread : public ThreadBase
 {
 public:
     using Scheduler = SchedulerType;
-    using Task      = typename Scheduler::Task;
 
     // Dynamic thread
     Thread(Name dynamic_thread_name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
@@ -107,14 +122,14 @@ public:
     Thread &operator=(const Thread &other)      = delete;
     Thread(Thread &&other) noexcept             = delete;
     Thread &operator=(Thread &&other) noexcept  = delete;
-    virtual ~Thread();
+    virtual ~Thread() override;
 
-    /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
-    const ThreadID &GetID() const
+    HYP_NODISCARD
+    virtual const ThreadID &GetID() const override
         { return m_id; }
 
-    /*! \brief Get the priority of this thread. */
-    ThreadPriorityValue GetPriority() const
+    HYP_NODISCARD
+    virtual ThreadPriorityValue GetPriority() const override
         { return m_priority; }
 
     Scheduler &GetScheduler()
@@ -122,16 +137,6 @@ public:
 
     const Scheduler &GetScheduler() const
         { return m_scheduler; }
-
-    /*! \brief Enqueue a task to be executed on this thread
-     * @param task The task to be executed
-     * @param atomic_counter An optionally provided pointer to atomic uint which will be incremented
-     *      upon completion
-     */
-    TaskID ScheduleTask(Task &&task, AtomicVar<uint> *atomic_counter = nullptr)
-    {
-        return m_scheduler.Enqueue(std::forward<Task>(task), atomic_counter);
-    }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);
@@ -193,14 +198,13 @@ bool Thread<SchedulerType, Args...>::Start(Args ... args)
         return false;
     }
 
-    m_thread = new std::thread([&self = *this, tuple_args = MakeTuple(args...)](...) -> void
+    m_thread = new std::thread([this, tuple_args = MakeTuple(args...)](...) -> void
     {
-        SetCurrentThreadID(self.GetID());
-        SetCurrentThreadPriority(self.GetPriority());
+        SetCurrentThreadObject(this);
 
-        self.m_scheduler.SetOwnerThread(self.GetID());
+        m_scheduler.SetOwnerThread(GetID());
 
-        self((tuple_args.template GetElement<Args>())...);
+        (*this)((tuple_args.template GetElement<Args>())...);
     });
 
     return true;

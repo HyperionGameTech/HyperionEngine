@@ -92,7 +92,7 @@ struct Formatter< StringType, utilities::StringView< OtherStringType > >
 {
     auto operator()(const utilities::StringView< OtherStringType > &value) const
     {
-        return StringType(value);
+        return StringType(value.Data());
     }
 };
 

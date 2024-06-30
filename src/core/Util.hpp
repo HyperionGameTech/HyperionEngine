@@ -222,6 +222,64 @@ constexpr auto PrettyFunctionName()
 
 #define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName< StaticString(HYP_FUNCTION_NAME_LIT) >()
 
+#pragma region FunctionTraits
+
+template <class T>
+struct FunctionTraits;
+
+template <class R, class... Args>
+struct FunctionTraits<R(Args...)>
+{
+    using ReturnType = R;
+
+    static constexpr uint num_args = sizeof...(Args);
+
+    template <uint N>
+    struct Arg
+    {
+        static_assert(N < num_args, "Invalid argument index");
+        using Type = typename std::tuple_element<N, std::tuple<Args...>>::type;
+    };
+};
+
+template <class R, class... Args>
+struct FunctionTraits<R(*)(Args...)> : public FunctionTraits<R(Args...)> {};
+
+template <class R, class C, class... Args>
+struct FunctionTraits<R(C::*)(Args...)> : public FunctionTraits<R(Args...)> {};
+
+template <class R, class C, class... Args>
+struct FunctionTraits<R(C::*)(Args...) const> : public FunctionTraits<R(Args...)> {};
+
+template <class R, class C, class... Args>
+struct FunctionTraits<R(C::*)(Args...) volatile> : public FunctionTraits<R(Args...)> {};
+
+template <class R, class C, class... Args>
+struct FunctionTraits<R(C::*)(Args...) const volatile> : public FunctionTraits<R(Args...)> {};
+
+template <class T>
+struct FunctionTraits : public FunctionTraits<decltype(&T::operator())> {};
+
+template <class T>
+struct FunctionTraits<T &> : public FunctionTraits<T> {};
+
+template <class T>
+struct FunctionTraits<T &&> : public FunctionTraits<T> {};
+
+template <class T>
+struct FunctionTraits<T *> : public FunctionTraits<T> {};
+
+template <class T>
+struct FunctionTraits<T const> : public FunctionTraits<T> {};
+
+template <class T>
+struct FunctionTraits<T volatile> : public FunctionTraits<T> {};
+
+template <class T>
+struct FunctionTraits<T const volatile> : public FunctionTraits<T> {};
+
+#pragma endregion FunctionTraits
+
 template <class T>
 struct TypeWrapper
 {
