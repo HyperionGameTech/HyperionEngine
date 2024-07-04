@@ -6,7 +6,13 @@
 #include <math/Vector2.hpp>
 #include <math/Matrix4.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Vec4f);
+HYP_DEFINE_CLASS(Vec4i);
+HYP_DEFINE_CLASS(Vec4u);
 
 template<>
 int math::detail::Vec4<int>::Max() const

@@ -9,6 +9,7 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/TypeMap.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/AnyRef.hpp>
 #include <core/functional/Proc.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Threads.hpp>
@@ -542,20 +543,20 @@ public:
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
     HYP_NODISCARD HYP_FORCE_INLINE
-    void *TryGetComponent(TypeID component_type_id, ID<Entity> entity)
+    AnyRef TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
         // Threads::AssertOnThread(m_owner_thread_mask);
 
         if (!entity.IsValid()) {
-            return nullptr;
+            return AnyRef::Empty();
         }
 
         auto it = m_entities.Find(entity);
         AssertThrowMsg(it != m_entities.End(), "Entity does not exist");
         
         if (!it->second.HasComponent(component_type_id)) {
-            return nullptr;
+            return AnyRef::Empty();
         }
 
         const ComponentID component_id = it->second.GetComponentID(component_type_id);
@@ -574,7 +575,7 @@ public:
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
     HYP_NODISCARD HYP_FORCE_INLINE
-    const void *TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
+    ConstAnyRef TryGetComponent(TypeID component_type_id, ID<Entity> entity) const
         { return const_cast<EntityManager *>(this)->TryGetComponent(component_type_id, entity); }
 
     template <class ... Components>

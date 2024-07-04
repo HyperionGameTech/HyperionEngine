@@ -135,7 +135,7 @@ public:
         { return AnyRef(); }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
-    AnyRef(T&value)
+    AnyRef(T &value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), &value)
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
@@ -304,7 +304,7 @@ public:
 
     template <class T, typename = std::enable_if_t< !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
     ConstAnyRef(const T *value)
-        : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T> *>(&value))
+        : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T> *>(value))
     {
     }
 

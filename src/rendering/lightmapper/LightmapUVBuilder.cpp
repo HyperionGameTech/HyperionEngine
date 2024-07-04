@@ -2,8 +2,6 @@
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
-#include <rendering/backend/RendererFramebuffer.hpp>
-
 #ifdef HYP_XATLAS
 #include <xatlas.h>
 #endif

@@ -7,6 +7,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/AnyRef.hpp>
 #include <core/utilities/TypeID.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
@@ -76,7 +77,7 @@ public:
      *
      *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
     */
-    virtual void *TryGetComponent(ComponentID id) = 0;
+    virtual AnyRef TryGetComponent(ComponentID id) = 0;
 
     /*! \brief Tries to get the component with the given ID from the component container.
      *
@@ -84,7 +85,7 @@ public:
      *
      *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
     */
-    virtual const void *TryGetComponent(ComponentID id) const = 0;
+    virtual ConstAnyRef TryGetComponent(ComponentID id) const = 0;
 
     /*! \brief Checks if the component container has a component with the given ID.
      *
@@ -170,26 +171,26 @@ public:
     virtual bool HasComponent(ComponentID id) const override
         { return m_components.Contains(id); }
 
-    virtual void *TryGetComponent(ComponentID id) override
+    virtual AnyRef TryGetComponent(ComponentID id) override
     {
         auto it = m_components.Find(id);
 
         if (it == m_components.End()) {
-            return nullptr;
+            return AnyRef::Empty();
         }
 
-        return &it->second;
+        return AnyRef(&it->second);
     }
 
-    virtual const void *TryGetComponent(ComponentID id) const override
+    virtual ConstAnyRef TryGetComponent(ComponentID id) const override
     {
         auto it = m_components.Find(id);
 
         if (it == m_components.End()) {
-            return nullptr;
+            return ConstAnyRef::Empty();
         }
 
-        return &it->second;
+        return ConstAnyRef(&it->second);
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE

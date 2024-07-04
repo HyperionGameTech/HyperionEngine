@@ -3,6 +3,7 @@
 #define HYPERION_RENDERABLE_ATTRIBUTES_HPP
 
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/Shader.hpp>
 

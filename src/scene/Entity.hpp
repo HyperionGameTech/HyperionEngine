@@ -7,9 +7,10 @@
 
 namespace hyperion {
 
+/*! \brief Do not use this class directly. Use ID<Entity> instead. */
 class Entity : public BasicObject<Entity>
 {
-private:
+public:
     Entity() = default;
 };
 

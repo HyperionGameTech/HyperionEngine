@@ -94,6 +94,28 @@ struct HypClassPropertyGetter
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
     }
 
+    template <class ReturnType, class TargetType>
+    HypClassPropertyGetter(ReturnType(*fnptr)(const TargetType *))
+        : GetterForTargetPointer([fnptr](const void *target) -> fbom::FBOMData
+          {
+              return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(static_cast<const TargetType *>(target)));
+          }),
+          GetterForTargetData([fnptr](const fbom::FBOMData &target_data) -> fbom::FBOMData
+          {
+                Optional<const fbom::FBOMDeserializedObject &> deserialized_object = target_data.GetDeserializedObject();
+
+#ifdef HYP_DEBUG_MODE
+                AssertThrowMsg(deserialized_object.HasValue(), "Object has no in-memory representation");
+#endif
+    
+                const TargetType &unwrapped = SerializationWrapper<TargetType>::Unwrap(deserialized_object->Get<TargetType>());
+
+                return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(&unwrapped));
+          })
+     {
+          type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
+     }
+
     HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
@@ -159,6 +181,28 @@ struct HypClassPropertySetter
               TargetType &unwrapped = SerializationWrapper<TargetType>::Unwrap(deserialized_object->Get<typename SerializationWrapper<TargetType>::Type>());
 
               (unwrapped.*MemFn)(GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
+          })
+    {
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
+    }
+
+    template <class ReturnType, class TargetType, class ValueType>
+    HypClassPropertySetter(ReturnType(*fnptr)(TargetType *, const ValueType &))
+        : SetterForTargetPointer([fnptr](void *target, const fbom::FBOMData &data) -> void
+          {
+              fnptr(static_cast<TargetType *>(target), GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
+          }),
+          SetterForTargetData([fnptr](fbom::FBOMData &target_data, const fbom::FBOMData &data) -> void
+          {
+              Optional<fbom::FBOMDeserializedObject &> deserialized_object = target_data.GetDeserializedObject();
+
+#ifdef HYP_DEBUG_MODE
+              AssertThrowMsg(deserialized_object.HasValue(), "Object has no in-memory representation");
+#endif
+
+              TargetType &unwrapped = SerializationWrapper<TargetType>::Unwrap(deserialized_object->Get<typename SerializationWrapper<TargetType>::Type>());
+
+              fnptr(&unwrapped, GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();

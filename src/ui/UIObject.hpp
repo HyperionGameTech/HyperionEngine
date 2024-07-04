@@ -455,6 +455,15 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
+    /*! \brief Remove all child UIObjects from this object.
+     *  \returns The number of child UIObjects removed. */
+    virtual int RemoveAllChildUIObjects();
+
+    /*! \brief Remove all child UIObjects from this object that match the predicate.
+     *  \param predicate The predicate to match against the child UIObjects.
+     *  \returns The number of child UIObjects removed. */
+    virtual int RemoveAllChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate);
+
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
      *  invalidating the pointer. Proper care must be taken to ensure `this` is not reused after calling this method.
@@ -466,6 +475,7 @@ public:
     /*! \brief Remove this object from its parent UI object, if applicable. Ensures the object is not immediately deleted
      *  in the case that the parent UIObject holds the last reference to `this`.
      *  \returns A reference counted pointer to `this`. */
+    HYP_NODISCARD
     virtual RC<UIObject> DetachFromParent();
 
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
@@ -583,6 +593,9 @@ protected:
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
 
+    Array<RC<UIObject>> GetChildUIObjects(bool deep) const;
+    Array<RC<UIObject>> GetChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const;
+
     UIStage                         *m_stage;
 
     Name                            m_name;
@@ -626,7 +639,7 @@ private:
     virtual void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner = false);
 
     template <class Lambda>
-    void ForEachChildUIObject(Lambda &&lambda) const;
+    void ForEachChildUIObject(Lambda &&lambda, bool deep = true) const;
 
     // For UIStage only.
     void SetAllChildUIObjectsStage(UIStage *stage);

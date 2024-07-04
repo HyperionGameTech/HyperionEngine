@@ -5,9 +5,15 @@
 #include <math/Matrix3.hpp>
 #include <math/Matrix4.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <cmath>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Vec3f);
+HYP_DEFINE_CLASS(Vec3i);
+HYP_DEFINE_CLASS(Vec3u);
 
 Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const
 {

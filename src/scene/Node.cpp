@@ -12,11 +12,25 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <Engine.hpp>
 
 #include <cstring>
 
 namespace hyperion {
+
+// @TODO More properties
+HYP_DEFINE_CLASS(
+    Node,
+    HypClassProperty(NAME("Name"), &Node::GetName, &Node::SetName),
+    HypClassProperty(NAME("Entity"), &Node::GetEntity, &Node::SetEntity),
+    HypClassProperty(NAME("EntityAABB"), &Node::GetEntityAABB, &Node::SetEntityAABB),
+    HypClassProperty(NAME("LocalTransform"), &Node::GetLocalTransform, &Node::SetLocalTransform),
+    HypClassProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform),
+    HypClassProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
+    HypClassProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
+);
 
 // @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
 // this only happens in the case that the scene in question is destructing and

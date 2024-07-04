@@ -49,7 +49,7 @@ HYP_EXPORT bool EntityManager_HasComponent(EntityManager *manager, uint32 compon
 
 HYP_EXPORT void *EntityManager_GetComponent(EntityManager *manager, uint32 component_type_id, ManagedEntity entity)
 {
-    return manager->TryGetComponent(TypeID { component_type_id }, entity);
+    return manager->TryGetComponent(TypeID { component_type_id }, entity).GetPointer();
 }
 
 HYP_EXPORT ComponentInterfaceBase *EntityManager_GetComponentInterface(EntityManager *manager, uint32 component_type_id)

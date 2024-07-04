@@ -44,7 +44,7 @@ public:
      *  \return The HypClass instance for the given type, or the null HypClass instance if the type is not registered.
      */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     const HypClass *GetClass() const
     {
         return GetClass(TypeID::ForType<NormalizedType<T>>());
@@ -55,7 +55,6 @@ public:
      *  \param type_id The type ID to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or the null HypClass instance if the type is not registered.
      */
-    HYP_NODISCARD
     const HypClass *GetClass(TypeID type_id) const;
 
     /*! \brief Get the HypClass instance associated with the given name.
@@ -63,7 +62,6 @@ public:
      *  \param type_name The name of the type to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or the null HypClass instance if the type is not registered.
      */
-    HYP_NODISCARD
     const HypClass *GetClass(WeakName type_name) const;
 
     void RegisterClass(TypeID type_id, HypClass *hyp_class);

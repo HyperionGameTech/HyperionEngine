@@ -141,6 +141,14 @@ void UIGrid::SetNumColumns(SizeType num_columns)
 {
     m_num_columns = num_columns;
 
+    for (const RC<UIGridRow> &row : m_rows) {
+        if (!row) {
+            continue;
+        }
+
+        row->SetNumColumns(num_columns);
+    }
+
     UpdateLayout();
 }
 
@@ -260,7 +268,6 @@ void UIGrid::UpdateLayout()
 
         row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { MathUtil::Floor<float, int>(100.0f * row_percent), UIObjectSize::PERCENT }));
         row->SetPosition({ 0, y_offset });
-        row->SetNumColumns(m_num_columns);
 
         y_offset += MathUtil::Floor<float, int>(float(actual_size.y) * row_percent);
     }

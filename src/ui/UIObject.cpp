@@ -771,6 +771,36 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
     return false;
 }
 
+int UIObject::RemoveAllChildUIObjects()
+{
+    int num_removed = 0;
+
+    Array<RC<UIObject>> children = GetChildUIObjects(false);
+
+    for (const RC<UIObject> &child : children) {
+        if (RemoveChildUIObject(child)) {
+            ++num_removed;
+        }
+    }
+
+    return num_removed;
+}
+
+int UIObject::RemoveAllChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate)
+{
+    int num_removed = 0;
+
+    Array<RC<UIObject>> children = GetChildUIObjects(predicate, false);
+
+    for (const RC<UIObject> &child : children) {
+        if (RemoveChildUIObject(child)) {
+            ++num_removed;
+        }
+    }
+
+    return num_removed;
+}
+
 bool UIObject::RemoveFromParent()
 {
     if (RC<UIObject> parent = GetParentUIObject()) {
@@ -1338,8 +1368,38 @@ Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
     return (Vec2f(coords) - absolute_position) / Vec2f(actual_size);
 }
 
+Array<RC<UIObject>> UIObject::GetChildUIObjects(bool deep) const
+{
+    Array<RC<UIObject>> child_objects;
+
+    ForEachChildUIObject([&child_objects](const RC<UIObject> &child)
+    {
+        child_objects.PushBack(child);
+
+        return UIObjectIterationResult::CONTINUE;
+    }, deep);
+
+    return child_objects;
+}
+
+Array<RC<UIObject>> UIObject::GetChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
+{
+    Array<RC<UIObject>> child_objects;
+
+    ForEachChildUIObject([&child_objects, &predicate](const RC<UIObject> &child)
+    {
+        if (predicate(child)) {
+            child_objects.PushBack(child);
+        }
+
+        return UIObjectIterationResult::CONTINUE;
+    }, deep);
+
+    return child_objects;
+}
+
 template <class Lambda>
-void UIObject::ForEachChildUIObject(Lambda &&lambda) const
+void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
 {
     const Scene *scene = GetScene();
 
@@ -1372,6 +1432,11 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda) const
                     // stop iterating if stop was set to true
                     if (iteration_result == UIObjectIterationResult::STOP) {
                         return;
+                    }
+
+                    if (!deep) {
+                        // Do not continue searching for more children below this node
+                        continue;
                     }
                 }
             }

@@ -4,7 +4,13 @@
 #include <math/Vector4.hpp>
 #include <math/MathUtil.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_CLASS(Vec2f);
+HYP_DEFINE_CLASS(Vec2i);
+HYP_DEFINE_CLASS(Vec2u);
 
 namespace math {
 namespace detail {

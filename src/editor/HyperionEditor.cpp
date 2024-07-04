@@ -1,5 +1,6 @@
 #include <editor/HyperionEditor.hpp>
 #include <editor/EditorCamera.hpp>
+#include <editor/EditorObjectProperties.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -97,16 +98,18 @@ private:
 
     void SetFocusedNode(const NodeProxy &node);
 
-    Handle<Scene>       m_scene;
-    Handle<Camera>      m_camera;
-    InputManager        *m_input_manager;
-    RC<UIStage>         m_ui_stage;
-    Handle<Texture>     m_scene_texture;
-    RC<UIObject>        m_main_panel;
+    Handle<Scene>                           m_scene;
+    Handle<Camera>                          m_camera;
+    InputManager                            *m_input_manager;
+    RC<UIStage>                             m_ui_stage;
+    Handle<Texture>                         m_scene_texture;
+    RC<UIObject>                            m_main_panel;
 
-    NodeProxy           m_focused_node;
+    NodeProxy                               m_focused_node;
 
-    bool                m_editor_camera_enabled;
+    bool                                    m_editor_camera_enabled;
+
+    Delegate<void, const NodeProxy &>       OnFocusedNodeChanged;
 };
 
 void HyperionEditorImpl::CreateFontAtlas()
@@ -447,6 +450,62 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     detail_view_header->AddChildUIObject(detail_view_header_text);
     detail_view->AddChildUIObject(detail_view_header);
 
+    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Detail_View_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    detail_view->AddChildUIObject(list_view);
+
+    OnFocusedNodeChanged.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node)
+    {
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        list_view->RemoveAllChildUIObjects();
+
+        if (!node.IsValid()) {
+            HYP_LOG(Editor, LogLevel::DEBUG, "Focused node is invalid!");
+
+            return;
+        }
+
+        const HypClass *hyp_class = nullptr;
+        
+        if (node.GetEntity().IsValid()) {
+            hyp_class = GetClass<Entity>();
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "Focused object properties class: {}", hyp_class->GetName());
+        } else {
+            hyp_class = GetClass<Node>();
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "Focused node properties class: {}", hyp_class->GetName());
+        }
+
+
+        for (const HypClassProperty *property : hyp_class->GetProperties()) {
+            HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
+
+            if (!property->HasGetter()) {
+                continue;
+            }
+
+            RC<UIListViewItem> list_view_item = GetUIStage()->CreateUIObject<UIListViewItem>(NAME("Detail_View_ListView_Item"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UIText> list_view_item_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_ListView_Item_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+            list_view_item_text->SetText(property->name.LookupString());
+            list_view_item_text->SetTextColor(Vec4f::One());
+            list_view_item->AddChildUIObject(list_view_item_text);
+
+            // @TODO Create an input field for the property value
+            // based on the property type
+
+            RC<UIObject> property_value = EditorObjectProperties<Vec2f>{}.CreateUIObject(GetUIStage().Get());
+            list_view_item->AddChildUIObject(property_value);
+
+            list_view->AddChildUIObject(list_view_item);
+        }
+    }).Detach();
+
     return detail_view;
 }
 
@@ -477,9 +536,7 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 {
     m_focused_node = node;
 
-    if (m_focused_node.IsValid()) {
-        HYP_LOG(Editor, LogLevel::INFO, "Focused node: {}", m_focused_node->GetName());
-    }
+    OnFocusedNodeChanged.Broadcast(m_focused_node);
 }
 
 void HyperionEditorImpl::Initialize()

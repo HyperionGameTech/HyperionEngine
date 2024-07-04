@@ -8,6 +8,9 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/HypClass.hpp>
+#include <core/HypClassProperty.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -35,32 +38,32 @@ public:
         FBOMArray components_array;
 
         for (const auto &it : *all_components) {
-            const void *component_ptr = entity_manager->TryGetComponent(it.first, entity.GetID());
+            const TypeID component_type_id = it.first;
+            const HypClass *component_class = GetClass(component_type_id);
 
-            ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(it.first);
-
-            if (!component_interface) {
+            if (!component_class) {
                 continue; // skip, for now.
-                // return { FBOMResult::FBOM_ERR, "No ComponentInterface found for component" };
+                // return { FBOMResult::FBOM_ERR, "No HypClass found for component" };
             }
+
+            ConstAnyRef component_ptr = entity_manager->TryGetComponent(component_type_id, entity.GetID());
 
             // write all properties
             FBOMObject component_object;
-            component_object.SetProperty(NAME("type_id"), FBOMData::FromUnsignedInt(component_interface->GetTypeID().Value()));
-            component_object.SetProperty(NAME("type_name"), component_interface->GetTypeName());
+            component_object.SetProperty(NAME("type_id"), FBOMData::FromUnsignedInt(component_type_id.Value()));
+            component_object.SetProperty(NAME("type_name"), FBOMData::FromName(component_class->GetName()));
 
             FBOMArray properties_array;
 
-            for (const ComponentProperty &property : component_interface->GetProperties()) {
-                if (!property.IsReadable()) {
+            for (const HypClassProperty *property : component_class->GetProperties()) {
+                if (!property->HasGetter()) {
                     continue;
                 }
 
-                FBOMData property_value;
-                property.GetGetter()(component_ptr, &property_value);
+                FBOMData property_value = property->InvokeGetter(component_ptr);
 
                 FBOMObject property_object;
-                property_object.SetProperty(NAME("name"), FBOMData::FromName(property.GetName()));
+                property_object.SetProperty(NAME("name"), FBOMData::FromName(property->name));
                 property_object.SetProperty(NAME("value"), std::move(property_value));
 
                 properties_array.AddElement(FBOMData::FromObject(property_object));
@@ -104,20 +107,23 @@ public:
 
             const TypeID component_type_id { component_type_id_value };
 
+            const HypClass *component_class = GetClass(component_type_id);
+
+            if (!component_class) {
+                HYP_LOG(Serialization, LogLevel::WARNING, "No HypClass registered for component with type {}", component_type_id.Value());
+
+                continue;
+            }
+
             if (entity_manager->HasComponent(component_type_id, entity)) {
                 HYP_LOG(Serialization, LogLevel::WARNING, "Entity already has component of type {}", component_type_id.Value());
 
                 continue;
             }
 
-            ComponentInterfaceBase *component_interface = entity_manager->GetComponentInterface(component_type_id);
-
-            if (!component_interface) {
-                return { FBOMResult::FBOM_ERR, "No ComponentInterface for component" };
-            }
-
-            UniquePtr<void> component_ptr = component_interface->CreateComponent();
-            AssertThrow(component_ptr != nullptr);
+            Any component_instance;
+            component_class->CreateInstance(component_instance);
+            AssertThrow(component_instance.HasValue());
 
             FBOMArray properties_array;
 
@@ -138,22 +144,22 @@ public:
                     return err;
                 }
 
-                ComponentProperty *component_property = component_interface->GetProperty(property_name);
+                HypClassProperty *component_property = component_class->GetProperty(property_name);
 
                 if (!component_property) {
                     return { FBOMResult::FBOM_ERR, "Invalid property referenced" };
                 }
                 
-                if (!component_property->IsWritable()) {
+                if (!component_property->HasSetter()) {
                     continue;
                 }
 
                 const FBOMData &property_value = property_object.GetProperty("value");
 
-                component_property->GetSetter()(component_ptr.Get(), &property_value);
+                component_property->InvokeSetter(component_instance, property_value);
             }
 
-            entity_manager->AddComponent(entity, component_type_id, std::move(component_ptr));
+            entity_manager->AddComponent(entity, component_type_id, UniquePtr<void>(std::move(component_instance)));
         }
 
         out_object = Handle<Entity> { entity };

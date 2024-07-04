@@ -1,8 +1,6 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 
-#include <rendering/backend/RendererFramebuffer.hpp>
-
 #include <core/utilities/Variant.hpp>
 
 #include <core/HypClassUtils.hpp>

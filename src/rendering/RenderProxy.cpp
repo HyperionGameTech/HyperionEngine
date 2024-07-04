@@ -1,8 +1,6 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/SafeDeleter.hpp>
 
-#include <rendering/backend/RendererFramebuffer.hpp>
-
 #include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {
