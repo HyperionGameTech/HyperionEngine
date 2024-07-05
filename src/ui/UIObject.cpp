@@ -821,7 +821,7 @@ RC<UIObject> UIObject::DetachFromParent()
     return this_ref_counted;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(Name name) const
+RC<UIObject> UIObject::FindChildUIObject(Name name, bool deep) const
 {
     RC<UIObject> found_object;
 
@@ -834,12 +834,12 @@ RC<UIObject> UIObject::FindChildUIObject(Name name) const
         }
 
         return UIObjectIterationResult::CONTINUE;
-    });
+    }, deep);
 
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate) const
+RC<UIObject> UIObject::FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
 {
     RC<UIObject> found_object;
 
@@ -852,7 +852,7 @@ RC<UIObject> UIObject::FindChildUIObject(const Proc<bool, const RC<UIObject> &> 
         }
 
         return UIObjectIterationResult::CONTINUE;
-    });
+    }, deep);
 
     return found_object;
 }

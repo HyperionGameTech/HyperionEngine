@@ -482,16 +482,18 @@ public:
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
      *  If no child UIObject with the specified Name is found, nullptr is returned.
      *  \param name The Name of the child UIObject to find.
+     *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
     HYP_NODISCARD
-    RC<UIObject> FindChildUIObject(Name name) const;
+    RC<UIObject> FindChildUIObject(Name name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
      *  \param predicate The predicate to match against the child UIObjects.
+     *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
     HYP_NODISCARD
-    RC<UIObject> FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate) const;
+    RC<UIObject> FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */
@@ -591,6 +593,10 @@ protected:
 
     Vec2i GetParentScrollOffset() const;
 
+    /*! \brief Add a DelegateHandler to be removed when the object is destructed */
+    void AddDelegateHandler(DelegateHandler &&delegate_handler)
+        { m_delegate_handlers.PushBack(std::move(delegate_handler)); }
+
     void UpdateMeshData();
     void UpdateMaterial(bool update_children = true);
 
@@ -658,6 +664,8 @@ private:
     bool                            m_accepts_focus;
 
     NodeProxy                       m_node_proxy;
+
+    Array<DelegateHandler>          m_delegate_handlers;
 };
 
 #pragma endregion UIObject

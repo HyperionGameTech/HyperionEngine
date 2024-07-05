@@ -357,8 +357,56 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     // scene_outline_header->AddChildUIObject(scene_outline_header_text);
     // scene_outline->AddChildUIObject(scene_outline_header);
 
+
+    UniquePtr<UIDataSource<UUID>> temp_data_source(new UIDataSource<UUID>());
     RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    list_view->SetDataSource(std::move(temp_data_source));
+    
+    list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem *list_view_item)
+    {
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item->GetName());
+
+        if (!list_view_item) {
+            SetFocusedNode(NodeProxy::empty);
+
+            return UIEventHandlerResult::OK;
+        }
+
+        const UUID data_source_element_uuid = list_view_item->GetDataSourceElementUUID();
+
+        if (data_source_element_uuid == UUID::Invalid()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        if (!list_view->GetDataSource()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        ConstAnyRef data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
+
+        if (!data_source_element_value.HasValue()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        const UUID &associated_node_uuid = data_source_element_value.Get<UUID>();
+
+        NodeProxy associated_node = GetScene()->GetRoot()->FindChildByUUID(associated_node_uuid);
+
+        if (!associated_node.IsValid()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        SetFocusedNode(associated_node);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
 
     // TODO make it more efficient to add/remove items instead of searching by name
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
@@ -371,6 +419,12 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 
         AssertThrow(node.IsValid());
 
+        // testing
+        if (UIDataSource<UUID> *data_source = list_view->GetDataSource<UUID>()) {
+            data_source->Push(node->GetUUID());
+        }
+
+#if 0
         RC<UIText> ui_text = list_view->GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("SceneOutlineText_") + ANSIString::ToString(node.GetName())), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
         ui_text->SetText(node->GetName());
         ui_text->SetTextColor(Vec4f::One());
@@ -408,6 +462,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
         }).Detach();
 
         list_view->AddChildUIObject(ui_text);
+#endif
     }).Detach();
 
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
@@ -416,6 +471,13 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 
         if (!list_view) {
             return;
+        }
+
+        if (UIDataSource<UUID> *data_source = list_view->GetDataSource<UUID>()) {
+            data_source->RemoveAllWithPredicate([&node](UUID, ConstAnyRef item) -> bool
+            {
+                return item.Get<UUID>() == node->GetUUID();
+            });
         }
 
         RC<UIObject> found_ui_object = list_view->FindChildUIObject([&node](const RC<UIObject> &child)
@@ -1013,7 +1075,15 @@ void HyperionEditor::Logic(GameCounter::TickUnit delta)
 
     // testing
     if (auto zombie = GetScene()->GetRoot()->Select("zombie"); zombie.IsValid()) {
+        static double timer = 0.0;
+        timer += delta;
+
         zombie->Rotate(Quaternion::AxisAngles(Vec3f::UnitY(), 2.5f * delta));
+
+        // testing remove
+        if (timer > 15.0) {
+            zombie->Remove();
+        }
     }
 }
 

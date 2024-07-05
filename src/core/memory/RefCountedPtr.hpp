@@ -1072,12 +1072,40 @@ protected:
 
 } // namespace detail
 
+/*! \brief Helper struct to convert raw pointers to RefCountedPtrs.
+ *  For internal use only. */
+template <class T, class CountType>
+struct RawPtrToRefCountedPtrHelper
+{
+    HYP_NODISCARD HYP_FORCE_INLINE
+    RefCountedPtr<T, CountType> operator()(T *ptr)
+    {
+        if (!ptr) {
+            return RefCountedPtr<T, CountType>();
+        }
+
+        return ptr->RefCountedPtrFromThis();
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    RefCountedPtr<const T, CountType> operator()(const T *ptr)
+    {
+        if (!ptr) {
+            return RefCountedPtr<const T, CountType>();
+        }
+
+        return ptr->RefCountedPtrFromThis();
+    }
+};
+
 template <class T, class CountType>
 class EnableRefCountedPtrFromThis : public detail::EnableRefCountedPtrFromThisBase<CountType>
 {
     using Base = detail::EnableRefCountedPtrFromThisBase<CountType>;
 
 public:
+    friend struct RawPtrToRefCountedPtrHelper<T, CountType>;
+
     EnableRefCountedPtrFromThis()
     {
         detail::RefCountData<CountType> *ref_count_data = new detail::RefCountData<CountType>;
@@ -1120,6 +1148,9 @@ using RC = memory::RefCountedPtr<T, CountType>;
 
 template <class T, class CountType = std::atomic<uint>>
 using EnableRefCountedPtrFromThis = memory::EnableRefCountedPtrFromThis<T, CountType>;
+
+template <class T, class CountType = std::atomic<uint>>
+using RawPtrToRefCountedPtrHelper = memory::RawPtrToRefCountedPtrHelper<T, CountType>;
 
 } // namespace hyperion
 
