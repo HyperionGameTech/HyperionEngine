@@ -105,6 +105,9 @@ Node::Node(Node &&other) noexcept
       m_scene(other.m_scene),
       m_transform_locked(other.m_transform_locked),
       m_delegates(std::move(other.m_delegates))
+#ifdef HYP_EDITOR
+    , m_editor_observables(std::move(other.m_editor_observables))
+#endif
 {
     other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
@@ -140,6 +143,10 @@ Node &Node::operator=(Node &&other) noexcept
     SetScene(nullptr);
 
     m_delegates = std::move(other.m_delegates);
+
+#ifdef HYP_EDITOR
+    m_editor_observables = std::move(other.m_editor_observables);
+#endif
 
     m_type = other.m_type;
     other.m_type = Type::NODE;
@@ -685,6 +692,11 @@ void Node::UpdateWorldTransform()
     if (m_world_transform == transform_before) {
         return;
     }
+
+#ifdef HYP_EDITOR
+    m_editor_observables.Trigger(NAME("LocalTransform"), m_local_transform);
+    m_editor_observables.Trigger(NAME("WorldTransform"), m_world_transform);
+#endif
 
     for (NodeProxy &node : m_child_nodes) {
         AssertThrow(node != nullptr);

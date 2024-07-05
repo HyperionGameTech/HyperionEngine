@@ -35,22 +35,18 @@ struct DelegateHandlerData
     HYP_API void Reset();
     HYP_API void Detach(DelegateHandler &&delegate_handler);
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return id != 0 && delegate != nullptr; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const DelegateHandlerData &other) const
         { return id == other.id && delegate == other.delegate; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const DelegateHandlerData &other) const
         { return id != other.id || delegate != other.delegate; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const DelegateHandlerData &other) const
         { return id < other.id; }
@@ -82,22 +78,23 @@ public:
     DelegateHandler(const DelegateHandler &other)                   = default;
     DelegateHandler &operator=(const DelegateHandler &other)        = default;
 
-    DelegateHandler(DelegateHandler &&other) noexcept               = default;
+    DelegateHandler(DelegateHandler &&other) noexcept
+        : m_data(std::move(other.m_data))
+    {
+    }
+
     DelegateHandler &operator=(DelegateHandler &&other) noexcept    = default;
 
     ~DelegateHandler()                                              = default;
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const DelegateHandler &other) const
         { return m_data == other.m_data; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const DelegateHandler &other) const
         { return m_data != other.m_data; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const DelegateHandler &other) const
     {
@@ -116,7 +113,6 @@ public:
      *
      * \return True if the DelegateHandler is valid, false otherwise.
      */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return m_data != nullptr && m_data->IsValid(); }
@@ -194,17 +190,14 @@ public:
         return true;
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     Iterator Find(Name name)
         { return m_delegate_handlers.Find(name); }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     ConstIterator Find(Name name) const
         { return m_delegate_handlers.Find(name); }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool Contains(Name name) const
         { return m_delegate_handlers.Contains(name); }
@@ -229,6 +222,20 @@ class Delegate
     using ProcType = Proc<ReturnType, Args...>;
 
 public:
+    Delegate() = default;
+
+    Delegate(const Delegate &other) = delete;
+    Delegate &operator=(const Delegate &other) = delete;
+
+    Delegate(Delegate &&other) noexcept
+        : m_procs(std::move(other.m_procs)),
+          m_detached_handlers(std::move(other.m_detached_handlers)),
+          m_id_generator(std::move(other.m_id_generator))
+    {
+    }
+
+    Delegate &operator=(Delegate &&other) noexcept = delete;
+
     ~Delegate()
     {
         m_detached_handlers.Clear();
@@ -248,6 +255,23 @@ public:
         m_procs.Insert({ id, RC<ProcType>::Construct(std::move(proc)) });
 
         return CreateDelegateHandler(id);
+    }
+
+    /*! \brief Remove all bound handlers from the Delegate.
+     *  \return The number of handlers removed. */
+    int RemoveAll()
+    {
+        m_mutex.Lock();
+
+        const int num_removed = m_procs.Size();
+
+        m_procs.Clear();
+
+        m_mutex.Unlock();
+
+        m_id_generator.Reset();
+
+        return num_removed;
     }
 
     /*! \brief Remove a DelegateHandler from the Delegate

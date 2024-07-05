@@ -58,7 +58,8 @@ enum class UIObjectType : uint32
     DOCKABLE_CONTAINER  = 12,
     DOCKABLE_ITEM       = 13,
     LIST_VIEW           = 14,
-    LIST_VIEW_ITEM      = 15
+    LIST_VIEW_ITEM      = 15,
+    TEXTBOX             = 16,
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)

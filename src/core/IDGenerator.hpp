@@ -21,8 +21,28 @@ struct IDGenerator
     TypeID              type_id;
     AtomicVar<uint32>   id_counter { 0u };
     AtomicVar<uint32>   num_free_indices { 0u };
-    Mutex               free_id_mutex;
     Queue<uint>         free_indices;
+    Mutex               free_id_mutex;
+
+    IDGenerator(TypeID type_id = TypeID::Void())
+        : type_id(type_id)
+    {
+    }
+
+    IDGenerator(const IDGenerator &)                        = delete;
+    IDGenerator &operator=(const IDGenerator &)             = delete;
+
+    IDGenerator(IDGenerator &&other) noexcept
+        : type_id(std::move(other.type_id)),
+          id_counter(other.id_counter.Get(MemoryOrder::ACQUIRE)),
+          num_free_indices(other.num_free_indices.Get(MemoryOrder::ACQUIRE)),
+          free_indices(std::move(other.free_indices))
+    {
+    }
+
+    IDGenerator &operator=(IDGenerator &&other) noexcept    = delete;
+
+    ~IDGenerator()                                          = default;
 
     uint NextID()
     {
@@ -45,6 +65,15 @@ struct IDGenerator
         free_indices.Push(index);
 
         num_free_indices.Increment(1, MemoryOrder::RELEASE);
+    }
+
+    void Reset()
+    {
+        Mutex::Guard guard(free_id_mutex);
+
+        id_counter.Set(0, MemoryOrder::RELEASE);
+        num_free_indices.Set(0, MemoryOrder::RELEASE);
+        free_indices.Clear();
     }
 };
 

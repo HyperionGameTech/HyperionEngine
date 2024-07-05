@@ -58,6 +58,7 @@ public:
     /*! \brief Gets the text to render.
      * 
      * \return The text to render. */
+    HYP_FORCE_INLINE
     const String &GetText() const
         { return m_text; }
 
@@ -70,7 +71,7 @@ public:
      * \note If the font atlas is null, the default font atlas from the parent UIStage is used, but not returned from this function.
      * 
      * \return The font atlas used for rendering the text. */
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     const RC<FontAtlas> &GetFontAtlas() const
         { return m_font_atlas; }
 
@@ -83,20 +84,20 @@ public:
     /*! \brief Gets the options for rendering the text.
      * 
      * \return The options for rendering the text. */
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     const UITextOptions &GetOptions() const
         { return m_options; }
 
     /*! \brief Sets the options for rendering the text.
      * 
      * \param options The options to set. */
+    HYP_FORCE_INLINE
     void SetOptions(const UITextOptions &options)
         { m_options = options; }
 
     /*! \brief Overriden from UIObject to return false as text is not focusable
      * 
      * \return False */
-    HYP_NODISCARD
     virtual bool AcceptsFocus() const override
         { return false; }
 

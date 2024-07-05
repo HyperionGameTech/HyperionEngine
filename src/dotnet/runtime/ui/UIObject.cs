@@ -21,7 +21,8 @@ namespace Hyperion
         DockableContainer = 12,
         DockableItem = 13,
         ListView = 14,
-        ListViewItem = 15
+        ListViewItem = 15,
+        Textbox = 16
     }
 
     public enum UIEventHandlerResult : uint

@@ -21,6 +21,10 @@
 #include <math/Ray.hpp>
 #include <math/BoundingBox.hpp>
 
+#ifdef HYP_EDITOR
+#include <editor/ObservableVar.hpp>
+#endif
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -42,7 +46,7 @@ HYP_MAKE_ENUM_FLAGS(NodeFlags)
 
 struct NodeTag
 {
-    using ValueType = Variant<String, UUID, int32, uint32, float, double, bool>;
+    using ValueType = Variant<String, UUID, Name, int32, uint32, float, double, bool>;
 
     ValueType   value;
 
@@ -54,6 +58,11 @@ struct NodeTag
     }
 
     explicit NodeTag(const UUID &value)
+        : value(value)
+    {
+    }
+
+    explicit NodeTag(Name value)
         : value(value)
     {
     }
@@ -159,10 +168,80 @@ class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
     friend class NodeProxy;
 
 public:
+#ifdef HYP_EDITOR
+    class EditorObservables
+    {
+    public:
+        EditorObservables()                                             = default;
+
+        EditorObservables(const EditorObservables &other)               = delete;
+        EditorObservables &operator=(const EditorObservables &other)    = delete;
+
+        EditorObservables(EditorObservables &&other) noexcept
+            : m_delegates(std::move(other.m_delegates))
+        {
+        }
+
+        EditorObservables &operator=(EditorObservables &&other) noexcept
+        {
+            m_delegates = std::move(other.m_delegates);
+
+            return *this;
+        }
+
+        ~EditorObservables() = default;
+
+        Delegate<void, Name, ConstAnyRef> &GetCatchallDelegate()
+        {
+            return m_catchall;
+        }
+
+        Delegate<void, ConstAnyRef> &Get(Name name)
+        {
+            auto it = m_delegates.Find(name);
+
+            if (it == m_delegates.End()) {
+                it = m_delegates.Insert(name, Delegate<void, ConstAnyRef>()).first;
+            }
+
+            return it->second;
+        }
+
+        void Trigger(Name name, ConstAnyRef value)
+        {
+            auto it = m_delegates.Find(name);
+
+            if (it != m_delegates.End()) {
+                it->second.Broadcast(value);
+            }
+
+            m_catchall.Broadcast(name, value);
+        }
+
+        void RemoveAll()
+        {
+            for (auto &it : m_delegates) {
+                it.second.RemoveAll();
+            }
+
+            m_catchall.RemoveAll();
+        }
+
+    private:
+        HashMap<Name, Delegate<void, ConstAnyRef>>  m_delegates;
+        Delegate<void, Name, ConstAnyRef>           m_catchall;
+    };
+#endif
+
     struct Delegates
     {
         Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeAdded;
         Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeRemoved;
+
+#ifdef HYP_EDITOR
+        // editor delegates
+        Delegate<void, Node *, const Transform &/* current */, const Transform & /* previous */> Editor_OnTransformUpdate;
+#endif
     };
 
     using NodeList = Array<NodeProxy>;
@@ -528,6 +607,16 @@ public:
     Delegates *GetDelegates() const
         { return m_delegates.Get(); }
 
+#ifdef HYP_EDITOR
+    /*! \brief Get the observables for this Node. */
+    EditorObservables &GetEditorObservables()
+        { return m_editor_observables; }
+
+    /*! \brief Get the observables for this Node. */
+    const EditorObservables &GetEditorObservables() const
+        { return m_editor_observables; }
+#endif
+
     /*! \brief Get all tags of this Node. */
     HYP_FORCE_INLINE
     const FlatMap<Name, NodeTag> &GetTags() const
@@ -604,6 +693,10 @@ protected:
     bool                        m_transform_locked;
 
     UniquePtr<Delegates>        m_delegates;
+
+#ifdef HYP_EDITOR
+    EditorObservables           m_editor_observables;
+#endif
 
     FlatMap<Name, NodeTag>      m_tags;
 

@@ -6,6 +6,7 @@
 #include <ui/UIObject.hpp>
 #include <ui/UIPanel.hpp>
 #include <ui/UIGrid.hpp>
+#include <ui/UITextbox.hpp>
 
 #include <core/HypClass.hpp>
 #include <core/HypClassRegistry.hpp>
@@ -40,16 +41,24 @@ RC<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIStage *stage) const
     {
         RC<UIGridColumn> col = row->AddColumn();
 
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-        panel->SetBackgroundColor(Vec4f::One());
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        
+        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        textbox->SetText("0.00000"); // temp, just for testing
+        panel->AddChildUIObject(textbox); 
+
         col->AddChildUIObject(panel);
     }
 
     {
         RC<UIGridColumn> col = row->AddColumn();
 
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-        panel->SetBackgroundColor(Vec4f(1, 0, 0, 1));
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        textbox->SetText("0.00000"); // temp, just for 
+        panel->AddChildUIObject(textbox);
+
         col->AddChildUIObject(panel);
     }
 

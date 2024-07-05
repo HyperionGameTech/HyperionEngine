@@ -98,18 +98,18 @@ private:
 
     void SetFocusedNode(const NodeProxy &node);
 
-    Handle<Scene>                           m_scene;
-    Handle<Camera>                          m_camera;
-    InputManager                            *m_input_manager;
-    RC<UIStage>                             m_ui_stage;
-    Handle<Texture>                         m_scene_texture;
-    RC<UIObject>                            m_main_panel;
+    Handle<Scene>                                           m_scene;
+    Handle<Camera>                                          m_camera;
+    InputManager                                            *m_input_manager;
+    RC<UIStage>                                             m_ui_stage;
+    Handle<Texture>                                         m_scene_texture;
+    RC<UIObject>                                            m_main_panel;
 
-    NodeProxy                               m_focused_node;
+    NodeProxy                                               m_focused_node;
 
-    bool                                    m_editor_camera_enabled;
+    bool                                                    m_editor_camera_enabled;
 
-    Delegate<void, const NodeProxy &>       OnFocusedNodeChanged;
+    Delegate<void, const NodeProxy &, const NodeProxy &>    OnFocusedNodeChanged;
 };
 
 void HyperionEditorImpl::CreateFontAtlas()
@@ -454,8 +454,12 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     detail_view->AddChildUIObject(list_view);
 
-    OnFocusedNodeChanged.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node)
+    OnFocusedNodeChanged.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
     {
+        if (previous_node.IsValid()) {
+            previous_node->GetEditorObservables().RemoveAll();
+        }
+
         RC<UIListView> list_view = list_view_weak.Lock();
 
         if (!list_view) {
@@ -472,16 +476,15 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
 
         const HypClass *hyp_class = nullptr;
         
-        if (node.GetEntity().IsValid()) {
-            hyp_class = GetClass<Entity>();
+        // if (node->GetEntity().IsValid()) {
+        //     hyp_class = GetClass<Entity>();
 
-            HYP_LOG(Editor, LogLevel::DEBUG, "Focused object properties class: {}", hyp_class->GetName());
-        } else {
+        //     HYP_LOG(Editor, LogLevel::DEBUG, "Focused object properties class: {}", hyp_class->GetName());
+        // } else {
             hyp_class = GetClass<Node>();
 
-            HYP_LOG(Editor, LogLevel::DEBUG, "Focused node properties class: {}", hyp_class->GetName());
-        }
-
+        //     HYP_LOG(Editor, LogLevel::DEBUG, "Focused node properties class: {}", hyp_class->GetName());
+        // }
 
         for (const HypClassProperty *property : hyp_class->GetProperties()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
@@ -502,8 +505,46 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
             RC<UIObject> property_value = EditorObjectProperties<Vec2f>{}.CreateUIObject(GetUIStage().Get());
             list_view_item->AddChildUIObject(property_value);
 
+            NodeProxy list_view_item_node = list_view_item->GetNode();
+            AssertThrow(list_view_item_node != nullptr);
+            list_view_item_node->AddTag(NAME("HypClassPropertyKey"), NodeTag(property->name));
+
             list_view->AddChildUIObject(list_view_item);
         }
+
+        node->GetEditorObservables().GetCatchallDelegate().Bind([this, hyp_class, list_view_weak = list_view.ToWeak()](Name name, ConstAnyRef value)
+        {
+            RC<UIListView> list_view = list_view_weak.Lock();
+
+            if (!list_view) {
+                return;
+            }
+
+            const HypClassProperty *property = hyp_class->GetProperty(name);
+
+            if (!property) {
+                return;
+            }
+
+            RC<UIObject> list_view_item = list_view->FindChildUIObject([property](const RC<UIObject> &object) -> bool
+            {
+                NodeProxy node = object->GetNode();
+                
+                if (!node.IsValid()) {
+                    return false;
+                }
+
+                return node->GetTag(NAME("HypClassPropertyKey")) == property->name;
+            });
+
+            if (!list_view_item) {
+                return;
+            }
+
+            // @TODO: DataSource for list view item that has callback on data update
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "Property value changed: {}", name);
+        }).Detach();
     }).Detach();
 
     return detail_view;
@@ -534,9 +575,11 @@ void HyperionEditorImpl::CreateInitialState()
 
 void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 {
+    const NodeProxy previous_focused_node = m_focused_node;
+
     m_focused_node = node;
 
-    OnFocusedNodeChanged.Broadcast(m_focused_node);
+    OnFocusedNodeChanged.Broadcast(m_focused_node, previous_focused_node);
 }
 
 void HyperionEditorImpl::Initialize()
@@ -874,12 +917,13 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
+    // batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->Add("house", "models/house.obj");
 
     batch->OnComplete.Bind([this](AssetMap &results)
     {
+#if 0
         NodeProxy node = results["test_model"].ExtractAs<Node>();
         GetScene()->GetRoot()->AddChild(node);
 
@@ -908,6 +952,7 @@ void HyperionEditor::Init()
             env_grid_node.SetEntity(env_grid_entity);
             env_grid_node.SetName("EnvGrid");
         }
+#endif
 
         if (auto &zombie_asset = results["zombie"]; zombie_asset.IsOK()) {
             auto zombie = zombie_asset.ExtractAs<Node>();
@@ -965,6 +1010,11 @@ void HyperionEditor::Teardown()
 void HyperionEditor::Logic(GameCounter::TickUnit delta)
 {
     m_impl->UpdateEditorCamera(delta);
+
+    // testing
+    if (auto zombie = GetScene()->GetRoot()->Select("zombie"); zombie.IsValid()) {
+        zombie->Rotate(Quaternion::AxisAngles(Vec3f::UnitY(), 2.5f * delta));
+    }
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent &event)
