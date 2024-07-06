@@ -213,9 +213,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        HYP_LOG(UI, LogLevel::DEBUG, "Rebuilding UI proxy groups on render thread: {} added, {} removed, {} changed",
-            added_proxies.Size(), removed_proxies.Size(), changed_proxies.Size());
-
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (const auto &it : changed_proxies) {
@@ -281,13 +278,6 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
     collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
     collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
 
-    HYP_LOG(UI, LogLevel::DEBUG, "UI Renderer: {} ({} -> {}\t{} -> {}\t{} -> {}) entities to render: {} added, {} removed, {} changed",
-        m_proxy_ordering.Size(),
-        proxy_list.GetEntities().Count(), proxy_list.GetNextEntities().Count(),
-        proxy_list.GetEntities(), proxy_list.GetNextEntities(),
-        proxy_list.GetEntities().NumBits(), proxy_list.GetNextEntities().NumBits(),
-        collection_result.num_added_entities, collection_result.num_removed_entities, collection_result.num_changed_entities);
-
     if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
         proxy_list.GetRemovedEntities(removed_proxies);
@@ -298,9 +288,6 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
         FlatMap<ID<Entity>, RenderProxy> changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
 
         if (added_proxies_ptrs.Any() || removed_proxies.Any() || changed_proxies.Any()) {
-            HYP_LOG(UI, LogLevel::DEBUG, "Pushing UI updates to render thread: {} added, {} removed, {} changed",
-                added_proxies_ptrs.Size(), removed_proxies.Size(), changed_proxies.Size());
-
             Array<RenderProxy> added_proxies;
             added_proxies.Resize(added_proxies_ptrs.Size());
 
