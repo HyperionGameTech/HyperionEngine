@@ -132,7 +132,6 @@ public:
     void DestroyDynamicLogChannel(Name name);
     void DestroyDynamicLogChannel(LogChannel *channel);
 
-    [[nodiscard]]
     bool IsChannelEnabled(const LogChannel &channel) const;
 
     void SetChannelEnabled(const LogChannel &channel, bool enabled);

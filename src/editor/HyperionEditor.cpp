@@ -1082,6 +1082,7 @@ void HyperionEditor::Logic(GameCounter::TickUnit delta)
 
         // testing remove
         if (timer > 15.0) {
+            HYP_LOG(Editor, LogLevel::DEBUG, "Removing zombie");
             zombie->Remove();
         }
     }

@@ -114,7 +114,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        const ID<Entity> entity = proxy.entity;
+        const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
         RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
@@ -405,12 +405,12 @@ RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const Framebuff
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
-    RenderListCollectionResult result { };
-    result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    result.num_changed_entities = proxy_list.GetChangedEntities().Count();
+    RenderListCollectionResult collection_result { };
+    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
+    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
+    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
 
-    if (result.NeedsUpdate()) {
+    if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
         proxy_list.GetRemovedEntities(removed_proxies);
 
@@ -444,7 +444,7 @@ RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const Framebuff
 
     proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    return result;
+    return collection_result;
 }
 
 void RenderList::PushEntityToRender(

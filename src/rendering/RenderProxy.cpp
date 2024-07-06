@@ -1,6 +1,8 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/SafeDeleter.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {
@@ -31,10 +33,6 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
     }
 
     m_next_entities.Set(entity.ToIndex(), true);
-
-    if (m_next_entities.NumBits() > m_previous_entities.NumBits()) {
-        m_previous_entities.Resize(m_next_entities.NumBits());
-    }
 }
 
 bool RenderProxyList::MarkToKeep(ID<Entity> entity)
@@ -133,6 +131,10 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
         break;
     case RenderProxyListAdvanceAction::PERSIST:
         m_previous_entities = m_next_entities;
+
+        break;
+    default:
+        HYP_FAIL("Invalid RenderProxyListAdvanceAction");
 
         break;
     }

@@ -136,47 +136,38 @@ struct Handle : HandleBase
         }
     }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     T *operator->() const
         { return Get(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     T &operator*()
         { return *Get(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     const T &operator*() const
         { return *Get(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return !IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const Handle &other) const
         { return index == other.index; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const Handle &other) const
         { return index != other.index; }
@@ -184,28 +175,36 @@ struct Handle : HandleBase
     /*! \brief Compare two handles by their index.
      *  \param other The handle to compare to.
      *  \return True if the handle is less than the other handle. */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const Handle &other) const
         { return index < other.index; }
     
+    HYP_FORCE_INLINE
+    bool operator==(const IDType &id) const
+        { return index == id.Value(); }
+    
+    HYP_FORCE_INLINE
+    bool operator!=(const IDType &id) const
+        { return index != id.Value(); }
+
+    HYP_FORCE_INLINE
+    bool operator<(const IDType &id) const
+        { return index < id.Value(); }
+    
     /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
      *  \return True if the handle is valid. */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
     
     /*! \brief Get a pointer to the object that the handle is referencing.
      *  \return A pointer to the object. */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     T *Get() const
     {
@@ -229,17 +228,14 @@ struct Handle : HandleBase
         index = 0;
     }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -359,7 +355,7 @@ struct WeakHandle
     /*! \brief Lock the weak handle to get a strong reference to the object.
      *  \details If the object is still alive, a strong reference is returned. Otherwise, an empty handle is returned.
      *  \return A strong reference to the object. */
-    [[nodiscard]]
+    HYP_NODISCARD HYP_FORCE_INLINE
     Handle<T> Lock() const
     {
         if (index == 0) {
@@ -371,62 +367,62 @@ struct WeakHandle
             : Handle<T>();
     }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!() const
         { return !IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     explicit operator bool() const
         { return IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const WeakHandle &other) const
         { return index == other.index; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const WeakHandle &other) const
         { return index == other.index; }
-    
-    [[nodiscard]]
+
     HYP_FORCE_INLINE
     bool operator<(const WeakHandle &other) const
         { return index < other.index; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const Handle<T> &other) const
         { return index == other.index; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const Handle<T> &other) const
         { return index == other.index; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator<(const Handle<T> &other) const
         { return index < other.index; }
     
-    [[nodiscard]]
+    HYP_FORCE_INLINE
+    bool operator==(const IDType &id) const
+        { return index == id.Value(); }
+    
+    HYP_FORCE_INLINE
+    bool operator!=(const IDType &id) const
+        { return index == id.Value(); }
+    
+    HYP_FORCE_INLINE
+    bool operator<(const IDType &id) const
+        { return index < id.Value(); }
+    
     HYP_FORCE_INLINE
     bool IsValid() const
         { return index != 0; }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     IDType GetID() const
         { return { uint(index) }; }
@@ -440,15 +436,12 @@ struct WeakHandle
         index = 0;
     }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {

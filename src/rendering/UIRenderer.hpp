@@ -28,6 +28,10 @@ public:
     UIRenderList &operator=(UIRenderList &&other) noexcept  = default;
     ~UIRenderList();
 
+    HYP_FORCE_INLINE
+    SizeType GetProxyCount() const
+        { return m_proxy_ordering.Size(); }
+
     void ResetOrdering();
 
     void PushEntityToRender(
@@ -35,18 +39,13 @@ public:
         const RenderProxy &proxy
     );
 
-    void PushUpdatesToRenderThread(
+    RenderListCollectionResult PushUpdatesToRenderThread(
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 
-    void CollectDrawCalls(
-        Frame *frame
-    );
-
-    void ExecuteDrawCalls(
-        Frame *frame
-    ) const;
+    void CollectDrawCalls(Frame *frame);
+    void ExecuteDrawCalls(Frame *frame) const;
 
 private:
     Array<ID<Entity>>   m_proxy_ordering;

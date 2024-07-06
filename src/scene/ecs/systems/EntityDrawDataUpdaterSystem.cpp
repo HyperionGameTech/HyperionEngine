@@ -7,34 +7,43 @@
 
 #include <rendering/backend/RenderCommand.hpp>
 
+#include <core/utilities/Format.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
 
+HYP_DEFINE_LOG_SUBCHANNEL(RenderProxy, ECS);
+
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateRenderProxies) : renderer::RenderCommand
+struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 {
     Array<RC<RenderProxy>>  render_proxies;
 
-    RENDER_COMMAND(UpdateRenderProxies)(Array<RC<RenderProxy>> &&render_proxies)
+    RENDER_COMMAND(UpdateEntityDrawData)(Array<RC<RenderProxy>> &&render_proxies)
         : render_proxies(std::move(render_proxies))
     {
     }
 
-    virtual ~RENDER_COMMAND(UpdateRenderProxies)() override = default;
+    virtual ~RENDER_COMMAND(UpdateEntityDrawData)() override = default;
 
     virtual Result operator()() override
     {
         for (const RC<RenderProxy> &proxy_ptr : render_proxies) {
             const RenderProxy &proxy = *proxy_ptr;
 
-            g_engine->GetRenderData()->objects.Set(proxy.entity.ToIndex(), EntityShaderData {
+            g_engine->GetRenderData()->objects.Set(proxy.entity.GetID().ToIndex(), EntityShaderData {
                 .model_matrix           = proxy.model_matrix,
                 .previous_model_matrix  = proxy.previous_model_matrix,
                 .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),
                 .world_aabb_min         = Vec4f(proxy.aabb.min, 1.0f),
-                .entity_index           = proxy.entity.ToIndex(),
+                .entity_index           = proxy.entity.GetID().ToIndex(),
                 .material_index         = proxy.material.GetID().ToIndex(),
                 .skeleton_index         = proxy.skeleton.GetID().ToIndex(),
                 .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
@@ -61,7 +70,7 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 
     if (!mesh_component.proxy) {
         mesh_component.proxy.Reset(new RenderProxy {
-            entity,
+            Handle<Entity>(entity),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,
@@ -91,13 +100,16 @@ void EntityDrawDataUpdaterSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
+        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity.ToIndex());
+        HYP_LOG(RenderProxy, LogLevel::DEBUG, "Updating RenderProxy for entity #{}", entity.ToIndex());
+
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();
         const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
 
         // Update MeshComponent's proxy
         *mesh_component.proxy = RenderProxy {
-            entity,
+            Handle<Entity>(entity),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,
@@ -118,7 +130,7 @@ void EntityDrawDataUpdaterSystem::Process(GameCounter::TickUnit delta)
 
     if (render_proxies.Any()) {
         PUSH_RENDER_COMMAND(
-            UpdateRenderProxies,
+            UpdateEntityDrawData,
             std::move(render_proxies)
         );
     }

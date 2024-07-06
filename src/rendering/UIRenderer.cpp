@@ -213,26 +213,18 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
+        HYP_LOG(UI, LogLevel::DEBUG, "Rebuilding UI proxy groups on render thread: {} added, {} removed, {} changed",
+            added_proxies.Size(), removed_proxies.Size(), changed_proxies.Size());
+
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (const auto &it : changed_proxies) {
-            const ID<Entity> entity = it.first;
-            const RenderProxy &proxy = it.second;
-
-            const Handle<Mesh> &mesh = proxy.mesh;
-            AssertThrow(mesh.IsValid());
-
-            const Handle<Material> &material = proxy.material;
-            AssertThrow(material.IsValid());
-            
             // Remove it, then add it back (changed proxies will be included in the added proxies list)
-            AssertThrow(RemoveRenderProxy(proxy_list, entity));
+            AssertThrow(RemoveRenderProxy(proxy_list, it.first));
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            const ID<Entity> entity = proxy.entity;
-
-            proxy_list.Add(entity, std::move(proxy));
+            proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
 
         for (const ID<Entity> &entity : removed_proxies) {
@@ -275,7 +267,7 @@ void UIRenderList::PushEntityToRender(ID<Entity> entity, const RenderProxy &prox
     m_proxy_ordering.PushBack(entity);
 }
 
-void UIRenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -284,41 +276,57 @@ void UIRenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, 
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
-    Array<ID<Entity>> removed_proxies;
-    proxy_list.GetRemovedEntities(removed_proxies);
+    RenderListCollectionResult collection_result { };
+    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
+    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
+    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
 
-    Array<RenderProxy *> added_proxies_ptrs;
-    proxy_list.GetAddedEntities(added_proxies_ptrs, true);
+    HYP_LOG(UI, LogLevel::DEBUG, "UI Renderer: {} ({} -> {}\t{} -> {}\t{} -> {}) entities to render: {} added, {} removed, {} changed",
+        m_proxy_ordering.Size(),
+        proxy_list.GetEntities().Count(), proxy_list.GetNextEntities().Count(),
+        proxy_list.GetEntities(), proxy_list.GetNextEntities(),
+        proxy_list.GetEntities().NumBits(), proxy_list.GetNextEntities().NumBits(),
+        collection_result.num_added_entities, collection_result.num_removed_entities, collection_result.num_changed_entities);
 
-    FlatMap<ID<Entity>, RenderProxy> changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
+    if (collection_result.NeedsUpdate()) {
+        Array<ID<Entity>> removed_proxies;
+        proxy_list.GetRemovedEntities(removed_proxies);
 
-    if (added_proxies_ptrs.Any() || removed_proxies.Any() || changed_proxies.Any()) {
-        HYP_LOG(UI, LogLevel::DEBUG, "Pushing UI updates to render thread: {} added, {} removed, {} changed",
-            added_proxies_ptrs.Size(), removed_proxies.Size(), changed_proxies.Size());
+        Array<RenderProxy *> added_proxies_ptrs;
+        proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
 
-        Array<RenderProxy> added_proxies;
-        added_proxies.Resize(added_proxies_ptrs.Size());
+        FlatMap<ID<Entity>, RenderProxy> changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
 
-        for (uint i = 0; i < added_proxies_ptrs.Size(); i++) {
-            AssertThrow(added_proxies_ptrs[i] != nullptr);
+        if (added_proxies_ptrs.Any() || removed_proxies.Any() || changed_proxies.Any()) {
+            HYP_LOG(UI, LogLevel::DEBUG, "Pushing UI updates to render thread: {} added, {} removed, {} changed",
+                added_proxies_ptrs.Size(), removed_proxies.Size(), changed_proxies.Size());
 
-            // Copy the proxy to be added on the render thread
-            added_proxies[i] = *added_proxies_ptrs[i];
+            Array<RenderProxy> added_proxies;
+            added_proxies.Resize(added_proxies_ptrs.Size());
+
+            for (uint i = 0; i < added_proxies_ptrs.Size(); i++) {
+                AssertThrow(added_proxies_ptrs[i] != nullptr);
+
+                // Copy the proxy to be added on the render thread
+                added_proxies[i] = *added_proxies_ptrs[i];
+            }
+
+            PUSH_RENDER_COMMAND(
+                RebuildProxyGroups_UI,
+                m_draw_collection,
+                std::move(added_proxies),
+                std::move(removed_proxies),
+                std::move(changed_proxies),
+                m_proxy_ordering,
+                framebuffer,
+                override_attributes
+            );
         }
-
-        PUSH_RENDER_COMMAND(
-            RebuildProxyGroups_UI,
-            m_draw_collection,
-            std::move(added_proxies),
-            std::move(removed_proxies),
-            std::move(changed_proxies),
-            m_proxy_ordering,
-            framebuffer,
-            override_attributes
-        );
     }
 
     proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+    return collection_result;
 }
 
 void UIRenderList::CollectDrawCalls(Frame *frame)

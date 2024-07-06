@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<Entity> entity_id)
+static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<Entity> entity)
 {
     AssertThrow(batch_index < max_entity_instance_batches);
 
@@ -19,7 +19,7 @@ static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<
     }
 
     const uint32 id_index = batch.num_entities++;
-    batch.indices[id_index] = uint32(entity_id.ToIndex());
+    batch.indices[id_index] = uint32(entity.ToIndex());
     g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
 
     return true;
@@ -52,13 +52,13 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
             DrawCall &draw_call = draw_calls[draw_call_index];
             AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
 
-            if (!PushEntityToBatch(draw_call.batch_index, render_proxy.entity)) {
+            if (!PushEntityToBatch(draw_call.batch_index, render_proxy.entity.GetID())) {
                 // filled up, continue looking in array,
                 // if all are filled, we push a new one
                 continue;
             }
 
-            draw_call.entity_ids[draw_call.entity_id_count++] = render_proxy.entity;
+            draw_call.entity_ids[draw_call.entity_id_count++] = render_proxy.entity.GetID();
 
             AssertThrow(draw_call.entity_id_count == g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index).num_entities);
 
@@ -81,11 +81,11 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     draw_call.mesh_id = render_proxy.mesh.GetID();
     draw_call.material_id = render_proxy.material.GetID();
     draw_call.skeleton_id = render_proxy.skeleton.GetID();
-    draw_call.entity_ids[0] = render_proxy.entity;
+    draw_call.entity_ids[0] = render_proxy.entity.GetID();
     draw_call.entity_id_count = 1;
     draw_call.batch_index = batch_index;
 
-    PushEntityToBatch(draw_call.batch_index, render_proxy.entity);
+    PushEntityToBatch(draw_call.batch_index, render_proxy.entity.GetID());
 
     draw_calls.PushBack(draw_call);
 }

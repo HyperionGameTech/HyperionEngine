@@ -25,7 +25,8 @@ class Entity;
 
 struct RenderProxy
 {
-    ID<Entity>                              entity;
+    // uses Handle<Entity> instead of ID<Entity> to keep the entity alive while it is in the RenderProxyList
+    Handle<Entity>                          entity;
     Handle<Mesh>                            mesh;
     Handle<Material>                        material;
     Handle<Skeleton>                        skeleton;
@@ -34,7 +35,6 @@ struct RenderProxy
     BoundingBox                             aabb;
     UserData<sizeof(Vec4u), alignof(Vec4u)> user_data;
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator==(const RenderProxy &other) const
     {
@@ -48,7 +48,6 @@ struct RenderProxy
             && user_data == other.user_data;
     }
     
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const RenderProxy &other) const
     {
@@ -97,47 +96,50 @@ public:
 
     /*! \brief Checks if the RenderProxyList already has a proxy for the given entity
      *  from the previous frame */
-    [[nodiscard]]
     HYP_FORCE_INLINE
     bool HasProxyForEntity(ID<Entity> entity) const
         { return m_previous_entities.Test(entity.ToIndex()); }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     const Bitset &GetEntities() const
         { return m_previous_entities; }
 
-    [[nodiscard]]
+    HYP_FORCE_INLINE
+    const Bitset &GetNextEntities() const
+        { return m_next_entities; }
+
     HYP_FORCE_INLINE
     FlatMap<ID<Entity>, RenderProxy> &GetRenderProxies()
         { return m_proxies; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     const FlatMap<ID<Entity>, RenderProxy> &GetRenderProxies() const
         { return m_proxies; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     FlatMap<ID<Entity>, RenderProxy> &GetChangedRenderProxies()
         { return m_changed_proxies; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     const FlatMap<ID<Entity>, RenderProxy> &GetChangedRenderProxies() const
         { return m_changed_proxies; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     Bitset GetAddedEntities() const
-        { return m_next_entities & ~m_previous_entities; }
+    {
+        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
 
-    [[nodiscard]]
+        return Bitset(m_next_entities).Resize(new_num_bits) & ~Bitset(m_previous_entities).Resize(new_num_bits);
+    }
+
     HYP_FORCE_INLINE
     Bitset GetRemovedEntities() const
-        { return m_previous_entities & ~m_next_entities; }
+    {
+        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
 
-    [[nodiscard]]
+        return Bitset(m_previous_entities).Resize(new_num_bits) & ~Bitset(m_next_entities).Resize(new_num_bits);
+    }
+
     HYP_FORCE_INLINE
     const Bitset &GetChangedEntities() const
         { return m_changed_entities; }
