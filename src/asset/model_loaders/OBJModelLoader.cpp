@@ -57,17 +57,17 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
     return result;
 }
 
-static void AddMesh(OBJModel &model, const String &tag, const String &material)
+static void AddMesh(OBJModel &model, const String &name, const String &material)
 {
-    String unique_tag(tag);
+    String unique_name(name);
     int counter = 0;
 
-    while (model.meshes.Any([&unique_tag](const OBJMesh &obj_mesh) { return obj_mesh.tag == unique_tag; })) {
-        unique_tag = tag + String::ToString(++counter);
+    while (model.meshes.Any([&unique_name](const OBJMesh &obj_mesh) { return obj_mesh.name == unique_name; })) {
+        unique_name = name + String::ToString(++counter);
     }
 
     model.meshes.PushBack(OBJMesh {
-        .tag        = unique_tag,
+        .name       = unique_name,
         .material   = material
     });
 }
@@ -117,9 +117,9 @@ Vector GetIndexedVertexProperty(int64 vertex_index, const Array<Vector> &vectors
 {
     const int64 vertex_absolute = vertex_index >= 0
         ? vertex_index
-        : static_cast<int64>(vectors.Size()) + (vertex_index);
+        : int64(vectors.Size()) + vertex_index;
 
-    if (vertex_absolute < 0 || vertex_absolute >= static_cast<int64>(vectors.Size())) {
+    if (vertex_absolute < 0 || vertex_absolute >= int64(vectors.Size())) {
         HYP_LOG(Assets, LogLevel::WARNING, "Vertex index of {} (absolute: {}) is out of bounds ({})",
             vertex_index, vertex_absolute, vectors.Size());
 
@@ -136,12 +136,11 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
 
     Tokens tokens;
     tokens.Reserve(5);
-    
-    model.tag = "unnamed";
 
     String active_material;
 
-    state.stream.ReadLines([&](const String &line, bool *) {
+    state.stream.ReadLines([&](const String &line, bool *)
+    {
         tokens.Clear();
 
         const String trimmed = line.Trimmed();
@@ -189,7 +188,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
             }
 
             /* Performs simple triangulation on quad faces */
-            for (int64 i = 0; i < static_cast<int64>(tokens.Size()) - 3; i++) {
+            for (int64 i = 0; i < int64(tokens.Size()) - 3; i++) {
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[1]));
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[2 + i]));
                 last_mesh.indices.PushBack(ParseOBJIndex(tokens[3 + i]));
@@ -200,7 +199,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
 
         if (tokens[0] == "o") {
             if (tokens.Size() != 1) {
-                model.tag = tokens[1];
+                model.name = tokens[1];
             }
 
             return;
@@ -230,13 +229,13 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
         }
 
         if (tokens[0] == "g") {
-            String tag = "default";
+            String name = "default";
 
             if (tokens.Size() != 1) {
-                tag = tokens[1];
+                name = tokens[1];
             }
             
-            AddMesh(model, tag, active_material);
+            AddMesh(model, name, active_material);
 
             return;
         }
@@ -267,7 +266,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    NodeProxy top(new Node(model.tag));
+    NodeProxy top(new Node(model.name));
 
     Handle<MaterialGroup> material_library;
     
@@ -351,7 +350,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             Topology::TRIANGLES
         );
 
-        mesh->SetName(CreateNameFromDynamicString(obj_mesh.tag));
+        mesh->SetName(CreateNameFromDynamicString(obj_mesh.name));
 
         if (!has_normals) {
             mesh->CalculateNormals();
@@ -419,7 +418,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             VisibilityStateComponent { }
         );
 
-        NodeProxy node(new Node(obj_mesh.tag));
+        NodeProxy node(new Node(obj_mesh.name));
         node->SetEntity(entity);
         
         top->AddChild(std::move(node));

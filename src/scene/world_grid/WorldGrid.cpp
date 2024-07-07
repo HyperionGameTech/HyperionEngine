@@ -169,7 +169,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
         while (m_state.patch_generation_queue_owned.Any()) {
             HYP_NAMED_SCOPE_FMT("Processing completed patch generation ({} patches ready)", m_state.patch_generation_queue_owned.Size());
 
-            UniquePtr<WorldGridPatch> patch = m_state.patch_generation_queue_owned.Pop();
+            RC<WorldGridPatch> patch = m_state.patch_generation_queue_owned.Pop();
             AssertThrow(patch != nullptr);
             
             const WorldGridPatchInfo &patch_info = patch->GetPatchInfo();
@@ -213,7 +213,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             // Initialize patch entity on game thread
-            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch = patch.Get(), scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
+            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch, scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
             {
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
@@ -336,7 +336,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                         HYP_NAMED_SCOPE_FMT("Generating patch at {}", patch_info.coord);
 
                         Mutex::Guard guard(shared_queue.mutex);
-                        shared_queue.queue.Push(plugin->CreatePatch(patch_info));
+                        shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
                         shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
 
                         HYP_LOG(WorldGrid, LogLevel::INFO, "Patch generation at {} completed", patch_info.coord);

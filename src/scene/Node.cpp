@@ -14,6 +14,8 @@
 
 #include <core/HypClassUtils.hpp>
 
+#include <editor/EditorDelegates.hpp>
+
 #include <Engine.hpp>
 
 #include <cstring>
@@ -31,6 +33,8 @@ HYP_DEFINE_CLASS(
     HypClassProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
     HypClassProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
 );
+
+static const String unnamed_node_name = "<unnamed>";
 
 // @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
 // this only happens in the case that the scene in question is destructing and
@@ -84,7 +88,7 @@ Node::Node(
     const Transform &local_transform,
     Scene *scene
 ) : m_type(type),
-    m_name(name),
+    m_name(name.Empty() ? unnamed_node_name : name),
     m_parent_node(nullptr),
     m_local_transform(local_transform),
     m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -105,12 +109,10 @@ Node::Node(Node &&other) noexcept
       m_scene(other.m_scene),
       m_transform_locked(other.m_transform_locked),
       m_delegates(std::move(other.m_delegates))
-#ifdef HYP_EDITOR
-    , m_editor_observables(std::move(other.m_editor_observables))
-#endif
 {
     other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
+    other.m_name = unnamed_node_name;
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
@@ -143,10 +145,6 @@ Node &Node::operator=(Node &&other) noexcept
     SetScene(nullptr);
 
     m_delegates = std::move(other.m_delegates);
-
-#ifdef HYP_EDITOR
-    m_editor_observables = std::move(other.m_editor_observables);
-#endif
 
     m_type = other.m_type;
     other.m_type = Type::NODE;
@@ -197,6 +195,19 @@ Node::~Node()
 {
     RemoveAllChildren();
     SetEntity(ID<Entity>::invalid);
+}
+
+void Node::SetName(const String &name)
+{
+    if (name.Empty()) {
+        m_name = unnamed_node_name;
+    } else {
+        m_name = name;
+    }
+
+#ifdef HYP_EDITOR
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Name"), m_world_transform);
+#endif
 }
 
 bool Node::IsOrHasParent(const Node *node) const
@@ -694,8 +705,7 @@ void Node::UpdateWorldTransform()
     }
 
 #ifdef HYP_EDITOR
-    m_editor_observables.Trigger(NAME("LocalTransform"), m_local_transform);
-    m_editor_observables.Trigger(NAME("WorldTransform"), m_world_transform);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Transform"), m_world_transform);
 #endif
 
     for (NodeProxy &node : m_child_nodes) {

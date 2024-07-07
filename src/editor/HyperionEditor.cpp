@@ -1,6 +1,7 @@
 #include <editor/HyperionEditor.hpp>
 #include <editor/EditorCamera.hpp>
 #include <editor/EditorObjectProperties.hpp>
+#include <editor/EditorDelegates.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -53,6 +54,20 @@ namespace hyperion {
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
 namespace editor {
+
+struct EditorNodeRef
+{
+    Weak<Node> node;
+
+    String ToString() const
+    {
+        if (RC<Node> node_rc = node.Lock()) {
+            return node_rc->GetName();
+        }
+
+        return "Invalid";
+    }
+};
 
 #pragma region HyperionEditorImpl
 
@@ -358,7 +373,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     // scene_outline->AddChildUIObject(scene_outline_header);
 
 
-    UniquePtr<UIDataSource<UUID>> temp_data_source(new UIDataSource<UUID>());
+    UniquePtr<UIDataSource<EditorNodeRef>> temp_data_source(new UIDataSource<EditorNodeRef>());
     RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view->SetDataSource(std::move(temp_data_source));
@@ -389,26 +404,58 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
             return UIEventHandlerResult::ERR;
         }
 
-        ConstAnyRef data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
+        const IUIDataSourceElement *data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
 
-        if (!data_source_element_value.HasValue()) {
+        if (!data_source_element_value) {
             return UIEventHandlerResult::ERR;
         }
 
-        const UUID &associated_node_uuid = data_source_element_value.Get<UUID>();
+        const EditorNodeRef &node_ref = data_source_element_value->GetValue<EditorNodeRef>();
+        RC<Node> node_rc = node_ref.node.Lock();
 
-        NodeProxy associated_node = GetScene()->GetRoot()->FindChildByUUID(associated_node_uuid);
+        // const UUID &associated_node_uuid = data_source_element_value->GetValue
 
-        if (!associated_node.IsValid()) {
+        // NodeProxy associated_node = GetScene()->GetRoot()->FindChildByUUID(associated_node_uuid);
+
+        if (!node_rc) {
             return UIEventHandlerResult::ERR;
         }
 
-        SetFocusedNode(associated_node);
+        SetFocusedNode(NodeProxy(std::move(node_rc)));
 
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    // TODO make it more efficient to add/remove items instead of searching by name
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), { NAME("Name") }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
+    {
+        HYP_LOG(Editor, LogLevel::DEBUG, "(scene) Node property changed: {}", name);
+
+        // Update name in list view
+        // @TODO: Ensure game thread
+
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node](const IUIDataSourceElement *item)
+            {
+                return item->GetValue<EditorNodeRef>().node == node;
+            });
+
+            if (data_source_element != nullptr) {
+                EditorNodeRef node_ref = data_source_element->GetValue<EditorNodeRef>();
+                
+                data_source->Set(
+                    data_source_element->GetUUID(),
+                    AnyRef(&node_ref)
+                );
+            }
+        }
+    });
+
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
         RC<UIListView> list_view = list_view_weak.Lock();
@@ -419,78 +466,30 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 
         AssertThrow(node.IsValid());
 
-        // testing
-        if (UIDataSource<UUID> *data_source = list_view->GetDataSource<UUID>()) {
-            data_source->Push(node->GetUUID());
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            EditorNodeRef editor_node_ref { node.ToWeak() };
+
+            data_source->Push(editor_node_ref);
         }
 
-#if 0
-        RC<UIText> ui_text = list_view->GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("SceneOutlineText_") + ANSIString::ToString(node.GetName())), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
-        ui_text->SetText(node->GetName());
-        ui_text->SetTextColor(Vec4f::One());
-        ui_text->GetNode()->AddTag(NAME("AssociatedNodeUUID"), NodeTag(node->GetUUID()));
-
-        ui_text->OnClick.Bind([this, ui_text_weak = ui_text.ToWeak()](...)
-        {
-            RC<UIText> ui_text = ui_text_weak.Lock();
-
-            if (!ui_text) {
-                return UIEventHandlerResult::ERR;
-            }
-
-            const NodeProxy &ui_text_node = ui_text->GetNode();
-
-            if (!ui_text_node.IsValid()) {
-                return UIEventHandlerResult::ERR;
-            }
-            
-            const NodeTag &node_uuid = ui_text_node->GetTag(NAME("AssociatedNodeUUID"));
-
-            if (!node_uuid.IsValid()) {
-                return UIEventHandlerResult::ERR;
-            }
-
-            NodeProxy associated_node = GetScene()->GetRoot()->FindChildByUUID(node_uuid.value.Get<UUID>());
-
-            if (!associated_node.IsValid()) {
-                return UIEventHandlerResult::ERR;
-            }
-
-            SetFocusedNode(associated_node);
-
-            return UIEventHandlerResult::OK;
-        }).Detach();
-
-        list_view->AddChildUIObject(ui_text);
-#endif
+        EditorDelegates::GetInstance().WatchNode(node.Get());
     }).Detach();
 
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
+        EditorDelegates::GetInstance().UnwatchNode(node.Get());
+
         RC<UIListView> list_view = list_view_weak.Lock();
 
         if (!list_view) {
             return;
         }
 
-        if (UIDataSource<UUID> *data_source = list_view->GetDataSource<UUID>()) {
-            data_source->RemoveAllWithPredicate([&node](UUID, ConstAnyRef item) -> bool
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            data_source->RemoveAllWithPredicate([&node](IUIDataSourceElement *item)
             {
-                return item.Get<UUID>() == node->GetUUID();
+                return item->GetValue<EditorNodeRef>().node == node.Get();
             });
-        }
-
-        RC<UIObject> found_ui_object = list_view->FindChildUIObject([&node](const RC<UIObject> &child)
-        {
-            if (const NodeProxy &child_node = child->GetNode()) {
-                return child_node->GetTag(NAME("AssociatedNodeUUID")) == node->GetUUID();
-            }
-
-            return false;
-        });
-
-        if (found_ui_object != nullptr) {
-            list_view->RemoveChildUIObject(found_ui_object);
         }
     }).Detach();
 
@@ -507,7 +506,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     RC<UIText> detail_view_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
     detail_view_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     detail_view_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
-    detail_view_header_text->SetText("PROPERTIES");
+    detail_view_header_text->SetText("Properties");
     detail_view_header_text->SetTextColor(Vec4f::One());
     detail_view_header->AddChildUIObject(detail_view_header_text);
     detail_view->AddChildUIObject(detail_view_header);
@@ -516,12 +515,43 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     detail_view->AddChildUIObject(list_view);
 
-    OnFocusedNodeChanged.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("NodeDetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
     {
-        if (previous_node.IsValid()) {
-            previous_node->GetEditorObservables().RemoveAll();
+        HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", name);
+        
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
         }
 
+        const HypClassProperty *property = hyp_class->GetProperty(name);
+
+        if (!property) {
+            return;
+        }
+
+        RC<UIObject> list_view_item = list_view->FindChildUIObject([property](const RC<UIObject> &object) -> bool
+        {
+            NodeProxy node = object->GetNode();
+            
+            if (!node.IsValid()) {
+                return false;
+            }
+
+            return node->GetTag(NAME("HypClassPropertyKey")) == property->name;
+        });
+
+        if (!list_view_item) {
+            return;
+        }
+
+        // @TODO: DataSource for list view item that has callback on data update
+
+    });
+
+    OnFocusedNodeChanged.Bind([this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
+    {
         RC<UIListView> list_view = list_view_weak.Lock();
 
         if (!list_view) {
@@ -535,18 +565,6 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
 
             return;
         }
-
-        const HypClass *hyp_class = nullptr;
-        
-        // if (node->GetEntity().IsValid()) {
-        //     hyp_class = GetClass<Entity>();
-
-        //     HYP_LOG(Editor, LogLevel::DEBUG, "Focused object properties class: {}", hyp_class->GetName());
-        // } else {
-            hyp_class = GetClass<Node>();
-
-        //     HYP_LOG(Editor, LogLevel::DEBUG, "Focused node properties class: {}", hyp_class->GetName());
-        // }
 
         for (const HypClassProperty *property : hyp_class->GetProperties()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
@@ -573,40 +591,6 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
 
             list_view->AddChildUIObject(list_view_item);
         }
-
-        node->GetEditorObservables().GetCatchallDelegate().Bind([this, hyp_class, list_view_weak = list_view.ToWeak()](Name name, ConstAnyRef value)
-        {
-            RC<UIListView> list_view = list_view_weak.Lock();
-
-            if (!list_view) {
-                return;
-            }
-
-            const HypClassProperty *property = hyp_class->GetProperty(name);
-
-            if (!property) {
-                return;
-            }
-
-            RC<UIObject> list_view_item = list_view->FindChildUIObject([property](const RC<UIObject> &object) -> bool
-            {
-                NodeProxy node = object->GetNode();
-                
-                if (!node.IsValid()) {
-                    return false;
-                }
-
-                return node->GetTag(NAME("HypClassPropertyKey")) == property->name;
-            });
-
-            if (!list_view_item) {
-                return;
-            }
-
-            // @TODO: DataSource for list view item that has callback on data update
-
-            HYP_LOG(Editor, LogLevel::DEBUG, "Property value changed: {}", name);
-        }).Detach();
     }).Detach();
 
     return detail_view;
@@ -1082,8 +1066,9 @@ void HyperionEditor::Logic(GameCounter::TickUnit delta)
 
         // testing remove
         if (timer > 15.0) {
-            HYP_LOG(Editor, LogLevel::DEBUG, "Removing zombie");
-            zombie->Remove();
+            // HYP_LOG(Editor, LogLevel::DEBUG, "Removing zombie");
+            // zombie->Remove();
+            zombie->SetName("Blah blah");
         }
     }
 }

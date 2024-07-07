@@ -92,36 +92,36 @@ protected:
 
 struct WorldGridPatchDesc
 {
-    WorldGridPatchInfo          patch_info;
+    WorldGridPatchInfo  patch_info;
 
-    ID<Entity>                  entity;
+    ID<Entity>          entity;
     
     // May be null if the patch is not yet created
-    UniquePtr<WorldGridPatch>   patch;
+    RC<WorldGridPatch>  patch;
 };
 
 struct WorldGridPatchGenerationQueue
 {
-    Mutex                               mutex;
-    Queue<UniquePtr<WorldGridPatch>>    queue;
-    AtomicVar<bool>                     has_updates;
+    Mutex                       mutex;
+    Queue<RC<WorldGridPatch>>   queue;
+    AtomicVar<bool>             has_updates;
 };
 
 struct WorldGridState
 {
-    FlatMap<Vec2i, Task<void>>                  patch_generation_tasks;
-    Queue<UniquePtr<WorldGridPatch>>            patch_generation_queue_owned;
-    WorldGridPatchGenerationQueue               patch_generation_queue_shared;
+    FlatMap<Vec2i, Task<void>>          patch_generation_tasks;
+    Queue<RC<WorldGridPatch>>           patch_generation_queue_owned;
+    WorldGridPatchGenerationQueue       patch_generation_queue_shared;
     
-    Queue<WorldGridPatchUpdate>                 patch_update_queue;
-    AtomicVar<uint32>                           patch_update_queue_size { 0 };
-    mutable Mutex                               patch_update_queue_mutex;
+    Queue<WorldGridPatchUpdate>         patch_update_queue;
+    AtomicVar<uint32>                   patch_update_queue_size { 0 };
+    mutable Mutex                       patch_update_queue_mutex;
 
-    FlatMap<Vec2i, WorldGridPatchDesc>          patches;
-    mutable Mutex                               patches_mutex;
+    FlatMap<Vec2i, WorldGridPatchDesc>  patches;
+    mutable Mutex                       patches_mutex;
 
     // Keep track of the last desired patches to avoid unnecessary comparison and locking
-    Array<Vec2i>                                previous_desired_patch_coords;
+    Array<Vec2i>                        previous_desired_patch_coords;
 
     void PushUpdate(WorldGridPatchUpdate &&update);
 

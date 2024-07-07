@@ -26,29 +26,31 @@ public:
                   normal,
                   texcoord;
 
+            HYP_FORCE_INLINE
             bool operator==(const OBJIndex &other) const
                 { return vertex == other.vertex
                     && normal == other.normal
                     && texcoord == other.texcoord; }
 
+            HYP_FORCE_INLINE
             bool operator<(const OBJIndex &other) const
                 { return Tie(vertex, normal, texcoord) < Tie(other.vertex, other.normal, other.texcoord); }
         };
 
         struct OBJMesh
         {
-            String          tag;
+            String          name;
             String          material;
             Array<OBJIndex> indices;
         };
 
         String          filepath;
 
-        Array<Vector3>  positions;
-        Array<Vector3>  normals;
-        Array<Vector2>  texcoords;
+        Array<Vec3f>    positions;
+        Array<Vec3f>    normals;
+        Array<Vec2f>    texcoords;
         Array<OBJMesh>  meshes;
-        String          tag;
+        String          name;
         String          material_library;
     };
 

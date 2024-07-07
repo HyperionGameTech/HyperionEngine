@@ -56,13 +56,13 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
     }
 
     // @TODO initial setup of list view items!
-    m_data_source_on_element_add_handler = m_data_source->OnElementAdd.Bind([this](UIDataSourceBase *data_source_ptr, UUID uuid, ConstAnyRef ref)
+    m_data_source_on_element_add_handler = m_data_source->OnElementAdd.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
     {
         HYP_NAMED_SCOPE("Add element from data source to list view");
 
         RC<UIListViewItem> list_view_item = GetStage()->CreateUIObject<UIListViewItem>(Name::Unique("ListViewItem"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        list_view_item->GetNode()->AddTag(NAME("DataSourceElementUUID"), NodeTag(uuid));
-        list_view_item->SetDataSourceElementUUID(uuid);
+        list_view_item->GetNode()->AddTag(NAME("DataSourceElementUUID"), NodeTag(element->GetUUID()));
+        list_view_item->SetDataSourceElementUUID(element->GetUUID());
         
         list_view_item->OnClick.Bind([this, list_view_item_weak = list_view_item.ToWeak()](const MouseEvent &event) -> UIEventHandlerResult
         {
@@ -80,21 +80,20 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
             return UIEventHandlerResult::OK;
         }).Detach();
 
-        // @TODO : Display the data in the list view item
-        // temp : just display the uuid
-        RC<UIText> text = GetStage()->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        text->SetText(uuid.ToString());
+        // just display the element as a string
+        RC<UIText> text = GetStage()->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+        text->SetText(element->ToString());
         list_view_item->AddChildUIObject(text);
 
         // add the list view item to the list view
         AddChildUIObject(list_view_item);
     });
 
-    m_data_source_on_element_remove_handler = m_data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, UUID uuid, ConstAnyRef ref)
+    m_data_source_on_element_remove_handler = m_data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
     {
         HYP_NAMED_SCOPE("Remove element from data source from list view");
 
-        const auto it = m_list_view_items.FindIf([uuid](UIObject *ui_object)
+        const auto it = m_list_view_items.FindIf([uuid = element->GetUUID()](UIObject *ui_object)
         {
             if (!ui_object) {
                 return false;
@@ -122,11 +121,42 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
         }
     });
 
-    m_data_source_on_element_update_handler = m_data_source->OnElementUpdate.Bind([this](UIDataSourceBase *data_source_ptr, UUID uuid, ConstAnyRef ref)
+    m_data_source_on_element_update_handler = m_data_source->OnElementUpdate.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
     {
         HYP_NAMED_SCOPE("Update element from data source in list view");
 
-        // @TODO : update the list view item with the new data
+        HYP_LOG(UI, LogLevel::INFO, "Updating element {}", element->ToString().Data());
+
+        // update the list view item with the new data
+
+        const auto it = m_list_view_items.FindIf([uuid = element->GetUUID()](UIObject *ui_object)
+        {
+            if (!ui_object) {
+                return false;
+            }
+
+            // @TODO Only store UIListViewItem in m_list_view_items so we don't have to cast
+            UIListViewItem *list_view_item = dynamic_cast<UIListViewItem *>(ui_object);
+
+            if (!list_view_item) {
+                return false;
+            }
+
+            return list_view_item->GetDataSourceElementUUID() == uuid;
+        });
+
+        // update the text of the list view item
+        if (it != m_list_view_items.End()) {
+            RC<UIObject> text_element = (*it)->FindChildUIObject([](const RC<UIObject> &ui_object) -> bool
+            {
+                return ui_object->GetType() == UIObjectType::TEXT;
+            });
+
+            // update the text
+            if (UIText *text_element_casted = dynamic_cast<UIText *>(text_element.Get())) {
+                text_element_casted->SetText(element->ToString());
+            }
+        }
     });
 }
 

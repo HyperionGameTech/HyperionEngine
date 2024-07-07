@@ -237,11 +237,6 @@ public:
     {
         Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeAdded;
         Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeRemoved;
-
-#ifdef HYP_EDITOR
-        // editor delegates
-        Delegate<void, Node *, const Transform &/* current */, const Transform & /* previous */> Editor_OnTransformUpdate;
-#endif
     };
 
     using NodeList = Array<NodeProxy>;
@@ -257,7 +252,7 @@ public:
      * \param local_transform An optional parameter representing the local-space transform of this Node.
      */
     Node(
-        const String &name = "<unnamed>",
+        const String &name = String::empty,
         const Transform &local_transform = Transform()
     );
 
@@ -289,8 +284,7 @@ public:
         { return m_name; }
         
     /*! \brief Set the name of this Node. Used for nested lookups. */
-    void SetName(const String &name)
-        { m_name = name; }
+    void SetName(const String &name);
 
     /*! \returns The type of the node. By default, it will just be NODE. */
     Type GetType() const
@@ -607,16 +601,6 @@ public:
     Delegates *GetDelegates() const
         { return m_delegates.Get(); }
 
-#ifdef HYP_EDITOR
-    /*! \brief Get the observables for this Node. */
-    EditorObservables &GetEditorObservables()
-        { return m_editor_observables; }
-
-    /*! \brief Get the observables for this Node. */
-    const EditorObservables &GetEditorObservables() const
-        { return m_editor_observables; }
-#endif
-
     /*! \brief Get all tags of this Node. */
     HYP_FORCE_INLINE
     const FlatMap<Name, NodeTag> &GetTags() const
@@ -693,10 +677,6 @@ protected:
     bool                        m_transform_locked;
 
     UniquePtr<Delegates>        m_delegates;
-
-#ifdef HYP_EDITOR
-    EditorObservables           m_editor_observables;
-#endif
 
     FlatMap<Name, NodeTag>      m_tags;
 

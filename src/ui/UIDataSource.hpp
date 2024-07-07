@@ -8,7 +8,6 @@
 #include <core/functional/Delegate.hpp>
 #include <core/functional/Proc.hpp>
 
-#include <core/utilities/Variant.hpp>
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/UUID.hpp>
 
@@ -17,6 +16,87 @@
 #include <core/Util.hpp>
 
 namespace hyperion {
+
+class HYP_API IUIDataSourceElement
+{
+public:
+    virtual ~IUIDataSourceElement() = default;
+
+    virtual UUID GetUUID() const = 0;
+    virtual ConstAnyRef GetValue() const = 0;
+    virtual String ToString() const = 0;
+
+    template <class T>
+    const T &GetValue() const
+    {
+        ConstAnyRef ref = GetValue();
+        AssertThrowMsg(ref.Is<T>(), "Cannot get value of type %u as type %u (%s)",
+            ref.GetTypeID().Value(), TypeID::ForType<T>().Value(), TypeName<T>().Data());
+
+        return ref.Get<T>();
+    }
+};
+
+template <class T>
+class HYP_API UIDataSourceElement : public IUIDataSourceElement
+{
+public:
+    UIDataSourceElement(UUID uuid, const T &value)
+        : m_uuid(uuid),
+          m_value(value)
+    {
+    }
+
+    UIDataSourceElement(const UIDataSourceElement &other)
+        : m_uuid(other.m_uuid),
+          m_value(other.m_value)
+    {
+    }
+
+    UIDataSourceElement &operator=(const UIDataSourceElement &other)
+    {
+        if (this != &other) {
+            m_uuid = other.m_uuid;
+            m_value = other.m_value;
+        }
+
+        return *this;
+    }
+
+    UIDataSourceElement(UIDataSourceElement &&other) noexcept
+        : m_uuid(other.m_uuid),
+          m_value(std::move(other.m_value))
+    {
+        other.m_uuid = UUID::Invalid();
+    }
+
+    UIDataSourceElement &operator=(UIDataSourceElement &&other) noexcept
+    {
+        if (this != &other) {
+            m_uuid = other.m_uuid;
+            m_value = std::move(other.m_value);
+
+            other.m_uuid = UUID::Invalid();
+        }
+
+        return *this;
+    }
+
+    virtual ~UIDataSourceElement() override = default;
+
+    virtual UUID GetUUID() const override
+        { return m_uuid; }
+
+    virtual ConstAnyRef GetValue() const override
+        { return ConstAnyRef(&m_value); }
+
+    virtual String ToString() const override
+        { return m_value.ToString(); }
+
+private:
+    UUID    m_uuid;
+    T       m_value;
+};
 
 class HYP_API UIDataSourceBase
 {
@@ -29,28 +109,29 @@ public:
     virtual ~UIDataSourceBase()                                     = default;
 
     virtual void Push(ConstAnyRef value) = 0;
-    virtual ConstAnyRef Get(SizeType index) const = 0;
-    virtual ConstAnyRef Get(const UUID &uuid) const = 0;
+    virtual const IUIDataSourceElement *Get(SizeType index) const = 0;
+    virtual const IUIDataSourceElement *Get(const UUID &uuid) const = 0;
     virtual void Set(SizeType index, AnyRef value) = 0;
+    virtual void Set(const UUID &uuid, AnyRef value) = 0;
     virtual void Remove(SizeType index) = 0;
-    virtual void RemoveAllWithPredicate(const Proc<bool, UUID, ConstAnyRef> &predicate) = 0;
-    virtual ConstAnyRef FindWithPredicate(const Proc<bool, UUID, ConstAnyRef> &predicate) const = 0;
+    virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) = 0;
+    virtual const IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) const = 0;
     virtual SizeType Size() const = 0;
     virtual void Clear() = 0;
 
-    virtual Array<Pair<UUID, AnyRef>> GetValues() = 0;
+    virtual Array<IUIDataSourceElement *> GetValues() = 0;
 
     /*! \brief General purpose delegate that is called whenever the data source changes */
-    Delegate<void, UIDataSourceBase *>                      OnChange;
+    Delegate<void, UIDataSourceBase *>                          OnChange;
 
     /*! \brief Called when an element is added to the data source */
-    Delegate<void, UIDataSourceBase *, UUID, ConstAnyRef>   OnElementAdd;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementAdd;
 
     /*! \brief Called when an element is removed from the data source */
-    Delegate<void, UIDataSourceBase *, UUID, ConstAnyRef>   OnElementRemove;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementRemove;
 
     /*! \brief Called when an element is updated in the data source */
-    Delegate<void, UIDataSourceBase *, UUID, ConstAnyRef>   OnElementUpdate;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementUpdate;
 };
 
 template <class T>
@@ -63,10 +144,6 @@ public:
     UIDataSource(UIDataSource &&other) noexcept             = delete;
     UIDataSource &operator=(UIDataSource &&other) noexcept  = delete;
     virtual ~UIDataSource()                                 = default;
-
-    HYP_FORCE_INLINE
-    const Array<Pair<UUID, T>> &GetArray() const
-        { return m_values; }
     
     virtual void Push(ConstAnyRef value) override
     {
@@ -76,29 +153,29 @@ public:
 
         AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
 
-        auto &element = m_values.PushBack({ UUID(), value.Get<T>() });
+        auto &element = m_values.PushBack(UIDataSourceElement<T>(UUID(), value.Get<T>()));
 
-        OnElementAdd.Broadcast(this, element.first, ConstAnyRef(&element.second));
+        OnElementAdd.Broadcast(this, &element);
         OnChange.Broadcast(this);
     }
     
-    virtual ConstAnyRef Get(SizeType index) const override
+    virtual const IUIDataSourceElement *Get(SizeType index) const override
     {
         AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
 
-        return ConstAnyRef(m_values[index].second);
+        return &m_values[index];
     }
 
-    virtual ConstAnyRef Get(const UUID &uuid) const override
+    virtual const IUIDataSourceElement *Get(const UUID &uuid) const override
     {
         // @TODO More efficient lookup
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (m_values[index].first == uuid) {
-                return ConstAnyRef(&m_values[index].second);
+            if (m_values[index].GetUUID() == uuid) {
+                return &m_values[index];
             }
         }
 
-        return ConstAnyRef::Empty();
+        return nullptr;
     }
 
     virtual void Set(SizeType index, AnyRef value) override
@@ -106,53 +183,79 @@ public:
         AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
         AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
 
-        m_values[index] = { UUID(), value.Get<T>() };
+        m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
 
-        OnElementUpdate.Broadcast(this, m_values[index].first, ConstAnyRef(&m_values[index].second));
+        OnElementUpdate.Broadcast(this, &m_values[index]);
         OnChange.Broadcast(this);
+    }
+
+    virtual void Set(const UUID &uuid, AnyRef value) override
+    {
+        // @TODO More efficient lookup
+        for (SizeType index = 0; index < m_values.Size(); index++) {
+            if (m_values[index].GetUUID() == uuid) {
+                AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
+
+                m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
+
+                OnElementUpdate.Broadcast(this, &m_values[index]);
+                OnChange.Broadcast(this);
+
+                return;
+            }
+        }
+
+        HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
     }
 
     virtual void Remove(SizeType index) override
     {
         AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
 
-        OnElementRemove.Broadcast(this, m_values[index].first, ConstAnyRef(&m_values[index].second));
+        OnElementRemove.Broadcast(this, &m_values[index]);
 
         m_values.EraseAt(index);
 
         OnChange.Broadcast(this);
     }
 
-    virtual void RemoveAllWithPredicate(const Proc<bool, UUID, ConstAnyRef> &predicate) override
+    virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) override
     {
-        Array<SizeType> indices_to_remove;
+        Array<IUIDataSourceElement *> elements_to_remove;
 
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (predicate(m_values[index].first, m_values[index].second)) {
-                indices_to_remove.PushBack(index);
+            if (predicate(&m_values[index])) {
+                elements_to_remove.PushBack(&m_values[index]);
             }
         }
 
-        if (indices_to_remove.Any()) {
-            for (SizeType index = 0; index < indices_to_remove.Size(); index++) {
-                OnElementRemove.Broadcast(this, m_values[indices_to_remove[index]].first, ConstAnyRef(&m_values[indices_to_remove[index]].second));
+        if (elements_to_remove.Any()) {
+            for (SizeType index = 0; index < elements_to_remove.Size(); index++) {
+                OnElementRemove.Broadcast(this, elements_to_remove[index]);
 
-                m_values.EraseAt(indices_to_remove[index]);
+                const auto it = m_values.FindIf([element_to_remove = elements_to_remove[index]](const UIDataSourceElement<T> &element)
+                {
+                    return &element == element_to_remove;
+                });
+
+                if (it != m_values.End()) {
+                    m_values.Erase(it);
+                }
             }
 
             OnChange.Broadcast(this);
         }
     }
 
-    virtual ConstAnyRef FindWithPredicate(const Proc<bool, UUID, ConstAnyRef> &predicate) const override
+    virtual const IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) const override
     {
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (predicate(m_values[index].first, m_values[index].second)) {
-                return ConstAnyRef(&m_values[index].second);
+            if (predicate(&m_values[index])) {
+                return &m_values[index];
             }
         }
 
-        return ConstAnyRef::Empty();
+        return nullptr;
     }
 
     virtual SizeType Size() const override
@@ -165,7 +268,7 @@ public:
         // @TODO check if delegate has any functions bound,
         // or better yet, have a way to call in bulk (prevent lots of mutex locks/unlocks)
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            OnElementRemove.Broadcast(this, m_values[index].first, ConstAnyRef(&m_values[index].second));
+            OnElementRemove.Broadcast(this, &m_values[index]);
         }
 
         m_values.Clear();
@@ -173,20 +276,20 @@ public:
         OnChange.Broadcast(this);
     }
 
-    virtual Array<Pair<UUID, AnyRef>> GetValues() override
+    virtual Array<IUIDataSourceElement *> GetValues() override
     {
-        Array<Pair<UUID, AnyRef>> refs;
-        refs.Resize(m_values.Size());
+        Array<IUIDataSourceElement *> values;
+        values.Resize(m_values.Size());
 
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            refs[index] = Pair<UUID, AnyRef> { m_values[index].first, AnyRef(&m_values[index].second) };
+            values[index] = &m_values[index];
         }
 
-        return refs;
+        return values;
     }
 
 private:
-    Array<Pair<UUID, T>>    m_values;
+    Array<UIDataSourceElement<T>>   m_values;
 };
 
 } // namespace hyperion

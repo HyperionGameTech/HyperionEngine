@@ -217,9 +217,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
         }
 
-        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}", proxy_list.GetAddedEntities().Count());
-        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Removed Proxies: {}", proxy_list.GetRemovedEntities().Count());
-        // HYP_LOG(RenderCollection, LogLevel::DEBUG, "Changed Proxies: {}", proxy_list.GetChangedEntities().Count());
+        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}", proxy_list.GetAddedEntities().Count());
+        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Removed Proxies: {}", proxy_list.GetRemovedEntities().Count());
+        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Changed Proxies: {}", proxy_list.GetChangedEntities().Count());
 
         proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
         

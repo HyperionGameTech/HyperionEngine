@@ -68,10 +68,20 @@ public:
     void Clear()                                        { Base::Clear(); }
     void Reserve(SizeType size)                         { Base::Reserve(size); }
     
-    [[nodiscard]] T &Front()                            { return Base::Front(); }
-    [[nodiscard]] const T &Front() const                { return Base::Front(); }
-    [[nodiscard]] T &Back()                             { return Base::Back(); }
-    [[nodiscard]] const T &Back() const                 { return Base::Back(); }
+    HYP_FORCE_INLINE
+    T &Front()
+        { return Base::Front(); }
+    HYP_FORCE_INLINE
+    const T &Front() const
+        { return Base::Front(); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE
+    T &Back()
+        { return Base::Back(); }
+        
+    HYP_NODISCARD HYP_FORCE_INLINE
+    const T &Back() const
+        { return Base::Back(); }
 
     template <class OtherContainerType>
     void Merge(const OtherContainerType &other)
@@ -91,10 +101,9 @@ public:
         other.Clear();
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE
     Array<T> ToArray() const
-    {
-        return Array<T>(Begin(), End());
-    }
+        { return Array<T>(Begin(), End()); }
 
     HYP_DEF_STL_BEGIN_END(
         Base::Begin(),

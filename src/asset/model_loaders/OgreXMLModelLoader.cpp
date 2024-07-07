@@ -294,6 +294,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         }
         
         NodeProxy node(new Node);
+        node->SetName(sub_mesh.name);
         node->SetEntity(entity);
 
         top->AddChild(std::move(node));

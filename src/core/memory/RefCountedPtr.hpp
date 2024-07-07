@@ -467,12 +467,12 @@ public:
         { return m_ref == other.m_ref; }
     
     HYP_FORCE_INLINE
-    bool operator==(const WeakRefCountedPtrBase &other) const
-        { return m_ref == other.m_ref; }
-    
-    HYP_FORCE_INLINE
     bool operator!=(const RefCountedPtrBase<CountType> &other) const
         { return m_ref != other.m_ref; }
+    
+    HYP_FORCE_INLINE
+    bool operator==(const WeakRefCountedPtrBase &other) const
+        { return m_ref == other.m_ref; }
     
     HYP_FORCE_INLINE
     bool operator!=(const WeakRefCountedPtrBase &other) const
@@ -964,6 +964,14 @@ public:
         { return Base::operator!=(other); }
 
     HYP_FORCE_INLINE
+    bool operator==(const T *ptr) const
+        { return Base::m_ref->value == ptr; }
+
+    HYP_FORCE_INLINE
+    bool operator!=(const T *ptr) const
+        { return Base::m_ref->value != ptr; }
+
+    HYP_FORCE_INLINE
     RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
@@ -1035,6 +1043,22 @@ public:
     }
 
     ~WeakRefCountedPtr() = default;
+
+    HYP_FORCE_INLINE
+    bool operator==(const WeakRefCountedPtr &other) const
+        { return Base::operator==(other); }
+
+    HYP_FORCE_INLINE
+    bool operator!=(const WeakRefCountedPtr &other) const
+        { return Base::operator!=(other); }
+
+    HYP_FORCE_INLINE
+    bool operator==(const void *ptr) const
+        { return Base::m_ref->value == ptr; }
+
+    HYP_FORCE_INLINE
+    bool operator!=(const void *ptr) const
+        { return Base::m_ref->value != ptr; }
 };
 
 namespace detail {
