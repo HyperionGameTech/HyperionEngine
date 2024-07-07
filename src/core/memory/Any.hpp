@@ -311,8 +311,7 @@ public:
         Do NOT delete the value passed to this function, as it is deleted by the Any.
     */
     template <class T>
-    HYP_FORCE_INLINE
-    void Reset(T *ptr)
+    HYP_FORCE_INLINE void Reset(T *ptr)
     {
         if (HasValue()) {
             m_dtor(m_ptr);
@@ -329,8 +328,7 @@ public:
     }
 
     /*! \brief Resets the current value held in the Any. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (HasValue()) {
             m_dtor(m_ptr);
@@ -340,6 +338,14 @@ public:
         m_ptr = nullptr;
         m_dtor = nullptr;
     }
+
+    /*! \brief Returns the held object as a reference to type T */
+    HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
+        { return AnyRef(m_type_id, m_ptr); }
+
+    /*! \brief Returns the held object as a const reference to type T */
+    HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
+        { return ConstAnyRef(m_type_id, m_ptr); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     explicit operator bool() const

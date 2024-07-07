@@ -8,6 +8,8 @@
 #include <core/containers/StaticString.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
+#include <math/Quaternion.hpp>
+
 namespace hyperion {
 
 // fwd decl for math types
@@ -251,6 +253,26 @@ struct Formatter< StringType, math::detail::Vec4< T > >
             byte_buffer.SetSize(result_size);
 
             result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w);
+        }
+
+        return StringType(byte_buffer.ToByteView());
+    }
+};
+
+template <class StringType>
+struct Formatter< StringType, Quaternion >
+{
+    auto operator()(const Quaternion &value) const
+    {
+        memory::ByteBuffer byte_buffer;
+        byte_buffer.SetSize(64);
+
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w);
+
+        if (result_size > byte_buffer.Size()) {
+            byte_buffer.SetSize(result_size);
+
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w);
         }
 
         return StringType(byte_buffer.ToByteView());

@@ -41,6 +41,7 @@ public:
     virtual ~IUIDataSourceElementFactory() = default;
 
     virtual RC<UIObject> CreateUIObject(UIStage *stage, ConstAnyRef value) const = 0;
+    virtual void UpdateUIObject(UIObject *ui_object, ConstAnyRef value) const = 0;
 };
 
 template <class T>
@@ -54,8 +55,14 @@ public:
         return CreateUIObject_Internal(stage, value.Get<T>());
     }
 
+    virtual void UpdateUIObject(UIObject *ui_object, ConstAnyRef value) const override final
+    {
+        UpdateUIObject_Internal(ui_object, value.Get<T>());
+    }
+
 protected:
     virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const T &value) const = 0;
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const T &value) const = 0;
 };
 
 class HYP_API IUIDataSourceElement

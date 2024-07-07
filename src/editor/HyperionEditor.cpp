@@ -35,6 +35,7 @@
 #include <ui/UIImage.hpp>
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIListView.hpp>
+#include <ui/UITextbox.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -55,6 +56,139 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 namespace editor {
 
+class Vec3fUIDataSourceElementFactory : public UIDataSourceElementFactory<Vec3f>
+{
+public:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const Vec3f &value) const override
+    {
+        const HypClass *hyp_class = GetClass<Vec3f>();
+
+        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("Vec3fPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        grid->SetNumColumns(3);
+
+        RC<UIGridRow> row = grid->AddRow();
+
+        {
+            RC<UIGridColumn> col = row->AddColumn();
+
+            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            textbox->SetText(HYP_FORMAT("{}", value.x));
+            panel->AddChildUIObject(textbox); 
+
+            col->AddChildUIObject(panel);
+        }
+
+        {
+            RC<UIGridColumn> col = row->AddColumn();
+
+            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            textbox->SetText(HYP_FORMAT("{}", value.y));
+            panel->AddChildUIObject(textbox);
+
+            col->AddChildUIObject(panel);
+        }
+
+        {
+            RC<UIGridColumn> col = row->AddColumn();
+
+            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            textbox->SetText(HYP_FORMAT("{}", value.z));
+            panel->AddChildUIObject(textbox);
+
+            col->AddChildUIObject(panel);
+        }
+
+        return grid;
+    }
+
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const Vec3f &value) const override
+    {
+        // @TODO
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIDataSourceElementFactory);
+
+
+class TransformUIDataSourceElementFactory : public UIDataSourceElementFactory<Transform>
+{
+public:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const Transform &value) const override
+    {
+        const HypClass *hyp_class = GetClass<Transform>();
+
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 120, UIObjectSize::PIXEL }));
+        panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+        
+        RC<UITextbox> translation_textbox = stage->CreateUIObject<UITextbox>(NAME("TranslationTextbox"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        translation_textbox->SetText(HYP_FORMAT("Translation: {}", value.GetTranslation()));
+        panel->AddChildUIObject(translation_textbox);
+
+        RC<UITextbox> rotation_textbox = stage->CreateUIObject<UITextbox>(NAME("RotationTextbox"), Vec2i { 0, 35 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        rotation_textbox->SetText(HYP_FORMAT("Rotation: {}", value.GetRotation()));
+        panel->AddChildUIObject(rotation_textbox);
+
+        RC<UITextbox> scale_textbox = stage->CreateUIObject<UITextbox>(NAME("ScaleTextbox"), Vec2i { 0, 70 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        scale_textbox->SetText(HYP_FORMAT("Scale: {}", value.GetScale()));
+        panel->AddChildUIObject(scale_textbox);
+
+        return panel;
+
+        // RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        // grid->SetNumColumns(1);
+
+        // for (const HypClassProperty *property : hyp_class->GetProperties()) {
+        //     if (!property->HasGetter()) {
+        //         continue;
+        //     }
+
+        //     RC<UIGridRow> row = grid->AddRow();
+
+        //     fbom::FBOMData property_value = property->InvokeGetter(value);
+
+        //     if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
+        //         const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
+
+        //         IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
+
+        //         if (element_factory) {
+        //             RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
+        //             row->AddChildUIObject(element);
+        //         } else {
+        //             HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+        //         }
+        //     } else {
+        //         HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+        //     }
+        // }
+
+        // return grid;
+    }
+
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const Transform &value) const override
+    {
+        ui_object->FindChildUIObject(NAME("TranslationTextbox"))
+            .Cast<UITextbox>()
+            ->SetText(HYP_FORMAT("Translation: {}", value.GetTranslation()));
+
+        ui_object->FindChildUIObject(NAME("RotationTextbox"))
+            .Cast<UITextbox>()
+            ->SetText(HYP_FORMAT("Rotation: {}", value.GetRotation()));
+
+        ui_object->FindChildUIObject(NAME("ScaleTextbox"))
+            .Cast<UITextbox>()
+            ->SetText(HYP_FORMAT("Scale: {}", value.GetScale()));
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIDataSourceElementFactory);
+
 class EditorWeakNodeFactory : public UIDataSourceElementFactory<Weak<Node>>
 {
 public:
@@ -69,6 +203,19 @@ public:
         RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
         text->SetText(node_name);
         return text;
+    }
+
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const Weak<Node> &value) const override
+    {
+        String node_name = "Invalid";
+
+        if (RC<Node> node_rc = value.Lock()) {
+            node_name = node_rc->GetName();
+        }
+
+        if (UIText *text = dynamic_cast<UIText *>(ui_object)) {
+            text->SetText(node_name);
+        }
     }
 };
 
@@ -94,19 +241,48 @@ public:
         RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique("PropertyPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
 
-        // Create text
-        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique("PropertyText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
-        // text->SetText(value.property->name.LookupString());
-        // panel->AddChildUIObject(text);
-
         fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
-        // @TODO Do something with property value
-        text->SetText(property_value.ToString(false));
 
+        if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
+            const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
 
-        panel->AddChildUIObject(text);
+            IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
+
+            if (element_factory) {
+                RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
+                panel->AddChildUIObject(element);
+            } else {
+                HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+            }
+         } else {
+            HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+        }
 
         return panel;
+    }
+
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const EditorNodePropertyRef &value) const override
+    {
+        RC<Node> node_rc = value.node.Lock();
+        if (!node_rc) {
+            return;
+        }
+
+        fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
+
+        if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
+            const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
+
+            IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
+
+            if (element_factory) {
+                element_factory->UpdateUIObject(ui_object, deserialized_object->any_value.ToRef());
+            } else {
+                HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+            }
+        } else {
+            HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+        }
     }
 };
 

@@ -146,11 +146,20 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
         // recreate the list view item content
         // @TODO: Make a function to update the content of a list view item
         if (it != m_list_view_items.End()) {
-            (*it)->RemoveAllChildUIObjects();
-            (*it)->AddChildUIObject(m_data_source->GetElementFactory()->CreateUIObject(
-                GetStage(),
-                element->GetValue()
-            ));
+            // (*it)->RemoveAllChildUIObjects();
+            // (*it)->AddChildUIObject(m_data_source->GetElementFactory()->CreateUIObject(
+            //     GetStage(),
+            //     element->GetValue()
+            // ));
+
+            if (const RC<UIObject> &ui_object = (*it)->GetChildUIObject(0)) {
+                m_data_source->GetElementFactory()->UpdateUIObject(
+                    ui_object.Get(),
+                    element->GetValue()
+                );
+            } else {
+                HYP_LOG(UI, LogLevel::ERROR, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
+            }
         }
     });
 }

@@ -492,13 +492,16 @@ public:
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    HYP_NODISCARD
     RC<UIObject> FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
-     *  \return True if the object has child UIObjects, false otherwise. */
-    HYP_NODISCARD 
+     *  \return True if the object has child UIObjects, false otherwise. */ 
     bool HasChildUIObjects() const;
+
+    /*! \brief Gets the child UIObject at the specified index.
+     *  \param index The index of the child UIObject to get.
+     *  \return The child UIObject at the specified index. */
+    const RC<UIObject> &GetChildUIObject(SizeType index) const;
 
     HYP_NODISCARD
     const NodeProxy &GetNode() const;

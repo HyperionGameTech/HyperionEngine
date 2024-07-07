@@ -124,6 +124,14 @@ UIObject::UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type)
 
 UIObject::~UIObject()
 {
+    // Remove the entity from the entity manager
+    if (ID<Entity> entity = GetEntity()) {
+        Scene *scene = GetScene();
+        AssertThrow(scene != nullptr);
+        AssertThrow(scene->GetEntityManager() != nullptr);
+
+        scene->GetEntityManager()->RemoveEntity(entity);
+    }
 }
 
 void UIObject::Init()
@@ -1258,6 +1266,31 @@ bool UIObject::HasChildUIObjects() const
     }
 
     return false;
+}
+
+const RC<UIObject> &UIObject::GetChildUIObject(SizeType index) const
+{
+    static const RC<UIObject> empty { };
+
+    const RC<UIObject> *child_object_ptr = &empty;
+
+    SizeType current_index = 0;
+
+    ForEachChildUIObject([&child_object_ptr, &current_index, index](const RC<UIObject> &child)
+    {
+
+        if (current_index == index) {
+            child_object_ptr = &child;
+
+            return UIObjectIterationResult::STOP;
+        }
+
+        ++current_index;
+
+        return UIObjectIterationResult::CONTINUE;
+    }, false);
+
+    return *child_object_ptr;
 }
 
 void UIObject::SetNodeProxy(NodeProxy node_proxy)

@@ -32,6 +32,7 @@ void UITextbox::Init()
     UIPanel::SetBackgroundColor(Vec4f::One());
 
     m_text_element = GetStage()->CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+    m_text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     m_text_element->SetTextColor(Vec4f { 0, 0, 0, 1 }); // black
     m_text_element->SetText(m_text);
     UIObject::AddChildUIObject(m_text_element);
