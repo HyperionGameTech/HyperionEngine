@@ -3,6 +3,8 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/HypClassRegistry.hpp>
 
 namespace hyperion::fbom {
@@ -207,7 +209,10 @@ FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const 
     FBOMMarshalerBase *marshal = GetMarshal(type_attributes);
     
     if (!marshal) {
-        return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+        return {
+            FBOMResult::FBOM_ERR,
+            HYP_FORMAT("No registered marshal class for type {}", type_attributes.name)
+        };
     }
 
     return marshal->Deserialize(in, out.any_value);

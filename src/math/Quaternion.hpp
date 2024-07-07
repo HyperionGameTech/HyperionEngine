@@ -6,6 +6,8 @@
 #include <math/MathUtil.hpp>
 #include <math/Vector3.hpp>
 
+#include <HashCode.hpp>
+
 namespace hyperion {
 
 class Matrix4;
@@ -59,6 +61,18 @@ struct alignas(16) HYP_API Quaternion
     static Quaternion Identity();
     static Quaternion LookAt(const Vec3f &direction, const Vec3f &up);
     static Quaternion AxisAngles(const Vec3f &axis, float radians);
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(x);
+        hc.Add(y);
+        hc.Add(z);
+        hc.Add(w);
+
+        return hc;
+    }
 };
 } // namespace hyperion
 

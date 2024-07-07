@@ -80,10 +80,8 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
             return UIEventHandlerResult::OK;
         }).Detach();
 
-        // just display the element as a string
-        RC<UIText> text = GetStage()->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
-        text->SetText(element->ToString());
-        list_view_item->AddChildUIObject(text);
+        // create UIObject for the element and add it to the list view
+        list_view_item->AddChildUIObject(m_data_source->GetElementFactory()->CreateUIObject(GetStage(), element->GetValue()));
 
         // add the list view item to the list view
         AddChildUIObject(list_view_item);
@@ -125,7 +123,7 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
     {
         HYP_NAMED_SCOPE("Update element from data source in list view");
 
-        HYP_LOG(UI, LogLevel::INFO, "Updating element {}", element->ToString().Data());
+        HYP_LOG(UI, LogLevel::INFO, "Updating element {}", element->GetUUID().ToString());
 
         // update the list view item with the new data
 
@@ -145,17 +143,14 @@ void UIListView::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
             return list_view_item->GetDataSourceElementUUID() == uuid;
         });
 
-        // update the text of the list view item
+        // recreate the list view item content
+        // @TODO: Make a function to update the content of a list view item
         if (it != m_list_view_items.End()) {
-            RC<UIObject> text_element = (*it)->FindChildUIObject([](const RC<UIObject> &ui_object) -> bool
-            {
-                return ui_object->GetType() == UIObjectType::TEXT;
-            });
-
-            // update the text
-            if (UIText *text_element_casted = dynamic_cast<UIText *>(text_element.Get())) {
-                text_element_casted->SetText(element->ToString());
-            }
+            (*it)->RemoveAllChildUIObjects();
+            (*it)->AddChildUIObject(m_data_source->GetElementFactory()->CreateUIObject(
+                GetStage(),
+                element->GetValue()
+            ));
         }
     });
 }

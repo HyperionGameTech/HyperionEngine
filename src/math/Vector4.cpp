@@ -10,9 +10,29 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Vec4f);
-HYP_DEFINE_CLASS(Vec4i);
-HYP_DEFINE_CLASS(Vec4u);
+HYP_DEFINE_CLASS(
+    Vec4f,
+    HypClassProperty(NAME("X"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetX), &Vec4f::SetX),
+    HypClassProperty(NAME("Y"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetY), &Vec4f::SetY),
+    HypClassProperty(NAME("Z"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetZ), &Vec4f::SetZ),
+    HypClassProperty(NAME("W"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetW), &Vec4f::SetW)
+);
+
+HYP_DEFINE_CLASS(
+    Vec4i,
+    HypClassProperty(NAME("X"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetX), &Vec4i::SetX),
+    HypClassProperty(NAME("Y"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetY), &Vec4i::SetY),
+    HypClassProperty(NAME("Z"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetZ), &Vec4i::SetZ),
+    HypClassProperty(NAME("W"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetW), &Vec4i::SetW)
+);
+
+HYP_DEFINE_CLASS(
+    Vec4u,
+    HypClassProperty(NAME("X"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetX), &Vec4u::SetX),
+    HypClassProperty(NAME("Y"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetY), &Vec4u::SetY),
+    HypClassProperty(NAME("Z"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetZ), &Vec4u::SetZ),
+    HypClassProperty(NAME("W"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetW), &Vec4u::SetW)
+);
 
 template<>
 int math::detail::Vec4<int>::Max() const

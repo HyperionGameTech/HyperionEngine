@@ -471,6 +471,27 @@ public:
     }
 };
 
+template <int StringType>
+class HypClassPropertySerializer<containers::detail::String<StringType>> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const containers::detail::String<StringType> &value) const
+    {
+        return fbom::FBOMData::FromString(value);
+    }
+
+    containers::detail::String<StringType> Deserialize(const fbom::FBOMData &value) const
+    {
+        containers::detail::String<StringType> result;
+
+        if (fbom::FBOMResult err = value.ReadString(result)) {
+            return { };
+        }
+
+        return result;
+    }
+};
+
 template <class T>
 class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
 {
@@ -614,6 +635,38 @@ public:
         }
 
         return id;
+    }
+};
+
+template <class T, SizeType Sz>
+class HypClassPropertySerializer<FixedArray<T, Sz>> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const FixedArray<T, Sz> &value) const
+    {
+        fbom::FBOMArray array;
+
+        for (SizeType index = 0; index < Sz; index++) {
+            array.AddElement(HypClassPropertySerializer<T>().Serialize(value[index]));
+        }
+
+        return fbom::FBOMData::FromArray(array);
+    }
+
+    FixedArray<T, Sz> Deserialize(const fbom::FBOMData &value) const
+    {
+        FixedArray<T, Sz> result;
+
+        fbom::FBOMArray array;
+
+        fbom::FBOMResult err = value.ReadArray(array);
+        AssertThrowMsg(err.IsOK(), "Failed to read array: %s", *err.message);
+
+        for (SizeType index = 0; index < Sz; index++) {
+            result[index] = HypClassPropertySerializer<T>().Deserialize(array.GetElement(index));
+        }
+
+        return result;
     }
 };
 

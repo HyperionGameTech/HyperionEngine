@@ -113,21 +113,17 @@ public:
      *
      * \return True if the DelegateHandler is valid, false otherwise.
      */
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return m_data != nullptr && m_data->IsValid(); }
 
     /*! \brief Reset the DelegateHandler to an invalid state. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { m_data.Reset(); }
 
     /*! \brief Detach the DelegateHandler from the Delegate.
         This will allow the Delegate handler function to remain attached to the delegate upon destruction of this object.
-        \note This requires proper management to prevent memory leaks and access of invalid objects, as the lifecycle of the handler will now last
-            as long as the Delegate itself. */
-    HYP_FORCE_INLINE
-    void Detach()
+        \note This requires proper management to prevent memory leaks and access of invalid objects, as the lifecycle of the handler will now last as long as the Delegate itself. */
+    HYP_FORCE_INLINE void Detach()
     {
         if (IsValid()) {
             m_data->Detach(std::move(*this));

@@ -16,29 +16,29 @@ public:
     static const Transform identity;
 
     Transform();
-    explicit Transform(const Vector3 &translation);
-    Transform(const Vector3 &translation, const Vector3 &scale);
-    Transform(const Vector3 &translation, const Vector3 &scale, const Quaternion &rotation);
+    explicit Transform(const Vec3f &translation);
+    Transform(const Vec3f &translation, const Vec3f &scale);
+    Transform(const Vec3f &translation, const Vec3f &scale, const Quaternion &rotation);
     Transform(const Transform &other);
 
-    const Vector3 &GetTranslation() const
+    const Vec3f &GetTranslation() const
         { return m_translation; }
 
     /** returns a reference to the translation - if modified, you must call UpdateMatrix(). */
-    Vector3 &GetTranslation()
+    Vec3f &GetTranslation()
         { return m_translation; }
 
-    void SetTranslation(const Vector3 &translation)
+    void SetTranslation(const Vec3f &translation)
         { m_translation = translation; UpdateMatrix(); }
 
-    const Vector3 &GetScale() const
+    const Vec3f &GetScale() const
         { return m_scale; }
 
     /** returns a reference to the scale - if modified, you must call UpdateMatrix(). */
-    Vector3 &GetScale()
+    Vec3f &GetScale()
         { return m_scale; }
 
-    void SetScale(const Vector3 &scale)
+    void SetScale(const Vec3f &scale)
         { m_scale = scale; UpdateMatrix(); }
 
     const Quaternion &GetRotation() const
@@ -63,7 +63,6 @@ public:
     bool operator==(const Transform &other) const
         { return m_matrix == other.m_matrix; }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
@@ -75,8 +74,8 @@ public:
     }
 
 private:
-    Vector3     m_translation;
-    Vector3     m_scale;
+    Vec3f       m_translation;
+    Vec3f       m_scale;
     Quaternion  m_rotation;
     Matrix4     m_matrix;
 };

@@ -2,19 +2,28 @@
 
 #include <math/Transform.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_CLASS(
+    Transform,
+    HypClassProperty(NAME("Translation"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetTranslation), &Transform::SetTranslation),
+    HypClassProperty(NAME("Rotation"), static_cast<const Quaternion &(Transform::*)() const>(&Transform::GetRotation), &Transform::SetRotation),
+    HypClassProperty(NAME("Scale"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetScale), &Transform::SetScale)
+);
 
 const Transform Transform::identity{};
 
 Transform::Transform()
-    : m_translation(Vector3::Zero()),
-      m_scale(Vector3::One()),
+    : m_translation(Vec3f::Zero()),
+      m_scale(Vec3f::One()),
       m_rotation(Quaternion::Identity())
 {
     UpdateMatrix();
 }
 
-Transform::Transform(const Vector3 &translation, const Vector3 &scale)
+Transform::Transform(const Vec3f &translation, const Vec3f &scale)
     : m_translation(translation),
       m_scale(scale),
       m_rotation(Quaternion::Identity())
@@ -22,7 +31,7 @@ Transform::Transform(const Vector3 &translation, const Vector3 &scale)
     UpdateMatrix();
 }
 
-Transform::Transform(const Vector3 &translation, const Vector3 &scale, const Quaternion &rotation)
+Transform::Transform(const Vec3f &translation, const Vec3f &scale, const Quaternion &rotation)
     : m_translation(translation),
       m_scale(scale),
       m_rotation(rotation)
@@ -30,8 +39,8 @@ Transform::Transform(const Vector3 &translation, const Vector3 &scale, const Qua
     UpdateMatrix();
 }
 
-Transform::Transform(const Vector3 &translation)
-    : Transform(translation, Vector3::One(), Quaternion::Identity())
+Transform::Transform(const Vec3f &translation)
+    : Transform(translation, Vec3f::One(), Quaternion::Identity())
 {
 }
 

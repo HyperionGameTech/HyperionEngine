@@ -12,10 +12,51 @@
 #include <core/utilities/UUID.hpp>
 
 #include <core/memory/AnyRef.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/Util.hpp>
 
 namespace hyperion {
+
+class UIObject;
+class UIStage;
+
+class IUIDataSourceElementFactory;
+
+class HYP_API UIDataSourceElementFactoryRegistry
+{
+public:
+    static UIDataSourceElementFactoryRegistry &GetInstance();
+
+    IUIDataSourceElementFactory *GetFactory(TypeID type_id) const;
+    void RegisterFactory(TypeID type_id, IUIDataSourceElementFactory *element_factory);
+
+private:
+    TypeMap<IUIDataSourceElementFactory *>  m_element_factories;
+};
+
+class HYP_API IUIDataSourceElementFactory
+{
+public:
+    virtual ~IUIDataSourceElementFactory() = default;
+
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, ConstAnyRef value) const = 0;
+};
+
+template <class T>
+class HYP_API UIDataSourceElementFactory : public IUIDataSourceElementFactory
+{
+public:
+    virtual ~UIDataSourceElementFactory() = default;
+
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, ConstAnyRef value) const override final
+    {
+        return CreateUIObject_Internal(stage, value.Get<T>());
+    }
+
+protected:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const T &value) const = 0;
+};
 
 class HYP_API IUIDataSourceElement
 {
@@ -24,7 +65,6 @@ public:
 
     virtual UUID GetUUID() const = 0;
     virtual ConstAnyRef GetValue() const = 0;
-    virtual String ToString() const = 0;
 
     template <class T>
     const T &GetValue() const
@@ -90,9 +130,6 @@ public:
     virtual ConstAnyRef GetValue() const override
         { return ConstAnyRef(&m_value); }
 
-    virtual String ToString() const override
-        { return m_value.ToString(); }
-
 private:
     UUID    m_uuid;
     T       m_value;
@@ -100,13 +137,23 @@ private:
 
 class HYP_API UIDataSourceBase
 {
+protected:
+    UIDataSourceBase(IUIDataSourceElementFactory *element_factory)
+        : m_element_factory(element_factory)
+    {
+        AssertThrowMsg(element_factory != nullptr, "No element factory registered for the data source; unable to create UIObjects");
+    }
+
 public:
-    UIDataSourceBase()                                              = default;
     UIDataSourceBase(const UIDataSourceBase &other)                 = delete;
     UIDataSourceBase &operator=(const UIDataSourceBase &other)      = delete;
     UIDataSourceBase(UIDataSourceBase &&other) noexcept             = delete;
     UIDataSourceBase &operator=(UIDataSourceBase &&other) noexcept  = delete;
     virtual ~UIDataSourceBase()                                     = default;
+
+    HYP_FORCE_INLINE
+    IUIDataSourceElementFactory *GetElementFactory() const
+        { return m_element_factory; }
 
     virtual void Push(ConstAnyRef value) = 0;
     virtual const IUIDataSourceElement *Get(SizeType index) const = 0;
@@ -132,13 +179,20 @@ public:
 
     /*! \brief Called when an element is updated in the data source */
     Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementUpdate;
+
+protected:
+    IUIDataSourceElementFactory                                 *m_element_factory;
 };
 
 template <class T>
 class HYP_API UIDataSource : public UIDataSourceBase
 {
 public:
-    UIDataSource()                                          = default;
+    UIDataSource()
+        : UIDataSourceBase(UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>()))
+    {
+    }
+
     UIDataSource(const UIDataSource &other)                 = delete;
     UIDataSource &operator=(const UIDataSource &other)      = delete;
     UIDataSource(UIDataSource &&other) noexcept             = delete;
@@ -291,6 +345,31 @@ public:
 private:
     Array<UIDataSourceElement<T>>   m_values;
 };
+
+namespace detail {
+
+struct HYP_API UIDataSourceElementFactoryRegistrationBase
+{
+protected:
+    IUIDataSourceElementFactory *element_factory;
+
+    UIDataSourceElementFactoryRegistrationBase(TypeID type_id, IUIDataSourceElementFactory *element_factory);
+    ~UIDataSourceElementFactoryRegistrationBase();
+};
+
+template <class T>
+struct UIDataSourceElementFactoryRegistration : public UIDataSourceElementFactoryRegistrationBase
+{
+    UIDataSourceElementFactoryRegistration(IUIDataSourceElementFactory *element_factory)
+        : UIDataSourceElementFactoryRegistrationBase(TypeID::ForType<T>(), element_factory)
+    {
+    }
+};
+
+} // namespace detail
+
+#define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory) \
+    static ::hyperion::detail::UIDataSourceElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) { new Factory() }
 
 } // namespace hyperion
 

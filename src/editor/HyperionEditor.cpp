@@ -55,19 +55,62 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 namespace editor {
 
-struct EditorNodeRef
+class EditorWeakNodeFactory : public UIDataSourceElementFactory<Weak<Node>>
 {
-    Weak<Node> node;
-
-    String ToString() const
+public:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const Weak<Node> &value) const override
     {
-        if (RC<Node> node_rc = node.Lock()) {
-            return node_rc->GetName();
+        String node_name = "Invalid";
+
+        if (RC<Node> node_rc = value.Lock()) {
+            node_name = node_rc->GetName();
         }
 
-        return "Invalid";
+        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+        text->SetText(node_name);
+        return text;
     }
 };
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
+
+struct EditorNodePropertyRef
+{
+    Weak<Node>              node;
+    const HypClassProperty  *property = nullptr;
+};
+
+class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef>
+{
+public:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const EditorNodePropertyRef &value) const override
+    {
+        RC<Node> node_rc = value.node.Lock();
+        if (!node_rc) {
+            return nullptr;
+        }
+
+        // Create panel
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique("PropertyPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+
+        // Create text
+        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique("PropertyText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+        // text->SetText(value.property->name.LookupString());
+        // panel->AddChildUIObject(text);
+
+        fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
+        // @TODO Do something with property value
+        text->SetText(property_value.ToString(false));
+
+
+        panel->AddChildUIObject(text);
+
+        return panel;
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(EditorNodePropertyRef, EditorNodePropertyFactory);
 
 #pragma region HyperionEditorImpl
 
@@ -373,7 +416,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     // scene_outline->AddChildUIObject(scene_outline_header);
 
 
-    UniquePtr<UIDataSource<EditorNodeRef>> temp_data_source(new UIDataSource<EditorNodeRef>());
+    UniquePtr<UIDataSource<Weak<Node>>> temp_data_source(new UIDataSource<Weak<Node>>());
     RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view->SetDataSource(std::move(temp_data_source));
@@ -410,8 +453,8 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
             return UIEventHandlerResult::ERR;
         }
 
-        const EditorNodeRef &node_ref = data_source_element_value->GetValue<EditorNodeRef>();
-        RC<Node> node_rc = node_ref.node.Lock();
+        const Weak<Node> &node_weak = data_source_element_value->GetValue<Weak<Node>>();
+        RC<Node> node_rc = node_weak.Lock();
 
         // const UUID &associated_node_uuid = data_source_element_value->GetValue
 
@@ -442,11 +485,11 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
             const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node](const IUIDataSourceElement *item)
             {
-                return item->GetValue<EditorNodeRef>().node == node;
+                return item->GetValue<Weak<Node>>() == node;
             });
 
             if (data_source_element != nullptr) {
-                EditorNodeRef node_ref = data_source_element->GetValue<EditorNodeRef>();
+                Weak<Node> node_ref = data_source_element->GetValue<Weak<Node>>();
                 
                 data_source->Set(
                     data_source_element->GetUUID(),
@@ -467,9 +510,9 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
         AssertThrow(node.IsValid());
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            EditorNodeRef editor_node_ref { node.ToWeak() };
+            Weak<Node> editor_node_weak = node.ToWeak();
 
-            data_source->Push(editor_node_ref);
+            data_source->Push(editor_node_weak);
         }
 
         EditorDelegates::GetInstance().WatchNode(node.Get());
@@ -488,7 +531,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
             data_source->RemoveAllWithPredicate([&node](IUIDataSourceElement *item)
             {
-                return item->GetValue<EditorNodeRef>().node == node.Get();
+                return item->GetValue<Weak<Node>>() == node.Get();
             });
         }
     }).Detach();
@@ -515,41 +558,6 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     detail_view->AddChildUIObject(list_view);
 
-    EditorDelegates::GetInstance().AddNodeWatcher(NAME("NodeDetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", name);
-        
-        RC<UIListView> list_view = list_view_weak.Lock();
-
-        if (!list_view) {
-            return;
-        }
-
-        const HypClassProperty *property = hyp_class->GetProperty(name);
-
-        if (!property) {
-            return;
-        }
-
-        RC<UIObject> list_view_item = list_view->FindChildUIObject([property](const RC<UIObject> &object) -> bool
-        {
-            NodeProxy node = object->GetNode();
-            
-            if (!node.IsValid()) {
-                return false;
-            }
-
-            return node->GetTag(NAME("HypClassPropertyKey")) == property->name;
-        });
-
-        if (!list_view_item) {
-            return;
-        }
-
-        // @TODO: DataSource for list view item that has callback on data update
-
-    });
-
     OnFocusedNodeChanged.Bind([this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
     {
         RC<UIListView> list_view = list_view_weak.Lock();
@@ -559,12 +567,23 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
         }
 
         list_view->RemoveAllChildUIObjects();
+        list_view->SetDataSource(nullptr);
+
+        // stop watching using currently bound function
+        EditorDelegates::GetInstance().RemoveNodeWatcher(NAME("DetailView"));
 
         if (!node.IsValid()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Focused node is invalid!");
 
             return;
         }
+
+        { // create new data source
+            UniquePtr<UIDataSource<EditorNodePropertyRef>> data_source(new UIDataSource<EditorNodePropertyRef>());
+            list_view->SetDataSource(std::move(data_source));
+        }
+
+        UIDataSourceBase *data_source = list_view->GetDataSource();
 
         for (const HypClassProperty *property : hyp_class->GetProperties()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
@@ -573,24 +592,44 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
                 continue;
             }
 
-            RC<UIListViewItem> list_view_item = GetUIStage()->CreateUIObject<UIListViewItem>(NAME("Detail_View_ListView_Item"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
-            RC<UIText> list_view_item_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_ListView_Item_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
-            list_view_item_text->SetText(property->name.LookupString());
-            list_view_item_text->SetTextColor(Vec4f::One());
-            list_view_item->AddChildUIObject(list_view_item_text);
+            EditorNodePropertyRef node_property_ref { node.ToWeak(), property };
 
-            // @TODO Create an input field for the property value
-            // based on the property type
-
-            RC<UIObject> property_value = EditorObjectProperties<Vec2f>{}.CreateUIObject(GetUIStage().Get());
-            list_view_item->AddChildUIObject(property_value);
-
-            NodeProxy list_view_item_node = list_view_item->GetNode();
-            AssertThrow(list_view_item_node != nullptr);
-            list_view_item_node->AddTag(NAME("HypClassPropertyKey"), NodeTag(property->name));
-
-            list_view->AddChildUIObject(list_view_item);
+            data_source->Push(&node_property_ref);
         }
+
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
+        {
+            if (node != m_focused_node.Get()) {
+                return;
+            }
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", name);
+
+            // Update name in list view
+
+            RC<UIListView> list_view = list_view_weak.Lock();
+
+            if (!list_view) {
+                return;
+            }
+
+            if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+                const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, name](const IUIDataSourceElement *item)
+                {
+                    return item->GetValue<EditorNodePropertyRef>().property->name == name;
+                });
+
+                if (data_source_element != nullptr) {
+                    // trigger update to rebuild UI
+                    EditorNodePropertyRef node_property_ref = data_source_element->GetValue<EditorNodePropertyRef>();
+                    
+                    data_source->Set(
+                        data_source_element->GetUUID(),
+                        AnyRef(&node_property_ref)
+                    );
+                }
+            }
+        });
     }).Detach();
 
     return detail_view;

@@ -27,6 +27,7 @@ public:
     static EditorDelegates &GetInstance();
 
     void AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, Name, ConstAnyRef> &&proc);
+    void RemoveNodeWatcher(Name watcher_key);
 
     /*! \brief Watch this node for all changes. Use OnWatchedNodeUpdate to catch all changes. */
     void WatchNode(Node *node);

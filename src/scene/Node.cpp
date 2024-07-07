@@ -206,7 +206,7 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Name"), m_world_transform);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Name"), m_name);
 #endif
 }
 
@@ -255,8 +255,12 @@ void Node::SetScene(Scene *scene)
                 
                 previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
             } else {
-                // Entity manager null - exiting engine is likely cause
+                // Entity manager null - exiting engine is likely cause here
                 m_entity = ID<Entity>::invalid;
+
+#ifdef HYP_EDITOR
+                EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+#endif
             }
         }
     }
@@ -575,6 +579,10 @@ void Node::SetEntity(ID<Entity> entity)
     if (entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         m_entity = entity;
 
+#ifdef HYP_EDITOR
+        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+#endif
+
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
 
         // need to move the entity between EntityManagers
@@ -607,7 +615,12 @@ void Node::SetEntity(ID<Entity> entity)
         }
     } else {
         m_entity = ID<Entity>::invalid;
-        m_entity_aabb = BoundingBox::Empty();
+
+#ifdef HYP_EDITOR
+        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+#endif
+
+        SetEntityAABB(BoundingBox::Empty());
 
         UpdateWorldTransform();
     }
@@ -620,6 +633,16 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     }
 
     m_entity_aabb = aabb;
+
+#ifdef HYP_EDITOR
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("EntityAABB"), m_entity_aabb);
+
+    BoundingBox local_aabb = GetLocalAABB();
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalAABB"), local_aabb);
+
+    BoundingBox world_aabb = GetWorldAABB();
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldAABB"), world_aabb);
+#endif
 }
 
 BoundingBox Node::GetLocalAABB() const
@@ -704,25 +727,30 @@ void Node::UpdateWorldTransform()
         return;
     }
 
-#ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Transform"), m_world_transform);
-#endif
-
     for (NodeProxy &node : m_child_nodes) {
         AssertThrow(node != nullptr);
         node->UpdateWorldTransform();
     }
+
+#ifdef HYP_EDITOR
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalTransform"), m_local_transform);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldTransform"), m_world_transform);
+
+    BoundingBox local_aabb = GetLocalAABB();
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalAABB"), local_aabb);
+
+    BoundingBox world_aabb = GetWorldAABB();
+    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldAABB"), world_aabb);
+#endif
 }
 
 void Node::RefreshEntityTransform()
 {
-    m_entity_aabb = BoundingBox::Empty();
-
     if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
         if (BoundingBoxComponent *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
-            m_entity_aabb = bounding_box_component->local_aabb;
+            SetEntityAABB(bounding_box_component->local_aabb);
         } else {
-            m_entity_aabb = BoundingBox::Empty();
+            SetEntityAABB(BoundingBox::Empty());
         }
 
         if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
@@ -732,6 +760,8 @@ void Node::RefreshEntityTransform()
                 m_world_transform
             });
         }
+    } else {
+        SetEntityAABB(BoundingBox::Empty());
     }
 }
 

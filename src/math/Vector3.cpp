@@ -11,9 +11,26 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Vec3f);
-HYP_DEFINE_CLASS(Vec3i);
-HYP_DEFINE_CLASS(Vec3u);
+HYP_DEFINE_CLASS(
+    Vec3f,
+    HypClassProperty(NAME("X"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetX), &Vec3f::SetX),
+    HypClassProperty(NAME("Y"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetY), &Vec3f::SetY),
+    HypClassProperty(NAME("Z"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetZ), &Vec3f::SetZ)
+);
+
+HYP_DEFINE_CLASS(
+    Vec3i,
+    HypClassProperty(NAME("X"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetX), &Vec3i::SetX),
+    HypClassProperty(NAME("Y"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetY), &Vec3i::SetY),
+    HypClassProperty(NAME("Z"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetZ), &Vec3i::SetZ)
+);
+
+HYP_DEFINE_CLASS(
+    Vec3u,
+    HypClassProperty(NAME("X"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetX), &Vec3u::SetX),
+    HypClassProperty(NAME("Y"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetY), &Vec3u::SetY),
+    HypClassProperty(NAME("Z"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetZ), &Vec3u::SetZ)
+);
 
 Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const
 {

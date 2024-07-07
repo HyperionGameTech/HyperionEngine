@@ -264,26 +264,99 @@ struct alignas(16) Vertex
     Vertex operator*(float scalar) const;
     Vertex &operator*=(float scalar);
 
-    void SetPosition(const Vector3 &vec)  { position = vec; }
-    const Vector3 &GetPosition() const    { return position; }
-    void SetNormal(const Vector3 &vec)    { normal = vec; }
-    const Vector3 &GetNormal() const      { return normal; }
-    void SetTexCoord0(const Vector2 &vec) { texcoord0 = vec; }
-    const Vector2 &GetTexCoord0() const   { return texcoord0; }
-    void SetTexCoord1(const Vector2 &vec) { texcoord1 = vec; }
-    const Vector2 &GetTexCoord1() const   { return texcoord1; }
-    void SetTangent(const Vector3 &vec)   { tangent = vec; }
-    const Vector3 &GetTangent() const     { return tangent; }
-    void SetBitangent(const Vector3 &vec) { bitangent = vec; }
-    const Vector3 &GetBitangent() const   { return bitangent; }
+    void SetPosition(const Vector3 &vec)
+        { position = vec; }
 
-    void SetBoneWeight(int i, float val) { bone_weights[i] = val; }
-    float GetBoneWeight(int i) const     { return bone_weights[i]; }
-    void SetBoneIndex(int i, int val)    { bone_indices[i] = val; }
-    int GetBoneIndex(int i) const        { return bone_indices[i]; }
+    const Vector3 &GetPosition() const
+        { return position; }
 
-    void AddBoneWeight(float val) { if (num_weights < MAX_BONE_WEIGHTS) bone_weights[num_weights++] = val; }
-    void AddBoneIndex(int val)    { if (num_indices < MAX_BONE_INDICES) bone_indices[num_indices++] = val; }
+    void SetNormal(const Vector3 &vec)
+        { normal = vec; }
+
+    const Vector3 &GetNormal() const
+        { return normal; }
+
+    void SetTexCoord0(const Vector2 &vec)
+        { texcoord0 = vec; }
+
+    const Vector2 &GetTexCoord0() const
+        { return texcoord0; }
+
+    void SetTexCoord1(const Vector2 &vec)
+        { texcoord1 = vec; }
+
+    const Vector2 &GetTexCoord1() const
+        { return texcoord1; }
+
+    void SetTangent(const Vector3 &vec)
+        { tangent = vec; }
+
+    const Vector3 &GetTangent() const
+        { return tangent; }
+
+    void SetBitangent(const Vector3 &vec)
+        { bitangent = vec; }
+
+    const Vector3 &GetBitangent() const
+        { return bitangent; }
+
+    void AddBoneWeight(float val)
+        { if (num_weights < MAX_BONE_WEIGHTS) bone_weights[num_weights++] = val; }
+
+    void SetBoneWeight(int i, float val)
+        { bone_weights[i] = val; }
+
+    float GetBoneWeight(int i) const
+        { return bone_weights[i]; }
+
+    int GetNumWeights() const
+        { return num_weights; }
+
+    HYP_FORCE_INLINE
+    const FixedArray<float, MAX_BONE_WEIGHTS> &GetBoneWeights() const
+        { return bone_weights; }
+
+    HYP_FORCE_INLINE
+    void SetBoneWeights(const FixedArray<float, MAX_BONE_WEIGHTS> &weights)
+    {
+        num_weights = 0;
+
+        for (uint i = 0; i < MAX_BONE_WEIGHTS; i++) {
+            if (weights[i] != 0.0f) {
+                bone_weights[i] = weights[i];
+                num_weights = i + 1;
+            }
+        }
+    }
+
+    void AddBoneIndex(int val)
+        { if (num_indices < MAX_BONE_INDICES) bone_indices[num_indices++] = val; }
+
+    void SetBoneIndex(int i, int val)
+        { bone_indices[i] = val; }
+
+    int GetBoneIndex(int i) const
+        { return bone_indices[i]; }
+
+    int GetNumIndices() const
+        { return num_indices; }
+
+    HYP_FORCE_INLINE
+    const FixedArray<uint, MAX_BONE_INDICES> &GetBoneIndices() const
+        { return bone_indices; }
+
+    HYP_FORCE_INLINE
+    void SetBoneIndices(const FixedArray<uint, MAX_BONE_INDICES> &indices)
+    {
+        num_indices = 0;
+
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+            if (indices[i] != 0) {
+                bone_indices[i] = indices[i];
+                num_indices = i + 1;
+            }
+        }
+    }
 
     /*! \brief Read the attribute from the vertex into \ref{ptr}. The value at \ref{ptr} must be able to hold sizeof(float) * 4.
      *  If an invalid attribute is passed, the function does nothing.

@@ -63,6 +63,20 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
 
 #pragma region Vertex
 
+HYP_DEFINE_CLASS(
+    Vertex,
+    HypClassProperty(NAME("Position"), &Vertex::GetPosition, &Vertex::SetPosition),
+    HypClassProperty(NAME("Normal"), &Vertex::GetNormal, &Vertex::SetNormal),
+    HypClassProperty(NAME("TexCoord0"), &Vertex::GetTexCoord0, &Vertex::SetTexCoord0),
+    HypClassProperty(NAME("TexCoord1"), &Vertex::GetTexCoord1, &Vertex::SetTexCoord1),
+    HypClassProperty(NAME("Tangent"), &Vertex::GetTangent, &Vertex::SetTangent),
+    HypClassProperty(NAME("Bitangent"), &Vertex::GetBitangent, &Vertex::SetBitangent),
+    HypClassProperty(NAME("BoneWeights"), &Vertex::GetBoneWeights, &Vertex::SetBoneWeights),
+    HypClassProperty(NAME("BoneIndices"), &Vertex::GetBoneIndices, &Vertex::SetBoneIndices),
+    HypClassProperty(NAME("NumIndices"), &Vertex::GetNumIndices),
+    HypClassProperty(NAME("NumWeights"), &Vertex::GetNumWeights)
+);
+
 bool Vertex::operator==(const Vertex &other) const
 {
     return position == other.position

@@ -28,6 +28,13 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &prop
     node_watcher.delegate.Bind(std::move(proc)).Detach();
 }
 
+void EditorDelegates::RemoveNodeWatcher(Name watcher_key)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    m_node_watchers.Erase(watcher_key);
+}
+
 void EditorDelegates::WatchNode(Node *node)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);

@@ -39,6 +39,13 @@ struct alignas(alignof(T) * 2) HYP_API Vec2
     constexpr Vec2 &operator=(Vec2 &&other) noexcept    = default;
     ~Vec2()                                             = default;
 
+    T GetX() const  { return x; }
+    T &GetX()       { return x; }
+    Vec2 &SetX(T x) { this->x = x; return *this; }
+    T GetY() const  { return y; }
+    T &GetY()       { return y; }
+    Vec2 &SetY(T y) { this->y = y; return *this; }
+
     constexpr T &operator[](SizeType index)
         { return values[index]; }
 
