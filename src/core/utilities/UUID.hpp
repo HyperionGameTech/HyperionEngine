@@ -56,10 +56,8 @@ struct alignas(16) UUID
     HYP_NODISCARD HYP_FORCE_INLINE
     constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(data[0]);
-        hc.Add(data[1]);
-        return hc;
+        return HashCode::GetHashCode(data[0])
+            .Combine(HashCode::GetHashCode(data[1]));
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE

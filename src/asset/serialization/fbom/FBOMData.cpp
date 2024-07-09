@@ -9,9 +9,9 @@
 
 #include <core/memory/Memory.hpp>
 
-namespace hyperion::fbom {
+#include <sstream>
 
-const FBOMData FBOMData::UNSET = FBOMData();
+namespace hyperion::fbom {
 
 FBOMData::FBOMData()
     : type(FBOMUnset())
@@ -67,7 +67,9 @@ FBOMData &FBOMData::operator=(FBOMData &&other) noexcept
     return *this;
 }
 
-FBOMData::~FBOMData() = default;
+FBOMData::~FBOMData()
+{
+}
 
 FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
 {
@@ -204,6 +206,49 @@ void FBOMData::SetBytes(SizeType count, const void *data)
 FBOMResult FBOMData::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
 {
     return writer->Write(out, *this, id, attributes);
+}
+
+String FBOMData::ToString(bool deep) const
+{
+    std::stringstream stream;
+    stream << "FBOM[";
+    stream << "type: " << type.name << ", ";
+    stream << "size: " << String::ToString(bytes.Size()) << ", ";
+    stream << "data: { ";
+
+    if (deep) {
+        for (SizeType i = 0; i < bytes.Size(); i++) {
+            stream << std::hex << int(bytes[i]) << " ";
+        }
+    } else {
+        stream << bytes.Size();
+    }
+
+    stream << " } ";
+
+    //if (next != nullptr) {
+     //   stream << "<" << next->GetType().name << ">";
+    //}
+
+    stream << "]";
+
+    return String(stream.str().c_str());
+}
+
+UniqueID FBOMData::GetUniqueID() const
+{
+    return UniqueID(GetHashCode());
+}
+
+HashCode FBOMData::GetHashCode() const
+{
+    HashCode hc;
+
+    hc.Add(bytes.Size());
+    hc.Add(type.GetHashCode());
+    hc.Add(bytes.GetHashCode());
+
+    return hc;
 }
 
 } // namespace hyperion::fbom

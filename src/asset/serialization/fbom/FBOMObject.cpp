@@ -95,7 +95,7 @@ FBOMObject::~FBOMObject()
 
 bool FBOMObject::HasProperty(WeakName key) const
 {
-    auto it = properties.FindAs(key);
+    const auto it = properties.FindAs(key);
 
     if (it == properties.End()) {
         return false;
@@ -106,10 +106,12 @@ bool FBOMObject::HasProperty(WeakName key) const
 
 const FBOMData &FBOMObject::GetProperty(WeakName key) const
 {
+    static const FBOMData invalid_property_data { };
+
     auto it = properties.FindAs(key);
 
     if (it == properties.End()) {
-        return FBOMData::UNSET;
+        return invalid_property_data;
     }
 
     return it->second;

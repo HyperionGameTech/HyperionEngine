@@ -33,8 +33,8 @@ HYP_EXPORT void Logger_Log(LogChannel *channel, uint32 log_level, const char *fu
         Logger::GetInstance().template Log< LogLevel::WARNING, StaticString("<script>"), StaticString("{}:{}: {}") >(*channel, func_name, line, message);
 
         break;
-    case LogLevel::ERROR:
-        Logger::GetInstance().template Log< LogLevel::ERROR, StaticString("<script>"), StaticString("{}:{}: {}") >(*channel, func_name, line, message);
+    case LogLevel::ERR:
+        Logger::GetInstance().template Log< LogLevel::ERR, StaticString("<script>"), StaticString("{}:{}: {}") >(*channel, func_name, line, message);
 
         break;
     case LogLevel::FATAL:

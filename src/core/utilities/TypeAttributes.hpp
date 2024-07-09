@@ -44,11 +44,11 @@ struct TypeAttributes
     SizeType                        alignment = 0;
     EnumFlags<TypeAttributeFlags>   flags = TypeAttributeFlags::NONE;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr operator bool() const
         { return IsValid(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsValid() const
         { return id != TypeID::Void(); }
 
@@ -100,43 +100,43 @@ struct TypeAttributes
         };
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsPOD() const
         { return flags & TypeAttributeFlags::POD_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsClass() const
         { return flags & TypeAttributeFlags::CLASS_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsEnum() const
         { return flags & TypeAttributeFlags::ENUM_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsFundamental() const
         { return flags & TypeAttributeFlags::FUNDAMENTAL_TYPE; }
     
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsMathType() const
         { return flags & TypeAttributeFlags::MATH_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsIntegralType() const
         { return flags & TypeAttributeFlags::INTEGRAL_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool IsFloatType() const
         { return flags & TypeAttributeFlags::FLOAT_TYPE; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     constexpr bool HasHypClass() const
         { return flags & TypeAttributeFlags::HYP_CLASS; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     const HypClass *GetHypClass() const
         { return GetClass(id); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;

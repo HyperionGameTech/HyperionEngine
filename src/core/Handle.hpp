@@ -389,7 +389,7 @@ struct WeakHandle
     
     HYP_FORCE_INLINE
     bool operator!=(const WeakHandle &other) const
-        { return index == other.index; }
+        { return index != other.index; }
 
     HYP_FORCE_INLINE
     bool operator<(const WeakHandle &other) const
@@ -401,7 +401,7 @@ struct WeakHandle
     
     HYP_FORCE_INLINE
     bool operator!=(const Handle<T> &other) const
-        { return index == other.index; }
+        { return index != other.index; }
     
     HYP_FORCE_INLINE
     bool operator<(const Handle<T> &other) const
@@ -413,7 +413,7 @@ struct WeakHandle
     
     HYP_FORCE_INLINE
     bool operator!=(const IDType &id) const
-        { return index == id.Value(); }
+        { return index != id.Value(); }
     
     HYP_FORCE_INLINE
     bool operator<(const IDType &id) const

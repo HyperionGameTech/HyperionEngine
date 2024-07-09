@@ -1030,7 +1030,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         if (!CompileBundle(bundle, properties, out)) {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "Failed to compile shader bundle {}",
                 name
             );
@@ -1041,7 +1041,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         if ((err = reader.LoadFromFile(output_file_path, deserialized))) {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::ERROR,
+                LogLevel::ERR,
                 "Failed to compile shader at path: {}\n\tMessage: {}",
                 output_file_path,
                 err.message
@@ -1056,7 +1056,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     if (!compiled_shader_batch) {
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERROR,
+            LogLevel::ERR,
             "Failed to load compiled shader at path: {}\n\tMessage: {}",
             output_file_path,
             "Failed to deserialize CompiledShaderBatch"

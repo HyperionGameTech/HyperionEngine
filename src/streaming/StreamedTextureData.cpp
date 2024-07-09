@@ -37,11 +37,11 @@ StreamedTextureData::StreamedTextureData(const TextureData &texture_data)
     fbom::FBOMWriter serializer;
 
     if (fbom::FBOMResult err = serializer.Append(texture_data)) {
-        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+        HYP_FAIL("Failed to write streamed data: %s", *err.message);
     }
 
     if (fbom::FBOMResult err = serializer.Emit(&writer)) {
-        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+        HYP_FAIL("Failed to write streamed data: %s", *err.message);
     }
 
     // Do not keep in memory, we already have what we want - but we need to calculate the hash
@@ -61,11 +61,11 @@ StreamedTextureData::StreamedTextureData(TextureData &&texture_data)
     fbom::FBOMWriter serializer;
     
     if (fbom::FBOMResult err = serializer.Append(texture_data)) {
-        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+        HYP_FAIL("Failed to write streamed data: %s", *err.message);
     }
 
     if (fbom::FBOMResult err = serializer.Emit(&writer)) {
-        AssertThrowMsg("Failed to write streamed data: %s", *err.message);
+        HYP_FAIL("Failed to write streamed data: %s", *err.message);
     }
 
     // Do not keep in memory, we already have what we want - but we need to calculate the hash

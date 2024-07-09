@@ -246,7 +246,7 @@ Result Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap &unsuppo
 
         for (const auto &extension : unsupported_extensions) {
             if (extension.second) {
-                HYP_LOG(RenderingBackend, LogLevel::ERROR, "\t{} [REQUIRED]", extension.first.c_str());
+                HYP_LOG(RenderingBackend, LogLevel::ERR, "\t{} [REQUIRED]", extension.first.c_str());
 
                 any_required = true;
             } else {

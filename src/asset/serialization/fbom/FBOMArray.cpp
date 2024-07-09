@@ -114,4 +114,18 @@ String FBOMArray::ToString(bool deep) const
     return String(ss.str().data());
 }
 
+UniqueID FBOMArray::GetUniqueID() const
+{
+    return UniqueID(GetHashCode());
+}
+
+HashCode FBOMArray::GetHashCode() const
+{
+    HashCode hc;
+    hc.Add(m_values.Size());
+    hc.Add(m_values.GetHashCode());
+
+    return hc;
+}
+
 } // namespace hyperion::fbom

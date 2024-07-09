@@ -52,7 +52,7 @@ public:
         HYP_SCOPE;
 
         if (!m_mesh.IsValid()) {
-            HYP_LOG(TerrainWorldGridPlugin, LogLevel::ERROR, "Terrain mesh is invalid");
+            HYP_LOG(TerrainWorldGridPlugin, LogLevel::ERR, "Terrain mesh is invalid");
 
             return;
         }

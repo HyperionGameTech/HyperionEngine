@@ -99,14 +99,11 @@ EntityToEntityManagerMap &EntityManager::GetEntityToEntityManagerMap()
     return s_entity_to_entity_manager_map;
 }
 
-EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene)
+EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags)
     : m_owner_thread_mask(owner_thread_mask),
       m_scene(scene),
-      m_command_queue(
-          (owner_thread_mask & ThreadName::THREAD_GAME)
-              ? ENTITY_MANAGER_COMMAND_QUEUE_POLICY_EXEC_ON_OWNER_THREAD
-              : ENTITY_MANAGER_COMMAND_QUEUE_POLICY_DISCARD // discard commands if not on the game thread
-      )
+      m_flags(flags),
+      m_command_queue((owner_thread_mask & ThreadName::THREAD_GAME) ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE)
 {
     AssertThrow(scene != nullptr);
 

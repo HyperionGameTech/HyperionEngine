@@ -243,7 +243,7 @@ void Material::Init()
         }
 
         if (!m_shader.IsValid()) {
-            HYP_LOG(Material, LogLevel::ERROR, "Failed to create shader for material with ID #{} (name: {})", GetID().Value(), GetName());
+            HYP_LOG(Material, LogLevel::ERR, "Failed to create shader for material with ID #{} (name: {})", GetID().Value(), GetName());
         }
     }
 

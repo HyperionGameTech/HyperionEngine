@@ -443,6 +443,25 @@ DotNetSystem::DotNetSystem()
 
 DotNetSystem::~DotNetSystem() = default;
 
+bool DotNetSystem::EnsureInitialized() const
+{
+    if (!IsEnabled()) {
+        HYP_LOG(DotNET, LogLevel::ERR, "DotNetSystem not enabled, cannot load/unload assemblies");
+
+        return false;
+    }
+
+    if (!IsInitialized()) {
+        HYP_LOG(DotNET, LogLevel::ERR, "DotNetSystem not initialized, call Initialize() before attempting to load/unload assemblies");
+
+        return false;
+    }
+
+    AssertThrow(m_impl != nullptr);
+
+    return true;
+}
+
 UniquePtr<Assembly> DotNetSystem::LoadAssembly(const char *path) const
 {
     if (!EnsureInitialized()) {

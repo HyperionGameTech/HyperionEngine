@@ -43,12 +43,12 @@ ArchiveBuilder &ArchiveBuilder::Append(const ByteBuffer &buffer)
 
 Archive ArchiveBuilder::Build() const
 {
-    const SizeType uncompressed_size = m_uncompressed_buffer.Size();
+    const unsigned long uncompressed_size = m_uncompressed_buffer.Size();
     ByteBuffer compressed_buffer;
 
 #ifdef HYP_ZLIB
     // https://bobobobo.wordpress.com/2008/02/23/how-to-use-zlib/
-    SizeType compressed_size = SizeType(double(uncompressed_size) * 1.1) + 12;
+    unsigned long compressed_size = static_cast<unsigned long>(double(uncompressed_size) * 1.1) + 12;
     compressed_buffer.SetSize(compressed_size);
 
     const int compress_result = compress(

@@ -59,7 +59,7 @@ public:
         uint32 string_header = (uint32(str.Size() + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0)) << 8) & string_length_mask;
         
         if (flags & BYTE_WRITER_FLAGS_WRITE_STRING_TYPE) {
-            string_header |= (uint32(StringView<StringType>::string_type)) & string_type_mask;
+            string_header |= (uint32(StringType)) & string_type_mask;
         }
 
         if (flags & (BYTE_WRITER_FLAGS_WRITE_SIZE | BYTE_WRITER_FLAGS_WRITE_STRING_TYPE)) {

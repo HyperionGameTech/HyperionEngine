@@ -21,7 +21,7 @@ namespace detail {
 
 using namespace containers::detail;
 
-template <int StringType>
+template <int string_type>
 class StringView
 {
 public:
@@ -63,8 +63,6 @@ public:
     static_assert(!is_utf32 || std::is_same_v<CharType, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
     static_assert(!is_wide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
 
-    static constexpr int string_type = StringType;
-
     constexpr StringView()
         : m_begin(nullptr),
           m_end(nullptr),
@@ -93,16 +91,8 @@ public:
           m_length(0)
     {
         int num_bytes = 0;
-        m_length = utf::utf_strlen< CharType, is_utf8 >(str, &num_bytes);
+        m_length = utf::utf_strlen< CharType, is_utf8 >(str, num_bytes);
         m_end = m_begin + num_bytes;
-    }
-
-    template < SizeType Sz >
-    StringView(const CharType (&str)[Sz])
-        : m_begin(&str[0]),
-          m_end(&str[0] + Sz),
-          m_length(utf::utf_strlen< CharType, is_utf8 >(str))
-    {
     }
 
     template <SizeType Sz, std::enable_if_t<std::is_same_v<CharType, typename StaticString<Sz>::CharType>, int> = 0>
@@ -156,8 +146,8 @@ public:
     constexpr ~StringView() = default;
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    operator detail::String<StringType>() const
-        { return detail::String<StringType>(Data()); }
+    operator containers::detail::String<string_type>() const
+        { return containers::detail::String<string_type>(Data()); }
 
     HYP_NODISCARD HYP_FORCE_INLINE
     constexpr explicit operator const CharType *() const
@@ -233,8 +223,8 @@ private:
     SizeType        m_length;
 };
 
-template <int StringType>
-constexpr bool operator<(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
+template <int string_type>
+constexpr bool operator<(const StringView<string_type> &lhs, const StringView<string_type> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -244,11 +234,11 @@ constexpr bool operator<(const StringView<StringType> &lhs, const StringView<Str
         return false;
     }
 
-    return utf::utf_strcmp<typename StringView<StringType>::CharType, StringView<StringType>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
+    return utf::utf_strcmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
 }
 
-template <int StringType>
-constexpr bool operator<(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
+template <int string_type>
+constexpr bool operator<(const containers::detail::String<string_type> &lhs, const StringView<string_type> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -258,11 +248,11 @@ constexpr bool operator<(const containers::detail::String<StringType> &lhs, cons
         return false;
     }
 
-    return utf::utf_strcmp<typename StringView<StringType>::CharType, StringView<StringType>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
+    return utf::utf_strcmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
 }
 
-template <int StringType>
-constexpr bool operator<(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
+template <int string_type>
+constexpr bool operator<(const StringView<string_type> &lhs, const containers::detail::String<string_type> &rhs)
 {
     if (!lhs.Begin()) {
         return true;
@@ -272,11 +262,11 @@ constexpr bool operator<(const StringView<StringType> &lhs, const containers::de
         return false;
     }
 
-    return utf::utf_strcmp<typename StringView<StringType>::CharType, StringView<StringType>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
+    return utf::utf_strcmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Begin(), rhs.Begin()) < 0;
 }
 
-template <int StringType>
-constexpr bool operator==(const StringView<StringType> &lhs, const StringView<StringType> &rhs)
+template <int string_type>
+constexpr bool operator==(const StringView<string_type> &lhs, const StringView<string_type> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;
@@ -285,8 +275,8 @@ constexpr bool operator==(const StringView<StringType> &lhs, const StringView<St
     return Memory::AreStaticStringsEqual(lhs.Begin(), rhs.Begin());
 }
 
-template <int StringType>
-constexpr bool operator==(const containers::detail::String<StringType> &lhs, const StringView<StringType> &rhs)
+template <int string_type>
+constexpr bool operator==(const containers::detail::String<string_type> &lhs, const StringView<string_type> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;
@@ -295,8 +285,8 @@ constexpr bool operator==(const containers::detail::String<StringType> &lhs, con
     return Memory::AreStaticStringsEqual(lhs.Begin(), rhs.Begin());
 }
 
-template <int StringType>
-constexpr bool operator==(const StringView<StringType> &lhs, const containers::detail::String<StringType> &rhs)
+template <int string_type>
+constexpr bool operator==(const StringView<string_type> &lhs, const containers::detail::String<string_type> &rhs)
 {
     if (lhs.Begin() == rhs.Begin() && (!lhs.Begin() || lhs.Size() == rhs.Size())) {
         return true;

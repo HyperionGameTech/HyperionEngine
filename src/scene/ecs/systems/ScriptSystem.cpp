@@ -34,8 +34,7 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
 
         for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>()) {
             if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path)) {
-                HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Reloading script for entity #{} (assembly {}, class: {})",
-                    entity.Value(), script_component.script.assembly_path, script_component.script.class_name);
+                HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Reloading script for entity #{}", entity.Value());
 
                 // Reload the script
                 script_component.flags |= ScriptComponentFlags::RELOADING;
@@ -113,13 +112,13 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
     }
 
     if (!script_component.assembly) {
-        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script_info.assembly_name);
+        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script.assembly_path);
 
         return;
     }
 
     if (!script_component.object) {
-        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script_info.class_name, script_component.script_info.assembly_name.Data());
+        HYP_LOG(Script, LogLevel::ERR, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
 
         return;
     }

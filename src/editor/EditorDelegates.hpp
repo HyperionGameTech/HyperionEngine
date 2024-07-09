@@ -26,6 +26,14 @@ class HYP_API EditorDelegates
 public:
     static EditorDelegates &GetInstance();
 
+    EditorDelegates()                                           = default;
+    EditorDelegates(const EditorDelegates &other)               = delete;
+    EditorDelegates &operator=(const EditorDelegates &other)    = delete;
+    EditorDelegates(EditorDelegates &&other)                    = delete;
+    EditorDelegates &operator=(EditorDelegates &&other)         = delete;
+    ~EditorDelegates()                                          = default;
+
+
     void AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, Name, ConstAnyRef> &&proc);
     void RemoveNodeWatcher(Name watcher_key);
 

@@ -212,7 +212,7 @@ void ScriptingService::Update()
 
                 break;
             default:
-                HYP_LOG(ScriptingService, LogLevel::ERROR, "Unknown script event received: {}", uint32(event.type));
+                HYP_LOG(ScriptingService, LogLevel::ERR, "Unknown script event received: {}", uint32(event.type));
 
                 break;
             }

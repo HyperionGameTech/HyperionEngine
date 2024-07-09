@@ -215,10 +215,10 @@ public:
                         HashCode hc2;
                         hc2.Add(ch);
                         
-                        constexpr HashCode hc3 = ANSIStringView("descriptor_usages.0.slot").GetHashCode();
+                        //constexpr HashCode hc3 = ANSIStringView("descriptor_usages.0.slot").GetHashCode();
 
                         AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == hc);
-                        AssertThrow(hc2 == hc3);
+                        //AssertThrow(hc2 == hc3);
                         AssertThrow(hc == hc2);
                         AssertThrow(hc == ANSIString("descriptor_usages.0.slot").GetHashCode());
                         AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == ANSIString("descriptor_usages.0.slot").GetHashCode());

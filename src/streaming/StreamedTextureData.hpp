@@ -37,7 +37,7 @@ public:
         { return m_texture_desc; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 GetBufferSize() const
+    SizeType GetBufferSize() const
         { return m_buffer_size; }
 
     HYP_NODISCARD HYP_FORCE_INLINE
@@ -58,7 +58,7 @@ private:
     
     mutable Optional<TextureData>   m_texture_data;
     mutable TextureDesc             m_texture_desc;
-    mutable uint32                  m_buffer_size;
+    mutable SizeType                m_buffer_size;
 };
 
 } // namespace hyperion

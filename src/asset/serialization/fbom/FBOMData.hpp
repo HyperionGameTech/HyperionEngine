@@ -24,9 +24,6 @@
 
 #include <Types.hpp>
 
-#include <cstring>
-#include <sstream>
-
 #define FBOM_ASSERT(cond, message) \
     do { \
         static const char *_message = (message); \
@@ -47,10 +44,8 @@ namespace fbom {
 class FBOMObject;
 class FBOMArray;
 
-struct FBOMData : public IFBOMSerializable
+struct HYP_API FBOMData : public IFBOMSerializable
 {
-    static const FBOMData UNSET;
-
     FBOMData();
     FBOMData(const FBOMType &type);
     FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer);
@@ -60,20 +55,16 @@ struct FBOMData : public IFBOMSerializable
     FBOMData &operator=(FBOMData &&other) noexcept;
     virtual ~FBOMData();
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return !type.IsUnset() || bytes.Any(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMType &GetType() const
+    HYP_FORCE_INLINE const FBOMType &GetType() const
         { return type; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ByteBuffer &GetBytes() const
+    HYP_FORCE_INLINE const ByteBuffer &GetBytes() const
         { return bytes; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType TotalSize() const
+    HYP_FORCE_INLINE SizeType TotalSize() const
         { return bytes.Size(); }
 
     /*! \returns The number of bytes read */
@@ -145,13 +136,11 @@ struct FBOMData : public IFBOMSerializable
 #undef FBOM_TYPE_FUNCTIONS
 
 #pragma region String
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsString() const
+    HYP_FORCE_INLINE bool IsString() const
         { return type.IsOrExtends(FBOMString()); }
 
     template <int string_type>
-    HYP_FORCE_INLINE
-    FBOMResult ReadString(containers::detail::String<string_type> &str) const
+    HYP_FORCE_INLINE FBOMResult ReadString(containers::detail::String<string_type> &str) const
     {
         static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
 
@@ -171,8 +160,7 @@ struct FBOMData : public IFBOMSerializable
     }
     
     template <int string_type>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMData FromString(const StringView<string_type> &str)
+    HYP_FORCE_INLINE static FBOMData FromString(const StringView<string_type> &str)
     {
         static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
 
@@ -180,8 +168,7 @@ struct FBOMData : public IFBOMSerializable
     }
     
     template <int string_type>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMData FromString(const containers::detail::String<string_type> &str)
+    HYP_FORCE_INLINE static FBOMData FromString(const containers::detail::String<string_type> &str)
     {
         return FromString(StringView<string_type>(str));
     }
@@ -195,13 +182,10 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion String
 
 #pragma region ByteBuffer
-
-    HYP_NODISCARD  HYP_FORCE_INLINE
-    bool IsByteBuffer() const
+    HYP_FORCE_INLINE bool IsByteBuffer() const
         { return type.IsOrExtends(FBOMByteBuffer()); }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadByteBuffer(ByteBuffer &byte_buffer) const
+    HYP_FORCE_INLINE FBOMResult ReadByteBuffer(ByteBuffer &byte_buffer) const
     {
         FBOM_ASSERT(IsByteBuffer(), "Type mismatch (expected ByteBuffer)");
 
@@ -210,8 +194,7 @@ struct FBOMData : public IFBOMSerializable
         FBOM_RETURN_OK;
     }
     
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
+    HYP_FORCE_INLINE static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
     {
         FBOMData data(FBOMByteBuffer(byte_buffer.Size()));
         data.SetBytes(byte_buffer.Size(), byte_buffer.Data());
@@ -224,16 +207,13 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion ByteBuffer
 
 #pragma region Struct
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsStruct(const char *type_name) const
+    HYP_FORCE_INLINE bool IsStruct(const char *type_name) const
         { return type.IsOrExtends(FBOMStruct(type_name, -1)); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsStruct(const char *type_name, SizeType size) const
+    HYP_FORCE_INLINE bool IsStruct(const char *type_name, SizeType size) const
         { return type.IsOrExtends(FBOMStruct(type_name, size)); }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
+    HYP_FORCE_INLINE FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
     {
         AssertThrow(out != nullptr);
 
@@ -245,8 +225,7 @@ struct FBOMData : public IFBOMSerializable
     }
 
     template <class T>
-    HYP_FORCE_INLINE
-    FBOMResult ReadStruct(T *out) const
+    HYP_FORCE_INLINE FBOMResult ReadStruct(T *out) const
     {
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
@@ -255,8 +234,7 @@ struct FBOMData : public IFBOMSerializable
     }
 
     template <class T>
-    HYP_FORCE_INLINE
-    T ReadStruct() const
+    HYP_FORCE_INLINE T ReadStruct() const
     {
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
@@ -271,8 +249,7 @@ struct FBOMData : public IFBOMSerializable
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMData FromStruct(const T &value)
+    HYP_FORCE_INLINE static FBOMData FromStruct(const T &value)
     {
         return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
     }
@@ -283,15 +260,13 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion Struct
 
 #pragma region Name
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsName() const
+    HYP_FORCE_INLINE bool IsName() const
         { return IsStruct("Name"); }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadName(Name *out) const
+    HYP_FORCE_INLINE FBOMResult ReadName(Name *out) const
         { return ReadStruct<Name>(out); }
-
-    static FBOMData FromName(Name name)
+    
+    HYP_FORCE_INLINE static FBOMData FromName(Name name)
     {
         FBOMData data(FBOMStruct::Create<Name>());
         data.SetBytes(sizeof(Name), &name);
@@ -304,19 +279,15 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion Name
 
 #pragma region Sequence
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsSequence() const
+    HYP_FORCE_INLINE bool IsSequence() const
         { return type.IsOrExtends(FBOMSequence()); }
 
     // does NOT check that the types are exact, just that the size is a match
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsSequenceMatching(const FBOMType &held_type, SizeType num_items) const
+    HYP_FORCE_INLINE bool IsSequenceMatching(const FBOMType &held_type, SizeType num_items) const
         { return type.IsOrExtends(FBOMSequence(held_type, num_items)); }
 
     // does the array size equal byte_size bytes?
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsSequenceOfByteSize(SizeType byte_size) const
+    HYP_FORCE_INLINE bool IsSequenceOfByteSize(SizeType byte_size) const
         { return type.IsOrExtends(FBOMSequence(FBOMByte(), byte_size)); }
 
     /*! \brief If type is an sequence, return the number of elements,
@@ -324,8 +295,7 @@ struct FBOMData : public IFBOMSerializable
         contain another type, and still a result will be returned.
         
         If type is /not/ an sequence, return zero. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType NumElements(const FBOMType &held_type) const
+    HYP_FORCE_INLINE SizeType NumElements(const FBOMType &held_type) const
     {
         if (!IsSequence()) {
             return 0;
@@ -341,8 +311,7 @@ struct FBOMData : public IFBOMSerializable
     }
 
     // count is number of ELEMENTS
-    HYP_FORCE_INLINE
-    FBOMResult ReadElements(const FBOMType &held_type, SizeType num_items, void *out) const
+    HYP_FORCE_INLINE FBOMResult ReadElements(const FBOMType &held_type, SizeType num_items, void *out) const
     {
         AssertThrow(out != nullptr);
 
@@ -356,17 +325,12 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion Sequence
 
 #pragma region Object
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsObject() const
+    HYP_FORCE_INLINE bool IsObject() const
         { return type.IsOrExtends(FBOMBaseObjectType()); }
 
     FBOMResult ReadObject(FBOMObject &out_object) const;
     
-    HYP_NODISCARD
     static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = false);
-
-    HYP_NODISCARD
     static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = false);
 
     explicit FBOMData(const FBOMObject &object) : FBOMData(FromObject(object)) { }
@@ -374,22 +338,17 @@ struct FBOMData : public IFBOMSerializable
 #pragma endregion Object
 
 #pragma region Array
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsArray() const
+    HYP_FORCE_INLINE bool IsArray() const
         { return type.IsOrExtends(FBOMArrayType()); }
 
     FBOMResult ReadArray(FBOMArray &out_array) const;
     
-    HYP_NODISCARD
     static FBOMData FromArray(const FBOMArray &array);
 
     explicit FBOMData(const FBOMArray &array) : FBOMData(FromArray(array)) { }
 
 #pragma endregion Array
-
-    HYP_FORCE_INLINE
-    FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
+    HYP_FORCE_INLINE FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
     {
         FBOM_ASSERT(count <= bytes.Size(), "Attempt to read past max size of object");
 
@@ -398,8 +357,7 @@ struct FBOMData : public IFBOMSerializable
         FBOM_RETURN_OK;
     }
 
-    HYP_FORCE_INLINE
-    FBOMResult ReadAsType(const FBOMType &read_type, void *out) const
+    HYP_FORCE_INLINE FBOMResult ReadAsType(const FBOMType &read_type, void *out) const
     {
         AssertThrow(out != nullptr);
 
@@ -415,65 +373,23 @@ struct FBOMData : public IFBOMSerializable
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Optional<FBOMDeserializedObject &> GetDeserializedObject()
+    HYP_FORCE_INLINE Optional<FBOMDeserializedObject &> GetDeserializedObject()
     {
         return m_deserialized_object != nullptr
             ? Optional<FBOMDeserializedObject &> { *m_deserialized_object }
             : Optional<FBOMDeserializedObject &> { };
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Optional<const FBOMDeserializedObject &> GetDeserializedObject() const
+    HYP_FORCE_INLINE Optional<const FBOMDeserializedObject &> GetDeserializedObject() const
     {
         return m_deserialized_object != nullptr
             ? Optional<const FBOMDeserializedObject &> { *m_deserialized_object }
             : Optional<const FBOMDeserializedObject &> { };
     }
-
-    HYP_NODISCARD
-    virtual String ToString(bool deep = true) const override
-    {
-        std::stringstream stream;
-        stream << "FBOM[";
-        stream << "type: " << type.name << ", ";
-        stream << "size: " << String::ToString(bytes.Size()) << ", ";
-        stream << "data: { ";
-
-        if (deep) {
-            for (SizeType i = 0; i < bytes.Size(); i++) {
-                stream << std::hex << int(bytes[i]) << " ";
-            }
-        } else {
-            stream << bytes.Size();
-        }
-
-        stream << " } ";
-
-        //if (next != nullptr) {
-         //   stream << "<" << next->GetType().name << ">";
-        //}
-
-        stream << "]";
-
-        return String(stream.str().c_str());
-    }
-
-    HYP_NODISCARD
-    virtual UniqueID GetUniqueID() const override
-        { return UniqueID(GetHashCode()); }
-
-    HYP_NODISCARD
-    virtual HashCode GetHashCode() const override
-    {
-        HashCode hc;
-
-        hc.Add(bytes.Size());
-        hc.Add(type.GetHashCode());
-        hc.Add(bytes.GetHashCode());
-
-        return hc;
-    }
+    
+    virtual String ToString(bool deep = true) const override;
+    virtual UniqueID GetUniqueID() const override;
+    virtual HashCode GetHashCode() const override;
 
 private:
     ByteBuffer                  bytes;

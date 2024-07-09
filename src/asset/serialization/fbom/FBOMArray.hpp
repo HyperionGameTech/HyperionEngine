@@ -24,7 +24,7 @@
 namespace hyperion {
 namespace fbom {
 
-class FBOMArray : public IFBOMSerializable
+class HYP_API FBOMArray : public IFBOMSerializable
 {
 public:
     FBOMArray();
@@ -36,40 +36,23 @@ public:
     FBOMArray &operator=(FBOMArray &&other) noexcept;
     virtual ~FBOMArray();
 
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_values.Size(); }
+
     FBOMArray &AddElement(const FBOMData &value);
     FBOMArray &AddElement(FBOMData &&value);
-
-    HYP_NODISCARD
+    
     const FBOMData &GetElement(SizeType index) const;
-
-    HYP_NODISCARD
     const FBOMData *TryGetElement(SizeType index) const;
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType Size() const
-        { return m_values.Size(); }
 
     FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
         { return Visit(GetUniqueID(), writer, out, attributes); }
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
-
-    HYP_NODISCARD
+    
     virtual String ToString(bool deep = true) const override;
-
-    HYP_NODISCARD
-    virtual UniqueID GetUniqueID() const override
-        { return UniqueID(GetHashCode()); }
-
-    HYP_NODISCARD
-    virtual HashCode GetHashCode() const override
-    {
-        HashCode hc;
-        hc.Add(m_values.Size());
-        hc.Add(m_values.GetHashCode());
-
-        return hc;
-    }
+    virtual UniqueID GetUniqueID() const override;
+    virtual HashCode GetHashCode() const override;
 
 private:
     Array<FBOMData> m_values;

@@ -105,29 +105,21 @@ struct FBOMVersion
           
     {
     }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetMajor() const
+    
+    HYP_FORCE_INLINE uint32 GetMajor() const
         { return (value & (0xffu << 16)) >> 16; }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetMinor() const
+    
+    HYP_FORCE_INLINE uint32 GetMinor() const
         { return (value & (0xffu << 8)) >> 8; }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetPatch() const
+    
+    HYP_FORCE_INLINE uint32 GetPatch() const
         { return value & 0xffu; }
 
     /*! \brief Returns an integer indicating whether the two version are compatible or not.
      *  If the returned value is equal to zero, the two versions are compatible.
      *  If the returned value is less than zero, \ref{lhs} is incompatible, due to being outdated.
      *  If the returned value is less than zero, \ref{lhs} is incompatible, due to being newer. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static int TestCompatibility(const FBOMVersion &lhs, const FBOMVersion &rhs, EnumFlags<FBOMVersionCompareMode> compare_mode = FBOMVersionCompareMode::DEFAULT)
+    HYP_FORCE_INLINE static int TestCompatibility(const FBOMVersion &lhs, const FBOMVersion &rhs, EnumFlags<FBOMVersionCompareMode> compare_mode = FBOMVersionCompareMode::DEFAULT)
     {
         if (compare_mode & FBOMVersionCompareMode::MAJOR) {
             if (lhs.GetMajor() < rhs.GetMajor()) {
@@ -199,8 +191,7 @@ public:
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FBOMMarshalerBase *GetMarshal() const
+    HYP_FORCE_INLINE FBOMMarshalerBase *GetMarshal() const
         { return GetMarshal(TypeAttributes::ForType<T>()); }
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type ID,
@@ -211,7 +202,6 @@ public:
      *  \param type_attributes The type attributes of the class to get the marshal for
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
-    HYP_NODISCARD
     FBOMMarshalerBase *GetMarshal(const TypeAttributes &type_attributes) const;
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type name,
@@ -222,7 +212,6 @@ public:
      *  \param type_name The name of the class to get the marshal for
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type (or if the type is a POD type)
      */
-    HYP_NODISCARD
     FBOMMarshalerBase *GetMarshal(const ANSIStringView &type_name) const;
 
 private:
@@ -235,7 +224,6 @@ struct FBOMObjectLibrary
     UUID                uuid;
     Array<FBOMObject>   object_data;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
     bool TryGet(uint32 index, FBOMObject &out) const
     {
         if (index >= object_data.Size()) {
@@ -277,7 +265,6 @@ struct FBOMObjectLibrary
     //     return next_index;
     // }
     
-    HYP_NODISCARD
     SizeType CalculateTotalSize() const
     {
         // SizeType size = 0;
@@ -332,17 +319,11 @@ private:
             SizeType                        size = 0;
             UniquePtr<IFBOMSerializable>    ptr;
 
-            HYP_NODISCARD HYP_FORCE_INLINE
-            bool IsValid() const
-            {
-                return type != FBOMStaticData::FBOM_STATIC_DATA_NONE && size != 0;
-            }
+            HYP_FORCE_INLINE bool IsValid() const
+                { return type != FBOMStaticData::FBOM_STATIC_DATA_NONE && size != 0; }
 
-            HYP_NODISCARD HYP_FORCE_INLINE
-            bool IsInitialized() const
-            {
-                return ptr != nullptr;
-            }
+            HYP_FORCE_INLINE bool IsInitialized() const
+                { return ptr != nullptr; }
 
             FBOMResult Initialize(FBOMReader *reader);
         };
@@ -370,8 +351,7 @@ private:
         }
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasMarshalForType(const FBOMType &type) const
+    HYP_FORCE_INLINE bool HasMarshalForType(const FBOMType &type) const
         { return FBOM::GetInstance().GetMarshal(type.name) != nullptr; }
 
     FBOMResult RequestExternalObject(UUID library_id, uint32 index, FBOMObject &out_object);
@@ -445,31 +425,24 @@ struct FBOMWriteStream
     FBOMDataLocation GetDataLocation(const UniqueID &unique_id, const FBOMStaticData **out_static_data, const FBOMExternalObjectInfo **out_external_object_info) const;
     void MarkStaticDataWritten(const UniqueID &unique_id);
 
-    HYP_FORCE_INLINE
-    void BeginStaticDataWriting()
+    HYP_FORCE_INLINE void BeginStaticDataWriting()
         { m_is_writing_static_data = true; }
 
-    HYP_FORCE_INLINE
-    void EndStaticDataWriting()
+    HYP_FORCE_INLINE void EndStaticDataWriting()
         { m_is_writing_static_data = false; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsWritingStaticData() const
+    HYP_FORCE_INLINE bool IsWritingStaticData() const
         { return m_is_writing_static_data; }
 
-    HYP_FORCE_INLINE
-    void LockObjectDataWriting()
+    HYP_FORCE_INLINE void LockObjectDataWriting()
         { m_object_data_write_locked = true; }
 
-    HYP_FORCE_INLINE
-    void UnlockObjectDataWriting()
+    HYP_FORCE_INLINE void UnlockObjectDataWriting()
         { m_object_data_write_locked = false; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsObjectDataWritingLocked() const
+    HYP_FORCE_INLINE bool IsObjectDataWritingLocked() const
         { return m_object_data_write_locked; }
-
-    HYP_NODISCARD
+    
     FBOMNameTable &GetNameTable();
 
     void AddToObjectLibrary(FBOMObject &object);
@@ -489,7 +462,7 @@ public:
 
     ~FBOMWriter();
 
-    const FBOMWriteStream *GetWriteStream() const
+    HYP_FORCE_INLINE const FBOMWriteStream *GetWriteStream() const
         { return m_write_stream.Get(); }
 
     template <class T>
@@ -543,18 +516,17 @@ private:
     UniqueID AddStaticData(const FBOMArray &);
     UniqueID AddStaticData(const FBOMNameTable &);
 
-    RC<FBOMWriteStream> m_write_stream;
-
     UniqueID AddStaticData(UniqueID id, FBOMStaticData &&static_data);
 
-    HYP_FORCE_INLINE
-    UniqueID AddStaticData(FBOMStaticData &&static_data)
+    HYP_FORCE_INLINE UniqueID AddStaticData(FBOMStaticData &&static_data)
     {
         const UniqueID id = static_data.GetUniqueID();
         AssertThrow(id != UniqueID::Invalid());
 
         return AddStaticData(id, std::move(static_data));
     }
+
+    RC<FBOMWriteStream> m_write_stream;
 };
 
 } // namespace fbom

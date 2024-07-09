@@ -84,13 +84,13 @@ public:
     }
 
     template <class U>
-    auto FindAs(const U &key)
+    auto FindAs(const U &value)
     {
         auto _begin = static_cast<Container *>(this)->Begin();
         const auto _end = static_cast<Container *>(this)->End();
 
         for (; _begin != _end; ++_begin) {
-            if (*_begin == key) {
+            if (value == *_begin) {
                 return _begin;
             }
         }
@@ -99,13 +99,13 @@ public:
     }
 
     template <class U>
-    auto FindAs(const U &key) const
+    auto FindAs(const U &value) const
     {
         auto _begin = static_cast<const Container *>(this)->Begin();
         const auto _end = static_cast<const Container *>(this)->End();
 
         for (; _begin != _end; ++_begin) {
-            if (*_begin == key) {
+            if (value == *_begin) {
                 return _begin;
             }
         }

@@ -132,7 +132,7 @@ IFBOMSerializable *FBOMReader::FBOMStaticDataIndexMap::GetOrInitializeElement(FB
 
     if (!element.IsInitialized()) {
         if (FBOMResult err = element.Initialize(reader)) {
-            HYP_LOG(Serialization, LogLevel::ERROR, "Error initializing static data element at index {}: {}", index, err.message);
+            HYP_LOG(Serialization, LogLevel::ERR, "Error initializing static data element at index {}: {}", index, err.message);
 
             return nullptr;
         }

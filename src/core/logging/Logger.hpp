@@ -146,20 +146,21 @@ public:
     template <LogLevel Level, auto FunctionNameString, auto FormatString, class... Args>
     void Log(const LogChannel &channel, Args &&... args)
     {
+        static const auto prefix_static_string = containers::helpers::Concat<
+            StaticString("["),
+            LogLevelToString< Level >(),
+            StaticString("] "),
+            FunctionNameString,
+            StaticString(": ")
+        >::value;
+
+        static const String prefix_string = String(prefix_static_string.Data());
+
         if (IsChannelEnabled(channel)) {
             Log(
                 channel,
                 LogMessage {
-                    utilities::Format<
-                        containers::helpers::Concat<
-                            StaticString("["),
-                            LogLevelToString< Level >(),
-                            StaticString("] "),
-                            FunctionNameString,
-                            StaticString(": "),
-                            FormatString
-                        >::value
-                    >(std::forward<Args>(args)...)
+                    prefix_string + utilities::Format<FormatString>(std::forward<Args>(args)...)
                 }
             );
         }

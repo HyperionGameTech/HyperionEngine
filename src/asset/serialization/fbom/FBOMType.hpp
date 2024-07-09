@@ -31,7 +31,7 @@ HYP_MAKE_ENUM_FLAGS(FBOMTypeFlags)
 
 namespace fbom {
 
-struct FBOMType : public IFBOMSerializable
+struct HYP_API FBOMType : public IFBOMSerializable
 {
     ANSIString                  name;
     SizeType                    size;

@@ -67,7 +67,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
     device_requirements_result = device_features.SatisfiesMinimumRequirements();
 
-    HYP_LOG(Vulkan, LogLevel::ERR, "No device found which satisfied the minimum requirements; selecting device {}.\nThe error message was: {}",
+    HYP_LOG(RenderingBackend, LogLevel::ERR, "No device found which satisfied the minimum requirements; selecting device {}.\nThe error message was: {}",
         device_features.GetDeviceName(), device_requirements_result.message);
 
     return device;

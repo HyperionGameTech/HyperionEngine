@@ -254,10 +254,8 @@ private:
 class EntityToEntityManagerMap
 {
 public:
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT)
-        : m_owner_thread_mask(owner_thread_mask),
-          m_scene(scene),
-          m_flags(flags)
+    HYP_FORCE_INLINE
+    void Add(ID<Entity> entity, EntityManager *entity_manager)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -334,7 +332,7 @@ class HYP_API EntityManager
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
 
 public:
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene);
+    EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
     EntityManager(EntityManager &&) noexcept            = delete;

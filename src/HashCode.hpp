@@ -183,6 +183,19 @@ struct HashCode
         return HashCode(detail::FNV1::HashString(_begin, _end));
     }
 
+    constexpr HashCode Combine(const HashCode &other) const
+    {
+        if (hash == 0) {
+            return other;
+        }
+
+        HashCode hc;
+        hc.hash = hash;
+        hc.hash ^= other.hash + 0x9e3779b9 + (hc.hash << 6) + (hc.hash >> 2);
+        return hc;
+    }
+
+private:
     constexpr void HashCombine(const HashCode &other)
     {
         if (hash == 0) {
@@ -194,7 +207,6 @@ struct HashCode
         hash ^= other.hash + 0x9e3779b9 + (hash << 6) + (hash >> 2);
     }
 
-private:
     ValueType hash;
 };
 } // namespace hyperion

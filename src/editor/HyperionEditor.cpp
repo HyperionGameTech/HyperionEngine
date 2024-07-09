@@ -164,10 +164,10 @@ public:
         //             RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
         //             row->AddChildUIObject(element);
         //         } else {
-        //             HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+        //             HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
         //         }
         //     } else {
-        //         HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+        //         HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
         //     }
         // }
 
@@ -255,10 +255,10 @@ public:
                 RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
                 panel->AddChildUIObject(element);
             } else {
-                HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+                HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
             }
          } else {
-            HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+            HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
         }
 
         return panel;
@@ -281,10 +281,10 @@ public:
             if (element_factory) {
                 element_factory->UpdateUIObject(ui_object, deserialized_object->any_value.ToRef());
             } else {
-                HYP_LOG(Editor, LogLevel::ERROR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+                HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
             }
         } else {
-            HYP_LOG(Editor, LogLevel::ERROR, "Property value is not a deserialized object; cannot render element");
+            HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
         }
     }
 };
@@ -1251,6 +1251,16 @@ void HyperionEditor::Init()
             env_grid_node.SetEntity(env_grid_entity);
             env_grid_node.SetName("EnvGrid");
         }
+
+        GetScene()->GetRoot().AddChild(node);
+        
+        for (auto &node : node.GetChildren()) {
+            if (auto child_entity = node.GetEntity()) {
+                // Add BLASComponent
+
+                m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+            }
+        }
 #endif
 
         if (auto &zombie_asset = results["zombie"]; zombie_asset.IsOK()) {
@@ -1270,16 +1280,6 @@ void HyperionEditor::Init()
             }
 
             zombie.SetName("zombie");
-        }
-
-        GetScene()->GetRoot().AddChild(node);
-        
-        for (auto &node : node.GetChildren()) {
-            if (auto child_entity = node.GetEntity()) {
-                // Add BLASComponent
-
-                m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
-            }
         }
 
         // FileByteWriter byte_writer("Scene.hypscene");
