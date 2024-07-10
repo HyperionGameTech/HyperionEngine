@@ -9,9 +9,9 @@
 using namespace hyperion;
 
 extern "C" {
-HYP_EXPORT AssetBatch *AssetBatch_Create(AssetManager *asset_manager)
+HYP_EXPORT AssetBatch *AssetBatch_Create()
 {
-    return new AssetBatch(asset_manager);
+    return new AssetBatch(g_asset_manager);
 }
 
 HYP_EXPORT void AssetBatch_Destroy(AssetBatch *batch)

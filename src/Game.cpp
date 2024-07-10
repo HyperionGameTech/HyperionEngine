@@ -61,10 +61,10 @@ void Game::Init_Internal()
     
     Extent2D window_size;
 
-    if (m_app_context->GetCurrentWindow()) {
-        m_input_manager->SetWindow(m_app_context->GetCurrentWindow());
+    if (m_app_context->GetMainWindow()) {
+        m_input_manager->SetWindow(m_app_context->GetMainWindow());
 
-        window_size = m_app_context->GetCurrentWindow()->GetDimensions();
+        window_size = m_app_context->GetMainWindow()->GetDimensions();
     }
 
     if (m_managed_game_info.HasValue()) {

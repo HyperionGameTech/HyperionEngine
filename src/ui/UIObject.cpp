@@ -241,6 +241,7 @@ void UIObject::Update(GameCounter::TickUnit delta)
 
     Update_Internal(delta);
 
+    // update in breadth-first order
     ForEachChildUIObject([this, delta](const RC<UIObject> &child)
     {
         child->Update_Internal(delta);
@@ -439,26 +440,35 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
+    Array<RC<UIObject>> deferred_children;
+
     if (update_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([&deferred_children](const RC<UIObject> &child)
         {
-            child->UpdateSize();
+            if (child->GetSize().GetAllFlags() & UIObjectSize::FILL) {
+                deferred_children.PushBack(child);
+            } else {
+                child->UpdateSize();
+            }
 
             return UIObjectIterationResult::CONTINUE;
         }, false);
     }
 
-    // TODO: FILL will need to update the size of the children
-    // after the parent has updated its size
-
     // auto needs recalculation
-    const bool needs_update_after_children = (m_size.GetAllFlags() & (UIObjectSize::AUTO | UIObjectSize::FILL))
-        || (m_inner_size.GetAllFlags() & (UIObjectSize::AUTO | UIObjectSize::FILL))
-        || (m_max_size.GetAllFlags() &  (UIObjectSize::AUTO | UIObjectSize::FILL));
+    const bool needs_update_after_children = (m_size.GetAllFlags() & (UIObjectSize::AUTO))
+        || (m_inner_size.GetAllFlags() & (UIObjectSize::AUTO))
+        || (m_max_size.GetAllFlags() &  (UIObjectSize::AUTO));
 
     if (needs_update_after_children) {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
         SetAABB(CalculateAABB());
+    }
+
+    // FILL needs to update the size of the children
+    // after the parent has updated its size
+    for (const RC<UIObject> &child : deferred_children) {
+        child->UpdateSize();
     }
 
     UpdateMeshData();
@@ -1203,7 +1213,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
     if (is_inner) {
         parent_size = GetActualSize();
         parent_padding = GetPadding();
-    } else if (parent_ui_object) {
+    } else if (parent_ui_object != nullptr) {
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
         self_padding = GetPadding();
@@ -1233,8 +1243,16 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         actual_size.y -= parent_padding.y * 2;
     }
 
-    if (phase == UpdateSizePhase::AFTER_CHILDREN && (in_size.GetAllFlags() & UIObjectSize::FILL)) {
-        // @TODO Implement fill size - will take up remaining space in parent
+    if (in_size.GetFlagsX() & UIObjectSize::FILL) {
+        if (!is_inner) {
+            actual_size.x = MathUtil::Max(parent_size.x - m_position.x - parent_padding.x * 2, 0);
+        }
+    }
+
+    if (in_size.GetFlagsY() & UIObjectSize::FILL) {
+        if (!is_inner) {
+            actual_size.y = MathUtil::Max(parent_size.y - m_position.y - parent_padding.y * 2, 0);
+        }
     }
 
     // Calculate "auto" sizing based on children. Must be executed after children have their sizes calculated.
@@ -1375,10 +1393,11 @@ void UIObject::UpdateMaterial(bool update_children)
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
-            child->UpdateMaterial();
+            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+            child->UpdateMaterial(false);
 
             return UIObjectIterationResult::CONTINUE;
-        }, false);
+        });
     }
 
     const Scene *scene = GetScene();

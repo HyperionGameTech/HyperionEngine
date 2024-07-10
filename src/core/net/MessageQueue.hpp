@@ -41,18 +41,16 @@ public:
         return last;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint Size() const
+    HYP_FORCE_INLINE uint32 Size() const
         { return m_size.Get(MemoryOrder::ACQUIRE); }
 
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return Size() == 0; }
 
 private:
     Mutex                   m_mutex;
     Queue<json::JSONValue>  m_messages;
-    AtomicVar<uint>         m_size;
+    AtomicVar<uint32>       m_size;
 };
 
 } // namespace hyperion::net

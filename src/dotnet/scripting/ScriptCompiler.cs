@@ -233,18 +233,16 @@ namespace Hyperion
             process.StartInfo.Arguments = $"build";
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.WorkingDirectory = projectOutputDirectory;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.RedirectStandardOutput = false;
+            process.StartInfo.RedirectStandardError = false;
             process.StartInfo.CreateNoWindow = true;
-            process.OutputDataReceived += (sender, args) => Logger.Log(LogType.Info, args.Data);
-            process.ErrorDataReceived += (sender, args) => Logger.Log(LogType.Error, args.Data);
             process.Start();
 
             process.WaitForExit();
 
             if (process.ExitCode != 0)
             {
-                Logger.Log(LogType.Error, "Failed to compile script");
+                Logger.Log(LogType.Error, "Failed to compile script. Check the output for more information");
 
                 return false;
             }

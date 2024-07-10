@@ -5,6 +5,9 @@
 
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/system/App.hpp>
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -172,9 +175,13 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
 
     Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
 
-    // if (bucket == BUCKET_UI) {
-    //     extent = {2000, 2000};//tmp
-    // }
+    if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
+        if (window->IsHighDPI() && bucket != BUCKET_UI) {
+            // if the window is high DPI like retina on mac, we need to scale it down
+            // to avoid rendering at a resolution that will crush performance like a soda can
+            extent = extent / 2;
+        }
+    }
 
     framebuffer = MakeRenderObject<Framebuffer>(
         extent,

@@ -6,7 +6,7 @@ using Hyperion;
 
 public class TestUIScript : UIEventHandler
 {
-    public override void Init(Entity entity)
+    public override async void Init(Entity entity)
     {
         base.Init(entity);
 
@@ -34,6 +34,14 @@ public class TestUIScript : UIEventHandler
 
         var meshComponent = Scene.EntityManager.GetComponent<MeshComponent>(tmpEntity);
         var mesh = meshComponent.Mesh;
+
+        
+        var assetBatch = new AssetBatch();
+        assetBatch.Add("test_model", "models/house.obj");
+
+        var assetMap = await assetBatch.Load();
+
+        Scene.Root.AddChild(assetMap["test_model"].GetNode());
     }
 
     public override void Destroy()
@@ -106,7 +114,7 @@ public class TestGame : Game
 {
     public override async void Init()
     {
-        var assetBatch = new AssetBatch(AssetManager);
+        var assetBatch = new AssetBatch();
         assetBatch.Add("test_model", "models/house.obj");
 
         var assetMap = await assetBatch.Load();

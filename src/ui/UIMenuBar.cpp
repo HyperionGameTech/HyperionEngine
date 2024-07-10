@@ -116,7 +116,7 @@ void UIMenuItem::UpdateDropDownMenu()
         }
 
         drop_down_menu_item = GetStage()->CreateUIObject<UIButton>(drop_down_menu_item_name, offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
-        drop_down_menu_item->SetAcceptsFocus(false);
+        // drop_down_menu_item->SetAcceptsFocus(false);
         drop_down_menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
         drop_down_menu_item->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
         drop_down_menu_item->SetBorderFlags(UIObjectBorderFlags::NONE);

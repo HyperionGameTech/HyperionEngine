@@ -120,11 +120,11 @@ void CameraController::SetMouseLocked(bool mouse_locked)
         return;
     }
 
-    if (!g_engine->GetAppContext()->GetCurrentWindow()) {
+    if (!g_engine->GetAppContext()->GetMainWindow()) {
         return;
     }
 
-    g_engine->GetAppContext()->GetCurrentWindow()->SetMouseLocked(mouse_locked);
+    g_engine->GetAppContext()->GetMainWindow()->SetMouseLocked(mouse_locked);
 }
 
 #pragma endregion CameraController

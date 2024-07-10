@@ -72,6 +72,9 @@ public:
     virtual void SetMouseLocked(bool locked) = 0;
     virtual bool HasMouseFocus() const = 0;
 
+    virtual bool IsHighDPI() const
+        { return false; }
+
 #ifdef HYP_VULKAN
     virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) = 0;
 #endif
@@ -93,6 +96,8 @@ public:
 
     virtual void SetMouseLocked(bool locked) override;
     virtual bool HasMouseFocus() const override;
+
+    virtual bool IsHighDPI() const override;
     
     void Initialize(WindowOptions);
 
@@ -121,10 +126,10 @@ public:
     const CommandLineArguments &GetArguments() const
         { return m_arguments; }
 
-    ApplicationWindow *GetCurrentWindow() const
-        { return m_current_window.Get(); }
+    ApplicationWindow *GetMainWindow() const
+        { return m_main_window.Get(); }
 
-    void SetCurrentWindow(UniquePtr<ApplicationWindow> &&window);
+    void SetMainWindow(UniquePtr<ApplicationWindow> &&window);
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent &event) = 0;
@@ -136,7 +141,7 @@ public:
     Delegate<void, ApplicationWindow *> OnCurrentWindowChanged;
     
 protected:
-    UniquePtr<ApplicationWindow>    m_current_window;
+    UniquePtr<ApplicationWindow>    m_main_window;
     ANSIString                      m_name;
     CommandLineArguments            m_arguments;
 };

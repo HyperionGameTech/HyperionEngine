@@ -48,28 +48,22 @@ struct AssetLoaderDefinition
     FlatSet<String>                     extensions;
     UniquePtr<AssetLoaderBase>          loader;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HandlesResultType(TypeID type_id) const
+    HYP_FORCE_INLINE bool HandlesResultType(TypeID type_id) const
     {
         return result_type_id == type_id;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsWildcardExtensionLoader() const
-    {
-        return extensions.Empty() || extensions.Contains("*");
-    }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HandlesExtension(const String &filepath) const
+    HYP_FORCE_INLINE bool HandlesExtension(const String &filepath) const
     {
         return extensions.FindIf([&filepath](const String &extension)
         {
             return filepath.EndsWith(extension);
         }) != extensions.End();
+    }
+
+    HYP_FORCE_INLINE bool IsWildcardExtensionLoader() const
+    {
+        return extensions.Empty() || extensions.Contains("*");
     }
 };
 
@@ -160,10 +154,7 @@ public:
 
     HYP_API RC<AssetBatch> CreateBatch();
 
-    AssetCache *GetAssetCache()
-        { return m_asset_cache.Get(); }
-
-    const AssetCache *GetAssetCache() const
+    HYP_FORCE_INLINE AssetCache *GetAssetCache() const
         { return m_asset_cache.Get(); }
 
     HYP_API void Update(GameCounter::TickUnit delta);

@@ -20,6 +20,11 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
 
     OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
     {
+        if (GetActualInnerSize().x <= GetActualSize().x && GetActualInnerSize().y <= GetActualSize().y) {
+            // allow parent to scroll
+            return UIEventHandlerResult::OK;
+        }
+
         SetScrollOffset(GetScrollOffset() - event_data.wheel * 5);
 
         return UIEventHandlerResult::STOP_BUBBLING;

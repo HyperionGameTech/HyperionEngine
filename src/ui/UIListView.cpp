@@ -208,13 +208,6 @@ void UIListView::AddChildUIObject(UIObject *ui_object)
 {
     HYP_SCOPE;
 
-    // RC<UIListViewItem> list_view_item = GetStage()->CreateUIObject<UIListViewItem>(Name::Unique("ListViewItem"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    // list_view_item->AddChildUIObject(ui_object);
-
-    // m_list_view_items.PushBack(list_view_item);
-
-    // UIObject::AddChildUIObject(std::move(list_view_item));
-
     if (!ui_object) {
         return;
     }
@@ -329,8 +322,6 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         // // add the list view item to the list view
         AddChildUIObject(list_view_item);
-
-        // AddChildUIObject(data_source->GetElementFactory()->CreateUIObject(GetStage(), element->GetValue()));
     });
 
     m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
@@ -391,14 +382,14 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
             //     element->GetValue()
             // ));
 
-            // if (const RC<UIObject> &ui_object = (*it)->GetChildUIObject(0)) {
+            if (const RC<UIObject> &ui_object = (*it)->GetChildUIObject(0)) {
                 data_source->GetElementFactory()->UpdateUIObject(
-                    *it,//ui_object.Get(),
+                    ui_object.Get(),
                     element->GetValue()
                 );
-            // } else {
-            //     HYP_LOG(UI, LogLevel::ERROR, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
-            // }
+            } else {
+                HYP_LOG(UI, LogLevel::ERROR, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
+            }
         }
     });
 }

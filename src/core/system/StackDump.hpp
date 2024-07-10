@@ -21,10 +21,10 @@ public:
     StackDump &operator=(StackDump &&other) noexcept    = default;
     ~StackDump()                                        = default;
 
-    const Array<String> &GetTrace() const
+    HYP_FORCE_INLINE const Array<String> &GetTrace() const
         { return m_trace; }
 
-    String ToString() const
+    HYP_FORCE_INLINE String ToString() const
         { return String::Join(m_trace, "\n"); }
 
 private:

@@ -28,8 +28,7 @@ public:
     /*! \brief Gets the texture of the image.
      * 
      * \return A handle to the texture of the image. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Handle<Texture> &GetTexture() const
+    HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
     /*! \brief Sets the texture of the image.

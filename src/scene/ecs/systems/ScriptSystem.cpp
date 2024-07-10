@@ -89,22 +89,30 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
         if (dotnet::Class *class_ptr = assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             script_component.object = class_ptr->NewObject();
 
-            if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
-                HYP_NAMED_SCOPE("Call BeforeInit() on script component");
+            if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
+                if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
+                    HYP_NAMED_SCOPE("Call BeforeInit() on script component");
 
-                script_component.object->InvokeMethod<void, ManagedHandle>(
-                    before_init_method_ptr,
-                    CreateManagedHandleFromID(GetEntityManager().GetScene()->GetID())
-                );
+                    script_component.object->InvokeMethod<void, ManagedHandle>(
+                        before_init_method_ptr,
+                        CreateManagedHandleFromID(GetEntityManager().GetScene()->GetID())
+                    );
+
+                    script_component.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+                }
             }
 
-            if (auto *init_method_ptr = class_ptr->GetMethod("Init")) {
-                HYP_NAMED_SCOPE("Call Init() on script component");
+            if (!(script_component.flags & ScriptComponentFlags::INIT_CALLED)) {
+                if (auto *init_method_ptr = class_ptr->GetMethod("Init")) {
+                    HYP_NAMED_SCOPE("Call Init() on script component");
 
-                script_component.object->InvokeMethod<void, ManagedEntity>(
-                    init_method_ptr,
-                    ManagedEntity { entity.Value() }
-                );
+                    script_component.object->InvokeMethod<void, ManagedEntity>(
+                        init_method_ptr,
+                        ManagedEntity { entity.Value() }
+                    );
+
+                    script_component.flags |= ScriptComponentFlags::INIT_CALLED;
+                }
             }
         }
 

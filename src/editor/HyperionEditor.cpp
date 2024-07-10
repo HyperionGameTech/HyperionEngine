@@ -206,7 +206,7 @@ public:
             node_name = node_rc->GetName();
         }
 
-        RC<UIText> text = stage->CreateUIObject<UIText>(NAME("NodeNameText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
         text->SetText(node_name);
         return text;
     }
@@ -607,13 +607,6 @@ void HyperionEditorImpl::CreateMainPanel()
     // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
     game_tab_content_button->SetText("Hello");
 
-    game_tab_content_button->GetScene()->GetEntityManager()->AddComponent(game_tab_content_button->GetEntity(), ScriptComponent {
-        {
-            .assembly_path  = "GameName.dll",
-            .class_name     = "FizzBuzzTest"
-        }
-    });
-
     AssertThrow(game_tab_content_button->GetScene()->GetEntityManager()->HasEntity(game_tab_content_button->GetEntity()));
 
     game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
@@ -793,7 +786,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     detail_view_header->AddChildUIObject(detail_view_header_text);
     detail_view->AddChildUIObject(detail_view_header);
 
-    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Detail_View_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Detail_View_ListView"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::FILL }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     detail_view->AddChildUIObject(list_view);
 
@@ -1050,7 +1043,7 @@ void HyperionEditor::Init()
     
     Extent2D window_size;
 
-    if (ApplicationWindow *current_window = GetAppContext()->GetCurrentWindow()) {
+    if (ApplicationWindow *current_window = GetAppContext()->GetMainWindow()) {
         window_size = current_window->GetDimensions();
     } else {
         window_size = Extent2D { 1280, 720 };
@@ -1242,13 +1235,25 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
+    // batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-    batch->Add("house", "models/house.obj");
+    // batch->Add("house", "models/house.obj");
+
+    HYP_LOG(Editor, LogLevel::DEBUG, "Loading assets, scene ID = {}", GetScene()->GetID().Value());
+
+    ID<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
+    GetScene()->GetRoot()->SetEntity(root_entity);
+
+    GetScene()->GetEntityManager()->AddComponent(root_entity, ScriptComponent {
+        {
+            .assembly_path  = "GameName.dll",
+            .class_name     = "FizzBuzzTest"
+        }
+    });
 
     batch->OnComplete.Bind([this](AssetMap &results)
     {
-#if 1
+#if 0
         NodeProxy node = results["test_model"].ExtractAs<Node>();
         GetScene()->GetRoot()->AddChild(node);
 

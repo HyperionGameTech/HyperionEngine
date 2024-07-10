@@ -5,6 +5,14 @@ namespace Hyperion
 {
     public class AssetManager
     {
+        public static AssetManager Instance
+        {
+            get
+            {
+                return new AssetManager(AssetManager_GetInstance());
+            }
+        }
+
         private IntPtr ptr;
 
         public AssetManager(IntPtr ptr)
@@ -31,6 +39,9 @@ namespace Hyperion
                 AssetManager_SetBasePath(ptr, value);
             }
         }
+
+        [DllImport("hyperion", EntryPoint = "AssetManager_GetInstance")]
+        private static extern IntPtr AssetManager_GetInstance();
 
         [DllImport("hyperion", EntryPoint = "AssetManager_GetBasePath")]
         [return: MarshalAs(UnmanagedType.LPStr)]

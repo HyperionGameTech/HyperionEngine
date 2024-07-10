@@ -9,9 +9,11 @@ namespace Hyperion
     {
         private IntPtr ptr;
 
-        public AssetBatch(AssetManager assetManager)
+        public AssetBatch()
         {
-            this.ptr = AssetBatch_Create(assetManager.Handle);
+            Console.WriteLine("Creating AssetBatch");
+            this.ptr = AssetBatch_Create();
+            Console.WriteLine("Created AssetBatch");
         }
 
         ~AssetBatch()
@@ -50,7 +52,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "AssetBatch_Create")]
-        private static extern IntPtr AssetBatch_Create(IntPtr assetManagerPtr);
+        private static extern IntPtr AssetBatch_Create();
 
         [DllImport("hyperion", EntryPoint = "AssetBatch_Destroy")]
         private static extern void AssetBatch_Destroy(IntPtr assetBatchPtr);

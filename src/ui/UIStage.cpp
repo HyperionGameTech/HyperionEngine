@@ -99,7 +99,7 @@ void UIStage::Init()
             }
         };
 
-        UpdateSurfaceSize(app_context->GetCurrentWindow());
+        UpdateSurfaceSize(app_context->GetMainWindow());
         m_on_current_window_changed_handler = app_context->OnCurrentWindowChanged.Bind(UpdateSurfaceSize);
     }
 

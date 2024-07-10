@@ -84,7 +84,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
 
     Vec2u resolution = { 1280, 720 };
 
-    EnumFlags<WindowFlags> window_flags = WindowFlags::NONE;//WindowFlags::HIGH_DPI;
+    EnumFlags<WindowFlags> window_flags = WindowFlags::HIGH_DPI;
 
     if (arguments["Headless"].Is<bool>()) {
         if (arguments["Headless"].Get<bool>()) {
@@ -101,7 +101,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
     }
 
     if (!(window_flags & WindowFlags::HEADLESS)) {
-        app_context->SetCurrentWindow(app_context->CreateSystemWindow({
+        app_context->SetMainWindow(app_context->CreateSystemWindow({
             "Hyperion Engine",
             resolution,
             window_flags

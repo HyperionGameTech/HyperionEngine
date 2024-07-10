@@ -16,9 +16,6 @@
 #include <cstdlib>
 
 namespace hyperion {
-
-class UIObject; // TEMP
-
 namespace memory {
 
 template <class T, class CountType = std::atomic<uint>>

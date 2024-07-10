@@ -10,8 +10,6 @@
 #include <Types.hpp>
 
 #include <algorithm>
-#include <vector>
-#include <utility>
 
 namespace hyperion {
 

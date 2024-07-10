@@ -47,8 +47,8 @@ public:
     using EventData = Variant<FilePath, void *>;
 
     SystemEvent() = default;
-    SystemEvent(const SystemEvent &other) = delete;
-    SystemEvent &operator=(const SystemEvent &other) = delete;
+    SystemEvent(const SystemEvent &other)               = delete;
+    SystemEvent &operator=(const SystemEvent &other)    = delete;
 
     SystemEvent(SystemEvent &&other) noexcept
         : sdl_event(other.sdl_event),

@@ -24,8 +24,7 @@ public:
      * 
      * \return The text of the button.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const String &GetText() const
+    HYP_FORCE_INLINE const String &GetText() const
         { return m_text; }
 
     /*! \brief Sets the text of the button.
@@ -38,8 +37,7 @@ public:
      * 
      * \return The text element of the button.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const RC<UIText> &GetTextElement() const
+    HYP_FORCE_INLINE const RC<UIText> &GetTextElement() const
         { return m_text_element; }
 
     virtual void Init() override;

@@ -311,7 +311,7 @@ NodeProxy Node::AddChild()
 
 NodeProxy Node::AddChild(const NodeProxy &node)
 {
-    if (!node) {
+    if (!node.IsValid()) {
         // could not be added... return empty.
         return NodeProxy::empty;
     }

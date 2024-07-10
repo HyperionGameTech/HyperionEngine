@@ -13,11 +13,17 @@
 namespace hyperion {
 namespace sys {
 
+#pragma region ApplicationWindow
+
 ApplicationWindow::ApplicationWindow(ANSIString title, Vec2u size)
     : m_title(std::move(title)),
       m_size(size)
 {
 }
+
+#pragma endregion ApplicationWindow
+
+#pragma region SDLApplicationWindow
 
 SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2u size)
     : ApplicationWindow(std::move(title), size),
@@ -110,6 +116,27 @@ bool SDLApplicationWindow::HasMouseFocus() const
     return focus_window == window;
 }
 
+bool SDLApplicationWindow::IsHighDPI() const
+{
+    const int display_index = SDL_GetWindowDisplayIndex(window);
+
+    if (display_index < 0) {
+        return false;
+    }
+
+    float ddpi, hdpi, vdpi;
+
+    if (SDL_GetDisplayDPI(display_index, &ddpi, &hdpi, &vdpi) == 0) {
+        return hdpi > 96.0f;
+    }
+
+    return false;
+}
+
+#pragma endregion SDLApplicationWindow
+
+#pragma region SDLAppContext
+
 SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments &arguments)
     : AppContext(std::move(name), arguments)
 {
@@ -154,7 +181,7 @@ int SDLAppContext::PollEvent(SystemEvent &event)
 bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 {
     uint32 num_extensions = 0;
-    SDL_Window *window = static_cast<SDLApplicationWindow *>(m_current_window.Get())->GetInternalWindow();
+    SDL_Window *window = static_cast<SDLApplicationWindow *>(m_main_window.Get())->GetInternalWindow();
 
     if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, nullptr)) {
         return false;
@@ -170,6 +197,10 @@ bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 }
 #endif
 
+#pragma endregion SDLAppContext
+
+#pragma region AppContext
+
 AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
     : m_arguments(arguments)
 {
@@ -182,12 +213,14 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
 
 AppContext::~AppContext() = default;
 
-void AppContext::SetCurrentWindow(UniquePtr<ApplicationWindow> &&window)
+void AppContext::SetMainWindow(UniquePtr<ApplicationWindow> &&window)
 {
-    m_current_window = std::move(window);
+    m_main_window = std::move(window);
 
-    OnCurrentWindowChanged.Broadcast(m_current_window.Get());
+    OnCurrentWindowChanged.Broadcast(m_main_window.Get());
 }
+
+#pragma endregion AppContext
 
 } // namespace sys
 } // namespace hyperion

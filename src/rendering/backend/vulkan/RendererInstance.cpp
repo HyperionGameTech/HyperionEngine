@@ -326,8 +326,8 @@ Result Instance<Platform::VULKAN>::Initialize(const AppContext &app_context, boo
     );
 
     /* Create our renderable surface from SDL */
-    AssertThrow(app_context.GetCurrentWindow() != nullptr);
-    m_surface = app_context.GetCurrentWindow()->CreateVkSurface(this);
+    AssertThrow(app_context.GetMainWindow() != nullptr);
+    m_surface = app_context.GetMainWindow()->CreateVkSurface(this);
 
     /* Find and set up an adequate GPU for rendering and presentation */
     HYPERION_BUBBLE_ERRORS(InitializeDevice());
