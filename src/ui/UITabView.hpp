@@ -27,8 +27,7 @@ public:
      * 
      * \return The title of the tab.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const String &GetTitle() const
+    HYP_FORCE_INLINE const String &GetTitle() const
         { return m_title; }
 
     /*! \brief Set the title of the tab.
@@ -37,16 +36,19 @@ public:
      */
     void SetTitle(const String &title);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RC<UIPanel> GetContents() const
+    HYP_FORCE_INLINE RC<UIPanel> GetContents() const
         { return m_contents; }
+
+    virtual bool IsContainer() const override
+        { return false; }
 
     virtual void Init() override;
 
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
-    virtual Handle<Material> GetMaterial() const override;
+    virtual MaterialAttributes GetMaterialAttributes() const override;
+    virtual Material::ParameterTable GetMaterialParameters() const override;
 
 private:
     String      m_title;
@@ -76,8 +78,7 @@ public:
      * 
      * \return The index of the selected tab.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint GetSelectedTabIndex() const
+    HYP_FORCE_INLINE uint GetSelectedTabIndex() const
         { return m_selected_tab_index; }
 
     /*! \brief Sets the selected tab by index.
@@ -86,8 +87,7 @@ public:
      */
     void SetSelectedTabIndex(uint index);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<RC<UITab>> &GetTabs() const
+    HYP_FORCE_INLINE const Array<RC<UITab>> &GetTabs() const
         { return m_tabs; }
 
     /*! \brief Add a tab to the tab view.
@@ -103,7 +103,6 @@ public:
      * \param name The name of the tab.
      * \return A reference counted pointer to tab, or nullptr if the tab does not exist.
      */
-    HYP_NODISCARD
     RC<UITab> GetTab(Name name) const;
 
     /*! \brief Get the tab index by name. Returns ~0u if the tab does not exist.
@@ -111,7 +110,6 @@ public:
      * \param name The name of the tab.
      * \return The index of the tab.
      */
-    HYP_NODISCARD
     uint GetTabIndex(Name name) const;
 
     /*! \brief Remove a tab by name.

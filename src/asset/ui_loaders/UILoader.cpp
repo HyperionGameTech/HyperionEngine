@@ -13,6 +13,7 @@
 #include <ui/UIImage.hpp>
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIListView.hpp>
+#include <ui/UITextbox.hpp>
 
 #include <util/xml/SAXParser.hpp>
 
@@ -52,7 +53,8 @@ static const FlatMap<String, std::add_pointer_t<RC<UIObject>(UIStage *, Name, Ve
     UI_OBJECT_CREATE_FUNCTION(DockableContainer),
     UI_OBJECT_CREATE_FUNCTION(DockableItem),
     UI_OBJECT_CREATE_FUNCTION(ListView),
-    UI_OBJECT_CREATE_FUNCTION(ListViewItem)
+    UI_OBJECT_CREATE_FUNCTION(ListViewItem),
+    UI_OBJECT_CREATE_FUNCTION(Textbox)
 };
 
 #undef UI_OBJECT_CREATE_FUNCTION

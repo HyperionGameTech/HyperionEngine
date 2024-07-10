@@ -36,6 +36,7 @@
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIListView.hpp>
 #include <ui/UITextbox.hpp>
+#include <ui/UIDataSource.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -75,8 +76,9 @@ public:
             RC<UIGridColumn> col = row->AddColumn();
 
             RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            panel->SetPadding({ 5, 2 });
             
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.x));
             panel->AddChildUIObject(textbox); 
 
@@ -87,8 +89,9 @@ public:
             RC<UIGridColumn> col = row->AddColumn();
 
             RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            panel->SetPadding({ 5, 2 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.y));
             panel->AddChildUIObject(textbox);
 
@@ -99,8 +102,9 @@ public:
             RC<UIGridColumn> col = row->AddColumn();
 
             RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            panel->SetPadding({ 5, 2 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.z));
             panel->AddChildUIObject(textbox);
 
@@ -126,18 +130,17 @@ public:
     {
         const HypClass *hyp_class = GetClass<Transform>();
 
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 120, UIObjectSize::PIXEL }));
-        panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         
-        RC<UITextbox> translation_textbox = stage->CreateUIObject<UITextbox>(NAME("TranslationTextbox"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        RC<UITextbox> translation_textbox = stage->CreateUIObject<UITextbox>(NAME("TranslationTextbox"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         translation_textbox->SetText(HYP_FORMAT("Translation: {}", value.GetTranslation()));
         panel->AddChildUIObject(translation_textbox);
 
-        RC<UITextbox> rotation_textbox = stage->CreateUIObject<UITextbox>(NAME("RotationTextbox"), Vec2i { 0, 35 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        RC<UITextbox> rotation_textbox = stage->CreateUIObject<UITextbox>(NAME("RotationTextbox"), Vec2i { 0, 20 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         rotation_textbox->SetText(HYP_FORMAT("Rotation: {}", value.GetRotation()));
         panel->AddChildUIObject(rotation_textbox);
 
-        RC<UITextbox> scale_textbox = stage->CreateUIObject<UITextbox>(NAME("ScaleTextbox"), Vec2i { 0, 70 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        RC<UITextbox> scale_textbox = stage->CreateUIObject<UITextbox>(NAME("ScaleTextbox"), Vec2i { 0, 40 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         scale_textbox->SetText(HYP_FORMAT("Scale: {}", value.GetScale()));
         panel->AddChildUIObject(scale_textbox);
 
@@ -203,7 +206,7 @@ public:
             node_name = node_rc->GetName();
         }
 
-        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+        RC<UIText> text = stage->CreateUIObject<UIText>(NAME("NodeNameText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
         text->SetText(node_name);
         return text;
     }
@@ -241,8 +244,17 @@ public:
         }
 
         // Create panel
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique("PropertyPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("PropertyPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+
+        {
+            RC<UIText> header_text = stage->CreateUIObject<UIText>(NAME("Header"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+            header_text->SetText(*value.property->name);
+            header_text->SetTextColor(Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+            header_text->SetBackgroundColor(Vec4f(0.1f, 0.1f, 0.1f, 1.0f));
+
+            panel->AddChildUIObject(header_text);
+        }
 
         fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
 
@@ -252,8 +264,12 @@ public:
             IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
 
             if (element_factory) {
+                // RC<UIPanel> sub_panel = stage->CreateUIObject<UIPanel>(NAME("PropertySubPanel"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
                 RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
                 panel->AddChildUIObject(element);
+
+                // panel->AddChildUIObject(sub_panel);
             } else {
                 HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
             }
@@ -633,6 +649,14 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     UniquePtr<UIDataSource<Weak<Node>>> temp_data_source(new UIDataSource<Weak<Node>>());
     RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+    // for (uint32 i = 0; i < 100; i++) {
+    //     RC<UIText> text = GetUIStage()->CreateUIObject<UIText>(NAME("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+    //     text->SetText(HYP_FORMAT("Node {}", i));
+    //     list_view->AddChildUIObject(text);
+    // }
+    
+#if 1
     list_view->SetDataSource(std::move(temp_data_source));
     
     list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem *list_view_item)
@@ -749,6 +773,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
             });
         }
     }).Detach();
+#endif
 
     scene_outline->AddChildUIObject(list_view);
 
@@ -780,7 +805,6 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
             return;
         }
 
-        list_view->RemoveAllChildUIObjects();
         list_view->SetDataSource(nullptr);
 
         // stop watching using currently bound function
@@ -811,7 +835,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
             data_source->Push(&node_property_ref);
         }
 
-        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak](Node *node, Name name, ConstAnyRef value)
         {
             if (node != m_focused_node.Get()) {
                 return;
@@ -832,6 +856,8 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
                 {
                     return item->GetValue<EditorNodePropertyRef>().property->name == name;
                 });
+
+                AssertThrow(data_source_element != nullptr);
 
                 if (data_source_element != nullptr) {
                     // trigger update to rebuild UI
@@ -1216,13 +1242,13 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    // batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->Add("house", "models/house.obj");
 
     batch->OnComplete.Bind([this](AssetMap &results)
     {
-#if 0
+#if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
         GetScene()->GetRoot()->AddChild(node);
 

@@ -38,8 +38,7 @@ public:
      * 
      * \return The text of the menu item.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const String &GetText() const
+    HYP_FORCE_INLINE const String &GetText() const
         { return m_text; }
 
     /*! \brief Sets the text of the menu item.
@@ -58,8 +57,7 @@ public:
      * 
      * \return The array of DropDownMenuItems.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<DropDownMenuItem> &GetDropDownMenuItems() const
+    HYP_FORCE_INLINE const Array<DropDownMenuItem> &GetDropDownMenuItems() const
         { return m_drop_down_menu_items; }
 
     /*! \brief Sets the list of DropDownMenuItems.
@@ -73,7 +71,6 @@ public:
      * \param name The name of the dropdown menu item.
      * \return The dropdown menu item.
      */
-    HYP_NODISCARD 
     DropDownMenuItem *GetDropDownMenuItem(Name name);
 
     /*! \brief Get a dropdown menu item by name.
@@ -81,25 +78,22 @@ public:
      * \param name The name of the dropdown menu item.
      * \return The dropdown menu item.
      */
-    HYP_NODISCARD 
     const DropDownMenuItem *GetDropDownMenuItem(Name name) const;
 
     /*! \brief Gets the drop down menu element.
      * 
      * \return The drop down menu element.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const RC<UIPanel> &GetDropDownMenuElement() const
+    HYP_FORCE_INLINE const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
-    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return false; }
 
     virtual void Init() override;
 
 protected:
-    virtual Handle<Material> GetMaterial() const override;
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
 private:
     void UpdateDropDownMenu();
@@ -131,22 +125,20 @@ public:
      * 
      * \return The index of the selected menu item.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint GetSelectedMenuItemIndex() const
+    HYP_FORCE_INLINE uint32 GetSelectedMenuItemIndex() const
         { return m_selected_menu_item_index; }
 
     /*! \brief Sets the selected menu item index. Set to ~0u to deselect all menu items.
      * 
      * \param index The index of the menu item to select.
      */
-    void SetSelectedMenuItemIndex(uint index);
+    void SetSelectedMenuItemIndex(uint32 index);
 
     /*! \brief Gets the menu items in the menu bar.
      * 
      * \return The menu items in the menu bar.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<RC<UIMenuItem>> &GetMenuItems() const
+    HYP_FORCE_INLINE const Array<RC<UIMenuItem>> &GetMenuItems() const
         { return m_menu_items; }
 
     /*! \brief Adds a menu item to the menu bar. Returns the menu item that was added.
@@ -162,7 +154,6 @@ public:
      * \param name The name of the menu item to get.
      * \return The menu item, or nullptr if the menu item was not found.
      */
-    HYP_NODISCARD 
     RC<UIMenuItem> GetMenuItem(Name name) const;
 
     /*! \brief Gets the index of a menu item by name. Returns ~0u if the menu item was not found.
@@ -170,8 +161,7 @@ public:
      * \param name The name of the menu item to get the index of.
      * \return The index of the menu item, or ~0u if the menu item was not found.
      */
-    HYP_NODISCARD 
-    uint GetMenuItemIndex(Name name) const;
+    uint32 GetMenuItemIndex(Name name) const;
 
     /*! \brief Removes a menu item by name.
      * 
@@ -190,7 +180,7 @@ private:
 
     RC<UIPanel>             m_container;
 
-    uint                    m_selected_menu_item_index;
+    uint32                  m_selected_menu_item_index;
 };
 
 #pragma endregion UIMenuBar

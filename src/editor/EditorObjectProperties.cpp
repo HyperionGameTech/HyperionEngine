@@ -31,7 +31,7 @@ const HypClass *EditorObjectPropertiesBase::GetClass() const
 
 RC<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIStage *stage) const
 {
-    RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     grid->SetNumColumns(2);
 
     RC<UIGridRow> row = grid->AddRow();
@@ -41,9 +41,9 @@ RC<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIStage *stage) const
     {
         RC<UIGridColumn> col = row->AddColumn();
 
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         
-        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
         textbox->SetText("0.00000"); // temp, just for testing
         panel->AddChildUIObject(textbox); 
 
@@ -53,9 +53,9 @@ RC<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIStage *stage) const
     {
         RC<UIGridColumn> col = row->AddColumn();
 
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
+        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 35, UIObjectSize::PIXEL }));
         textbox->SetText("0.00000"); // temp, just for 
         panel->AddChildUIObject(textbox);
 

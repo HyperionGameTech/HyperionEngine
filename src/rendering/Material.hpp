@@ -344,6 +344,10 @@ public:
      *  \param value The value of the parameter to be set */
     void SetParameter(MaterialKey key, const Parameter &value);
 
+    /*! \brief Set all parameters on this Material to the given ParameterTable.
+     *  \param parameters The ParameterTable to set. */
+    void SetParameters(const ParameterTable &parameters);
+
     /*! \brief Set all parameters back to their default values. */
     void ResetParameters();
 
@@ -367,6 +371,12 @@ public:
      *  \param index The index to set the texture in
      *  \param texture The Texture handle to set. */
     void SetTextureAtIndex(uint index, const Handle<Texture> &texture);
+
+    /*! \brief Sets all textures on this Material to the given TextureSet.
+     *  If the Material has already been initialized, the Textures are initialized.
+     *  Otherwise, they will be initialized when the Material is initialized.
+     *  \param textures The TextureSet to set. */
+    void SetTextures(const TextureSet &textures);
 
     TextureSet &GetTextures()
         { return m_textures; }

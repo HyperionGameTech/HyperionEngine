@@ -133,12 +133,19 @@ constexpr WeakName operator "" _nw(const char *, SizeType);
 #define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
 
 #define NAME(str) HYP_NAME2(str)
+
 #else
 #define HYP_NAME(name)          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
 #define HYP_NAME_UNSAFE(name)   HYP_NAME(name)
 #define HYP_WEAK_NAME(name)     HYP_NAME(name)
 
 #define NAME(str) HYP_NAME(str)
+#endif
+
+#ifdef HYP_MSVC
+    #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt, __VA_ARGS__).Data())
+#else
+    #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt __VA_OPT__(,) __VA_ARGS__).Data())
 #endif
 
 } // namespace hyperion

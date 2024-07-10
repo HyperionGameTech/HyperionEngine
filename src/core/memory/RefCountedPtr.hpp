@@ -67,12 +67,10 @@ struct RefCountData
     }
 #endif
 
-    HYP_FORCE_INLINE
-    bool HasValue() const
+    HYP_FORCE_INLINE bool HasValue() const
         { return value != nullptr; }
     
-    HYP_FORCE_INLINE
-    void IncRefCount_Strong()
+    HYP_FORCE_INLINE void IncRefCount_Strong()
     {
         if constexpr (std::is_integral_v<CountType>) {
             ++strong_count;
@@ -81,8 +79,7 @@ struct RefCountData
         }
     }
     
-    HYP_FORCE_INLINE
-    void IncRefCount_Weak()
+    HYP_FORCE_INLINE void IncRefCount_Weak()
     {
         if constexpr (std::is_integral_v<CountType>) {
             ++weak_count;
@@ -91,8 +88,25 @@ struct RefCountData
         }
     }
 
-    HYP_FORCE_INLINE
-    uint UseCount_Strong() const
+    HYP_FORCE_INLINE uint DecRefCount_Strong()
+    {
+        if constexpr (std::is_integral_v<CountType>) {
+            return --strong_count;
+        } else {
+            return strong_count.fetch_sub(1, std::memory_order_acq_rel) - 1;
+        }
+    }
+
+    HYP_FORCE_INLINE uint DecRefCount_Weak()
+    {
+        if constexpr (std::is_integral_v<CountType>) {
+            return --weak_count;
+        } else {
+            return weak_count.fetch_sub(1, std::memory_order_acq_rel) - 1;
+        }
+    }
+
+    HYP_FORCE_INLINE uint UseCount_Strong() const
     {
         if constexpr (std::is_integral_v<CountType>) {
             return strong_count;
@@ -101,8 +115,7 @@ struct RefCountData
         }
     }
 
-    HYP_FORCE_INLINE
-    uint UseCount_Weak() const
+    HYP_FORCE_INLINE uint UseCount_Weak() const
     {
         if constexpr (std::is_integral_v<CountType>) {
             return weak_count;
@@ -145,14 +158,6 @@ struct RefCountData
         static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThis<T, CountType> to use this method");
 
         value = ptr;
-        /*type_id = TypeID::ForType<T>();
-        dtor = [](void *ptr)
-        {
-            // Deletes control block
-            static_cast<T *>(ptr)->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
-
-            Memory::Delete<T>(ptr);
-        };*/
 
         // Weak count will be incremented - set to 1 on construction
         ptr->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(this, true);
@@ -361,28 +366,17 @@ protected:
         m_ref->IncRefCount_Strong();
     }
     
-    HYP_FORCE_INLINE
     void DropRefCount()
     {
         if (m_ref->HasValue()) {
 #ifdef HYP_DEBUG_MODE
             AssertThrow(m_ref != nullptr);
 #endif
-            if constexpr (std::is_integral_v<CountType>) {
-                if (--m_ref->strong_count == 0u) {
-                    m_ref->Destruct();
+            if (m_ref->DecRefCount_Strong() == 0u) {
+                m_ref->Destruct();
 
-                    if (m_ref->weak_count == 0u) {
-                        delete m_ref;
-                    }
-                }
-            } else {
-                if (m_ref->strong_count.fetch_sub(1) == 1) {
-                    m_ref->Destruct();
-
-                    if (m_ref->weak_count.load() == 0u) {
-                        delete m_ref;
-                    }
+                if (m_ref->UseCount_Weak() == 0u) {
+                    delete m_ref;
                 }
             }
 
@@ -449,6 +443,10 @@ public:
 
     WeakRefCountedPtrBase &operator=(WeakRefCountedPtrBase &&other) noexcept
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         DropRefCount();
 
         m_ref = other.m_ref;
@@ -545,18 +543,8 @@ protected:
     void DropRefCount()
     {
         if (m_ref->HasValue()) {
-            if constexpr (std::is_integral_v<CountType>) {
-                if (--m_ref->weak_count == 0u) {
-                    if (m_ref->strong_count == 0u) {
-                        delete m_ref;
-                    }
-                }
-            } else {
-                if (m_ref->weak_count.fetch_sub(1) == 1) {
-                    if (m_ref->strong_count.load() == 0) {
-                        delete m_ref;
-                    }
-                }
+            if (m_ref->DecRefCount_Weak() == 0u && m_ref->UseCount_Strong() == 0u) {
+                delete m_ref;
             }
 
             m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);

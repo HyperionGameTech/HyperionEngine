@@ -2,12 +2,19 @@
 
 #include <ui/UIGrid.hpp>
 #include <ui/UIText.hpp>
+#include <ui/UIDataSource.hpp>
 
 #include <input/InputManager.hpp>
+
+#include <core/logging/Logger.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIGridColumn
 
@@ -107,7 +114,7 @@ void UIGridRow::UpdateLayout()
     Vec2i offset { 0, 0 };
 
     for (SizeType i = 0; i < m_columns.Size(); i++) {
-        RC<UIGridColumn> &column = m_columns[i];
+        const RC<UIGridColumn> &column = m_columns[i];
 
         if (!column) {
             continue;
@@ -175,7 +182,7 @@ void UIGrid::SetNumRows(SizeType num_rows)
 
         for (SizeType i = 0; i < num_rows_to_add; i++) {
             RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(NAME("Row"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-            m_container->AddChildUIObject(row);
+            UIObject::AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
         }
@@ -186,16 +193,16 @@ void UIGrid::SetNumRows(SizeType num_rows)
 
 RC<UIGridRow> UIGrid::AddRow()
 {
-    if (GetStage() == nullptr || m_container == nullptr) {
-        return nullptr;
-    }
+    AssertThrow(GetStage() != nullptr);
 
     const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(NAME("Row"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    m_container->AddChildUIObject(row);
+    UIObject::AddChildUIObject(row);
 
     m_rows.PushBack(row);
 
     UpdateLayout();
+
+    AssertThrow(row->GetStage() != nullptr);
 
     return row;
 }
@@ -205,11 +212,6 @@ void UIGrid::Init()
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     UIPanel::Init();
-
-    AssertThrow(GetStage() != nullptr);
-
-    m_container = GetStage()->CreateUIObject<UIPanel>(NAME("GridContents"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    UIObject::AddChildUIObject(m_container);
 }
 
 void UIGrid::AddChildUIObject(UIObject *ui_object)
@@ -237,6 +239,25 @@ void UIGrid::AddChildUIObject(UIObject *ui_object)
 
 bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
 {
+    HYP_SCOPE;
+
+    if (!ui_object) {
+        return false;
+    }
+    
+    for (SizeType i = 0; i < m_rows.Size(); i++) {
+        if (m_rows[i] == ui_object) {
+            AssertThrow(UIObject::RemoveChildUIObject(ui_object));
+
+            m_rows.EraseAt(i);
+
+            // Updates layout as well
+            UpdateSize(false);
+
+            return true;
+        }
+    }
+
     return UIObject::RemoveChildUIObject(ui_object);
 }
 
@@ -271,6 +292,91 @@ void UIGrid::UpdateLayout()
 
         y_offset += MathUtil::Floor<float, int>(float(actual_size.y) * row_percent);
     }
+}
+
+void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
+{
+    RemoveAllChildUIObjects();
+
+    if (!data_source) {
+        return;
+    }
+
+    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
+    {
+        HYP_NAMED_SCOPE("Add element from data source to grid view");
+
+        // add new row
+        RC<UIGridRow> row = AddRow();
+        AssertThrow(row != nullptr);
+        
+        row->SetDataSourceElementUUID(element->GetUUID());
+
+        // add new columns
+        for (SizeType i = 0; i < m_num_columns; i++) {
+            AssertThrow(GetStage() != nullptr);
+
+            RC<UIGridColumn> column = row->AddColumn();
+            AssertThrowMsg(column != nullptr, "Failed to add column to row : %llu\t%p", i, column.GetRefCountData_Internal());
+
+            RC<UIObject> object = data_source_ptr->GetElementFactory()->CreateUIObject(GetStage(), element->GetValue());
+            AssertThrow(object != nullptr);
+
+            column->AddChildUIObject(object);
+        }
+    });
+
+    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
+    {
+        HYP_NAMED_SCOPE("Remove element from data source from list view");
+
+        const auto it = m_rows.FindIf([uuid = element->GetUUID()](const RC<UIGridRow> &row)
+        {
+            if (!row) {
+                return false;
+            }
+
+            return row->GetDataSourceElementUUID() == uuid;
+        });
+
+        if (it != m_rows.End()) {            
+            RemoveChildUIObject(*it);
+        }
+    });
+
+    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element)
+    {
+        HYP_NAMED_SCOPE("Update element from data source in grid view");
+
+        const auto it = m_rows.FindIf([uuid = element->GetUUID()](const RC<UIGridRow> &row)
+        {
+            if (!row) {
+                return false;
+            }
+
+            return row->GetDataSourceElementUUID() == uuid;
+        });
+
+        if (it != m_rows.End()) {
+            const RC<UIGridRow> &row = *it;
+
+            for (const RC<UIGridColumn> &column : row->GetColumns()) {
+                if (!column) {
+                    continue;
+                }
+
+                if (const RC<UIObject> &ui_object = column->GetChildUIObject(0)) {
+                    data_source->GetElementFactory()->UpdateUIObject(
+                        ui_object.Get(),
+                        element->GetValue()
+                    );
+                } else {
+                    HYP_LOG(UI, LogLevel::ERROR, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
+                }
+            }
+        }
+
+    });
 }
 
 #pragma region UIGrid

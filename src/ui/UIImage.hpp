@@ -38,7 +38,9 @@ public:
     void SetTexture(Handle<Texture> texture);
 
 protected:
-    virtual Handle<Material> GetMaterial() const override;
+    virtual MaterialAttributes GetMaterialAttributes() const override;
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual Material::TextureSet GetMaterialTextures() const override;
 
     Handle<Texture> m_texture;
 };

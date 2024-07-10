@@ -58,8 +58,7 @@ public:
     /*! \brief Gets the text to render.
      * 
      * \return The text to render. */
-    HYP_FORCE_INLINE
-    const String &GetText() const
+    HYP_FORCE_INLINE const String &GetText() const
         { return m_text; }
 
     /*! \brief Sets the text to render.
@@ -71,8 +70,7 @@ public:
      * \note If the font atlas is null, the default font atlas from the parent UIStage is used, but not returned from this function.
      * 
      * \return The font atlas used for rendering the text. */
-    HYP_FORCE_INLINE
-    const RC<FontAtlas> &GetFontAtlas() const
+    HYP_FORCE_INLINE const RC<FontAtlas> &GetFontAtlas() const
         { return m_font_atlas; }
 
     /*! \brief Sets the font atlas to use for rendering the text.
@@ -84,15 +82,13 @@ public:
     /*! \brief Gets the options for rendering the text.
      * 
      * \return The options for rendering the text. */
-    HYP_FORCE_INLINE
-    const UITextOptions &GetOptions() const
+    HYP_FORCE_INLINE const UITextOptions &GetOptions() const
         { return m_options; }
 
     /*! \brief Sets the options for rendering the text.
      * 
      * \param options The options to set. */
-    HYP_FORCE_INLINE
-    void SetOptions(const UITextOptions &options)
+    HYP_FORCE_INLINE void SetOptions(const UITextOptions &options)
         { m_options = options; }
 
     /*! \brief Overriden from UIObject to return false as text is not focusable
@@ -103,7 +99,10 @@ public:
 
 protected:
     virtual BoundingBox CalculateAABB() const override;
-    virtual Handle<Material> GetMaterial() const override;
+    
+    virtual MaterialAttributes GetMaterialAttributes() const override;
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual Material::TextureSet GetMaterialTextures() const override;
 
     virtual void UpdateSize(bool update_children = true) override;
 

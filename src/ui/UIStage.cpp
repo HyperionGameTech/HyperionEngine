@@ -261,6 +261,8 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 
 void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 {
+    HYP_LOG(UI, LogLevel::DEBUG, "Set focused UIObject to: {}", ui_object != nullptr ? *ui_object->GetName() : "<none>");
+
     RC<UIObject> current_focused_ui_object = m_focused_object.Lock();
 
     // Be sure to set the focused object to nullptr before calling Blur() to prevent infinite recursion
@@ -280,7 +282,6 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 
     m_focused_object = ui_object;
 }
-
 
 void UIStage::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner)
 {
@@ -333,7 +334,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 if (it.second.held_time >= 0.05f) {
                     // signal mouse drag
                     if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
-                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag(MouseEvent {
+                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag.Broadcast(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -373,7 +374,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     if (m_hovered_entities.Contains(ui_object->GetEntity())) {
                         // Already hovered, trigger mouse move event instead
-                        mouse_move_event_handler_result |= ui_object->OnMouseMove(MouseEvent {
+                        mouse_move_event_handler_result |= ui_object->OnMouseMove.Broadcast(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -404,7 +405,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
                         // Already hovered, trigger mouse move event instead
-                        event_handler_result |= ui_object->OnMouseMove(MouseEvent {
+                        event_handler_result |= ui_object->OnMouseMove.Broadcast(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -417,7 +418,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
-                    mouse_hover_event_handler_result |= ui_object->OnMouseHover(MouseEvent {
+                    mouse_hover_event_handler_result |= ui_object->OnMouseHover.Broadcast(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -445,7 +446,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 if (RC<UIObject> other_ui_object = GetUIObjectForEntity(*it)) {
                     other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
-                    other_ui_object->OnMouseLeave(MouseEvent {
+                    other_ui_object->OnMouseLeave.Broadcast(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = other_ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = other_ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -497,7 +498,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
-                    event_handler_result |= ui_object->OnMouseDown(MouseEvent {
+                    event_handler_result |= ui_object->OnMouseDown.Broadcast(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -511,10 +512,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 }
             }
         }
-
-        // if (focused_object == nullptr) {
-        //     SetFocusedObject(nullptr);
-        // }
 
         break;
     }
@@ -531,7 +528,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
                 if (const RC<UIObject> &ui_object = *ray_test_results_it) {
-                    event_handler_result |= ui_object->OnClick(MouseEvent {
+                    event_handler_result |= ui_object->OnClick.Broadcast(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -551,7 +548,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
-                event_handler_result |= ui_object->OnMouseUp(MouseEvent {
+                event_handler_result |= ui_object->OnMouseUp.Broadcast(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -578,7 +575,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             UIObject *first_hit = nullptr;
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-
                 if (const RC<UIObject> &ui_object = *it) {
                     if (first_hit) {
                         // We don't want to check the current object if it's not a child of the first hit object,
@@ -590,7 +586,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         first_hit = ui_object;
                     }
 
-                    event_handler_result |= ui_object->OnScroll(MouseEvent {
+                    event_handler_result |= ui_object->OnScroll.Broadcast(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -614,7 +610,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         RC<UIObject> ui_object = m_focused_object.Lock();
 
         while (ui_object != nullptr) {
-            event_handler_result |= ui_object->OnKeyDown(KeyboardEvent {
+            event_handler_result |= ui_object->OnKeyDown.Broadcast(KeyboardEvent {
                 .input_manager  = input_manager,
                 .key_code       = key_code
             });
@@ -638,7 +634,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         if (keyed_down_objects_it != m_keyed_down_objects.End()) {
             for (const Weak<UIObject> &weak_ui_object : keyed_down_objects_it->second) {
                 if (RC<UIObject> ui_object = weak_ui_object.Lock()) {
-                    ui_object->OnKeyUp(KeyboardEvent {
+                    ui_object->OnKeyUp.Broadcast(KeyboardEvent {
                         .input_manager  = input_manager,
                         .key_code       = key_code
                     });

@@ -4,7 +4,6 @@
 #define HYPERION_UI_LIST_VIEW_HPP
 
 #include <ui/UIPanel.hpp>
-#include <ui/UIDataSource.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -14,7 +13,7 @@ namespace hyperion {
 
 #pragma region UIListViewItem
 
-class HYP_API UIListViewItem : public UIPanel
+class HYP_API UIListViewItem : public UIObject
 {
 public:
     friend class UIListView;
@@ -26,27 +25,16 @@ public:
     UIListViewItem &operator=(UIListViewItem &&other) noexcept  = delete;
     virtual ~UIListViewItem() override                          = default;
 
-    /*! \brief Gets the UUID of the associated data source element (if applicable).
-     *  Otherwise, returns an empty UUID.
-     * 
-     * \return The UUID of the associated data source element. */
-    HYP_FORCE_INLINE
-    UUID GetDataSourceElementUUID() const
-        { return m_data_source_element_uuid; }
-
     virtual void Init() override;
-    
-private:
-    /*! \brief Sets the UUID of the associated data source element.
-     *  \internal This is used by the UIListView to set the UUID of the associated data source element.
-     * 
-     * \param data_source_element_uuid The UUID of the associated data source element. */
-    HYP_FORCE_INLINE
-    void SetDataSourceElementUUID(UUID data_source_element_uuid)
-        { m_data_source_element_uuid = data_source_element_uuid; }
 
+protected:
+    virtual void SetIsSelectedItem(bool is_selected_item);
+
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
+
+private:
     RC<UIObject>    m_inner_element;
-    UUID            m_data_source_element_uuid;
+    bool            m_is_selected_item;
 };
 
 #pragma endregion UIListViewItem
@@ -70,23 +58,6 @@ public:
     uint NumListViewItems() const
         { return m_list_view_items.Size(); }
 
-    HYP_FORCE_INLINE
-    UIDataSourceBase *GetDataSource() const
-        { return m_data_source.Get(); }
-
-    template <class T>
-    HYP_FORCE_INLINE
-    UIDataSource<T> *GetDataSource() const
-    {
-        if (!m_data_source.IsDynamic<UIDataSource<T>>()) {
-            return nullptr;
-        }
-
-        return static_cast<UIDataSource<T> *>(m_data_source.Get());
-    }
-
-    void SetDataSource(UniquePtr<UIDataSourceBase> &&data_source);
-
     virtual void Init() override;
 
     virtual void AddChildUIObject(UIObject *ui_object) override;
@@ -97,16 +68,12 @@ public:
     Delegate<void, UIListViewItem *>    OnSelectedItemChange;
 
 protected:
+    virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
+
     void UpdateLayout();
 
     Array<UIObject *>           m_list_view_items;
     Weak<UIListViewItem>        m_selected_item;
-
-    UniquePtr<UIDataSourceBase> m_data_source;
-    DelegateHandler             m_data_source_on_change_handler;
-    DelegateHandler             m_data_source_on_element_add_handler;
-    DelegateHandler             m_data_source_on_element_remove_handler;
-    DelegateHandler             m_data_source_on_element_update_handler;
 };
 
 #pragma endregion UIListView

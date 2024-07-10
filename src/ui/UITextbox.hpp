@@ -37,8 +37,18 @@ public:
     virtual void Init() override;
 
 protected:
-    String      m_text;
-    RC<UIText>  m_text_element;
+    virtual void Update_Internal(GameCounter::TickUnit delta) override;
+    virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
+
+    void UpdateCursor();
+
+    String          m_text;
+    RC<UIText>      m_text_element;
+    RC<UIObject>    m_cursor_element;
+
+    uint32          m_character_index;
+
+    BlendVar<float> m_cursor_blink_blend_var;
 };
 
 

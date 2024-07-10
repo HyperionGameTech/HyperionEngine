@@ -13,8 +13,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
     : UIObject(parent, std::move(node_proxy), type)
 {
-    SetBorderRadius(5);
-    SetBorderFlags(UIObjectBorderFlags::ALL);
+    SetBorderRadius(0);
 
     m_background_color = Color(0x101012FFu);
     m_text_color = Color(0xFFFFFFFFu);
@@ -37,25 +36,27 @@ void UIPanel::Init()
     UIObject::Init();
 }
 
-Handle<Material> UIPanel::GetMaterial() const
+MaterialAttributes UIPanel::GetMaterialAttributes() const
 {
-    return g_material_system->GetOrCreate(
-        MaterialAttributes {
-            .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_PANEL" }) },
-            .bucket             = Bucket::BUCKET_UI,
-            .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributeFlags::NONE,
-            //.stencil_function   = StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0xFF, 0x1)// <-- @TEMP test
-        },
-        {
-            { Material::MATERIAL_KEY_ALBEDO, Vec4f(GetBackgroundColor()) }
-        },
-        {
-            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture> { } }
-        }
-    );
+    return MaterialAttributes {
+        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_PANEL" }) },
+        .bucket             = Bucket::BUCKET_UI,
+        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+        .cull_faces         = FaceCullMode::BACK,
+        .flags              = MaterialAttributeFlags::NONE,
+        //.stencil_function   = StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0xFF, 0x1)// <-- @TEMP test
+    };
+}
+
+Material::ParameterTable UIPanel::GetMaterialParameters() const
+{
+    return UIObject::GetMaterialParameters();
+}
+
+Material::TextureSet UIPanel::GetMaterialTextures() const
+{
+    return UIObject::GetMaterialTextures();
 }
 
 } // namespace hyperion

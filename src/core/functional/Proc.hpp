@@ -72,25 +72,32 @@ struct ProcFunctorInternal
         }
     }
 
-    HYP_FORCE_INLINE
-    bool IsDynamic() const
+    HYP_FORCE_INLINE bool IsDynamic() const
         { return memory.template Is<void *>(); }
     
-    HYP_FORCE_INLINE
-    bool HasValue() const
+    HYP_FORCE_INLINE bool HasValue() const
         { return memory.HasValue(); }
 
-    HYP_FORCE_INLINE
-    void *GetPointer()
+    HYP_FORCE_INLINE void *GetPointer()
     {
         return IsDynamic()
             ? memory.template Get<void *>()
             : memory.template Get<MemoryType>().GetPointer();
     }
 
-    HYP_FORCE_INLINE
-    ReturnType Invoke(Args &&... args)
+    HYP_FORCE_INLINE ReturnType Invoke(Args &&... args)
         { return invoke_fn(GetPointer(), std::forward<Args>(args)...); }
+
+    HYP_FORCE_INLINE void Reset()
+    {
+        if (delete_fn) {
+            delete_fn(GetPointer());
+        }
+
+        memory.Reset();
+        invoke_fn = nullptr;
+        delete_fn = nullptr;
+    }
 };
 
 template <class ReturnType, class... Args>
@@ -184,19 +191,19 @@ public:
 
     ~Proc() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator bool() const
         { return functor.HasValue(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_NODISCARD HYP_FORCE_INLINE bool IsValid() const
         { return functor.HasValue(); }
+
+    HYP_FORCE_INLINE ReturnType operator()(Args... args) const
+        { return functor.Invoke(std::forward<Args>(args)...); }
+
+    HYP_FORCE_INLINE void Reset()
+        { functor.Reset(); }
 
     mutable FunctorDataType functor;
-
-    HYP_FORCE_INLINE
-    ReturnType operator()(Args... args) const
-        { return functor.Invoke(std::forward<Args>(args)...); }
 };
 
 } // namespace functional

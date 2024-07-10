@@ -24,14 +24,15 @@ public:
     UIPanel &operator=(UIPanel &&other) noexcept    = delete;
     virtual ~UIPanel() override                     = default;
 
-    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return false; }
 
     virtual void Init() override;
 
 protected:
-    virtual Handle<Material> GetMaterial() const override;
+    virtual MaterialAttributes GetMaterialAttributes() const override;
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual Material::TextureSet GetMaterialTextures() const override;
 };
 
 #pragma endregion UIPanel

@@ -8,6 +8,7 @@
 #include <core/functional/Delegate.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/UUID.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
@@ -26,6 +27,10 @@ namespace hyperion {
 
 class UIStage;
 class UIRenderer;
+class UIDataSourceBase;
+
+template <class T>
+class UIDataSource;
 
 // Helper function to get the scene from a UIStage
 template <class UIStageType>
@@ -235,53 +240,41 @@ public:
     virtual void Init();
     virtual void Update(GameCounter::TickUnit delta) final;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const UIObjectID &GetID() const
+    HYP_FORCE_INLINE const UIObjectID &GetID() const
         { return m_id; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UIObjectType GetType() const
+    HYP_FORCE_INLINE UIObjectType GetType() const
         { return m_type; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ID<Entity> GetEntity() const
+    HYP_FORCE_INLINE ID<Entity> GetEntity() const
         { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : ID<Entity>::invalid; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UIStage *GetStage() const
+    HYP_FORCE_INLINE  UIStage *GetStage() const
         { return m_stage; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsInit() const
+    HYP_FORCE_INLINE bool IsInit() const
         { return m_is_init; }
 
-    HYP_NODISCARD
     Name GetName() const;
     
     void SetName(Name name);
 
-    HYP_NODISCARD
     Vec2i GetPosition() const;
 
     void SetPosition(Vec2i position);
 
-    HYP_NODISCARD
     Vec2f GetOffsetPosition() const;
 
-    HYP_NODISCARD
     Vec2f GetAbsolutePosition() const;
 
-    HYP_NODISCARD
     UIObjectSize GetSize() const;
 
     void SetSize(UIObjectSize size);
 
-    HYP_NODISCARD
     UIObjectSize GetInnerSize() const;
 
     void SetInnerSize(UIObjectSize size);
 
-    HYP_NODISCARD
     UIObjectSize GetMaxSize() const;
 
     void SetMaxSize(UIObjectSize size);
@@ -289,19 +282,16 @@ public:
     /*! \brief Get the computed size (in pixels) of the UI object.
      *  The actual size of the UI object is calculated based on the size of the parent object and the size of the object itself.
      *  \return The computed size of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Vec2i GetActualSize() const
+    HYP_FORCE_INLINE Vec2i GetActualSize() const
         { return m_actual_size; }
 
     /*! \brief Get the computed inner size (in pixels) of the UI object.
      *  \return The computed inner size of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Vec2i GetActualInnerSize() const
+    HYP_FORCE_INLINE Vec2i GetActualInnerSize() const
         { return m_actual_inner_size; }
 
     /*! \brief Get the scroll offset (in pixels) of the UI object.
      *  \return The scroll offset of the UI object */
-    HYP_NODISCARD 
     Vec2i GetScrollOffset() const;
 
     /*! \brief Set the scroll offset (in pixels) of the UI object.
@@ -311,14 +301,12 @@ public:
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
      *  \return The depth of the UI object */
-    HYP_NODISCARD
     int GetComputedDepth() const;
 
     /*! \brief Get the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \return The depth of the UI object */
-    HYP_NODISCARD
     int GetDepth() const;
 
     /*! \brief Set the depth of the UI object
@@ -329,7 +317,6 @@ public:
 
     /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
      *  \return True if the this object accepts focus, false otherwise */
-    HYP_NODISCARD 
     virtual bool AcceptsFocus() const
         { return m_accepts_focus; }
 
@@ -347,19 +334,28 @@ public:
      *  \param blur_children If true, also remove focus from all child objects. */
     virtual void Blur(bool blur_children = true);
 
+    /*! \brief Set whether the UI object affects the size of its parent.
+     *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
+     *  \param affects_parent_size Whether the UI object affects the size of its parent */
+    void SetAffectsParentSize(bool affects_parent_size);
+
+    /*! \brief Check if the UI object affects the size of its parent.
+     *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
+     *  \return True if the UI object affects the size of its parent, false otherwise */
+    HYP_FORCE_INLINE bool AffectsParentSize() const
+        { return m_affects_parent_size; }
+
     /*! \brief Returns whether or not this UIObject type acts as a container for other objects. 
      *  Container types can have objects that sit outside and move independently of this object itself,
      *  and is useful for things like tab views, panels that scroll, etc. However, it comes with the added cost
      *  of more bookkeeping and more RenderGroup creation for rendering. See \ref{CollectObjects} and \ref{UIRenderer::OnUpdate} for example. */
-    HYP_NODISCARD
     virtual bool IsContainer() const
         { return false; }
 
     /*! \brief Get the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \return The border radius of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 GetBorderRadius() const
+    HYP_FORCE_INLINE uint32 GetBorderRadius() const
         { return m_border_radius; }
 
     /*! \brief Set the border radius of the UI object
@@ -371,18 +367,15 @@ public:
      *  \details The border flags of the UI object are used to determine which borders of the object should be rounded, if the border radius is set to a non-zero value.
      *  \example To display a border radius the top left and right corners of the object, set the border flags to \code{UOB_TOP | UOB_LEFT | UOB_RIGHT}.
      *  \return The border flags of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    EnumFlags<UIObjectBorderFlags> GetBorderFlags() const
+    HYP_FORCE_INLINE EnumFlags<UIObjectBorderFlags> GetBorderFlags() const
         { return m_border_flags; }
 
     void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
-    HYP_NODISCARD
     UIObjectAlignment GetOriginAlignment() const;
 
     void SetOriginAlignment(UIObjectAlignment alignment);
 
-    HYP_NODISCARD
     UIObjectAlignment GetParentAlignment() const;
 
     void SetParentAlignment(UIObjectAlignment alignment);
@@ -390,8 +383,7 @@ public:
     /*! \brief Get the padding of the UI object
      * The padding of the UI object is used to add space around the object's content.
      * \return The padding of the UI object */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Vec2i GetPadding() const
+    HYP_FORCE_INLINE Vec2i GetPadding() const
         { return m_padding; }
 
     /*! \brief Set the padding of the UI object
@@ -401,7 +393,6 @@ public:
 
     /*! \brief Get the background color of the UI object
      * \return The background color of the UI object */
-    HYP_NODISCARD
     Color GetBackgroundColor() const;
 
     /*! \brief Set the background color of the UI object
@@ -410,7 +401,6 @@ public:
 
     /*! \brief Get the text color of the UI object
      * \return The text color of the UI object */
-    HYP_NODISCARD
     Color GetTextColor() const;
 
     /*! \brief Set the text color of the UI object
@@ -418,8 +408,7 @@ public:
     void SetTextColor(const Color &text_color);
 
     /*! \brief Check if the UI object is set to visible or not. This does not include computed visibility.
-     *  \returns True if the object is visible, false otherwise. */
-    HYP_NODISCARD 
+     *  \returns True if the object is visible, false otherwise. */ 
     bool IsVisible() const;
 
     /*! \brief Set the visibility of the UI object.
@@ -428,15 +417,16 @@ public:
      *  \param is_visible Whether to set the object as visible or not. */
     void SetIsVisible(bool is_visible);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool GetComputedVisibility() const
+    /*! \brief Get the computed visibility of the UI object.
+     *  \details The computed visibility of the UI object is used to determine if the object is currently visible.
+     *  \return The computed visibility of the UI object. */
+    HYP_FORCE_INLINE bool GetComputedVisibility() const
         { return m_computed_visibility; }
 
     /*! \brief Check if the UI object has focus. If \ref{include_children} is true, also return true if any child objects have focus.
      *  \details The focus state of the UI object is used to determine if the object is currently focused.
      *  \param include_children If true, check if any child objects have focus.
-     *  \return True if the object has focus, false otherwise. */
-    HYP_NODISCARD 
+     *  \return True if the object has focus, false otherwise. */ 
     bool HasFocus(bool include_children = true) const;
 
     /*! \brief Check if \ref{other} is either a parent of this object or is equal to the current object.
@@ -444,13 +434,11 @@ public:
      *  false is returned.
      *  \param other The UIObject to check if it is a parent of this object.
      *  \return Whether \ref{other} is a parent of this object or equal to the current object.
-     */
-    HYP_NODISCARD 
+     */ 
     bool IsOrHasParent(const UIObject *other) const;
 
     /*! \brief Get the parent UIObject to this object, if one exists.
-     *  \returns A pointer to the parent UIObject or nullptr if none exists. */
-    HYP_NODISCARD 
+     *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
     RC<UIObject> GetParentUIObject() const;
 
     virtual void AddChildUIObject(UIObject *ui_object);
@@ -476,7 +464,6 @@ public:
     /*! \brief Remove this object from its parent UI object, if applicable. Ensures the object is not immediately deleted
      *  in the case that the parent UIObject holds the last reference to `this`.
      *  \returns A reference counted pointer to `this`. */
-    HYP_NODISCARD
     virtual RC<UIObject> DetachFromParent();
 
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
@@ -484,7 +471,6 @@ public:
      *  \param name The Name of the child UIObject to find.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
-    HYP_NODISCARD
     RC<UIObject> FindChildUIObject(Name name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
@@ -503,16 +489,11 @@ public:
      *  \return The child UIObject at the specified index. */
     const RC<UIObject> &GetChildUIObject(SizeType index) const;
 
-    HYP_NODISCARD
     const NodeProxy &GetNode() const;
 
-    HYP_NODISCARD
     virtual Scene *GetScene() const;
 
-    HYP_NODISCARD
     BoundingBox GetLocalAABB() const;
-
-    HYP_NODISCARD
     BoundingBox GetWorldAABB() const;
 
     virtual void UpdatePosition(bool update_children = true);
@@ -521,8 +502,7 @@ public:
     /*! \brief Get the focus state of the UI object.
      *  \details The focus state of the UI object is used to determine if the object is currently focused, hovered, pressed, etc.
      *  \return The focus state of the UI object. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    EnumFlags<UIObjectFocusState> GetFocusState() const
+    HYP_FORCE_INLINE EnumFlags<UIObjectFocusState> GetFocusState() const
         { return m_focus_state; }
 
     /*! \brief Set the focus state of the UI object.
@@ -541,8 +521,44 @@ public:
     /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
      *  \param coords The screen coordinates to transform.
      *  \return The relative coordinates within the UIObject. */
-    HYP_NODISCARD
     Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
+
+    /*! \brief Get the data source associated with this UIObject. The data source is used to populate the UIObject with data.
+     *  \return The data source associated with this UIObject. */
+    HYP_FORCE_INLINE UIDataSourceBase *GetDataSource() const
+        { return m_data_source.Get(); }
+
+    /*! \brief Get the data source associated with this UIObject, casted to the specified type.
+     *  \tparam T The type to cast the data source to.
+     *  \return The data source associated with this UIObject, cast to the specified type.
+     *  Nullptr if the data source is not of the specified type. */
+    template <class T>
+    HYP_FORCE_INLINE UIDataSource<T> *GetDataSource() const
+    {
+        if (!m_data_source.IsDynamic<UIDataSource<T>>()) {
+            return nullptr;
+        }
+
+        return static_cast<UIDataSource<T> *>(m_data_source.Get());
+    }
+
+    /*! \brief Set the data source associated with this UIObject. The data source is used to populate the UIObject with data.
+     *  \param data_source The data source to associate with this UIObject. */
+    void SetDataSource(UniquePtr<UIDataSourceBase> &&data_source);
+
+    /*! \brief Gets the UUID of the associated data source element (if applicable).
+     *  Otherwise, returns an empty UUID.
+     * 
+     * \return The UUID of the associated data source element. */
+    HYP_FORCE_INLINE UUID GetDataSourceElementUUID() const
+        { return m_data_source_element_uuid; }
+
+    /*! \brief Sets the UUID of the associated data source element.
+     *  \internal This is used by a parent UIObject to set the UUID of the associated data source element.
+     * 
+     *  \param data_source_element_uuid The UUID of the associated data source element. */
+    HYP_FORCE_INLINE void SetDataSourceElementUUID(UUID data_source_element_uuid)
+        { m_data_source_element_uuid = data_source_element_uuid; }
 
     // Events
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
@@ -559,6 +575,8 @@ public:
     Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
 
 protected:
+    virtual void SetDataSource_Internal(UIDataSourceBase *data_source);
+
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state);
 
     virtual void Update_Internal(GameCounter::TickUnit delta);
@@ -587,10 +605,11 @@ protected:
      *  without taking child objects into account. */
     BoundingBox CalculateWorldAABBExcludingChildren() const;
 
-    /*! \brief Override to have the UIObject use a different material. */
-    virtual Handle<Material> GetMaterial() const;
-
     const Handle<Mesh> &GetMesh() const;
+
+    virtual MaterialAttributes GetMaterialAttributes() const;
+    virtual Material::ParameterTable GetMaterialParameters() const;
+    virtual Material::TextureSet GetMaterialTextures() const;
 
     void SetAABB(const BoundingBox &aabb);
 
@@ -637,6 +656,14 @@ protected:
     Color                           m_background_color;
     Color                           m_text_color;
 
+    UniquePtr<UIDataSourceBase>     m_data_source;
+    DelegateHandler                 m_data_source_on_change_handler;
+    DelegateHandler                 m_data_source_on_element_add_handler;
+    DelegateHandler                 m_data_source_on_element_remove_handler;
+    DelegateHandler                 m_data_source_on_element_update_handler;
+
+    UUID                            m_data_source_element_uuid;
+
 private:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
@@ -646,13 +673,15 @@ private:
     void ComputeOffsetPosition();
 
     void UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags);
-    virtual void ComputeActualSize(const UIObjectSize &size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner = false);
+    virtual void ComputeActualSize(const UIObjectSize &size, Vec2i &actual_size, UpdateSizePhase phase, bool is_inner = false);
 
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda, bool deep = true) const;
 
     // For UIStage only.
     void SetAllChildUIObjectsStage(UIStage *stage);
+
+    Handle<Material> GetMaterial() const;
 
     const UIObjectID                m_id;
     const UIObjectType              m_type;
@@ -665,6 +694,8 @@ private:
     bool                            m_computed_visibility;
     
     bool                            m_accepts_focus;
+
+    bool                            m_affects_parent_size;
 
     NodeProxy                       m_node_proxy;
 

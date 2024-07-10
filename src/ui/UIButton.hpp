@@ -47,7 +47,7 @@ public:
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
-    virtual Handle<Material> GetMaterial() const override;
+    virtual MaterialAttributes GetMaterialAttributes() const override;
 
     String      m_text;
     RC<UIText>  m_text_element;

@@ -654,7 +654,9 @@ BoundingBox Node::GetLocalAABB() const
             continue;
         }
 
-        aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
+            aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+        }
     }
 
     return aabb;
@@ -670,7 +672,9 @@ BoundingBox Node::GetWorldAABB() const
             continue;
         }
 
-        aabb.Extend(child->GetWorldAABB());
+        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
+            aabb.Extend(child->GetWorldAABB());
+        }
     }
 
     return aabb;

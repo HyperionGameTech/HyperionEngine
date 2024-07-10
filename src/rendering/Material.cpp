@@ -266,6 +266,8 @@ void Material::Init()
 
 void Material::EnqueueDescriptorSetCreate()
 {
+    HYP_LOG(Material, LogLevel::DEBUG, "EnqueueCreate material descriptor set for material with ID #{} (name: {})", GetID().Value(), GetName());
+
     FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
 
     for (const Pair<TextureKey, Handle<Texture> &> it : m_textures) {
@@ -407,6 +409,19 @@ void Material::SetParameter(MaterialKey key, const Parameter &value)
     }
 }
 
+void Material::SetParameters(const ParameterTable &parameters)
+{
+    if (IsStatic()) {
+        HYP_LOG(Material, LogLevel::WARNING, "Setting parameters on static material with ID #{} (name: {})", GetID().Value(), GetName());
+    }
+
+    m_parameters = parameters;
+
+    if (IsInitCalled()) {
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
+}
+
 void Material::ResetParameters()
 {
     if (IsStatic()) {
@@ -453,6 +468,39 @@ void Material::SetTextureAtIndex(uint index, const Handle<Texture> &texture)
     return SetTexture(m_textures.KeyAt(index), texture);
 }
 
+void Material::SetTextures(const TextureSet &textures)
+{
+    // @TODO : only update textures that have changed
+    
+    if (IsStatic()) {
+        HYP_LOG(Material, LogLevel::WARNING, "Setting textures on static material with ID #{} (name: {})", GetID().Value(), GetName());
+    }
+
+    m_textures = textures;
+
+    if (IsInitCalled()) {
+        for (SizeType i = 0; i < m_textures.Size(); i++) {
+            if (!m_textures.ValueAt(i).IsValid()) {
+                continue;
+            }
+
+            InitObject(m_textures.ValueAt(i));
+        }
+
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            for (SizeType i = 0; i < m_textures.Size(); i++) {
+                if (!m_textures.ValueAt(i).IsValid()) {
+                    continue;
+                }
+                
+                EnqueueTextureUpdate(m_textures.KeyAt(i));
+            }
+        }
+
+        m_mutation_state |= DataMutationState::DIRTY;
+    }
+}
+
 const Handle<Texture> &Material::GetTexture(TextureKey key) const
 {
     return m_textures.Get(key);
@@ -465,14 +513,17 @@ const Handle<Texture> &Material::GetTextureAtIndex(uint index) const
 
 Handle<Material> Material::Clone() const
 {
-    Handle<Material> handle = CreateObject<Material>(
-        m_name,
+    Handle<Material> material = CreateObject<Material>(
+        Name::Unique(*m_name),
         m_render_attributes,
         m_parameters,
         m_textures
     );
 
-    return handle;
+    // cloned materials are dynamic by default
+    material->m_is_dynamic = true;
+
+    return material;
 }
 
 #pragma endregion Material

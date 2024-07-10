@@ -246,35 +246,36 @@ void UIText::UpdateMesh()
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-Handle<Material> UIText::GetMaterial() const
+MaterialAttributes UIText::GetMaterialAttributes() const
 {
-    const Vec2i actual_size = GetActualSize();
-    const uint pixel_size = MathUtil::Max(actual_size.y, 1);
+    return MaterialAttributes {
+        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
+        .bucket             = Bucket::BUCKET_UI,
+        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+        .cull_faces         = FaceCullMode::BACK,
+        .flags              = MaterialAttributeFlags::NONE
+    };
+}
 
-    Handle<Texture> font_atlas_texture;
+Material::ParameterTable UIText::GetMaterialParameters() const
+{
+    return {
+        { Material::MATERIAL_KEY_ALBEDO, Vec4f(GetTextColor()) }
+    };
+}
 
+Material::TextureSet UIText::GetMaterialTextures() const
+{
     FontAtlas *font_atlas = GetFontAtlasOrDefault();
 
     if (font_atlas != nullptr && font_atlas->GetAtlases() != nullptr) {
-        font_atlas_texture = font_atlas->GetAtlases()->GetAtlasForPixelSize(pixel_size);
+        return {
+            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_atlas->GetAtlases()->GetAtlasForPixelSize(MathUtil::Max(GetActualSize().y, 1)) }
+        };
     }
 
-    return g_material_system->GetOrCreate(
-        MaterialAttributes {
-            .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
-            .bucket             = Bucket::BUCKET_UI,
-            .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .cull_faces         = FaceCullMode::BACK,
-            .flags              = MaterialAttributeFlags::NONE
-        },
-        {
-            { Material::MATERIAL_KEY_ALBEDO, Vec4f(GetTextColor()) }
-        },
-        {
-            { Material::MATERIAL_TEXTURE_ALBEDO_MAP, font_atlas_texture }
-        }
-    );
+    return UIObject::GetMaterialTextures();
 }
 
 void UIText::UpdateSize(bool update_children)
@@ -282,7 +283,7 @@ void UIText::UpdateSize(bool update_children)
     UIObject::UpdateSize(update_children);
 
     if (NodeProxy node = GetNode()) {
-        const Vec3f aabb_extent = node->GetEntityAABB().GetExtent();
+        const Vec3f aabb_extent = m_text_aabb.GetExtent();
 
         const bool was_transform_locked = node->IsTransformLocked();
 

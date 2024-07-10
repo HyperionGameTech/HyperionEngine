@@ -90,11 +90,6 @@ const DropDownMenuItem *UIMenuItem::GetDropDownMenuItem(Name name) const
     return const_cast<UIMenuItem *>(this)->GetDropDownMenuItem(name);
 }
 
-Handle<Material> UIMenuItem::GetMaterial() const
-{
-    return UIPanel::GetMaterial();
-}
-
 void UIMenuItem::UpdateDropDownMenu()
 {
     AssertThrow(m_drop_down_menu != nullptr);
@@ -155,6 +150,23 @@ void UIMenuItem::UpdateDropDownMenu()
         m_drop_down_menu->AddChildUIObject(drop_down_menu_item);
 
         offset += { 0, drop_down_menu_item->GetActualSize().y };
+    }
+}
+
+void UIMenuItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
+{
+    const EnumFlags<UIObjectFocusState> previous_focus_state = GetFocusState();
+
+    UIPanel::SetFocusState_Internal(focus_state);
+
+    if ((previous_focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) != (focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED))) {
+        if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) {
+            SetBackgroundColor(Vec4f { 0.25f, 0.25f, 0.25f, 1.0f });
+        } else if (focus_state & UIObjectFocusState::HOVER) {
+            SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
+        } else {
+            SetBackgroundColor(Vec4f::Zero());
+        }
     }
 }
 
@@ -222,7 +234,7 @@ void UIMenuBar::OnRemoved_Internal()
     }
 }
 
-void UIMenuBar::SetSelectedMenuItemIndex(uint index)
+void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
@@ -238,7 +250,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint index)
         node->RemoveAllChildren();
     }
 
-    for (uint i = 0; i < m_menu_items.Size(); i++) {
+    for (SizeType i = 0; i < m_menu_items.Size(); i++) {
         if (i == m_selected_menu_item_index) {
             continue;
         }
@@ -286,7 +298,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     menu_item->OnMouseHover.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
     {
         if (m_container->HasFocus(true)) {
-            const uint menu_item_index = GetMenuItemIndex(name);
+            const uint32 menu_item_index = GetMenuItemIndex(name);
 
             SetSelectedMenuItemIndex(menu_item_index);
         }
@@ -298,7 +310,7 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     {
         if (data.mouse_buttons == MouseButtonState::LEFT)
         {
-            const uint menu_item_index = GetMenuItemIndex(name);
+            const uint32 menu_item_index = GetMenuItemIndex(name);
 
             HYP_LOG(UI, LogLevel::DEBUG, "Menu item index for item with name {}: {}", name, menu_item_index);
 
@@ -338,7 +350,7 @@ RC<UIMenuItem> UIMenuBar::GetMenuItem(Name name) const
     return nullptr;
 }
 
-uint UIMenuBar::GetMenuItemIndex(Name name) const
+uint32 UIMenuBar::GetMenuItemIndex(Name name) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 

@@ -57,6 +57,7 @@ enum class UIRayTestFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
 
+/*! \brief The UIStage is the root of the UI scene graph. */
 class HYP_API UIStage : public UIObject
 {
 public:
@@ -104,6 +105,27 @@ public:
     HYP_FORCE_INLINE
     RC<UIObject> GetFocusedObject() const
         { return m_focused_object.Lock(); }
+
+    /*! \brief Create a UI object of type T and optionally attach it to the root.
+     *  The object will not be named. To name the object, use the other CreateUIObject overload.
+     * 
+     *  \tparam T The type of UI object to create. Must be a derived class of UIObject.
+     *  \param position The position of the UI object.
+     *  \param size The size of the UI object.
+     *  \param attach_to_root Whether to attach the UI object to the root of the UI scene immediately.
+     *  \return A handle to the created UI object. */
+    template <class T>
+    HYP_NODISCARD
+    RC<T> CreateUIObject(
+        Vec2i position,
+        UIObjectSize size,
+        bool attach_to_root = false
+    )
+    {
+        static const Name default_name = NAME("Unnamed_UIObject");
+
+        return CreateUIObject<T>(default_name, position, size, attach_to_root);
+    }
 
     /*! \brief Create a UI object of type T and optionally attach it to the root.
      * 

@@ -38,10 +38,16 @@ public:
     UIGridRow &operator=(UIGridRow &&other) noexcept    = delete;
     virtual ~UIGridRow() override                       = default;
 
+    /*! \brief Gets the columns in the row.
+     * 
+     * \return A array of reference counted pointers to the columns in the row. */
+    HYP_FORCE_INLINE const Array<RC<UIGridColumn>> &GetColumns() const
+        { return m_columns; }
+
     /*! \brief Gets the number of columns in the row.
      * 
      * \return The number of columns in the row. */
-    SizeType GetNumColumns() const
+    HYP_FORCE_INLINE SizeType GetNumColumns() const
         { return m_columns.Size(); }
 
     /*! \brief Sets the number of columns in the row.
@@ -59,7 +65,7 @@ public:
      * \param index The index of the column to retrieve.
      * \return A reference counted pointer to the column at the specified index.
      *  If the index is out of bounds, a null pointer is returned. */
-    RC<UIGridColumn> GetColumn(SizeType index) const
+    HYP_FORCE_INLINE RC<UIGridColumn> GetColumn(SizeType index) const
         { return index < m_columns.Size() ? m_columns[index] : nullptr; }
 
     /*! \brief Finds the first empty column in the row.
@@ -95,8 +101,7 @@ public:
     /*! \brief Gets the number of columns in the grid.
      * 
      * \return The number of columns in the grid. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType GetNumColumns() const
+    HYP_FORCE_INLINE SizeType GetNumColumns() const
         { return m_num_columns; }
 
     /*! \brief Sets the number of columns in the grid.
@@ -107,8 +112,7 @@ public:
     /*! \brief Gets the number of rows in the grid.
      * 
      * \return The number of rows in the grid. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType GetNumRows() const
+    HYP_FORCE_INLINE SizeType GetNumRows() const
         { return m_rows.Size(); }
 
     /*! \brief Sets the number of rows in the grid.
@@ -124,6 +128,9 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
     virtual void UpdateSize(bool update_children = true) override;
+
+protected:
+    virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 
 private:
     void UpdateLayout();

@@ -101,7 +101,6 @@ void EntityDrawDataUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
 
         HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity.ToIndex());
-        HYP_LOG(RenderProxy, LogLevel::DEBUG, "Updating RenderProxy for entity #{}", entity.ToIndex());
 
         const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
         const ID<Material> material_id = mesh_component.material.GetID();

@@ -15,6 +15,9 @@
 
 #include <Types.hpp>
 
+// Leave enabled unless you want to crash the engine
+#define HYP_DELEGATE_THREAD_SAFE
+
 namespace hyperion {
 
 namespace functional {
@@ -247,7 +250,10 @@ public:
     {
         const uint id = m_id_generator.NextID();
 
+#ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
+#endif
+
         m_procs.Insert({ id, RC<ProcType>::Construct(std::move(proc)) });
 
         return CreateDelegateHandler(id);
@@ -257,13 +263,13 @@ public:
      *  \return The number of handlers removed. */
     int RemoveAll()
     {
-        m_mutex.Lock();
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        Mutex::Guard guard(m_mutex);
+#endif
 
         const int num_removed = m_procs.Size();
 
         m_procs.Clear();
-
-        m_mutex.Unlock();
 
         m_id_generator.Reset();
 
@@ -297,19 +303,17 @@ public:
      * \return True if the handler was removed, false otherwise. */
     bool Remove(uint id)
     {
-        m_mutex.Lock();
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        Mutex::Guard guard(m_mutex);
+#endif
 
         const auto it = m_procs.Find(id);
 
         if (it == m_procs.End()) {
-            m_mutex.Unlock();
-
             return false;
         }
 
         m_procs.Erase(it);
-
-        m_mutex.Unlock();
 
         m_id_generator.FreeID(id);
 
@@ -327,7 +331,9 @@ public:
         Array<RC<ProcType>> procs_array;
 
         {
+#ifdef HYP_DELEGATE_THREAD_SAFE
             Mutex::Guard guard(m_mutex);
+#endif
 
             // If no handlers are bound, return a default constructed object or void
             if (m_procs.Empty()) {
@@ -397,7 +403,9 @@ private:
     /*! \brief Add a delegate handler to hang around after its DelegateHandler is destructed */
     void DetachDelegateHandler(DelegateHandler &&handler)
     {
+#ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_detached_handlers_mutex);
+#endif
 
         m_detached_handlers.PushBack(std::move(handler));
     }
