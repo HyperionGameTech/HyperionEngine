@@ -22,8 +22,7 @@ struct VisibilityStateSnapshot
     VisibilityStateSnapshot &operator=(VisibilityStateSnapshot &&other) noexcept    = default;
     ~VisibilityStateSnapshot()                                                      = default;
 
-    HYP_FORCE_INLINE
-    bool ValidToParent(const VisibilityStateSnapshot &parent) const
+    HYP_FORCE_INLINE bool ValidToParent(const VisibilityStateSnapshot &parent) const
         { return validity_marker == parent.validity_marker; }
 };
 
@@ -39,15 +38,14 @@ struct VisibilityState
     ~VisibilityState()                                              = default;
 
     /*! \brief Advances the validity marker of all snapshots. */
-    void Next()
+    HYP_FORCE_INLINE void Next()
     {
         for (auto &snapshot : snapshots) {
             snapshot.second.validity_marker++;
         }
     }
 
-    HYP_FORCE_INLINE
-    VisibilityStateSnapshot &GetSnapshot(ID<Camera> id)
+    HYP_FORCE_INLINE VisibilityStateSnapshot &GetSnapshot(ID<Camera> id)
     {
         auto it = snapshots.Find(id);
 
@@ -58,8 +56,7 @@ struct VisibilityState
         return it->second;
     }
 
-    HYP_FORCE_INLINE
-    void SetSnapshot(ID<Camera> id, uint16 validity_marker)
+    HYP_FORCE_INLINE void SetSnapshot(ID<Camera> id, uint16 validity_marker)
     {
         auto it = snapshots.Find(id);
 

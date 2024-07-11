@@ -7,8 +7,11 @@
 #include <asset/serialization/fbom/FBOMEnums.hpp>
 
 #include <core/utilities/UniqueID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/containers/String.hpp>
+
+#include <core/Defines.hpp>
 
 #include <HashCode.hpp>
 
@@ -22,8 +25,6 @@ class FBOMReader;
 class HYP_API IFBOMSerializable
 {
 public:
-    virtual ~IFBOMSerializable() = default;
-
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const = 0;
     
     virtual UniqueID GetUniqueID() const = 0;

@@ -25,8 +25,6 @@
 #include <asset/serialization/fbom/FBOMObject.hpp>
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMType.hpp>
-#include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 #include <asset/serialization/fbom/FBOMStaticData.hpp>
 
@@ -83,6 +81,7 @@ class FBOMObject;
 class FBOMReader;
 class FBOMWriter;
 class FBOMArray;
+class FBOMData;
 
 class HypClassInstanceMarshal;
 

@@ -44,8 +44,9 @@ namespace fbom {
 class FBOMObject;
 class FBOMArray;
 
-struct HYP_API FBOMData : public IFBOMSerializable
+class HYP_API FBOMData : public IFBOMSerializable
 {
+public:
     FBOMData();
     FBOMData(const FBOMType &type);
     FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer);
@@ -109,9 +110,7 @@ struct HYP_API FBOMData : public IFBOMSerializable
         FBOMData data(type); \
         data.SetBytes(sizeof(c_type), &value); \
         return data; \
-    } \
-    explicit FBOMData(const c_type &value) : FBOMData(From##type_name(value)) { } \
-    explicit FBOMData(c_type &&value) : FBOMData(From##type_name(std::move(value))) { }
+    }
 
     FBOM_TYPE_FUNCTIONS(UnsignedInt, uint32)
     FBOM_TYPE_FUNCTIONS(UnsignedLong, uint64)
@@ -146,7 +145,7 @@ struct HYP_API FBOMData : public IFBOMSerializable
 
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 
-        const auto total_size = TotalSize();
+        const SizeType total_size = TotalSize();
         char *ch = new char[total_size + 1];
 
         ReadBytes(total_size, ch);
@@ -194,15 +193,13 @@ struct HYP_API FBOMData : public IFBOMSerializable
         FBOM_RETURN_OK;
     }
     
-    HYP_FORCE_INLINE static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
+    static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
     {
         FBOMData data(FBOMByteBuffer(byte_buffer.Size()));
         data.SetBytes(byte_buffer.Size(), byte_buffer.Data());
 
         return data;
     }
-
-    explicit FBOMData(const ByteBuffer &byte_buffer) : FBOMData(FromByteBuffer(byte_buffer)) { }
 
 #pragma endregion ByteBuffer
 
@@ -274,8 +271,6 @@ struct HYP_API FBOMData : public IFBOMSerializable
         return data;
     }
 
-    explicit FBOMData(Name name) : FBOMData(FromName(name)) { }
-
 #pragma endregion Name
 
 #pragma region Sequence
@@ -301,7 +296,7 @@ struct HYP_API FBOMData : public IFBOMSerializable
             return 0;
         }
 
-        const auto held_type_size = held_type.size;
+        const SizeType held_type_size = held_type.size;
         
         if (held_type_size == 0) {
             return 0;
@@ -333,8 +328,6 @@ struct HYP_API FBOMData : public IFBOMSerializable
     static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = false);
     static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = false);
 
-    explicit FBOMData(const FBOMObject &object) : FBOMData(FromObject(object)) { }
-
 #pragma endregion Object
 
 #pragma region Array
@@ -344,8 +337,6 @@ struct HYP_API FBOMData : public IFBOMSerializable
     FBOMResult ReadArray(FBOMArray &out_array) const;
     
     static FBOMData FromArray(const FBOMArray &array);
-
-    explicit FBOMData(const FBOMArray &array) : FBOMData(FromArray(array)) { }
 
 #pragma endregion Array
     HYP_FORCE_INLINE FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const

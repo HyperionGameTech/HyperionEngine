@@ -916,7 +916,7 @@ struct ParseInteger
 
 #pragma endregion ParseInteger
 
-#pragma MakeStaticString
+#pragma region MakeStaticString
 
 template <class StringType>
 constexpr auto MakeStaticString(StringType str_arg)

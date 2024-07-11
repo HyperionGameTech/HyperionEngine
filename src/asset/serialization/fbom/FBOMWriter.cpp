@@ -667,9 +667,9 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMData &data, UniqueID id,
                 return FBOMResult { FBOMResult::FBOM_ERR, "Unhandled container type" };
             }
         } else {
-            if (size == 0) {
-                return FBOMResult { FBOMResult::FBOM_ERR, "Data size is 0" };
-            }
+            //if (size == 0) {
+            //    return FBOMResult { FBOMResult::FBOM_ERR, "Data size is 0" };
+            //}
 
             // raw bytebuffer - write size and then buffer
             writer_ptr->Write<uint32>(uint32(size));

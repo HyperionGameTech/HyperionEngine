@@ -61,7 +61,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
 static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
 {
     if (camera.GetWidth() == 0 || camera.GetHeight() == 0) {
-        return Matrix4::identity;
+        return Matrix4::Identity();
     }
 
     static const HaltonSequence halton;

@@ -78,7 +78,7 @@ class HypClassPropertySerializer<uint8> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint8 value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromByte(value);
     }
 
     uint8 Deserialize(const fbom::FBOMData &value) const
@@ -99,7 +99,7 @@ class HypClassPropertySerializer<uint32> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint32 value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromUnsignedInt(value);
     }
 
     uint32 Deserialize(const fbom::FBOMData &value) const
@@ -120,7 +120,7 @@ class HypClassPropertySerializer<uint64> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(uint64 value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromUnsignedLong(value);
     }
 
     uint64 Deserialize(const fbom::FBOMData &value) const
@@ -141,7 +141,7 @@ class HypClassPropertySerializer<int32> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(int32 value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromInt(value);
     }
 
     int32 Deserialize(const fbom::FBOMData &value) const
@@ -162,7 +162,7 @@ class HypClassPropertySerializer<int64> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(int64 value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromLong(value);
     }
 
     int64 Deserialize(const fbom::FBOMData &value) const
@@ -183,7 +183,7 @@ class HypClassPropertySerializer<float> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(float value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromFloat(value);
     }
 
     float Deserialize(const fbom::FBOMData &value) const
@@ -204,7 +204,7 @@ class HypClassPropertySerializer<bool> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(bool value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromBool(value);
     }
 
     bool Deserialize(const fbom::FBOMData &value) const
@@ -225,7 +225,7 @@ class HypClassPropertySerializer<Vec2i> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec2i &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec2i(value);
     }
 
     Vec2i Deserialize(const fbom::FBOMData &value) const
@@ -246,7 +246,7 @@ class HypClassPropertySerializer<Vec3i> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec3i &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec3i(value);
     }
 
     Vec3i Deserialize(const fbom::FBOMData &value) const
@@ -267,7 +267,7 @@ class HypClassPropertySerializer<Vec4i> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec4i &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec4i(value);
     }
 
     Vec4i Deserialize(const fbom::FBOMData &value) const
@@ -288,7 +288,7 @@ class HypClassPropertySerializer<Vec2u> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec2u &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec2u(value);
     }
 
     Vec2u Deserialize(const fbom::FBOMData &value) const
@@ -309,7 +309,7 @@ class HypClassPropertySerializer<Vec3u> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec3u &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec3u(value);
     }
 
     Vec3u Deserialize(const fbom::FBOMData &value) const
@@ -330,7 +330,7 @@ class HypClassPropertySerializer<Vec4u> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec4u &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec4u(value);
     }
 
     Vec4u Deserialize(const fbom::FBOMData &value) const
@@ -351,7 +351,7 @@ class HypClassPropertySerializer<Vec2f> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec2f &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec2f(value);
     }
 
     Vec2f Deserialize(const fbom::FBOMData &value) const
@@ -372,7 +372,7 @@ class HypClassPropertySerializer<Vec3f> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec3f &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec3f(value);
     }
 
     Vec3f Deserialize(const fbom::FBOMData &value) const
@@ -393,7 +393,7 @@ class HypClassPropertySerializer<Vec4f> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Vec4f &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromVec4f(value);
     }
 
     Vec4f Deserialize(const fbom::FBOMData &value) const
@@ -414,7 +414,7 @@ class HypClassPropertySerializer<Matrix3> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Matrix3 &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromMat3f(value);
     }
 
     Matrix3 Deserialize(const fbom::FBOMData &value) const
@@ -435,7 +435,7 @@ class HypClassPropertySerializer<Matrix4> : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const Matrix4 &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromMat4f(value);
     }
 
     Matrix4 Deserialize(const fbom::FBOMData &value) const
@@ -456,7 +456,7 @@ class HypClassPropertySerializer<Quaternion> : public IHypClassPropertySerialize
 public:
     fbom::FBOMData Serialize(const Quaternion &value) const
     {
-        return fbom::FBOMData(value);
+        return fbom::FBOMData::FromQuat4f(value);
     }
 
     Quaternion Deserialize(const fbom::FBOMData &value) const

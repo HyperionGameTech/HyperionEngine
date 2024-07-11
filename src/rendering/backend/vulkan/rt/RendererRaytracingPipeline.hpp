@@ -20,18 +20,18 @@ template <>
 class RaytracingPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
 {
 public:
-    RaytracingPipeline();
-    RaytracingPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table);
+    HYP_API RaytracingPipeline();
+    HYP_API RaytracingPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table);
     RaytracingPipeline(const RaytracingPipeline &other)             = delete;
     RaytracingPipeline &operator=(const RaytracingPipeline &other)  = delete;
-    ~RaytracingPipeline();
+    HYP_API ~RaytracingPipeline();
 
-    Result Create(Device<Platform::VULKAN> *device);
-    Result Destroy(Device<Platform::VULKAN> *device);
+    HYP_API Result Create(Device<Platform::VULKAN> *device);
+    HYP_API Result Destroy(Device<Platform::VULKAN> *device);
 
-    void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
+    HYP_API void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
     
-    void TraceRays(
+    HYP_API void TraceRays(
         Device<Platform::VULKAN> *device,
         CommandBuffer<Platform::VULKAN> *command_buffer,
         Extent3D extent

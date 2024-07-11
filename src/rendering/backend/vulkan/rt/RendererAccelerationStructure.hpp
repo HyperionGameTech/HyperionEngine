@@ -48,7 +48,7 @@ public:
 
     static constexpr PlatformType platform = PLATFORM;
 
-    AccelerationGeometry(
+    HYP_API AccelerationGeometry(
         const Array<PackedVertex> &packed_vertices,
         const Array<uint32> &packed_indices,
         uint entity_index,
@@ -57,39 +57,39 @@ public:
 
     AccelerationGeometry(const AccelerationGeometry &other)             = delete;
     AccelerationGeometry &operator=(const AccelerationGeometry &other)  = delete;
-    ~AccelerationGeometry();
+    HYP_API ~AccelerationGeometry();
 
-    const Array<PackedVertex> &GetPackedVertices() const
+    HYP_FORCE_INLINE const Array<PackedVertex> &GetPackedVertices() const
         { return m_packed_vertices; }
 
-    const Array<uint32> &GetPackedIndices() const
+    HYP_FORCE_INLINE const Array<uint32> &GetPackedIndices() const
         { return m_packed_indices; }
 
-    const GPUBufferRef<PLATFORM> &GetPackedVertexStorageBuffer() const
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedVertexStorageBuffer() const
         { return m_packed_vertex_buffer; }
 
-    const GPUBufferRef<PLATFORM> &GetPackedIndexStorageBuffer() const
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedIndexStorageBuffer() const
         { return m_packed_index_buffer; }
 
-    uint GetEntityIndex() const
+    HYP_FORCE_INLINE uint GetEntityIndex() const
         { return m_entity_index; }
 
     // must set proper flag on the parent BLAS
     // for it to take effect
-    void SetEntityIndex(uint entity_index)
+    HYP_FORCE_INLINE void SetEntityIndex(uint entity_index)
         { m_entity_index = entity_index; }
 
-    uint GetMaterialIndex() const
+    HYP_FORCE_INLINE uint GetMaterialIndex() const
         { return m_material_index; }
 
     // must set proper flag on the parent BLAS
     // for it to take effect
-    void SetMaterialIndex(uint material_index)
+    HYP_FORCE_INLINE void SetMaterialIndex(uint material_index)
         { m_material_index = material_index; }
 
-    Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
+    HYP_API Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
     /* Remove from the parent acceleration structure */
-    Result Destroy(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
 
 private:
     Array<PackedVertex>                         m_packed_vertices;
@@ -110,63 +110,57 @@ class AccelerationStructure
 public:
     static constexpr PlatformType platform = PLATFORM;
 
-    AccelerationStructure(const Matrix4 &transform = Matrix4::identity);
+    HYP_API AccelerationStructure(const Matrix4 &transform = Matrix4::Identity());
     AccelerationStructure(const AccelerationStructure &other)               = delete;
     AccelerationStructure &operator=(const AccelerationStructure &other)    = delete;
-    ~AccelerationStructure();
+    HYP_API ~AccelerationStructure();
 
-    const GPUBufferRef<PLATFORM> &GetBuffer() const
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetBuffer() const
         { return m_buffer; }
 
-    VkAccelerationStructureKHR &GetAccelerationStructure()
+    HYP_FORCE_INLINE const VkAccelerationStructureKHR &GetAccelerationStructure() const
         { return m_acceleration_structure; }
 
-    const VkAccelerationStructureKHR &GetAccelerationStructure() const
-        { return m_acceleration_structure; }
-
-    uint64 GetDeviceAddress() const
+    HYP_FORCE_INLINE uint64 GetDeviceAddress() const
         { return m_device_address; }
 
-    AccelerationStructureFlags GetFlags() const
+    HYP_FORCE_INLINE AccelerationStructureFlags GetFlags() const
         { return m_flags; }
 
-    void SetFlag(AccelerationStructureFlagBits flag)
+    HYP_FORCE_INLINE void SetFlag(AccelerationStructureFlagBits flag)
         { m_flags = AccelerationStructureFlags(m_flags | flag); }
 
-    void ClearFlag(AccelerationStructureFlagBits flag)
+    HYP_FORCE_INLINE void ClearFlag(AccelerationStructureFlagBits flag)
         { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
 
-    Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries()
+    HYP_FORCE_INLINE const Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries() const
         { return m_geometries; }
 
-    const Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries() const
-        { return m_geometries; }
-
-    void AddGeometry(AccelerationGeometryRef<PLATFORM> geometry)
+    HYP_FORCE_INLINE void AddGeometry(AccelerationGeometryRef<PLATFORM> geometry)
         { m_geometries.PushBack(std::move(geometry)); SetNeedsRebuildFlag(); }
 
-    void RemoveGeometry(uint index);
+    HYP_API void RemoveGeometry(uint index);
 
     /*! \brief Remove the geometry from the internal list of Nodes and set a flag that the
      * structure needs to be rebuilt. Will not automatically rebuild.
      */
-    void RemoveGeometry(const AccelerationGeometryRef<PLATFORM> &geometry);
+    HYP_API void RemoveGeometry(const AccelerationGeometryRef<PLATFORM> &geometry);
 
-    const Matrix4 &GetTransform() const
+    HYP_FORCE_INLINE const Matrix4 &GetTransform() const
         { return m_transform; }
 
-    void SetTransform(const Matrix4 &transform)
+    HYP_FORCE_INLINE void SetTransform(const Matrix4 &transform)
         { m_transform = transform; SetTransformUpdateFlag(); }
 
-    Result Destroy(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
 
 protected:
     static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
     
-    void SetTransformUpdateFlag()
+    HYP_FORCE_INLINE void SetTransformUpdateFlag()
         { SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE); }
 
-    void SetNeedsRebuildFlag()
+    HYP_FORCE_INLINE void SetNeedsRebuildFlag()
         { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     Result CreateAccelerationStructure(
@@ -194,17 +188,18 @@ class BottomLevelAccelerationStructure : public AccelerationStructure<PLATFORM>
 public:
     static constexpr PlatformType platform = PLATFORM;
 
-    BottomLevelAccelerationStructure(const Matrix4 &transform = Matrix4::identity);
+    HYP_API BottomLevelAccelerationStructure(const Matrix4 &transform = Matrix4::Identity());
     BottomLevelAccelerationStructure(const BottomLevelAccelerationStructure &other)             = delete;
     BottomLevelAccelerationStructure &operator=(const BottomLevelAccelerationStructure &other)  = delete;
-    ~BottomLevelAccelerationStructure();
+    HYP_API ~BottomLevelAccelerationStructure();
 
-    AccelerationStructureType GetType() const { return AccelerationStructureType::BOTTOM_LEVEL; }
+    HYP_FORCE_INLINE AccelerationStructureType GetType() const
+        { return AccelerationStructureType::BOTTOM_LEVEL; }
     
-    Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
+    HYP_API Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    HYP_API Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
     Result Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
@@ -216,28 +211,29 @@ class TopLevelAccelerationStructure : public AccelerationStructure<PLATFORM>
 public:
     static constexpr PlatformType platform = PLATFORM;
 
-    TopLevelAccelerationStructure();
+    HYP_API TopLevelAccelerationStructure();
     TopLevelAccelerationStructure(const TopLevelAccelerationStructure &other)               = delete;
     TopLevelAccelerationStructure &operator=(const TopLevelAccelerationStructure &other)    = delete;
-    ~TopLevelAccelerationStructure();
+    HYP_API ~TopLevelAccelerationStructure();
 
-    AccelerationStructureType GetType() const { return AccelerationStructureType::TOP_LEVEL; }
+    HYP_FORCE_INLINE AccelerationStructureType GetType() const
+        { return AccelerationStructureType::TOP_LEVEL; }
 
-    const GPUBufferRef<PLATFORM> &GetMeshDescriptionsBuffer() const
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetMeshDescriptionsBuffer() const
         { return m_mesh_descriptions_buffer; }
 
-    void AddBLAS(const BLASRef<PLATFORM> &blas);
-    void RemoveBLAS(const BLASRef<PLATFORM> &blas);
+    HYP_API void AddBLAS(const BLASRef<PLATFORM> &blas);
+    HYP_API void RemoveBLAS(const BLASRef<PLATFORM> &blas);
     
-    Result Create(
+    HYP_API Result Create(
         Device<PLATFORM> *device,
         Instance<PLATFORM> *instance
     );
 
-    Result Destroy(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    HYP_API Result UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
     Result Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
