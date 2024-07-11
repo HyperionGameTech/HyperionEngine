@@ -12,8 +12,8 @@ Object::Object(Class *class_ptr, ManagedObject managed_object)
 {
     AssertThrowMsg(m_class_ptr != nullptr, "Class pointer not set!");
 
-    AssertThrowMsg(m_class_ptr->GetParent() != nullptr, "Class parent not set!");
-    AssertThrowMsg(m_class_ptr->GetParent()->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set on class parent!");
+    AssertThrowMsg(m_class_ptr->GetClassHolder() != nullptr, "Class holder not set!");
+    AssertThrowMsg(m_class_ptr->GetClassHolder()->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set on class parent!");
 
     AssertThrowMsg(m_class_ptr->GetNewObjectFunction() != nullptr, "New object function pointer not set!");
     AssertThrowMsg(m_class_ptr->GetFreeObjectFunction() != nullptr, "Free object function pointer not set!");
@@ -30,7 +30,7 @@ void *Object::InvokeMethod(const ManagedMethod *method_ptr, void **args_vptr, vo
 {
     m_class_ptr->EnsureLoaded();
 
-    return m_class_ptr->GetParent()->GetInvokeMethodFunction()(method_ptr->guid, m_managed_object.guid, args_vptr, return_value_vptr);
+    return m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->guid, m_managed_object.guid, args_vptr, return_value_vptr);
 }
 
 const ManagedMethod *Object::GetMethod(const String &method_name) const

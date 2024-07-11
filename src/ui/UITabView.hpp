@@ -13,7 +13,7 @@ class UIText;
 
 #pragma region UITab
 
-class HYP_API UITab : public UIPanel
+class HYP_API UITab : public UIObject
 {
 public:
     UITab(UIStage *stage, NodeProxy node_proxy);

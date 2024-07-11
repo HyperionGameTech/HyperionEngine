@@ -62,12 +62,26 @@ HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid
     // @TODO: Store the assembly guid somewhere
 }
 
-HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, int32 type_hash, const char *type_name, ManagedClass *out_managed_class)
+HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, int32 type_hash, const char *type_name, Class *parent_class, ManagedClass *out_managed_class)
 {
     AssertThrow(assembly_guid != nullptr);
     AssertThrow(class_holder != nullptr);
 
-    Class *class_object = class_holder->GetOrCreateClassObject(type_hash, type_name);
+    Class *class_object = class_holder->NewClass(type_hash, type_name, parent_class);
+
+    *out_managed_class = ManagedClass { type_hash, class_object, *assembly_guid };
+}
+
+HYP_EXPORT bool ManagedClass_FindByTypeHash(ManagedGuid *assembly_guid, ClassHolder *class_holder, int32 type_hash, ManagedClass *out_managed_class)
+{
+    AssertThrow(assembly_guid != nullptr);
+    AssertThrow(class_holder != nullptr);
+
+    Class *class_object = class_holder->FindClassByTypeHash(type_hash);
+
+    if (!class_object) {
+        return false;
+    }
 
     *out_managed_class = ManagedClass { type_hash, class_object, *assembly_guid };
 }

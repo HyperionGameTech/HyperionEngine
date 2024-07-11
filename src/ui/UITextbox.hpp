@@ -22,17 +22,10 @@ public:
     UITextbox &operator=(UITextbox &&other) noexcept    = delete;
     virtual ~UITextbox() override                       = default;
 
-    /*! \brief Gets the text value of the textbox.
-     * 
-     * \return The text value of the textbox. */
-    HYP_FORCE_INLINE
-    const String &GetText() const
-        { return m_text; }
-
     /*! \brief Sets the text value of the textbox.
      * 
      * \param text The text to set. */
-    void SetText(const String &text);
+    virtual void SetText(const String &text) override;
 
     virtual void Init() override;
 
@@ -42,7 +35,6 @@ protected:
 
     void UpdateCursor();
 
-    String          m_text;
     RC<UIText>      m_text_element;
     RC<UIObject>    m_cursor_element;
 

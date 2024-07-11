@@ -6,10 +6,11 @@
 #include <Engine.hpp>
 #include <Types.hpp>
 
-#include <core/containers/HashMap.hpp>
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
+#include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
+#include <core/utilities/StringView.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
@@ -60,9 +61,10 @@ public:
     using NewObjectFunction = ManagedObject(*)(void);
     using FreeObjectFunction = void(*)(ManagedObject);
 
-    Class(ClassHolder *parent, String name)
-        : m_parent(parent),
+    Class(ClassHolder *class_holder, String name, Class *parent_class)
+        : m_class_holder(class_holder),
           m_name(std::move(name)),
+          m_parent_class(parent_class),
           m_new_object_fptr(nullptr)
     {
     }
@@ -76,8 +78,11 @@ public:
     const String &GetName() const
         { return m_name; }
 
-    ClassHolder *GetParent() const
-        { return m_parent; }
+    Class *GetParentClass() const
+        { return m_parent_class; }
+
+    ClassHolder *GetClassHolder() const
+        { return m_class_holder; }
 
     NewObjectFunction GetNewObjectFunction() const
         { return m_new_object_fptr; }
@@ -157,6 +162,22 @@ public:
      */
     UniquePtr<Object> NewObject();
 
+    /*! \brief Check if this class has a parent class with the given name.
+     *
+     *  \param parent_class_name The name of the parent class to check.
+     *
+     *  \return True if this class has the parent class, otherwise false.
+     */
+    bool HasParentClass(UTF8StringView parent_class_name) const;
+
+    /*! \brief Check if this class has \ref{parent_class} as a parent class.
+     *
+     *  \param parent_class The parent class to check.
+     *
+     *  \return True if this class has the parent class, otherwise false.
+     */
+    bool HasParentClass(const Class *parent_class) const;
+
     template <class ReturnType, class... Args>
     ReturnType InvokeStaticMethod(const String &method_name, Args &&... args)
     {
@@ -184,9 +205,10 @@ private:
     void *InvokeStaticMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr);
 
     String                          m_name;
+    Class                           *m_parent_class;
     HashMap<String, ManagedMethod>  m_methods;
 
-    ClassHolder                     *m_parent;
+    ClassHolder                     *m_class_holder;
 
     NewObjectFunction               m_new_object_fptr;
     FreeObjectFunction              m_free_object_fptr;

@@ -14,7 +14,7 @@ namespace hyperion {
 #pragma region UITab
 
 UITab::UITab(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::TAB)
+    : UIObject(parent, std::move(node_proxy), UIObjectType::TAB)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::TOP | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
@@ -23,7 +23,7 @@ UITab::UITab(UIStage *parent, NodeProxy node_proxy)
 
 void UITab::Init()
 {
-    UIPanel::Init();
+    UIObject::Init();
 
     RC<UIText> title_text = GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Title", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
     title_text->SetParentAlignment(UIObjectAlignment::CENTER);

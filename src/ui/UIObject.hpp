@@ -407,6 +407,14 @@ public:
      *  \param text_color The text color of the UI object */
     void SetTextColor(const Color &text_color);
 
+    /*! \brief Gets the text to render.
+     * 
+     * \return The text to render. */
+    HYP_FORCE_INLINE const String &GetText() const
+        { return m_text; }
+
+    virtual void SetText(const String &text);
+
     /*! \brief Check if the UI object is set to visible or not. This does not include computed visibility.
      *  \returns True if the object is visible, false otherwise. */ 
     bool IsVisible() const;
@@ -625,6 +633,11 @@ protected:
     Array<RC<UIObject>> GetChildUIObjects(bool deep) const;
     Array<RC<UIObject>> GetChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const;
 
+    virtual void SetStage_Internal(UIStage *stage);
+
+    void OnFontAtlasUpdate();
+    virtual void OnFontAtlasUpdate_Internal() { }
+
     UIStage                         *m_stage;
 
     Name                            m_name;
@@ -655,6 +668,8 @@ protected:
 
     Color                           m_background_color;
     Color                           m_text_color;
+
+    String                          m_text;
 
     UniquePtr<UIDataSourceBase>     m_data_source;
     DelegateHandler                 m_data_source_on_change_handler;

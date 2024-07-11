@@ -703,6 +703,11 @@ void UIObject::SetTextColor(const Color &text_color)
     UpdateMaterial();
 }
 
+void UIObject::SetText(const String &text)
+{
+    m_text = text;
+}
+
 bool UIObject::IsVisible() const
 {
     return m_is_visible;
@@ -1394,10 +1399,10 @@ void UIObject::UpdateMaterial(bool update_children)
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
-            child->UpdateMaterial(false);
+            child->UpdateMaterial();
 
             return UIObjectIterationResult::CONTINUE;
-        });
+        }, false);
     }
 
     const Scene *scene = GetScene();
@@ -1730,12 +1735,38 @@ void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
 {
     HYP_SCOPE;
     
-    ForEachChildUIObject([stage](const RC<UIObject> &ui_object)
+    ForEachChildUIObject([this, stage](const RC<UIObject> &ui_object)
     {
-        ui_object->m_stage = stage;
+        if (ui_object == this) {
+            return UIObjectIterationResult::CONTINUE;
+        }
+
+        ui_object->SetStage_Internal(stage);
 
         return UIObjectIterationResult::CONTINUE;
-    });
+    }, false);
+}
+
+void UIObject::SetStage_Internal(UIStage *stage)
+{
+    HYP_SCOPE;
+    
+    m_stage = stage;
+
+    SetAllChildUIObjectsStage(stage);
+}
+
+void UIObject::OnFontAtlasUpdate()
+{
+    HYP_SCOPE;
+    
+    // Update font atlas for all children
+    ForEachChildUIObject([](const RC<UIObject> &child)
+    {
+        child->OnFontAtlasUpdate_Internal();
+
+        return UIObjectIterationResult::CONTINUE;
+    }, true);
 }
 
 void UIObject::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)

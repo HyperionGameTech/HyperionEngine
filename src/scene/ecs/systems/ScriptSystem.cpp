@@ -87,10 +87,18 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
 
     if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path)) {
         if (dotnet::Class *class_ptr = assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
+            HYP_LOG(Script, LogLevel::INFO, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
+
+            if (!class_ptr->HasParentClass("Script")) {
+                HYP_LOG(Script, LogLevel::ERROR, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", script_component.script.class_name, script_component.script.assembly_path);
+
+                return;
+            }
+
             script_component.object = class_ptr->NewObject();
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
-                if (auto *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
+                if (dotnet::ManagedMethod *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
 
                     script_component.object->InvokeMethod<void, ManagedHandle>(
@@ -103,7 +111,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             }
 
             if (!(script_component.flags & ScriptComponentFlags::INIT_CALLED)) {
-                if (auto *init_method_ptr = class_ptr->GetMethod("Init")) {
+                if (dotnet::ManagedMethod *init_method_ptr = class_ptr->GetMethod("Init")) {
                     HYP_NAMED_SCOPE("Call Init() on script component");
 
                     script_component.object->InvokeMethod<void, ManagedEntity>(

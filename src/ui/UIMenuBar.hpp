@@ -24,7 +24,7 @@ struct DropDownMenuItem
 
 #pragma region UIMenuItem
 
-class HYP_API UIMenuItem : public UIPanel
+class HYP_API UIMenuItem : public UIObject
 {
 public:
     UIMenuItem(UIStage *stage, NodeProxy node_proxy);
@@ -34,51 +34,37 @@ public:
     UIMenuItem &operator=(UIMenuItem &&other) noexcept  = delete;
     virtual ~UIMenuItem() override                      = default;
 
-    /*! \brief Gets the text of the menu item.
-     * 
-     * \return The text of the menu item.
-     */
-    HYP_FORCE_INLINE const String &GetText() const
-        { return m_text; }
-
     /*! \brief Sets the text of the menu item.
      * 
      * \param text The text of the menu item.
      */
-    void SetText(const String &text);
+    virtual void SetText(const String &text) override;
 
     /*! \brief Adds a DropDownMenuItem to the menu item.
      *
      * \param item The DropDownMenuItem to add.
      */
-    void AddDropDownMenuItem(DropDownMenuItem &&item);
+    void AddDropDownMenuItem(RC<UIMenuItem> &&item);
 
     /*! \brief Gets the list of DropDownMenuItems.
      * 
      * \return The array of DropDownMenuItems.
      */
-    HYP_FORCE_INLINE const Array<DropDownMenuItem> &GetDropDownMenuItems() const
-        { return m_drop_down_menu_items; }
+    HYP_FORCE_INLINE const Array<RC<UIMenuItem>> &GetDropDownMenuItems() const
+        { return m_menu_items; }
 
     /*! \brief Sets the list of DropDownMenuItems.
      * 
      * \param items The array of DropDownMenuItems.
      */
-    void SetDropDownMenuItems(Array<DropDownMenuItem> items);
+    void SetDropDownMenuItems(Array<RC<UIMenuItem>> &&items);
 
     /*! \brief Get a dropdown menu item by name.
      *
      * \param name The name of the dropdown menu item.
-     * \return The dropdown menu item.
+     * \return The dropdown menu item, or nullptr if it was not found.
      */
-    DropDownMenuItem *GetDropDownMenuItem(Name name);
-
-    /*! \brief Get a dropdown menu item by name.
-     *
-     * \param name The name of the dropdown menu item.
-     * \return The dropdown menu item.
-     */
-    const DropDownMenuItem *GetDropDownMenuItem(Name name) const;
+    RC<UIMenuItem> GetDropDownMenuItem(Name name) const;
 
     /*! \brief Gets the drop down menu element.
      * 
@@ -92,14 +78,16 @@ public:
 
     virtual void Init() override;
 
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
 private:
     void UpdateDropDownMenu();
 
-    String                  m_text;
-    Array<DropDownMenuItem> m_drop_down_menu_items;
+    Array<RC<UIMenuItem>>   m_menu_items;
 
     RC<UIText>              m_text_element;
     RC<UIPanel>             m_drop_down_menu;
@@ -169,6 +157,10 @@ public:
      * \return True if the menu item was removed, false otherwise.
      */
     bool RemoveMenuItem(Name name);
+
+    // overloads to allow adding a UIMenuItem
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 protected:
     virtual void OnRemoved_Internal() override;

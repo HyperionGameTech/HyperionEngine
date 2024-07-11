@@ -131,23 +131,6 @@ Result RenderCommands::Flush()
     return Result { };
 }
 
-Result RenderCommands::FlushOrWait()
-{
-    HYP_SCOPE;
-
-    if (Count() == 0) {
-        HYPERION_RETURN_OK;
-    }
-
-    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-        return Flush();
-    }
-
-    Wait();
-
-    HYPERION_RETURN_OK;
-}
-
 void RenderCommands::Wait()
 {
     HYP_SCOPE;

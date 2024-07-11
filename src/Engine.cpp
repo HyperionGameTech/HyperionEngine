@@ -571,6 +571,10 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
+    // Add/remove pending descriptor sets before flushing render commands or updating buffers and descriptor sets.
+    // otherwise we'll have an issue when render commands expect the descriptor sets to be there.
+    m_material_descriptor_set_manager.UpdatePendingDescriptorSets(frame);
+
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 
     UpdateBuffersAndDescriptors(frame);
@@ -604,7 +608,6 @@ void Engine::UpdateBuffersAndDescriptors(Frame *frame)
     m_deferred_renderer->GetPostProcessing().PerformUpdates();
 
     m_material_descriptor_set_manager.Update(frame);
-
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame_index));
 
     RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();

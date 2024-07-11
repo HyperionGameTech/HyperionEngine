@@ -59,15 +59,17 @@ bool ClassHolder::CheckAssemblyLoaded() const
     return false;
 }
 
-Class *ClassHolder::GetOrCreateClassObject(int32 type_hash, const char *type_name)
+Class *ClassHolder::NewClass(int32 type_hash, const char *type_name, Class *parent_class)
 {
     auto it = m_class_objects.Find(type_hash);
 
     if (it != m_class_objects.End()) {
+        HYP_LOG(DotNET, LogLevel::WARNING, "Class {} already exists in class holder!", type_name);
+
         return it->second.Get();
     }
 
-    it = m_class_objects.Insert(type_hash, UniquePtr<Class>::Construct(this, type_name)).first;
+    it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class))).first;
 
     return it->second.Get();
 }
@@ -78,6 +80,17 @@ Class *ClassHolder::FindClassByName(const char *type_name)
         if (pair.second->GetName() == type_name) {
             return pair.second.Get();
         }
+    }
+
+    return nullptr;
+}
+
+Class *ClassHolder::FindClassByTypeHash(int32 type_hash)
+{
+    auto it = m_class_objects.Find(type_hash);
+
+    if (it != m_class_objects.End()) {
+        return it->second.Get();
     }
 
     return nullptr;

@@ -75,21 +75,18 @@ public:
     /*! \brief Get the size of the surface that the UI objects are rendered on.
      * 
      *  \return The size of the surface. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Vec2i GetSurfaceSize() const
+    HYP_FORCE_INLINE Vec2i GetSurfaceSize() const
         { return m_surface_size; }
 
     /*! \brief Get the scene that contains the UI objects.
      * 
      *  \return Handle to the scene. */
-    HYP_NODISCARD 
     virtual Scene *GetScene() const override;
 
     /*! \brief Get the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      * 
      *  \return The default font atlas. */
-    HYP_NODISCARD 
     const RC<FontAtlas> &GetDefaultFontAtlas() const;
 
     /*! \brief Set the default font atlas to use for text rendering.
@@ -101,9 +98,7 @@ public:
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \note Because the focused object is a weak reference, a lock is required to access the object.
      *  \return The focused UI object. */
-    HYP_NODISCARD 
-    HYP_FORCE_INLINE
-    RC<UIObject> GetFocusedObject() const
+    HYP_FORCE_INLINE RC<UIObject> GetFocusedObject() const
         { return m_focused_object.Lock(); }
 
     /*! \brief Create a UI object of type T and optionally attach it to the root.
@@ -115,16 +110,13 @@ public:
      *  \param attach_to_root Whether to attach the UI object to the root of the UI scene immediately.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD
-    RC<T> CreateUIObject(
+    HYP_NODISCARD RC<T> CreateUIObject(
         Vec2i position,
         UIObjectSize size,
         bool attach_to_root = false
     )
     {
-        static const Name default_name = NAME("Unnamed_UIObject");
-
-        return CreateUIObject<T>(default_name, position, size, attach_to_root);
+        return CreateUIObject<T>(Name::Invalid(), position, size, attach_to_root);
     }
 
     /*! \brief Create a UI object of type T and optionally attach it to the root.
@@ -136,8 +128,7 @@ public:
      *  \param attach_to_root Whether to attach the UI object to the root of the UI scene immediately.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD
-    RC<T> CreateUIObject(
+    HYP_NODISCARD RC<T> CreateUIObject(
         Name name,
         Vec2i position,
         UIObjectSize size,
@@ -148,6 +139,10 @@ public:
 
         AssertThrow(IsInit());
         AssertThrow(GetNode().IsValid());
+
+        if (!name.IsValid()) {
+            name = NAME("Unnamed_UIObject");
+        }
 
         NodeProxy node_proxy(new Node(name.LookupString()));
         
@@ -184,7 +179,6 @@ public:
      *  thread than the one specified. This method is not thread-safe. */
     void SetOwnerThreadID(ThreadID thread_id);
 
-    HYP_NODISCARD
     virtual bool IsContainer() const override
         { return true; }
 
@@ -198,6 +192,8 @@ protected:
     
     // Override OnRemoved_Internal to update subobjects to have this as a stage
     virtual void OnRemoved_Internal() override;
+
+    virtual void SetStage_Internal(UIStage *stage) override;
 
 private:
     virtual void ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner) override;

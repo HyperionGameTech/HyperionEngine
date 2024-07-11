@@ -55,16 +55,10 @@ public:
 
     virtual void Init() override;
 
-    /*! \brief Gets the text to render.
-     * 
-     * \return The text to render. */
-    HYP_FORCE_INLINE const String &GetText() const
-        { return m_text; }
-
     /*! \brief Sets the text to render.
      * 
      * \param text The text to set. */
-    void SetText(const String &text);
+    virtual void SetText(const String &text) override;
 
     /*! \brief Gets the font atlas used for rendering the text, if any.
      * \note If the font atlas is null, the default font atlas from the parent UIStage is used, but not returned from this function.
@@ -106,11 +100,12 @@ protected:
 
     virtual void UpdateSize(bool update_children = true) override;
 
+    virtual void OnFontAtlasUpdate_Internal() override;
+
     void UpdateMesh();
 
     FontAtlas *GetFontAtlasOrDefault() const;
 
-    String          m_text;
     RC<FontAtlas>   m_font_atlas;
 
     UITextOptions   m_options;

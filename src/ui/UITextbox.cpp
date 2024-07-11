@@ -54,9 +54,7 @@ void UITextbox::Init()
 
 void UITextbox::SetText(const String &text)
 {
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    m_text = text;
+    UIObject::SetText(text);
 
     if (m_text_element) {
         m_text_element->SetText(text);

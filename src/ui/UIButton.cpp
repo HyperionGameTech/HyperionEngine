@@ -5,6 +5,9 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -15,6 +18,7 @@ UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 10, 5 });
+    SetBackgroundColor(Vec4f { 0.2f, 0.2f, 0.2f, 1.0f });
 }
 
 void UIButton::Init()
@@ -34,11 +38,18 @@ void UIButton::Init()
 
 void UIButton::SetText(const String &text)
 {
-    m_text = text;
+    UIObject::SetText(text);
 
     if (m_text_element != nullptr) {
         m_text_element->SetText(m_text);
     }
+
+    // If the size is set to AUTO, we need to update the size of the button as the text changes.
+    if (m_size.GetAllFlags() & UIObjectSize::AUTO) {
+        UpdateSize();
+    }
+
+    HYP_LOG(UI, LogLevel::INFO, "Button text set to: {}", m_text);
 }
 
 void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
@@ -47,6 +58,8 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 
     UpdateMaterial(false);
     UpdateMeshData();
+
+    HYP_LOG(UI, LogLevel::INFO, "Button focus state set to: {}", uint(focus_state));
 }
 
 MaterialAttributes UIButton::GetMaterialAttributes() const

@@ -25,6 +25,13 @@ namespace renderer {
 
 using renderer::Result;
 
+enum RenderCommandExecuteStage : uint32
+{
+    EXECUTE_STAGE_BEFORE_BUFFERS,
+    EXECUTE_STAGE_AFTER_BUFFERS,
+    EXECUTE_STAGE_MAX
+};
+
 #define RENDER_COMMAND(name) RenderCommand_##name
 
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
@@ -252,7 +259,6 @@ public:
         { return scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE); }
 
     static Result Flush();
-    static Result FlushOrWait();
     static void Wait();
 
 private:

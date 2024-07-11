@@ -37,6 +37,22 @@ public:
         return *it;
     }
 
+    auto *TryGet(KeyType key)
+    {
+        const auto it = static_cast<Container *>(this)->Find(key);
+        return it != static_cast<Container *>(this)->End()
+            ? &(*it)
+            : nullptr;
+    }
+
+    const auto *TryGet(KeyType key) const
+    {
+        const auto it = static_cast<const Container *>(this)->Find(key);
+        return it != static_cast<const Container *>(this)->End()
+            ? &(*it)
+            : nullptr;
+    }
+
     template <class ValueType>
     void Set(KeyType index, const ValueType &value)
     {

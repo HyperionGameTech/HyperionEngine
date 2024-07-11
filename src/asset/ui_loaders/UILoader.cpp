@@ -197,54 +197,55 @@ public:
         const auto node_create_functions_it = g_node_create_functions.Find(node_name_upper);
 
         if (node_create_functions_it != g_node_create_functions.End()) {
-            // Attributes needed for constructor of UIObject
-            Name ui_object_name;
+            Name ui_object_name = Name::Invalid();
 
-            if (attributes.Contains("name")) {
-                ui_object_name = CreateNameFromDynamicString(ANSIString(attributes.At("name")));
-            } else {
-                ui_object_name = Name::Unique("UIObject");
+            if (const Pair<String, String> *it = attributes.TryGet("name")) {
+                ui_object_name = CreateNameFromDynamicString(ANSIString(it->second));
             }
 
             Vec2i position = Vec2i::Zero();
 
-            if (attributes.Contains("position")) {
-                position = ParseVec2i(attributes.At("position"));
+            if (const Pair<String, String> *it = attributes.TryGet("position")) {
+                position = ParseVec2i(it->second);
             }
 
             UIObjectSize size;
 
-            if (attributes.Contains("size")) {
-                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(attributes.At("size")); parsed_size.HasValue()) {
+            if (const Pair<String, String> *it = attributes.TryGet("size")) {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
                     size = *parsed_size;
                 } else {
-                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid size property: {}", attributes.At("size"));
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid size property: {}", it->second);
                 }
             }
 
             RC<UIObject> ui_object = node_create_functions_it->second(m_ui_stage, ui_object_name, position, size);
 
             // Set properties based on attributes
-            if (attributes.Contains("parentalignment")) {
-                UIObjectAlignment alignment = ParseUIObjectAlignment(attributes.At("parentalignment"));
+            if (const Pair<String, String> *it = attributes.TryGet("parentalignment")) {
+                UIObjectAlignment alignment = ParseUIObjectAlignment(it->second);
 
                 ui_object->SetParentAlignment(alignment);
             }
 
-            if (attributes.Contains("originalignment")) {
-                UIObjectAlignment alignment = ParseUIObjectAlignment(attributes.At("originalignment"));
+            if (const Pair<String, String> *it = attributes.TryGet("originalignment")) {
+                UIObjectAlignment alignment = ParseUIObjectAlignment(it->second);
 
                 ui_object->SetOriginAlignment(alignment);
             }
 
-            if (attributes.Contains("visible")) {
-                if (Optional<bool> parsed_bool = ParseBool(attributes.At("visible")); parsed_bool.HasValue()) {
+            if (const Pair<String, String> *it = attributes.TryGet("visible")) {
+                if (Optional<bool> parsed_bool = ParseBool(it->second); parsed_bool.HasValue()) {
                     ui_object->SetIsVisible(*parsed_bool);
                 }
             }
 
-            if (attributes.Contains("padding")) {
-                ui_object->SetPadding(ParseVec2i(attributes.At("padding")));
+            if (const Pair<String, String> *it = attributes.TryGet("padding")) {
+                ui_object->SetPadding(ParseVec2i(it->second));
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("text")) {
+                ui_object->SetText(it->second);
             }
 
             LastObject()->AddChildUIObject(ui_object.Get());
@@ -277,7 +278,13 @@ public:
         }
     }
 
-    virtual void Characters(const String &value) override {}
+    virtual void Characters(const String &value) override
+    {
+        UIObject *last_object = LastObject();
+
+        last_object->SetText(value);
+    }
+
     virtual void Comment(const String &comment) override {}
 
 private:

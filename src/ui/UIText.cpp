@@ -179,8 +179,7 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
 #pragma region UIText
 
 UIText::UIText(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UIObjectType::TEXT),
-      m_text("No text set")
+    : UIObject(parent, std::move(node_proxy), UIObjectType::TEXT)
 {
     m_text_color = Color(Vec4f::One());
 }
@@ -194,7 +193,7 @@ void UIText::Init()
 
 void UIText::SetText(const String &text)
 {
-    m_text = text;
+    UIObject::SetText(text);
 
     UpdateMesh();
 }
@@ -275,6 +274,8 @@ Material::TextureSet UIText::GetMaterialTextures() const
         };
     }
 
+    HYP_LOG(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
+
     return UIObject::GetMaterialTextures();
 }
 
@@ -309,6 +310,14 @@ void UIText::UpdateSize(bool update_children)
 BoundingBox UIText::CalculateAABB() const
 {
     return m_text_aabb;
+}
+
+void UIText::OnFontAtlasUpdate_Internal()
+{
+    UIObject::OnFontAtlasUpdate_Internal();
+
+    UpdateMesh();
+    UpdateMaterial(false);
 }
 
 #pragma endregion UIText

@@ -343,7 +343,7 @@ public:
     void UpdateEditorCamera(GameCounter::TickUnit delta);
 
 private:
-    void CreateFontAtlas();
+    RC<FontAtlas> CreateFontAtlas();
     void CreateMainPanel();
     RC<UIObject> CreateSceneOutline();
     RC<UIObject> CreateDetailView();
@@ -365,29 +365,43 @@ private:
     Delegate<void, const NodeProxy &, const NodeProxy &>    OnFocusedNodeChanged;
 };
 
-void HyperionEditorImpl::CreateFontAtlas()
+RC<FontAtlas> HyperionEditorImpl::CreateFontAtlas()
 {
     auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (!font_face_asset.IsOK()) {
         HYP_LOG(Editor, LogLevel::ERR, "Failed to load font face!");
 
-        return;
+        return nullptr;
     }
 
     RC<FontAtlas> atlas(new FontAtlas(std::move(font_face_asset.Result())));
     atlas->Render();
 
-    GetUIStage()->SetDefaultFontAtlas(std::move(atlas));
+    return atlas;
 }
 
 void HyperionEditorImpl::CreateMainPanel()
 {
-#if 0
-    if (RC<UIObject> loaded_ui = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml")) {
+    RC<FontAtlas> font_atlas = CreateFontAtlas();
+    GetUIStage()->SetDefaultFontAtlas(font_atlas);
+
+#if 1
+    if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
+        auto loaded_ui = loaded_ui_asset.Result();
+
         if (loaded_ui.Is<UIStage>()) {
             loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
         }
+
+
+        auto game_tab_content_button = loaded_ui.Cast<UIStage>()->CreateUIObject<UIButton>(CreateNameFromDynamicString("Hello_world_button"), Vec2i { 100, 300 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
+        // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
+        // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
+        game_tab_content_button->SetText("Hello");
+        loaded_ui->AddChildUIObject(game_tab_content_button);
+
+        loaded_ui.Cast<UIStage>()->SetDefaultFontAtlas(font_atlas);
 
         // auto main_menu = loaded_ui->FindChildUIObject(NAME("Main_MenuBar"));
 
@@ -399,9 +413,9 @@ void HyperionEditorImpl::CreateMainPanel()
         // DebugLog(LogType::Debug, "Loaded UI: %s\n", *loaded_ui->GetName());
 
         GetUIStage()->AddChildUIObject(loaded_ui);
-
-        loaded_ui.Cast<UIStage>()->SetDefaultFontAtlas(GetUIStage()->GetDefaultFontAtlas());
     }
+
+    return;
 #else
 
     m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Main_Panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
@@ -902,7 +916,6 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
 void HyperionEditorImpl::Initialize()
 {
-    CreateFontAtlas();
     CreateMainPanel();
     CreateInitialState();
 

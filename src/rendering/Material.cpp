@@ -117,6 +117,29 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateMaterialDescriptorSet) : renderer::RenderCommand
+{
+    ID<Material>                                    id;
+    FixedArray<Handle<Texture>, max_bound_textures> textures;
+
+    RENDER_COMMAND(CreateMaterialDescriptorSet)(
+        ID<Material> id,
+        FixedArray<Handle<Texture>, max_bound_textures> &&textures
+    ) : id(id),
+        textures(std::move(textures))
+    {
+    }
+
+    virtual ~RENDER_COMMAND(CreateMaterialDescriptorSet)() override = default;
+
+    virtual Result operator()() override
+    {
+        g_engine->GetMaterialDescriptorSetManager().AddMaterial(id, std::move(textures));
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 {
     ID<Material>    id;
@@ -212,6 +235,8 @@ Material::Material(
 
 Material::~Material()
 {
+    HYP_LOG(Material, LogLevel::DEBUG, "Destroying material with ID #{} (name: {})", GetID().Value(), GetName());
+
     SetReady(false);
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
@@ -282,7 +307,11 @@ void Material::EnqueueDescriptorSetCreate()
         }
     }
 
-    g_engine->GetMaterialDescriptorSetManager().AddMaterial(GetID(), std::move(texture_bindings));
+    PUSH_RENDER_COMMAND(
+        CreateMaterialDescriptorSet,
+        GetID(),
+        std::move(texture_bindings)
+    );
 }
 
 void Material::EnqueueDescriptorSetDestroy()
@@ -350,6 +379,8 @@ void Material::EnqueueRenderUpdates()
 
 void Material::EnqueueTextureUpdate(TextureKey key)
 {
+    AssertReady();
+
     const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
     const Handle<Texture> &texture = m_textures.Get(key);
@@ -914,32 +945,11 @@ void MaterialDescriptorSetManager::Initialize()
     CreateInvalidMaterialDescriptorSet();
 }
 
-void MaterialDescriptorSetManager::Update(Frame *frame)
+void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
-
-    const uint descriptor_sets_to_update_flag = m_descriptor_sets_to_update_flag.Get(MemoryOrder::ACQUIRE);
-
-    if (descriptor_sets_to_update_flag & (1u << frame_index)) {
-        Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
-
-        for (ID<Material> id : m_descriptor_sets_to_update[frame_index]) {
-            const auto it = m_material_descriptor_sets.Find(id);
-
-            if (it == m_material_descriptor_sets.End()) {
-                continue;
-            }
-
-            AssertThrow(it->second[frame_index].IsValid());
-            it->second[frame_index]->Update(g_engine->GetGPUDevice());
-        }
-
-        m_descriptor_sets_to_update[frame_index].Clear();
-
-        m_descriptor_sets_to_update_flag.BitAnd(~(1u << frame_index), MemoryOrder::RELEASE);
-    }
 
     if (!m_pending_addition_flag.Get(MemoryOrder::ACQUIRE)) {
         return;
@@ -976,6 +986,34 @@ void MaterialDescriptorSetManager::Update(Frame *frame)
     }
 
     m_pending_addition_flag.Set(false, MemoryOrder::RELEASE);
+}
+
+void MaterialDescriptorSetManager::Update(Frame *frame)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    const uint frame_index = frame->GetFrameIndex();
+
+    const uint descriptor_sets_to_update_flag = m_descriptor_sets_to_update_flag.Get(MemoryOrder::ACQUIRE);
+
+    if (descriptor_sets_to_update_flag & (1u << frame_index)) {
+        Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
+
+        for (ID<Material> id : m_descriptor_sets_to_update[frame_index]) {
+            const auto it = m_material_descriptor_sets.Find(id);
+
+            if (it == m_material_descriptor_sets.End()) {
+                continue;
+            }
+
+            AssertThrow(it->second[frame_index].IsValid());
+            it->second[frame_index]->Update(g_engine->GetGPUDevice());
+        }
+
+        m_descriptor_sets_to_update[frame_index].Clear();
+
+        m_descriptor_sets_to_update_flag.BitAnd(~(1u << frame_index), MemoryOrder::RELEASE);
+    }
 }
 
 #pragma endregion MaterialDescriptorSetManager

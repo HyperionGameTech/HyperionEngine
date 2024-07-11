@@ -61,6 +61,10 @@ Scene *UIStage::GetScene() const
 
 const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
 {
+    if (m_default_font_atlas != nullptr) {
+        return m_default_font_atlas;
+    }
+
     // Parent stage
     if (m_stage != nullptr) {
         return m_stage->GetDefaultFontAtlas();
@@ -73,8 +77,7 @@ void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
 {
     m_default_font_atlas = std::move(font_atlas);
     
-    // Force child UIObjects to update their materials
-    UpdateMaterial(true);
+    OnFontAtlasUpdate();
 }
 
 void UIStage::Init()
@@ -175,21 +178,29 @@ void UIStage::OnAttached_Internal(UIObject *parent)
     AssertThrow(parent != nullptr);
     AssertThrow(parent->GetNode() != nullptr);
 
-    UIObject::OnAttached_Internal(parent);
+    // UIObject::OnAttached_Internal(parent);
+
     // Set root to be empty node proxy, now that it is attached to another object.
-    m_scene->SetRoot(NodeProxy::empty);;
+    m_scene->SetRoot(NodeProxy::empty);
 }
 
 void UIStage::OnRemoved_Internal()
 {
     // Remove m_stage parent object
-    UIObject::OnRemoved_Internal();
+    // UIObject::OnRemoved_Internal();
 
     // Set all sub objects to have a m_stage of this
-    UIObject::SetAllChildUIObjectsStage(this);
+    // UIObject::SetAllChildUIObjectsStage(this);
 
     // Re-set scene root to be our node proxy
     m_scene->SetRoot(m_node_proxy);
+}
+
+void UIStage::SetStage_Internal(UIStage *stage)
+{
+    m_stage = stage;
+    
+    // Do not update children
 }
 
 void UIStage::SetOwnerThreadID(ThreadID thread_id)
@@ -232,7 +243,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
         if (aabb.ContainsPoint(direction)) {
             RayHit hit { };
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
-            hit.distance = -float(ui_component.ui_object->GetComputedDepth());
+            hit.distance = float(max_depth - ui_component.ui_object->GetComputedDepth());
             hit.id = entity_id.value;
 
             ray_test_results.AddHit(hit);

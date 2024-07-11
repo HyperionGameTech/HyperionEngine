@@ -20,18 +20,11 @@ public:
     UIButton &operator=(UIButton &&other) noexcept  = delete;
     virtual ~UIButton() override                    = default;
 
-    /*! \brief Gets the text of the button.
-     * 
-     * \return The text of the button.
-     */
-    HYP_FORCE_INLINE const String &GetText() const
-        { return m_text; }
-
     /*! \brief Sets the text of the button.
      * 
      * \param text The text of the button.
      */
-    void SetText(const String &text);
+    virtual void SetText(const String &text) override;
 
     /*! \brief Gets the text element of the button.
      * 
@@ -47,7 +40,6 @@ protected:
 
     virtual MaterialAttributes GetMaterialAttributes() const override;
 
-    String      m_text;
     RC<UIText>  m_text_element;
 };
 

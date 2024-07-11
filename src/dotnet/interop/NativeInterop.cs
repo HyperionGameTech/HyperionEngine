@@ -160,14 +160,28 @@ namespace Hyperion
             }
         }
 
-        private static ManagedClass InitManagedClass(Guid assemblyGuid, IntPtr classHolderPtr, Type type)
+        private static unsafe ManagedClass InitManagedClass(Guid assemblyGuid, IntPtr classHolderPtr, Type type)
         {
-            string typeName = type.Name;
+            ManagedClass managedClass = new ManagedClass();
 
+            if (ManagedClass_FindByTypeHash(ref assemblyGuid, classHolderPtr, type.GetHashCode(), out managedClass))
+            {
+                return managedClass;
+            }
+
+            ManagedClass? parentClass = null;
+
+            Type baseType = type.BaseType;
+
+            if (baseType != null)
+            {
+                parentClass = InitManagedClass(assemblyGuid, classHolderPtr, baseType);
+            }
+
+            string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
-            ManagedClass managedClass = new ManagedClass();
-            ManagedClass_Create(ref assemblyGuid, classHolderPtr, type.GetHashCode(), typeNamePtr, out managedClass);
+            ManagedClass_Create(ref assemblyGuid, classHolderPtr, type.GetHashCode(), typeNamePtr, parentClass?.classObjectPtr ?? IntPtr.Zero, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -371,7 +385,10 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, int typeHash, IntPtr typeNamePtr, IntPtr parentClassPtr, [Out] out ManagedClass result);
+
+        [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
+        private static extern bool ManagedClass_FindByTypeHash(ref Guid assemblyGuid, IntPtr classHolderPtr, int typeHash, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);

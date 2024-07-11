@@ -32,27 +32,19 @@ public:
     ClassHolder &operator=(ClassHolder &&) noexcept = delete;
     ~ClassHolder()                                  = default;
 
-    [[nodiscard]]
     bool CheckAssemblyLoaded() const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Assembly *GetOwnerAssembly() const
+    HYP_FORCE_INLINE Assembly *GetOwnerAssembly() const
         { return m_owner_assembly; }
 
-    [[nodiscard]]
-    Class *GetOrCreateClassObject(int32 type_hash, const char *type_name);
-
-    [[nodiscard]]
+    Class *NewClass(int32 type_hash, const char *type_name, Class *parent_class);
     Class *FindClassByName(const char *type_name);
+    Class *FindClassByTypeHash(int32 type_hash);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    InvokeMethodFunction GetInvokeMethodFunction() const
+    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeMethodFunction() const
         { return m_invoke_method_fptr; }
 
-    HYP_FORCE_INLINE
-    void SetInvokeMethodFunction(InvokeMethodFunction invoke_method_fptr)
+    HYP_FORCE_INLINE void SetInvokeMethodFunction(InvokeMethodFunction invoke_method_fptr)
         { m_invoke_method_fptr = invoke_method_fptr; }
 
 private:

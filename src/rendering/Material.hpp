@@ -653,9 +653,10 @@ public:
     /*! \brief Initialize the MaterialDescriptorSetManager - Only to be used by the owning Engine instance. */
     void Initialize();
 
-    /*! \brief Update the manager. This will process any pending additions or removals
-     *  and update the descriptor sets. Usable from the render thread.
-     */
+    /*! \brief Process any pending additions or removals. Usable from the render thread. */
+    void UpdatePendingDescriptorSets(Frame *frame);
+
+    /*! \brief Update the descriptor sets for the given frame. Usable from the render thread. */
     void Update(Frame *frame);
 
 private:

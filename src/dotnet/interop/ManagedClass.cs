@@ -46,11 +46,11 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential)]
     public struct ManagedClass
     {
-        private int typeHash;
-        private IntPtr classObjectPtr;
-        private Guid assemblyGuid;
-        private Guid newObjectGuid;
-        private Guid freeObjectGuid;
+        internal int typeHash;
+        internal IntPtr classObjectPtr;
+        internal Guid assemblyGuid;
+        internal Guid newObjectGuid;
+        internal Guid freeObjectGuid;
 
         public void AddMethod(string methodName, Guid guid, string[] attributeNames)
         {

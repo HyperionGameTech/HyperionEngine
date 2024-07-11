@@ -303,19 +303,35 @@ public:
      * \return True if the handler was removed, false otherwise. */
     bool Remove(uint id)
     {
+//         { // remove from detached handlers
+// #ifdef HYP_DELEGATE_THREAD_SAFE
+//             Mutex::Guard guard(m_detached_handlers_mutex);
+// #endif
+
+//             for (auto it = m_detached_handlers.Begin(); it != m_detached_handlers.End();) {
+//                 if (it->m_data->id == id) {
+//                     it = m_detached_handlers.Erase(it);
+//                 } else {
+//                     ++it;
+//                 }
+//             }
+//         }
+
+        { // remove bound proc
 #ifdef HYP_DELEGATE_THREAD_SAFE
-        Mutex::Guard guard(m_mutex);
+            Mutex::Guard guard(m_mutex);
 #endif
 
-        const auto it = m_procs.Find(id);
+            const auto it = m_procs.Find(id);
 
-        if (it == m_procs.End()) {
-            return false;
+            if (it == m_procs.End()) {
+                return false;
+            }
+
+            m_procs.Erase(it);
+
+            m_id_generator.FreeID(id);
         }
-
-        m_procs.Erase(it);
-
-        m_id_generator.FreeID(id);
 
         return true;
     }
@@ -328,6 +344,10 @@ public:
     template <class ... ArgTypes>
     ReturnType Broadcast(ArgTypes &&... args)
     {
+        // @TODO refactor to not use reference counted pointers
+        //  - use same array, but just set the procs as invalid when removed
+        //  - then, when broadcasting, just skip the invalid procs
+        //  - after broadcasting, remove the invalid procs from the array
         Array<RC<ProcType>> procs_array;
 
         {
