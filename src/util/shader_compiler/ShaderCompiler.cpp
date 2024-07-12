@@ -1163,7 +1163,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
             results_mutex.lock();
             results[&bundle] = result;
             results_mutex.unlock();
-        }, true);
+        }, false);//true);
     });
 
     bool all_results = true;
@@ -1891,7 +1891,7 @@ bool ShaderCompiler::CompileBundle(
         compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
         compiled_shaders_mutex.unlock();
-    }, true);
+    }, false);//true);
 
     const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 

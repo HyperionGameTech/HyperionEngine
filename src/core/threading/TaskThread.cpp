@@ -22,6 +22,11 @@ void TaskThread::Stop()
     m_scheduler.RequestStop();
 }
 
+bool TaskThread::IsWaitingOnTaskFromThread(const ThreadID &thread_id) const
+{
+    return m_scheduler.IsWaitingOnTaskFromThread(thread_id);
+}
+
 void TaskThread::operator()()
 {
     m_is_running.Set(true, MemoryOrder::RELAXED);

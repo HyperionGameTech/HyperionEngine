@@ -73,7 +73,7 @@ struct DelegateDefaultReturn
 class DelegateHandler
 {
 public:
-    template <class ReturnType, class ... Args>
+    template <class ReturnType, class... Args>
     friend class Delegate;
 
     DelegateHandler()                                               = default;
@@ -215,7 +215,7 @@ private:
  *
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
-template <class ReturnType, class ... Args>
+template <class ReturnType, class... Args>
 class Delegate
 {
     using ProcType = Proc<ReturnType, Args...>;

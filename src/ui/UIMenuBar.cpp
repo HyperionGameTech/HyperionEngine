@@ -22,7 +22,7 @@ UIMenuItem::UIMenuItem(UIStage *parent, NodeProxy node_proxy)
     : UIObject(parent, std::move(node_proxy), UIObjectType::MENU_ITEM)
 {
     SetBorderRadius(0);
-    SetPadding({ 5, 0 });
+    SetPadding({ 5, 2 });
 }
 
 void UIMenuItem::Init()
@@ -39,7 +39,7 @@ void UIMenuItem::Init()
     UIObject::AddChildUIObject(text_element);
 
     RC<UIPanel> drop_down_menu = GetStage()->CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDownMenu", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
-    drop_down_menu->SetAcceptsFocus(false);
+    // drop_down_menu->SetAcceptsFocus(false);
     drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
@@ -188,10 +188,11 @@ void UIMenuItem::UpdateDropDownMenu()
         // drop_down_menu_item->GetTextElement()->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
         // drop_down_menu_item->GetTextElement()->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
 
-        m_drop_down_menu->AddChildUIObject(drop_down_menu_item);
-        
+        drop_down_menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         drop_down_menu_item->SetPosition(offset);
 
+        m_drop_down_menu->AddChildUIObject(drop_down_menu_item);
+        
         offset += { 0, drop_down_menu_item->GetActualSize().y };
     }
 
@@ -360,6 +361,8 @@ void UIMenuBar::AddChildUIObject(UIObject *ui_object)
 
     RC<UIMenuItem> menu_item = ui_object_rc.Cast<UIMenuItem>();
     AssertThrow(menu_item != nullptr);
+
+    menu_item->SetSize(UIObjectSize({ 300, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
     const Name name = menu_item->GetName();
 

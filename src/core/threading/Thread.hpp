@@ -3,7 +3,6 @@
 #define HYPERION_CORE_THREAD_HPP
 
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Task.hpp>
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/StringView.hpp>
 

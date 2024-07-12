@@ -26,20 +26,17 @@ public:
 
     virtual ~TaskThread() override = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsRunning() const
+    HYP_FORCE_INLINE bool IsRunning() const
         { return m_is_running.Get(MemoryOrder::RELAXED); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsFree() const
+    HYP_FORCE_INLINE bool IsFree() const
         { return m_num_tasks.Get(MemoryOrder::RELAXED) == 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 NumTasks() const
+    HYP_FORCE_INLINE uint32 NumTasks() const
         { return m_num_tasks.Get(MemoryOrder::RELAXED); }
+
+    /*! \brief Returns true if the task thread is waiting on a task from the specified thread. */
+    bool IsWaitingOnTaskFromThread(const ThreadID &thread_id) const;
 
     virtual void Stop();
 

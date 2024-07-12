@@ -645,6 +645,23 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
 #endif
 }
 
+BoundingBox Node::GetLocalAABBExcludingSelf() const
+{
+    BoundingBox aabb = BoundingBox::Zero();
+
+    for (const NodeProxy &child : GetChildren()) {
+        if (!child.IsValid()) {
+            continue;
+        }
+
+        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
+            aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+        }
+    }
+
+    return aabb;
+}
+
 BoundingBox Node::GetLocalAABB() const
 {
     BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();

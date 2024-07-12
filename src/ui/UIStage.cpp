@@ -200,6 +200,8 @@ void UIStage::SetStage_Internal(UIStage *stage)
 {
     m_stage = stage;
     
+    SetNeedsRepaintFlag();
+    
     // Do not update children
 }
 
@@ -329,7 +331,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
     const Vec2f mouse_screen = Vec2f(mouse_position) / Vec2f(window_size);
 
     switch (event.GetType()) {
-    case SystemEventType::EVENT_MOUSEMOTION: {
+    case SystemEventType::EVENT_MOUSEMOTION:
+    {
         // check intersects with objects on mouse movement.
         // for any objects that had mouse held on them,
         // if the mouse is on them, signal mouse movement
@@ -474,7 +477,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSEBUTTON_DOWN: {
+    case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
+    {
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
 
@@ -526,7 +530,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSEBUTTON_UP: {
+    case SystemEventType::EVENT_MOUSEBUTTON_UP:
+    {
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
@@ -573,7 +578,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_MOUSESCROLL: {
+    case SystemEventType::EVENT_MOUSESCROLL:
+    {
         int wheel_x;
         int wheel_y;
         event.GetMouseWheel(&wheel_x, &wheel_y);
@@ -615,7 +621,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         break;
     }
-    case SystemEventType::EVENT_KEYDOWN: {
+    case SystemEventType::EVENT_KEYDOWN:
+    {
         const KeyCode key_code = event.GetNormalizedKeyCode();
 
         RC<UIObject> ui_object = m_focused_object.Lock();
@@ -632,12 +639,13 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 break;
             }
 
-            ui_object = ui_object->GetParentUIObject();
+            ui_object = RawPtrToRefCountedPtrHelper<UIObject>{}(ui_object->GetParentUIObject());
         }
 
         break;
     }
-    case SystemEventType::EVENT_KEYUP: {
+    case SystemEventType::EVENT_KEYUP:
+    {
         const KeyCode key_code = event.GetNormalizedKeyCode();
 
         const auto keyed_down_objects_it = m_keyed_down_objects.Find(key_code);

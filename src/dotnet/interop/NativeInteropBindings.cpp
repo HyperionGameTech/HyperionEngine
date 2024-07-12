@@ -84,6 +84,8 @@ HYP_EXPORT bool ManagedClass_FindByTypeHash(ManagedGuid *assembly_guid, ClassHol
     }
 
     *out_managed_class = ManagedClass { type_hash, class_object, *assembly_guid };
+
+    return true;
 }
 
 HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)

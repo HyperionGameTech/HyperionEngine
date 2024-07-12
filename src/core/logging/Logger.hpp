@@ -194,6 +194,11 @@ using logging::LogLevel;
 #define HYP_DEFINE_LOG_SUBCHANNEL(name, parent_name) \
     hyperion::logging::LogChannel Log_##name(HYP_NAME_UNSAFE(name), &Log_##parent_name)
 
+// Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)
+#ifdef HYP_LOG
+    #undef HYP_LOG
+#endif
+
 #ifdef HYP_MSVC
     #define HYP_LOG(channel, level, fmt, ...) \
         hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, hyperion::StaticString< sizeof(fmt) >(fmt) >(hyperion::Log_##channel, __VA_ARGS__)

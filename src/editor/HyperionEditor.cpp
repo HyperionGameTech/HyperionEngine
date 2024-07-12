@@ -648,18 +648,18 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 {
     RC<UIPanel> scene_outline = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline"), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
-    // RC<UIPanel> scene_outline_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    // RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Scene_Outline_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
-    // scene_outline_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
-    // scene_outline_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
-    // scene_outline_header_text->SetText("SCENE");
-    // scene_outline_header_text->SetTextColor(Vec4f::One());
-    // scene_outline_header->AddChildUIObject(scene_outline_header_text);
-    // scene_outline->AddChildUIObject(scene_outline_header);
+    RC<UIPanel> scene_outline_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
+    RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Scene_Outline_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    scene_outline_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
+    scene_outline_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
+    scene_outline_header_text->SetText("Scene");
+    scene_outline_header_text->SetTextColor(Vec4f::One());
+    scene_outline_header->AddChildUIObject(scene_outline_header_text);
+    scene_outline->AddChildUIObject(scene_outline_header);
 
-
+    // @TODO: make tree view
     UniquePtr<UIDataSource<Weak<Node>>> temp_data_source(new UIDataSource<Weak<Node>>());
-    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     // for (uint32 i = 0; i < 100; i++) {
@@ -805,7 +805,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     detail_view_header->AddChildUIObject(detail_view_header_text);
     detail_view->AddChildUIObject(detail_view_header);
 
-    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Detail_View_ListView"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::FILL }));
+    RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Detail_View_ListView"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     detail_view->AddChildUIObject(list_view);
 
@@ -1322,9 +1322,11 @@ void HyperionEditor::Init()
 
             if (zombie_entity.IsValid()) {
                 if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
+                    mesh_component->material = mesh_component->material->Clone();
                     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
                     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.05f);
                     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
+                    InitObject(mesh_component->material);
                 }
             }
 

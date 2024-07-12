@@ -6,6 +6,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Thread.hpp>
 #include <core/memory/UniquePtr.hpp>
 #include <core/Util.hpp>
 
@@ -84,6 +85,8 @@ class TaskExecutor  : public TaskExecutorBase
 public:
     TaskExecutor()
         : m_id { },
+          m_initiator_thread_id { },
+          m_assigned_scheduler(nullptr),
           m_completed_flag(false)
     {
     }
@@ -93,9 +96,13 @@ public:
 
     TaskExecutor(TaskExecutor &&other) noexcept
         : m_id(other.m_id),
+          m_initiator_thread_id(other.m_initiator_thread_id),
+          m_assigned_scheduler(other.m_assigned_scheduler),
           m_completed_flag(other.m_completed_flag.Exchange(false, MemoryOrder::ACQUIRE_RELEASE))
     {
         other.m_id = {};
+        other.m_initiator_thread_id = {};
+        other.m_assigned_scheduler = nullptr;
     }
 
     TaskExecutor &operator=(TaskExecutor &&other) noexcept
@@ -105,26 +112,41 @@ public:
         }
 
         m_id = other.m_id;
+        m_initiator_thread_id = other.m_initiator_thread_id;
+        m_assigned_scheduler = other.m_assigned_scheduler;
         m_completed_flag.Set(other.m_completed_flag.Exchange(false, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
 
         other.m_id = {};
+        other.m_initiator_thread_id = {};
+        other.m_assigned_scheduler = nullptr;
 
         return *this;
     }
 
     virtual ~TaskExecutor() = default;
 
-    HYP_FORCE_INLINE
-    TaskID GetTaskID() const
+    HYP_FORCE_INLINE TaskID GetTaskID() const
         { return m_id; }
 
     /*! \internal This function is used by the Scheduler to set the task ID. */
-    HYP_FORCE_INLINE
-    void SetTaskID(TaskID id)
+    HYP_FORCE_INLINE void SetTaskID(TaskID id)
         { m_id = id; }
 
-    HYP_FORCE_INLINE
-    bool IsCompleted() const
+    HYP_FORCE_INLINE ThreadID GetInitiatorThreadID() const
+        { return m_initiator_thread_id; }
+
+    /*! \internal This function is used by the Scheduler to set the initiator thread ID. */
+    HYP_FORCE_INLINE void SetInitiatorThreadID(ThreadID initiator_thread_id)
+        { m_initiator_thread_id = initiator_thread_id; }
+
+    HYP_FORCE_INLINE SchedulerBase *GetAssignedScheduler() const
+        { return m_assigned_scheduler; }
+
+    /*! \internal This function is used by the Scheduler to set the assigned scheduler. */
+    HYP_FORCE_INLINE void SetAssignedScheduler(SchedulerBase *assigned_scheduler)
+        { m_assigned_scheduler = assigned_scheduler; }
+
+    HYP_FORCE_INLINE bool IsCompleted() const
         { return m_completed_flag.Get(MemoryOrder::ACQUIRE); }
 
     virtual void Execute(ArgTypes... args) = 0;
@@ -136,6 +158,9 @@ protected:
     }
 
     TaskID          m_id;
+    ThreadID        m_initiator_thread_id;
+    SchedulerBase   *m_assigned_scheduler;
+
     AtomicVar<bool> m_completed_flag;
 };
 

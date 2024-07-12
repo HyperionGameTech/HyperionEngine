@@ -83,6 +83,7 @@ protected:
     ANSIString  m_title;
     Vec2u       m_size;
 };
+
 class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
 public:

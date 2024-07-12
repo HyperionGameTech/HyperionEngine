@@ -1,6 +1,7 @@
 #ifndef HYPERION_TUPLE_HPP
 #define HYPERION_TUPLE_HPP
 
+#include <Constants.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

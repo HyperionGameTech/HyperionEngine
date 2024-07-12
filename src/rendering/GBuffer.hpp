@@ -6,6 +6,7 @@
 #include <Constants.hpp>
 
 #include <core/containers/FixedArray.hpp>
+#include <core/utilities/Variant.hpp>
 #include <core/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>

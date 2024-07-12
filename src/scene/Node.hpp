@@ -563,6 +563,10 @@ public:
     *   \note Calls to RefreshEntityTransform() will override this value. */
     void SetEntityAABB(const BoundingBox &aabb);
 
+    /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.
+     *  \returns The local-space (model) of the node's aabb, excluding the entity's aabb. */
+    BoundingBox GetLocalAABBExcludingSelf() const;
+
     /*! \brief Get the local-space (model) aabb of the node.
      *  \returns The local-space (model) of the node's aabb. */
     BoundingBox GetLocalAABB() const;

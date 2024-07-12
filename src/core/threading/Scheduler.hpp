@@ -47,6 +47,7 @@ public:
     virtual void Await(TaskID id) = 0;
     virtual bool Dequeue(TaskID id) = 0;
     virtual bool TakeOwnershipOfTask(TaskID id, TaskExecutorBase *executor) = 0;
+    virtual bool IsWaitingOnTaskFromThread(ThreadID thread_id) const = 0;
 
 protected:
     SchedulerBase(ThreadID owner_thread)
@@ -61,7 +62,7 @@ protected:
     AtomicVar<uint>         m_num_enqueued { 0 };
     AtomicVar<bool>         m_stop_requested { false };
 
-    std::mutex              m_mutex;
+    mutable std::mutex      m_mutex;
     std::condition_variable m_has_tasks;
     std::condition_variable m_task_executed;
 
@@ -330,6 +331,16 @@ public:
         return true;
     }
 
+    virtual bool IsWaitingOnTaskFromThread(ThreadID thread_id) const override
+    {
+        std::unique_lock lock(m_mutex);
+
+        return m_queue.Any([thread_id](const ScheduledTask &item)
+        {
+            return item.executor->GetInitiatorThreadID() == thread_id;
+        });
+    }
+
     /* Move all the next pending task in the queue to an external container. */
     template <class Container>
     void AcceptNext(Container &out_container)
@@ -422,6 +433,8 @@ private:
         const TaskID task_id { ++m_id_counter };
 
         scheduled_task.executor->SetTaskID(task_id);
+        scheduled_task.executor->SetInitiatorThreadID(Threads::CurrentThreadID());
+        scheduled_task.executor->SetAssignedScheduler(this);
 
         m_queue.PushBack(std::move(scheduled_task));
         m_num_enqueued.Increment(1, MemoryOrder::RELEASE);

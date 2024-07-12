@@ -25,8 +25,10 @@
 
 namespace hyperion {
 
+class UIObject;
 class UIStage;
 class UIRenderer;
+class UIObjectPainter;
 class UIDataSourceBase;
 
 template <class T>
@@ -40,8 +42,6 @@ static inline Scene *GetScene(UIStageType *stage)
 
     return stage->GetScene().Get();
 }
-
-#pragma region UIObject
 
 // Used for interop with the C# UIObject class.
 // Ensure that the enum values match the C# UIObjectType enum.
@@ -102,6 +102,8 @@ enum class UIObjectBorderFlags : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectBorderFlags)
+
+#pragma region UIObjectSize
 
 struct UIObjectSize
 {
@@ -198,7 +200,7 @@ private:
     }
 };
 
-struct UIObjectID : UniqueID { };
+
 
 enum class UIObjectUpdateSizeFlags : uint32
 {
@@ -215,6 +217,27 @@ enum class UIObjectUpdateSizeFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateSizeFlags)
 
+#pragma endregion UIObjectSize
+
+#pragma region UIObject
+
+struct UIObjectID : UniqueID { };
+
+// @TODO: Make a m_needs_repaint bool member, and only render when this is true.
+// to save on repaints we will render the UIobject into a texture. this will
+// drastically reduce draw calls needed.
+// then, we can get rid of IsContainer() usages. we'll still need to make sure we're only
+// repainting X number of objects or we'll run out of render groups we can use.
+
+// We'll make a Repaint() method, or another helper class (maybe UIRenderer) which will happen on the render thread and simply collect 
+// alll our child elements and render them to a framebuffer. we'll need to copy the framebuffer to a texture
+
+// marking dirty : m_needs_Repaint gets set to true when ANY child objects get dirtied
+// this means top-level ui objects will pretty much always need a repaint, but thats ok because they can use child ui objects
+// that don't need a repaint, when they're painting..
+
+// can also have just 1 fbo which is used at the top level, and is the same size as the UI stage, and we just blit sections to the tex
+
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
 protected:
@@ -228,6 +251,7 @@ protected:
 
 public:
     friend class UIRenderer;
+    friend class UIObjectPainter;
     friend class UIStage;
 
     UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type);
@@ -447,7 +471,7 @@ public:
 
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
-    RC<UIObject> GetParentUIObject() const;
+    UIObject *GetParentUIObject() const;
 
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
@@ -519,12 +543,14 @@ public:
     void SetFocusState(EnumFlags<UIObjectFocusState> focus_state);
 
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
-     *  \param proc The function to call for each collected UIObject. */
-    void CollectObjects(const Proc<void, UIObject *> &proc) const;
+     *  \param proc The function to call for each collected UIObject.
+     *  \param reverse If true, collect the objects in reverse order (from bottom to top in the hierarchy). */
+    void CollectObjects(const Proc<void, UIObject *> &proc, bool reverse = false) const;
 
     /*! \brief Collect all nested UIObjects in the hierarchy and push them to the `out_objects` array.
-     *  \param out_objects The array to store the collected UIObjects in. */
-    void CollectObjects(Array<UIObject *> &out_objects) const;
+     *  \param out_objects The array to store the collected UIObjects in.
+     *  \param reverse If true, collect the objects in reverse order (from bottom to top in the hierarchy). */
+    void CollectObjects(Array<UIObject *> &out_objects, bool reverse = false) const;
 
     /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
      *  \param coords The screen coordinates to transform.
@@ -638,6 +664,12 @@ protected:
     void OnFontAtlasUpdate();
     virtual void OnFontAtlasUpdate_Internal() { }
 
+    bool NeedsRepaint() const;
+    void SetNeedsRepaintFlag(bool needs_repaint = true);
+
+    HYP_FORCE_INLINE const Handle<Texture> &GetCachedTexture() const
+        { return m_cached_texture; }
+
     UIStage                         *m_stage;
 
     Name                            m_name;
@@ -653,6 +685,8 @@ protected:
 
     UIObjectSize                    m_max_size;
     Vec2i                           m_actual_max_size;
+
+    BoundingBox                     m_aabb;
 
     BlendVar<Vec2f>                 m_scroll_offset;
 
@@ -682,8 +716,9 @@ protected:
 private:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
-     *  \param out_deferred_child_objects Array to push child objects to, in the case that its parent type is not a container type (IsContainer() returns false) */
-    void CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject *> &out_deferred_child_objects) const;
+     *  \param out_deferred_child_objects Array to push child objects to, in the case that its parent type is not a container type (IsContainer() returns false)
+     *  \param reverse If true, collect objects in reverse order. */
+    void CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject *> &out_deferred_child_objects, bool reverse = false) const;
 
     void ComputeOffsetPosition();
 
@@ -693,8 +728,13 @@ private:
     template <class Lambda>
     void ForEachChildUIObject(Lambda &&lambda, bool deep = true) const;
 
+    template <class Lambda>
+    void ForEachParentUIObject(Lambda &&lambda) const;
+
     // For UIStage only.
     void SetAllChildUIObjectsStage(UIStage *stage);
+
+    void SetEntityAABB(const BoundingBox &aabb);
 
     Handle<Material> GetMaterial() const;
 
@@ -711,6 +751,9 @@ private:
     bool                            m_accepts_focus;
 
     bool                            m_affects_parent_size;
+
+    Handle<Texture>                 m_cached_texture;
+    AtomicVar<bool>                 m_needs_repaint;
 
     NodeProxy                       m_node_proxy;
 

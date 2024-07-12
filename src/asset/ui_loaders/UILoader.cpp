@@ -2,6 +2,9 @@
 
 #include <asset/ui_loaders/UILoader.hpp>
 
+#include <dotnet/DotNetSystem.hpp>
+#include <dotnet/Class.hpp>
+
 #include <ui/UIStage.hpp>
 #include <ui/UIObject.hpp>
 #include <ui/UIText.hpp>
@@ -14,6 +17,7 @@
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIListView.hpp>
 #include <ui/UITextbox.hpp>
+#include <ui/UIScriptDelegate.hpp>
 
 #include <util/xml/SAXParser.hpp>
 
@@ -247,6 +251,11 @@ public:
             if (const Pair<String, String> *it = attributes.TryGet("text")) {
                 ui_object->SetText(it->second);
             }
+
+            // testing!
+            ui_object->OnClick
+                .Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), "OnClick_TestFooBar" })
+                .Detach();
 
             LastObject()->AddChildUIObject(ui_object.Get());
 
