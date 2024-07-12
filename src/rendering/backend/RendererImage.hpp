@@ -190,16 +190,13 @@ public:
     HYP_API Image &operator=(Image &&other) noexcept;
     HYP_API ~Image();
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ImagePlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE ImagePlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ImagePlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const ImagePlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const TextureDesc &GetTextureDesc() const
+    HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
         { return m_texture_desc; }
 
     /*
@@ -213,13 +210,13 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance, ResourceState state);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
-    HYP_NODISCARD HYP_API bool IsCreated() const;
+    HYP_API bool IsCreated() const;
 
-    HYP_NODISCARD HYP_API ResourceState GetResourceState() const;
+    HYP_API ResourceState GetResourceState() const;
 
     HYP_API void SetResourceState(ResourceState new_state);
 
-    HYP_NODISCARD HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
+    HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
 
     HYP_API void SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state);
 
@@ -277,43 +274,37 @@ public:
         GPUBuffer<PLATFORM> *dst_buffer
     ) const;
 
-    HYP_NODISCARD HYP_API
-    ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
+    HYP_NODISCARD HYP_API ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsRWTexture() const
+    HYP_FORCE_INLINE bool IsRWTexture() const
         { return m_is_rw_texture; }
 
-    HYP_FORCE_INLINE
-    void SetIsRWTexture(bool is_rw_texture)
+    HYP_FORCE_INLINE void SetIsRWTexture(bool is_rw_texture)
         { m_is_rw_texture = is_rw_texture; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsAttachmentTexture() const
+    HYP_FORCE_INLINE bool IsAttachmentTexture() const
         { return m_is_attachment_texture; }
 
-    HYP_FORCE_INLINE
-    void SetIsAttachmentTexture(bool is_attachment_texture)
+    HYP_FORCE_INLINE void SetIsAttachmentTexture(bool is_attachment_texture)
         { m_is_attachment_texture = is_attachment_texture; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const RC<StreamedTextureData> &GetStreamedData() const
+    HYP_FORCE_INLINE const RC<StreamedTextureData> &GetStreamedData() const
         { return m_streamed_data; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasAssignedImageData() const
+    /*! \brief Set streamed data for the image. If the image has already been created, no updates will occur. */
+    HYP_FORCE_INLINE void SetStreamedData(const RC<StreamedTextureData> &streamed_data)
+        { m_streamed_data = streamed_data; }
+
+    HYP_FORCE_INLINE bool HasAssignedImageData() const
         { return m_streamed_data != nullptr && m_streamed_data->GetBufferSize() != 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsDepthStencil() const
+    HYP_FORCE_INLINE bool IsDepthStencil() const
         { return IsDepthFormat(m_texture_desc.format); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsSRGB() const
+    HYP_FORCE_INLINE bool IsSRGB() const
         { return IsSRGBFormat(m_texture_desc.format); }
 
-    HYP_FORCE_INLINE
-    void SetIsSRGB(bool srgb)
+    HYP_FORCE_INLINE void SetIsSRGB(bool srgb)
     {
         const bool is_srgb = IsSRGB();
 
@@ -342,24 +333,20 @@ public:
         m_texture_desc.format = to_srgb_format;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsBlended() const
+    HYP_FORCE_INLINE bool IsBlended() const
         { return m_is_blended; }
 
-    HYP_FORCE_INLINE
-    void SetIsBlended(bool is_blended)
+    HYP_FORCE_INLINE void SetIsBlended(bool is_blended)
         { m_is_blended = is_blended; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasMipmaps() const
+    HYP_FORCE_INLINE bool HasMipmaps() const
     {
         return m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
             || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 NumMipmaps() const
+    HYP_FORCE_INLINE uint32 NumMipmaps() const
     {
         return HasMipmaps()
             ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth))) + 1
@@ -369,88 +356,70 @@ public:
     /*! \brief Returns the byte-size of the image. Note, it's possible no CPU-side memory exists
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 GetByteSize() const
+    HYP_FORCE_INLINE uint32 GetByteSize() const
         { return uint32(m_texture_desc.extent.Size())
             * NumComponents(m_texture_desc.format)
             * NumBytes(m_texture_desc.format)
             * NumFaces(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint8 GetBPP() const
+    HYP_FORCE_INLINE uint8 GetBPP() const
         { return m_bpp; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsTextureCube() const
+    HYP_FORCE_INLINE bool IsTextureCube() const
         { return m_texture_desc.type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsPanorama() const
+    HYP_FORCE_INLINE bool IsPanorama() const
         { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D
             && m_texture_desc.extent.width == m_texture_desc.extent.height * 2
             && m_texture_desc.extent.depth == 1; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsTextureArray() const
+    HYP_FORCE_INLINE bool IsTextureArray() const
         { return !IsTextureCube() && m_texture_desc.num_layers > 1; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsTexture3D() const
+    HYP_FORCE_INLINE bool IsTexture3D() const
         { return m_texture_desc.type == ImageType::TEXTURE_TYPE_3D; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsTexture2D() const
+    HYP_FORCE_INLINE bool IsTexture2D() const
         { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 NumLayers() const
+    HYP_FORCE_INLINE uint32 NumLayers() const
         { return m_texture_desc.num_layers; }
 
-    HYP_FORCE_INLINE
-    void SetNumLayers(uint32 num_layers)
+    HYP_FORCE_INLINE void SetNumLayers(uint32 num_layers)
     {
         m_texture_desc.num_layers = num_layers;
         m_size = GetByteSize();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 NumFaces() const
+    HYP_FORCE_INLINE uint32 NumFaces() const
         { return IsTextureCube()
             ? 6
             : IsTextureArray()
                 ? m_texture_desc.num_layers
                 : 1; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FilterMode GetMinFilterMode() const
+    HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
         { return m_texture_desc.filter_mode_min; }
 
-    HYP_FORCE_INLINE
-    void SetMinFilterMode(FilterMode filter_mode)
+    HYP_FORCE_INLINE void SetMinFilterMode(FilterMode filter_mode)
         { m_texture_desc.filter_mode_min = filter_mode; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FilterMode GetMagFilterMode() const
+    HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
         { return m_texture_desc.filter_mode_mag; }
 
-    HYP_FORCE_INLINE
-    void SetMagFilterMode(FilterMode filter_mode)
+    HYP_FORCE_INLINE void SetMagFilterMode(FilterMode filter_mode)
         { m_texture_desc.filter_mode_mag = filter_mode; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Extent3D &GetExtent() const
+    HYP_FORCE_INLINE const Extent3D &GetExtent() const
         { return m_texture_desc.extent; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    InternalFormat GetTextureFormat() const
+    HYP_FORCE_INLINE InternalFormat GetTextureFormat() const
         { return m_texture_desc.format; }
 
-    HYP_FORCE_INLINE
-    void SetTextureFormat(InternalFormat format)
+    HYP_FORCE_INLINE void SetTextureFormat(InternalFormat format)
         { m_texture_desc.format = format; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ImageType GetType() const
+    HYP_FORCE_INLINE ImageType GetType() const
         { return m_texture_desc.type; }
 
 protected:

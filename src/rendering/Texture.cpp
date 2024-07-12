@@ -492,15 +492,91 @@ void Texture::GenerateMipmaps()
     mipmap_renderer.Destroy();
 }
 
+void Texture::Readback() const
+{
+    AssertReady();
+
+    struct RENDER_COMMAND(Texture_Readback) : public renderer::RenderCommand
+    {
+        ImageRef    image;
+        ByteBuffer  &result_byte_buffer;
+
+        RENDER_COMMAND(Texture_Readback)(const ImageRef &image, ByteBuffer &result_byte_buffer)
+            : image(image),
+              result_byte_buffer(result_byte_buffer)
+        {
+        }
+
+        virtual ~RENDER_COMMAND(Texture_Readback)() override
+        {
+            SafeRelease(std::move(image));
+        }
+
+        virtual Result operator()() override
+        {
+            GPUBufferRef gpu_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+            HYPERION_ASSERT_RESULT(gpu_buffer->Create(g_engine->GetGPUDevice(), image->GetByteSize()));
+            gpu_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
+
+            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+
+            commands.Push([this, &gpu_buffer](const CommandBufferRef &command_buffer)
+            {
+                image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+
+                gpu_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+
+                image->CopyToBuffer(
+                    command_buffer,
+                    gpu_buffer
+                );
+
+                gpu_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+
+                HYPERION_RETURN_OK;
+            });
+
+            renderer::Result result = commands.Execute(g_engine->GetGPUInstance()->GetDevice());
+
+            if (!result) {
+                return result;
+            }
+
+            result_byte_buffer.SetSize(gpu_buffer->Size());
+            gpu_buffer->Read(g_engine->GetGPUDevice(), result_byte_buffer.Size(), result_byte_buffer.Data());
+
+            SafeRelease(std::move(gpu_buffer));
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    ByteBuffer result_byte_buffer;
+
+    PUSH_RENDER_COMMAND(Texture_Readback, m_image, result_byte_buffer);
+    HYP_SYNC_RENDER();
+
+    RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+        GetTextureDesc(),
+        std::move(result_byte_buffer)
+    }));
+
+    m_image->SetStreamedData(std::move(streamed_data));
+}
+
 Vec4f Texture::Sample(Vec2f uv) const
 {
     if (!IsReady()) {
+        HYP_LOG(Texture, LogLevel::WARNING, "Texture::Sample: Texture is not ready");
+
         return Vec4f::Zero();
     }
 
     const RC<StreamedTextureData> &streamed_data = m_image->GetStreamedData();
 
     if (!streamed_data) {
+        HYP_LOG(Texture, LogLevel::WARNING, "Texture::Sample: Texture does not have streamed data");
+
         return Vec4f::Zero();
     }
 
@@ -508,42 +584,49 @@ Vec4f Texture::Sample(Vec2f uv) const
     const TextureData &texture_data = ref->GetTextureData();
 
     if (texture_data.buffer.Size() == 0) {
+        HYP_LOG_ONCE(Texture, LogLevel::WARNING, "Texture::Sample: Texture buffer is empty");
+
         return Vec4f::Zero();
     }
 
     const Vec2u coord = {
-        uint32(uv.x * texture_data.desc.extent.width),
-        uint32(uv.y * texture_data.desc.extent.height)
+        uint32(uv.x * (texture_data.desc.extent.width - 1)),
+        uint32(uv.y * (texture_data.desc.extent.height - 1))
     };
 
     const uint32 bytes_per_pixel = renderer::NumBytes(texture_data.desc.format);
 
     if (bytes_per_pixel != 1) {
-        HYP_LOG(Texture, LogLevel::ERR, "Texture::Sample: Unsupported bytes per pixel: {}", bytes_per_pixel);
+        HYP_LOG_ONCE(Texture, LogLevel::WARNING, "Texture::Sample: Unsupported bytes per pixel: {}", bytes_per_pixel);
 
         return Vec4f::Zero();
     }
 
     const uint32 num_components = renderer::NumComponents(m_image->GetTextureFormat());
 
-    const uint32 index = coord.y *  texture_data.desc.extent.width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
+    const uint32 index = coord.y * texture_data.desc.extent.width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
 
     if (index >= texture_data.buffer.Size()) {
+        HYP_LOG(Texture, LogLevel::WARNING, "Texture::Sample: Index out of bounds, index: {}, buffer size: {}, x: {}, y: {}, width: {}, height: {}", index, texture_data.buffer.Size(),
+            coord.x, coord.y, texture_data.desc.extent.width, texture_data.desc.extent.height);
+
         return Vec4f::Zero();
     }
 
-    const uint8 *data = texture_data.buffer.Data() + index;
+    const ubyte *data = texture_data.buffer.Data() + index;
 
     switch (num_components) {
     case 1:
-        return Vec4f(data[0] / 255.0f);
+        return Vec4f(float(data[0]) / 255.0f);
     case 2:
-        return Vec4f(data[0] / 255.0f, data[1] / 255.0f, 0.0f, 1.0f);
+        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, 0.0f, 1.0f);
     case 3:
-        return Vec4f(data[0] / 255.0f, data[1] / 255.0f, data[2] / 255.0f, 1.0f);
+        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, float(data[2]) / 255.0f, 1.0f);
     case 4:
-        return Vec4f(data[0] / 255.0f, data[1] / 255.0f, data[2] / 255.0f, data[3] / 255.0f);
+        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, float(data[2]) / 255.0f, float(data[3]) / 255.0f);
     default: // should never happen
+        HYP_LOG(Texture, LogLevel::ERR, "Texture::Sample: Unsupported number of components: {}", num_components);
+
         return Vec4f::Zero();
     }
 }

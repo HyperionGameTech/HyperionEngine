@@ -151,7 +151,7 @@ void UIObject::Init()
     const Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
 
-    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), GetMaterial() });
+    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), CreateMaterial() });
     scene->GetEntityManager()->AddComponent(GetEntity(), VisibilityStateComponent { });
     scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent { });
 
@@ -1084,7 +1084,7 @@ Material::TextureSet UIObject::GetMaterialTextures() const
     };
 }
 
-Handle<Material> UIObject::GetMaterial() const
+Handle<Material> UIObject::CreateMaterial() const
 {
     HYP_SCOPE;
 
@@ -1096,6 +1096,23 @@ Handle<Material> UIObject::GetMaterial() const
         GetMaterialParameters(),
         material_textures
     );
+}
+
+const Handle<Material> &UIObject::GetMaterial() const
+{
+    HYP_SCOPE;
+
+    const Scene *scene = GetScene();
+
+    if (!GetEntity().IsValid() || !scene) {
+        return Handle<Material>::empty;
+    }
+
+    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity())) {
+        return mesh_component->material;
+    }
+
+    return Handle<Material>::empty;
 }
 
 const Handle<Mesh> &UIObject::GetMesh() const
@@ -1435,7 +1452,7 @@ void UIObject::UpdateMaterial(bool update_children)
 
     if (!current_material.IsValid() || current_material->GetRenderAttributes().GetHashCode() != material_attributes.GetHashCode()) {
         // need to get a new Material if attributes have changed
-        Handle<Material> new_material = GetMaterial();
+        Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
 
         g_safe_deleter->SafeRelease(std::move(mesh_component->material));

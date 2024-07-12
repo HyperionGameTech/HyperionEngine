@@ -54,61 +54,55 @@ public:
 
     ~Texture();
     
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ImageRef &GetImage() const
+    HYP_FORCE_INLINE const ImageRef &GetImage() const
         { return m_image; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ImageViewRef &GetImageView() const
+    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
         { return m_image_view; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const TextureDesc &GetTextureDesc() const
+    HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
         { return m_image->GetTextureDesc(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ImageType GetType() const
+    HYP_FORCE_INLINE ImageType GetType() const
         { return GetTextureDesc().type; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 NumFaces() const
+    HYP_FORCE_INLINE uint32 NumFaces() const
         { return GetTextureDesc().num_faces; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsTextureCube() const
+    HYP_FORCE_INLINE bool IsTextureCube() const
         { return m_image->IsTextureCube(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsPanorama() const
+    HYP_FORCE_INLINE bool IsPanorama() const
         { return m_image->IsPanorama(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Extent3D &GetExtent() const
+    HYP_FORCE_INLINE const Extent3D &GetExtent() const
         { return GetTextureDesc().extent; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    InternalFormat GetFormat() const
+    HYP_FORCE_INLINE InternalFormat GetFormat() const
         { return GetTextureDesc().format; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE HYP_DEPRECATED
-    FilterMode GetFilterMode() const
+    HYP_FORCE_INLINE HYP_DEPRECATED FilterMode GetFilterMode() const
         { return GetTextureDesc().filter_mode_min; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FilterMode GetMinFilterMode() const
+    HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
         { return GetTextureDesc().filter_mode_min; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FilterMode GetMagFilterMode() const
+    HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
         { return GetTextureDesc().filter_mode_mag; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    WrapMode GetWrapMode() const
+    HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return GetTextureDesc().wrap_mode; }
     
     void Init();
 
     void GenerateMipmaps();
+
+    /*! \brief Copies the texture data to the CPU. Waits (blocking) for the render thread to execute the task.
+     *  \note While this method is usable from any thread, it is not thread-safe as it modifies the streamed texture data. of the image.
+     *  Ensure that the image is not being used in other threads before calling this method.
+     * 
+     *  The texture data will be copied to the CPU and the image will have its StreamedTextureData recreated. */
+    void Readback() const;
 
     Vec4f Sample(Vec2f uv) const;
 

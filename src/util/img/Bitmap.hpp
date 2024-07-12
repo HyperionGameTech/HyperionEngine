@@ -9,6 +9,7 @@
 #include <core/containers/String.hpp>
 #include <core/Util.hpp>
 
+#include <math/Color.hpp>
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <math/MathUtil.hpp>
@@ -27,6 +28,39 @@ struct Pixel
     ComponentType components[NumComponents];
 
     Pixel() = default;
+
+    Pixel(Color color)
+    {
+        if constexpr (std::is_same_v<ComponentType, ubyte>) {
+            components[0] = ubyte(float(color.r) * 255.0f);
+
+            if constexpr (num_components >= 2) {
+                components[1] = ubyte(float(color.g) * 255.0f);
+            }
+
+            if constexpr (num_components >= 3) {
+                components[2] = ubyte(float(color.b) * 255.0f);
+            }
+
+            if constexpr (num_components >= 4) {
+                components[3] = ubyte(float(color.a) * 255.0f);
+            }
+        } else {
+            components[0] = color.r;
+
+            if constexpr (num_components >= 2) {
+                components[1] = color.g;
+            }
+
+            if constexpr (num_components >= 3) {
+                components[2] = color.b;
+            }
+
+            if constexpr (num_components >= 4) {
+                components[3] = color.a;
+            }
+        }
+    }
 
     Pixel(Vec2f rg)
     {
@@ -593,6 +627,19 @@ public:
         }
 
         return buffer;
+    }
+
+    void FillRectangle(
+        Vec2i p0,
+        Vec2i p1,
+        PixelType color
+    )
+    {
+        for (int y = p0.y; y <= p1.y; y++) {
+            for (int x = p0.x; x <= p1.x; x++) {
+                SetPixel(x, y, color);
+            }
+        }
     }
 
     // https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling

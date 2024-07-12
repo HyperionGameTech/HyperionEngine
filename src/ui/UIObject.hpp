@@ -525,6 +525,8 @@ public:
 
     virtual Scene *GetScene() const;
 
+    const Handle<Material> &GetMaterial() const;
+
     BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;
 
@@ -736,7 +738,7 @@ private:
 
     void SetEntityAABB(const BoundingBox &aabb);
 
-    Handle<Material> GetMaterial() const;
+    Handle<Material> CreateMaterial() const;
 
     const UIObjectID                m_id;
     const UIObjectType              m_type;

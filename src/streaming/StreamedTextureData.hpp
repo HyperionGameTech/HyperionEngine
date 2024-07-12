@@ -23,10 +23,6 @@ public:
     StreamedTextureData();
     StreamedTextureData(const TextureData &texture_data);
     StreamedTextureData(TextureData &&texture_data);
-    // StreamedTextureData(const StreamedTextureData &other)                   = default;
-    // StreamedTextureData &operator=(const StreamedTextureData &other)        = default;
-    // StreamedTextureData(StreamedTextureData &&other) noexcept               = default;
-    // StreamedTextureData &operator=(StreamedTextureData &&other) noexcept    = default;
     virtual ~StreamedTextureData() override                                 = default;
 
     HYP_NODISCARD

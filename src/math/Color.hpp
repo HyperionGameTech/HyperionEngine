@@ -20,12 +20,23 @@ class alignas(uint32) HYP_API Color
 public:
     static constexpr uint size = 4;
 
-private:
+public:
     union {
         ubyte   bytes[size];
+        struct {
+            ubyte r;
+            ubyte g;
+            ubyte b;
+            ubyte a;
+        };
+        struct {
+            ubyte x;
+            ubyte y;
+            ubyte z;
+            ubyte w;
+        };
     };
 
-public:
     Color();
     explicit Color(uint32 hex);
     Color(float r, float g, float b, float a = 1.0f);

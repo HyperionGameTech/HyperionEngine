@@ -341,16 +341,16 @@ public:
 
     /*! \brief Returns true if any elements in the array satisfy the given lambda. */
     template <class Lambda>
-    [[nodiscard]] bool Any(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
         { return Base::Any(std::forward<Lambda>(lambda)); }
 
     /*! \brief Returns true if all elements in the array satisfy the given lambda. */
     template <class Lambda>
-    [[nodiscard]] bool Every(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }
 
     template <SizeType OtherNumInlineBytes>
-    [[nodiscard]] bool operator==(const Array<T, OtherNumInlineBytes> &other) const
+    HYP_FORCE_INLINE bool operator==(const Array<T, OtherNumInlineBytes> &other) const
     {
         if (std::addressof(other) == this) {
             return true;
@@ -374,11 +374,23 @@ public:
     }
 
     template <SizeType OtherNumInlineBytes>
-    [[nodiscard]] bool operator!=(const Array<T, OtherNumInlineBytes> &other) const
+    HYP_FORCE_INLINE bool operator!=(const Array<T, OtherNumInlineBytes> &other) const
         { return !operator==(other); }
 
+    /*! \brief Creates a Span<T> from the Array's data.
+     *  The span is only valid as long as the Array is not modified.
+     *  \return A Span<T> of the Array's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
+        { return Span<T>(Data(), Size()); }
+
+    /*! \brief Creates a Span<const T> from the Array's data.
+     *  The span is only valid as long as the Array is not modified.
+     *  \return A Span<const T> of the Array's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
+        { return Span<const T>(Data(), Size()); }
+
     /*! \brief Returns a ByteView of the Array's data. */
-    ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
+    HYP_NODISCARD HYP_FORCE_INLINE ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
     {
         if (offset >= Size()) {
             return ByteView();
@@ -392,7 +404,7 @@ public:
     }
 
     /*! \brief Returns a ConstByteView of the Array's data. */
-    ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
+    HYP_NODISCARD HYP_FORCE_INLINE ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
     {
         if (offset >= Size()) {
             return ConstByteView();

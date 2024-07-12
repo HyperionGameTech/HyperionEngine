@@ -19,6 +19,7 @@ using logging::LogChannel;
 
 #ifndef HYP_LOG
     #define HYP_LOG(...)
+    #define HYP_LOG_ONCE(...)
 #endif
 
 #endif

@@ -139,7 +139,7 @@ void FontAtlas::Render()
 
         HYP_LOG(Font, LogLevel::INFO, "Rendering font atlas for pixel size {}", scaled_extent.height);
 
-        Handle<Texture> atlas = CreateObject<Texture>(
+        Handle<Texture> texture = CreateObject<Texture>(
             Texture2D(
                 Extent2D { scaled_extent.width * symbol_columns, scaled_extent.height * symbol_rows },
                 /* Grayscale 8-bit texture */
@@ -149,7 +149,7 @@ void FontAtlas::Render()
             )
         );
 
-        InitObject(atlas);
+        InitObject(texture);
 
         for (uint i = 0; i < m_symbol_list.Size(); i++) {
             const auto &symbol = m_symbol_list[i];
@@ -175,12 +175,15 @@ void FontAtlas::Render()
                 break;
             }
 
-            // Render our character texture => atlas
-            RenderCharacter(atlas, position, scaled_extent, glyph);
+            // Render our character texture => atlas texture
+            RenderCharacter(texture, position, scaled_extent, glyph);
         }
 
+        // Readback the texture to streamed texture data
+        texture->Readback();
+
         // Add initial atlas
-        m_atlases->AddAtlas(scaled_extent.height, std::move(atlas), is_main_atlas);
+        m_atlases->AddAtlas(scaled_extent.height, std::move(texture), is_main_atlas);
     };
 
     RenderGlyphs(1.0f, true);
