@@ -530,6 +530,9 @@ public:
 
     bool HasElement(Name name) const;
 
+    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement<PLATFORM>> &GetElements() const
+        { return m_elements; }
+
     void SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<PLATFORM> &ref);
     void SetElement(Name name, uint index, const GPUBufferRef<PLATFORM> &ref);
     void SetElement(Name name, const GPUBufferRef<PLATFORM> &ref);

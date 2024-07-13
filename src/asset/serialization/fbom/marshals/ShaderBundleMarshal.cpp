@@ -367,9 +367,6 @@ public:
             }
         }
 
-        // temp
-        AssertThrow(batch.compiled_shaders.Size() != 0);
-
         out_object = std::move(batch);
 
         return { FBOMResult::FBOM_OK };

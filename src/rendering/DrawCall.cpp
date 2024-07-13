@@ -36,7 +36,7 @@ DrawCallCollection::~DrawCallCollection()
     ResetDrawCalls();
 }
 
-void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy)
+void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy)
 {
     AssertThrow(render_proxy.mesh.IsValid());
 

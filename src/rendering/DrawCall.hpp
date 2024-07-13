@@ -30,7 +30,12 @@ struct DrawCallID
 {
     static_assert(sizeof(ID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
 
-    uint64 value;
+    using ValueType = uint64;
+
+    ValueType value;
+
+    static constexpr uint64 mesh_mask = uint64(0xFFFFFFFF);
+    static constexpr uint64 material_mask = uint64(0xFFFFFFFF) << 32;
 
     DrawCallID()
         : value(0)
@@ -43,23 +48,20 @@ struct DrawCallID
     }
 
     DrawCallID(ID<Mesh> mesh_id, ID<Material> material_id)
-        : value(mesh_id.Value() | (uint64(material_id.Value()) << 32))
+        : value(uint64(mesh_id.Value()) | (uint64(material_id.Value()) << 32))
     {
     }
 
-    bool operator==(const DrawCallID &other) const
+    HYP_FORCE_INLINE bool operator==(const DrawCallID &other) const
         { return value == other.value; }
 
-    bool operator!=(const DrawCallID &other) const
+    HYP_FORCE_INLINE bool operator!=(const DrawCallID &other) const
         { return value != other.value; }
 
-    bool HasMaterial() const
-        { return bool((uint64(~0u) << 32) & value); }
+    HYP_FORCE_INLINE bool HasMaterial() const
+        { return bool(value & (uint64(~0u) << 32)); }
 
-    operator uint64() const
-        { return value; }
-
-    uint64 Value() const
+    HYP_FORCE_INLINE ValueType Value() const
         { return value; }
 };
 
@@ -79,10 +81,10 @@ struct DrawCall
 
 struct DrawCallCollection
 {
-    Array<DrawCall>                     draw_calls;
+    Array<DrawCall>                                 draw_calls;
 
     // Map from draw call ID to index in draw_calls
-    HashMap<uint64, Array<SizeType>>    index_map;
+    HashMap<DrawCallID::ValueType, Array<SizeType>> index_map;
 
     DrawCallCollection() = default;
     DrawCallCollection(const DrawCallCollection &other)                 = delete;
@@ -93,7 +95,7 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    void PushDrawCall(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy);
+    void PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy);
     DrawCall *TakeDrawCall(DrawCallID id);
     void ResetDrawCalls();
 };

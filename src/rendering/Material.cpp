@@ -384,7 +384,6 @@ void Material::EnqueueTextureUpdate(TextureKey key)
     const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
     const Handle<Texture> &texture = m_textures.Get(key);
-    AssertThrow(texture.IsValid());
 
     PUSH_RENDER_COMMAND(
         UpdateMaterialTexture,
@@ -519,12 +518,14 @@ void Material::SetTextures(const TextureSet &textures)
         }
 
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            for (SizeType i = 0; i < m_textures.Size(); i++) {
-                if (!m_textures.ValueAt(i).IsValid()) {
+            for (const Pair<TextureKey, Handle<Texture> &> it : m_textures) {
+                const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(it.first);
+
+                if (texture_index >= max_bound_textures) {
                     continue;
                 }
-                
-                EnqueueTextureUpdate(m_textures.KeyAt(i));
+
+                EnqueueTextureUpdate(it.first);
             }
         }
 

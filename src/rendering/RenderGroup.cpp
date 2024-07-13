@@ -339,7 +339,7 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
             draw_call->batch_index = 0;
         }
 
-        m_draw_state.PushDrawCall(batch_index, draw_call_id, render_proxy);
+        m_draw_state.PushDrawCallToBatch(batch_index, draw_call_id, render_proxy);
     }
 
     previous_draw_state.ResetDrawCalls();
@@ -763,7 +763,7 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
 
 bool RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()
 {
-    return g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    return !g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 }
 
 #pragma endregion RenderGroup
