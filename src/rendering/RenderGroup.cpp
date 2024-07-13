@@ -280,10 +280,6 @@ void RenderGroup::Init()
         m_pipeline->SetDescriptorTable(descriptor_table);
     }
 
-    if (String(m_shader->GetCompiledShader()->GetName().LookupString()).Contains("DebugAABB")) {
-        HYP_BREAKPOINT;
-    }
-
     AssertThrow(m_pipeline->GetDescriptorTable().IsValid());
 
     m_pipeline.SetName(CreateNameFromDynamicString(ANSIString("GraphicsPipeline_") + m_shader->GetCompiledShader()->GetName().LookupString()));

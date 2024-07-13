@@ -2,6 +2,10 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <util/shader_compiler/ShaderCompiler.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -89,6 +93,8 @@ public:
         for (SizeType index = 0; index < properties_array.Size(); index++) {
             const ShaderProperty &item = properties_array[index];
 
+            // @TODO: Serialize `value`
+
             out.SetProperty(
                 CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".name"),
                 FBOMData::FromString(item.name)
@@ -131,6 +137,16 @@ public:
                 out.SetProperty(CreateNameFromDynamicString(ANSIString("module[") + ANSIString::ToString(index) + "]"), byte_buffer);
             }
         }
+
+        HYP_LOG(Serialization, LogLevel::INFO, "Serialized shader '{}' with properties:", in_object.definition.name);
+
+        String properties_string;
+
+        for (const ShaderProperty &property : properties_array) {
+            properties_string += "\t" + property.name + "\n";
+        }
+
+        HYP_LOG(Serialization, LogLevel::INFO, "\t{}", properties_string);
 
         return { FBOMResult::FBOM_OK };
     }
@@ -200,43 +216,6 @@ public:
                     ANSIString descriptor_name_string;
                     ANSIString set_name_string;
 
-                    // sanity checks
-                    WeakName wn = descriptor_usage_index_string + ".slot";
-                    if (i == 0) {
-                        constexpr bool b = HasGetHashCode<ANSIString, HashCode>::value;
-                        HashCode hc;
-                        hc.Add(ANSIString("descriptor_usages.0.slot").GetHashCode());
-
-                        static const char *ch = "descriptor_usages.0.slot";
-
-                        // HashCode hc2;
-                        // hc2.Add(ch);
-
-                        HashCode hc2;
-                        hc2.Add(ch);
-                        
-                        //constexpr HashCode hc3 = ANSIStringView("descriptor_usages.0.slot").GetHashCode();
-
-                        AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == hc);
-                        //AssertThrow(hc2 == hc3);
-                        AssertThrow(hc == hc2);
-                        AssertThrow(hc == ANSIString("descriptor_usages.0.slot").GetHashCode());
-                        AssertThrow(HashCode::GetHashCode(descriptor_usage_index_string + ".slot") == ANSIString("descriptor_usages.0.slot").GetHashCode());
-                        AssertThrow(wn == WeakName("descriptor_usages.0.slot"));
-                    }
-
-                    if (!in.HasProperty(descriptor_usage_index_string + ".slot")) {
-                        for (auto &it : in.properties) {
-                            const auto first = (descriptor_usage_index_string + ".slot");
-                            const auto second = ANSIString(it.first.LookupString());
-                            DebugLog(LogType::Debug, "Property: %s\t%llu != %llu\n", *it.first, it.first.hash_code, wn.hash_code);
-                            AssertThrow(wn.hash_code != it.first.hash_code);
-                            AssertThrowMsg(first != second, "Property: %s\t%s == %s\n", *it.first, first.Data(), second.Data());
-                        }
-
-                        AssertThrow(false);
-                    }
-
                     if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
                         return err;
                     }
@@ -264,13 +243,14 @@ public:
                         String value;
 
                         if (FBOMResult err = in.GetProperty(param_string + ".key").ReadString(key)) {
-                            DebugLog(LogType::Error, "Failed to read key for descriptor usage 'key' parameter %s\n", param_string.Data());
+                            HYP_LOG(Serialization, LogLevel::ERR, "Failed to read key for descriptor usage 'key' parameter {}", param_string);
                             
                             return err;
                         }
 
                         if (FBOMResult err = in.GetProperty(param_string + ".value").ReadString(value)) {
-                            DebugLog(LogType::Error, "Failed to read value for descriptor usage 'value' parameter %s\n", param_string.Data());
+                            HYP_LOG(Serialization, LogLevel::ERR, "Failed to read value for descriptor usage 'value' parameter {}", param_string);
+
                             return err;
                         }
 
@@ -334,6 +314,20 @@ public:
             }
         }
 
+        String properties_string;
+
+        for (const ShaderProperty &property : compiled_shader.definition.properties.ToArray()) {
+            properties_string += " " + property.name + "\n";
+        }
+        
+        DebugLog(LogType::Info, "Deserialized shader '%s', %u descriptor sets; Properties = %s\n", compiled_shader.definition.name.LookupString(),
+            compiled_shader.descriptor_usages.Size(),
+            properties_string.Data());
+
+        // if (compiled_shader.definition.name == NAME("DebugAABB")) {
+        //     HYP_BREAKPOINT;
+        // }
+
         out_object = std::move(compiled_shader);
 
         return { FBOMResult::FBOM_OK };
@@ -367,9 +361,14 @@ public:
 
                 if (compiled_shader != nullptr) {
                     batch.compiled_shaders.PushBack(*compiled_shader);
+                } else {
+                    HYP_LOG(Serialization, LogLevel::ERR, "Failed to deserialize CompiledShader instance");
                 }
             }
         }
+
+        // temp
+        AssertThrow(batch.compiled_shaders.Size() != 0);
 
         out_object = std::move(batch);
 

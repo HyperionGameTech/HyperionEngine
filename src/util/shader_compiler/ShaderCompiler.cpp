@@ -497,8 +497,6 @@ static ByteBuffer CompileToSPIRV(
         return ByteBuffer();
     }
 
-    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "FINAL SOURCE {}:\n{}", filename, glslang_shader_get_preprocessed_code(shader));
-
     if (!glslang_shader_parse(shader, &input)) {
         GLSL_ERROR(LogLevel::ERR, "GLSL parsing failed {}", filename);
         GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_log(shader));
@@ -645,7 +643,7 @@ static void ForEachPermutation(
         }
     }
 
-    for (auto &property : versions.GetPropertySet()) {
+    for (const ShaderProperty &property : versions.GetPropertySet()) {
         if (property.IsValueGroup()) {
             value_groups.PushBack(property);
         } else if (property.is_permutation) {
@@ -701,14 +699,14 @@ static void ForEachPermutation(
         all_combinations.Concat(std::move(current_group_combinations));
     }
 
-#ifdef HYP_SHADER_COMPILER_LOGGING
+// #ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(
         ShaderCompiler,
         LogLevel::DEBUG,
         "Processing {} shader combinations:",
         all_combinations.Size()
     );
-#endif
+// #endif
 
     if (parallel) {
         ParallelForEach(all_combinations, [&callback](const Array<ShaderProperty> &properties, uint, uint)
@@ -720,6 +718,46 @@ static void ForEachPermutation(
             callback(ShaderProperties(properties));
         }
     }
+}
+
+static bool LoadBatchFromFile(const FilePath &filepath, CompiledShaderBatch &out_batch)
+{
+    // read file if it already exists.
+    fbom::FBOMReader reader(fbom::FBOMConfig { });
+
+    fbom::FBOMResult err;
+
+    fbom::FBOMDeserializedObject deserialized;
+
+    if ((err = reader.LoadFromFile(filepath, deserialized))) {
+        HYP_LOG(
+            ShaderCompiler,
+            LogLevel::ERR,
+            "Failed to compile shader at path: {}\n\tMessage: {}",
+            filepath,
+            err.message
+        );
+
+        return false;
+    }
+
+    CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>();
+
+    if (!compiled_shader_batch) {
+        HYP_LOG(
+            ShaderCompiler,
+            LogLevel::ERR,
+            "Failed to load compiled shader at path: {}\n\tMessage: {}",
+            filepath,
+            "Failed to deserialize CompiledShaderBatch"
+        );
+
+        return false;
+    }
+
+    out_batch = *compiled_shader_batch;
+
+    return true;
 }
 
 #pragma region ShaderProperties
@@ -897,9 +935,9 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
         properties.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-    properties.Set(ShaderProperty("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA", false));
-#endif
+    if (!RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+        properties.Set(ShaderProperty("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA", false));
+    }
 
     //props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));
     //props.Set(ShaderProperty("HYP_MAX_BONES", false));
@@ -970,6 +1008,10 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         return CompileBundle(bundle, additional_versions, batch);
     }
 
+    // temp
+    AssertThrow(bundle.versions.Size() != 0);
+    AssertThrow(batch.compiled_shaders.Size() != 0);
+
     Array<ShaderProperties> missing_variants;
     Array<ShaderProperties> found_variants;
     std::mutex mtx;
@@ -983,8 +1025,10 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             // get hashcode of this set of properties
             const HashCode properties_hash = properties.GetHashCode();
 
-            const auto it = batch.compiled_shaders.FindIf([properties_hash](const CompiledShader &item)
+            const auto it = batch.compiled_shaders.FindIf([properties_hash, &properties](const CompiledShader &item)
             {
+                // HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Comparing {} to {}", item.GetDefinition().GetProperties().ToString(), properties.ToString());
+
                 return item.GetDefinition().GetProperties().GetHashCode() == properties_hash;
             });
 
@@ -1012,7 +1056,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         batch = CompiledShaderBatch { };
 
         String missing_variants_string;
-        String found_variants_string;
+        String all_properties_string;
 
         {
             SizeType index = 0;
@@ -1032,11 +1076,11 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         {
             SizeType index = 0;
 
-            for (const ShaderProperties &found_shader_properties : found_variants) {
-                found_variants_string += String::ToString(found_shader_properties.GetHashCode().Value()) + " - " + found_shader_properties.ToString();
+            for (const ShaderProperty &property : bundle.versions.ToArray()) {
+                all_properties_string += property.name;//String::ToString(found_shader_properties.GetHashCode().Value()) + " - " + found_shader_properties.ToString();
 
-                if (index != found_variants.Size() - 1) {
-                    found_variants_string += ",\n\t";
+                if (index != bundle.versions.Size() - 1) {
+                    all_properties_string += ", ";
                 }
 
                 index++;
@@ -1047,24 +1091,25 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             HYP_LOG(
                 ShaderCompiler,
                 LogLevel::INFO,
-                "Compiled shader is missing properties. Attempting to compile with the missing properties.\n\tRequested with properties:\n\t{}\n\n\tMissing:\n\t{}",
+                "Compiled shader is missing properties. Attempting to compile with the missing properties.\n\tRequested with properties:\n\t{}\n\n\tMissing:\n\t{}\n\n\tAll found properties: {}",
                 additional_versions.ToString(),
-                missing_variants_string
+                missing_variants_string,
+                all_properties_string
             );
 
             return CompileBundle(bundle, additional_versions, batch);
         }
 
-        HYP_LOG(
-            ShaderCompiler,
-            LogLevel::ERR,
-            "Failed to load the compiled shader {}; Variants are missing.\n\tRequested with properties:\n\t{} - {}\n\n\tFound:\n\t{}\n\nMissing:\n\t{}",
-            bundle.name,
-            additional_versions.GetHashCode().Value(),
-            additional_versions.ToString(),
-            found_variants_string,
-            missing_variants_string
-        );
+        // HYP_LOG(
+        //     ShaderCompiler,
+        //     LogLevel::ERR,
+        //     "Failed to load the compiled shader {}; Variants are missing.\n\tRequested with properties:\n\t{} - {}\n\n\tFound:\n\t{}\n\nMissing:\n\t{}",
+        //     bundle.name,
+        //     additional_versions.GetHashCode().Value(),
+        //     additional_versions.ToString(),
+        //     found_variants_string,
+        //     missing_variants_string
+        // );
 
         HYP_BREAKPOINT;
 
@@ -1074,10 +1119,10 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     return true;
 }
 
-bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
+bool ShaderCompiler::LoadOrCompileBatch(
     Name name,
     const ShaderProperties &properties,
-    CompiledShaderBatch &out
+    CompiledShaderBatch &batch
 )
 {
     if (!CanCompileShaders()) {
@@ -1112,51 +1157,33 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     }
 
     Bundle bundle { name };
-
-    // get default, platform specific shader properties
     GetPlatformSpecificProperties(bundle.versions);
 
     // apply each permutable property from the definitions file
     const INIFile::Section &section = m_definitions->GetSection(name_string);
     ParseDefinitionSection(section, bundle);
 
-    const FilePath output_file_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
-
-    // read file if it already exists.
-    fbom::FBOMReader reader(fbom::FBOMConfig { });
-    fbom::FBOMDeserializedObject deserialized;
-
-    HYP_LOG(
-        ShaderCompiler,
-        LogLevel::INFO,
-        "Attempting to load compiled shader {}...",
-        output_file_path
-    );
-
-    fbom::FBOMResult err = fbom::FBOMResult::FBOM_OK;
-
-    if ((err = reader.LoadFromFile(output_file_path, deserialized))) {
+    auto TryToCompileOnMissing = [&](const FilePath &output_file_path)
+    {
         if (CanCompileShaders()) {
             HYP_LOG(
                 ShaderCompiler,
                 LogLevel::INFO,
-                "Could not load compiled shader at path: {}\n\tMessage: {}\n\tAttempting to compile...",
-                output_file_path,
-                err.message
+                "Attempting to compile shader {}...",
+                output_file_path
             );
         } else {
             HYP_LOG(
                 ShaderCompiler,
-                LogLevel::INFO,
-                "Failed to load compiled shader file: {}\n\tMessage: {}",
-                output_file_path,
-                err.message
+                LogLevel::ERR,
+                "Failed to load compiled shader file: {}. The file could not be found.",
+                output_file_path
             );
 
             return false;
         }
 
-        if (!CompileBundle(bundle, properties, out)) {
+        if (!CompileBundle(bundle, properties, batch)) {
             HYP_LOG(
                 ShaderCompiler,
                 LogLevel::ERR,
@@ -1167,36 +1194,29 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
             return false;
         }
 
-        if ((err = reader.LoadFromFile(output_file_path, deserialized))) {
-            HYP_LOG(
-                ShaderCompiler,
-                LogLevel::ERR,
-                "Failed to compile shader at path: {}\n\tMessage: {}",
-                output_file_path,
-                err.message
-            );
+        return LoadBatchFromFile(output_file_path, batch);
+    };
 
-            return false;
-        }
-    }
+    const FilePath output_file_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
 
-    CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>();
-
-    if (!compiled_shader_batch) {
+    if (output_file_path.Exists()) {
         HYP_LOG(
             ShaderCompiler,
-            LogLevel::ERR,
-            "Failed to load compiled shader at path: {}\n\tMessage: {}",
-            output_file_path,
-            "Failed to deserialize CompiledShaderBatch"
+            LogLevel::INFO,
+            "Attempting to load compiled shader {}...",
+            output_file_path
         );
 
+        if (!LoadBatchFromFile(output_file_path, batch)) {
+            if (!TryToCompileOnMissing(output_file_path)) {
+                return false;
+            }
+        }
+    } else if (!TryToCompileOnMissing(output_file_path)) {
         return false;
     }
 
-    out = *compiled_shader_batch;
-
-    return HandleCompiledShaderBatch(bundle, properties, output_file_path, out);
+    return HandleCompiledShaderBatch(bundle, properties, output_file_path, batch);
 }
 
 bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
@@ -1360,8 +1380,6 @@ static String BuildDescriptorTableDefines(const DescriptorUsageSet &descriptor_u
             }
         }
     }
-
-    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Descriptor table defines:\n{}", descriptor_table_defines);
 
     return descriptor_table_defines;
 }
@@ -1981,46 +1999,56 @@ bool ShaderCompiler::CompileBundle(
         Array<DescriptorUsageSet> all_descriptor_usage_sets;
         all_descriptor_usage_sets.Resize(loaded_source_files.Size());
 
+        Array<String> processed_sources;
+        processed_sources.Resize(loaded_source_files.Size());
+
+        Array<Pair<FilePath, bool /* skip */>> filepaths;
+        filepaths.Resize(loaded_source_files.Size());
+
+        // load each source file, check if the output file exists, and if it does, check if it is older than the source file
+        // if it is, we can reuse the file.
+        // otherwise, we process the source and prepare it for compilation
         ParallelForEach(loaded_source_files, [&](const LoadedSourceFile &item, uint index, uint)
         {
             // check if a file exists w/ same hash
-            
             const FilePath output_filepath = item.GetOutputFilepath(
                 g_asset_manager->GetBasePath(),
                 shader_definition
             );
 
-            if (output_filepath.Exists()) {
-                // file exists and is older than the original source file; no need to build
-                if (output_filepath.LastModifiedTimestamp() >= item.last_modified_timestamp) {
-                    BufferedReader reader;
+            filepaths[index] = { output_filepath, false };
 
-                    if (output_filepath.Open(reader)) {
-                        compiled_shader.modules[item.type] = reader.ReadBytes();
+            // if (output_filepath.Exists()) {
+            //     // file exists and is older than the original source file; no need to build
+            //     if (output_filepath.LastModifiedTimestamp() >= item.last_modified_timestamp) {
+            //         BufferedReader reader;
 
-                        return;
-                    }
+            //         if (output_filepath.Open(reader)) {
+            //             compiled_shader.modules[item.type] = reader.ReadBytes();
 
-                    HYP_LOG(
-                        ShaderCompiler,
-                        LogLevel::WARNING,
-                        "File {} seems valid for reuse but could not be opened. Attempting to rebuild...\n\tProperties: [{}]",
-                        output_filepath,
-                        properties.ToString()
-                    );
-                }
-            }
+            //             filepaths[index].second = true; 
+
+            //             return;
+            //         }
+
+            //         HYP_LOG(
+            //             ShaderCompiler,
+            //             LogLevel::WARNING,
+            //             "File {} seems valid for reuse but could not be opened. Attempting to rebuild...\n\tProperties: [{}]",
+            //             output_filepath,
+            //             properties.ToString()
+            //         );
+            //     }
+            // }
 
             DescriptorUsageSet &descriptor_usages = all_descriptor_usage_sets[index];
-
-            ByteBuffer byte_buffer;
 
             Array<String> error_messages;
 
             // set directory to the directory of the shader
             const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
 
-            String processed_source;
+            String &processed_source = processed_sources[index];
 
             { // Process shader (preprocessing, custom statements, etc.)
                 ProcessResult process_result = ProcessShaderSource(ProcessShaderSourcePhase::AFTER_PREPROCESS, item.type, item.language, item.source, item.file.path, properties);
@@ -2052,6 +2080,28 @@ bool ShaderCompiler::CompileBundle(
 
                 processed_source = process_result.processed_source;
             }
+        });
+
+        // merge all descriptor usages together for the source files before compiling.
+        for (const DescriptorUsageSet &descriptor_usage_set : all_descriptor_usage_sets) {
+            compiled_shader.descriptor_usages.Merge(descriptor_usage_set);
+        }
+        
+        all_descriptor_usage_sets.Clear();
+
+        // final substitution of properties + compilation
+        ParallelForEach(loaded_source_files, [&](const LoadedSourceFile &item, uint index, uint)
+        {
+            const Pair<FilePath, bool> &filepath_state = filepaths[index];
+
+            // don't process these files
+            if (filepath_state.second) {
+                return;
+            }
+
+            const FilePath &output_filepath = filepath_state.first;
+
+            Array<String> error_messages;
 
             { // logging stuff
                 String variable_properties_string;
@@ -2084,7 +2134,7 @@ bool ShaderCompiler::CompileBundle(
                 );
             }
             
-            byte_buffer = CompileToSPIRV(item.type, item.language, BuildDescriptorTableDefines(descriptor_usages), processed_source, item.file.path, properties, error_messages);
+            ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, BuildDescriptorTableDefines(compiled_shader.descriptor_usages), processed_sources[index], item.file.path, properties, error_messages);
 
             if (byte_buffer.Empty()) {
                 HYP_LOG(
@@ -2128,18 +2178,12 @@ bool ShaderCompiler::CompileBundle(
             compiled_shader.modules[item.type] = std::move(byte_buffer);
         });
 
-        // merge all descriptor usages together for the source files
-        for (const DescriptorUsageSet &descriptor_usage_set : all_descriptor_usage_sets) {
-            compiled_shader.descriptor_usages.Merge(descriptor_usage_set);
-        }
-
         num_compiled_permutations.Increment(uint(!any_files_errored.Get(MemoryOrder::RELAXED) && any_files_compiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
 
         compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
         compiled_shaders_mutex.unlock();
     }, false);//true);
-
 
     const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 
@@ -2215,7 +2259,7 @@ bool ShaderCompiler::GetCompiledShader(
 
     CompiledShaderBatch batch;
 
-    if (!LoadOrCreateCompiledShaderBatch(name, final_properties, batch)) {
+    if (!LoadOrCompileBatch(name, final_properties, batch)) {
         HYP_LOG(
             ShaderCompiler,
             LogLevel::ERR,
