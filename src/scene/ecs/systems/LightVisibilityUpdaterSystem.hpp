@@ -4,19 +4,22 @@
 #define HYPERION_ECS_LIGHT_VISIBILITY_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
-#include <scene/ecs/components/TransformComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
-#include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/MeshComponent.hpp>
 #include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
+
+struct LightComponent;
+struct TransformComponent;
+struct BoundingBoxComponent;
+struct VisibilityStateComponent;
+struct MeshComponent;
 
 class LightVisibilityUpdaterSystem : public System<
     LightVisibilityUpdaterSystem,
     
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
     // Can read and write the VisibilityStateComponent but does not receive events
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,

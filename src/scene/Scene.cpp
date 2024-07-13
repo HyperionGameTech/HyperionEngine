@@ -9,7 +9,7 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
-#include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
+#include <scene/ecs/systems/RenderProxyUpdaterSystem.hpp>
 #include <scene/ecs/systems/EntityMeshDirtyStateSystem.hpp>
 #include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
@@ -133,7 +133,7 @@ Scene::Scene(
 
     m_entity_manager->AddSystem<WorldAABBUpdaterSystem>();
     m_entity_manager->AddSystem<EntityMeshDirtyStateSystem>();
-    m_entity_manager->AddSystem<EntityDrawDataUpdaterSystem>();
+    m_entity_manager->AddSystem<RenderProxyUpdaterSystem>();
     m_entity_manager->AddSystem<LightVisibilityUpdaterSystem>();
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();

@@ -323,6 +323,8 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
         DrawCallID draw_call_id;
 
         if (unique_per_material) {
+            // @TODO: Rather than using Material ID we could use hashcode of the material,
+            // so that we can use the same material with different IDs
             draw_call_id = DrawCallID(render_proxy.mesh.GetID(), render_proxy.material.GetID());
         } else {
             draw_call_id = DrawCallID(render_proxy.mesh.GetID());

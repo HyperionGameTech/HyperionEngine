@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <scene/ecs/systems/EntityDrawDataUpdaterSystem.hpp>
+#include <scene/ecs/systems/RenderProxyUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
@@ -58,7 +58,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-void EntityDrawDataUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void RenderProxyUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -84,14 +84,14 @@ void EntityDrawDataUpdaterSystem::OnEntityAdded(ID<Entity> entity)
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
-void EntityDrawDataUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 }
 
-void EntityDrawDataUpdaterSystem::Process(GameCounter::TickUnit delta)
+void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Array<RC<RenderProxy>> render_proxies;
 

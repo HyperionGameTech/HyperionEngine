@@ -53,8 +53,7 @@ void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
             bounding_box_component.world_aabb = world_aabb;
             bounding_box_component.transform_hash_code = transform_hash_code;
         
-            // Tell the renderer that the entity's world AABB has changed.
-            // This will cause the renderer to update the entity's world AABB in the GPU.
+            // Update the render proxy
             mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
         }
     }

@@ -2,8 +2,11 @@
 
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 #include <Engine.hpp>
 
 namespace hyperion {

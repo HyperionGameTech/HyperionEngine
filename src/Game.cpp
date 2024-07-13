@@ -110,12 +110,12 @@ void Game::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     g_engine->GetScriptingService()->Update();
-
-    Logic(delta);
     
     if (m_ui_stage) {
         m_ui_stage->Update(delta);
     }
+
+    Logic(delta);
 
     if (m_managed_game_object) {
         m_managed_game_object->InvokeMethodByName<void, float>("Update", float(delta));

@@ -635,10 +635,6 @@ protected:
      *  should be in range of (0,0,0):(size,size,size). */
     virtual BoundingBox CalculateAABB() const;
 
-    /*! \brief Calculate the world space bounding box (in pixels) of the object,
-     *  without taking child objects into account. */
-    BoundingBox CalculateWorldAABBExcludingChildren() const;
-
     const Handle<Mesh> &GetMesh() const;
 
     virtual MaterialAttributes GetMaterialAttributes() const;

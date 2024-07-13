@@ -378,12 +378,6 @@ void UIObject::UpdateSize(bool update_children)
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetEntityAABB(CalculateAABB());
 
-    const NodeProxy &node = GetNode();
-
-    if (!node.IsValid()) {
-        return;
-    }
-
     Array<RC<UIObject>> deferred_children;
 
     if (update_children) {
@@ -993,20 +987,9 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
 BoundingBox UIObject::CalculateAABB() const
 {
     const Vec3f min = Vec3f::Zero();
-
-    Vec3f max = Vec3f { float(m_actual_size.x), float(m_actual_size.y), 0.0f };
-
-    // if (m_size.GetFlagsX() & UIObjectSize::AUTO) {
-    //     max.x = 0.0f;
-    // }
-
-    // if (m_size.GetFlagsY() & UIObjectSize::AUTO) {
-    //     max.y = 0.0f;
-    // }
+    const Vec3f max = Vec3f { float(m_actual_size.x), float(m_actual_size.y), 0.0f };
 
     return BoundingBox { min, max };
-
-    // return { Vec3f::Zero(), Vec3f(float(m_actual_size.x), float(m_actual_size.y), 0.0f) };
 }
 
 void UIObject::SetAffectsParentSize(bool affects_parent_size)
@@ -1024,19 +1007,6 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
             node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
-}
-
-BoundingBox UIObject::CalculateWorldAABBExcludingChildren() const
-{
-    HYP_SCOPE;
-    
-    if (const NodeProxy &node = GetNode()) {
-        Transform transform = node->GetWorldTransform();
-        transform.SetScale(Vec3f::One());
-        return node->GetEntityAABB() * transform;
-    }
-
-    return BoundingBox::Empty();
 }
 
 MaterialAttributes UIObject::GetMaterialAttributes() const
@@ -1466,6 +1436,8 @@ void UIObject::UpdateMaterial(bool update_children)
             // release the old material
             g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
+            // @TODO Cache new material.
+
             mesh_component->material = new_material;
             mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
         } else {
@@ -1479,7 +1451,6 @@ void UIObject::UpdateMaterial(bool update_children)
         }
 
         if (textures_changed) {
-            HYP_LOG(UI, LogLevel::DEBUG, "Setting textures for UI object: {}", GetName());
             new_material->SetTextures(material_textures);
         }
 

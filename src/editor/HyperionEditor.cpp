@@ -568,11 +568,6 @@ void HyperionEditorImpl::CreateMainPanel()
 
     scene_tab->GetContents()->AddChildUIObject(ui_image);
 
-    auto test_image = GetUIStage()->CreateUIObject<UIImage>(NAME("Test_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PIXEL }, { 100, UIObjectSize::PIXEL }));
-    test_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
-    test_image->SetDepth(100);
-    scene_tab->GetContents()->AddChildUIObject(test_image);
-
     ui_image->SetTexture(m_scene_texture);        
 
     dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
