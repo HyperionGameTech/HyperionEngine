@@ -64,10 +64,6 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
                     }
 
                     shader_data.texture_usage |= 1 << i;
-
-                    if (i + 1 == num_bound_textures) {
-                        break;
-                    }
                 }
             }
         }
@@ -107,6 +103,8 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 
                 descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
             } else {
+                HYP_LOG(Material, LogLevel::WARNING, "Setting invalid texture for material with ID #{} at index {}", id.Value(), texture_index);
+
                 descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
         }
@@ -329,6 +327,8 @@ void Material::EnqueueRenderUpdates()
     AssertReady();
 
     if (!m_mutation_state.IsDirty()) {
+        HYP_LOG(Material, LogLevel::WARNING, "EnqueueRenderUpdates called on material with ID #{} (name: {}) that is not dirty", GetID().Value(), GetName());
+
         return;
     }
 

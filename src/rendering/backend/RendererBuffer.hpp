@@ -170,6 +170,9 @@ public:
     HYP_API void Copy(Device<PLATFORM> *device, SizeType count, const void *ptr);
     HYP_API void Copy(Device<PLATFORM> *device, SizeType offset, SizeType count, const void *ptr);
 
+    HYP_API void Map(Device<PLATFORM> *device);
+    HYP_API void Unmap(Device<PLATFORM> *device);
+
     HYP_API void Read(Device<PLATFORM> *device, SizeType count, void *out_ptr) const;
     
 private:

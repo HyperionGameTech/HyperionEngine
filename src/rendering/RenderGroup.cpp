@@ -280,6 +280,10 @@ void RenderGroup::Init()
         m_pipeline->SetDescriptorTable(descriptor_table);
     }
 
+    if (String(m_shader->GetCompiledShader()->GetName().LookupString()).Contains("DebugAABB")) {
+        HYP_BREAKPOINT;
+    }
+
     AssertThrow(m_pipeline->GetDescriptorTable().IsValid());
 
     m_pipeline.SetName(CreateNameFromDynamicString(ANSIString("GraphicsPipeline_") + m_shader->GetCompiledShader()->GetName().LookupString()));
@@ -304,6 +308,8 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
     AssertReady();
 
+    const bool unique_per_material = ShouldCollectUniqueDrawCallPerMaterial();
+
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
         m_indirect_renderer->GetDrawState().ResetDrawState();
     }
@@ -320,7 +326,7 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
         DrawCallID draw_call_id;
 
-        if constexpr (DrawCall::unique_per_material) {
+        if (unique_per_material) {
             draw_call_id = DrawCallID(render_proxy.mesh.GetID(), render_proxy.material.GetID());
         } else {
             draw_call_id = DrawCallID(render_proxy.mesh.GetID());
@@ -470,28 +476,28 @@ RenderAll(
         }
 
         if (entity_descriptor_set.IsValid()) {
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-            entity_descriptor_set->Bind(
-                frame->GetCommandBuffer(),
-                pipeline,
-                {
-                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
-                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
-                },
-                entity_descriptor_set_index
-            );
-#else
-            entity_descriptor_set->Bind(
-                frame->GetCommandBuffer(),
-                pipeline,
-                {
-                    { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
-                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
-                },
-                entity_descriptor_set_index
-            );
-#endif
+            if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+                entity_descriptor_set->Bind(
+                    frame->GetCommandBuffer(),
+                    pipeline,
+                    {
+                        { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                    },
+                    entity_descriptor_set_index
+                );
+            } else {
+                entity_descriptor_set->Bind(
+                    frame->GetCommandBuffer(),
+                    pipeline,
+                    {
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                    },
+                    entity_descriptor_set_index
+                );
+            }
         }
 
         // Bind material descriptor set
@@ -626,28 +632,28 @@ RenderAll_Parallel(
                         const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
                         
                         if (entity_descriptor_set.IsValid()) {
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-                            entity_descriptor_set->Bind(
-                                secondary,
-                                pipeline,
-                                {
-                                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
-                                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
-                                },
-                                entity_descriptor_set_index
-                            );
-#else
-                            entity_descriptor_set->Bind(
-                                secondary,
-                                pipeline,
-                                {
-                                    { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
-                                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
-                                },
-                                entity_descriptor_set_index
-                            );
-#endif
+                            if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+                                entity_descriptor_set->Bind(
+                                    secondary,
+                                    pipeline,
+                                    {
+                                        { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                                    },
+                                    entity_descriptor_set_index
+                                );
+                            } else {
+                                entity_descriptor_set->Bind(
+                                    secondary,
+                                    pipeline,
+                                    {
+                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                                    },
+                                    entity_descriptor_set_index
+                                );
+                            }
                         }
 
                         // Bind material descriptor set
@@ -757,6 +763,11 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
             m_draw_state
         );
     }
+}
+
+bool RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()
+{
+    return g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 }
 
 #pragma endregion RenderGroup

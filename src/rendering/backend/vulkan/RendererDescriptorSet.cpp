@@ -165,6 +165,11 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
         for (const DescriptorDeclaration &descriptor : slot) {
             const uint descriptor_index = decl_ptr->CalculateFlatIndex(descriptor.slot, descriptor.name);
             AssertThrow(descriptor_index != uint(-1));
+            
+            if (descriptor.cond != nullptr && !descriptor.cond()) {
+                // Skip this descriptor, condition not met
+                continue;
+            }
 
             DebugLog(
                 LogType::Debug,

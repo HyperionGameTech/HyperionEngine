@@ -141,39 +141,70 @@ void DebugDrawer::Render(Frame *frame)
 
     const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
 
-    proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-        proxy.GetCommandBuffer(frame_index),
-        frame_index,
-        proxy.GetGraphicsPipeline(),
-        {
+    if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+        proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
+            proxy.GetCommandBuffer(frame_index),
+            frame_index,
+            proxy.GetGraphicsPipeline(),
             {
-                NAME("DebugDrawerDescriptorSet"),
                 {
-                    { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, 0) }
-                }
-            },
-            {
-                NAME("Scene"),
+                    NAME("DebugDrawerDescriptorSet"),
+                    {
+                        { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, 0) }
+                    }
+                },
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
-                }
-            },
-            {
-                NAME("Object"),
+                    NAME("Scene"),
+                    {
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    }
+                },
                 {
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-                    { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, 0) },
-#endif
-                    { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
-                    { NAME("EntityInstanceBatchesBuffer"), 0 }
+                    NAME("Object"),
+                    {
+                        { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, 0) },
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
+                        { NAME("EntityInstanceBatchesBuffer"), 0 }
+                    }
                 }
             }
-        }
-    );
+        );
+    } else {
+        proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
+            proxy.GetCommandBuffer(frame_index),
+            frame_index,
+            proxy.GetGraphicsPipeline(),
+            {
+                {
+                    NAME("DebugDrawerDescriptorSet"),
+                    {
+                        { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, 0) }
+                    }
+                },
+                {
+                    NAME("Scene"),
+                    {
+                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    }
+                },
+                {
+                    NAME("Object"),
+                    {
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
+                        { NAME("EntityInstanceBatchesBuffer"), 0 }
+                    }
+                }
+            }
+        );
+    }
 
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const DebugDrawCommand &draw_command = m_draw_commands[index];

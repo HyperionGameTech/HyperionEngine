@@ -62,16 +62,4 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
     HYP_LOG(UI, LogLevel::INFO, "Button focus state set to: {}", uint(focus_state));
 }
 
-MaterialAttributes UIButton::GetMaterialAttributes() const
-{
-    return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_BUTTON" }) },
-        .bucket             = Bucket::BUCKET_UI,
-        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces         = FaceCullMode::BACK,
-        .flags              = MaterialAttributeFlags::NONE
-    };
-}
-
 } // namespace hyperion

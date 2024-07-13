@@ -40,11 +40,6 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
 {
     AssertThrow(render_proxy.mesh.IsValid());
 
-#ifndef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-    AssertThrow(id.Value() != 0);
-    AssertThrow(id.HasMaterial());
-#endif
-
     const auto it = index_map.Find(id.Value());
 
     if (it != index_map.End()) {

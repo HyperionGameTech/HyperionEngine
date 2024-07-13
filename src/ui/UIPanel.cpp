@@ -43,15 +43,7 @@ void UIPanel::Init()
 
 MaterialAttributes UIPanel::GetMaterialAttributes() const
 {
-    return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_PANEL" }) },
-        .bucket             = Bucket::BUCKET_UI,
-        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces         = FaceCullMode::BACK,
-        .flags              = MaterialAttributeFlags::NONE,
-        //.stencil_function   = StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0xFF, 0x1)// <-- @TEMP test
-    };
+    return UIObject::GetMaterialAttributes();
 }
 
 Material::ParameterTable UIPanel::GetMaterialParameters() const

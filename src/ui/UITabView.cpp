@@ -58,14 +58,7 @@ void UITab::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 
 MaterialAttributes UITab::GetMaterialAttributes() const
 {
-    return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TAB" }) },
-        .bucket             = Bucket::BUCKET_UI,
-        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces         = FaceCullMode::BACK,
-        .flags              = MaterialAttributeFlags::NONE
-    };
+    return UIObject::GetMaterialAttributes();
 }
 
 Material::ParameterTable UITab::GetMaterialParameters() const

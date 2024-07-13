@@ -434,6 +434,26 @@ void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeTyp
 }
 
 template <>
+void GPUBuffer<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device)
+{
+    if (m_platform_impl.mapping != nullptr) {
+        return;
+    }
+
+    m_platform_impl.Map(device);
+}
+
+template <>
+void GPUBuffer<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device)
+{
+    if (m_platform_impl.mapping == nullptr) {
+        return;
+    }
+
+    m_platform_impl.Unmap(device);
+}
+
+template <>
 void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const
 {
     if (m_platform_impl.mapping == nullptr) {

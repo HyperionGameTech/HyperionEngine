@@ -349,6 +349,19 @@ public:
     HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }
 
+    template <class Lambda>
+    HYP_FORCE_INLINE auto Map(Lambda &&lambda) const -> Array<std::invoke_result_t<Lambda, const T &>>
+    {
+        Array<std::invoke_result_t<Lambda, const T &>> result;
+        result.Reserve(Size());
+
+        for (const auto &item : *this) {
+            result.PushBack(lambda(item));
+        }
+
+        return result;
+    }
+
     template <SizeType OtherNumInlineBytes>
     HYP_FORCE_INLINE bool operator==(const Array<T, OtherNumInlineBytes> &other) const
     {

@@ -2,6 +2,9 @@
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+// For condition (@TODO: Refactor)
+#include <rendering/RenderGroup.hpp>
+
 #include <rendering/Buffers.hpp>
 
 namespace hyperion {

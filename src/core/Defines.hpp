@@ -372,8 +372,6 @@
 
 #pragma region Engine Static Configuration
 
-#define HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-
 #define HYP_FEATURES_PARALLEL_RENDERING 1
 
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance

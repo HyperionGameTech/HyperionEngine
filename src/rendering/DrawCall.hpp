@@ -65,12 +65,6 @@ struct DrawCallID
 
 struct DrawCall
 {
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-    static constexpr bool unique_per_material = false;
-#else
-    static constexpr bool unique_per_material = true;
-#endif
-
     DrawCallID                          id;
     BufferTicket<EntityInstanceBatch>   batch_index;
     uint32                              draw_command_index;

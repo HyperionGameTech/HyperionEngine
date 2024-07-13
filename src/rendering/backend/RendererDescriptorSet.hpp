@@ -111,12 +111,15 @@ enum DescriptorSlot : uint32
 
 struct DescriptorDeclaration
 {
-    DescriptorSlot  slot = DESCRIPTOR_SLOT_NONE;
-    Name            name;
-    uint            count = 1;
-    uint            size = uint(-1);
-    bool            is_dynamic = false;
-    uint            index = ~0u;
+    using ConditionFunction = bool (*)();
+
+    DescriptorSlot      slot = DESCRIPTOR_SLOT_NONE;
+    Name                name;
+    ConditionFunction   cond = nullptr;
+    uint                count = 1;
+    uint                size = uint(-1);
+    bool                is_dynamic = false;
+    uint                index = ~0u;
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
@@ -129,6 +132,8 @@ struct DescriptorDeclaration
         hc.Add(size);
         hc.Add(is_dynamic);
         hc.Add(index);
+
+        // cond excluded intentionally
 
         return hc;
     }
@@ -278,7 +283,7 @@ public:
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(DescriptorTableDeclaration *table, Name set_name, DescriptorSlot slot_type, Name descriptor_name, uint count = 1, uint size = -1, bool is_dynamic = false)
+        DeclareDescriptor(DescriptorTableDeclaration *table, Name set_name, DescriptorSlot slot_type, Name descriptor_name, DescriptorDeclaration::ConditionFunction cond = nullptr, uint count = 1, uint size = -1, bool is_dynamic = false)
         {
             AssertThrow(table != nullptr);
 
@@ -303,6 +308,7 @@ public:
             descriptor_decl.index = slot_index;
             descriptor_decl.slot = slot_type;
             descriptor_decl.name = descriptor_name;
+            descriptor_decl.cond = cond;
             descriptor_decl.size = size;
             descriptor_decl.count = count;
             descriptor_decl.is_dynamic = is_dynamic;

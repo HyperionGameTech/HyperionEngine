@@ -113,8 +113,9 @@ Result ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
     for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
         DebugLog(
             LogType::Debug,
-            "\tDescriptor set layout: %s\n",
-            descriptor_set->GetLayout().GetName().LookupString()
+            "\tDescriptor set layout: %s (%u)\n",
+            descriptor_set->GetLayout().GetName().LookupString(),
+            descriptor_set->GetLayout().GetDeclaration().set_index
         );
 
         for (const auto &it : descriptor_set->GetLayout().GetElements()) {

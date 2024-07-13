@@ -40,12 +40,6 @@ static const bool should_compile_missing_variants = true;
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
-enum class ShaderLanguage
-{
-    GLSL,
-    HLSL
-};
-
 #pragma region SPRIV Compilation
 
 #if defined(HYP_VULKAN) && defined(HYP_GLSLANG)
@@ -170,14 +164,15 @@ static TBuiltInResource DefaultResources()
     };
 }
 
-static ByteBuffer CompileToSPIRV(
+
+static bool PreprocessShaderSource(
     ShaderModuleType type,
     ShaderLanguage language,
     String preamble,
     String source,
     String filename,
-    const ShaderProperties &properties,
-    Array<String> &error_messages
+    String &out_preprocessed_source,
+    Array<String> &out_error_messages
 )
 {
 
@@ -185,13 +180,13 @@ static ByteBuffer CompileToSPIRV(
     #define GLSL_ERROR(level, error_message, ...) \
         { \
             HYP_LOG(ShaderCompiler, level, error_message, __VA_ARGS__); \
-            error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
+            out_error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
         }
 #else
     #define GLSL_ERROR(level, error_message, ...) \
         { \
             HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
-            error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
+            out_error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
         }
 #endif
 
@@ -258,9 +253,9 @@ static ByteBuffer CompileToSPIRV(
         break;
     }
 
-    uint vulkan_api_version = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
-    uint spirv_api_version = GLSLANG_TARGET_SPV_1_2;
-    uint spirv_version = 450;
+    uint32 vulkan_api_version = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint32 spirv_api_version = GLSLANG_TARGET_SPV_1_2;
+    uint32 spirv_version = 450;
 
     if (ShaderModule::IsRaytracingType(type)) {
         vulkan_api_version = MathUtil::Max(vulkan_api_version, VK_API_VERSION_1_2);
@@ -361,14 +356,148 @@ static ByteBuffer CompileToSPIRV(
 
         glslang_shader_delete(shader);
 
+        return false;
+    }
+
+    out_preprocessed_source = glslang_shader_get_preprocessed_code(shader);
+
+    // HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Preprocessed source for {}: Before: \n{}\nAfter:\n{}", filename, source, out_preprocessed_source);
+
+    glslang_shader_delete(shader);
+
+    return true;
+}
+
+static ByteBuffer CompileToSPIRV(
+    ShaderModuleType type,
+    ShaderLanguage language,
+    String preamble,
+    String source,
+    String filename,
+    const ShaderProperties &properties,
+    Array<String> &error_messages
+)
+{
+
+#ifdef HYP_MSVC
+    #define GLSL_ERROR(level, error_message, ...) \
+        { \
+            HYP_LOG(ShaderCompiler, level, error_message, __VA_ARGS__); \
+            error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
+        }
+#else
+    #define GLSL_ERROR(level, error_message, ...) \
+        { \
+            HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
+            error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
+        }
+#endif
+
+    auto default_resources = DefaultResources();
+
+    glslang_stage_t stage;
+    String stage_string;
+
+    switch (type) {
+    case ShaderModuleType::VERTEX:
+        stage = GLSLANG_STAGE_VERTEX;
+        stage_string = "VERTEX_SHADER";
+        break;
+    case ShaderModuleType::FRAGMENT:
+        stage = GLSLANG_STAGE_FRAGMENT;
+        stage_string = "FRAGMENT_SHADER";
+        break;
+    case ShaderModuleType::GEOMETRY:
+        stage = GLSLANG_STAGE_GEOMETRY;
+        stage_string = "GEOMETRY_SHADER";
+        break;
+    case ShaderModuleType::COMPUTE:
+        stage = GLSLANG_STAGE_COMPUTE;
+        stage_string = "COMPUTE_SHADER";
+        break;
+    case ShaderModuleType::TASK:
+        stage = GLSLANG_STAGE_TASK_NV;
+        stage_string = "TASK_SHADER";
+        break;
+    case ShaderModuleType::MESH:
+        stage = GLSLANG_STAGE_MESH_NV;
+        stage_string = "MESH_SHADER";
+        break;
+    case ShaderModuleType::TESS_CONTROL:
+        stage = GLSLANG_STAGE_TESSCONTROL;
+        stage_string = "TESS_CONTROL_SHADER";
+        break;
+    case ShaderModuleType::TESS_EVAL:
+        stage = GLSLANG_STAGE_TESSEVALUATION;
+        stage_string = "TESS_EVAL_SHADER";
+        break;
+    case ShaderModuleType::RAY_GEN:
+        stage = GLSLANG_STAGE_RAYGEN_NV;
+        stage_string = "RAY_GEN_SHADER";
+        break;
+    case ShaderModuleType::RAY_INTERSECT:
+        stage = GLSLANG_STAGE_INTERSECT_NV;
+        stage_string = "RAY_INTERSECT_SHADER";
+        break;
+    case ShaderModuleType::RAY_ANY_HIT:
+        stage = GLSLANG_STAGE_ANYHIT_NV;
+        stage_string = "RAY_ANY_HIT_SHADER";
+        break;
+    case ShaderModuleType::RAY_CLOSEST_HIT:
+        stage = GLSLANG_STAGE_CLOSESTHIT_NV;
+        stage_string = "RAY_CLOSEST_HIT_SHADER";
+        break;
+    case ShaderModuleType::RAY_MISS:
+        stage = GLSLANG_STAGE_MISS_NV;
+        stage_string = "RAY_MISS_SHADER";
+        break;
+    default:
+        HYP_THROW("Invalid shader type");
+        break;
+    }
+
+    uint32 vulkan_api_version = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint32 spirv_api_version = GLSLANG_TARGET_SPV_1_2;
+    uint32 spirv_version = 450;
+
+    if (ShaderModule::IsRaytracingType(type)) {
+        vulkan_api_version = MathUtil::Max(vulkan_api_version, VK_API_VERSION_1_2);
+        spirv_api_version = MathUtil::Max(spirv_api_version, GLSLANG_TARGET_SPV_1_4);
+        spirv_version = MathUtil::Max(spirv_version, 460);
+    }
+
+    glslang_input_t input {
+        .language                           = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL : GLSLANG_SOURCE_GLSL,
+        .stage                              = stage,
+        .client                             = GLSLANG_CLIENT_VULKAN,
+        .client_version                     = static_cast<glslang_target_client_version_t>(vulkan_api_version),
+        .target_language                    = GLSLANG_TARGET_SPV,
+        .target_language_version            = static_cast<glslang_target_language_version_t>(spirv_api_version),
+        .code                               = source.Data(),
+        .default_version                    = int(spirv_version),
+        .default_profile                    = GLSLANG_CORE_PROFILE,
+        .force_default_version_and_profile  = false,
+        .forward_compatible                 = false,
+        .messages                           = GLSLANG_MSG_DEFAULT_BIT,
+        .resource                           = reinterpret_cast<const glslang_resource_t *>(&default_resources),
+        .callbacks_ctx                      = nullptr
+    };
+    
+    glslang_shader_t *shader = glslang_shader_create(&input);
+
+    glslang_shader_set_preamble(shader, preamble.Data());
+
+    if (!glslang_shader_preprocess(shader, &input))	{
+        GLSL_ERROR(LogLevel::ERR, "GLSL preprocessing failed {}", filename);
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_log(shader));
+        GLSL_ERROR(LogLevel::ERR, "{}", glslang_shader_get_info_debug_log(shader));
+
+        glslang_shader_delete(shader);
+
         return ByteBuffer();
     }
 
-    // @TODO: use shader->preprocessedGLSL before working with our internal methods like HYP_DESCRIPTOR_*
-
-#ifdef HYP_SHADER_COMPILER_LOGGING
-    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Preprocessed GLSL for {}:\n{}", filename, glslang_shader_get_preprocessed_code(shader));
-#endif
+    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "FINAL SOURCE {}:\n{}", filename, glslang_shader_get_preprocessed_code(shader));
 
     if (!glslang_shader_parse(shader, &input)) {
         GLSL_ERROR(LogLevel::ERR, "GLSL parsing failed {}", filename);
@@ -440,12 +569,11 @@ struct LoadedSourceFile
     Time                        last_modified_timestamp;
     String                      source;
 
-    FilePath GetOutputFilepath(const FilePath &base_path, const CompiledShader &compiled_shader) const
+    FilePath GetOutputFilepath(const FilePath &base_path, const ShaderDefinition &shader_definition) const
     {
         HashCode hc;
         hc.Add(file.path);
-        hc.Add(compiled_shader.GetDefinition().GetHashCode());
-        hc.Add(compiled_shader.GetDescriptorUsages().GetHashCode());
+        hc.Add(shader_definition.GetHashCode());
 
         return base_path / "data/compiled_shaders/tmp" / FilePath(file.path).Basename() + "_" + (String::ToString(hc.Value()) + ".spirv");
     }
@@ -699,6 +827,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
         DescriptorDeclaration desc {
             descriptor_usage.slot,
             descriptor_usage.descriptor_name,
+            nullptr, /* cond */
             descriptor_usage.GetCount(),
             descriptor_usage.GetSize(),
             bool(descriptor_usage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC)
@@ -1200,11 +1329,101 @@ bool ShaderCompiler::CanCompileShaders() const
 #endif
 }
 
-ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &source)
+static String BuildDescriptorTableDefines(const DescriptorUsageSet &descriptor_usages)
+{
+    String descriptor_table_defines;
+
+    DescriptorTableDeclaration descriptor_table = descriptor_usages.BuildDescriptorTable();
+
+    // Generate descriptor table defines
+    for (const DescriptorSetDeclaration &descriptor_set_declaration : descriptor_table.GetElements()) {
+        const uint set_index = descriptor_table.GetDescriptorSetIndex(descriptor_set_declaration.name);
+        AssertThrow(set_index != -1);
+
+        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(set_index) + "\n";
+
+        const DescriptorSetDeclaration *descriptor_set_declaration_ptr = &descriptor_set_declaration;
+
+        if (descriptor_set_declaration.is_reference) {
+            const DescriptorSetDeclaration *static_decl = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            AssertThrow(static_decl != nullptr);
+
+            descriptor_set_declaration_ptr = static_decl;
+        }
+
+        for (const Array<DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration_ptr->slots) {
+            for (const DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
+                const uint flat_index = descriptor_set_declaration_ptr->CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
+                AssertThrow(flat_index != uint(-1));
+
+                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration_ptr->name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
+            }
+        }
+    }
+
+    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Descriptor table defines:\n{}", descriptor_table_defines);
+
+    return descriptor_table_defines;
+}
+
+static String BuildPreamble(const ShaderProperties &properties)
+{
+    String preamble;
+    
+    for (const VertexAttribute::Type attribute_type : properties.GetRequiredVertexAttributes().BuildAttributes()) {
+        preamble += String("#define HYP_ATTRIBUTE_") + VertexAttribute::mapping[attribute_type].name + "\n";
+    }
+
+    // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
+    // before compiling the shader, they should have all been made Required.
+
+    for (const ShaderProperty &property : properties.GetPropertySet()) {
+        if (property.name.Empty()) {
+            continue;
+        }
+
+        preamble += "#define " + property.name + "\n";
+    }
+
+    return preamble;
+}
+
+static String BuildPreamble(const ShaderProperties &properties, const DescriptorUsageSet &descriptor_usages)
+{
+    return BuildDescriptorTableDefines(descriptor_usages) + "\n\n" + BuildPreamble(properties);
+}
+
+ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
+    ProcessShaderSourcePhase phase,
+    ShaderModuleType type,
+    ShaderLanguage language,
+    const String &source,
+    const String &filename,
+    const ShaderProperties &properties
+)
 {
     ProcessResult result;
+    Array<String> lines;
 
-    Array<String> lines = source.Split('\n');
+    if (phase == ProcessShaderSourcePhase::AFTER_PREPROCESS) {
+        String preprocessed_source;
+
+        Array<String> preprocess_error_messages;
+        const bool preprocess_result = PreprocessShaderSource(type, language, BuildPreamble(properties), source, filename, preprocessed_source, preprocess_error_messages);
+
+        result.errors.Concat(preprocess_error_messages.Map([](const String &error_message)
+        {
+            return ProcessError { error_message };
+        }));
+
+        if (!preprocess_result) {
+            return result;
+        }
+
+        lines = preprocessed_source.Split('\n');
+    } else {
+        lines = source.Split('\n');
+    }
 
     struct ParseCustomStatementResult
     {
@@ -1255,243 +1474,258 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
     int last_attribute_location = -1;
 
     for (uint line_index = 0; line_index < lines.Size();) {
-        const String line = lines[line_index].Trimmed();
+        const String line = lines[line_index++].Trimmed();
 
-        if (line.StartsWith("HYP_ATTRIBUTE")) {
-            Array<String> parts = line.Split(' ');
+        switch (phase) {
+        case ProcessShaderSourcePhase::BEFORE_PREPROCESS:
+        {
+            if (line.StartsWith("HYP_ATTRIBUTE")) {
+                Array<String> parts = line.Split(' ');
 
-            bool optional = false;
+                bool optional = false;
 
-            if (parts.Size() != 3) {
-                result.errors.PushBack(ProcessError { "Invalid attribute: Requires format HYP_ATTRIBUTE(location) type name" });
-
-                break;
-            }
-
-            char ch;
-
-            String attribute_keyword,
-                attribute_type,
-                attribute_location,
-                attribute_name;
-
-            Optional<String> attribute_condition;
-
-            {
-                SizeType index = 0;
-
-                while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_')) {
-                    attribute_keyword.Append(ch);
-                    ++index;
-                }
-
-                if (attribute_keyword == "HYP_ATTRIBUTE_OPTIONAL") {
-                    optional = true;
-                } else if (attribute_keyword == "HYP_ATTRIBUTE") {
-                    optional = false;
-                } else {
-                    result.errors.PushBack(ProcessError { String("Invalid attribute, unknown attribute keyword `") + attribute_keyword + "`" });
+                if (parts.Size() != 3) {
+                    result.errors.PushBack(ProcessError { "Invalid attribute: Requires format HYP_ATTRIBUTE(location) type name" });
 
                     break;
                 }
 
-                if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == '(')) {
-                    ++index;
+                char ch;
 
-                        // read integer string
-                    while (index != parts.Front().Size() && std::isdigit(ch = parts.Front()[index])) {
-                        attribute_location.Append(ch);
+                String attribute_keyword,
+                    attribute_type,
+                    attribute_location,
+                    attribute_name;
+
+                Optional<String> attribute_condition;
+
+                {
+                    SizeType index = 0;
+
+                    while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_')) {
+                        attribute_keyword.Append(ch);
                         ++index;
                     }
 
-                    // if there is a comma, read the conditional define that we will use
-                    if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ',')) {
+                    if (attribute_keyword == "HYP_ATTRIBUTE_OPTIONAL") {
+                        optional = true;
+                    } else if (attribute_keyword == "HYP_ATTRIBUTE") {
+                        optional = false;
+                    } else {
+                        result.errors.PushBack(ProcessError { String("Invalid attribute, unknown attribute keyword `") + attribute_keyword + "`" });
+
+                        break;
+                    }
+
+                    if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == '(')) {
                         ++index;
 
-                        String condition;
-                        while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_')) {
-                            condition.Append(ch);
+                            // read integer string
+                        while (index != parts.Front().Size() && std::isdigit(ch = parts.Front()[index])) {
+                            attribute_location.Append(ch);
                             ++index;
                         }
 
-                        attribute_condition = condition;
-                    }
+                        // if there is a comma, read the conditional define that we will use
+                        if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ',')) {
+                            ++index;
 
-                    if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ')')) {
-                        ++index;
+                            String condition;
+                            while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_')) {
+                                condition.Append(ch);
+                                ++index;
+                            }
+
+                            attribute_condition = condition;
+                        }
+
+                        if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ')')) {
+                            ++index;
+                        } else {
+                            result.errors.PushBack(ProcessError { "Invalid attribute, missing closing parenthesis" });
+
+                            break;
+                        }
+
+                        if (attribute_location.Empty()) {
+                            result.errors.PushBack(ProcessError { "Invalid attribute location" });
+
+                            break;
+                        }
+                    }
+                }
+
+                for (SizeType index = 0; index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_'); index++) {
+                    attribute_type.Append(ch);
+                }
+
+                for (SizeType index = 0; index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_'); index++) {
+                    attribute_name.Append(ch);
+                }
+
+                VertexAttributeDefinition attribute_definition;
+                attribute_definition.name = attribute_name;
+                attribute_definition.type_class = attribute_type;
+                attribute_definition.location = attribute_location.Any()
+                    ? std::atoi(attribute_location.Data())
+                    : last_attribute_location + 1;
+
+                last_attribute_location = attribute_definition.location;
+
+                if (optional) {
+                    result.optional_attributes.PushBack(attribute_definition);
+
+                    if (attribute_condition.HasValue()) {
+                        result.processed_source += "#if defined(" + attribute_condition.Get() + ") && " + attribute_condition.Get() + "\n";
+
+                        attribute_definition.condition = attribute_condition;
                     } else {
-                        result.errors.PushBack(ProcessError { "Invalid attribute, missing closing parenthesis" });
-
-                        break;
+                        result.processed_source += "#ifdef HYP_ATTRIBUTE_" + attribute_definition.name + "\n";
                     }
+                } else {
+                    result.required_attributes.PushBack(attribute_definition);
+                }
 
-                    if (attribute_location.Empty()) {
-                        result.errors.PushBack(ProcessError { "Invalid attribute location" });
+                result.processed_source += "layout(location=" + String::ToString(attribute_definition.location) + ") in " + attribute_definition.type_class + " " + attribute_definition.name + ";\n";
 
+                if (optional) {
+                    result.processed_source += "#endif\n";
+                }
+
+                continue;
+            }
+
+            break;
+        }
+        case ProcessShaderSourcePhase::AFTER_PREPROCESS:
+        {
+            if (line.StartsWith("HYP_DESCRIPTOR")) {
+                String command_str;
+
+                for (SizeType index = 0; index < line.Size(); index++) {
+                    if (std::isalnum(line.Data()[index]) || line.Data()[index] == '_') {
+                        command_str.Append(line.Data()[index]);
+                    } else {
                         break;
                     }
                 }
-            }
 
-            for (SizeType index = 0; index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_'); index++) {
-                attribute_type.Append(ch);
-            }
+                renderer::DescriptorSlot slot = renderer::DESCRIPTOR_SLOT_NONE;
+                DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE;
 
-            for (SizeType index = 0; index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_'); index++) {
-                attribute_name.Append(ch);
-            }
+                if (command_str == "HYP_DESCRIPTOR_SRV") {
+                    slot = renderer::DESCRIPTOR_SLOT_SRV;
+                } else if (command_str == "HYP_DESCRIPTOR_UAV") {
+                    slot = renderer::DESCRIPTOR_SLOT_UAV;
+                } else if (command_str == "HYP_DESCRIPTOR_CBUFF" || command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
+                    slot = renderer::DESCRIPTOR_SLOT_CBUFF;
 
-            VertexAttributeDefinition attribute_definition;
-            attribute_definition.name = attribute_name;
-            attribute_definition.type_class = attribute_type;
-            attribute_definition.location = attribute_location.Any()
-                ? std::atoi(attribute_location.Data())
-                : last_attribute_location + 1;
+                    if (command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
+                        flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                    }
+                } else if (command_str == "HYP_DESCRIPTOR_SSBO" || command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
+                    slot = renderer::DESCRIPTOR_SLOT_SSBO;
 
-            last_attribute_location = attribute_definition.location;
-
-            if (optional) {
-                result.optional_attributes.PushBack(attribute_definition);
-
-                if (attribute_condition.HasValue()) {
-                    result.processed_source += "#if defined(" + attribute_condition.Get() + ") && " + attribute_condition.Get() + "\n";
-
-                    attribute_definition.condition = attribute_condition;
+                    if (command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
+                        flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                    }
+                } else if (command_str == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE") {
+                    slot = renderer::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
+                } else if (command_str == "HYP_DESCRIPTOR_SAMPLER") {
+                    slot = renderer::DESCRIPTOR_SLOT_SAMPLER;
                 } else {
-                    result.processed_source += "#ifdef HYP_ATTRIBUTE_" + attribute_definition.name + "\n";
-                }
-            } else {
-                result.required_attributes.PushBack(attribute_definition);
-            }
+                    result.errors.PushBack(ProcessError { "Invalid descriptor slot. Must match HYP_DESCRIPTOR_<Type> " });
 
-            result.processed_source += "layout(location=" + String::ToString(attribute_definition.location) + ") in " + attribute_definition.type_class + " " + attribute_definition.name + ";\n";
-
-            if (optional) {
-                result.processed_source += "#endif\n";
-            }
-        } else if (line.StartsWith("HYP_DESCRIPTOR")) {
-            String command_str;
-
-            for (SizeType index = 0; index < line.Size(); index++) {
-                if (std::isalnum(line.Data()[index]) || line.Data()[index] == '_') {
-                    command_str.Append(line.Data()[index]);
-                } else {
                     break;
                 }
-            }
 
-            renderer::DescriptorSlot slot = renderer::DESCRIPTOR_SLOT_NONE;
-            DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE;
+                Array<String> parts = line.Split(' ');
 
-            if (command_str == "HYP_DESCRIPTOR_SRV") {
-                slot = renderer::DESCRIPTOR_SLOT_SRV;
-            } else if (command_str == "HYP_DESCRIPTOR_UAV") {
-                slot = renderer::DESCRIPTOR_SLOT_UAV;
-            } else if (command_str == "HYP_DESCRIPTOR_CBUFF" || command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
-                slot = renderer::DESCRIPTOR_SLOT_CBUFF;
+                String descriptor_name,
+                    set_name,
+                    slot_str;
 
-                if (command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
-                    flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                HashMap<String, String> params;
+
+                auto parse_result = ParseCustomStatement(command_str, line);
+
+                if (parse_result.args.Size() < 2) {
+                    result.errors.PushBack(ProcessError { "Invalid descriptor: Requires format HYP_DESCRIPTOR_<TYPE>(set, name)" });
+
+                    break;
                 }
-            } else if (command_str == "HYP_DESCRIPTOR_SSBO" || command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
-                slot = renderer::DESCRIPTOR_SLOT_SSBO;
 
-                if (command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
-                    flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                set_name = parse_result.args[0];
+                descriptor_name = parse_result.args[1];
+
+                if (parse_result.args.Size() > 2) {
+                    for (SizeType index = 2; index < parse_result.args.Size(); index++) {
+                        Array<String> split = parse_result.args[index].Split('=');
+
+                        for (String &part : split) {
+                            part = part.Trimmed();
+                        }
+
+                        if (split.Size() != 2) {
+                            result.errors.PushBack(ProcessError { "Invalid parameter: Requires format <key>=<value>" });
+
+                            break;
+                        }
+
+                        const String &key = split[0];
+                        const String &value = split[1];
+
+                        params[key] = value;
+                    }
                 }
-            } else if (command_str == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE") {
-                slot = renderer::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
-            } else if (command_str == "HYP_DESCRIPTOR_SAMPLER") {
-                slot = renderer::DESCRIPTOR_SLOT_SAMPLER;
-            } else {
-                result.errors.PushBack(ProcessError { "Invalid descriptor slot. Must match HYP_DESCRIPTOR_<Type> " });
 
-                break;
-            }
+                const DescriptorUsage usage {
+                    slot,
+                    CreateNameFromDynamicString(ANSIString(set_name)),
+                    CreateNameFromDynamicString(ANSIString(descriptor_name)),
+                    flags,
+                    std::move(params)
+                };
 
-            Array<String> parts = line.Split(' ');
+                String std_version = "std140";
 
-            String descriptor_name,
-                set_name,
-                slot_str;
+                if (usage.params.Contains("standard")) {
+                    std_version = usage.params.At("standard");
+                }
 
-            HashMap<String, String> params;
+                Array<String> additional_params;
 
-            auto parse_result = ParseCustomStatement(command_str, line);
+                if (usage.params.Contains("format")) {
+                    additional_params.PushBack(usage.params.At("format"));
+                }
 
-            if (parse_result.args.Size() < 2) {
-                result.errors.PushBack(ProcessError { "Invalid descriptor: Requires format HYP_DESCRIPTOR_<TYPE>(set, name)" });
-
-                break;
-            }
-
-            set_name = parse_result.args[0];
-            descriptor_name = parse_result.args[1];
-
-            if (parse_result.args.Size() > 2) {
-                for (SizeType index = 2; index < parse_result.args.Size(); index++) {
-                    Array<String> split = parse_result.args[index].Split('=');
-
-                    for (String &part : split) {
-                        part = part.Trimmed();
+                // add std140, std430 etc. for buffer types.
+                switch (usage.slot) {
+                case renderer::DESCRIPTOR_SLOT_CBUFF: // fallthrough
+                case renderer::DESCRIPTOR_SLOT_SSBO: // fallthrough
+                    if (usage.params.Contains("matrix_mode")) {
+                        additional_params.PushBack(usage.params.At("matrix_mode"));
+                    } else {
+                        additional_params.PushBack("row_major");
                     }
 
-                    if (split.Size() != 2) {
-                        result.errors.PushBack(ProcessError { "Invalid parameter: Requires format <key>=<value>" });
-
-                        break;
-                    }
-
-                    const String &key = split[0];
-                    const String &value = split[1];
-
-                    params[key] = value;
-                }
-            }
-
-            const DescriptorUsage usage {
-                slot,
-                CreateNameFromDynamicString(ANSIString(set_name)),
-                CreateNameFromDynamicString(ANSIString(descriptor_name)),
-                flags,
-                std::move(params)
-            };
-
-            String std_version = "std140";
-
-            if (usage.params.Contains("standard")) {
-                std_version = usage.params.At("standard");
-            }
-
-            Array<String> additional_params;
-
-            if (usage.params.Contains("format")) {
-                additional_params.PushBack(usage.params.At("format"));
-            }
-
-            // add std140, std430 etc. for buffer types.
-            switch (usage.slot) {
-            case renderer::DESCRIPTOR_SLOT_CBUFF: // fallthrough
-            case renderer::DESCRIPTOR_SLOT_SSBO: // fallthrough
-                if (usage.params.Contains("matrix_mode")) {
-                    additional_params.PushBack(usage.params.At("matrix_mode"));
-                } else {
-                    additional_params.PushBack("row_major");
+                    result.processed_source += "layout(" + std_version + ", set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
+                    break;
+                default:
+                    result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
+                    break;
                 }
 
-                result.processed_source += "layout(" + std_version + ", set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
-                break;
-            default:
-                result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : String::empty) + ") " + parse_result.remaining + "\n";
-                break;
+                result.descriptor_usages.PushBack(usage);
+
+                continue;
             }
 
-            result.descriptor_usages.PushBack(usage);
-        } else {
-            result.processed_source += line + '\n';
+            break;
+        }
         }
 
-        line_index++;
+        result.processed_source += line + '\n';
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
@@ -1517,26 +1751,24 @@ bool ShaderCompiler::CompileBundle(
     Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Resize(bundle.sources.Size());
 
+    Array<Array<ProcessError>> process_errors;
+    process_errors.Resize(bundle.sources.Size());
+
     Array<Array<VertexAttributeDefinition>> required_vertex_attributes;
     required_vertex_attributes.Resize(bundle.sources.Size());
 
     Array<Array<VertexAttributeDefinition>> optional_vertex_attributes;
     optional_vertex_attributes.Resize(bundle.sources.Size());
 
-    Array<Array<DescriptorUsage>> descriptor_usages;
-    descriptor_usages.Resize(bundle.sources.Size());
-
-    Array<Array<ProcessError>> process_errors;
-    process_errors.Resize(bundle.sources.Size());
-
     TaskBatch task_batch;
 
     for (SizeType index = 0; index < bundle.sources.Size(); index++) {
-        task_batch.AddTask([this, index, &bundle, &required_vertex_attributes, &optional_vertex_attributes, &loaded_source_files, &process_errors, &descriptor_usages](...)
+        task_batch.AddTask([this, index, &bundle, &loaded_source_files, &process_errors, &required_vertex_attributes, &optional_vertex_attributes](...)
         {
             const auto &it = bundle.sources.AtIndex(index);
 
             const FilePath filepath = it.second.path;
+            const ShaderLanguage language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL;
 
             BufferedReader reader;
 
@@ -1558,8 +1790,10 @@ bool ShaderCompiler::CompileBundle(
 
             const ByteBuffer byte_buffer = reader.ReadBytes();
             String source_string(byte_buffer.ToByteView());
-            
-            ProcessResult result = ProcessShaderSource(source_string);
+
+            // process shader source to extract vertex attributes.
+            // runs before actual preprocessing
+            ProcessResult result = ProcessShaderSource(ProcessShaderSourcePhase::BEFORE_PREPROCESS, it.first, language, source_string, filepath, {});
 
             if (result.errors.Any()) {
                 HYP_LOG(
@@ -1576,16 +1810,13 @@ bool ShaderCompiler::CompileBundle(
 
             required_vertex_attributes[index] = result.required_attributes;
             optional_vertex_attributes[index] = result.optional_attributes;
-            descriptor_usages[index] = std::move(result.descriptor_usages);
-
-            String final_source = result.processed_source;
 
             loaded_source_files[index] = LoadedSourceFile {
                 .type                       = it.first,
-                .language                   = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
+                .language                   = language,
                 .file                       = it.second,
                 .last_modified_timestamp    = filepath.LastModifiedTimestamp(),
-                .source                     = final_source
+                .source                     = result.processed_source
             };
         });
     }
@@ -1617,10 +1848,10 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    // Merge all descriptor usages together
-    for (const Array<DescriptorUsage> &descriptor_usage_list : descriptor_usages) {
-        bundle.descriptor_usages.Merge(descriptor_usage_list);
-    }
+    // // Merge all descriptor usages together
+    // for (const Array<DescriptorUsage> &descriptor_usage_list : descriptor_usages) {
+    //     bundle.descriptor_usages.Merge(descriptor_usage_list);
+    // }
 
     // grab each defined property, and iterate over each combination
     ShaderProperties final_versions;
@@ -1687,7 +1918,7 @@ bool ShaderCompiler::CompileBundle(
 
     // copy passed properties
     final_versions.Merge(additional_versions);
-
+    
     HYP_LOG(
         ShaderCompiler,
         LogLevel::INFO,
@@ -1704,62 +1935,59 @@ bool ShaderCompiler::CompileBundle(
 
     AtomicVar<uint> num_compiled_permutations { 0u };
 
-    String descriptor_table_defines;
+    auto BuildVertexAttributeSet = [](const Array<VertexAttributeDefinition> &definitions) -> VertexAttributeSet
+    {
+        VertexAttributeSet set;
 
-    DescriptorTableDeclaration descriptor_table = bundle.descriptor_usages.BuildDescriptorTable();
+        for (const VertexAttributeDefinition &definition : definitions) {
+            VertexAttribute::Type type;
 
-    // Generate descriptor table defines
-    for (const DescriptorSetDeclaration &descriptor_set_declaration : descriptor_table.GetElements()) {
-        const uint set_index = descriptor_table.GetDescriptorSetIndex(descriptor_set_declaration.name);
-        AssertThrow(set_index != -1);
+            if (!FindVertexAttributeForDefinition(definition.name, type)) {
+                HYP_LOG(
+                    ShaderCompiler,
+                    LogLevel::ERR,
+                    "Invalid vertex attribute definition, {}",
+                    definition.name
+                );
 
-        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(set_index) + "\n";
-
-        const DescriptorSetDeclaration *descriptor_set_declaration_ptr = &descriptor_set_declaration;
-
-        if (descriptor_set_declaration.is_reference) {
-            const DescriptorSetDeclaration *static_decl = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(descriptor_set_declaration.name);
-            AssertThrow(static_decl != nullptr);
-
-            descriptor_set_declaration_ptr = static_decl;
-        }
-
-        for (const Array<DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration_ptr->slots) {
-            for (const DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
-                const uint flat_index = descriptor_set_declaration_ptr->CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
-                AssertThrow(flat_index != uint(-1));
-
-                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration_ptr->name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
+                continue;
             }
-        }
-    }
 
-    HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Descriptor table defines:\n{}", descriptor_table_defines);
+            set |= type;
+        }
+
+        return set;
+    };
 
     // compile shader with each permutation of properties
     ForEachPermutation(final_versions, [&](const ShaderProperties &properties)
     {
-        CompiledShader compiled_shader(
-            ShaderDefinition {
-                bundle.name,
-                properties
-            },
-            bundle.descriptor_usages,
-            bundle.entry_point_name
-        );
+        ShaderDefinition shader_definition {
+            bundle.name,
+            properties
+        };
 
-        AssertThrow(compiled_shader.GetDefinition().IsValid());
+        AssertThrow(shader_definition.IsValid());
+
+        CompiledShader compiled_shader {
+            shader_definition,
+            { },
+            bundle.entry_point_name
+        };
 
         AtomicVar<bool> any_files_compiled { false };
         AtomicVar<bool> any_files_errored { false };
 
-        ParallelForEach(loaded_source_files, [&](const LoadedSourceFile &item, uint, uint)
+        Array<DescriptorUsageSet> all_descriptor_usage_sets;
+        all_descriptor_usage_sets.Resize(loaded_source_files.Size());
+
+        ParallelForEach(loaded_source_files, [&](const LoadedSourceFile &item, uint index, uint)
         {
             // check if a file exists w/ same hash
             
             const FilePath output_filepath = item.GetOutputFilepath(
                 g_asset_manager->GetBasePath(),
-                compiled_shader
+                shader_definition
             );
 
             if (output_filepath.Exists()) {
@@ -1783,34 +2011,7 @@ bool ShaderCompiler::CompileBundle(
                 }
             }
 
-            String variable_properties_string;
-            String static_properties_string;
-
-            for (const ShaderProperty &property : properties.ToArray()) {
-                if (property.is_permutation) {
-                    if (!variable_properties_string.Empty()) {
-                        variable_properties_string += ", ";
-                    }
-
-                    variable_properties_string += property.name;
-                } else {
-                    if (!static_properties_string.Empty()) {
-                        static_properties_string += ", ";
-                    }
-
-                    static_properties_string += property.name;
-                }
-            }
-
-            HYP_LOG(
-                ShaderCompiler,
-                LogLevel::INFO,
-                "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]\n\tProperties hash: {}",
-                output_filepath,
-                variable_properties_string,
-                static_properties_string,
-                properties.GetHashCode().Value()
-            );
+            DescriptorUsageSet &descriptor_usages = all_descriptor_usage_sets[index];
 
             ByteBuffer byte_buffer;
 
@@ -1819,30 +2020,71 @@ bool ShaderCompiler::CompileBundle(
             // set directory to the directory of the shader
             const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
 
-            String preamble;
+            String processed_source;
 
-            { // Build preamble string.
-                // Start off with the descriptor table defines
-                // These will be used to generate the descriptor table layout
-                preamble += descriptor_table_defines + "\n\n";
+            { // Process shader (preprocessing, custom statements, etc.)
+                ProcessResult process_result = ProcessShaderSource(ProcessShaderSourcePhase::AFTER_PREPROCESS, item.type, item.language, item.source, item.file.path, properties);
 
-                for (const VertexAttribute::Type attribute_type : properties.GetRequiredVertexAttributes().BuildAttributes()) {
-                    preamble += String("#define HYP_ATTRIBUTE_") + VertexAttribute::mapping[attribute_type].name + "\n";
+                if (process_result.errors.Any()) {
+                    HYP_LOG(
+                        ShaderCompiler,
+                        LogLevel::ERR,
+                        "{} shader processing errors:",
+                        process_result.errors.Size()
+                    );
+
+
+                    error_messages_mutex.lock();
+
+                    out.error_messages.Concat(process_result.errors.Map([](const ProcessError &error) -> String
+                    {
+                        return error.error_message;
+                    }));
+
+                    error_messages_mutex.unlock();
+
+                    any_files_errored.Set(true, MemoryOrder::RELAXED);
+
+                    return;
                 }
 
-                // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
-                // before compiling the shader, they should have all been made Required.
+                descriptor_usages.Merge(std::move(process_result.descriptor_usages));
 
-                for (const ShaderProperty &property : properties.GetPropertySet()) {
-                    if (property.name.Empty()) {
-                        continue;
+                processed_source = process_result.processed_source;
+            }
+
+            { // logging stuff
+                String variable_properties_string;
+                String static_properties_string;
+
+                for (const ShaderProperty &property : properties.ToArray()) {
+                    if (property.is_permutation) {
+                        if (!variable_properties_string.Empty()) {
+                            variable_properties_string += ", ";
+                        }
+
+                        variable_properties_string += property.name;
+                    } else {
+                        if (!static_properties_string.Empty()) {
+                            static_properties_string += ", ";
+                        }
+
+                        static_properties_string += property.name;
                     }
-
-                    preamble += "#define " + property.name + "\n";
                 }
+
+                HYP_LOG(
+                    ShaderCompiler,
+                    LogLevel::INFO,
+                    "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]\n\tProperties hash: {}",
+                    output_filepath,
+                    variable_properties_string,
+                    static_properties_string,
+                    properties.GetHashCode().Value()
+                );
             }
             
-            byte_buffer = CompileToSPIRV(item.type, item.language, std::move(preamble), item.source, item.file.path, properties, error_messages);
+            byte_buffer = CompileToSPIRV(item.type, item.language, BuildDescriptorTableDefines(descriptor_usages), processed_source, item.file.path, properties, error_messages);
 
             if (byte_buffer.Empty()) {
                 HYP_LOG(
@@ -1886,12 +2128,18 @@ bool ShaderCompiler::CompileBundle(
             compiled_shader.modules[item.type] = std::move(byte_buffer);
         });
 
+        // merge all descriptor usages together for the source files
+        for (const DescriptorUsageSet &descriptor_usage_set : all_descriptor_usage_sets) {
+            compiled_shader.descriptor_usages.Merge(descriptor_usage_set);
+        }
+
         num_compiled_permutations.Increment(uint(!any_files_errored.Get(MemoryOrder::RELAXED) && any_files_compiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
 
         compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
         compiled_shaders_mutex.unlock();
     }, false);//true);
+
 
     const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 

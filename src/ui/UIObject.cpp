@@ -174,19 +174,6 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
-
-    // m_cached_texture = CreateObject<Texture>(
-    //     TextureDesc
-    //     {
-    //         ImageType::TEXTURE_TYPE_CUBEMAP,
-    //         InternalFormat::RGBA8,
-    //         Extent3D { m_actual_size.x, m_actual_size.y, 1 },
-    //         FilterMode::TEXTURE_FILTER_LINEAR,
-    //         FilterMode::TEXTURE_FILTER_LINEAR
-    //     }
-    // );
-
-    // InitObject(m_cached_texture);
 }
 
 void UIObject::Update(GameCounter::TickUnit delta)
@@ -1057,7 +1044,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     HYP_SCOPE;
 
     return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
+        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_DEFAULT" }) },
         .bucket             = Bucket::BUCKET_UI,
         .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
@@ -1089,7 +1076,6 @@ Handle<Material> UIObject::CreateMaterial() const
     HYP_SCOPE;
 
     Material::TextureSet material_textures = GetMaterialTextures();
-    material_textures.Set(Material::MATERIAL_TEXTURE_RESERVED0, m_cached_texture);
     
     return g_material_system->GetOrCreate(
         GetMaterialAttributes(),
@@ -1464,9 +1450,7 @@ void UIObject::UpdateMaterial(bool update_children)
     }
     
     Material::ParameterTable material_parameters = GetMaterialParameters();
-
     Material::TextureSet material_textures = GetMaterialTextures();
-    material_textures.Set(Material::MATERIAL_TEXTURE_RESERVED0, m_cached_texture);
 
     bool parameters_changed = material_parameters.GetHashCode() != current_material->GetParameters().GetHashCode();
     bool textures_changed = material_textures.GetHashCode() != current_material->GetTextures().GetHashCode();
@@ -1488,11 +1472,14 @@ void UIObject::UpdateMaterial(bool update_children)
             new_material = current_material;
         }
 
+        AssertThrow(new_material->IsDynamic());
+
         if (parameters_changed) {
             new_material->SetParameters(material_parameters);
         }
 
         if (textures_changed) {
+            HYP_LOG(UI, LogLevel::DEBUG, "Setting textures for UI object: {}", GetName());
             new_material->SetTextures(material_textures);
         }
 
@@ -1631,23 +1618,23 @@ void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject
         return lhs.second->GetDepth() < rhs.second->GetDepth();
     });
 
-    // if (IsContainer()) {
+    if (IsContainer()) {
         for (const Pair<Node *, UIObject *> &it : children) {
             it.second->CollectObjects(proc, out_deferred_child_objects);
         }
-    // } else {
-    //     // Keep non-container objects on the same layer as parent to reduce number of PSOs
-    //     // Using this method flattens out the objects that will be rendered.
-    //     // For containers:                      For non-containers:
-    //     //      *Container Object 1                 *Non-container Object 1
-    //     //      *Child Object 1                     *Non-container Object 2
-    //     //      *Container Object 2                 *Child Object 1
-    //     //      *Child Object 2                     *Child Object 2
+    } else {
+        // Keep non-container objects on the same layer as parent to reduce number of PSOs
+        // Using this method flattens out the objects that will be rendered.
+        // For containers:                      For non-containers:
+        //      *Container Object 1                 *Non-container Object 1
+        //      *Child Object 1                     *Non-container Object 2
+        //      *Container Object 2                 *Child Object 1
+        //      *Child Object 2                     *Child Object 2
 
-    //     for (Pair<Node *, UIObject *> &it : children) {
-    //         out_deferred_child_objects.PushBack(it.second);
-    //     }
-    // }
+        for (Pair<Node *, UIObject *> &it : children) {
+            out_deferred_child_objects.PushBack(it.second);
+        }
+    }
 
     if (reverse && entity.IsValid()) {
         UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);

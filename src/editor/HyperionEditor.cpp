@@ -386,7 +386,7 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-#if 1
+#if 0
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -566,9 +566,8 @@ void HyperionEditorImpl::CreateMainPanel()
         return UIEventHandlerResult::OK;
     });
 
-    ui_image->SetTexture(m_scene_texture);
-
     scene_tab->GetContents()->AddChildUIObject(ui_image);
+    ui_image->SetTexture(m_scene_texture);        
 
     dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
 
@@ -921,6 +920,22 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
     m_focused_node = node;
 
     OnFocusedNodeChanged.Broadcast(m_focused_node, previous_focused_node);
+
+    auto scene_tab = m_main_panel->FindChildUIObject(NAME("Scene_Tab"));
+    auto scene_tab_casted = scene_tab.Cast<UITab>();
+
+    if (!scene_tab_casted) {
+        return;
+    }
+
+    auto scene_image = scene_tab_casted->GetContents()->FindChildUIObject(NAME("Sample_Image"));
+    auto scene_image_casted = scene_image.Cast<UIImage>();
+
+    if (!scene_image_casted) {
+        return;
+    }
+
+    scene_image_casted->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
 }
 
 void HyperionEditorImpl::Initialize()

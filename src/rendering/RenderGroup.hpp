@@ -110,31 +110,28 @@ public:
     const GraphicsPipelineRef &GetPipeline() const
         { return m_pipeline; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ShaderRef &GetShader() const
+    HYP_FORCE_INLINE const ShaderRef &GetShader() const
         { return m_shader; }
 
     void SetShader(const ShaderRef &shader);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const RenderableAttributeSet &GetRenderableAttributes() const
+    HYP_FORCE_INLINE const RenderableAttributeSet &GetRenderableAttributes() const
         { return m_renderable_attributes; }
 
     void SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes);
 
-    HYP_FORCE_INLINE
-    void AddFramebuffer(FramebufferRef framebuffer)
+    HYP_FORCE_INLINE void AddFramebuffer(FramebufferRef framebuffer)
         { m_fbos.PushBack(std::move(framebuffer)); }
 
     void RemoveFramebuffer(const FramebufferRef &framebuffer);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<FramebufferRef> &GetFramebuffers() const
+    HYP_FORCE_INLINE const Array<FramebufferRef> &GetFramebuffers() const
         { return m_fbos; }
 
     /*! \brief Collect drawable objects, then run the culling compute shader
-     * to mark any occluded objects as such. Must be used with indirect rendering.
-     * If nullptr is provided for cull_data, no occlusion culling will happen.
+     *  to mark any occluded objects as such. Must be used with indirect rendering.
+     *  If nullptr is provided for cull_data, no occlusion culling will happen.
+     *  \param render_proxies The render proxies to collect draw calls from.
      */
     void CollectDrawCalls(const Array<RenderProxy> &render_proxies);
 
@@ -151,6 +148,12 @@ public:
 
     RendererProxy GetProxy()
         { return RendererProxy(this); }
+
+    // This means that each object with a different material will have a different draw call.
+    // we can use this to have a smaller number of draw calls, but it means we need to access materials in shaders
+    // via a large array. This is not supported on all platforms, and on non-bindless supported platforms, we need to use
+    // a descriptor set per material (for textures).
+    static bool ShouldCollectUniqueDrawCallPerMaterial();
 
 private:
     void BindDescriptorSets(

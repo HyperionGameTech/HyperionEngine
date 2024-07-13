@@ -28,7 +28,6 @@ namespace hyperion {
 class UIObject;
 class UIStage;
 class UIRenderer;
-class UIObjectPainter;
 class UIDataSourceBase;
 
 template <class T>
@@ -251,7 +250,6 @@ protected:
 
 public:
     friend class UIRenderer;
-    friend class UIObjectPainter;
     friend class UIStage;
 
     UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type);

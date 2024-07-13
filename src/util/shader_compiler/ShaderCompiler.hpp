@@ -44,6 +44,18 @@ enum ShaderPropertyFlagBits : ShaderPropertyFlags
     SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE   = 0x1
 };
 
+enum class ShaderLanguage
+{
+    GLSL,
+    HLSL
+};
+
+enum class ProcessShaderSourcePhase
+{
+    BEFORE_PREPROCESS,
+    AFTER_PREPROCESS
+};
+
 struct VertexAttributeDefinition
 {
     String              name;
@@ -1004,7 +1016,6 @@ public:
         String                                  entry_point_name = "main";
         FlatMap<ShaderModuleType, SourceFile>   sources;
         ShaderProperties                        versions; // permutations
-        DescriptorUsageSet                      descriptor_usages;
 
         bool HasRTShaders() const
         {
@@ -1054,7 +1065,12 @@ private:
     ) const;
 
     ProcessResult ProcessShaderSource(
-        const String &source
+        ProcessShaderSourcePhase phase,
+        ShaderModuleType type,
+        ShaderLanguage language,
+        const String &source,
+        const String &filename,
+        const ShaderProperties &properties
     );
 
     void ParseDefinitionSection(

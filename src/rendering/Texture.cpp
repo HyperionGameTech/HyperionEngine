@@ -282,7 +282,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
 
 #pragma region TextureMipmapRenderer
 
-class TextureMipmapRenderer
+class TextureMipmapRenderer // Come back to this for: UI rendering (caching each object as its own texture)
 {
 public:
     TextureMipmapRenderer(ImageRef image, ImageViewRef image_view)
@@ -516,6 +516,7 @@ void Texture::Readback() const
         {
             GPUBufferRef gpu_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
             HYPERION_ASSERT_RESULT(gpu_buffer->Create(g_engine->GetGPUDevice(), image->GetByteSize()));
+            gpu_buffer->Map(g_engine->GetGPUDevice());
             gpu_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 
             auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
