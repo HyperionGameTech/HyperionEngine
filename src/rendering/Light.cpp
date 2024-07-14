@@ -7,6 +7,9 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -58,8 +61,12 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
         
         if (proxy.visibility_bits == 0) {
             g_engine->GetRenderState().UnbindLight(proxy.id);
+
+            HYP_LOG(Light, LogLevel::DEBUG, "Unbound Light: {}", proxy.id.Value());
         } else {
             g_engine->GetRenderState().BindLight(proxy.id, proxy);
+
+            HYP_LOG(Light, LogLevel::DEBUG, "Bound Light: {}", proxy.id.Value());
         }
 
         g_engine->GetRenderData()->lights.Set(

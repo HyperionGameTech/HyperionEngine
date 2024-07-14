@@ -2,11 +2,10 @@
 
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/components/TransformComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
-#include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/MeshComponent.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -29,17 +28,22 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
     const Transform initial_transform(light->GetPosition());
 
     // Set initial transform on the TransformComponent
-    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
-    transform_component.transform = initial_transform;
+    TransformComponent *transform_component = GetEntityManager().TryGetComponent<TransformComponent>(entity);
 
-    const Transform transform = transform_component.transform;
+    if (!transform_component) {
+        GetEntityManager().AddComponent(entity, TransformComponent { initial_transform });
+        transform_component = &GetEntityManager().GetComponent<TransformComponent>(entity);
+    }
+
+    transform_component->transform = initial_transform;
+
+    const Transform transform = transform_component->transform;
 
     { // Add a bounding box component to the entity or update if it already exists
         BoundingBoxComponent *bounding_box_component = GetEntityManager().TryGetComponent<BoundingBoxComponent>(entity);
 
         if (!bounding_box_component) {
             GetEntityManager().AddComponent(entity, BoundingBoxComponent { });
-
             bounding_box_component = &GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
         }
 
@@ -95,11 +99,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
     const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
     for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>()) {
-        if (!light_component.light) {
-            continue;
-        }
-
-        if (!light_component.light->IsReady()) {
+        if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
             continue;
         }
 

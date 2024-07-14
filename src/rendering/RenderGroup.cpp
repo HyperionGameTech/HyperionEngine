@@ -765,7 +765,7 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
 
 bool RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()
 {
-    return !g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    return false;//!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 }
 
 #pragma endregion RenderGroup

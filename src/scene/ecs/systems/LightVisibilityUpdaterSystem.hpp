@@ -4,26 +4,30 @@
 #define HYPERION_ECS_LIGHT_VISIBILITY_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+
 #include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
 
-struct LightComponent;
-struct TransformComponent;
-struct BoundingBoxComponent;
-struct VisibilityStateComponent;
-struct MeshComponent;
+// struct LightComponent;
+// struct TransformComponent;
+// struct BoundingBoxComponent;
+// struct VisibilityStateComponent;
+// struct MeshComponent;
 
 class LightVisibilityUpdaterSystem : public System<
     LightVisibilityUpdaterSystem,
     
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
-
-    // Can read and write the VisibilityStateComponent but does not receive events
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false>,
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ, false>,
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
-    // Can read and write the MeshComponent but does not receive events (updates material render data)
+    // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {

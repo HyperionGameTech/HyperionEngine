@@ -1008,10 +1008,6 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         return CompileBundle(bundle, additional_versions, batch);
     }
 
-    // temp
-    AssertThrow(bundle.versions.Size() != 0);
-    AssertThrow(batch.compiled_shaders.Size() != 0);
-
     Array<ShaderProperties> missing_variants;
     Array<ShaderProperties> found_variants;
     std::mutex mtx;
@@ -1952,6 +1948,7 @@ bool ShaderCompiler::CompileBundle(
     std::mutex error_messages_mutex;
 
     AtomicVar<uint> num_compiled_permutations { 0u };
+    AtomicVar<uint> num_errored_permutations { 0u };
 
     auto BuildVertexAttributeSet = [](const Array<VertexAttributeDefinition> &definitions) -> VertexAttributeSet
     {
@@ -2154,6 +2151,15 @@ bool ShaderCompiler::CompileBundle(
                 return;
             }
 
+            // HYP_LOG(
+            //     ShaderCompiler,
+            //     LogLevel::INFO,
+            //     "Compiled shader {} with version hash {}, File size: {}",
+            //     output_filepath,
+            //     properties.GetHashCode().Value(),
+            //     byte_buffer.Size()
+            // );
+
             // write the spirv to the output file
             FileByteWriter spirv_writer(output_filepath.Data());
 
@@ -2178,17 +2184,29 @@ bool ShaderCompiler::CompileBundle(
             compiled_shader.modules[item.type] = std::move(byte_buffer);
         });
 
-        num_compiled_permutations.Increment(uint(!any_files_errored.Get(MemoryOrder::RELAXED) && any_files_compiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
+        num_compiled_permutations.Increment(uint32(!any_files_errored.Get(MemoryOrder::RELAXED) && any_files_compiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
+        num_errored_permutations.Increment(uint32(any_files_errored.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
 
         compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
         compiled_shaders_mutex.unlock();
     }, false);//true);
 
+    if (num_errored_permutations.Get(MemoryOrder::RELAXED)) {
+        HYP_LOG(
+            ShaderCompiler,
+            LogLevel::ERR,
+            "Failed to compile {} permutations of shader {}",
+            num_errored_permutations.Get(MemoryOrder::RELAXED),
+            bundle.name
+        );
+
+        return false;
+    }
+
     const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 
     FileByteWriter byte_writer(final_output_path.Data());
-
     fbom::FBOMWriter serializer;
     
     if (fbom::FBOMResult err = serializer.Append(out)) {

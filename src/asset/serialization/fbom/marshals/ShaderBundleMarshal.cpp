@@ -138,15 +138,15 @@ public:
             }
         }
 
-        HYP_LOG(Serialization, LogLevel::INFO, "Serialized shader '{}' with properties:", in_object.definition.name);
+        // HYP_LOG(Serialization, LogLevel::INFO, "Serialized shader '{}' with properties:", in_object.definition.name);
 
-        String properties_string;
+        // String properties_string;
 
-        for (const ShaderProperty &property : properties_array) {
-            properties_string += "\t" + property.name + "\n";
-        }
+        // for (const ShaderProperty &property : properties_array) {
+        //     properties_string += "\t" + property.name + "\n";
+        // }
 
-        HYP_LOG(Serialization, LogLevel::INFO, "\t{}", properties_string);
+        // HYP_LOG(Serialization, LogLevel::INFO, "\t{}", properties_string);
 
         return { FBOMResult::FBOM_OK };
     }
@@ -314,19 +314,15 @@ public:
             }
         }
 
-        String properties_string;
+        // String properties_string;
 
-        for (const ShaderProperty &property : compiled_shader.definition.properties.ToArray()) {
-            properties_string += " " + property.name + "\n";
-        }
-        
-        DebugLog(LogType::Info, "Deserialized shader '%s', %u descriptor sets; Properties = %s\n", compiled_shader.definition.name.LookupString(),
-            compiled_shader.descriptor_usages.Size(),
-            properties_string.Data());
-
-        // if (compiled_shader.definition.name == NAME("DebugAABB")) {
-        //     HYP_BREAKPOINT;
+        // for (const ShaderProperty &property : compiled_shader.definition.properties.ToArray()) {
+        //     properties_string += " " + property.name + "\n";
         // }
+        
+        // DebugLog(LogType::Info, "Deserialized shader '%s', %u descriptor sets; Properties = %s\n", compiled_shader.definition.name.LookupString(),
+        //     compiled_shader.descriptor_usages.Size(),
+        //     properties_string.Data());
 
         out_object = std::move(compiled_shader);
 
