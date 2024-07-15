@@ -24,7 +24,7 @@ public:
     HYP_API Sampler(
         FilterMode min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
+        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     );
 
     Sampler(const Sampler &other)               = delete;

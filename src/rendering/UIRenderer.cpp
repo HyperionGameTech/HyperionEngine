@@ -170,7 +170,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                     // Create RenderGroup
                     Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(
                         attributes,
-                        RenderGroupFlags::DEFAULT /* temporarily allow parallel rendering while debugging */
+                        RenderGroupFlags::PARALLEL_RENDERING /* temporarily allow parallel rendering while debugging */
                         //RenderGroupFlags::NONE /* disable parallel rendering, to preserve number of command buffers */
                     );
 

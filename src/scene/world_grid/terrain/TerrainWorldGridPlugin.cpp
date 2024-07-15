@@ -130,16 +130,16 @@ struct TerrainHeightData
     TerrainHeightData &operator=(TerrainHeightData &&other) noexcept    = delete;
     ~TerrainHeightData()                                                = default;
 
-    uint GetHeightIndex(int x, int z) const
+    uint32 GetHeightIndex(int x, int z) const
     {
-        return uint(((x + patch_info.extent.x) % patch_info.extent.x)
+        return uint32(((x + patch_info.extent.x) % patch_info.extent.x)
             + ((z + patch_info.extent.z) % patch_info.extent.z) * patch_info.extent.x);
     }
 };
 
 class TerrainErosion
 {
-    static constexpr uint num_iterations = 250u;
+    static constexpr uint32 num_iterations = 250u;
     static constexpr float erosion_scale = 0.05f;
     static constexpr float evaporation = 0.9f;
     static constexpr float erosion = 0.004f * erosion_scale;
@@ -388,7 +388,7 @@ void TerrainWorldGridPlugin::Initialize()
     m_material->SetIsDepthWriteEnabled(true);
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.85f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 1.0f);
+    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
 
     if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         Handle<Texture> albedo_texture = albedo_texture_asset.Result();

@@ -373,7 +373,7 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Updating size for UIObject with name: {}", GetName());
+    HYP_LOG(UI, LogLevel::DEBUG, "Updating size for UIObject with name: {}, current size: {}", GetName(), m_actual_size);
 
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetEntityAABB(CalculateAABB());
@@ -411,6 +411,8 @@ void UIObject::UpdateSize(bool update_children)
 
     UpdateMeshData();
     SetNeedsRepaintFlag();
+
+    HYP_LOG(UI, LogLevel::DEBUG, "Updated size for UIObject with name: {} to {}", GetName(), m_actual_size);
 }
 
 Vec2i UIObject::GetScrollOffset() const
@@ -955,23 +957,6 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
 {
     HYP_SCOPE;
 
-    if (const NodeProxy &node = GetNode()) {
-        const bool transform_locked = node->IsTransformLocked();
-
-        if (transform_locked) {
-            node->UnlockTransform();
-        }
-
-        node->SetEntityAABB(aabb);
-
-        if (transform_locked) {
-            node->LockTransform();
-        }
-    }
-
-    // UpdateSize();
-    // UpdatePosition();
-
     const Scene *scene = GetScene();
 
     if (!scene) {
@@ -980,6 +965,21 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
 
     BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
     bounding_box_component.local_aabb = aabb;
+
+    if (const NodeProxy &node = GetNode()) {
+        const bool transform_locked = node->IsTransformLocked();
+
+        if (transform_locked) {
+            node->UnlockTransform();
+        }
+
+        node->SetEntityAABB(aabb);
+        node->UpdateWorldTransform();
+
+        if (transform_locked) {
+            node->LockTransform();
+        }
+    }
 
     UpdateComputedVisibility();
 }
@@ -1047,11 +1047,23 @@ Handle<Material> UIObject::CreateMaterial() const
 
     Material::TextureSet material_textures = GetMaterialTextures();
     
-    return g_material_system->GetOrCreate(
-        GetMaterialAttributes(),
-        GetMaterialParameters(),
-        material_textures
-    );
+    if (AllowMaterialUpdate()) {
+        Handle<Material> material = g_material_system->CreateMaterial(
+            GetMaterialAttributes(),
+            GetMaterialParameters(),
+            material_textures
+        );
+
+        material->SetIsDynamic(true);
+
+        return material;
+    } else {
+        return g_material_system->GetOrCreate(
+            GetMaterialAttributes(),
+            GetMaterialParameters(),
+            material_textures
+        );
+    }
 }
 
 const Handle<Material> &UIObject::GetMaterial() const

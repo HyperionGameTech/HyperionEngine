@@ -275,7 +275,7 @@ public:
 private:
     void Compile();
     void ResetRenderState(RenderStateMask mask);
-    void UpdateBuffersAndDescriptors(Frame *frame);
+    void UpdateBuffersAndDescriptors(uint32 frame_index);
 
     void PreFrameUpdate(Frame *frame);
     void RenderDeferred(Frame *frame);

@@ -68,17 +68,14 @@ HYP_DESCRIPTOR_SSBO(Scene, SHGridBuffer, 1, sizeof(SHGridBuffer), false);
 HYP_DESCRIPTOR_SRV(Scene, VoxelGridTexture, 1);
 
 HYP_DESCRIPTOR_SET(2, Object);
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !RenderGroup::ShouldCollectUniqueDrawCallPerMaterial());
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, RenderGroup::ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
 HYP_DESCRIPTOR_SSBO(Object, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
 HYP_DESCRIPTOR_SSBO(Object, EntityInstanceBatchesBuffer, 1, sizeof(EntityInstanceBatch), true);
 
 HYP_DESCRIPTOR_SET(3, Material);
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, max_bindless_resources);
-#else
-HYP_DESCRIPTOR_SRV(Material, Textures, max_bound_textures);
-#endif
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, renderer::RenderConfig::IsBindlessSupported());
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bound_textures, !renderer::RenderConfig::IsBindlessSupported());
 
 #undef HYP_DESCRIPTOR_SET
 #undef HYP_DESCRIPTOR_SRV

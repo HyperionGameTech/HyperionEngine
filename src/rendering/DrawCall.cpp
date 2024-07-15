@@ -20,6 +20,7 @@ static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<
 
     const uint32 id_index = batch.num_entities++;
     batch.indices[id_index] = uint32(entity.ToIndex());
+
     g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
 
     return true;
@@ -66,11 +67,11 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
         index_map.Insert(id.Value(), Array<SizeType> { draw_calls.Size() });
     }
 
-    if (!batch_index) {
+    if (batch_index == 0) {
         batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireTicket();
     }
 
-    DrawCall draw_call;
+    DrawCall &draw_call = draw_calls.EmplaceBack();
     draw_call.id = id;
     draw_call.draw_command_index = ~0u;
     draw_call.mesh_id = render_proxy.mesh.GetID();
@@ -80,9 +81,7 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
     draw_call.entity_id_count = 1;
     draw_call.batch_index = batch_index;
 
-    PushEntityToBatch(draw_call.batch_index, render_proxy.entity.GetID());
-
-    draw_calls.PushBack(draw_call);
+    PushEntityToBatch(batch_index, render_proxy.entity.GetID());
 }
 
 DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
@@ -113,7 +112,11 @@ DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
 void DrawCallCollection::ResetDrawCalls()
 {
     for (const DrawCall &draw_call : draw_calls) {
-        if (draw_call.batch_index) {
+        if (draw_call.batch_index != 0) {
+            EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
+            batch.num_entities = 0;
+            // Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
+
             g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(draw_call.batch_index);
         }
     }

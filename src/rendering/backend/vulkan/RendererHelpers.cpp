@@ -97,12 +97,15 @@ VkFilter ToVkFilter(FilterMode filter_mode)
 VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode texture_wrap_mode)
 {
     switch (texture_wrap_mode) {
-    case WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    case WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    case WrapMode::TEXTURE_WRAP_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    case WrapMode::TEXTURE_WRAP_REPEAT:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    default:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     }
-
-    AssertThrowMsg(false, "Unhandled texture wrap mode case %d", int(texture_wrap_mode));
 }
 
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format)

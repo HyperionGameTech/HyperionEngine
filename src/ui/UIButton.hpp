@@ -38,6 +38,8 @@ public:
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+
     RC<UIText>  m_text_element;
 };
 

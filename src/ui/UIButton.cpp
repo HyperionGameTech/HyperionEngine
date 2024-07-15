@@ -62,4 +62,21 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
     HYP_LOG(UI, LogLevel::INFO, "Button focus state set to: {}", uint(focus_state));
 }
 
+Material::ParameterTable UIButton::GetMaterialParameters() const
+{
+    Color color;
+
+    if (GetFocusState() & UIObjectFocusState::PRESSED) {
+        color = Vec4f(0.3f, 0.3f, 0.3f, 1.0f);
+    } else if (GetFocusState() & UIObjectFocusState::HOVER) {
+        color = Vec4f(0.4f, 0.4f, 0.4f, 1.0f);
+    } else {
+        color = m_background_color;
+    }
+
+    return Material::ParameterTable {
+        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    };
+}
+
 } // namespace hyperion

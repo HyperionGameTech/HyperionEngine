@@ -517,27 +517,11 @@ public:
             return;
         }
 
-        ResetBatch(batch_index);
-
         std::lock_guard guard(m_mutex);
 
         free_indices.Push(batch_index);
-    }
 
-    void ResetBatch(BufferTicket<StructType> batch_index)
-    {
-        // Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
-
-        if (batch_index == 0) {
-            return;
-        }
-
-        AssertThrow(batch_index < Size);
-
-        auto &batch = Get(batch_index);
-        Memory::MemSet(&batch, 0, sizeof(StructType));
-
-        MarkDirty(batch_index);
+        // MarkDirty(batch_index);
     }
     
 private:
@@ -589,17 +573,14 @@ private:
             }
         } m_cpu_buffer;
 
-        HYP_FORCE_INLINE
-        void Set(uint index, const StructType &value)
+        HYP_FORCE_INLINE void Set(uint index, const StructType &value)
         {
             AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
 
             m_cpu_buffer.objects[index] = value;
         }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        const StructType &Get(uint index)
+        HYP_FORCE_INLINE const StructType &Get(uint index)
         {
             AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
 

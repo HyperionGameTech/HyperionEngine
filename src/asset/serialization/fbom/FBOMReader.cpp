@@ -488,7 +488,6 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
         CheckEndianness(offset);
 
         IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
-        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
 
         if (FBOMType *as_type = dynamic_cast<FBOMType *>(element)) {
             out_type = *as_type;
@@ -659,7 +658,6 @@ FBOMResult FBOMReader::ReadData(BufferedReader *reader, FBOMData &out_data)
         CheckEndianness(offset);
 
         IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
-        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
 
         if (FBOMData *as_data = dynamic_cast<FBOMData *>(element)) {
             out_data = *as_data;
@@ -705,7 +703,6 @@ FBOMResult FBOMReader::ReadArray(BufferedReader *reader, FBOMArray &out_array)
         CheckEndianness(offset);
 
         IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
-        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
 
         if (FBOMArray *as_array = dynamic_cast<FBOMArray *>(element)) {
             out_array = *as_array;
@@ -762,7 +759,6 @@ FBOMResult FBOMReader::ReadNameTable(BufferedReader *reader, FBOMNameTable &out_
         CheckEndianness(offset);
 
         IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
-        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
 
         if (FBOMNameTable *as_name_table = dynamic_cast<FBOMNameTable *>(element)) {
             out_name_table = *as_name_table;
@@ -840,7 +836,6 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         CheckEndianness(offset);
 
         IFBOMSerializable *element = m_static_data_index_map.GetOrInitializeElement(this, offset);
-        AssertThrowMsg(element != nullptr, "Invalid element in static data pool");
 
         if (FBOMObject *as_object = dynamic_cast<FBOMObject *>(element)) {
             out_object = *as_object;

@@ -227,17 +227,16 @@ public:
     DescriptorSetDeclaration *FindDescriptorSetDeclaration(Name name) const;
     DescriptorSetDeclaration *AddDescriptorSetDeclaration(DescriptorSetDeclaration descriptor_set);
 
-    Array<DescriptorSetDeclaration> &GetElements()
+    HYP_FORCE_INLINE Array<DescriptorSetDeclaration> &GetElements()
         { return m_elements; }
 
-    const Array<DescriptorSetDeclaration> &GetElements() const
+    HYP_FORCE_INLINE const Array<DescriptorSetDeclaration> &GetElements() const
         { return m_elements; }
         
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE
-    uint GetDescriptorSetIndex(Name name) const
+    HYP_FORCE_INLINE uint GetDescriptorSetIndex(Name name) const
     {
         for (const auto &it : m_elements) {
             if (it.name == name) {
@@ -248,8 +247,7 @@ public:
         return -1;
     }
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 

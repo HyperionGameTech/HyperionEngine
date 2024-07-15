@@ -1,9 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
-
-// For condition (@TODO: Refactor)
-#include <rendering/RenderGroup.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <rendering/Buffers.hpp>
 

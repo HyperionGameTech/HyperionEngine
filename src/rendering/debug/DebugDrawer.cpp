@@ -5,6 +5,8 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderGroup.hpp>
 
+#include <rendering/backend/RenderConfig.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <Engine.hpp>
@@ -141,7 +143,7 @@ void DebugDrawer::Render(Frame *frame)
 
     const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
 
-    if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+    if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
         proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
             proxy.GetCommandBuffer(frame_index),
             frame_index,

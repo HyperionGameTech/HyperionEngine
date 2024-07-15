@@ -20,7 +20,7 @@
 
 #include <Engine.hpp>
 
-#include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #ifdef HYP_GLSLANG
 
@@ -931,11 +931,11 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
     properties.Set(ShaderProperty("DX12", false));
 #endif
 
-    if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (renderer::RenderConfig::IsBindlessSupported()) {
         properties.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 
-    if (!RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+    if (!renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
         properties.Set(ShaderProperty("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA", false));
     }
 
@@ -1276,7 +1276,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supports_rt_shaders = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported();
+    const bool supports_rt_shaders = renderer::RenderConfig::IsRaytracingSupported();
 
     HashMap<Bundle *, bool> results;
     std::mutex results_mutex;

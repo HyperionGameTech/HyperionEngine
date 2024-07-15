@@ -24,8 +24,8 @@ class LightVisibilityUpdaterSystem : public System<
     LightVisibilityUpdaterSystem,
     
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ, false>,
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
     // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>

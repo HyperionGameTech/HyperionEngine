@@ -637,6 +637,11 @@ protected:
 
     const Handle<Mesh> &GetMesh() const;
 
+    /*! \brief Does this object allow the material to be updated?
+     *  If true, a dynamic material will be created for this object. */
+    virtual bool AllowMaterialUpdate() const
+        { return false; }
+
     virtual MaterialAttributes GetMaterialAttributes() const;
     virtual Material::ParameterTable GetMaterialParameters() const;
     virtual Material::TextureSet GetMaterialTextures() const;

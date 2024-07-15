@@ -500,6 +500,9 @@ public:
     bool IsDynamic() const
         { return m_is_dynamic; }
 
+    void SetIsDynamic(bool is_dynamic)
+        { m_is_dynamic = is_dynamic; }
+
     void Init();
 
     /*! \brief If the Material's mutation state is dirty, this will

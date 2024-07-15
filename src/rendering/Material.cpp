@@ -165,7 +165,7 @@ Material::ParameterTable Material::DefaultParameters()
 {
     ParameterTable parameters;
 
-    parameters.Set(MATERIAL_KEY_ALBEDO,               Vector4(1.0f));
+    parameters.Set(MATERIAL_KEY_ALBEDO,               Vec4f(1.0f));
     parameters.Set(MATERIAL_KEY_METALNESS,            0.0f);
     parameters.Set(MATERIAL_KEY_ROUGHNESS,            0.65f);
     parameters.Set(MATERIAL_KEY_TRANSMISSION,         0.0f);
@@ -179,7 +179,7 @@ Material::ParameterTable Material::DefaultParameters()
     parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS,      0.0f);
     parameters.Set(MATERIAL_KEY_SUBSURFACE,           0.0f);
     parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f);
-    parameters.Set(MATERIAL_KEY_UV_SCALE,             Vector2(1.0f));
+    parameters.Set(MATERIAL_KEY_UV_SCALE,             Vec2f(1.0f));
     parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT,      0.05f);
     parameters.Set(MATERIAL_KEY_ALPHA_THRESHOLD,      0.2f);
 

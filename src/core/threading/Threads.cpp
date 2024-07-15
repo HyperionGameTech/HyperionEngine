@@ -28,6 +28,7 @@ const FlatMap<ThreadName, ThreadID> Threads::thread_ids = {
 
 thread_local ThreadBase *g_current_thread = nullptr;
 
+// @TODO heirarchical thread IDs so task thread ids can be derived from the main thread id
 #ifdef HYP_ENABLE_THREAD_ID
 thread_local ThreadID g_current_thread_id = ThreadID { uint(THREAD_MAIN), HYP_NAME_UNSAFE(MainThread) };
 #else

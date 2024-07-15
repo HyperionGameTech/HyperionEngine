@@ -638,10 +638,6 @@ void HyperionEditorImpl::CreateMainPanel()
 
 #endif
 
-    // AssertThrow(game_tab_content_button->GetScene() != nullptr);
-
-    // ui_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg"));
-
     g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript &script)
     {
         DebugLog(LogType::Debug, "Script state changed: now is %u\n", script.state);
@@ -921,22 +917,6 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
     m_focused_node = node;
 
     OnFocusedNodeChanged.Broadcast(m_focused_node, previous_focused_node);
-
-    auto scene_tab = m_main_panel->FindChildUIObject(NAME("Scene_Tab"));
-    auto scene_tab_casted = scene_tab.Cast<UITab>();
-
-    if (!scene_tab_casted) {
-        return;
-    }
-
-    auto scene_image = scene_tab_casted->GetContents()->FindChildUIObject(NAME("Sample_Image"));
-    auto scene_image_casted = scene_image.Cast<UIImage>();
-
-    if (!scene_image_casted) {
-        return;
-    }
-
-    scene_image_casted->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
 }
 
 void HyperionEditorImpl::Initialize()

@@ -12,6 +12,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
@@ -519,6 +520,9 @@ void RenderList::CollectDrawCalls(
             (*iterators[index]).second.GetRenderGroup()->PerformOcclusionCulling(frame, cull_data);
         }
     }
+
+    // test
+    // g_engine->GetRenderData()->entity_instance_batches.UpdateBuffer(g_engine->GetGPUDevice(), frame->GetFrameIndex());
 }
 
 void RenderList::ExecuteDrawCalls(

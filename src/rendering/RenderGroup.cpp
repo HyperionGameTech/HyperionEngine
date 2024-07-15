@@ -5,6 +5,7 @@
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <scene/Entity.hpp>
 
@@ -304,7 +305,7 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
     AssertReady();
 
-    const bool unique_per_material = ShouldCollectUniqueDrawCallPerMaterial();
+    const bool unique_per_material = renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial();
 
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
         m_indirect_renderer->GetDrawState().ResetDrawState();
@@ -334,8 +335,12 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
         if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
             // take the batch for reuse
-            if ((batch_index = draw_call->batch_index)) {
-                g_engine->GetRenderData()->entity_instance_batches.ResetBatch(batch_index);
+            if ((batch_index = draw_call->batch_index) != 0) {
+                EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(batch_index);
+                batch.num_entities = 0;
+                // Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
+
+                g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
             }
 
             draw_call->batch_index = 0;
@@ -474,7 +479,7 @@ RenderAll(
         }
 
         if (entity_descriptor_set.IsValid()) {
-            if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+            if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
                 entity_descriptor_set->Bind(
                     frame->GetCommandBuffer(),
                     pipeline,
@@ -630,7 +635,7 @@ RenderAll_Parallel(
                         const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
                         
                         if (entity_descriptor_set.IsValid()) {
-                            if (RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()) {
+                            if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
                                 entity_descriptor_set->Bind(
                                     secondary,
                                     pipeline,
@@ -761,11 +766,6 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
             m_draw_state
         );
     }
-}
-
-bool RenderGroup::ShouldCollectUniqueDrawCallPerMaterial()
-{
-    return false;//!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 }
 
 #pragma endregion RenderGroup
