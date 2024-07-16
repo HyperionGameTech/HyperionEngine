@@ -245,7 +245,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
         if (aabb.ContainsPoint(direction)) {
             RayHit hit { };
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
-            hit.distance = float(max_depth - ui_component.ui_object->GetComputedDepth());
+            hit.distance = -float(ui_component.ui_object->GetComputedDepth());
             hit.id = entity_id.value;
 
             ray_test_results.AddHit(hit);
@@ -440,8 +440,10 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .is_down            = false
                     });
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Size: {}, Inner size: {}",
-                        ui_object->GetName(), ui_object->GetActualSize(), ui_object->GetActualInnerSize());
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}",
+                        ui_object->GetName(), ui_object->GetActualSize(), ui_object->GetActualInnerSize(),
+                        ui_object->GetWorldAABB(),
+                        ui_object->GetNode()->GetEntityAABB());
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;

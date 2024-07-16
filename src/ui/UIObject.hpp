@@ -25,6 +25,8 @@
 
 namespace hyperion {
 
+struct ScriptComponent;
+
 class UIObject;
 class UIStage;
 class UIRenderer;
@@ -518,6 +520,21 @@ public:
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
     const RC<UIObject> &GetChildUIObject(SizeType index) const;
+
+    /*! \brief Gets the relevant script component for this UIObject, if one exists.
+     *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
+     *  \return A pointer to a ScriptComponent for this UIObject or any of its parents, or nullptr if none exists. */
+    ScriptComponent *GetScriptComponent() const;
+
+    /*! \brief Sets the script component for this UIObject.
+     *  Adds the ScriptComponent directly to the UIObject. If the UIObject already has a ScriptComponent, it will be replaced.
+     *  \param script_component A ScriptComponent, passed as an rvalue reference. */
+    void SetScriptComponent(ScriptComponent &&script_component);
+
+    /*! \brief Removes the script component from this UIObject.
+     *  If the UIObject has a script component, it will be removed. Only the script component directly attached to the UIObject will be removed.
+     *  Subsequent calls to \ref{GetScriptComponent} will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
+    void RemoveScriptComponent();
 
     const NodeProxy &GetNode() const;
 

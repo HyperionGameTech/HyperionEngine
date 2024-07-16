@@ -376,7 +376,7 @@ void UIMenuBar::AddChildUIObject(UIObject *ui_object)
             SetSelectedMenuItemIndex(menu_item_index);
         }
 
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     // Mouse click: toggle selected menu item index
@@ -437,6 +437,13 @@ bool UIMenuBar::RemoveChildUIObject(UIObject *ui_object)
     }
 
     return true;
+}
+
+void UIMenuBar::UpdateSize(bool update_children)
+{
+    UIPanel::UpdateSize(update_children);
+
+    UpdateMenuItemSizes();
 }
 
 RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
@@ -505,7 +512,7 @@ void UIMenuBar::UpdateMenuItemSizes()
         m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
         m_menu_items[i]->SetPosition(offset);
 
-        offset.x += m_menu_items[i]->GetActualSize().x;
+        offset.x += m_menu_items[i]->GetNode()->GetWorldAABB().GetExtent().x;
     }
 }
 

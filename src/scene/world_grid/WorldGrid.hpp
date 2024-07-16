@@ -178,9 +178,9 @@ struct WorldGridParams
     Vec3i   patch_size { 32, 32, 32 };
     Vec3f   offset { 0.0f, 0.0f, 0.0f };
     Vec3f   scale { 1.0f, 1.0f, 1.0f };
-    float   max_distance = 4.0f;
+    float   max_distance = 10.0f;
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(patch_size);

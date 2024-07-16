@@ -46,7 +46,7 @@ struct UIScriptDelegate
             return UIEventHandlerResult::ERR;
         }
 
-        ScriptComponent *script_component = ui_object->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(ui_object->GetEntity());
+        ScriptComponent *script_component = ui_object->GetScriptComponent();
 
         if (!script_component) {
             // No script component, do not call.

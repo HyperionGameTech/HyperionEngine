@@ -457,15 +457,19 @@ int UIObject::GetComputedDepth() const
 {
     HYP_SCOPE;
 
-    if (m_depth != 0) {
-        return m_depth;
+    int depth = m_depth;
+
+    if (const UIObject *parent = GetParentUIObject()) {
+        depth += parent->GetComputedDepth();
     }
 
-    if (const NodeProxy &node = GetNode()) {
-        return MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
+    if (m_depth == 0) {
+        if (const NodeProxy &node = GetNode()) {
+            depth += MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
+        }
     }
 
-    return 0;
+    return depth;
 }
 
 int UIObject::GetDepth() const
@@ -1503,6 +1507,65 @@ bool UIObject::HasChildUIObjects() const
     return false;
 }
 
+ScriptComponent *UIObject::GetScriptComponent() const
+{
+    HYP_SCOPE;
+
+    Node *node = m_node_proxy.Get();
+
+    while (node != nullptr) {
+        if (node->GetEntity().IsValid() && node->GetScene() != nullptr) {
+            if (ScriptComponent *script_component = node->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(node->GetEntity())) {
+                return script_component;
+            }
+        }
+
+        node = node->GetParent();
+    }
+
+    return nullptr;
+}
+
+void UIObject::SetScriptComponent(ScriptComponent &&script_component)
+{  
+    HYP_SCOPE;
+    
+    const Scene *scene = GetScene();
+
+    if (!scene) {
+        return;
+    }
+
+    const NodeProxy &node = GetNode();
+
+    if (!node) {
+        return;
+    }
+
+    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(GetEntity())) {
+        scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
+    }
+    
+    scene->GetEntityManager()->AddComponent<ScriptComponent>(GetEntity(), std::move(script_component));
+}
+
+void UIObject::RemoveScriptComponent()
+{
+    HYP_SCOPE;
+
+    const Scene *scene = GetScene();
+
+    if (!scene) {
+        return;
+    }
+
+    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(GetEntity())) {
+        return;
+    }
+
+    scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
+}
+
 const RC<UIObject> &UIObject::GetChildUIObject(SizeType index) const
 {
     HYP_SCOPE;
@@ -1601,23 +1664,23 @@ void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject
         return lhs.second->GetDepth() < rhs.second->GetDepth();
     });
 
-    if (IsContainer()) {
+    // if (IsContainer()) {
         for (const Pair<Node *, UIObject *> &it : children) {
             it.second->CollectObjects(proc, out_deferred_child_objects);
         }
-    } else {
-        // Keep non-container objects on the same layer as parent to reduce number of PSOs
-        // Using this method flattens out the objects that will be rendered.
-        // For containers:                      For non-containers:
-        //      *Container Object 1                 *Non-container Object 1
-        //      *Child Object 1                     *Non-container Object 2
-        //      *Container Object 2                 *Child Object 1
-        //      *Child Object 2                     *Child Object 2
+    // } else {
+    //     // Keep non-container objects on the same layer as parent to reduce number of PSOs
+    //     // Using this method flattens out the objects that will be rendered.
+    //     // For containers:                      For non-containers:
+    //     //      *Container Object 1                 *Non-container Object 1
+    //     //      *Child Object 1                     *Non-container Object 2
+    //     //      *Container Object 2                 *Child Object 1
+    //     //      *Child Object 2                     *Child Object 2
 
-        for (Pair<Node *, UIObject *> &it : children) {
-            out_deferred_child_objects.PushBack(it.second);
-        }
-    }
+    //     for (Pair<Node *, UIObject *> &it : children) {
+    //         out_deferred_child_objects.PushBack(it.second);
+    //     }
+    // }
 
     if (reverse && entity.IsValid()) {
         UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);

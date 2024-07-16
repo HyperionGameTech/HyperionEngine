@@ -252,6 +252,10 @@ public:
                 ui_object->SetText(it->second);
             }
 
+            if (const Pair<String, String> *it = attributes.TryGet("depth")) {
+                ui_object->SetDepth(StringUtil::Parse<int32>(it->second));
+            }
+
             // testing!
             ui_object->OnClick
                 .Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), "OnClick_TestFooBar" })
@@ -260,6 +264,21 @@ public:
             LastObject()->AddChildUIObject(ui_object.Get());
 
             m_ui_object_stack.Push(ui_object);
+        } else if (node_name_upper == "SCRIPT") {
+            const Pair<String, String> *assembly_it = attributes.TryGet("assembly");
+            const Pair<String, String> *class_it = attributes.TryGet("class");
+
+            if (assembly_it && class_it) {
+                ScriptComponent script_component { };
+                Memory::StrCpy(script_component.script.assembly_path, assembly_it->second.Data(), ArraySize(script_component.script.assembly_path));
+                Memory::StrCpy(script_component.script.class_name, class_it->second.Data(), ArraySize(script_component.script.class_name));
+
+                if (m_ui_object_stack.Any()) {
+                    LastObject()->SetScriptComponent(std::move(script_component));
+                }
+            } else {
+                HYP_LOG(Assets, LogLevel::WARNING, "Script node missing assembly or class attribute");
+            }
         }
     }
 

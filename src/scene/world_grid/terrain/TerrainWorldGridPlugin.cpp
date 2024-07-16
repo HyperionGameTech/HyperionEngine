@@ -356,7 +356,7 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 } // namespace terrain
 
 TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : m_noise_combinator(new NoiseCombinator(/* TODO: seed */))
+    : m_noise_combinator(new NoiseCombinator(0x123F/* TODO: seed */))
 {
     (*m_noise_combinator)
         .Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountain_height, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * global_terrain_noise_scale)

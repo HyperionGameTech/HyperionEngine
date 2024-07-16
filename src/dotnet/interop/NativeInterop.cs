@@ -20,7 +20,11 @@ namespace Hyperion
 
             if (AssemblyCache.Instance.Get(assemblyPath) != null)
             {
-                throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
+                // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
+
+                Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
+
+                return;
             }
 
             Guid assemblyGuid = Guid.NewGuid();

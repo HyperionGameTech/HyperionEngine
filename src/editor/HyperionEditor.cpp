@@ -386,7 +386,7 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-#if 0
+#if 1
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -401,9 +401,9 @@ void HyperionEditorImpl::CreateMainPanel()
         // game_tab_content_button->SetText("Hello");
         // loaded_ui->AddChildUIObject(game_tab_content_button);
 
-        auto test_image = loaded_ui.Cast<UIStage>()->CreateUIObject<UIImage>(NAME("Test_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        test_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
-        loaded_ui.Cast<UIStage>()->AddChildUIObject(test_image);
+        // auto test_image = loaded_ui.Cast<UIStage>()->CreateUIObject<UIImage>(NAME("Test_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        // test_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
+        // loaded_ui.Cast<UIStage>()->AddChildUIObject(test_image);
         
         loaded_ui.Cast<UIStage>()->SetDefaultFontAtlas(font_atlas);
 
@@ -1381,7 +1381,6 @@ void HyperionEditor::Logic(GameCounter::TickUnit delta)
         if (timer > 15.0) {
             // HYP_LOG(Editor, LogLevel::DEBUG, "Removing zombie");
             // zombie->Remove();
-            zombie->SetName("Blah blah");
         }
     }
 }
