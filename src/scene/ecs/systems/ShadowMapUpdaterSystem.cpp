@@ -89,7 +89,7 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>()) {
+    for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         if (!light_component.light) {
             continue;
         }

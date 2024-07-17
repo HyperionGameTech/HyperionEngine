@@ -146,7 +146,7 @@ void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
         return;
     }
 
-    for (auto [entity_id, blas_component, mesh_component, transform_component] : GetEntityManager().GetEntitySet<BLASComponent, MeshComponent, TransformComponent>()) {
+    for (auto [entity_id, blas_component, mesh_component, transform_component] : GetEntityManager().GetEntitySet<BLASComponent, MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (!blas_component.blas.IsValid()) {

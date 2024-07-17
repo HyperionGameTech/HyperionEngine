@@ -7,14 +7,16 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
-// #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PROFILE
-#define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
+// #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static const uint32 systems_execution_parallel_threshold = 3;
@@ -131,6 +133,7 @@ ID<Entity> EntityManager::AddEntity()
     HYP_SCOPE;
 
     Threads::AssertOnThread(m_owner_thread_mask);
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
     
     const uint32 index = Handle<Entity>::GetContainer().NextIndex();
     const ID<Entity> entity = ID<Entity>::FromIndex(index);
@@ -145,6 +148,7 @@ bool EntityManager::RemoveEntity(ID<Entity> entity)
     HYP_SCOPE;
 
     Threads::AssertOnThread(m_owner_thread_mask);
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     if (!entity.IsValid()) {
         return false;
@@ -199,12 +203,12 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
 {
     HYP_SCOPE;
 
-    /// @TODO: Ensure that it is thread-safe to move an entity from one EntityManager to another
-    // As the other EntityManager may be owned by a different thread.
-
     if (std::addressof(*this) == std::addressof(other)) {
         return;
     }
+
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
+    HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
 
     // Threads::AssertOnThread(m_owner_thread_mask & other.m_owner_thread_mask);
 
@@ -352,9 +356,20 @@ void EntityManager::BeginUpdate(GameCounter::TickUnit delta)
     if (m_command_queue.HasUpdates()) {
         m_command_queue.Execute(*this, delta);
     }
-
+    
     // Process the execution groups in sequential order
-    for (auto &system_execution_group : m_system_execution_groups) {
+    for (SizeType index = 0; index < m_system_execution_groups.Size(); index++) {
+        SystemExecutionGroup &system_execution_group = m_system_execution_groups[index];
+
+        // add task dependency
+        system_execution_group.SetIsFirstExecutionGroup(index == 0);
+
+        if (index != 0) {
+            m_system_execution_groups[index - 1].GetTaskBatch()->next_batch = m_system_execution_groups[index].GetTaskBatch();
+        }
+        
+        HYP_LOG(ECS, LogLevel::INFO, "Processing system execution group with {} systems", system_execution_group.GetSystems().Size());
+
         system_execution_group.StartProcessing(delta);
     }
 }
@@ -363,38 +378,57 @@ void EntityManager::EndUpdate()
 {
     HYP_SCOPE;
     
-    for (auto &system_execution_group : m_system_execution_groups) {
+    for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
         system_execution_group.FinishProcessing();
     }
+}
+
+#pragma endregion EntityManager
+
+#pragma region SystemExecutionGroup
+
+SystemExecutionGroup::SystemExecutionGroup()
+    : m_task_batch(new TaskBatch()),
+      m_is_first_execution_group(false)
+{
+}
+
+SystemExecutionGroup::~SystemExecutionGroup()
+{
 }
 
 void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    AssertThrow(m_tasks.Empty());
-
-    m_tasks.Reserve(m_systems.Size());
+    // Task dependency - system execution groups need to happen sequentially
 
     for (auto &it : m_systems) {
-        m_tasks.PushBack(TaskSystem::GetInstance().Enqueue([system = it.second.Get(), delta]
+        m_task_batch->AddTask([system = it.second.Get(), delta]
         {
             HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
             system->Process(delta);
-        }));
+        });
+    }
+
+    if (m_is_first_execution_group) {
+        TaskSystem::GetInstance().EnqueueBatch(m_task_batch.Get());
     }
 }
 
 void SystemExecutionGroup::FinishProcessing()
 {
-    for (Task<void> &task : m_tasks) {
-        task.Await();
-    }
+    // for (Task<void> &task : m_tasks) {
+    //     task.Await();
+    // }
 
-    m_tasks.Clear();
+    // m_tasks.Clear();
+
+    m_task_batch->AwaitCompletion();
+    m_task_batch->ResetState();
 }
 
-#pragma endregion EntityManager
+#pragma endregion SystemExecutionGroup
 
 } // namespace hyperion

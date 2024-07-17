@@ -32,7 +32,7 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
             return;
         }
 
-        for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>()) {
+        for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos())) {
             if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path)) {
                 HYP_LOG(Script, LogLevel::INFO, "ScriptSystem: Reloading script for entity #{}", entity.Value());
 
@@ -170,7 +170,7 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ScriptSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>()) {
+    for (auto [entity_id, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos())) {
         if (!(script_component.flags & ScriptComponentFlags::INITIALIZED)) {
             continue;
         }

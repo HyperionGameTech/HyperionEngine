@@ -47,7 +47,7 @@ void PhysicsSystem::OnEntityRemoved(ID<Entity> entity)
 
 void PhysicsSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>()) {
+    for (auto [entity_id, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         Handle<physics::RigidBody> &rigid_body = rigid_body_component.rigid_body;
         Transform &transform = transform_component.transform;
 

@@ -17,6 +17,7 @@
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIListView.hpp>
 #include <ui/UITextbox.hpp>
+#include <ui/UIWindow.hpp>
 #include <ui/UIScriptDelegate.hpp>
 
 #include <util/xml/SAXParser.hpp>
@@ -24,6 +25,7 @@
 #include <core/containers/Stack.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/String.hpp>
+#include <core/functional/Delegate.hpp>
 #include <core/logging/Logger.hpp>
 #include <core/Name.hpp>
 
@@ -58,10 +60,47 @@ static const FlatMap<String, std::add_pointer_t<RC<UIObject>(UIStage *, Name, Ve
     UI_OBJECT_CREATE_FUNCTION(DockableItem),
     UI_OBJECT_CREATE_FUNCTION(ListView),
     UI_OBJECT_CREATE_FUNCTION(ListViewItem),
-    UI_OBJECT_CREATE_FUNCTION(Textbox)
+    UI_OBJECT_CREATE_FUNCTION(Textbox),
+    UI_OBJECT_CREATE_FUNCTION(Window)
 };
 
 #undef UI_OBJECT_CREATE_FUNCTION
+
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
+    { \
+        String(HYP_STR(name)).ToUpper(), \
+        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, const MouseEvent &> * \
+            { return &ui_object->name; } \
+    }
+
+static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, const MouseEvent &> *(UIObject *)> > g_get_delegate_functions_mouse {
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDown),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseUp),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDrag),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseHover),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseLeave),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseMove),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnGainFocus),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnLoseFocus),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnScroll),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnClick)
+};
+
+#undef UI_OBJECT_GET_DELEGATE_FUNCTION
+
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
+    { \
+        String(HYP_STR(name)).ToUpper(), \
+        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, const KeyboardEvent &> * \
+            { return &ui_object->name; } \
+    }
+
+static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, const KeyboardEvent &> *(UIObject *)> > g_get_delegate_functions_keyboard {
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyDown),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyUp)
+};
+
+#undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
 static const HashMap<String, UIObjectAlignment> g_ui_alignment_strings {
     { "TOPLEFT", UIObjectAlignment::TOP_LEFT },
@@ -256,10 +295,41 @@ public:
                 ui_object->SetDepth(StringUtil::Parse<int32>(it->second));
             }
 
-            // testing!
-            ui_object->OnClick
-                .Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), "OnClick_TestFooBar" })
-                .Detach();
+            for (const Pair<String, String> &attribute : attributes) {
+                const String attribute_name_upper = attribute.first.ToUpper();
+
+                if (attribute_name_upper.StartsWith("ON")) {
+                    bool found = false;
+
+                    const auto get_delegate_functions_mouse_it = g_get_delegate_functions_mouse.Find(attribute_name_upper);
+
+                    if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End()) {
+                        Delegate<UIEventHandlerResult, const MouseEvent &> *delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
+
+                        delegate->Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), attribute.second }).Detach();
+
+                        found = true;
+                    }
+
+                    if (found) {
+                        continue;
+                    }
+
+                    const auto get_delegate_functions_keyboard_it = g_get_delegate_functions_keyboard.Find(attribute_name_upper);
+
+                    if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End()) {
+                        Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
+
+                        delegate->Bind(UIScriptDelegate< const KeyboardEvent & > { ui_object.Get(), attribute.second }).Detach();
+                    }
+
+                    if (found) {
+                        continue;
+                    }
+
+                    HYP_LOG(Assets, LogLevel::WARNING, "Unknown event attribute: {}", attribute.first);
+                }
+            }
 
             LastObject()->AddChildUIObject(ui_object.Get());
 

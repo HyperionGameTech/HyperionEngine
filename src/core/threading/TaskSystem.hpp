@@ -54,33 +54,65 @@ struct TaskBatch
      * each task has been scheduled to. */
     Array<TaskRef>                          task_refs;
 
-    /*! \brief Add a task to be ran with this batch. Note: adding a task while the batch is already running
-     * does not mean the newly added task will be ran! You'll need to re-enqueue the batch after the previous one has been completed.
-     */
+    /*! \brief An optional dependent batch to be ran after this one has been completed.
+     *  \note This TaskBatch does not own next_batch, and will not delete it.
+     *  proper cleanup must be done by the user. */
+    TaskBatch                               *next_batch = nullptr;
+
+    /*! \brief Add a task to be ran with this batch */
     HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
         { executors.PushBack(std::move(executor)); }
 
-    HYP_FORCE_INLINE bool IsCompleted() const
-        { return num_completed.Get(MemoryOrder::RELAXED) >= num_enqueued; }
+    /*! \brief Check if all tasks in the batch have been completed.
+     *  \param include_dependent_batches If true, the next_batch will also be checked. */
+    HYP_FORCE_INLINE bool IsCompleted(bool include_dependent_batches = false) const
+    {
+        return (num_completed.Get(MemoryOrder::RELAXED) >= num_enqueued)
+            && (!include_dependent_batches || !next_batch || next_batch->IsCompleted(include_dependent_batches));
+    }
 
-    /*! \brief Block the current thread until all tasks have been marked as completed. */
-    HYP_FORCE_INLINE void AwaitCompletion()
+    /*! \brief Block the current thread until all tasks have been marked as completed.
+     *  \param await_dependent_batches If true, the next_batch will also be awaited. */
+    HYP_FORCE_INLINE void AwaitCompletion(bool await_dependent_batches = false)
     {
         while (!IsCompleted()) {
             HYP_WAIT_IDLE();
         }
 
         executors.Clear();
+
+        if (await_dependent_batches && next_batch != nullptr) {
+            next_batch->AwaitCompletion(await_dependent_batches);
+        }
     }
 
-    /*! \brief Execute each non-enqueued task in serial (not async). */
-    void ExecuteBlocking()
+    /*! \brief Execute each non-enqueued task in serial (not async).
+     *  \param execute_dependent_batches If true, the next_batch will also be executed. */
+    void ExecuteBlocking(bool execute_dependent_batches = false)
     {
         for (TaskThread::Scheduler::TaskExecutorType &executor : executors) {
             executor.Execute();
         }
 
         executors.Clear();
+
+        if (execute_dependent_batches && next_batch != nullptr) {
+            next_batch->ExecuteBlocking(execute_dependent_batches);
+        }
+    }
+
+    void ResetState()
+    {
+        AssertThrowMsg(
+            IsCompleted(false),
+            "TaskBatch::ResetState() must be called after all tasks have been completed"
+        );
+
+        num_completed.Set(0, MemoryOrder::RELEASE);
+        num_enqueued = 0;
+        executors.Clear();
+        task_refs.Clear();
+        next_batch = nullptr;
     }
 };
 

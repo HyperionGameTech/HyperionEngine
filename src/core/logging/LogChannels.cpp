@@ -52,6 +52,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Socket, Net);
 HYP_DEFINE_LOG_SUBCHANNEL(Threading, Core);
 
 HYP_DEFINE_LOG_SUBCHANNEL(Tasks, Threading);
+HYP_DEFINE_LOG_SUBCHANNEL(DataRaceDetector, Threading);
 
 #pragma endregion Threading
 

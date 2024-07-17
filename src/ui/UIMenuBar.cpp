@@ -263,7 +263,7 @@ void UIMenuBar::Init()
             SetSelectedMenuItemIndex(~0u);
         }
 
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     GetStage()->AddChildUIObject(m_container);
@@ -397,11 +397,9 @@ void UIMenuBar::AddChildUIObject(UIObject *ui_object)
             }
 
             HYP_LOG(UI, LogLevel::DEBUG, "Container size {}", m_container->GetActualSize());
-
-            return UIEventHandlerResult::STOP_BUBBLING;
         }
 
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     m_menu_items.PushBack(menu_item);

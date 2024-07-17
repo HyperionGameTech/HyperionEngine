@@ -24,11 +24,9 @@ public:
 
     virtual ANSIStringView GetName() const = 0;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsEntityInitialized(ID<Entity> entity) const
+    HYP_FORCE_INLINE bool IsEntityInitialized(ID<Entity> entity) const
         { return m_initialized_entities.Contains(entity); }
 
-    HYP_NODISCARD
     virtual bool AllowParallelExecution() const
         { return true; }
 
@@ -37,9 +35,15 @@ public:
      *
      *  \return The TypeIDs of the components this System operates on.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<TypeID> &GetComponentTypeIDs() const
+    HYP_FORCE_INLINE const Array<TypeID> &GetComponentTypeIDs() const
         { return m_component_type_ids; }
+
+    /*! \brief Returns the ComponentInfo objects of the components this System operates on.
+     *
+     *  \return The ComponentInfos of the components this System operates on.
+     */
+    HYP_FORCE_INLINE const Array<ComponentInfo> &GetComponentInfos() const
+        { return m_component_infos; }
 
     /*! \brief Returns true if all given TypeIDs are operated on by this System, false otherwise.
      *
@@ -93,7 +97,7 @@ public:
 
         const ComponentInfo &component_info = GetComponentInfo(component_type_id);
 
-        return component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE;
+        return !!(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE);
     }
 
     /*! \brief Returns the ComponentInfo of the component with the given TypeID.
@@ -134,8 +138,7 @@ protected:
         AssertThrowMsg(m_component_type_ids.Size() == m_component_infos.Size(), "Component type ID count and component infos count mismatch");
     }
 
-    HYP_FORCE_INLINE
-    EntityManager &GetEntityManager()
+    HYP_FORCE_INLINE EntityManager &GetEntityManager()
         { return m_entity_manager; }
 
     EntityManager           &m_entity_manager;

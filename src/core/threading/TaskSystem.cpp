@@ -109,7 +109,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
     AssertThrow(batch != nullptr);
 
     batch->num_completed.Set(0, MemoryOrder::RELAXED);
-    batch->num_enqueued = 0u;
+    batch->num_enqueued = 0;
     batch->task_refs.Resize(batch->executors.Size());
 
     const ThreadID &current_thread_id = Threads::CurrentThreadID();
@@ -124,7 +124,13 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         TaskThread *task_thread = GetNextTaskThread(pool);
         AssertThrow(task_thread != nullptr);
 
-        const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(&executor, &batch->num_completed);
+        const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(
+            &executor,
+            &batch->num_completed,
+            batch->next_batch != nullptr
+                ? [batch]() { if (batch->IsCompleted()) TaskSystem::GetInstance().EnqueueBatch(batch->next_batch); }
+                : OnTaskCompletedCallback()
+        );
 
         ++batch->num_enqueued;
 

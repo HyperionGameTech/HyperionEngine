@@ -37,7 +37,7 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
         }
     }
 
-    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>()) {
+    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         if (!audio_component.audio_source.IsValid()) {
             audio_component.playback_state.status = AUDIO_PLAYBACK_STATUS_STOPPED;
             audio_component.playback_state.current_time = 0.0f;

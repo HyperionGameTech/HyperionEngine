@@ -210,13 +210,21 @@ private:
     FlatMap<Name, DelegateHandler>  m_delegate_handlers;
 };
 
+template <class ReturnType>
+class DelegateBase
+{
+public:
+    DelegateBase()          = default;
+    virtual ~DelegateBase() = default;
+};
+
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
  *  Handlers can be bound as strong or weak references, and adding them is thread safe.
  *
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class... Args>
-class Delegate
+class Delegate : public DelegateBase<ReturnType>
 {
     using ProcType = Proc<ReturnType, Args...>;
 
@@ -235,7 +243,7 @@ public:
 
     Delegate &operator=(Delegate &&other) noexcept = delete;
 
-    ~Delegate()
+    virtual ~Delegate() override
     {
         m_detached_handlers.Clear();
     }
@@ -451,6 +459,7 @@ private:
 } // namespace functional
 
 using functional::Delegate;
+using functional::DelegateBase;
 using functional::DelegateHandler;
 using functional::DelegateHandlerSet;
 

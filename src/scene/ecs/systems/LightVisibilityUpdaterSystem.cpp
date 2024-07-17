@@ -98,7 +98,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
-    for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
             continue;
         }

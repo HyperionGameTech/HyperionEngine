@@ -229,7 +229,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
     RayTestResults ray_test_results;
 
-    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView()) {
         if (!ui_component.ui_object) {
             continue;
         }
@@ -352,6 +352,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .absolute_position  = mouse_position,
                             .mouse_buttons      = mouse_buttons,
                             .is_down            = true
                         });
@@ -376,7 +377,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
-                    if (first_hit) {
+                    if (first_hit != nullptr) {
                         // We don't want to check the current object if it's not a child of the first hit object,
                         // since it would be behind the first hit object.
                         if (!first_hit->IsOrHasParent(ui_object)) {
@@ -392,6 +393,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .absolute_position  = mouse_position,
                             .mouse_buttons      = mouse_buttons,
                             .is_down            = false
                         });
@@ -407,7 +409,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
-                    if (first_hit) {
+                    if (first_hit != nullptr) {
                         // We don't want to check the current object if it's not a child of the first hit object,
                         // since it would be behind the first hit object.
                         if (!first_hit->IsOrHasParent(ui_object)) {
@@ -423,6 +425,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .absolute_position  = mouse_position,
                             .mouse_buttons      = mouse_buttons,
                             .is_down            = false
                         });
@@ -436,6 +439,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position  = mouse_position,
                         .mouse_buttons      = mouse_buttons,
                         .is_down            = false
                     });
@@ -466,6 +470,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .input_manager      = input_manager,
                         .position           = other_ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = other_ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position  = mouse_position,
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
@@ -489,8 +494,20 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         Array<RC<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results)) {
+            UIObject *first_hit = nullptr;
+
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
+                    if (first_hit != nullptr) {
+                        // We don't want to check the current object if it's not a child of the first hit object,
+                        // since it would be behind the first hit object.
+                        if (!first_hit->IsOrHasParent(ui_object)) {
+                            continue;
+                        }
+                    } else {
+                        first_hit = ui_object;
+                    }
+
                     if (focused_object == nullptr && ui_object->AcceptsFocus()) {
                         ui_object->Focus();
 
@@ -519,6 +536,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position  = mouse_position,
                         .mouse_buttons      = mouse_button_pressed_states_it->second.mouse_buttons,
                         .is_down            = true
                     });
@@ -550,6 +568,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position  = mouse_position,
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
@@ -570,6 +589,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .absolute_position  = mouse_position,
                     .mouse_buttons      = it.second.mouse_buttons,
                     .is_down            = false
                 });
@@ -609,6 +629,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position  = mouse_position,
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false,
                         .wheel              = Vec2i { wheel_x, wheel_y }

@@ -95,7 +95,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }

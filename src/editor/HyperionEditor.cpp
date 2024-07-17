@@ -1369,20 +1369,6 @@ void HyperionEditor::Teardown()
 void HyperionEditor::Logic(GameCounter::TickUnit delta)
 {
     m_impl->UpdateEditorCamera(delta);
-
-    // testing
-    if (auto zombie = GetScene()->GetRoot()->Select("zombie"); zombie.IsValid()) {
-        static double timer = 0.0;
-        timer += delta;
-
-        zombie->Rotate(Quaternion::AxisAngles(Vec3f::UnitY(), 2.5f * delta));
-
-        // testing remove
-        if (timer > 15.0) {
-            // HYP_LOG(Editor, LogLevel::DEBUG, "Removing zombie");
-            // zombie->Remove();
-        }
-    }
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent &event)

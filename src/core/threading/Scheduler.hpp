@@ -148,12 +148,12 @@ public:
 
             task_executed->notify_all();
 
-            if (atomic_counter != nullptr) {
-                atomic_counter->Increment(1, MemoryOrder::RELAXED);
-            }
-
             if (callback.IsValid()) {
                 callback();
+            }
+
+            if (atomic_counter != nullptr) {
+                atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
         }
 
@@ -164,12 +164,12 @@ public:
 
             task_executed->notify_all();
 
-            if (atomic_counter != nullptr) {
-                atomic_counter->Increment(1, MemoryOrder::RELAXED);
-            }
-
             if (callback.IsValid()) {
                 callback();
+            }
+
+            if (atomic_counter != nullptr) {
+                atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
         }
     };
@@ -229,8 +229,8 @@ public:
      *  \internal Used by TaskSystem to enqueue batches of tasks.
      *  \param executor_ptr The TaskExecutor to execute (owned by the caller)
      *  \param atomic_counter A pointer to an atomic uint variable that is incremented upon completion.
-     */
-    TaskID EnqueueTaskExecutor(TaskExecutorType *executor_ptr, AtomicVar<uint> *atomic_counter)
+     *  \param callback A callback to be executed after the task is completed. */
+    TaskID EnqueueTaskExecutor(TaskExecutorType *executor_ptr, AtomicVar<uint> *atomic_counter, OnTaskCompletedCallback &&callback = nullptr)
     {
         std::unique_lock lock(m_mutex);
 
@@ -239,6 +239,7 @@ public:
         scheduled_task.owns_executor = false;
         scheduled_task.atomic_counter = atomic_counter;
         scheduled_task.task_executed = &m_task_executed;
+        scheduled_task.callback = std::move(callback);
 
         EnqueueInternal(std::move(scheduled_task));
 

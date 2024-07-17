@@ -9,6 +9,7 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/utilities/TypeID.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 
@@ -68,8 +69,14 @@ public:
 
     virtual ~ComponentContainerBase()                                       = default;
 
-    ComponentContainerFactoryBase *GetFactory() const
+    HYP_FORCE_INLINE ComponentContainerFactoryBase *GetFactory() const
         { return m_factory; }
+
+    HYP_FORCE_INLINE DataRaceDetector &GetDataRaceDetector()
+        { return m_data_race_detector; }
+
+    HYP_FORCE_INLINE const DataRaceDetector &GetDataRaceDetector() const
+        { return m_data_race_detector; }
 
     /*! \brief Tries to get the component with the given ID from the component container.
      *
@@ -121,8 +128,11 @@ public:
      */
     virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) = 0;
 
+protected:
+    DataRaceDetector                m_data_race_detector;
+
 private:
-    ComponentContainerFactoryBase *m_factory;
+    ComponentContainerFactoryBase   *m_factory;
 };
 
 class ComponentContainerFactoryBase
@@ -169,10 +179,16 @@ public:
     virtual ~ComponentContainer() override                          = default;
 
     virtual bool HasComponent(ComponentID id) const override
-        { return m_components.Contains(id); }
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_components.Contains(id);
+    }
 
     virtual AnyRef TryGetComponent(ComponentID id) override
     {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
         auto it = m_components.Find(id);
 
         if (it == m_components.End()) {
@@ -184,6 +200,8 @@ public:
 
     virtual ConstAnyRef TryGetComponent(ComponentID id) const override
     {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
         auto it = m_components.Find(id);
 
         if (it == m_components.End()) {
@@ -193,25 +211,28 @@ public:
         return ConstAnyRef(&it->second);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Component &GetComponent(ComponentID id)
+    HYP_FORCE_INLINE Component &GetComponent(ComponentID id)
     {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
         
         return m_components.At(id);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Component &GetComponent(ComponentID id) const
+    HYP_FORCE_INLINE const Component &GetComponent(ComponentID id) const
     {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
         
         return m_components.At(id);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ComponentID AddComponent(Component &&component)
+    HYP_FORCE_INLINE ComponentID AddComponent(Component &&component)
     {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         ComponentID id = ++m_component_id_counter;
 
         m_components.Set(id, std::move(component));
@@ -229,6 +250,8 @@ public:
 
     virtual bool RemoveComponent(ComponentID id) override
     {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         auto it = m_components.Find(id);
 
         if (it != m_components.End()) {
@@ -244,6 +267,8 @@ public:
     {
         AssertThrowMsg(dynamic_cast<ComponentContainer<Component> *>(&other), "Component container is not of the same type");
 
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         auto it = m_components.Find(id);
 
         if (it != m_components.End()) {
@@ -257,9 +282,12 @@ public:
         return { };
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType Size() const
-        { return m_components.Size(); }
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_components.Size();
+    }
 
 private:
     ComponentID                     m_component_id_counter = 0;

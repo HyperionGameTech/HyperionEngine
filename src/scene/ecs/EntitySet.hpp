@@ -7,7 +7,9 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Tuple.hpp>
+#include <core/utilities/ValueStorage.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityContainer.hpp>
@@ -80,6 +82,9 @@ private:
     }
 };
 
+template <class... Components>
+struct EntitySetView;
+
 /*! \brief A set of entities with a specific set of components.
  *
  *  \tparam Components The components that the entities in this set have.
@@ -89,6 +94,7 @@ class EntitySet : public EntitySetBase
 {
 public:
     friend struct EntitySetIterator<Components...>;
+    friend struct EntitySetView<Components...>;
 
     using Element           = Pair<ID<Entity>, FixedArray<ComponentID, sizeof...(Components)>>;
 
@@ -117,24 +123,24 @@ public:
      *
      *  \return Reference to the elements array of this set.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<Element> &GetElements() const
+    HYP_FORCE_INLINE const Array<Element> &GetElements() const
         { return m_elements; }
 
     /*! \brief Gets the entities in this set.
      *
      *  \return Reference to the entities in this set.
      */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const EntityContainer &GetEntityContainer() const
+    HYP_FORCE_INLINE const EntityContainer &GetEntityContainer() const
         { return m_entities; }
 
     /*! \brief Gets a component.
         \return Reference to the component. */
     template <class Component>
-    Component &GetComponent(ID<Entity> entity)
+    HYP_FORCE_INLINE Component &GetComponent(ID<Entity> entity)
     {
         static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
+
+        HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
@@ -142,9 +148,11 @@ public:
     /*! \brief Gets a component.
         \return Reference to the component. */
     template <class Component>
-    const Component &GetComponent(ID<Entity> entity) const
+    HYP_FORCE_INLINE const Component &GetComponent(ID<Entity> entity) const
     {
         static_assert((std::is_same_v<Components, Component> || ...), "Component not in EntitySet");
+        
+        HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.GetEntityData(entity).template GetComponent<Component>();
     }
@@ -155,6 +163,8 @@ public:
      */
     virtual void RemoveEntity(ID<Entity> entity) override
     {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         const auto entity_element_it = m_elements.FindIf([&entity](const Element &element)
         {
             return element.first == entity;
@@ -169,6 +179,8 @@ public:
         \note Do not call this function directly. */
     virtual void OnEntityUpdated(ID<Entity> entity) override
     {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         const auto entity_element_it = m_elements.FindIf([&entity](const Element &element)
         {
             return element.first == entity;
@@ -200,6 +212,8 @@ public:
      */
     virtual bool ValidForEntity(ID<Entity> entity) const override
     {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
         return m_entities.GetEntityData(entity).template HasComponents<Components...>();
     }
 
@@ -211,11 +225,26 @@ public:
     template <class TaskSystem, class Lambda>
     void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
     {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         task_system.ParallelForEach(m_elements.Size(), [this, &lambda](uint index, uint)
         {
             lambda(Iterator(*this, index));
         });
     }
+    
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access set to read/write.
+     *  \return A scoped view of this EntitySet.
+     */
+    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView()
+        { return EntitySetView<Components...>(*this); }
+    
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{component_infos}.
+     *  \param component_infos The ComponentInfo objects to use for the view.
+     *  \return A scoped view of this EntitySet.
+     */
+    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView(const Array<ComponentInfo> &component_infos)
+        { return EntitySetView<Components...>(*this, component_infos); }
 
     HYP_DEF_STL_BEGIN_END(
         Iterator(*this, 0),
@@ -227,9 +256,76 @@ private:
 
     EntityContainer                                 &m_entities;
     Tuple< ComponentContainer<Components> &... >    m_component_containers;
+
+    DataRaceDetector                                m_data_race_detector;
 };
 
-template <class ... Components>
+template <class... Components>
+struct EntitySetView
+{
+    using Iterator = EntitySetIterator<Components...>;
+    using ConstIterator = EntitySetIterator<const Components...>;
+
+    EntitySet<Components...>                                                    &entity_set;
+    FixedArray<DataRaceDetector *, sizeof...(Components)>                       m_component_data_race_detectors;
+    ValueStorageArray<DataRaceDetector::DataAccessScope, sizeof...(Components)> m_component_data_access_scopes;
+
+    EntitySetView(EntitySet<Components...> &entity_set)
+        : entity_set(entity_set),
+          m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+    {
+        for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
+            m_component_data_access_scopes[i].Construct(DataAccessFlags::ACCESS_RW, *m_component_data_race_detectors[i]);
+        }
+    }
+
+    EntitySetView(EntitySet<Components...> &entity_set, const Array<ComponentInfo> &component_infos)
+        : entity_set(entity_set),
+          m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+    {
+        static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
+
+        for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
+            auto component_infos_it = component_infos.FindIf([type_id = component_type_ids[i]](const ComponentInfo &info)
+            {
+                return info.type_id == type_id;
+            });
+
+            AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with type ID %u", component_type_ids[i].Value());
+
+            EnumFlags<DataAccessFlags> access_flags = DataAccessFlags::ACCESS_NONE;
+
+            if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_READ) {
+                access_flags |= DataAccessFlags::ACCESS_READ;
+            }
+
+            if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_WRITE) {
+                access_flags |= DataAccessFlags::ACCESS_WRITE;
+            }
+
+            m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i]);
+        }
+    }
+
+    EntitySetView(const EntitySetView &other)                   = delete;
+    EntitySetView &operator=(const EntitySetView &other)        = delete;
+    EntitySetView(EntitySetView &&other) noexcept               = delete;
+    EntitySetView &operator=(EntitySetView &&other) noexcept    = delete;
+
+    ~EntitySetView()
+    {
+        for (SizeType i = 0; i < m_component_data_access_scopes.Size(); i++) {
+            m_component_data_access_scopes[i].Destruct();
+        }
+    }
+
+    HYP_DEF_STL_BEGIN_END(
+        entity_set.Begin(),
+        entity_set.End()
+    )
+};
+
+template <class... Components>
 const EntitySetTypeID EntitySet<Components...>::type_id = EntitySetBase::GenerateEntitySetTypeID<Components...>();
 
 } // namespace hyperion

@@ -544,7 +544,7 @@ void LightmapRenderer::Init()
         HashMap<ID<Mesh>, Array<Triangle>> triangle_cache;
         uint num_triangles = 0;
 
-        for (auto [entity, mesh_component, transform_component] : mgr.GetEntitySet<MeshComponent, TransformComponent>()) {
+        for (auto [entity, mesh_component, transform_component] : mgr.GetEntitySet<MeshComponent, TransformComponent>().GetScopedView()) {
             if (!mesh_component.mesh.IsValid()) {
                 HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with invalid mesh on MeshComponent");
 

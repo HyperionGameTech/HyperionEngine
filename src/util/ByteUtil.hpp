@@ -111,7 +111,7 @@ static HYP_FORCE_INLINE To BitCast(const From &from)
     return ValueStorage<To>(&from).Get();
 }
 
-#define FOR_EACH_BIT(_num, _iter) for (uint64 num = (_num), _iter = ByteUtil::LowestSetBitIndex(num); _iter != uint(-1); num &= ~_iter)
+#define FOR_EACH_BIT(_num, _iter) for (uint64 num = (_num), _iter = ByteUtil::LowestSetBitIndex(num); _iter != uint(-1); num &= ~(uint64(1) << _iter))
 
 } // namespace hyperion
 

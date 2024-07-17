@@ -66,6 +66,7 @@ enum class UIObjectType : uint32
     LIST_VIEW           = 14,
     LIST_VIEW_ITEM      = 15,
     TEXTBOX             = 16,
+    WINDOW              = 17,
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)

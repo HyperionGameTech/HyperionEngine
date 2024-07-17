@@ -69,7 +69,7 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         const BoundingBox &world_aabb = bounding_box_component.world_aabb;

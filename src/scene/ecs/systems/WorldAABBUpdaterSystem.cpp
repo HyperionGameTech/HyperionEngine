@@ -34,7 +34,7 @@ void WorldAABBUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>()) {
+    for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>().GetScopedView(GetComponentInfos())) {
         const BoundingBox local_aabb = bounding_box_component.local_aabb;
         BoundingBox world_aabb = bounding_box_component.world_aabb;
 

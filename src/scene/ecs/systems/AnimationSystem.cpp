@@ -9,7 +9,7 @@ namespace hyperion {
 
 void AnimationSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, animation_component, mesh_component] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>()) {
+    for (auto [entity_id, animation_component, mesh_component] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos())) {
         if (!mesh_component.skeleton) {
             continue;
         }

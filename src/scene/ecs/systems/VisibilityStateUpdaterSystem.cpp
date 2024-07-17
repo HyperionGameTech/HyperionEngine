@@ -79,7 +79,7 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
-    for (auto [entity_id, visibility_state_component, bounding_box_component] : GetEntityManager().GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>()) {
+    for (auto [entity_id, visibility_state_component, bounding_box_component] : GetEntityManager().GetEntitySet<VisibilityStateComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         bool needs_octree_update = false;
 
         const bool visibility_state_invalidated = visibility_state_component.flags & VISIBILITY_STATE_FLAG_INVALIDATED;

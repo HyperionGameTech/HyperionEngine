@@ -5,6 +5,7 @@
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -132,7 +133,6 @@ void World::UpdatePendingScenes()
 void World::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertReady();
