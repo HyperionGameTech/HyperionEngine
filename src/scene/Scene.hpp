@@ -10,7 +10,6 @@
 #include <scene/camera/Camera.hpp>
 
 #include <core/Base.hpp>
-#include <core/threading/Scheduler.hpp>
 #include <core/Name.hpp>
 #include <core/logging/LoggerFwd.hpp>
 

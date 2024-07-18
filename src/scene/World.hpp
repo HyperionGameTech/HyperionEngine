@@ -9,6 +9,7 @@
 #include <physics/PhysicsWorld.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/RenderCollection.hpp>
 
 namespace hyperion {
 

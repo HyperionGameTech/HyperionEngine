@@ -2,7 +2,6 @@
 #ifndef HYPERION_ASSETS_HPP
 #define HYPERION_ASSETS_HPP
 
-#include <asset/AssetBatch.hpp>
 #include <asset/AssetLoader.hpp>
 #include <asset/AssetCache.hpp>
 #include <asset/BufferedByteReader.hpp>
@@ -11,8 +10,6 @@
 
 #include <core/Core.hpp>
 #include <core/Defines.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
 #include <core/logging/LoggerFwd.hpp>
 #include <core/ObjectPool.hpp>
 
@@ -30,6 +27,13 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetCache;
+struct AssetBatchCallbacks;
+struct AssetBatch;
+
+struct ProcessAssetFunctorBase;
+
+template <class T>
+struct ProcessAssetFunctor;
 
 using AssetLoadFlags = uint32;
 

@@ -34,13 +34,14 @@ public:
     SchedulerBase &operator=(SchedulerBase &&other) noexcept    = delete;
     virtual ~SchedulerBase()                                    = default;
 
+    HYP_FORCE_INLINE ThreadID GetOwnerThread() const
+        { return m_owner_thread; }
+
     /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
      *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
      */
-    void SetOwnerThread(ThreadID owner_thread)
-    {
-        m_owner_thread = owner_thread;
-    }
+    HYP_FORCE_INLINE void SetOwnerThread(ThreadID owner_thread)
+        { m_owner_thread = owner_thread; }
 
     void RequestStop();
 
@@ -146,15 +147,17 @@ public:
         {
             lambda(*executor);
 
-            task_executed->notify_all();
-
-            if (callback.IsValid()) {
-                callback();
-            }
+            uint32 counter_value = 1;
 
             if (atomic_counter != nullptr) {
-                atomic_counter->Increment(1, MemoryOrder::RELAXED);
+                counter_value = atomic_counter->Increment(1, MemoryOrder::SEQUENTIAL) + 1;
             }
+
+            if (callback.IsValid()) {
+                callback(counter_value);
+            }
+
+            task_executed->notify_all();
         }
 
         template <class ...Args>
@@ -162,15 +165,17 @@ public:
         {
             executor->Execute(std::forward<Args>(args)...);
 
-            task_executed->notify_all();
-
-            if (callback.IsValid()) {
-                callback();
-            }
+            uint32 counter_value = 1;
 
             if (atomic_counter != nullptr) {
-                atomic_counter->Increment(1, MemoryOrder::RELAXED);
+                counter_value = atomic_counter->Increment(1, MemoryOrder::SEQUENTIAL) + 1;
             }
+
+            if (callback.IsValid()) {
+                callback(counter_value);
+            }
+
+            task_executed->notify_all();
         }
     };
     
@@ -342,22 +347,22 @@ public:
         });
     }
 
-    /* Move all the next pending task in the queue to an external container. */
-    template <class Container>
-    void AcceptNext(Container &out_container)
-    {
-        AssertThrow(Threads::IsOnThread(m_owner_thread));
+    // /* Move all the next pending task in the queue to an external container. */
+    // template <class Container>
+    // void AcceptNext(Container &out_container)
+    // {
+    //     AssertThrow(Threads::IsOnThread(m_owner_thread));
         
-        std::unique_lock lock(m_mutex);
+    //     std::unique_lock lock(m_mutex);
 
-        if (m_queue.Any()) {
-            auto &front = m_queue.Front();
-            out_container.Push(std::move(front));
-            m_queue.PopFront();
+    //     if (m_queue.Any()) {
+    //         auto &front = m_queue.Front();
+    //         out_container.Push(std::move(front));
+    //         m_queue.PopFront();
 
-            m_num_enqueued.Decrement(1u, MemoryOrder::RELEASE);
-        }
-    }
+    //         m_num_enqueued.Decrement(1u, MemoryOrder::RELEASE);
+    //     }
+    // }
     
     /* Move all tasks in the queue to an external container. */
     template <class Container>
@@ -369,10 +374,14 @@ public:
 
         for (auto it = m_queue.Begin(); it != m_queue.End(); ++it) {
             out_container.Push(std::move(*it));
+            m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
         }
 
         m_queue.Clear();
-        m_num_enqueued.Set(0, MemoryOrder::RELEASE);
+
+        lock.unlock();
+
+        WakeUpOwnerThread();
     }
     
     /*! \brief Move all tasks in the queue to an external container. Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
@@ -383,23 +392,28 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
+#ifdef HYP_DEBUG_MODE
+        if (!out_container.Empty()) {
+            DebugLog(LogType::Warn, "Warning: Container is not empty when calling WaitForTasks().");
+        }
+#endif
+
         std::unique_lock lock(m_mutex);
 
         if (!SchedulerBase::WaitForTasks(lock)) {
             return false;
         }
 
-        // If stop was requested, return immediately
-        if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
-            return false;
-        }
-
         for (auto it = m_queue.Begin(); it != m_queue.End(); ++it) {
             out_container.Push(std::move(*it));
+            m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
         }
 
         m_queue.Clear();
-        m_num_enqueued.Set(0, MemoryOrder::RELEASE);
+
+        lock.unlock();
+
+        WakeUpOwnerThread();
 
         return true;
     }
@@ -422,10 +436,13 @@ public:
             
             front.ExecuteWithLambda(lambda);
 
+            m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
             m_queue.PopFront();
         }
 
-        m_num_enqueued.Set(0, MemoryOrder::RELEASE);
+        lock.unlock();
+
+        WakeUpOwnerThread();
     }
     
 private:

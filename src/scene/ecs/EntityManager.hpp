@@ -36,6 +36,12 @@
 
 namespace hyperion {
 
+namespace threading {
+struct TaskBatch;
+} // namespace threading
+
+using threading::TaskBatch;
+
 enum class EntityManagerFlags : uint32
 {
     NONE                            = 0x0,
@@ -78,14 +84,6 @@ public:
 
     TaskBatch *GetTaskBatch() const
         { return m_task_batch.Get(); }
-
-    /*! \brief Sets whether this SystemExecutionGroup is the first in the list of SystemExecutionGroups.
-     *  This is used to determine if tasks should be enqueued directly or if they should be enqueued with a dependency on the previous SystemExecutionGroup.
-     *
-     *  \param[in] is_first_execution_group True if this SystemExecutionGroup is the first in the list, false otherwise.
-     */
-    void SetIsFirstExecutionGroup(bool is_first_execution_group)
-        { m_is_first_execution_group = is_first_execution_group; }
 
     /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
      *
@@ -181,7 +179,6 @@ public:
 private:
     TypeMap<UniquePtr<SystemBase>>  m_systems;
     UniquePtr<TaskBatch>            m_task_batch;
-    bool                            m_is_first_execution_group;
 };
 
 using EntityListenerID = uint;

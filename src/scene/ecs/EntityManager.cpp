@@ -352,32 +352,43 @@ ComponentInterfaceBase *EntityManager::GetComponentInterface(TypeID type_id)
 void EntityManager::BeginUpdate(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_mask);
     
     if (m_command_queue.HasUpdates()) {
         m_command_queue.Execute(*this, delta);
     }
     
-    // Process the execution groups in sequential order
+    TaskBatch *root_task_batch = nullptr;
+
+    // Prepare task dependencies
     for (SizeType index = 0; index < m_system_execution_groups.Size(); index++) {
         SystemExecutionGroup &system_execution_group = m_system_execution_groups[index];
 
-        // add task dependency
-        system_execution_group.SetIsFirstExecutionGroup(index == 0);
+        if (!root_task_batch) {
+            root_task_batch = system_execution_group.GetTaskBatch();
+        }
+
+        system_execution_group.GetTaskBatch()->ResetState();
+
+        // Add tasks to batches before kickoff
+        system_execution_group.StartProcessing(delta);
 
         if (index != 0) {
             m_system_execution_groups[index - 1].GetTaskBatch()->next_batch = m_system_execution_groups[index].GetTaskBatch();
         }
-        
-        HYP_LOG(ECS, LogLevel::INFO, "Processing system execution group with {} systems", system_execution_group.GetSystems().Size());
+    }
 
-        system_execution_group.StartProcessing(delta);
+    // Kickoff first task
+    if (root_task_batch) {
+        TaskSystem::GetInstance().EnqueueBatch(root_task_batch);
     }
 }
 
 void EntityManager::EndUpdate()
 {
     HYP_SCOPE;
-    
+    Threads::AssertOnThread(m_owner_thread_mask);
+
     for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
         system_execution_group.FinishProcessing();
     }
@@ -388,8 +399,7 @@ void EntityManager::EndUpdate()
 #pragma region SystemExecutionGroup
 
 SystemExecutionGroup::SystemExecutionGroup()
-    : m_task_batch(new TaskBatch()),
-      m_is_first_execution_group(false)
+    : m_task_batch(new TaskBatch())
 {
 }
 
@@ -401,8 +411,6 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    // Task dependency - system execution groups need to happen sequentially
-
     for (auto &it : m_systems) {
         m_task_batch->AddTask([system = it.second.Get(), delta]
         {
@@ -411,22 +419,11 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
             system->Process(delta);
         });
     }
-
-    if (m_is_first_execution_group) {
-        TaskSystem::GetInstance().EnqueueBatch(m_task_batch.Get());
-    }
 }
 
 void SystemExecutionGroup::FinishProcessing()
 {
-    // for (Task<void> &task : m_tasks) {
-    //     task.Await();
-    // }
-
-    // m_tasks.Clear();
-
     m_task_batch->AwaitCompletion();
-    m_task_batch->ResetState();
 }
 
 #pragma endregion SystemExecutionGroup

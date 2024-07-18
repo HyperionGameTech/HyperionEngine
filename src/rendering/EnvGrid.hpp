@@ -4,7 +4,6 @@
 
 #include <core/Base.hpp>
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Threads.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

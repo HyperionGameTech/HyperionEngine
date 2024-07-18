@@ -72,7 +72,7 @@ struct ProcFunctorInternal
         }
     }
 
-    HYP_FORCE_INLINE bool IsDynamic() const
+    HYP_FORCE_INLINE bool IsDynamicallyAllocated() const
         { return memory.template Is<void *>(); }
     
     HYP_FORCE_INLINE bool HasValue() const
@@ -80,9 +80,9 @@ struct ProcFunctorInternal
 
     HYP_FORCE_INLINE void *GetPointer()
     {
-        return IsDynamic()
-            ? memory.template Get<void *>()
-            : memory.template Get<MemoryType>().GetPointer();
+        return IsDynamicallyAllocated()
+            ? memory.template GetUnchecked<void *>()
+            : memory.template GetUnchecked<MemoryType>().GetPointer();
     }
 
     HYP_FORCE_INLINE ReturnType Invoke(Args &&... args)
@@ -104,8 +104,7 @@ template <class ReturnType, class... Args>
 struct Invoker
 {
     template <class Functor>
-    static HYP_FORCE_INLINE
-    ReturnType InvokeFn(void *ptr, Args &&... args)
+    static HYP_NODISCARD ReturnType InvokeFn(void *ptr, Args &&... args)
     {
         return (*static_cast<Functor *>(ptr))(std::forward<Args>(args)...);
     }
@@ -116,8 +115,7 @@ template <class... Args>
 struct Invoker<void, Args...>
 {
     template <class Functor>
-    static HYP_FORCE_INLINE
-    void InvokeFn(void *ptr, Args &&... args)
+    static void InvokeFn(void *ptr, Args &&... args)
     {
         (*static_cast<Functor *>(ptr))(std::forward<Args>(args)...);
     }
@@ -139,16 +137,19 @@ struct Proc : detail::ProcBase
     using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
+    /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc()
         : functor { }
     {
     }
 
+    /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc(std::nullptr_t)
         : Proc()
     {
     }
 
+    /*! \brief Constructs a Proc object from a lambda or function pointer. */
     template <class Functor>
     Proc(Functor &&fn)
     {
@@ -191,15 +192,21 @@ public:
 
     ~Proc() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE explicit operator bool() const
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE explicit operator bool() const
         { return functor.HasValue(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE bool IsValid() const
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE bool IsValid() const
         { return functor.HasValue(); }
 
+    /*! \brief Invokes the Proc object with the given arguments.
+     *  \param args Arguments to pass to the underlying function or lambda.
+     *  \return The return value of the underlying function or lambda. If the return type is void, no value is returned. */
     HYP_FORCE_INLINE ReturnType operator()(Args... args) const
         { return functor.Invoke(std::forward<Args>(args)...); }
 
+    /*! \brief Resets the Proc object, releasing any resources it may hold. \ref{IsValid} will return false after calling this function. */
     HYP_FORCE_INLINE void Reset()
         { functor.Reset(); }
 

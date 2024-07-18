@@ -6,7 +6,6 @@
 #include <core/containers/HeapArray.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Range.hpp>
-#include <core/threading/Threads.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/DrawProxy.hpp>

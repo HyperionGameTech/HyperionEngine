@@ -75,7 +75,7 @@ void Game::Init_Internal()
         }
     }
 
-    m_game_thread->GetScheduler().Enqueue([this, window_size](GameCounter::TickUnit delta) -> void
+    m_game_thread->GetSchedulerInstance()->Enqueue([this, window_size](GameCounter::TickUnit delta) -> void
     {
         m_scene = CreateObject<Scene>(
             Handle<Camera>(),
@@ -209,7 +209,7 @@ void Game::PushEvent(SystemEvent &&event)
     }
 
     if (m_game_thread->IsRunning()) {
-        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)](GameCounter::TickUnit delta) mutable -> void
+        m_game_thread->GetSchedulerInstance()->Enqueue([this, event = std::move(event)](GameCounter::TickUnit delta) mutable -> void
         {
             HandleEvent(std::move(event));
         }, TaskEnqueueFlags::FIRE_AND_FORGET);

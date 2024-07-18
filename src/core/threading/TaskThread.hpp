@@ -30,10 +30,10 @@ public:
         { return m_is_running.Get(MemoryOrder::RELAXED); }
 
     HYP_FORCE_INLINE bool IsFree() const
-        { return m_num_tasks.Get(MemoryOrder::RELAXED) == 0; }
+        { return NumTasks() == 0; }
 
     HYP_FORCE_INLINE uint32 NumTasks() const
-        { return m_num_tasks.Get(MemoryOrder::RELAXED); }
+        { return m_num_tasks.Get(MemoryOrder::ACQUIRE); }
 
     /*! \brief Returns true if the task thread is waiting on a task from the specified thread. */
     bool IsWaitingOnTaskFromThread(const ThreadID &thread_id) const;

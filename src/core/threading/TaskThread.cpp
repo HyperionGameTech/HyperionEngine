@@ -30,20 +30,24 @@ bool TaskThread::IsWaitingOnTaskFromThread(const ThreadID &thread_id) const
 void TaskThread::operator()()
 {
     m_is_running.Set(true, MemoryOrder::RELAXED);
-    m_num_tasks.Set(0, MemoryOrder::RELAXED);
+    m_num_tasks.Set(m_task_queue.Size(), MemoryOrder::RELEASE);
 
     while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
-        {
-            // HYP_PROFILE_BEGIN;
-            // HYP_NAMED_SCOPE("Waiting for tasks");
+        if (m_task_queue.Empty()) {
+            if (!m_scheduler.WaitForTasks(m_task_queue)) {
+                Stop();
 
-            m_scheduler.WaitForTasks(m_task_queue);
+                break;
+            }
+        } else {
+            // append all tasks from the scheduler
+            m_scheduler.AcceptAll(m_task_queue);
         }
 
         HYP_PROFILE_BEGIN;
 
         const uint32 num_tasks = m_task_queue.Size();
-        m_num_tasks.Set(num_tasks, MemoryOrder::RELAXED);
+        m_num_tasks.Set(num_tasks, MemoryOrder::RELEASE);
 
         BeforeExecuteTasks();
 
@@ -55,9 +59,7 @@ void TaskThread::operator()()
                 m_task_queue.Pop().Execute();
             }
             
-            if (num_tasks != 0) {
-                m_num_tasks.Decrement(num_tasks, MemoryOrder::RELAXED);
-            }
+            m_num_tasks.Decrement(num_tasks, MemoryOrder::RELEASE);
         }
 
         AfterExecuteTasks();

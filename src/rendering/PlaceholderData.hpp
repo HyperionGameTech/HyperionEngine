@@ -14,7 +14,7 @@
 
 #include <math/MathUtil.hpp>
 
-#include <core/threading/Threads.hpp>
+// #include <core/threading/Threads.hpp>
 
 namespace hyperion {
 
@@ -68,7 +68,7 @@ public:
     /*! \brief Get or create a buffer of at least the given size */
     GPUBufferRef GetOrCreateBuffer(Device *device, GPUBufferType buffer_type, SizeType required_size, bool exact_size = false)
     {
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+        // Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
         if (!m_buffers.Contains(buffer_type)) {
             m_buffers.Set(buffer_type, { });

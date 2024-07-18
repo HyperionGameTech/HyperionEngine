@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <asset/Assets.hpp>
+#include <asset/AssetBatch.hpp>
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>

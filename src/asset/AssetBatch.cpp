@@ -5,6 +5,7 @@
 #include <math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

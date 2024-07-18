@@ -22,7 +22,7 @@ void RTCServerThread::operator()(RTCServer *server)
     Queue<Scheduler::ScheduledTask> tasks;
 
     while (m_is_running.Get(MemoryOrder::RELAXED)) {
-        if (auto num_enqueued = m_scheduler.NumEnqueued()) {
+        if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 
             while (tasks.Any()) {

@@ -8,6 +8,8 @@
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <core/threading/TaskSystem.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

@@ -3,7 +3,6 @@
 #ifndef HYPERION_GAUSSIAN_SPLATTING_HPP
 #define HYPERION_GAUSSIAN_SPLATTING_HPP
 
-#include <core/containers/ThreadSafeContainer.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <math/Vector3.hpp>

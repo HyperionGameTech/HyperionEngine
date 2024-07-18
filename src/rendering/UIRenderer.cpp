@@ -12,6 +12,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/threading/TaskSystem.hpp>
+
 #include <ui/UIStage.hpp>
 
 #include <util/fs/FsUtil.hpp>

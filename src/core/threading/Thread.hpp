@@ -17,6 +17,8 @@
 namespace hyperion {
 namespace threading {
 
+class SchedulerBase;
+
 using ThreadMask = uint32;
 
 enum class ThreadPriorityValue
@@ -39,48 +41,36 @@ struct ThreadID
     uint32  value;
     Name    name;
 
-    HYP_FORCE_INLINE
-    bool operator==(const ThreadID &other) const
+    HYP_FORCE_INLINE bool operator==(const ThreadID &other) const
         { return value == other.value; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const ThreadID &other) const
+    HYP_FORCE_INLINE bool operator!=(const ThreadID &other) const
         { return value != other.value; }
 
-    HYP_FORCE_INLINE
-    bool operator<(const ThreadID &other) const
+    HYP_FORCE_INLINE bool operator<(const ThreadID &other) const
         { return value < other.value; }
 
     /*! \brief Get the inverted value of this thread ID, for use as a mask.
      * This is useful for selecting all threads except the one with this ID.
      * \warning This is not valid for dynamic thread IDs. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint operator~() const
+    HYP_FORCE_INLINE uint32 operator~() const
         { return ~value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    operator uint32() const
+    HYP_FORCE_INLINE operator uint32() const
         { return value; }
     
     /*! \brief Check if this thread ID is a dynamic thread ID.
      *  \returns True if this is a dynamic thread ID, false otherwise. */
-    [[nodiscard]]
     HYP_API bool IsDynamic() const;
 
     /*! \brief Get the mask for this thread ID. For static thread IDs, this is the same as the value.
      *  For dynamic thread IDs, this is the THREAD_DYNAMIC mask.
      *  \returns The relevant mask for this thread ID. */ 
-    [[nodiscard]]
     HYP_API ThreadMask GetMask() const;
 
-    [[nodiscard]]
     HYP_API bool IsValid() const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(value);
     }
@@ -95,12 +85,12 @@ public:
     virtual ~ThreadBase() = default;
 
     /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
-    HYP_NODISCARD
     virtual const ThreadID &GetID() const = 0;
 
+    /*! \brief Get the scheduler that this thread is associated with. */
+    virtual SchedulerBase *GetScheduler() = 0;
 
     /*! \brief Get the priority of this thread. */
-    HYP_NODISCARD
     virtual ThreadPriorityValue GetPriority() const = 0;
 };
 
@@ -123,19 +113,17 @@ public:
     Thread &operator=(Thread &&other) noexcept  = delete;
     virtual ~Thread() override;
 
-    HYP_NODISCARD
     virtual const ThreadID &GetID() const override
         { return m_id; }
 
-    HYP_NODISCARD
     virtual ThreadPriorityValue GetPriority() const override
         { return m_priority; }
 
-    Scheduler &GetScheduler()
-        { return m_scheduler; }
+    virtual SchedulerBase *GetScheduler() override
+        { return &m_scheduler; }
 
-    const Scheduler &GetScheduler() const
-        { return m_scheduler; }
+    HYP_FORCE_INLINE Scheduler *GetSchedulerInstance()
+        { return &m_scheduler; }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);

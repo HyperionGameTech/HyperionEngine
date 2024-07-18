@@ -343,7 +343,7 @@ void SocketServerThread::operator()(SocketServer *server)
             server->RemoveConnection(connection->GetName());
         }
 
-        if (auto num_enqueued = m_scheduler.NumEnqueued()) {
+        if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 
             while (tasks.Any()) {

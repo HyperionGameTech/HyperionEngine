@@ -40,6 +40,8 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
+#include <asset/AssetBatch.hpp>
+#include <asset/Assets.hpp>
 
 #include <rendering/render_components/ScreenCapture.hpp>
 

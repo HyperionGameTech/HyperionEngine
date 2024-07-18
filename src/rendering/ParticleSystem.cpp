@@ -12,6 +12,8 @@
 
 #include <core/HypClassUtils.hpp>
 
+#include <core/threading/Threads.hpp>
+
 #include <core/util/ForEach.hpp>
 
 #include <math/MathUtil.hpp>

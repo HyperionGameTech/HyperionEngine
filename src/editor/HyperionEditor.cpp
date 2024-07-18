@@ -25,6 +25,8 @@
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
+#include <asset/AssetBatch.hpp>
+
 #include <ui/UIObject.hpp>
 #include <ui/UIText.hpp>
 #include <ui/UIButton.hpp>

@@ -233,11 +233,11 @@ public:
         });
     }
     
-    /*! \brief Get a scoped view of this EntitySet. The view will have its access set to read/write.
+    /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{data_access_flags}.
      *  \return A scoped view of this EntitySet.
      */
-    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView()
-        { return EntitySetView<Components...>(*this); }
+    HYP_FORCE_INLINE EntitySetView<Components...> GetScopedView(EnumFlags<DataAccessFlags> data_access_flags)
+        { return EntitySetView<Components...>(*this, data_access_flags); }
     
     /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{component_infos}.
      *  \param component_infos The ComponentInfo objects to use for the view.
@@ -270,12 +270,12 @@ struct EntitySetView
     FixedArray<DataRaceDetector *, sizeof...(Components)>                       m_component_data_race_detectors;
     ValueStorageArray<DataRaceDetector::DataAccessScope, sizeof...(Components)> m_component_data_access_scopes;
 
-    EntitySetView(EntitySet<Components...> &entity_set)
+    EntitySetView(EntitySet<Components...> &entity_set, EnumFlags<DataAccessFlags> data_access_flags)
         : entity_set(entity_set),
           m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
     {
         for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
-            m_component_data_access_scopes[i].Construct(DataAccessFlags::ACCESS_RW, *m_component_data_race_detectors[i]);
+            m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i]);
         }
     }
 

@@ -5,7 +5,6 @@
 
 #include <Constants.hpp>
 #include <core/containers/ThreadSafeContainer.hpp>
-#include <core/threading/Threads.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>

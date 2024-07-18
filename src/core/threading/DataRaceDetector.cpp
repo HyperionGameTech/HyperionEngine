@@ -47,7 +47,7 @@ DataRaceDetector::~DataRaceDetector()
 {
 }
 
-EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags)
+EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const ANSIStringView &current_function)
 {
     Threads::AssertOnThread(thread_id);
 
@@ -61,6 +61,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
         access_flags &= ~m_preallocated_states[index].access;
 
         m_preallocated_states[index].access |= access_flags;
+        m_preallocated_states[index].current_function = current_function;
     } else {
         Mutex::Guard guard(m_dynamic_states_mutex);
 
@@ -80,6 +81,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
         access_flags &= ~it->access;
 
         it->access |= access_flags;
+        it->current_function = current_function;
 
         index = (it - m_dynamic_states.Begin()) + num_preallocated_states;
     }
@@ -97,13 +99,13 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     uint64 mask;
 
     if (((mask = m_writers.Get(MemoryOrder::ACQUIRE)) & ~test_mask) != 0) {
-        LogDataRace();
+        LogDataRace(0ull, mask);
         HYP_FAIL("Potential data race detected: Attempt to acquire access while other thread is writing. Write mask: %llu", mask);
     }
 
     if (access_flags & DataAccessFlags::ACCESS_WRITE) {
         if (((mask = m_readers.Get(MemoryOrder::ACQUIRE)) & ~test_mask) != 0) {
-            LogDataRace();
+            LogDataRace(mask, 0ull);
             HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread(s) are reading. Read mask: %llu", mask);
         }
 
@@ -171,11 +173,11 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
     }
 }
 
-void DataRaceDetector::LogDataRace() const
+void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) const
 {
-    Array<ThreadID> reader_thread_ids;
-    Array<ThreadID> writer_thread_ids;
-    GetThreadIDs(reader_thread_ids, writer_thread_ids);
+    Array<Pair<ThreadID, ANSIStringView>> reader_thread_ids;
+    Array<Pair<ThreadID, ANSIStringView>> writer_thread_ids;
+    GetThreadIDs(readers_mask, writers_mask, reader_thread_ids, writer_thread_ids);
 
     String reader_threads_string = "<None>";
 
@@ -184,9 +186,9 @@ void DataRaceDetector::LogDataRace() const
 
         for (SizeType i = 0; i < reader_thread_ids.Size(); i++) {
             if (i == 0) {
-                reader_threads_string = HYP_FORMAT("{}", reader_thread_ids[i].name);
+                reader_threads_string = HYP_FORMAT("{} (at: {})", reader_thread_ids[i].first.name, reader_thread_ids[i].second);
             } else {
-                reader_threads_string = HYP_FORMAT("{}, {}", reader_threads_string, reader_thread_ids[i].name);
+                reader_threads_string = HYP_FORMAT("{}, {} (at: {})", reader_threads_string, reader_thread_ids[i].first.name, reader_thread_ids[i].second);
             }
         }
     }
@@ -198,9 +200,9 @@ void DataRaceDetector::LogDataRace() const
 
         for (SizeType i = 0; i < writer_thread_ids.Size(); i++) {
             if (i == 0) {
-                writer_threads_string = HYP_FORMAT("{}", writer_thread_ids[i].name);
+                writer_threads_string = HYP_FORMAT("{} (at: {})", writer_thread_ids[i].first.name, writer_thread_ids[i].second);
             } else {
-                writer_threads_string = HYP_FORMAT("{}, {}", writer_threads_string, writer_thread_ids[i].name);
+                writer_threads_string = HYP_FORMAT("{}, {} (at: {})", writer_threads_string, writer_thread_ids[i].first.name, writer_thread_ids[i].second);
             }
         }
     }
@@ -211,33 +213,33 @@ void DataRaceDetector::LogDataRace() const
         reader_threads_string);
 }
 
-void DataRaceDetector::GetThreadIDs(Array<ThreadID> &out_reader_thread_ids, Array<ThreadID> &out_writer_thread_ids) const
+void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, ANSIStringView>> &out_reader_thread_ids, Array<Pair<ThreadID, ANSIStringView>> &out_writer_thread_ids) const
 {
     Mutex::Guard guard(m_dynamic_states_mutex);
 
-    for (Bitset::BitIndex bit_index : Bitset(m_readers.Get(MemoryOrder::ACQUIRE))) {
+    for (Bitset::BitIndex bit_index : Bitset(readers_mask)) {
         if (bit_index >= num_preallocated_states) {
             const uint32 dynamic_state_index = bit_index - num_preallocated_states;
             AssertThrowMsg(dynamic_state_index < m_dynamic_states.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamic_state_index, m_dynamic_states.Size());
 
-            out_reader_thread_ids.PushBack(m_dynamic_states[dynamic_state_index].thread_id);
+            out_reader_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].current_function);
         } else {
             AssertThrow(bit_index < m_preallocated_states.Size());
 
-            out_reader_thread_ids.PushBack(m_preallocated_states[bit_index].thread_id);
+            out_reader_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].current_function);
         }
     }
 
-    for (Bitset::BitIndex bit_index : Bitset(m_writers.Get(MemoryOrder::ACQUIRE))) {
+    for (Bitset::BitIndex bit_index : Bitset(writers_mask)) {
         if (bit_index >= num_preallocated_states) {
             const uint32 dynamic_state_index = bit_index - num_preallocated_states;
             AssertThrowMsg(dynamic_state_index < m_dynamic_states.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamic_state_index, m_dynamic_states.Size());
 
-            out_writer_thread_ids.PushBack(m_dynamic_states[dynamic_state_index].thread_id);
+            out_writer_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].current_function);
         } else {
             AssertThrow(bit_index < m_preallocated_states.Size());
 
-            out_writer_thread_ids.PushBack(m_preallocated_states[bit_index].thread_id);
+            out_writer_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].current_function);
         }
     }
 }

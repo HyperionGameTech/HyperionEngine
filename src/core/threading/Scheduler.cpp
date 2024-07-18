@@ -30,7 +30,7 @@ bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex> &lock)
                 return true;
             }
 
-            return m_num_enqueued.Get(MemoryOrder::RELAXED) != 0;
+            return m_num_enqueued.Get(MemoryOrder::ACQUIRE) != 0;
         }
     );
 

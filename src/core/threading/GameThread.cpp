@@ -59,7 +59,7 @@ void GameThread::operator()(Game *game)
 
         g_asset_manager->Update(counter.delta);
 
-        if (auto num_enqueued = m_scheduler.NumEnqueued()) {
+        if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 
             while (tasks.Any()) {

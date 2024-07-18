@@ -5,6 +5,8 @@
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/Task.hpp>
+#include <core/threading/TaskSystem.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/utilities/Format.hpp>

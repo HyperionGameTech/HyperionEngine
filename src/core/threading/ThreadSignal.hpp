@@ -3,7 +3,6 @@
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Thread.hpp>
-#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 namespace threading {

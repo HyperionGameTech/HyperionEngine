@@ -1,8 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/containers/Array.hpp>
-#include <core/threading/Threads.hpp>
+
 #include <core/utilities/UniqueID.hpp>
+
+#include <core/threading/Threads.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

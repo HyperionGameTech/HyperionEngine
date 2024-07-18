@@ -101,43 +101,54 @@ void TaskSystem::Stop()
 
 TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 {
-    AssertThrowMsg(
-        IsRunning(),
-        "TaskSystem::Start() must be called before enqueuing tasks"
-    );
-
+    AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
     AssertThrow(batch != nullptr);
 
-    batch->num_completed.Set(0, MemoryOrder::RELAXED);
-    batch->num_enqueued = 0;
-    batch->task_refs.Resize(batch->executors.Size());
+    // sanity check
+    AssertThrow(!batch->IsCompleted());
 
-    const ThreadID &current_thread_id = Threads::CurrentThreadID();
+    HYP_MT_CHECK_READ(batch->data_race_detector);
+
+    batch->num_completed.Set(0, MemoryOrder::RELEASE);
+
+    TaskBatch *next_batch = batch->next_batch;
+
+    if (batch->num_enqueued == 0) {
+        // enqueue next batch immediately if it exists and no tasks are added to this batch
+        if (next_batch != nullptr) {
+            EnqueueBatch(next_batch);
+        }
+
+        return batch;
+    }
 
     TaskThreadPool &pool = GetPool(batch->pool);
 
-    int task_index = 0;
+    HYP_MT_CHECK_RW(batch->data_race_detector);
 
-    for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it, ++task_index) {
-        TaskExecutor<> &executor = *it;
+    for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it) {
+        TaskExecutor<> *executor = it->Get();
+        AssertThrow(executor != nullptr);
 
         TaskThread *task_thread = GetNextTaskThread(pool);
         AssertThrow(task_thread != nullptr);
 
-        const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(
-            &executor,
+        const TaskID task_id = task_thread->GetSchedulerInstance()->EnqueueTaskExecutor(
+            executor,
             &batch->num_completed,
-            batch->next_batch != nullptr
-                ? [batch]() { if (batch->IsCompleted()) TaskSystem::GetInstance().EnqueueBatch(batch->next_batch); }
+            next_batch != nullptr
+                ? [task_system_instance = this, next_batch, num_enqueued = batch->num_enqueued](uint32 counter_value)
+                {
+                    // check if batch will be completed after this callback
+                    // note: `batch` may be deleted after this increment as other threads will be waiting on it to equal `batch->num_enqueued`
+                    if (counter_value == num_enqueued) {
+                        task_system_instance->EnqueueBatch(next_batch);
+                    }
+                }
                 : OnTaskCompletedCallback()
         );
 
-        ++batch->num_enqueued;
-
-        batch->task_refs[task_index] = TaskRef {
-            task_id,
-            &task_thread->GetScheduler()
-        };
+        batch->task_refs.EmplaceBack(task_id, task_thread->GetScheduler());
     }
 
     return batch;

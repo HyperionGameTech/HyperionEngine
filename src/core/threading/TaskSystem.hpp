@@ -7,8 +7,13 @@
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/LinkedList.hpp>
+
+#include <core/functional/Proc.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/system/Debug.hpp>
@@ -16,6 +21,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -29,16 +35,18 @@ HYP_DECLARE_LOG_CHANNEL(Tasks);
 
 namespace threading {    
 
-enum TaskThreadPoolName : uint
+enum TaskThreadPoolName : uint32
 {
     THREAD_POOL_GENERIC,
     THREAD_POOL_RENDER,
     THREAD_POOL_MAX
 };
 
+using OnTaskBatchCompletedCallback = Proc<void>;
+
 struct TaskBatch
 {
-    AtomicVar<uint32>                       num_completed;
+    AtomicVar<uint32>                       num_completed { 0 };
     uint32                                  num_enqueued = 0;
 
     /*! \brief The priority / pool lane for which to place
@@ -48,7 +56,7 @@ struct TaskBatch
 
     /* Number of tasks must remain constant from creation of the TaskBatch,
      * to completion. */
-    LinkedList<TaskExecutorInstance<void>>  executors;
+    Array<UniquePtr<TaskExecutorInstance<void>>>  executors;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
      * each task has been scheduled to. */
@@ -59,30 +67,30 @@ struct TaskBatch
      *  proper cleanup must be done by the user. */
     TaskBatch                               *next_batch = nullptr;
 
-    /*! \brief Add a task to be ran with this batch */
-    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
-        { executors.PushBack(std::move(executor)); }
+    DataRaceDetector                        data_race_detector;
 
-    /*! \brief Check if all tasks in the batch have been completed.
-     *  \param include_dependent_batches If true, the next_batch will also be checked. */
-    HYP_FORCE_INLINE bool IsCompleted(bool include_dependent_batches = false) const
+    /*! \brief Add a task to be ran with this batch
+     *  \note Do not call this function after the TaskBatch has been enqueued (before it has been completed). */
+    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
     {
-        return (num_completed.Get(MemoryOrder::RELAXED) >= num_enqueued)
-            && (!include_dependent_batches || !next_batch || next_batch->IsCompleted(include_dependent_batches));
+        HYP_MT_CHECK_RW(data_race_detector);
+
+        executors.PushBack(UniquePtr<TaskExecutorInstance<void>>(new TaskExecutorInstance<void>(std::move(executor)))); 
+
+        ++num_enqueued;
     }
 
-    /*! \brief Block the current thread until all tasks have been marked as completed.
-     *  \param await_dependent_batches If true, the next_batch will also be awaited. */
-    HYP_FORCE_INLINE void AwaitCompletion(bool await_dependent_batches = false)
+    /*! \brief Check if all tasks in the batch have been completed. */
+    HYP_FORCE_INLINE bool IsCompleted() const
+    {
+        return num_completed.Get(MemoryOrder::SEQUENTIAL) == num_enqueued;
+    }
+
+    /*! \brief Block the current thread until all tasks have been marked as completed. */
+    HYP_FORCE_INLINE void AwaitCompletion()
     {
         while (!IsCompleted()) {
             HYP_WAIT_IDLE();
-        }
-
-        executors.Clear();
-
-        if (await_dependent_batches && next_batch != nullptr) {
-            next_batch->AwaitCompletion(await_dependent_batches);
         }
     }
 
@@ -90,21 +98,26 @@ struct TaskBatch
      *  \param execute_dependent_batches If true, the next_batch will also be executed. */
     void ExecuteBlocking(bool execute_dependent_batches = false)
     {
-        for (TaskThread::Scheduler::TaskExecutorType &executor : executors) {
-            executor.Execute();
-        }
+        HYP_MT_CHECK_RW(data_race_detector);
 
-        executors.Clear();
+        for (auto &executor : executors) {
+            executor->Execute();
+        }
 
         if (execute_dependent_batches && next_batch != nullptr) {
             next_batch->ExecuteBlocking(execute_dependent_batches);
         }
+
+        executors.Clear();
+        // num_enqueued = 0;
     }
 
     void ResetState()
     {
+        HYP_MT_CHECK_RW(data_race_detector);
+
         AssertThrowMsg(
-            IsCompleted(false),
+            IsCompleted(),
             "TaskBatch::ResetState() must be called after all tasks have been completed"
         );
 
@@ -159,11 +172,15 @@ public:
 
         TaskThread *task_thread = GetNextTaskThread(pool);
 
-        return task_thread->GetScheduler().Enqueue(std::forward<Lambda>(fn), flags);
+        return task_thread->GetSchedulerInstance()->Enqueue(std::forward<Lambda>(fn), flags);
     }
 
     /*! \brief Enqueue a batch of multiple Tasks. Each task will be enqueued to run in parallel.
-     * You will need to call AwaitCompletion() before the underlying TaskBatch is destroyed.
+     *  You will need to call AwaitCompletion() before the underlying TaskBatch is destroyed.
+     *  If enqueuing a batch with dependent tasks via \ref{TaskBatch::next_batch}, ensure all tasks are added to the next batch (and any proceding next batches in the chain)
+     *  before calling this.
+     *  \param batch Pointer to the TaskBatch to enqueue
+     *  \param callback Optional callback to be called when all tasks in the batch have finished executing.
      */
     HYP_API TaskBatch *EnqueueBatch(TaskBatch *batch);
 

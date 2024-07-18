@@ -22,8 +22,6 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/functional/Delegate.hpp>
 

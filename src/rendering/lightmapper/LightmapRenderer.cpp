@@ -7,6 +7,8 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 
+#include <core/threading/TaskSystem.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -544,7 +546,7 @@ void LightmapRenderer::Init()
         HashMap<ID<Mesh>, Array<Triangle>> triangle_cache;
         uint num_triangles = 0;
 
-        for (auto [entity, mesh_component, transform_component] : mgr.GetEntitySet<MeshComponent, TransformComponent>().GetScopedView()) {
+        for (auto [entity, mesh_component, transform_component] : mgr.GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
             if (!mesh_component.mesh.IsValid()) {
                 HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with invalid mesh on MeshComponent");
 

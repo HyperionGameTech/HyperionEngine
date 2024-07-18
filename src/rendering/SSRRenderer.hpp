@@ -3,7 +3,6 @@
 #ifndef HYPERION_SCREENSPACE_REFLECTION_RENDERER_HPP
 #define HYPERION_SCREENSPACE_REFLECTION_RENDERER_HPP
 
-
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/FullScreenPass.hpp>
 

@@ -3,7 +3,6 @@
 #ifndef HYPERION_RENDER_STATE_HPP
 #define HYPERION_RENDER_STATE_HPP
 
-#include <core/containers/FlatSet.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/containers/Stack.hpp>

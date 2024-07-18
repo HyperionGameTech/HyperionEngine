@@ -4,9 +4,14 @@
 #define HYPERION_FBOM_DATA_HPP
 
 #include <core/Name.hpp>
+
 #include <core/containers/String.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Optional.hpp>
+
 #include <core/memory/ByteBuffer.hpp>
+
 #include <core/system/Debug.hpp>
 
 #include <asset/serialization/fbom/FBOMResult.hpp>

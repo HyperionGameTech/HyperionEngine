@@ -11,6 +11,8 @@
 #include <core/threading/Mutex.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Pair.hpp>
+#include <core/utilities/StringView.hpp>
 
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/Array.hpp>
@@ -57,6 +59,13 @@ public:
             m_flags = m_detector.AddAccess(m_thread_id, flags);
         }
 
+        DataAccessScope(EnumFlags<DataAccessFlags> flags, const DataRaceDetector &detector, const ANSIStringView &current_function)
+            : m_detector(const_cast<DataRaceDetector &>(detector)),
+              m_thread_id(ThreadID::Current())
+        {
+            m_flags = m_detector.AddAccess(m_thread_id, flags, current_function);
+        }
+
         ~DataAccessScope()
         {
             m_detector.RemoveAccess(m_thread_id, m_flags);
@@ -75,17 +84,18 @@ public:
     DataRaceDetector &operator=(DataRaceDetector &&other)       = delete;
     ~DataRaceDetector();
 
-    EnumFlags<DataAccessFlags> AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags);
+    EnumFlags<DataAccessFlags> AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const ANSIStringView &current_function = "<null>");
     void RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags);
 
 private:
-    void LogDataRace() const;
-    void GetThreadIDs(Array<ThreadID> &out_reader_thread_ids, Array<ThreadID> &out_writer_thread_ids) const;
+    void LogDataRace(uint64 readers_mask, uint64 writers_mask) const;
+    void GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, ANSIStringView>> &out_reader_thread_ids, Array<Pair<ThreadID, ANSIStringView>> &out_writer_thread_ids) const;
 
     struct ThreadAccessState
     {
         ThreadID                    thread_id = ThreadID::Invalid();
         EnumFlags<DataAccessFlags>  access = DataAccessFlags::ACCESS_NONE;
+        ANSIStringView              current_function;
     };
 
     FixedArray<ThreadAccessState, num_preallocated_states>  m_preallocated_states;
@@ -108,9 +118,9 @@ class DataRaceDetector { };
 using threading::DataRaceDetector;
 
 #ifdef HYP_ENABLE_MT_CHECK
-    #define HYP_MT_CHECK_READ(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_READ, (_data_race_detector))
-    #define HYP_MT_CHECK_WRITE(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_WRITE, (_data_race_detector))
-    #define HYP_MT_CHECK_RW(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_RW, (_data_race_detector))
+    #define HYP_MT_CHECK_READ(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_READ, (_data_race_detector), HYP_FUNCTION_NAME_LIT)
+    #define HYP_MT_CHECK_WRITE(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_WRITE, (_data_race_detector), HYP_FUNCTION_NAME_LIT)
+    #define HYP_MT_CHECK_RW(_data_race_detector) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_RW, (_data_race_detector), HYP_FUNCTION_NAME_LIT)
 #else
     #define HYP_MT_CHECK_READ(_data_race_detector)
     #define HYP_MT_CHECK_WRITE(_data_race_detector)

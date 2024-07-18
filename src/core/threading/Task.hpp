@@ -26,6 +26,7 @@ namespace threading {
 
 class TaskThread;
 class SchedulerBase;
+struct TaskBatch;
 
 struct TaskID
 {
@@ -333,7 +334,7 @@ struct TaskRef
         { return id.IsValid() && assigned_scheduler != nullptr; }
 };
 
-using OnTaskCompletedCallback = Proc<void>;
+using OnTaskCompletedCallback = Proc<void, /* counter_value */uint32>;
 
 class TaskBase
 {

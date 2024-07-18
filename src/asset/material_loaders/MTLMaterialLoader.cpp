@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/material_loaders/MTLMaterialLoader.hpp>
+#include <asset/AssetBatch.hpp>
 
 #include <core/logging/Logger.hpp>
 

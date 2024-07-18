@@ -229,7 +229,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
     RayTestResults ray_test_results;
 
-    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView()) {
+    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!ui_component.ui_object) {
             continue;
         }

@@ -4,15 +4,18 @@
 #define HYPERION_CONFIG_HPP
 
 #include <core/utilities/Variant.hpp>
+
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
-#include <core/logging/LoggerFwd.hpp>
-#include <core/Defines.hpp>
-#include <util/ini/INIFile.hpp>
-#include <Types.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <core/logging/LoggerFwd.hpp>
+
+#include <core/Defines.hpp>
+
+#include <util/ini/INIFile.hpp>
+
+#include <Types.hpp>
 
 namespace hyperion {
 

@@ -5,10 +5,13 @@
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
+#include <core/threading/Threads.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <scene/Scene.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

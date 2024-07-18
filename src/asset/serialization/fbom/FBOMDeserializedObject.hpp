@@ -12,7 +12,6 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/ID.hpp>
 
-#include <asset/AssetBatch.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/SerializationWrapper.hpp>
 

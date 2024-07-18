@@ -4,7 +4,6 @@
 #define HYPERION_POST_FX_HPP
 
 #include <core/containers/TypeMap.hpp>
-#include <core/containers/ThreadSafeContainer.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <rendering/Shader.hpp>

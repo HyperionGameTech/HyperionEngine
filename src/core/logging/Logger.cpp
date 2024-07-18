@@ -1,8 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <core/logging/Logger.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
 #include <core/threading/Thread.hpp>
 
 #include <core/containers/HashMap.hpp>

@@ -48,12 +48,12 @@ struct Formatter< StringType, float >
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(10);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value);
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
 
         if (result_size > byte_buffer.Size()) {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value);
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -97,6 +97,32 @@ struct Formatter< StringType, utilities::StringView< OtherStringType > >
         return StringType(value.Data());
     }
 };
+namespace detail {
+template <class StringType, class T, auto FormatString>
+struct PrintfFormatter
+{
+    auto operator()(T value) const
+    {
+        memory::ByteBuffer byte_buffer;
+        byte_buffer.SetSize(FormatString.Size());
+
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
+
+        if (result_size > byte_buffer.Size()) {
+            byte_buffer.SetSize(result_size);
+
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
+        }
+
+        return StringType(byte_buffer.ToByteView());
+    }
+};
+} // namespace detail
+
+template <class StringType>
+struct Formatter<StringType, void *> : detail::PrintfFormatter<StringType, const void *, StaticString("%p")>
+{
+};
 
 template <class StringType>
 struct Formatter<StringType, char *>
@@ -128,8 +154,7 @@ struct Formatter<StringType, wchar_t *>
 template <class StringType, class T>
 struct Formatter< StringType, math::detail::Vec2< T > >
 {
-    HYP_FORCE_INLINE
-    static const char *GetFormatString()
+    HYP_FORCE_INLINE static const char *GetFormatString()
     {
         if constexpr (std::is_floating_point_v< T >) {
             static const char *format_string = "[%f %f]";
@@ -161,12 +186,12 @@ struct Formatter< StringType, math::detail::Vec2< T > >
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(32);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y);
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
 
         if (result_size > byte_buffer.Size()) {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y);
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -209,12 +234,12 @@ struct Formatter< StringType, math::detail::Vec3< T > >
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(48);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z);
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
 
         if (result_size > byte_buffer.Size()) {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z);
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -257,12 +282,12 @@ struct Formatter< StringType, math::detail::Vec4< T > >
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(64);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w);
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
 
         if (result_size > byte_buffer.Size()) {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w);
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -277,12 +302,12 @@ struct Formatter< StringType, Quaternion >
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(64);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w);
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
 
         if (result_size > byte_buffer.Size()) {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w);
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
