@@ -131,7 +131,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 "\tFramebuffer: {}\n"
                 "\tCull Mode: {}\n"
                 "\tFlags: {}\n"
-                "\tDrawable layer: {}\n",
+                "\tDrawable layer: {}",
                 attributes.GetMeshAttributes().vertex_attributes.flag_mask,
                 uint32(attributes.GetMaterialAttributes().bucket),
                 attributes.GetShaderDefinition().GetName(),

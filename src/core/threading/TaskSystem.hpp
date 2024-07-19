@@ -22,12 +22,15 @@
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/DataRaceDetector.hpp>
+#include <core/threading/Semaphore.hpp>
 
 #include <math/MathUtil.hpp>
 
 #include <Types.hpp>
 
 #include <atomic>
+
+// #define HYP_TASK_BATCH_DATA_RACE_DETECTION
 
 namespace hyperion {
 
@@ -46,7 +49,7 @@ using OnTaskBatchCompletedCallback = Proc<void>;
 
 struct TaskBatch
 {
-    AtomicVar<uint32>                       num_completed { 0 };
+    SchedulerBase::SemaphoreType            semaphore;
     uint32                                  num_enqueued = 0;
 
     /*! \brief The priority / pool lane for which to place
@@ -56,7 +59,7 @@ struct TaskBatch
 
     /* Number of tasks must remain constant from creation of the TaskBatch,
      * to completion. */
-    Array<UniquePtr<TaskExecutorInstance<void>>>  executors;
+    Array<TaskExecutorInstance<void>>       executors;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
      * each task has been scheduled to. */
@@ -67,61 +70,72 @@ struct TaskBatch
      *  proper cleanup must be done by the user. */
     TaskBatch                               *next_batch = nullptr;
 
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     DataRaceDetector                        data_race_detector;
+#endif
 
     /*! \brief Add a task to be ran with this batch
      *  \note Do not call this function after the TaskBatch has been enqueued (before it has been completed). */
     HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
     {
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
         HYP_MT_CHECK_RW(data_race_detector);
+#endif
 
-        executors.PushBack(UniquePtr<TaskExecutorInstance<void>>(new TaskExecutorInstance<void>(std::move(executor)))); 
+        executors.PushBack(std::move(executor)); 
 
         ++num_enqueued;
+        // temp
+        semaphore.Produce(1);
     }
 
     /*! \brief Check if all tasks in the batch have been completed. */
     HYP_FORCE_INLINE bool IsCompleted() const
-    {
-        return num_completed.Get(MemoryOrder::SEQUENTIAL) == num_enqueued;
-    }
+        { return semaphore.IsInSignalState(); }
+        // { return num_completed.Get(MemoryOrder::RELAXED) == num_enqueued; }
 
     /*! \brief Block the current thread until all tasks have been marked as completed. */
     HYP_FORCE_INLINE void AwaitCompletion()
     {
-        while (!IsCompleted()) {
-            HYP_WAIT_IDLE();
-        }
+        // while (!IsCompleted()) {
+        //     HYP_WAIT_IDLE();
+        // }
+
+        semaphore.Acquire();
     }
 
     /*! \brief Execute each non-enqueued task in serial (not async).
      *  \param execute_dependent_batches If true, the next_batch will also be executed. */
     void ExecuteBlocking(bool execute_dependent_batches = false)
     {
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
         HYP_MT_CHECK_RW(data_race_detector);
+#endif
 
-        for (auto &executor : executors) {
-            executor->Execute();
+        for (TaskExecutor<> &executor : executors) {
+            executor.Execute();
         }
 
         if (execute_dependent_batches && next_batch != nullptr) {
             next_batch->ExecuteBlocking(execute_dependent_batches);
         }
-
-        executors.Clear();
-        // num_enqueued = 0;
     }
 
     void ResetState()
     {
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
         HYP_MT_CHECK_RW(data_race_detector);
+#endif
 
         AssertThrowMsg(
             IsCompleted(),
             "TaskBatch::ResetState() must be called after all tasks have been completed"
         );
 
-        num_completed.Set(0, MemoryOrder::RELEASE);
+        // semaphore.SetValue(0);
+
+        // num_completed.Set(0, MemoryOrder::SEQUENTIAL);
+        semaphore.SetValue(0);
         num_enqueued = 0;
         executors.Clear();
         task_refs.Clear();
@@ -221,13 +235,13 @@ public:
             });
         }
 
-        if (batch.executors.Size() > 1) {
+        // if (batch.executors.Size() > 1) {
             EnqueueBatch(&batch);
             batch.AwaitCompletion();
-        } else if (batch.executors.Size() == 1) {
-            // no point in enqueing for just 1 task, execute immediately
-            batch.ExecuteBlocking();
-        }
+        // } else if (batch.executors.Size() == 1) {
+        //     // no point in enqueing for just 1 task, execute immediately
+        //     batch.ExecuteBlocking();
+        // }
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.

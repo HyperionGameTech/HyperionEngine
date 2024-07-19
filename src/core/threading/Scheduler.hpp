@@ -6,6 +6,7 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/functional/Proc.hpp>
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Semaphore.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/threading/Thread.hpp>
@@ -27,6 +28,8 @@ namespace threading {
 class HYP_API SchedulerBase
 {
 public:
+    using SemaphoreType = Semaphore<int32, detail::ConditionVarSemaphoreImpl<int32>>;
+
     SchedulerBase()                                             = delete;
     SchedulerBase(const SchedulerBase &other)                   = delete;
     SchedulerBase &operator=(const SchedulerBase &other)        = delete;
@@ -85,7 +88,7 @@ public:
         bool                        owns_executor = false;
 
         // Atomic counter to increment when the task is completed (used for batch tasks)
-        AtomicVar<uint>             *atomic_counter = nullptr;
+        SemaphoreType               *semaphore = nullptr;
 
         // Condition variable to notify when the task has been executed (owned by the scheduler)
         std::condition_variable     *task_executed = nullptr;
@@ -101,13 +104,13 @@ public:
         ScheduledTask(ScheduledTask &&other) noexcept
             : executor(other.executor),
               owns_executor(other.owns_executor),
-              atomic_counter(other.atomic_counter),
+              semaphore(other.semaphore),
               task_executed(other.task_executed),
               callback(std::move(other.callback))
         {
             other.executor = nullptr;
             other.owns_executor = false;
-            other.atomic_counter = nullptr;
+            other.semaphore = nullptr;
             other.task_executed = nullptr;
         }
 
@@ -123,13 +126,13 @@ public:
 
             executor = other.executor;
             owns_executor = other.owns_executor;
-            atomic_counter = other.atomic_counter;
+            semaphore = other.semaphore;
             task_executed = other.task_executed;
             callback = std::move(other.callback);
 
             other.executor = nullptr;
             other.owns_executor = false;
-            other.atomic_counter = nullptr;
+            other.semaphore = nullptr;
             other.task_executed = nullptr;
 
             return *this;
@@ -147,10 +150,10 @@ public:
         {
             lambda(*executor);
 
-            uint32 counter_value = 1;
+            int counter_value = 0;
 
-            if (atomic_counter != nullptr) {
-                counter_value = atomic_counter->Increment(1, MemoryOrder::SEQUENTIAL) + 1;
+            if (semaphore != nullptr) {
+                counter_value = semaphore->Release(1);
             }
 
             if (callback.IsValid()) {
@@ -165,10 +168,10 @@ public:
         {
             executor->Execute(std::forward<Args>(args)...);
 
-            uint32 counter_value = 1;
+            int counter_value = 0;
 
-            if (atomic_counter != nullptr) {
-                counter_value = atomic_counter->Increment(1, MemoryOrder::SEQUENTIAL) + 1;
+            if (semaphore != nullptr) {
+                counter_value = semaphore->Release(1);
             }
 
             if (callback.IsValid()) {
@@ -235,14 +238,14 @@ public:
      *  \param executor_ptr The TaskExecutor to execute (owned by the caller)
      *  \param atomic_counter A pointer to an atomic uint variable that is incremented upon completion.
      *  \param callback A callback to be executed after the task is completed. */
-    TaskID EnqueueTaskExecutor(TaskExecutorType *executor_ptr, AtomicVar<uint> *atomic_counter, OnTaskCompletedCallback &&callback = nullptr)
+    TaskID EnqueueTaskExecutor(TaskExecutorType *executor_ptr, SemaphoreType *semaphore, OnTaskCompletedCallback &&callback = nullptr)
     {
         std::unique_lock lock(m_mutex);
 
         ScheduledTask scheduled_task;
         scheduled_task.executor = executor_ptr;
         scheduled_task.owns_executor = false;
-        scheduled_task.atomic_counter = atomic_counter;
+        scheduled_task.semaphore = semaphore;
         scheduled_task.task_executed = &m_task_executed;
         scheduled_task.callback = std::move(callback);
 

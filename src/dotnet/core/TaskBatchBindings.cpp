@@ -27,12 +27,12 @@ HYP_EXPORT bool TaskBatch_IsCompleted(const TaskBatch *task_batch)
     return task_batch->IsCompleted();
 }
 
-HYP_EXPORT uint32 TaskBatch_NumCompleted(const TaskBatch *task_batch)
+HYP_EXPORT int32 TaskBatch_NumCompleted(const TaskBatch *task_batch)
 {
-    return task_batch->num_completed.Get(MemoryOrder::ACQUIRE);
+    return task_batch->semaphore.GetValue();
 }
 
-HYP_EXPORT uint32 TaskBatch_NumEnqueued(const TaskBatch *task_batch)
+HYP_EXPORT int32 TaskBatch_NumEnqueued(const TaskBatch *task_batch)
 {
     return task_batch->num_enqueued;
 }

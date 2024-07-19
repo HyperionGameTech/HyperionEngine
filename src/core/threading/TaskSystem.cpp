@@ -104,12 +104,12 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
     AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
     AssertThrow(batch != nullptr);
 
-    // sanity check
-    AssertThrow(!batch->IsCompleted());
-
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     HYP_MT_CHECK_READ(batch->data_race_detector);
+#endif
 
-    batch->num_completed.Set(0, MemoryOrder::RELEASE);
+    // batch->num_completed.Set(0, MemoryOrder::SEQUENTIAL);
+    batch->semaphore.SetValue(batch->num_enqueued);
 
     TaskBatch *next_batch = batch->next_batch;
 
@@ -124,10 +124,12 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
     TaskThreadPool &pool = GetPool(batch->pool);
 
+#ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     HYP_MT_CHECK_RW(batch->data_race_detector);
+#endif
 
     for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it) {
-        TaskExecutor<> *executor = it->Get();
+        TaskExecutor<> *executor = it;
         AssertThrow(executor != nullptr);
 
         TaskThread *task_thread = GetNextTaskThread(pool);
@@ -135,16 +137,15 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
         const TaskID task_id = task_thread->GetSchedulerInstance()->EnqueueTaskExecutor(
             executor,
-            &batch->num_completed,
+            &batch->semaphore,
             next_batch != nullptr
-                ? [task_system_instance = this, next_batch, num_enqueued = batch->num_enqueued](uint32 counter_value)
-                {
-                    // check if batch will be completed after this callback
-                    // note: `batch` may be deleted after this increment as other threads will be waiting on it to equal `batch->num_enqueued`
-                    if (counter_value == num_enqueued) {
-                        task_system_instance->EnqueueBatch(next_batch);
-                    }
-                }
+                ? [task_system_instance = this, next_batch, num_enqueued = batch->num_enqueued](int counter_value)
+                  {
+                      if (counter_value == 0)
+                      {
+                          task_system_instance->EnqueueBatch(next_batch);
+                      }
+                  }
                 : OnTaskCompletedCallback()
         );
 
@@ -156,10 +157,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
 Array<bool> TaskSystem::DequeueBatch(TaskBatch *batch)
 {
-    AssertThrowMsg(
-        IsRunning(),
-        "TaskSystem::Start() must be called before dequeuing tasks"
-    );
+    AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before dequeuing tasks");
 
     AssertThrow(batch != nullptr);
 
@@ -192,7 +190,7 @@ TaskThread *TaskSystem::GetNextTaskThread(TaskThreadPool &pool)
 
     uint32 cycle = pool.cycle.Get(MemoryOrder::RELAXED) % num_threads_in_pool;
 
-    uint num_spins = 0;
+    uint32 num_spins = 0;
     
     // if we are currently on a task thread we need to move to the next task thread in the pool
     // if we selected the current task thread. otherwise we will have a deadlock.

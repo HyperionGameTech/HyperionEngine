@@ -388,7 +388,7 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-#if 1
+#if 0
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 

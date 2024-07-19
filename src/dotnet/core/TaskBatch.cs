@@ -42,7 +42,7 @@ namespace Hyperion
             }
         }
 
-        public uint NumCompleted
+        public int NumCompleted
         {
             get
             {
@@ -50,7 +50,7 @@ namespace Hyperion
             }
         }
 
-        public uint NumEnqueued
+        public int NumEnqueued
         {
             get
             {
@@ -94,10 +94,10 @@ namespace Hyperion
         private static extern bool TaskBatch_IsCompleted(IntPtr taskBatchPtr);
 
         [DllImport("hyperion", EntryPoint = "TaskBatch_NumCompleted")]
-        private static extern uint TaskBatch_NumCompleted(IntPtr taskBatchPtr);
+        private static extern int TaskBatch_NumCompleted(IntPtr taskBatchPtr);
 
         [DllImport("hyperion", EntryPoint = "TaskBatch_NumEnqueued")]
-        private static extern uint TaskBatch_NumEnqueued(IntPtr taskBatchPtr);
+        private static extern int TaskBatch_NumEnqueued(IntPtr taskBatchPtr);
 
         [DllImport("hyperion", EntryPoint = "TaskBatch_AddTask")]
         private static extern void TaskBatch_AddTask(IntPtr taskBatchPtr, TaskDelegate fn);

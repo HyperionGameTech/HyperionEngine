@@ -236,7 +236,7 @@ private:
 
 /*! \brief Specialization for void return type. */
 template <class... ArgTypes>
-class TaskExecutorInstance<void, ArgTypes...> : public TaskExecutor<ArgTypes...>
+class TaskExecutorInstance<void, ArgTypes...> final : public TaskExecutor<ArgTypes...>
 {
     using Function = Proc<void, ArgTypes...>;
 
@@ -284,7 +284,6 @@ private:
 
 template <class ReturnType, class... Args>
 class Task;
-
 struct TaskRef
 {
     TaskID          id = { };
@@ -334,7 +333,7 @@ struct TaskRef
         { return id.IsValid() && assigned_scheduler != nullptr; }
 };
 
-using OnTaskCompletedCallback = Proc<void, /* counter_value */uint32>;
+using OnTaskCompletedCallback = Proc<void, /* counter_value */int>;
 
 class TaskBase
 {
