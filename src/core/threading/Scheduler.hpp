@@ -156,8 +156,8 @@ public:
                 counter_value = semaphore->Release(1);
             }
 
-            if (callback.IsValid()) {
-                callback(counter_value);
+            if (counter_value == 0 && callback.IsValid()) {
+                callback();
             }
 
             task_executed->notify_all();
@@ -174,8 +174,8 @@ public:
                 counter_value = semaphore->Release(1);
             }
 
-            if (callback.IsValid()) {
-                callback(counter_value);
+            if (counter_value == 0 && callback.IsValid()) {
+                callback();
             }
 
             task_executed->notify_all();

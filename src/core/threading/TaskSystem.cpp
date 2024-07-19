@@ -139,13 +139,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
             executor,
             &batch->semaphore,
             next_batch != nullptr
-                ? [task_system_instance = this, next_batch, num_enqueued = batch->num_enqueued](int counter_value)
-                  {
-                      if (counter_value == 0)
-                      {
-                          task_system_instance->EnqueueBatch(next_batch);
-                      }
-                  }
+                ? [this, next_batch, num_enqueued = batch->num_enqueued]() { EnqueueBatch(next_batch); }
                 : OnTaskCompletedCallback()
         );
 

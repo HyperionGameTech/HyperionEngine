@@ -75,37 +75,28 @@ public:
     AtomicVar &operator=(AtomicVar &&other) noexcept    = delete;
     ~AtomicVar()                                        = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T Get(MemoryOrder order) const
+    HYP_FORCE_INLINE T Get(MemoryOrder order) const
         { return m_value.load(detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    void Set(T value, MemoryOrder order)
+    HYP_FORCE_INLINE void Set(T value, MemoryOrder order)
         { m_value.store(value, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T Exchange(T new_value, MemoryOrder order)
+    HYP_FORCE_INLINE T Exchange(T new_value, MemoryOrder order)
         { return m_value.exchange(new_value, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T Increment(T amount, MemoryOrder order)
+    HYP_FORCE_INLINE T Increment(T amount, MemoryOrder order)
         { return m_value.fetch_add(amount, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T Decrement(T amount, MemoryOrder order)
+    HYP_FORCE_INLINE T Decrement(T amount, MemoryOrder order)
         { return m_value.fetch_sub(amount, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T BitOr(T value, MemoryOrder order)
+    HYP_FORCE_INLINE T BitOr(T value, MemoryOrder order)
         { return m_value.fetch_or(value, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T BitAnd(T value, MemoryOrder order)
+    HYP_FORCE_INLINE T BitAnd(T value, MemoryOrder order)
         { return m_value.fetch_and(value, detail::ToCxxMemoryOrder(order)); }
 
-    HYP_FORCE_INLINE
-    T BitXor(T value, MemoryOrder order)
+    HYP_FORCE_INLINE T BitXor(T value, MemoryOrder order)
         { return m_value.fetch_xor(value, detail::ToCxxMemoryOrder(order)); }
 };
 

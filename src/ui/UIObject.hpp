@@ -543,8 +543,13 @@ public:
 
     const Handle<Material> &GetMaterial() const;
 
-    BoundingBox GetLocalAABB() const;
     BoundingBox GetWorldAABB() const;
+    BoundingBox GetLocalAABB() const;
+
+    const NodeTag &GetNodeTag(Name key) const;
+    void SetNodeTag(Name key, const NodeTag &tag);
+    bool HasNodeTag(Name key) const;
+    bool RemoveNodeTag(Name key);
 
     virtual void UpdatePosition(bool update_children = true);
     virtual void UpdateSize(bool update_children = true);

@@ -30,9 +30,9 @@ struct TaskBatch;
 
 struct TaskID
 {
-    uint value { 0 };
+    uint32 value { 0 };
     
-    TaskID &operator=(uint id)
+    TaskID &operator=(uint32 id)
     {
         value = id;
 
@@ -41,36 +41,28 @@ struct TaskID
     
     TaskID &operator=(const TaskID &other) = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(uint id) const
+    HYP_FORCE_INLINE bool operator==(uint32 id) const
         { return value == id; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(uint id) const
+    HYP_FORCE_INLINE bool operator!=(uint32 id) const
         { return value != id; }
 
-    HYP_FORCE_INLINE
-    bool operator==(const TaskID &other) const
+    HYP_FORCE_INLINE bool operator==(const TaskID &other) const
         { return value == other.value; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const TaskID &other) const
+    HYP_FORCE_INLINE bool operator!=(const TaskID &other) const
         { return value != other.value; }
 
-    HYP_FORCE_INLINE
-    bool operator<(const TaskID &other) const
+    HYP_FORCE_INLINE bool operator<(const TaskID &other) const
         { return value < other.value; }
 
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return value != 0; }
 
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return value == 0; }
 
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return value != 0; }
 };
 
@@ -154,9 +146,7 @@ public:
 
 protected:
     void SetIsCompleted(bool is_completed)
-    {
-        m_completed_flag.Set(is_completed, MemoryOrder::RELEASE);
-    }
+        { m_completed_flag.Set(is_completed, MemoryOrder::RELEASE); }
 
     TaskID          m_id;
     ThreadID        m_initiator_thread_id;
@@ -213,20 +203,16 @@ public:
         Base::SetIsCompleted(true);
     }
 
-    HYP_FORCE_INLINE
-    ReturnType &Result() &
+    HYP_FORCE_INLINE ReturnType &Result() &
         { return m_result_value.Get(); }
 
-    HYP_FORCE_INLINE
-    const ReturnType &Result() const &
+    HYP_FORCE_INLINE const ReturnType &Result() const &
         { return m_result_value.Get(); }
 
-    HYP_FORCE_INLINE
-    ReturnType Result() &&
+    HYP_FORCE_INLINE ReturnType Result() &&
         { return std::move(m_result_value.Get()); }
 
-    HYP_FORCE_INLINE
-    ReturnType Result() const &&
+    HYP_FORCE_INLINE ReturnType Result() const &&
         { return m_result_value.Get(); }
 
 private:
@@ -284,6 +270,7 @@ private:
 
 template <class ReturnType, class... Args>
 class Task;
+
 struct TaskRef
 {
     TaskID          id = { };
@@ -328,12 +315,11 @@ struct TaskRef
 
     ~TaskRef() = default;
 
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return id.IsValid() && assigned_scheduler != nullptr; }
 };
 
-using OnTaskCompletedCallback = Proc<void, /* counter_value */int>;
+using OnTaskCompletedCallback = Proc<void>;
 
 class TaskBase
 {
@@ -368,12 +354,10 @@ public:
 
     virtual ~TaskBase() = default;
 
-    HYP_FORCE_INLINE
-    TaskID GetTaskID() const
+    HYP_FORCE_INLINE TaskID GetTaskID() const
         { return m_id; }
 
-    HYP_FORCE_INLINE
-    SchedulerBase *GetAssignedScheduler() const
+    HYP_FORCE_INLINE SchedulerBase *GetAssignedScheduler() const
         { return m_assigned_scheduler; }
 
     virtual bool IsValid() const
@@ -470,8 +454,7 @@ public:
     /*! \brief Wait for the task to complete.
      *  \note This function will block the current thread until the task is completed.
      *  \returns The result of the task. */
-    HYP_FORCE_INLINE
-    ReturnType &Await() &
+    HYP_FORCE_INLINE ReturnType &Await() &
     {
         Await_Internal();
 
@@ -481,8 +464,7 @@ public:
     /*! \brief Wait for the task to complete.
      *  \note This function will block the current thread until the task is completed.
      *  \returns The result of the task. */
-    HYP_FORCE_INLINE
-    const ReturnType &Await() const &
+    HYP_FORCE_INLINE const ReturnType &Await() const &
     {
         Await_Internal();
 
@@ -492,8 +474,7 @@ public:
     /*! \brief Wait for the task to complete.
      *  \note This function will block the current thread until the task is completed.
      *  \returns The result of the task. */
-    HYP_FORCE_INLINE
-    ReturnType Await() &&
+    HYP_FORCE_INLINE ReturnType Await() &&
     {
         Await_Internal();
 
@@ -503,8 +484,7 @@ public:
     /*! \brief Wait for the task to complete.
      *  \note This function will block the current thread until the task is completed.
      *  \returns The result of the task. */
-    HYP_FORCE_INLINE
-    ReturnType Await() const &&
+    HYP_FORCE_INLINE ReturnType Await() const &&
     {
         Await_Internal();
 
@@ -587,8 +567,7 @@ public:
         return m_executor->IsCompleted();
     }
 
-    HYP_FORCE_INLINE
-    void Await()
+    HYP_FORCE_INLINE void Await()
     {
         Await_Internal();
     }

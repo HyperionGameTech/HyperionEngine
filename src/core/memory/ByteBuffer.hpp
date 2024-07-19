@@ -90,15 +90,11 @@ public:
     }
 
     /*! \brief Returns a reference to the ByteBuffer's internal array. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    InternalArray &GetInternalArray()
+    HYP_FORCE_INLINE InternalArray &GetInternalArray()
         { return m_internal; }
 
     /*! \brief Returns a const reference to the ByteBuffer's internal array. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const InternalArray &GetInternalArray() const
+    HYP_FORCE_INLINE const InternalArray &GetInternalArray() const
         { return const_cast<ByteBuffer *>(this)->GetInternalArray(); }
 
     /*! \brief Returns a copy of the ByteBuffer's data. */
@@ -134,14 +130,10 @@ public:
         return ConstByteView(Data() + offset, size);
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ubyte *Data()
+    HYP_FORCE_INLINE ubyte *Data()
         { return GetInternalArray().Data(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ubyte *Data() const
+    HYP_FORCE_INLINE const ubyte *Data() const
         { return GetInternalArray().Data(); }
 
     /*! \brief Updates the ByteBuffer's data with the given data. */
@@ -156,13 +148,10 @@ public:
         Memory::MemCpy(m_internal.Data(), data, count);
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
         { return GetInternalArray().Size(); }
     
-    HYP_FORCE_INLINE
-    void SetSize(SizeType count)
+    HYP_FORCE_INLINE void SetSize(SizeType count)
     {
         if (count == Size()) {
             return;
@@ -220,46 +209,30 @@ public:
     }
 
     /*! \brief Returns true if the ByteBuffer has any elements. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any() const
+    HYP_FORCE_INLINE bool Any() const
         { return Size() != 0; }
 
     /*! \brief Returns true if the ByteBuffer has no elements. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return Size() == 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ubyte &operator[](SizeType index)
+    HYP_FORCE_INLINE ubyte &operator[](SizeType index)
         { return GetInternalArray()[index]; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ubyte &operator[](SizeType index) const
+    HYP_FORCE_INLINE ubyte operator[](SizeType index) const
         { return GetInternalArray()[index]; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const ByteBuffer &other) const
+    HYP_FORCE_INLINE bool operator==(const ByteBuffer &other) const
         { return m_internal == other.m_internal; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const ByteBuffer &other) const
+    HYP_FORCE_INLINE bool operator!=(const ByteBuffer &other) const
         { return m_internal != other.m_internal; }
 
     /*! \brief Returns a copy of the ByteBuffer. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ByteBuffer Copy() const
+    HYP_NODISCARD HYP_FORCE_INLINE ByteBuffer Copy() const
         { return ByteBuffer(Size(), Data()); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
         { return GetInternalArray().GetHashCode(); }
 
 private:

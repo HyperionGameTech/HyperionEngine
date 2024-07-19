@@ -347,8 +347,11 @@ public:
 private:
     RC<FontAtlas> CreateFontAtlas();
     void CreateMainPanel();
+
     RC<UIObject> CreateSceneOutline();
     RC<UIObject> CreateDetailView();
+    RC<UIObject> CreateBottomPanel();
+
     void CreateInitialState();
 
     void SetFocusedNode(const NodeProxy &node);
@@ -388,7 +391,7 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-#if 0
+#if 1
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -576,18 +579,7 @@ void HyperionEditorImpl::CreateMainPanel()
 
     dockable_container->AddChildUIObject(CreateSceneOutline(), UIDockableItemPosition::LEFT);
     dockable_container->AddChildUIObject(CreateDetailView(), UIDockableItemPosition::RIGHT);
-
-    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Bottom_panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PIXEL }));
-    dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
-
-    // {
-    //     auto btn = GetUIStage()->CreateUIObject<UIButton>(NAME("TestButton1"), Vec2i { 0, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
-    //     // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
-    //     // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
-    //     btn->SetText("hello hello world");
-    //     // btn->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    //     dockable_container->AddChildUIObject(bottom_panel, UIDockableItemPosition::BOTTOM);
-    // }
+    dockable_container->AddChildUIObject(CreateBottomPanel(), UIDockableItemPosition::BOTTOM);
 
     RC<UITab> game_tab = tab_view->AddTab(NAME("Game_Tab"), "Game");
     game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -887,6 +879,44 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     }).Detach();
 
     return detail_view;
+}
+
+RC<UIObject> HyperionEditorImpl::CreateBottomPanel()
+{
+    RC<UIPanel> bottom_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Bottom_Panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 200, UIObjectSize::PIXEL }));
+
+    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(NAME("Bottom_Panel_Tab_View"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    tab_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+
+    RC<UITab> asset_browser_tab = tab_view->AddTab(NAME("Asset_Browser_Tab"), "Assets");
+
+    RC<UIListView> asset_browser_list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Asset_Browser_ListView"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    asset_browser_list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+    asset_browser_tab->GetContents()->AddChildUIObject(asset_browser_list_view);
+
+    bottom_panel->AddChildUIObject(tab_view);
+    
+
+    // RC<UIPanel> asset_browser_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Asset_Browser_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
+    // asset_browser_header->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+
+    // RC<UIText> asset_browser_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Asset_Browser_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    // asset_browser_header_text->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+    // asset_browser_header_text->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    // asset_browser_header_text->SetText("Assets");
+    // asset_browser_header_text->SetTextColor(Vec4f::One());
+    // asset_browser_header->AddChildUIObject(asset_browser_header_text);
+
+    // asset_browser->AddChildUIObject(asset_browser_header);
+
+    // RC<UIPanel> asset_browser_content = GetUIStage()->CreateUIObject<UIPanel>(NAME("Asset_Browser_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
+    // asset_browser_content->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+    // asset_browser->AddChildUIObject(asset_browser_content);
+
+    return bottom_panel;
 }
 
 void HyperionEditorImpl::CreateInitialState()
@@ -1245,13 +1275,13 @@ void HyperionEditor::Init()
     //     terrain_node.SetName("TerrainNode");
     // }
 
-    { // test terrain 2
-        if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
-            world_grid->AddPlugin(0, RC<TerrainWorldGridPlugin>(new TerrainWorldGridPlugin()));
-        } else {
-            HYP_FAIL("Failed to get world grid");
-        }
-    }
+    // { // test terrain 2
+    //     if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
+    //         world_grid->AddPlugin(0, RC<TerrainWorldGridPlugin>(new TerrainWorldGridPlugin()));
+    //     } else {
+    //         HYP_FAIL("Failed to get world grid");
+    //     }
+    // }
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();

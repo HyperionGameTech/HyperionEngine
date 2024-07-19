@@ -1608,6 +1608,43 @@ void UIObject::SetNodeProxy(NodeProxy node_proxy)
     }
 }
 
+
+const NodeTag &UIObject::GetNodeTag(Name key) const
+{
+    static const NodeTag empty_tag { };
+
+    if (m_node_proxy.IsValid()) {
+        return m_node_proxy->GetTag(key);
+    }
+
+    return empty_tag;
+}
+
+void UIObject::SetNodeTag(Name key, const NodeTag &tag)
+{
+    if (m_node_proxy.IsValid()) {
+        m_node_proxy->AddTag(key, tag);
+    }
+}
+
+bool UIObject::HasNodeTag(Name key) const
+{
+    if (m_node_proxy.IsValid()) {
+        return m_node_proxy->HasTag(key);
+    }
+
+    return false;
+}
+
+bool UIObject::RemoveNodeTag(Name key)
+{
+    if (m_node_proxy.IsValid()) {
+        return m_node_proxy->RemoveTag(key);
+    }
+
+    return false;
+}
+
 void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject *> &out_deferred_child_objects, bool reverse) const
 {
     HYP_SCOPE;

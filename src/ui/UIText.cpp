@@ -111,8 +111,6 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
         const float bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / 64.0f;
         const float char_width = float(glyph_metrics->metrics.advance / 64) / 64.0f;
 
-        HYP_LOG(UI, LogLevel::INFO, "Char: {}, bearing_y: {}, char_width: {}", ch, bearing_y, char_width);
-
         for (Vertex &vert : vertices) {
             const Vec3f current_position = vert.GetPosition();
 
@@ -124,8 +122,6 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
             vert.SetPosition(Vec3f { position.x, position.y, current_position.z });
             vert.SetTexCoord0((Vec2f(char_offset) + (vert.GetTexCoord0() * glyph_dimensions * 64.0f)) * atlas_pixel_size);
-
-            // char_mesh.aabb.Extend(Vec3f { position.x, position.y - bearing_y, current_position.z });
         }
 
         char_mesh.aabb.Extend(Vec3f(placement.x, placement.y, 0.0f));
