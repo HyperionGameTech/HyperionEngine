@@ -12,6 +12,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/HypClassUtils.hpp>
 
 #include <editor/EditorDelegates.hpp>
@@ -35,6 +37,49 @@ HYP_DEFINE_CLASS(
 );
 
 static const String unnamed_node_name = "<unnamed>";
+
+#pragma region NodeTag
+
+String NodeTag::ToString() const
+{
+    if (value.GetTypeID() == TypeID::ForType<String>()) {
+        return value.Get<String>();
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<UUID>()) {
+        return value.Get<UUID>().ToString();
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<Name>()) {
+        return value.Get<Name>().LookupString();
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<int32>()) {
+        return HYP_FORMAT("{}", value.Get<int32>());
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<uint32>()) {
+        return HYP_FORMAT("{}", value.Get<uint32>());
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<float>()) {
+        return HYP_FORMAT("{}", value.Get<float>());
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<double>()) {
+        return HYP_FORMAT("{}", value.Get<double>());
+    }
+
+    if (value.GetTypeID() == TypeID::ForType<bool>()) {
+        return value.Get<bool>() ? "true" : "false";
+    }
+
+    return String::empty;   
+}
+
+#pragma endregion NodeTag
+
+#pragma region Node
 
 // @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
 // this only happens in the case that the scene in question is destructing and
@@ -927,9 +972,9 @@ void Node::AddTag(Name key, const NodeTag &value)
     m_tags.Set(key, value);
 }
 
-void Node::RemoveTag(Name key)
+bool Node::RemoveTag(Name key)
 {
-    m_tags.Erase(key);
+    return m_tags.Erase(key);
 }
 
 const NodeTag &Node::GetTag(Name key) const
@@ -945,9 +990,16 @@ const NodeTag &Node::GetTag(Name key) const
     return it->second;
 }
 
+bool Node::HasTag(Name key) const
+{
+    return m_tags.Contains(key);
+}
+
 Scene *Node::GetDefaultScene()
 {
     return g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
 }
+
+#pragma endregion Node
 
 } // namespace hyperion

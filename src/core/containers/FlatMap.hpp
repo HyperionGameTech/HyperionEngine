@@ -71,11 +71,11 @@ public:
     FlatMap &operator=(FlatMap &&other) noexcept;
     ~FlatMap();
     
-    [[nodiscard]] Iterator Find(const Key &key);
-    [[nodiscard]] ConstIterator Find(const Key &key) const;
+    Iterator Find(const Key &key);
+    ConstIterator Find(const Key &key) const;
 
     template <class U>
-    auto FindAs(const U &key) -> Iterator
+    HYP_FORCE_INLINE auto FindAs(const U &key) -> Iterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
@@ -87,7 +87,7 @@ public:
     }
 
     template <class U>
-    auto FindAs(const U &key) const -> ConstIterator
+    HYP_FORCE_INLINE auto FindAs(const U &key) const -> ConstIterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
@@ -98,7 +98,7 @@ public:
         return (it->first == key) ? it : End();
     }
 
-    [[nodiscard]] bool Contains(const Key &key) const;
+    bool Contains(const Key &key) const;
 
     InsertResult Insert(const Key &key, const Value &value);
     InsertResult Insert(const Key &key, Value &&value);
@@ -115,28 +115,56 @@ public:
     Iterator Erase(ConstIterator it);
     bool Erase(const Key &key);
 
-    [[nodiscard]] SizeType Size() const { return m_vector.Size(); }
-    [[nodiscard]] KeyValuePairType *Data() { return m_vector.Data(); }
-    [[nodiscard]] KeyValuePairType * const Data() const { return m_vector.Data(); }
-    [[nodiscard]] bool Any() const { return m_vector.Any(); }
-    [[nodiscard]] bool Empty() const { return m_vector.Empty(); }
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_vector.Size(); }
 
-    void Clear()                                        { m_vector.Clear(); }
-    void Reserve(SizeType size)                         { m_vector.Reserve(size); }
+    HYP_FORCE_INLINE KeyValuePairType *Data()
+        { return m_vector.Data(); }
+
+    HYP_FORCE_INLINE KeyValuePairType * const Data() const
+        { return m_vector.Data(); }
+
+    HYP_FORCE_INLINE bool Any() const
+        { return m_vector.Any(); }
+
+    HYP_FORCE_INLINE bool Empty() const
+        { return m_vector.Empty(); }
+
+    HYP_FORCE_INLINE void Clear()
+        { m_vector.Clear(); }
+
+    HYP_FORCE_INLINE void Reserve(SizeType size)
+        { m_vector.Reserve(size); }
     
-    [[nodiscard]] KeyValuePairType &Front()             { return m_vector.Front(); }
-    [[nodiscard]] const KeyValuePairType &Front() const { return m_vector.Front(); }
-    [[nodiscard]] KeyValuePairType &Back()              { return m_vector.Back(); }
-    [[nodiscard]] const KeyValuePairType &Back() const  { return m_vector.Back(); }
+    HYP_FORCE_INLINE KeyValuePairType &Front()
+        { return m_vector.Front(); }
 
-    [[nodiscard]] FlatSet<Key> Keys() const;
-    [[nodiscard]] FlatSet<Value> Values() const;
+    HYP_FORCE_INLINE const KeyValuePairType &Front() const
+        { return m_vector.Front(); }
+
+    HYP_FORCE_INLINE KeyValuePairType &Back()
+        { return m_vector.Back(); }
+
+    HYP_FORCE_INLINE const KeyValuePairType &Back() const
+        { return m_vector.Back(); }
+
+    HYP_NODISCARD FlatSet<Key> Keys() const;
+    HYP_NODISCARD FlatSet<Value> Values() const;
 
 #ifndef HYP_DEBUG_MODE
-    [[nodiscard]] ValueType &At(const KeyType &key)             { return Find(key)->second; }
-    [[nodiscard]] const ValueType &At(const KeyType &key) const { return Find(key)->second; }
+    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
+        { return Find(key)->second; }
+
+    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
+        { return Find(key)->second; }
+
+    HYP_FORCE_INLINE KeyValuePairType &AtIndex(SizeType index)
+        { return *(Data() + index); }
+
+    HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
+        { return *(Data() + index); }
 #else
-    [[nodiscard]] ValueType &At(const KeyType &key)
+    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
     {
         const auto it = Find(key);
         AssertThrowMsg(it != End(), "At(): Element not found");
@@ -144,30 +172,30 @@ public:
         return it->second;
     }
 
-    [[nodiscard]] const ValueType &At(const KeyType &key) const
+    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
     {
         const auto it = Find(key);
         AssertThrowMsg(it != End(), "At(): Element not found");
 
         return it->second;
     }
+
+    HYP_FORCE_INLINE KeyValuePairType &AtIndex(SizeType index)
+        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+
+    HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
+        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
 #endif
 
-    [[nodiscard]] KeyValuePairType &AtIndex(SizeType index)
-        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
-
-    [[nodiscard]] const KeyValuePairType &AtIndex(SizeType index) const
-        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
-
     template <class Lambda>
-    [[nodiscard]] bool Any(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
         { return Base::Any(std::forward<Lambda>(lambda)); }
 
     template <class Lambda>
-    [[nodiscard]] bool Every(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }
 
-    [[nodiscard]] Value &operator[](const Key &key)
+    HYP_FORCE_INLINE Value &operator[](const Key &key)
     {
         const auto it = Find(key);
 

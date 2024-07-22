@@ -29,12 +29,10 @@ public:
     static constexpr BitIndex not_found = BitIndex(-1);
 
 private:
-    HYP_FORCE_INLINE
-    static constexpr uint64 GetBlockIndex(BitIndex bit)
+    HYP_FORCE_INLINE static constexpr uint64 GetBlockIndex(BitIndex bit)
         { return bit / CHAR_BIT / sizeof(BlockType); }
     
-    HYP_FORCE_INLINE
-    static constexpr uint64 GetBitMask(BitIndex bit)
+    HYP_FORCE_INLINE static constexpr uint64 GetBitMask(BitIndex bit)
         { return 1ull << (bit & (num_bits_per_block - 1)); }
 
     template <bool IsConst>
@@ -43,30 +41,25 @@ private:
         std::conditional_t<IsConst, const Bitset *, Bitset *>   ptr;
         BitIndex                                                bit_index;
 
-        HYP_FORCE_INLINE
-        BitIndex operator*() const
+        HYP_FORCE_INLINE BitIndex operator*() const
             { return bit_index; }
 
-        HYP_FORCE_INLINE
-        IteratorBase<IsConst> &operator++()
+        HYP_FORCE_INLINE IteratorBase<IsConst> &operator++()
         {
             bit_index = ptr->NextSetBitIndex(bit_index + 1);
 
             return *this;
         }
 
-        HYP_FORCE_INLINE
-        IteratorBase<IsConst> operator++(int) const
+        HYP_FORCE_INLINE IteratorBase<IsConst> operator++(int) const
         {
             return { ptr, ptr->NextSetBitIndex(bit_index + 1) };
         }
 
-        HYP_FORCE_INLINE
-        bool operator==(const IteratorBase<IsConst> &other) const
+        HYP_FORCE_INLINE bool operator==(const IteratorBase<IsConst> &other) const
             { return ptr == other.ptr && bit_index == other.bit_index; }
 
-        HYP_FORCE_INLINE
-        bool operator!=(const IteratorBase<IsConst> &other) const
+        HYP_FORCE_INLINE bool operator!=(const IteratorBase<IsConst> &other) const
             { return ptr != other.ptr || bit_index != other.bit_index; }
     };
     
@@ -92,8 +85,7 @@ public:
     HYP_API Bitset &operator=(Bitset &&other) noexcept;
     ~Bitset()                                           = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(const Bitset &other) const
+    HYP_FORCE_INLINE bool operator==(const Bitset &other) const
     {
         if (m_blocks.Size() == other.m_blocks.Size()) {
             return m_blocks.CompareBitwise(other.m_blocks);
@@ -102,8 +94,7 @@ public:
         return (*this | other).m_blocks.CompareBitwise(m_blocks.Size() > other.m_blocks.Size() ? other.m_blocks : m_blocks);
     }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const Bitset &other) const
+    HYP_FORCE_INLINE bool operator!=(const Bitset &other) const
         { return !operator==(other); }
 
     /*! \brief Returns a Bitset with all bits flipped. 
@@ -123,8 +114,7 @@ public:
     HYP_API Bitset operator^(const Bitset &other) const;
     HYP_API Bitset &operator^=(const Bitset &other);
 
-    HYP_FORCE_INLINE
-    const ubyte *Data() const
+    HYP_FORCE_INLINE const ubyte *Data() const
         { return reinterpret_cast<const ubyte *>(m_blocks.Data()); }
 
     /*! \brief Resizes the bitset to the given number of bits.
@@ -147,8 +137,7 @@ public:
     /*! \brief Get the value of the bit at the given index.
         \param index The index of the bit to get.
         \returns True if the bit is set, false otherwise. */
-    HYP_FORCE_INLINE
-    bool Get(BitIndex index) const
+    HYP_FORCE_INLINE bool Get(BitIndex index) const
     {
         const uint64 block_index = GetBlockIndex(index);
 
@@ -159,8 +148,7 @@ public:
     /*! \brief Test the value of the bit at the given index.
         \param index The index of the bit to test.
         \returns True if the bit is set, false otherwise. */
-    HYP_FORCE_INLINE
-    bool Test(BitIndex index) const
+    HYP_FORCE_INLINE bool Test(BitIndex index) const
         { return Get(index); }
 
     /*! \brief Set the value of the bit at the given index.
@@ -175,8 +163,7 @@ public:
 
     /*! \brief Returns the total number of bits in the bitset.
         \returns The total number of bits in the bitset. */
-    HYP_FORCE_INLINE
-    uint32 NumBits() const
+    HYP_FORCE_INLINE uint32 NumBits() const
         { return m_blocks.Size() * num_bits_per_block; }
 
     /*! \brief Returns the number of ones in the bitset.
@@ -188,8 +175,7 @@ public:
         a uint32, the result is truncated.
         \returns The uint32 representation of the bitset. The result is truncated if it would not fit in a uint32.
     */
-    HYP_FORCE_INLINE
-    uint32 ToUInt32() const
+    HYP_FORCE_INLINE uint32 ToUInt32() const
     {
         if (m_blocks.Empty()) {
             return 0;
@@ -203,8 +189,7 @@ public:
         a uint32, false is returned. Otherwise, true is returned.
         \param out The uint32 to set to the bitset.
         \returns True if the bitset can be represented as a uint32, false otherwise. */
-    HYP_FORCE_INLINE
-    bool ToUInt32(uint32 *out) const
+    HYP_FORCE_INLINE bool ToUInt32(uint32 *out) const
     {
         if (m_blocks.Empty()) {
             *out = 0;
@@ -222,8 +207,7 @@ public:
         a uint64, the result is truncated.
         \returns The uint64 representation of the bitset. The result is truncated if it would not fit in a uint64.
     */
-    HYP_FORCE_INLINE
-    uint64 ToUInt64() const
+    HYP_FORCE_INLINE uint64 ToUInt64() const
     {
         if (m_blocks.Empty()) {
             return 0;
@@ -239,8 +223,7 @@ public:
         a uint64, false is returned. Otherwise, true is returned.
         \param out The uint64 to set to the bitset.
         \returns True if the bitset can be represented as a uint64, false otherwise. */
-    HYP_FORCE_INLINE
-    bool ToUInt64(uint64 *out) const
+    HYP_FORCE_INLINE bool ToUInt64(uint64 *out) const
     {
         if (m_blocks.Empty()) {
             *out = 0;
@@ -257,8 +240,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -269,36 +251,28 @@ public:
         return hc;
     }
 
-    HYP_FORCE_INLINE
-    Iterator Begin()
+    HYP_FORCE_INLINE Iterator Begin()
         { return { this, FirstSetBitIndex() }; }
 
-    HYP_FORCE_INLINE
-    Iterator End()
+    HYP_FORCE_INLINE Iterator End()
         { return { this, not_found }; }
 
-    HYP_FORCE_INLINE
-    ConstIterator Begin() const
+    HYP_FORCE_INLINE ConstIterator Begin() const
         { return { this, FirstSetBitIndex() }; }
 
-    HYP_FORCE_INLINE
-    ConstIterator End() const
+    HYP_FORCE_INLINE ConstIterator End() const
         { return { this, not_found }; }
 
-    HYP_FORCE_INLINE
-    Iterator begin()
+    HYP_FORCE_INLINE Iterator begin()
         { return Begin(); }
 
-    HYP_FORCE_INLINE
-    Iterator end()
+    HYP_FORCE_INLINE Iterator end()
         { return End(); }
 
-    HYP_FORCE_INLINE
-    ConstIterator begin() const
+    HYP_FORCE_INLINE ConstIterator begin() const
         { return Begin(); }
 
-    HYP_FORCE_INLINE
-    ConstIterator end() const
+    HYP_FORCE_INLINE ConstIterator end() const
         { return End(); }
 
 private:

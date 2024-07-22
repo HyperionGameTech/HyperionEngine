@@ -23,20 +23,9 @@ public:
     UITab &operator=(UITab &&other) noexcept    = delete;
     virtual ~UITab() override                   = default;
 
-    /*! \brief Get the title of the tab.
-     * 
-     * \return The title of the tab.
-     */
-    HYP_FORCE_INLINE const String &GetTitle() const
-        { return m_title; }
+    virtual void SetText(const String &text) override;
 
-    /*! \brief Set the title of the tab.
-     * 
-     * \param title The title of the tab.
-     */
-    void SetTitle(const String &title);
-
-    HYP_FORCE_INLINE RC<UIPanel> GetContents() const
+    HYP_FORCE_INLINE const RC<UIPanel> &GetContents() const
         { return m_contents; }
 
     virtual bool IsContainer() const override
@@ -44,15 +33,16 @@ public:
 
     virtual void Init() override;
 
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
 private:
-    String      m_title;
-    RC<UIText>  m_title_text;
-
+    RC<UIText>  m_title_element;
     RC<UIPanel> m_contents;
 };
 
@@ -117,6 +107,9 @@ public:
      * \return True if the tab was removed, false if the tab does not exist.
      */
     bool RemoveTab(Name name);
+
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 private:
     void UpdateTabSizes();

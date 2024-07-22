@@ -73,28 +73,45 @@ public:
     Iterator Erase(ConstIterator it);
     bool Erase(const Key &key);
 
-    [[nodiscard]] SizeType Size() const { return m_vector.Size(); }
-    [[nodiscard]] KeyValuePairType *Data() { return m_vector.Data(); }
-    [[nodiscard]] KeyValuePairType * const Data() const { return m_vector.Data(); }
-    [[nodiscard]] bool Any() const { return m_vector.Any(); }
-    [[nodiscard]] bool Empty() const { return m_vector.Empty(); }
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_vector.Size(); }
 
-    void Clear()                                        { m_vector.Clear(); }
+    HYP_FORCE_INLINE KeyValuePairType *Data()
+        { return m_vector.Data(); }
+
+    HYP_FORCE_INLINE KeyValuePairType * const Data() const
+        { return m_vector.Data(); }
+
+    HYP_FORCE_INLINE bool Any() const
+        { return m_vector.Any(); }
+
+    HYP_FORCE_INLINE bool Empty() const
+        { return m_vector.Empty(); }
+
+    HYP_FORCE_INLINE void Clear()
+        { m_vector.Clear(); }
     
-    [[nodiscard]] KeyValuePairType &Front()             { return m_vector.Front(); }
-    [[nodiscard]] const KeyValuePairType &Front() const { return m_vector.Front(); }
-    [[nodiscard]] KeyValuePairType &Back()              { return m_vector.Back(); }
-    [[nodiscard]] const KeyValuePairType &Back() const  { return m_vector.Back(); }
+    HYP_FORCE_INLINE KeyValuePairType &Front()
+        { return m_vector.Front(); }
+
+    HYP_FORCE_INLINE const KeyValuePairType &Front() const
+        { return m_vector.Front(); }
+
+    HYP_FORCE_INLINE KeyValuePairType &Back()
+        { return m_vector.Back(); }
+
+    HYP_FORCE_INLINE const KeyValuePairType &Back() const
+        { return m_vector.Back(); }
 
     template <class Lambda>
-    [[nodiscard]] bool Any(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
         { return Base::Any(std::forward<Lambda>(lambda)); }
 
     template <class Lambda>
-    [[nodiscard]] bool Every(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }
 
-    [[nodiscard]] Value &operator[](const Key &key)
+    HYP_FORCE_INLINE Value &operator[](const Key &key)
     {
         const auto it = Find(key);
 

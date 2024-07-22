@@ -3,9 +3,20 @@
 #include <ui/UIDockableContainer.hpp>
 #include <ui/UIStage.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
+
+static const HashMap<String, UIDockableItemPosition> g_dockable_item_position_map = {
+    { "left", UIDockableItemPosition::LEFT },
+    { "right", UIDockableItemPosition::RIGHT },
+    { "top", UIDockableItemPosition::TOP },
+    { "bottom", UIDockableItemPosition::BOTTOM },
+    { "center", UIDockableItemPosition::CENTER },
+    { "undocked", UIDockableItemPosition::UNDOCKED }
+};
 
 #pragma region UIDockableItem
 
@@ -37,8 +48,55 @@ void UIDockableContainer::Init()
     UIPanel::Init();
 }
 
+void UIDockableContainer::AddChildUIObject(UIObject *ui_object)
+{
+    HYP_SCOPE;
+
+    if (!ui_object) {
+        return;
+    }
+
+    UIDockableItemPosition position = UIDockableItemPosition::CENTER;
+
+    if (const NodeTag &side_node_tag = ui_object->GetNodeTag(NAME("side")); side_node_tag.IsValid()) {
+        const auto it = g_dockable_item_position_map.Find(side_node_tag.ToString());
+    
+        if (it != g_dockable_item_position_map.End()) {
+            position = it->second;
+        }
+    }
+
+    if (position == UIDockableItemPosition::UNDOCKED) {
+        UIPanel::AddChildUIObject(ui_object);
+    } else {
+        m_dockable_items[uint32(position)]->AddChildUIObject(ui_object);
+    }
+
+    UpdateSize(true);
+}
+
+bool UIDockableContainer::RemoveChildUIObject(UIObject *ui_object)
+{
+    HYP_SCOPE;
+
+    if (!ui_object) {
+        return false;
+    }
+
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
+        if (m_dockable_items[i]->RemoveChildUIObject(ui_object)) {
+            UpdateSize(true);
+            return true;
+        }
+    }
+
+    return UIPanel::RemoveChildUIObject(ui_object);
+}
+
 void UIDockableContainer::AddChildUIObject(UIObject *ui_object, UIDockableItemPosition position)
 {
+    HYP_SCOPE;
+
     m_dockable_items[uint32(position)]->AddChildUIObject(ui_object);
 
     UpdateSize(true);
@@ -46,6 +104,8 @@ void UIDockableContainer::AddChildUIObject(UIObject *ui_object, UIDockableItemPo
 
 void UIDockableContainer::UpdateSize(bool update_children)
 {
+    HYP_SCOPE;
+
     UIPanel::UpdateSize(update_children);
 
     UpdateLayout();
@@ -53,6 +113,8 @@ void UIDockableContainer::UpdateSize(bool update_children)
 
 void UIDockableContainer::UpdateLayout()
 {
+    HYP_SCOPE;
+
     const Vec2i container_size = GetActualSize();
 
     // Top

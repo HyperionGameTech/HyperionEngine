@@ -58,29 +58,40 @@ public:
     Iterator Erase(ConstIterator it);
     Iterator Erase(const T &value);
 
-    [[nodiscard]] SizeType Size() const                 { return Base::Size(); }
-    [[nodiscard]] T *Data()                             { return Base::Data(); }
-    [[nodiscard]] const T *Data() const                 { return Base::Data(); }
-    [[nodiscard]] bool Any() const                      { return Base::Any(); }
-    [[nodiscard]] bool Empty() const                    { return Base::Empty(); }
-    [[nodiscard]] bool Contains(const T &value) const   { return Find(value) != End(); }
+    HYP_FORCE_INLINE SizeType Size() const
+        { return Base::Size(); }
 
-    void Clear()                                        { Base::Clear(); }
-    void Reserve(SizeType size)                         { Base::Reserve(size); }
+    HYP_FORCE_INLINE T *Data()
+        { return Base::Data(); }
+
+    HYP_FORCE_INLINE const T *Data() const
+        { return Base::Data(); }
+
+    HYP_FORCE_INLINE bool Any() const
+        { return Base::Any(); }
+
+    HYP_FORCE_INLINE bool Empty() const
+        { return Base::Empty(); }
+
+    HYP_FORCE_INLINE bool Contains(const T &value) const
+        { return Find(value) != End(); }
+
+    HYP_FORCE_INLINE void Clear()
+        { Base::Clear(); }
+
+    HYP_FORCE_INLINE void Reserve(SizeType size)
+        { Base::Reserve(size); }
     
-    HYP_FORCE_INLINE
-    T &Front()
-        { return Base::Front(); }
-    HYP_FORCE_INLINE
-    const T &Front() const
+    HYP_FORCE_INLINE T &Front()
         { return Base::Front(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Back()
+    HYP_FORCE_INLINE const T &Front() const
+        { return Base::Front(); }
+
+    HYP_FORCE_INLINE T &Back()
         { return Base::Back(); }
         
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Back() const
+    HYP_FORCE_INLINE const T &Back() const
         { return Base::Back(); }
 
     template <class OtherContainerType>
@@ -101,8 +112,7 @@ public:
         other.Clear();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Array<T> ToArray() const
+    HYP_NODISCARD HYP_FORCE_INLINE Array<T> ToArray() const
         { return Array<T>(Begin(), End()); }
 
     HYP_DEF_STL_BEGIN_END(

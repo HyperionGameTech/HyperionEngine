@@ -348,6 +348,9 @@ private:
     RC<FontAtlas> CreateFontAtlas();
     void CreateMainPanel();
 
+    void InitSceneOutline();
+    void InitDetailView();
+
     RC<UIObject> CreateSceneOutline();
     RC<UIObject> CreateDetailView();
     RC<UIObject> CreateBottomPanel();
@@ -421,7 +424,109 @@ void HyperionEditorImpl::CreateMainPanel()
         // DebugLog(LogType::Debug, "Loaded position: %d, %d\n", loaded_ui->GetPosition().x, loaded_ui->GetPosition().y);
         // DebugLog(LogType::Debug, "Loaded UI: %s\n", *loaded_ui->GetName());
 
+        if (RC<UIObject> scene_image_object = loaded_ui->FindChildUIObject(NAME("Scene_Image"))) {
+            RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
+            
+            if (ui_image != nullptr) {
+                ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
+                {
+                    m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+
+                    if (m_camera->GetCameraController()->IsMouseLocked()) {
+                        const Vec2f position = ui_image->GetAbsolutePosition();
+                        const Vec2i size = ui_image->GetActualSize();
+                        const Vec2i window_size = { m_camera->GetWidth(), m_camera->GetHeight() };
+
+                        // Set mouse position to previous position to keep it stationary while rotating
+                        event.input_manager->SetMousePosition(Vec2i(position + event.previous_position * Vec2f(size)));
+                    }
+
+                    return UIEventHandlerResult::OK;
+                }).Detach();
+
+                ui_image->OnMouseDown.Bind([this](const MouseEvent &event)
+                {
+                    m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
+
+                    return UIEventHandlerResult::OK;
+                }).Detach();
+
+                ui_image->OnMouseUp.Bind([this](const MouseEvent &event)
+                {
+                    m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
+
+                    return UIEventHandlerResult::OK;
+                }).Detach();
+
+                ui_image->OnKeyDown.Bind([this](const KeyboardEvent &event)
+                {
+                    if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event)) {
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    }
+
+                    return UIEventHandlerResult::OK;
+                }).Detach();
+
+                ui_image->OnGainFocus.Bind([this](const MouseEvent &event)
+                {
+                    m_editor_camera_enabled = true;
+
+                    return UIEventHandlerResult::OK;
+                });
+
+                ui_image->OnLoseFocus.Bind([this](const MouseEvent &event)
+                {
+                    m_editor_camera_enabled = false;
+
+                    return UIEventHandlerResult::OK;
+                });
+
+                ui_image->SetTexture(m_scene_texture);
+            }
+        }
+
         GetUIStage()->AddChildUIObject(loaded_ui);
+
+        InitSceneOutline();
+        InitDetailView();
+
+        // test generate lightmap
+        if (RC<UIObject> generate_lightmaps_button = GetUIStage()->FindChildUIObject(NAME("Generate_Lightmaps_Button"))) {
+            HYP_BREAKPOINT;
+            
+            generate_lightmaps_button->OnClick.RemoveAll();
+            generate_lightmaps_button->OnClick.Bind([this](...)
+            {
+                HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
+
+                struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
+                {
+                    Handle<Scene> scene;
+
+                    RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
+                        : scene(std::move(scene))
+                    {
+                    }
+
+                    virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
+
+                    virtual Result operator()() override
+                    {
+                        if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
+                            scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
+                        } else {
+                            scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
+                        }
+
+                        HYPERION_RETURN_OK;
+                    }
+                };
+                
+                PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
+
+                return UIEventHandlerResult::OK;
+            }).Detach();
+        }
     }
 
     return;
@@ -637,6 +742,216 @@ void HyperionEditorImpl::CreateMainPanel()
         DebugLog(LogType::Debug, "Script state changed: now is %u\n", script.state);
     }).Detach();
 }
+
+void HyperionEditorImpl::InitSceneOutline()
+{
+    RC<UIListView> list_view = GetUIStage()->FindChildUIObject(NAME("Scene_Outline_ListView")).Cast<UIListView>();
+    AssertThrow(list_view != nullptr);
+
+    list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    
+    UniquePtr<UIDataSource<Weak<Node>>> temp_data_source(new UIDataSource<Weak<Node>>());
+    list_view->SetDataSource(std::move(temp_data_source));
+    
+    list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem *list_view_item)
+    {
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item->GetName());
+
+        if (!list_view_item) {
+            SetFocusedNode(NodeProxy::empty);
+
+            return UIEventHandlerResult::OK;
+        }
+
+        const UUID data_source_element_uuid = list_view_item->GetDataSourceElementUUID();
+
+        if (data_source_element_uuid == UUID::Invalid()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        if (!list_view->GetDataSource()) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        const IUIDataSourceElement *data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
+
+        if (!data_source_element_value) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        const Weak<Node> &node_weak = data_source_element_value->GetValue<Weak<Node>>();
+        RC<Node> node_rc = node_weak.Lock();
+
+        // const UUID &associated_node_uuid = data_source_element_value->GetValue
+
+        // NodeProxy associated_node = GetScene()->GetRoot()->FindChildByUUID(associated_node_uuid);
+
+        if (!node_rc) {
+            return UIEventHandlerResult::ERR;
+        }
+
+        SetFocusedNode(NodeProxy(std::move(node_rc)));
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), { NAME("Name") }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, Name name, ConstAnyRef value)
+    {
+        HYP_LOG(Editor, LogLevel::DEBUG, "(scene) Node property changed: {}", name);
+
+        // Update name in list view
+        // @TODO: Ensure game thread
+
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node](const IUIDataSourceElement *item)
+            {
+                return item->GetValue<Weak<Node>>() == node;
+            });
+
+            if (data_source_element != nullptr) {
+                Weak<Node> node_ref = data_source_element->GetValue<Weak<Node>>();
+                
+                data_source->Set(
+                    data_source_element->GetUUID(),
+                    AnyRef(&node_ref)
+                );
+            }
+        }
+    });
+
+    GetScene()->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
+    {
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        AssertThrow(node.IsValid());
+
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            Weak<Node> editor_node_weak = node.ToWeak();
+
+            data_source->Push(editor_node_weak);
+        }
+
+        EditorDelegates::GetInstance().WatchNode(node.Get());
+    }).Detach();
+
+    GetScene()->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
+    {
+        EditorDelegates::GetInstance().UnwatchNode(node.Get());
+
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            data_source->RemoveAllWithPredicate([&node](IUIDataSourceElement *item)
+            {
+                return item->GetValue<Weak<Node>>() == node.Get();
+            });
+        }
+    }).Detach();
+}
+
+void HyperionEditorImpl::InitDetailView()
+{
+    RC<UIListView> list_view = GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")).Cast<UIListView>();
+    AssertThrow(list_view != nullptr);
+
+    list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+    OnFocusedNodeChanged.Bind([this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
+    {
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        list_view->SetDataSource(nullptr);
+
+        // stop watching using currently bound function
+        EditorDelegates::GetInstance().RemoveNodeWatcher(NAME("DetailView"));
+
+        if (!node.IsValid()) {
+            HYP_LOG(Editor, LogLevel::DEBUG, "Focused node is invalid!");
+
+            return;
+        }
+
+        { // create new data source
+            UniquePtr<UIDataSource<EditorNodePropertyRef>> data_source(new UIDataSource<EditorNodePropertyRef>());
+            list_view->SetDataSource(std::move(data_source));
+        }
+
+        UIDataSourceBase *data_source = list_view->GetDataSource();
+
+        for (const HypClassProperty *property : hyp_class->GetProperties()) {
+            HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
+
+            if (!property->HasGetter()) {
+                continue;
+            }
+
+            EditorNodePropertyRef node_property_ref { node.ToWeak(), property };
+
+            data_source->Push(&node_property_ref);
+        }
+
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = GetClass<Node>(), list_view_weak](Node *node, Name name, ConstAnyRef value)
+        {
+            if (node != m_focused_node.Get()) {
+                return;
+            }
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", name);
+
+            // Update name in list view
+
+            RC<UIListView> list_view = list_view_weak.Lock();
+
+            if (!list_view) {
+                return;
+            }
+
+            if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+                const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, name](const IUIDataSourceElement *item)
+                {
+                    return item->GetValue<EditorNodePropertyRef>().property->name == name;
+                });
+
+                AssertThrow(data_source_element != nullptr);
+
+                if (data_source_element != nullptr) {
+                    // trigger update to rebuild UI
+                    EditorNodePropertyRef node_property_ref = data_source_element->GetValue<EditorNodePropertyRef>();
+                    
+                    data_source->Set(
+                        data_source_element->GetUUID(),
+                        AnyRef(&node_property_ref)
+                    );
+                }
+            }
+        });
+    }).Detach();
+}
+
 
 RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
 {

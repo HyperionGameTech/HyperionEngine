@@ -43,8 +43,7 @@ public:
     static constexpr SizeType size = Sz;
 
     template <class OtherType, SizeType OtherSize>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const FixedArray<OtherType, OtherSize> &other) const
+    HYP_FORCE_INLINE bool operator==(const FixedArray<OtherType, OtherSize> &other) const
     {
         if (std::addressof(other) == this) {
             return true;
@@ -68,60 +67,48 @@ public:
     }
 
     template <class OtherType, SizeType OtherSize>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const FixedArray<OtherType, OtherSize> &other) const
+    HYP_FORCE_INLINE bool operator!=(const FixedArray<OtherType, OtherSize> &other) const
         { return !(*this == other); }
 
     template <class Function>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FixedArray Map(Function &&fn) const
+    HYP_FORCE_INLINE FixedArray Map(Function &&fn) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Map(std::forward<Function>(fn));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Contains(const T &value) const
+    HYP_FORCE_INLINE bool Contains(const T &value) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Contains(value);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &At(KeyType index)
+    HYP_FORCE_INLINE T &At(KeyType index)
         { AssertThrow(index < Sz); return m_values[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &At(KeyType index) const
+    HYP_FORCE_INLINE const T &At(KeyType index) const
         { AssertThrow(index < Sz); return m_values[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &operator[](KeyType index)
+    HYP_FORCE_INLINE T &operator[](KeyType index)
         { return m_values[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &operator[](KeyType index) const
+    HYP_FORCE_INLINE const T &operator[](KeyType index) const
         { return m_values[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr SizeType Size() const
         { return Sz; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr SizeType ByteSize() const
+    HYP_FORCE_INLINE constexpr SizeType ByteSize() const
         { return Sz * sizeof(T); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool Empty() const
+    HYP_FORCE_INLINE constexpr bool Empty() const
         { return Sz == 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool Any() const
+    HYP_FORCE_INLINE constexpr bool Any() const
         { return Sz != 0; }
         
     template <class Lambda>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Any(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
     {
         if constexpr (Sz == 0) {
             return false;
@@ -132,15 +119,13 @@ public:
     }
 
     template <class Lambda>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Every(Lambda &&lambda) const
+    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Every(std::forward<Lambda>(lambda));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    auto Sum() const
+    HYP_FORCE_INLINE auto Sum() const
     {
         if constexpr (Sz == 0) {
             return T();
@@ -151,8 +136,7 @@ public:
         }
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    auto Avg() const
+    HYP_FORCE_INLINE auto Avg() const
     {
         if constexpr (Sz == 0) {
             return T();
@@ -163,8 +147,7 @@ public:
     }
 
     template <class ConstIterator>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    KeyType IndexOf(ConstIterator iter) const
+    HYP_FORCE_INLINE KeyType IndexOf(ConstIterator iter) const
     {
         if constexpr (Sz == 0) {
             return KeyType(-1);
@@ -175,8 +158,7 @@ public:
     }
 
     template <class TaskSystem, class Lambda>
-    HYP_FORCE_INLINE
-    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda) const
+    HYP_FORCE_INLINE void ParallelForEach(TaskSystem &task_system, Lambda &&lambda) const
     {
         if constexpr (Sz != 0) {
             const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
@@ -185,8 +167,7 @@ public:
     }
 
     template <class OtherContainer>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool CompareBitwise(const OtherContainer &other) const
+    HYP_FORCE_INLINE bool CompareBitwise(const OtherContainer &other) const
     {
         if constexpr (Sz != OtherContainer::size) {
             return false;
@@ -196,34 +177,27 @@ public:
         }
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *Data()
+    HYP_FORCE_INLINE T *Data()
         { return static_cast<T *>(m_values); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T *Data() const
+    HYP_FORCE_INLINE const T *Data() const
         { return static_cast<const T *>(m_values); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Front()
+    HYP_FORCE_INLINE T &Front()
         { return m_values[0]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Front() const
+    HYP_FORCE_INLINE const T &Front() const
         { return m_values[0]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Back()
+    HYP_FORCE_INLINE T &Back()
         { return m_values[Sz - 1]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Back() const
+    HYP_FORCE_INLINE const T &Back() const
         { return m_values[Sz - 1]; }
 
     HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
     
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();

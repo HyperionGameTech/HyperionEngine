@@ -177,40 +177,52 @@ public:
     Array &operator=(Array &&other) noexcept;
 
     /*! \brief Returns the number of elements in the array. */
-    [[nodiscard]] SizeType Size() const { return m_size - m_start_offset; }
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_size - m_start_offset; }
 
     /*! \brief Returns the size in bytes of the array. */
-    [[nodiscard]] SizeType ByteSize() const { return (m_size - m_start_offset) * sizeof(T); }
+    HYP_FORCE_INLINE SizeType ByteSize() const
+        { return (m_size - m_start_offset) * sizeof(T); }
 
     /*! \brief Returns a pointer to the first element in the array. */
-    [[nodiscard]] ValueType *Data() { return &GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE ValueType *Data()
+        { return &GetBuffer()[m_start_offset]; }
 
     /*! \brief Returns a pointer to the first element in the array. */
-    [[nodiscard]] const ValueType *Data() const { return &GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE const ValueType *Data() const
+        { return &GetBuffer()[m_start_offset]; }
 
     /*! \brief Returns a reference to the first element in the array. */
-    [[nodiscard]] ValueType &Front() { return GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE ValueType &Front()
+        { return GetBuffer()[m_start_offset]; }
     
     /*! \brief Returns a reference to the first element in the array. */
-    [[nodiscard]] const ValueType &Front() const { return GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE const ValueType &Front() const
+        { return GetBuffer()[m_start_offset]; }
 
     /*! \brief Returns a reference to the last element in the array.  */
-    [[nodiscard]] ValueType &Back() { return GetBuffer()[m_size - 1]; }
+    HYP_FORCE_INLINE ValueType &Back()
+        { return GetBuffer()[m_size - 1]; }
 
     /*! \brief Returns a reference to the last element in the array. */
-    [[nodiscard]] const ValueType &Back() const { return GetBuffer()[m_size - 1]; }
+    HYP_FORCE_INLINE const ValueType &Back() const
+        { return GetBuffer()[m_size - 1]; }
 
     /*! \brief Returns true if the array has no elements. */
-    [[nodiscard]] bool Empty() const { return Size() == 0; }
+    HYP_FORCE_INLINE bool Empty() const
+        { return Size() == 0; }
 
     /*! \brief Returns true if the array has any elements. */
-    [[nodiscard]] bool Any() const { return Size() != 0; }
+    HYP_FORCE_INLINE bool Any() const
+        { return Size() != 0; }
 
     /*! \brief Returns the element at the given index. No bounds checking is performed. */
-    ValueType &operator[](KeyType index) { return GetBuffer()[m_start_offset + index]; }
+    HYP_FORCE_INLINE ValueType &operator[](KeyType index)
+        { return GetBuffer()[m_start_offset + index]; }
 
     /*! \brief Returns the element at the given index. No bounds checking is performed. */
-    [[nodiscard]] const ValueType &operator[](KeyType index) const { return GetBuffer()[m_start_offset + index]; }
+    HYP_FORCE_INLINE const ValueType &operator[](KeyType index) const
+        { return GetBuffer()[m_start_offset + index]; }
 
     /*! \brief Reserves enough space for {capacity} elements. If the capacity is smaller than the current capacity, nothing happens. */
     void Reserve(SizeType capacity);
@@ -313,8 +325,7 @@ public:
     /*! \brief Shift the array to the left by {count} times */
     void Shift(SizeType count);
 
-    HYP_NODISCARD
-    Array<T, NumInlineBytes> Slice(int first, int last) const;
+    HYP_NODISCARD Array<T, NumInlineBytes> Slice(int first, int last) const;
 
     /*! \brief Modify the array by appending all items in \ref{other} to the current array. */
     void Concat(const Array &other);

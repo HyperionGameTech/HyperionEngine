@@ -347,20 +347,7 @@ public:
 
                     HYP_LOG(Assets, LogLevel::WARNING, "Unknown event attribute: {}", attribute.first);
                 } else if (!g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
-                    // try parsing value as JSON
-
-                    json::ParseResult json_parse_result = json::JSON::Parse(attribute.second);
-
-                    if (!json_parse_result.ok) {
-                        HYP_LOG(Assets, LogLevel::WARNING, "Failed to parse JSON attribute: {}\n\t{}", attribute.second, json_parse_result.message);
-
-                        continue;
-                    }
-
-                    const json::JSONValue &json_value = json_parse_result.value;
-
-                    // Add custom attribute to node from JSON
-                    ui_object->SetNodeTag(CreateNameFromDynamicString(attribute.first), NodeTag(json_value));
+                    ui_object->SetNodeTag(CreateNameFromDynamicString(attribute.first.ToLower()), NodeTag(attribute.second));
                 }
             }
 

@@ -37,48 +37,34 @@ struct HashBucket
         HashBucket<KeyType, ValueType>  *bucket;
         HashElement<KeyType, ValueType> *element;
 
-        HYP_FORCE_INLINE
-        Pair<KeyType, ValueType> *operator->() const
+        HYP_FORCE_INLINE Pair<KeyType, ValueType> *operator->() const
             { return &element->pair; }
 
-        HYP_FORCE_INLINE
-        Pair<KeyType, ValueType> &operator*()
+        HYP_FORCE_INLINE Pair<KeyType, ValueType> &operator*()
             { return element->pair; }
 
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> &operator*() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> &operator*() const
             { return element->pair; }
 
-        HYP_FORCE_INLINE
-        Iterator &operator++()
+        HYP_FORCE_INLINE Iterator &operator++()
             { element = element->next; return *this; }
 
-        HYP_FORCE_INLINE
-        Iterator operator++(int) const
+        HYP_FORCE_INLINE Iterator operator++(int) const
             { return Iterator { bucket, element->next }; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator==(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator==(const ConstIterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator!=(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const ConstIterator &other) const
             { return element != other.element; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator==(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator==(const Iterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator!=(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return element != other.element; }
 
-        HYP_FORCE_INLINE
-        operator ConstIterator() const
+        HYP_FORCE_INLINE operator ConstIterator() const
             { return { bucket, element }; }
     };
 
@@ -87,36 +73,28 @@ struct HashBucket
         const HashBucket<KeyType, ValueType>    *bucket;
         const HashElement<KeyType, ValueType>   *element;
 
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> *operator->() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> *operator->() const
             { return &element->pair; }
 
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> &operator*() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> &operator*() const
             { return element->pair; }
 
-        HYP_FORCE_INLINE
-        ConstIterator &operator++()
+        HYP_FORCE_INLINE ConstIterator &operator++()
             { element = element->next; return *this; }
 
-        HYP_FORCE_INLINE
-        ConstIterator operator++(int) const
+        HYP_FORCE_INLINE ConstIterator operator++(int) const
             { return ConstIterator { bucket, element->next }; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator==(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator==(const ConstIterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator!=(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const ConstIterator &other) const
             { return element != other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator==(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator==(const Iterator &other) const
             { return element == other.element; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator!=(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return element != other.element; }
     };
     
@@ -241,28 +219,23 @@ public:
         Iterator &operator=(Iterator &other) &noexcept  = default;
         ~Iterator()                                     = default;
         
-        HYP_FORCE_INLINE
-        Pair<KeyType, ValueType> *operator->() const
+        HYP_FORCE_INLINE Pair<KeyType, ValueType> *operator->() const
             {  return bucket_iter.operator->(); }
         
-        HYP_FORCE_INLINE
-        Pair<KeyType, ValueType> &operator*()
+        HYP_FORCE_INLINE Pair<KeyType, ValueType> &operator*()
             {  return bucket_iter.operator*(); }
         
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> &operator*() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> &operator*() const
             {  return bucket_iter.operator*(); }
         
-        HYP_FORCE_INLINE
-        Iterator &operator++()
+        HYP_FORCE_INLINE Iterator &operator++()
         {
             AdvanceIterator(*this);
 
             return *this;
         }
         
-        HYP_FORCE_INLINE
-        Iterator operator++(int) const
+        HYP_FORCE_INLINE Iterator operator++(int) const
         {
             Iterator iter(*this);
             AdvanceIterator(iter);
@@ -270,23 +243,19 @@ public:
             return iter;
         }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator==(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator!=(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator==(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        [[nodiscard]] HYP_FORCE_INLINE
-        bool operator!=(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
-        operator ConstIterator() const
+        HYP_FORCE_INLINE operator ConstIterator() const
             { return ConstIterator { const_cast<const HashMap *>(hm), typename detail::HashBucket<KeyType, ValueType>::ConstIterator(bucket_iter) }; }
     };
 
@@ -308,24 +277,20 @@ public:
         ConstIterator &operator=(ConstIterator &other) &noexcept    = default;
         ~ConstIterator()                                            = default;
         
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> *operator->() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> *operator->() const
             {  return bucket_iter.operator->(); }
         
-        HYP_FORCE_INLINE
-        const Pair<KeyType, ValueType> &operator*() const
+        HYP_FORCE_INLINE const Pair<KeyType, ValueType> &operator*() const
             {  return bucket_iter.operator*(); }
         
-        HYP_FORCE_INLINE
-        ConstIterator &operator++()
+        HYP_FORCE_INLINE ConstIterator &operator++()
         {
             AdvanceIterator(*this);
 
             return *this;
         }
         
-        HYP_FORCE_INLINE
-        ConstIterator operator++(int) const
+        HYP_FORCE_INLINE ConstIterator operator++(int) const
         {
             ConstIterator iter = *this;
             AdvanceIterator(iter);
@@ -333,24 +298,16 @@ public:
             return iter;
         }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator==(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator!=(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator==(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        [[nodiscard]]
-        HYP_FORCE_INLINE
-        bool operator!=(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
     };
 
@@ -377,13 +334,13 @@ public:
     ValueType &operator[](const KeyType &key);
 
 #ifndef HYP_DEBUG_MODE
-    [[nodiscard]] ValueType &At(const KeyType &key)
+    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
         { return Find(key)->second; }
 
-    [[nodiscard]] const ValueType &At(const KeyType &key) const
+    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
         { return Find(key)->second; }
 #else
-    [[nodiscard]] ValueType &At(const KeyType &key)
+    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
     {
         const auto it = Find(key);
         AssertThrowMsg(it != End(), "At(): Element not found");
@@ -391,7 +348,7 @@ public:
         return it->second;
     }
 
-    [[nodiscard]] const ValueType &At(const KeyType &key) const
+    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
     {
         const auto it = Find(key);
         AssertThrowMsg(it != End(), "At(): Element not found");
@@ -400,17 +357,13 @@ public:
     }
 #endif
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any() const
+    HYP_FORCE_INLINE bool Any() const
         { return m_size != 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return m_size == 0; }
 
-    [[nodiscard]] bool operator==(const HashMap &other) const
+    HYP_FORCE_INLINE bool operator==(const HashMap &other) const
     {
         if (Size() != other.Size()) {
             return false;
@@ -433,34 +386,43 @@ public:
         return true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const HashMap &other) const
-        { return !(*this == other); }
+    HYP_FORCE_INLINE bool operator!=(const HashMap &other) const
+    {
+        if (Size() != other.Size()) {
+            return true;
+        }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Size() const
+        for (const auto &bucket : m_buckets) {
+            for (auto it = bucket.head; it != nullptr; it = it->next) {
+                const auto other_it = other.Find(it->pair.first);
+
+                if (other_it == other.End()) {
+                    return true;
+                }
+
+                if (other_it->second != it->pair.second) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE SizeType Size() const
         { return m_size; }
-
-    [[nodiscard]]
+ 
     HYP_FORCE_INLINE
     SizeType BucketCount() const
         { return m_buckets.Size(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Bucket(const KeyType &key) const
+    HYP_FORCE_INLINE SizeType Bucket(const KeyType &key) const
         { return HashCode::GetHashCode(key).Value() % m_buckets.Size(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    double LoadFactor() const
+    HYP_FORCE_INLINE double LoadFactor() const
         { return double(Size()) / double(BucketCount()); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static constexpr double MaxLoadFactor()
+    HYP_FORCE_INLINE static constexpr double MaxLoadFactor()
         { return desired_load_factor; }
 
     Iterator Find(const KeyType &key);
@@ -514,57 +476,43 @@ public:
 
     void Clear();
     
-    HYP_FORCE_INLINE
-    Iterator Begin()
+    HYP_FORCE_INLINE Iterator Begin()
         { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data(), m_buckets[0].head }); }
     
-    HYP_FORCE_INLINE
-    Iterator End()
+    HYP_FORCE_INLINE Iterator End()
         { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data() + m_buckets.Size(), nullptr }); }
     
-    HYP_FORCE_INLINE
-    ConstIterator Begin() const
+    HYP_FORCE_INLINE ConstIterator Begin() const
         { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data(), m_buckets[0].head }); }
     
-    HYP_FORCE_INLINE
-    ConstIterator End() const
+    HYP_FORCE_INLINE ConstIterator End() const
         { return ConstIterator(this, typename detail::HashBucket<KeyType, ValueType>::ConstIterator { m_buckets.Data() + m_buckets.Size(), nullptr }); }
     
-    HYP_FORCE_INLINE
-    Iterator begin()
+    HYP_FORCE_INLINE Iterator begin()
         { return Begin(); }
     
-    HYP_FORCE_INLINE
-    Iterator end()
+    HYP_FORCE_INLINE Iterator end()
         { return End(); }
     
-    HYP_FORCE_INLINE
-    ConstIterator begin() const
+    HYP_FORCE_INLINE ConstIterator begin() const
         { return Begin(); }
     
-    HYP_FORCE_INLINE
-    ConstIterator end() const
+    HYP_FORCE_INLINE ConstIterator end() const
         { return End(); }
     
-    HYP_FORCE_INLINE
-    ConstIterator cbegin() const
+    HYP_FORCE_INLINE ConstIterator cbegin() const
         { return Begin(); }
     
-    HYP_FORCE_INLINE
-    ConstIterator cend() const
+    HYP_FORCE_INLINE ConstIterator cend() const
         { return End(); }
 
 private:
     void CheckAndRebuildBuckets();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash)
+    HYP_FORCE_INLINE detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash)
         { return &m_buckets[hash % m_buckets.Size()]; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash) const
+    HYP_FORCE_INLINE const detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash) const
         { return &m_buckets[hash % m_buckets.Size()]; }
 
     void Set_Internal(Pair<KeyType, ValueType> &&pair);

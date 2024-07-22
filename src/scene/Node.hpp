@@ -154,6 +154,8 @@ struct NodeTag
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { return value.GetHashCode(); }
+
+    String ToString() const;
 };
 
 class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
@@ -610,7 +612,7 @@ public:
     void AddTag(Name key, const NodeTag &value);
 
     /*! \brief Remove a tag from this Node. */
-    void RemoveTag(Name key);
+    bool RemoveTag(Name key);
 
     /*! \brief Get a tag from this Node.
      *  \returns The tag with the given name. If the tag does not exist, an empty NodeTag is returned */

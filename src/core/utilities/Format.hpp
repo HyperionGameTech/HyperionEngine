@@ -60,6 +60,26 @@ struct Formatter< StringType, float >
     }
 };
 
+template <class StringType>
+struct Formatter< StringType, double >
+{
+    auto operator()(double value) const
+    {
+        memory::ByteBuffer byte_buffer;
+        byte_buffer.SetSize(10);
+
+        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+
+        if (result_size > byte_buffer.Size()) {
+            byte_buffer.SetSize(result_size);
+
+            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+        }
+
+        return StringType(byte_buffer.ToByteView());
+    }
+};
+
 // Enum specialization
 template <class StringType, class T>
 struct Formatter< StringType, T, std::enable_if_t< std::is_enum_v< T > > >

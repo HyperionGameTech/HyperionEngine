@@ -56,6 +56,9 @@ public:
 
     void AddChildUIObject(UIObject *ui_object, UIDockableItemPosition position);
 
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+
     virtual void Init() override;
     virtual void UpdateSize(bool update_children) override;
 
