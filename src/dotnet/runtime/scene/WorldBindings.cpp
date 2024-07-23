@@ -24,4 +24,10 @@ HYP_EXPORT hyperion::uint32 World_GetID(World *world)
 {
     return world->GetID().Value();
 }
+
+HYP_EXPORT SubsystemBase *World_GetSubsystem(World *world, hyperion::uint32 type_id)
+{
+    return world->GetSubsystem(TypeID { type_id });
+}
+
 } // extern "C"

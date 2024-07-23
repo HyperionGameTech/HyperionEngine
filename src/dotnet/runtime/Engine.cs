@@ -22,16 +22,25 @@ namespace Hyperion
 
         private IntPtr ptr;
 
-        private World world;
+        private World? world;
 
         public Engine(IntPtr ptr)
         {
             this.ptr = ptr;
 
-            this.world = new World(Engine_GetWorld(this.ptr));
+            IntPtr worldPtr = Engine_GetWorld(ptr);
+
+            if (worldPtr != IntPtr.Zero)
+            {
+                this.world = new World(worldPtr);
+            }
+            else
+            {
+                this.world = null;
+            }
         }
 
-        public World World
+        public World? World
         {
             get
             {

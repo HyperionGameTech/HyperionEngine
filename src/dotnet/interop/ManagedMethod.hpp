@@ -18,9 +18,7 @@ struct ManagedMethod
     ManagedGuid     guid;
     Array<String>   attribute_names;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HasAttribute(const char *attribute_name) const
+    HYP_FORCE_INLINE bool HasAttribute(const char *attribute_name) const
     {
         for (const String &name : attribute_names) {
             if (name == attribute_name) {

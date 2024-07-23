@@ -139,24 +139,19 @@ public:
     RenderList &operator=(RenderList &&other) noexcept  = default;
     ~RenderList();
 
-    HYP_FORCE_INLINE
-    const Handle<Camera> &GetCamera() const
+    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
-    HYP_FORCE_INLINE
-    void SetCamera(const Handle<Camera> &camera)
+    HYP_FORCE_INLINE void SetCamera(const Handle<Camera> &camera)
         { m_camera = camera; }
 
-    HYP_FORCE_INLINE
-    RenderEnvironment *GetRenderEnvironment() const
+    HYP_FORCE_INLINE RenderEnvironment *GetRenderEnvironment() const
         { return m_render_environment; }
 
-    HYP_FORCE_INLINE
-    void SetRenderEnvironment(RenderEnvironment *render_environment)
+    HYP_FORCE_INLINE void SetRenderEnvironment(RenderEnvironment *render_environment)
         { m_render_environment = render_environment; }
 
-    HYP_FORCE_INLINE
-    const RC<EntityDrawCollection> &GetEntityCollection() const
+    HYP_FORCE_INLINE const RC<EntityDrawCollection> &GetEntityCollection() const
         { return m_draw_collection; }
 
     /*! \brief Pushes an entity to the RenderList.

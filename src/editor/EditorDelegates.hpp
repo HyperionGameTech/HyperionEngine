@@ -33,7 +33,6 @@ public:
     EditorDelegates &operator=(EditorDelegates &&other)         = delete;
     ~EditorDelegates()                                          = default;
 
-
     void AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, Name, ConstAnyRef> &&proc);
     void RemoveNodeWatcher(Name watcher_key);
 

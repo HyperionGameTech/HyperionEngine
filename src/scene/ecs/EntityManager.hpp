@@ -808,11 +808,12 @@ public:
     }
 
     template <class SystemType, class ...Args>
-    HYP_FORCE_INLINE
-    SystemType *AddSystem(Args &&... args)
+    HYP_FORCE_INLINE SystemType *AddSystem(Args &&... args)
     {
         return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>(new SystemType(*this, std::forward<Args>(args)...))));
     }
+
+    void Initialize();
 
     void BeginUpdate(GameCounter::TickUnit delta);
     void EndUpdate();
@@ -904,6 +905,8 @@ private:
     FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
     EntityManagerCommandQueue                                               m_command_queue;
     Array<SystemExecutionGroup>                                             m_system_execution_groups;
+
+    bool                                                                    m_is_initialized;
 };
 
 } // namespace hyperion

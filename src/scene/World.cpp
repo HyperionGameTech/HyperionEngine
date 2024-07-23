@@ -2,6 +2,10 @@
 
 #include <scene/World.hpp>
 
+#ifdef HYP_EDITOR
+#include <editor/EditorSubsystem.hpp>
+#endif
+
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -32,6 +36,10 @@ World::World()
       m_detached_scenes(this),
       m_has_scene_updates(false)
 {
+#ifdef HYP_EDITOR
+    AddSubsystem<EditorSubsystem>();
+#endif
+
     AddSubsystem<WorldGridSubsystem>();
 }
 
@@ -159,6 +167,22 @@ void World::Update(GameCounter::TickUnit delta)
 
     for (Task<void> &task : update_subsystem_tasks) {
         task.Await();
+    }
+
+    for (uint32 index = 0; index < m_scenes.Size(); index++) {
+        if (!m_scenes[index].IsValid()) {
+            continue;
+        }
+
+        if (!m_scenes[index]->IsWorldScene()) {
+            continue;
+        }
+
+        if (RenderEnvironment *render_environment = m_scenes[index]->GetEnvironment()) {
+            HYP_NAMED_SCOPE_FMT("Update RenderEnvironment for Scene with ID #{}", m_scenes[index]->GetID().Value());
+
+            render_environment->Update(delta);
+        }
     }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES

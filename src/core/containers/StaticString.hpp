@@ -935,4 +935,7 @@ using containers::StaticString;
 
 } // namespace hyperion
 
+#define HYP_STATIC_STRING(text) \
+    ::hyperion::StaticString<sizeof(text)>(text)
+
 #endif

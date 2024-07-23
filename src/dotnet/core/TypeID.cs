@@ -32,6 +32,14 @@ namespace Hyperion
             }
         }
 
+        public bool IsValid
+        {
+            get
+            {
+                return value != 0;
+            }
+        }
+
         public static bool operator==(TypeID a, TypeID b)
         {
             return a.value == b.value;
@@ -66,6 +74,14 @@ namespace Hyperion
         {
             string typeName = typeof(T).Name;
 
+            TypeID value = new TypeID(0);
+            TypeID_FromString(typeName, out value);
+
+            return value;
+        }
+
+        public static TypeID FromString(string typeName)
+        {
             TypeID value = new TypeID(0);
             TypeID_FromString(typeName, out value);
 

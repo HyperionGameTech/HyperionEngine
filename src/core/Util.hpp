@@ -320,7 +320,7 @@ HYP_FORCE_INLINE
 constexpr std::remove_reference_t<T> &&Move(T &&value) noexcept
 {
     static_assert(std::is_lvalue_reference_v<T>, "T must be an lvalue reference to use Move()");
-    static_assert(!std::is_same_v<const T &, T &> , "T must not be const to use Move()");
+    static_assert(!std::is_same_v<const typename std::remove_reference_t<T> &, typename std::remove_reference_t<T> &> , "T must not be const to use Move()");
 
     return static_cast<std::remove_reference_t<T> &&>(value);
 }

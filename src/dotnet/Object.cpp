@@ -33,11 +33,11 @@ void *Object::InvokeMethod(const ManagedMethod *method_ptr, void **args_vptr, vo
     return m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->guid, m_managed_object.guid, args_vptr, return_value_vptr);
 }
 
-const ManagedMethod *Object::GetMethod(const String &method_name) const
+const ManagedMethod *Object::GetMethod(UTF8StringView method_name) const
 {
     m_class_ptr->EnsureLoaded();
 
-    auto it = m_class_ptr->GetMethods().Find(method_name);
+    auto it = m_class_ptr->GetMethods().FindAs(method_name);
 
     if (it == m_class_ptr->GetMethods().End()) {
         return nullptr;

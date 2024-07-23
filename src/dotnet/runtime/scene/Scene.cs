@@ -18,6 +18,7 @@ namespace Hyperion
 
             ManagedNode rootNode = new ManagedNode();
             Scene_GetRoot(this.handle, out rootNode);
+
             this.root = new Node(rootNode);
             this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
@@ -29,6 +30,7 @@ namespace Hyperion
 
             ManagedNode rootNode = new ManagedNode();
             Scene_GetRoot(this.handle, out rootNode);
+
             this.root = new Node(rootNode);
             this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
@@ -62,6 +64,21 @@ namespace Hyperion
             }
         }
 
+        public World? World
+        {
+            get
+            {
+                IntPtr worldPtr = Scene_GetWorld(handle);
+
+                if (worldPtr == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                return new World(worldPtr);
+            }
+        }
+
         public EntityManager EntityManager
         {
             get
@@ -76,6 +93,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Scene_Create")]
         private static extern void Scene_Create([Out] out ManagedHandle scene);
+
+        [DllImport("hyperion", EntryPoint = "Scene_GetWorld")]
+        private static extern IntPtr Scene_GetWorld(ManagedHandle scene);
 
         [DllImport("hyperion", EntryPoint = "Scene_GetRoot")]
         private static extern void Scene_GetRoot(ManagedHandle scene, [Out] out ManagedNode root);

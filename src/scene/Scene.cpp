@@ -187,6 +187,8 @@ void Scene::Init()
     InitObject(m_camera);
     m_render_list.SetCamera(m_camera);
 
+    m_entity_manager->Initialize();
+
     if (IsWorldScene()) {
         if (!m_tlas) {
             if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported() && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
@@ -313,11 +315,6 @@ void Scene::EndUpdate()
     AssertReady();
 
     m_entity_manager->EndUpdate();
-
-    if (IsWorldScene()) {
-        // update render environment
-        m_environment->Update(m_previous_delta);
-    }
 
     EnqueueRenderUpdates();
 }

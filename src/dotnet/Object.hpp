@@ -7,6 +7,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/containers/String.hpp>
+#include <core/utilities/StringView.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
@@ -62,7 +63,7 @@ public:
 
     template <class ReturnType, class... Args>
     HYP_FORCE_INLINE
-    ReturnType InvokeMethodByName(const String &method_name, Args &&... args)
+    ReturnType InvokeMethodByName(UTF8StringView method_name, Args &&... args)
     {
         const ManagedMethod *method_ptr = GetMethod(method_name);
         AssertThrowMsg(method_ptr != nullptr, "Method %s not found", method_name.Data());
@@ -71,7 +72,7 @@ public:
     }
 
 private:
-    const ManagedMethod *GetMethod(const String &method_name) const;
+    const ManagedMethod *GetMethod(UTF8StringView method_name) const;
     void *InvokeMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr);
 
     Class          *m_class_ptr;

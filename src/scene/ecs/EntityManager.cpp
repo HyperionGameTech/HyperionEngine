@@ -105,7 +105,8 @@ EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFla
     : m_owner_thread_mask(owner_thread_mask),
       m_scene(scene),
       m_flags(flags),
-      m_command_queue((owner_thread_mask & ThreadName::THREAD_GAME) ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE)
+      m_command_queue((owner_thread_mask & ThreadName::THREAD_GAME) ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE),
+      m_is_initialized(false)
 {
     AssertThrow(scene != nullptr);
 
@@ -126,6 +127,33 @@ EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFla
 EntityManager::~EntityManager()
 {
     GetEntityToEntityManagerMap().RemoveEntityManager(this);
+}
+
+void EntityManager::Initialize()
+{
+    // Threads::AssertOnThread(m_owner_thread_mask);
+    HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
+    AssertThrow(!m_is_initialized);
+
+    for (SystemExecutionGroup &group : m_system_execution_groups) {
+        for (auto &system_it : group.GetSystems()) {
+            for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it) {
+                const ID<Entity> entity = entities_it->first;
+                const TypeMap<ComponentID> &component_ids = entities_it->second.components;
+
+                if (system_it.second->IsEntityInitialized(entity)) {
+                    continue;
+                }
+
+                if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
+                    system_it.second->OnEntityAdded(entity);
+                }
+            }
+        }
+    }
+
+    m_is_initialized = true;
 }
 
 ID<Entity> EntityManager::AddEntity()
@@ -210,7 +238,9 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
     HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
 
-    // Threads::AssertOnThread(m_owner_thread_mask & other.m_owner_thread_mask);
+    // we could be on either entity manager owner thread
+    // @TODO Use appropriate mutexes to protect the entity sets
+    Threads::AssertOnThread(m_owner_thread_mask | other.m_owner_thread_mask);
 
     AssertThrow(entity.IsValid());
 
@@ -299,14 +329,16 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
 void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
 {
     HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    AssertThrow(entity.IsValid());
+    if (!entity.IsValid()) {
+        return;
+    }
 
-    Array<TypeID> component_type_ids;
-    component_type_ids.Reserve(component_ids.Size());
-
-    for (const auto &pair : component_ids) {
-        component_type_ids.PushBack(pair.first);
+    // If the EntityManager is initialized, notify systems of the entity being added
+    // otherwise, the systems will be notified when the EntityManager is initialized
+    if (!m_is_initialized) {
+        return;
     }
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
@@ -315,7 +347,7 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
                 continue;
             }
 
-            if (system_it.second->ActsOnComponents(component_type_ids, true)) {
+            if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
                 system_it.second->OnEntityAdded(entity);
             }
         }
@@ -325,19 +357,19 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
 void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
 {
     HYP_SCOPE;
-    
-    AssertThrow(entity.IsValid());
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    Array<TypeID> component_type_ids;
-    component_type_ids.Reserve(component_ids.Size());
+    if (!entity.IsValid()) {
+        return;
+    }
 
-    for (const auto &pair : component_ids) {
-        component_type_ids.PushBack(pair.first);
+    if (!m_is_initialized) {
+        return;
     }
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (system_it.second->ActsOnComponents(component_type_ids, true)) {
+            if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
                 system_it.second->OnEntityRemoved(entity);
             }
         }

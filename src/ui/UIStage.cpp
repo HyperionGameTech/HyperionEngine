@@ -130,6 +130,7 @@ void UIStage::Init()
         float(min_depth), float(max_depth)
     ));
 
+    g_engine->GetWorld()->AddScene(m_scene);
     InitObject(m_scene);
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
@@ -165,8 +166,8 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
 
     UIObject::Update_Internal(delta);
 
-    m_scene->BeginUpdate(delta);
-    m_scene->EndUpdate();
+    // m_scene->BeginUpdate(delta);
+    // m_scene->EndUpdate();
 
     for (auto &it : m_mouse_button_pressed_states) {
         it.second.held_time += delta;

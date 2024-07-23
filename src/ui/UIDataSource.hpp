@@ -374,10 +374,9 @@ struct UIDataSourceElementFactoryRegistration : public UIDataSourceElementFactor
 };
 
 } // namespace detail
+} // namespace hyperion
 
 #define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory) \
     static ::hyperion::detail::UIDataSourceElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) { new Factory() }
-
-} // namespace hyperion
 
 #endif

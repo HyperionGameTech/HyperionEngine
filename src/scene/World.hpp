@@ -39,7 +39,12 @@ public:
 
         RenderList &render_list = m_render_lists_by_id_index[scene_index];
         render_list.SetCamera(scene->GetCamera());
-        render_list.SetRenderEnvironment(scene->GetEnvironment());
+
+        if (scene->IsWorldScene()) {
+            render_list.SetRenderEnvironment(scene->GetEnvironment());
+        } else {
+            render_list.SetRenderEnvironment(nullptr);
+        }
 
         const uint render_list_index = m_num_render_lists.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
         m_render_lists[render_list_index] = &render_list;
@@ -166,39 +171,37 @@ public:
      */
     const Handle<Scene> &GetDetachedScene(ThreadID thread_id);
 
-    HYP_FORCE_INLINE
-    PhysicsWorld &GetPhysicsWorld()
+    HYP_FORCE_INLINE PhysicsWorld &GetPhysicsWorld()
         { return m_physics_world; }
 
-    HYP_FORCE_INLINE
-    const PhysicsWorld &GetPhysicsWorld() const
+    HYP_FORCE_INLINE const PhysicsWorld &GetPhysicsWorld() const
         { return m_physics_world; }
 
-    HYP_FORCE_INLINE
-    RenderListContainer &GetRenderListContainer()
+    HYP_FORCE_INLINE RenderListContainer &GetRenderListContainer()
         { return m_render_list_container; }
 
-    HYP_FORCE_INLINE
-    const RenderListContainer &GetRenderListContainer() const
+    HYP_FORCE_INLINE const RenderListContainer &GetRenderListContainer() const
         { return m_render_list_container; }
 
     template <class T>
-    HYP_FORCE_INLINE
-    T *AddSubsystem()
+    HYP_FORCE_INLINE T *AddSubsystem()
     {
         static_assert(std::is_base_of_v<Subsystem<T>, T>, "T must be a subclass of Subsystem<T>");
 
         return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), UniquePtr<T>(new T())));
     }
 
+    SubsystemBase *AddSubsystem(TypeID type_id, UniquePtr<SubsystemBase> &&subsystem);
+
     template <class T>
-    HYP_FORCE_INLINE
-    T *GetSubsystem()
+    HYP_FORCE_INLINE T *GetSubsystem()
     {
         static_assert(std::is_base_of_v<Subsystem<T>, T>, "T must be a subclass of Subsystem<T>");
 
         return static_cast<T *>(GetSubsystem(TypeID::ForType<T>()));
     }
+    
+    SubsystemBase *GetSubsystem(TypeID type_id);
 
     void AddScene(const Handle<Scene> &scene);
     void AddScene(Handle<Scene> &&scene);
@@ -216,16 +219,10 @@ public:
     void Render(Frame *frame);
 
 private:
-    SubsystemBase *AddSubsystem(TypeID type_id, UniquePtr<SubsystemBase> &&subsystem);
-    SubsystemBase *GetSubsystem(TypeID type_id);
-
     void UpdatePendingScenes();
 
     PhysicsWorld                        m_physics_world;
     RenderListContainer                 m_render_list_container;
-
-    // FlatMap<ThreadID, Handle<Scene>>    m_detached_scenes;
-    // Mutex                               m_detached_scenes_mutex;
 
     DetachedScenesContainer             m_detached_scenes;
 

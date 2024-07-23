@@ -93,8 +93,8 @@ void Game::Init_Internal()
 
         m_scene->SetIsAudioListener(true);
 
-        InitObject(m_scene);
         g_engine->GetWorld()->AddScene(m_scene);
+        InitObject(m_scene);
 
         // Call Init method (overridden)
         Init();

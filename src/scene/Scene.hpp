@@ -82,8 +82,7 @@ public:
     ~Scene();
 
     /*! \brief Get the thread ID that owns this Scene. */
-    HYP_FORCE_INLINE
-    ThreadID GetOwnerThreadID() const
+    HYP_FORCE_INLINE ThreadID GetOwnerThreadID() const
         { return m_owner_thread_id; }
 
     /*! \brief Set the thread ID that owns this Scene.
@@ -92,30 +91,24 @@ public:
     void SetOwnerThreadID(ThreadID owner_thread_id);
 
     /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Handle<Camera> &GetCamera() const
+    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
     /*! \brief Set the camera that is used to render this Scene. */
     void SetCamera(Handle<Camera> camera);
 
-    HYP_FORCE_INLINE
-    RenderList &GetRenderList()
+    HYP_FORCE_INLINE RenderList &GetRenderList()
         { return m_render_list; }
 
-    HYP_FORCE_INLINE
-    const RenderList &GetRenderList() const
+    HYP_FORCE_INLINE const RenderList &GetRenderList() const
         { return m_render_list; }
 
-    HYP_NODISCARD
-    NodeProxy FindNodeWithEntity(ID<Entity>) const;
+    HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity>) const;
 
-    HYP_NODISCARD
-    NodeProxy FindNodeByName(const String &) const;
+    HYP_NODISCARD NodeProxy FindNodeByName(const String &) const;
     
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
-    HYP_FORCE_INLINE
-    const TLASRef &GetTLAS() const
+    HYP_FORCE_INLINE const TLASRef &GetTLAS() const
         { return m_tlas; }
 
     /*! \brief Creates a top level acceleration structure for this Scene. If one already exists on this Scene,
@@ -124,14 +117,12 @@ public:
      */
     bool CreateTLAS();
 
-    HYP_FORCE_INLINE
-    const NodeProxy &GetRoot() const
+    HYP_FORCE_INLINE const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
     /*! \brief Set the root node of this Scene, discarding the current.
      *  \internal For internal use only. Should not be called from user code. */
-    HYP_FORCE_INLINE
-    void SetRoot(NodeProxy root)
+    HYP_FORCE_INLINE void SetRoot(NodeProxy root)
     {
         if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
             m_root_node_proxy->SetScene(nullptr);
@@ -144,24 +135,20 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE
-    const RC<EntityManager> &GetEntityManager() const
+    HYP_FORCE_INLINE const RC<EntityManager> &GetEntityManager() const
         { return m_entity_manager; }
 
-    HYP_FORCE_INLINE
-    Octree &GetOctree()
+    HYP_FORCE_INLINE Octree &GetOctree()
         { return m_octree; }
 
     HYP_FORCE_INLINE
     const Octree &GetOctree() const
         { return m_octree; }
 
-    HYP_FORCE_INLINE
-    RenderEnvironment *GetEnvironment() const
+    HYP_FORCE_INLINE RenderEnvironment *GetEnvironment() const
         { return m_environment.Get(); }
 
-    HYP_FORCE_INLINE
-    World *GetWorld() const
+    HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
 
     void SetWorld(World *world);
@@ -170,20 +157,17 @@ public:
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
-    HYP_FORCE_INLINE
-    bool IsWorldScene() const
+    HYP_FORCE_INLINE bool IsWorldScene() const
         { return !m_is_non_world_scene; }
 
-    HYP_FORCE_INLINE
-    bool IsAudioListener() const
+    HYP_FORCE_INLINE bool IsAudioListener() const
         { return m_is_audio_listener; }
 
     HYP_FORCE_INLINE
     void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
 
-    HYP_FORCE_INLINE
-    const SceneDrawProxy &GetProxy() const
+    HYP_FORCE_INLINE const SceneDrawProxy &GetProxy() const
         { return m_proxy; }
 
     WorldGrid *GetWorldGrid() const;

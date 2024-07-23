@@ -102,8 +102,8 @@ public:
      *
      *  \return True if the method exists, otherwise false.
      */
-    bool HasMethod(const String &method_name) const
-        { return m_methods.Find(method_name) != m_methods.End(); }
+    bool HasMethod(UTF8StringView method_name) const
+        { return m_methods.FindAs(method_name) != m_methods.End(); }
 
     /*! \brief Get a method by name.
      *
@@ -111,9 +111,9 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    ManagedMethod *GetMethod(const String &method_name)
+    ManagedMethod *GetMethod(UTF8StringView method_name)
     {
-        auto it = m_methods.Find(method_name);
+        auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
             return nullptr;
         }
@@ -127,9 +127,9 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    const ManagedMethod *GetMethod(const String &method_name) const
+    const ManagedMethod *GetMethod(UTF8StringView method_name) const
     {
-        auto it = m_methods.Find(method_name);
+        auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
             return nullptr;
         }
@@ -179,12 +179,12 @@ public:
     bool HasParentClass(const Class *parent_class) const;
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeStaticMethod(const String &method_name, Args &&... args)
+    ReturnType InvokeStaticMethod(UTF8StringView method_name, Args &&... args)
     {
         static_assert(std::is_void_v<ReturnType> || std::is_trivial_v<ReturnType>, "Return type must be trivial to be used in interop");
         static_assert(std::is_void_v<ReturnType> || std::is_object_v<ReturnType>, "Return type must be either a value type or a pointer type to be used in interop (no references)");
 
-        auto it = m_methods.Find(method_name);
+        auto it = m_methods.FindAs(method_name);
         AssertThrowMsg(it != m_methods.End(), "Method not found");
 
         const ManagedMethod &method_object = it->second;

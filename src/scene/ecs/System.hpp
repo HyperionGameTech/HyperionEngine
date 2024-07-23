@@ -74,7 +74,6 @@ public:
         return true;
     }
 
-
     /*! \brief Returns true if this System operates on the component with the given TypeID, false otherwise.
      *
      *  \param component_type_id The TypeID of the component to check.
