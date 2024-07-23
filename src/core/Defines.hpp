@@ -278,6 +278,13 @@
     #define HYP_BREAKPOINT           (void(0))
 #endif
 
+#ifdef HYP_DEBUG_MODE
+    #define HYP_PRINT_STACK_TRACE() \
+        ::hyperion::LogStackTrace()
+#else
+    #define HYP_PRINT_STACK_TRACE()
+#endif
+
 #pragma endregion Debugging
 
 #pragma region Error Handling
@@ -288,6 +295,7 @@
     #ifdef HYP_DEBUG_MODE
         #define HYP_THROW(msg) \
             do { \
+                HYP_PRINT_STACK_TRACE(); \
                 HYP_BREAKPOINT; \
                 std::terminate(); \
             } while (0)
@@ -373,11 +381,13 @@
 #pragma region Engine Static Configuration
 
 #define HYP_FEATURES_PARALLEL_RENDERING 1
+// #define HYP_ENABLE_PROFILE
 
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
 #ifdef HYP_DEBUG_MODE
+    #define HYP_ENABLE_MT_CHECK
     // #define HYP_LOG_MEMORY_OPERATIONS
     // #define HYP_LOG_DESCRIPTOR_SET_UPDATES
 
@@ -413,5 +423,15 @@
 #endif
 
 #pragma endregion Symbol Visibility
+
+#pragma region Global Forward Declarations
+
+namespace hyperion {
+
+extern HYP_API void LogStackTrace();
+
+} // namespace hyperion
+
+#pragma endregion Global Forward Declarations
 
 #endif // !HYPERION_DEFINES_HPP

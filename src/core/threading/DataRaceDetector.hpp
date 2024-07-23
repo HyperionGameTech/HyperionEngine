@@ -21,10 +21,6 @@
 
 #include <Types.hpp>
 
-#ifdef HYP_DEBUG_MODE
-    #define HYP_ENABLE_MT_CHECK
-#endif
-
 namespace hyperion {
 
 enum class DataAccessFlags : uint32

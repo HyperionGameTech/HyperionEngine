@@ -172,8 +172,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                     // Create RenderGroup
                     Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(
                         attributes,
-                        RenderGroupFlags::PARALLEL_RENDERING /* temporarily allow parallel rendering while debugging */
-                        //RenderGroupFlags::NONE /* disable parallel rendering, to preserve number of command buffers */
+                        RenderGroupFlags::NONE /* disable parallel rendering, to preserve number of command buffers */
                     );
 
                     HYP_LOG(UI, LogLevel::DEBUG, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());

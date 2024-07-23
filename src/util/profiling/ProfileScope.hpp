@@ -14,8 +14,6 @@
 
 #include <Types.hpp>
 
-#define HYP_ENABLE_PROFILE
-
 namespace hyperion {
 
 class ProfileScopeStack;

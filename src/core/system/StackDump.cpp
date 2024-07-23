@@ -2,6 +2,9 @@
 
 #include <core/system/StackDump.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -11,6 +14,9 @@
 #endif
 
 namespace hyperion {
+
+HYP_DEFINE_LOG_SUBCHANNEL(StackTrace, Core);
+
 namespace sys {
 
 static Array<String> CreatePlatformStackTrace(uint depth)
@@ -104,4 +110,11 @@ StackDump::StackDump(uint depth)
 }
 
 } // namespace sys
+
+// Implementation of global LogStackTrace() function from Defines.hpp
+HYP_API void LogStackTrace()
+{
+    HYP_LOG(StackTrace, LogLevel::DEBUG, "Stack trace:\n\n{}", sys::StackDump(10).ToString());
+}
+
 } // namespace hyperion

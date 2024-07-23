@@ -169,7 +169,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
 {
     renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
-    if (bucket == BUCKET_SWAPCHAIN) {
+    if (bucket == BUCKET_SWAPCHAIN || bucket == BUCKET_UI) {
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 
