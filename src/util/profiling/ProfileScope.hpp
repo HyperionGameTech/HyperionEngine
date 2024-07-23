@@ -14,7 +14,7 @@
 
 #include <Types.hpp>
 
-// #define HYP_ENABLE_PROFILE
+#define HYP_ENABLE_PROFILE
 
 namespace hyperion {
 

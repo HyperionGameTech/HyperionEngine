@@ -109,7 +109,11 @@ private:
 };
 #else
 
-class DataRaceDetector { };
+class DataRaceDetector
+{
+public:
+    class DataAccessScope { };
+};
 
 #endif
 

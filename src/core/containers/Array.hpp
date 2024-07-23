@@ -1201,13 +1201,15 @@ auto Array<T, NumInlineBytes>::Erase(ConstIterator iter) -> Iterator
     auto *buffer = GetStorage();
 
     for (SizeType index = dist; index < size_offset - 1; ++index) {
-        if constexpr (std::is_move_assignable_v<T>) {
+        /*if constexpr (std::is_move_assignable_v<T>) {
             buffer[m_start_offset + index].Get() = std::move(buffer[m_start_offset + index + 1].Get());
-        } else if constexpr (std::is_move_constructible_v<T>) {
+        } else*/ if constexpr (std::is_move_constructible_v<T>) {
             Memory::Destruct(buffer[m_start_offset + index].Get());
             Memory::Construct<T>(&buffer[m_start_offset + index].data_buffer, std::move(buffer[m_start_offset + index + 1].Get()));
         } else {
-            buffer[m_start_offset + index].Get() = buffer[m_start_offset + index + 1].Get();
+            Memory::Destruct(buffer[m_start_offset + index].Get());
+            Memory::Construct<T>(&buffer[m_start_offset + index].data_buffer, buffer[m_start_offset + index + 1].Get());
+            // buffer[m_start_offset + index].Get() = buffer[m_start_offset + index + 1].Get();
         }
     }
 

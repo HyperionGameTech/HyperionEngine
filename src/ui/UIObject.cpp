@@ -1608,7 +1608,6 @@ void UIObject::SetNodeProxy(NodeProxy node_proxy)
     }
 }
 
-
 const NodeTag &UIObject::GetNodeTag(Name key) const
 {
     static const NodeTag empty_tag { };

@@ -94,16 +94,14 @@ public:
         return m_entities.At(id);
     }
 
-    HYP_FORCE_INLINE
-    Iterator Find(ID<Entity> id)
+    HYP_FORCE_INLINE Iterator Find(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.Find(id);
     }
 
-    HYP_FORCE_INLINE
-    ConstIterator Find(ID<Entity> id) const
+    HYP_FORCE_INLINE ConstIterator Find(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 

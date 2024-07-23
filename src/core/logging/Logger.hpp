@@ -213,7 +213,7 @@ using logging::LogLevel;
         } while (0)
 #else
     #define HYP_LOG(channel, level, fmt, ...) \
-        hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, hyperion::StaticString(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
+        hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
 
     #define HYP_LOG_ONCE(channel, level, fmt, ...) \
         do { \

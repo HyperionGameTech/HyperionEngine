@@ -9,6 +9,9 @@
 
 #include <math/MathUtil.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 #include <vulkan/vulkan.h>
@@ -171,17 +174,9 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
                 continue;
             }
 
-            DebugLog(
-                LogType::Debug,
-                "Set element %s.%s[%u] (slot: %d, count: %u, size: %u, is_dynamic: %d)\n",
-                decl_ptr->name.LookupString(),
-                descriptor.name.LookupString(),
-                descriptor_index,
-                int(descriptor.slot),
-                descriptor.count,
-                descriptor.size,
-                descriptor.is_dynamic
-            );
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
+                decl_ptr->name, descriptor.name, descriptor_index, int(descriptor.slot),
+                descriptor.count, descriptor.size, descriptor.is_dynamic);
 
             switch (descriptor.slot) {
             case DescriptorSlot::DESCRIPTOR_SLOT_SRV:

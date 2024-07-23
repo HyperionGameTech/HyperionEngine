@@ -30,8 +30,8 @@ void UIMenuItem::Init()
     UIObject::Init();
 
     RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
-    text_element->SetParentAlignment(UIObjectAlignment::CENTER);
-    text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
+    text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
     text_element->SetText(m_text);
     m_text_element = text_element;
@@ -235,7 +235,6 @@ void UIMenuBar::Init()
     UIPanel::Init();
 
     m_container = GetStage()->CreateUIObject<UIPanel>(NAME("MenuItemContents"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 250, UIObjectSize::PIXEL }));
-    m_container->SetBackgroundColor(Color(0xFF0000FFu)); // temp
     m_container->SetIsVisible(false);
     m_container->SetBorderFlags(UIObjectBorderFlags::NONE);
     m_container->SetBorderRadius(0);

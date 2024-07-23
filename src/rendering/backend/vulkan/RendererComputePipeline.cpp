@@ -4,6 +4,10 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <core/system/Debug.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <math/MathUtil.hpp>
 #include <math/Transform.hpp>
 
@@ -104,38 +108,19 @@ Result ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
     const Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-    DebugLog(
-        LogType::Debug,
-        "Using %llu descriptor set layouts in pipeline\n",
-        used_layouts.Size()
-    );
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
 
     for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
-        DebugLog(
-            LogType::Debug,
-            "\tDescriptor set layout: %s (%u)\n",
-            descriptor_set->GetLayout().GetName().LookupString(),
-            descriptor_set->GetLayout().GetDeclaration().set_index
-        );
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "\tDescriptor set layout: {} ({})",
+            descriptor_set->GetLayout().GetName(), descriptor_set->GetLayout().GetDeclaration().set_index);
 
         for (const auto &it : descriptor_set->GetLayout().GetElements()) {
-            DebugLog(
-                LogType::Debug,
-                "\t\tDescriptor: %s  binding: %u\n",
-                it.first.LookupString(),
-                it.second.binding
-            );
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "\t\tDescriptor: {}  binding: {}",
+                it.first, it.second.binding);
         }
     }
     
     if (used_layouts.Size() > max_set_layouts) {
-        DebugLog(
-            LogType::Debug,
-            "Device max bound descriptor sets exceeded (%llu > %u)\n",
-            used_layouts.Size(),
-            max_set_layouts
-        );
-
         return { Result::RENDERER_ERR, "Device max bound descriptor sets exceeded" };
     }
 

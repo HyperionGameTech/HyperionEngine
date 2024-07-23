@@ -503,6 +503,14 @@ public:
     using Base = TaskBase;
     using TaskExecutorType = TaskExecutorInstance<void, Args...>;
 
+    // Default constructor, sets task as invalid
+    Task()
+        : TaskBase({ }, nullptr),
+          m_executor(nullptr),
+          m_owns_executor(false)
+    {
+    }
+
     Task(TaskID id, SchedulerBase *assigned_scheduler, TaskExecutorType *executor, bool owns_executor)
         : TaskBase(id, assigned_scheduler),
           m_executor(executor),

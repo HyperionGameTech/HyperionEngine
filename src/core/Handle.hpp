@@ -136,77 +136,61 @@ struct Handle : HandleBase
         }
     }
     
-    HYP_FORCE_INLINE
-    T *operator->() const
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
     
-    HYP_FORCE_INLINE
-    T &operator*()
+    HYP_FORCE_INLINE T &operator*()
         { return *Get(); }
     
-    HYP_FORCE_INLINE
-    const T &operator*() const
+    HYP_FORCE_INLINE const T &operator*() const
         { return *Get(); }
     
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return !IsValid(); }
     
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(const Handle &other) const
+    HYP_FORCE_INLINE bool operator==(const Handle &other) const
         { return index == other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const Handle &other) const
+    HYP_FORCE_INLINE bool operator!=(const Handle &other) const
         { return index != other.index; }
     
     /*! \brief Compare two handles by their index.
      *  \param other The handle to compare to.
      *  \return True if the handle is less than the other handle. */
-    HYP_FORCE_INLINE
-    bool operator<(const Handle &other) const
+    HYP_FORCE_INLINE bool operator<(const Handle &other) const
         { return index < other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator==(const IDType &id) const
+    HYP_FORCE_INLINE bool operator==(const IDType &id) const
         { return index == id.Value(); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const IDType &id) const
+    HYP_FORCE_INLINE bool operator!=(const IDType &id) const
         { return index != id.Value(); }
 
-    HYP_FORCE_INLINE
-    bool operator<(const IDType &id) const
+    HYP_FORCE_INLINE bool operator<(const IDType &id) const
         { return index < id.Value(); }
     
     /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
      *  \return True if the handle is valid. */
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return index != 0; }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
-    HYP_FORCE_INLINE
-    IDType GetID() const
+    HYP_FORCE_INLINE IDType GetID() const
         { return { uint(index) }; }
     
     /*! \brief Get a pointer to the object that the handle is referencing.
      *  \return A pointer to the object. */
-    HYP_FORCE_INLINE
-    T *Get() const
+    HYP_FORCE_INLINE T *Get() const
     {
         if (index == 0) {
             return nullptr;
@@ -218,8 +202,7 @@ struct Handle : HandleBase
     /*! \brief Reset the handle to an empty state.
      *  \details This will decrement the strong reference count of the object that the handle is referencing.
      *  The index is set to 0. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (index != 0) {
             GetContainer().DecRefStrong(index - 1);
@@ -228,16 +211,13 @@ struct Handle : HandleBase
         index = 0;
     }
     
-    HYP_FORCE_INLINE
-    static Name GetTypeName()
+    HYP_FORCE_INLINE static Name GetTypeName()
         { return HandleDefinition<T>::GetNameForType(); }
     
-    HYP_FORCE_INLINE
-    static constexpr const char *GetClassNameString()
+    HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
     
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(GetTypeName().GetHashCode());

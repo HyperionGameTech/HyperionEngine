@@ -1600,8 +1600,8 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    // batch->Add("test_model", "models/sponza/sponza.obj");
-    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    batch->Add("test_model", "models/sponza/sponza.obj");
+    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
     HYP_LOG(Editor, LogLevel::DEBUG, "Loading assets, scene ID = {}", GetScene()->GetID().Value());
@@ -1618,11 +1618,10 @@ void HyperionEditor::Init()
 
     batch->OnComplete.Bind([this](AssetMap &results)
     {
-#if 0
+#if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
-        GetScene()->GetRoot()->AddChild(node);
 
-        node.Scale(0.0125f);
+        node.Scale(0.02f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -1634,8 +1633,8 @@ void HyperionEditor::Init()
             });
 
             m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
-                node.GetLocalAABB() * 1.0f,
-                node.GetWorldAABB() * 1.0f
+                node.GetLocalAABB() * 1.05f,
+                node.GetWorldAABB() * 1.05f
             });
 
             // Add env grid component
@@ -1648,7 +1647,7 @@ void HyperionEditor::Init()
             env_grid_node.SetName("EnvGrid");
         }
 
-        GetScene()->GetRoot().AddChild(node);
+        GetScene()->GetRoot()->AddChild(node);
         
         for (auto &node : node.GetChildren()) {
             if (auto child_entity = node.GetEntity()) {

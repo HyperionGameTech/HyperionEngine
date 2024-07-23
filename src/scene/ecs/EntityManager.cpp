@@ -164,6 +164,8 @@ ID<Entity> EntityManager::AddEntity()
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
     
     const uint32 index = Handle<Entity>::GetContainer().NextIndex();
+    Handle<Entity>::GetContainer().ConstructAtIndex(index);
+    
     const ID<Entity> entity = ID<Entity>::FromIndex(index);
 
     GetEntityToEntityManagerMap().Add(entity, this);

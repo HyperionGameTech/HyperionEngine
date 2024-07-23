@@ -17,8 +17,7 @@
 
 #include <type_traits>
 
-//#define HYP_OBJECT_POOL_DEBUG
-
+// #define HYP_OBJECT_POOL_DEBUG
 namespace hyperion {
 
 class Engine;
