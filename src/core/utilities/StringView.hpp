@@ -77,9 +77,9 @@ private:
         HYP_FORCE_INLINE IteratorBase &operator++()
         {
             if constexpr (is_utf8) {
-                uint8 num_bytes;
-                utf::char8to32(ptr, sizeof(utf::u32char), num_bytes);
-                ptr += num_bytes;
+                int cp;
+                utf::char8to32(ptr, sizeof(utf::u32char), cp);
+                ptr += cp;
             } else {
                 ++ptr;
             }
@@ -90,10 +90,10 @@ private:
         HYP_FORCE_INLINE IteratorBase operator++(int) const
         {
             if constexpr (is_utf8) {
-                uint8 num_bytes;
-                utf::char8to32(ptr, sizeof(utf::u32char), num_bytes);
+                int cp;
+                utf::char8to32(ptr, sizeof(utf::u32char), cp);
 
-                return { ptr + num_bytes };
+                return { ptr + cp };
             } else {
                 return { ptr + 1 };
             }
@@ -147,9 +147,9 @@ public:
           m_end(nullptr),
           m_length(0)
     {
-        int num_bytes = 0;
-        m_length = utf::utf_strlen< CharType, is_utf8 >(str, num_bytes);
-        m_end = m_begin + num_bytes;
+        int cp = 0;
+        m_length = utf::utf_strlen< CharType, is_utf8 >(str, cp);
+        m_end = m_begin + cp;
     }
 
     constexpr StringView(const CharType *_begin, const CharType *_end)
@@ -270,7 +270,7 @@ public:
 #endif
 
         if constexpr (is_utf8) {
-            return utf::utf8_charat(Data(), size, index);
+            return utf::utf8_charat(reinterpret_cast<const utf::u8char *>(Data()), size, index);
         } else {
             return *(Data() + index);
         }
@@ -293,10 +293,6 @@ public:
 
     constexpr StringView Substr(SizeType first, SizeType last) const
     {
-        if (first == SizeType(-1)) {
-            return *this;
-        }
-
         first = MathUtil::Min(first, m_length);
         last = MathUtil::Min(MathUtil::Max(last, first), m_length);
 

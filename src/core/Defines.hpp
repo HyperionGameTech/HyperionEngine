@@ -118,6 +118,8 @@
 
 #pragma region Utility Macros
 
+#define HYP_ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 #define HYP_STR(x) #x
 #define HYP_METHOD(method) HYP_STR(method)
 

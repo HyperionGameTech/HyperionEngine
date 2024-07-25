@@ -119,7 +119,7 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
      *  \param path The path to the value.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<const JSONValue> Get(const String &path) const;
+    JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const;
 };
 
 template <>
@@ -214,7 +214,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param path The path to the value.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<JSONValue> Get(const String &path);
+    JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path);
 
     /*! \brief Get a value within the JSON object using a path (e.g. "key1.key2.key3").
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
@@ -222,7 +222,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param path The path to the value.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<const JSONValue> Get(const String &path) const;
+    JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const;
 
     /*! \brief Set a value within the JSON object using a path.
      *  (e.g. "key1.key2.key3"). If the value is not an object, the value is not set. If the path does not exist, it is created.
@@ -230,7 +230,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param path The path to the value.
      *  \param value The value to set.
      */
-    void Set(const String &path, const JSONValue &value);
+    void Set(UTF8StringView path, const JSONValue &value);
 };
 
 class HYP_API JSONValue
@@ -615,13 +615,13 @@ public:
     HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const
         { return JSONSubscriptWrapper<const JSONValue>(this)[key]; }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> Get(const String &path)
+    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path)
         { return JSONSubscriptWrapper<JSONValue>(this).Get(path); }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> Get(const String &path) const
+    HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const
         { return JSONSubscriptWrapper<const JSONValue>(this).Get(path); }
 
-    HYP_FORCE_INLINE void Set(const String &path, const JSONValue &value)
+    HYP_FORCE_INLINE void Set(UTF8StringView path, const JSONValue &value)
         { JSONSubscriptWrapper<JSONValue>(this).Set(path, value); }
 
 private:

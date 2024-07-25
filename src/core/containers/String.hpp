@@ -94,7 +94,7 @@ public:
     String();
     String(const String &other);
     String(const CharType *str);
-    String(const CharType *str, int max_len);
+    String(const CharType *_begin, const CharType *_end);
     explicit String(const CharArray<CharType> &char_array);
     explicit String(ConstByteView byte_view);
 
@@ -122,11 +122,7 @@ public:
     HYP_FORCE_INLINE String &operator=(utilities::detail::StringView<other_string_type> string_view)
     {
         Clear();
-        Reserve(string_view.Size());
-
-        for (typename utilities::detail::StringView<other_string_type>::WidestCharType it : string_view) {
-            Append(it);
-        }
+        Append(string_view.Data(), string_view.Data() + string_view.Size());
 
         return *this;
     }
@@ -135,10 +131,7 @@ public:
     HYP_FORCE_INLINE String &operator=(const String<other_string_type> &other)
     {
         Clear();
-        Reserve(other.Size());
-        for (SizeType i = 0; i < other.Length(); i++) {
-            Append(other.GetChar(i));
-        }
+        Append(other.Data(), other.Data() + other.Size());
 
         return *this;
     }
@@ -258,18 +251,85 @@ public:
     HYP_FORCE_INLINE void Refit()
         { Base::Refit(); }
 
-    void Append(const String &other);
-    void Append(String &&other);
-    void Append(const CharType *str);
-    void Append(CharType value);
-    
-    template <class LargeCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<LargeCharType, CharType> && (std::is_same_v<LargeCharType, u32char> || std::is_same_v<LargeCharType, u16char> || std::is_same_v<LargeCharType, wchar_t>), int>>
-    HYP_FORCE_INLINE void Append(LargeCharType ch)
-    {
-        char parts[4] = { '\0' };
-        utf::char32to8(ch, parts);
+    HYP_FORCE_INLINE void Append(const String &other);
+    HYP_FORCE_INLINE void Append(String &&other);
+    HYP_FORCE_INLINE void Append(CharType value);
 
-        Append(parts);
+    HYP_FORCE_INLINE void Append(const CharType *str);
+    HYP_FORCE_INLINE void Append(const CharType *_begin, const CharType *_end);
+
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    HYP_FORCE_INLINE void Append(const OtherCharType *str)
+    {
+        const int size = utf::utf_strlen<OtherCharType, false>(str);
+
+        Append(str, str + size);
+    }
+
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    HYP_FORCE_INLINE void Append(const OtherCharType *_begin, const OtherCharType *_end)
+    {
+        // const int size = utf::utf_strlen<OtherCharType, false>(str);
+
+        // const SizeType size = SizeType(_end - _begin);
+
+        if constexpr (std::is_same_v<OtherCharType, u32char>) {
+            const uint32 len = utf::utf32_to_utf8(_begin, _end, nullptr);
+
+            if (len == 0) {
+                return;
+            }
+
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
+            utf::utf32_to_utf8(_begin, _end, buffer.Data());
+
+            for (SizeType i = 0; i < buffer.Size(); i++) {
+                Append(CharType(buffer[i]));
+            }
+        } else if constexpr (std::is_same_v<OtherCharType, u16char>) {
+            const uint32 len = utf::utf16_to_utf8(_begin, _end, nullptr);
+
+            if (len == 0) {
+                return;
+            }
+
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
+            utf::utf16_to_utf8(_begin, _end, buffer.Data());
+
+            for (SizeType i = 0; i < buffer.Size(); i++) {
+                Append(CharType(buffer[i]));
+            }
+        } else if constexpr (std::is_same_v<OtherCharType, wchar_t>) {
+            const uint32 len = utf::wide_to_utf8(_begin, _end, nullptr);
+
+            if (len == 0) {
+                return;
+            }
+
+            Array<utf::u8char> buffer;
+            buffer.Resize(len + 1);
+            utf::wide_to_utf8(_begin, _end, buffer.Data());
+
+            for (SizeType i = 0; i < buffer.Size(); i++) {
+                Append(CharType(buffer[i]));
+            }
+        } else {
+            static_assert(resolution_failure<OtherCharType>, "Invalid character type");
+        }
+    }
+    
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    HYP_FORCE_INLINE void Append(OtherCharType ch)
+    {
+        int cp = 0;
+        utf::u8char buffer[sizeof(utf::u32char) + 1] = { '\0' };
+        utf::char32to8(static_cast<utf::u32char>(ch), &buffer[0], cp);
+
+        for (int i = 0; i < cp; i++) {
+            Append(CharType(buffer[i]));
+        }
     }
 
     /*template <int other_string_type>
@@ -302,8 +362,8 @@ public:
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separator_values { WidestCharType(separators)... };
 
-        const auto *data = Base::Data();
-        const auto size = Size();
+        const CharType *data = Base::Data();
+        const SizeType size = Size();
 
         Array<String> tokens;
 
@@ -312,7 +372,7 @@ public:
 
         if (!is_utf8 || m_length == size) {
             for (SizeType i = 0; i < size; i++) {
-                const auto ch = data[i];
+                const CharType ch = data[i];
 
                 if (separator_values.Contains(ch)) {
                     tokens.PushBack(std::move(working_string));
@@ -324,38 +384,23 @@ public:
             }
         } else {
             for (SizeType i = 0; i < size;) {
-                uint8 num_bytes = 0;
+                int cp = 0;
 
-                union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
-                char_u32 = 0;
-
-                char_u32 = utf::char8to32(
-                    Data() + i,
+                const utf::u32char char_32 = utf::char8to32(
+                    data + i,
                     MathUtil::Min(sizeof(utf::u32char), size - i),
-                    num_bytes
+                    cp
                 );
 
-                i += SizeType(num_bytes);
+                i += cp;
 
-                if (separator_values.Contains(char_u32)) {
+                if (separator_values.Contains(char_32)) {
                     tokens.PushBack(std::move(working_string));
 
                     continue;
                 }
-                
-                working_string.Append(char_u8[0]);
 
-                if (num_bytes >= 2) {
-                    working_string.Append(char_u8[1]);
-                }
-                
-                if (num_bytes >= 3) {
-                    working_string.Append(char_u8[2]);
-                }
-
-                if (num_bytes == 4) {
-                    working_string.Append(char_u8[3]);
-                }
+                working_string.Append(char_32);
             }
         }
 
@@ -394,12 +439,11 @@ public:
             if (it != container.End() - 1) {
                 if constexpr (is_utf8 && std::is_same_v<utf::u32char, decltype(separator)>) {
                     int separator_length = 0;
-                    char separator_bytes[sizeof(utf::u32char)] = { '\0' };
-
+                    utf::u8char separator_bytes[sizeof(utf::u32char) + 1] = { '\0' };
                     utf::char32to8(separator, separator_bytes, separator_length);
 
 #ifdef HYP_DEBUG_MODE
-                    AssertThrow(separator_length <= sizeof(separator_bytes) / sizeof(separator_bytes[0]));
+                    AssertThrow(separator_length <= HYP_ARRAY_SIZE(separator_bytes));
 #endif
 
                     for (int separator_byte_index = 0; separator_byte_index < separator_length; separator_byte_index++) {
@@ -665,8 +709,8 @@ String<StringType>::String(const CharType *str)
         return;
     }
     
-    int num_bytes;
-    const int len = utf::utf_strlen<CharType, is_utf8>(str, num_bytes);
+    int cp;
+    const int len = utf::utf_strlen<CharType, is_utf8>(str, cp);
 
     if (len == -1) {
         // invalid utf8 string
@@ -678,48 +722,45 @@ String<StringType>::String(const CharType *str)
 
     m_length = len;
     
-    // reserves + 1 for null char
-    Reserve(num_bytes);
+    Base::Resize(cp + 1);
 
-    for (int i = 0; i < num_bytes; ++i) {
-        Base::PushBack(str[i]);
+    CharType *data = Data();
+
+    for (int i = 0; i < cp; ++i) {
+        data[i] = str[i];
     }
-    
-    // null-terminated char
-    Base::PushBack(CharType { 0 });
 }
 
 template <int StringType>
-String<StringType>::String(const CharType *str, int max_len)
-    : Base(),
-      m_length(0)
+String<StringType>::String(const CharType *_begin, const CharType *_end)
+    : String()
 {
-    if (str == nullptr) {
+    if (_begin >= _end) {
         return;
     }
 
-    int num_bytes;
-    const int len = MathUtil::Min(utf::utf_strlen<CharType, is_utf8>(str, num_bytes), max_len);
+    const SizeType cp = SizeType(_end - _begin);
 
-    if (len == -1) {
-        // invalid utf8 string
-        // push back null terminated char
-        Base::PushBack(CharType { 0 });
+    if constexpr (is_utf8) {
+        const int len = utf::utf8_strlen(_begin, _end);
 
-        return;
-    }
+        if (len == -1) {
+            // invalid utf8 string
+            return;
+        }
 
-    m_length = len;
-    
-    // reserves + 1 for null char
-    Reserve(num_bytes);
-
-    for (int i = 0; i < num_bytes; ++i) {
-        Base::PushBack(str[i]);
+        m_length = len;
+    } else {
+        m_length = cp;
     }
     
-    // null-terminated char
-    Base::PushBack(CharType { 0 });
+    Base::Resize(cp + 1);
+
+    CharType *data = Data();
+
+    for (int i = 0; i < cp; ++i) {
+        data[i] = _begin[i];
+    }
 }
 
 template <int StringType>
@@ -940,7 +981,7 @@ auto String<StringType>::GetChar(SizeType index) const -> WidestCharType
 #endif
 
     if constexpr (is_utf8) {
-        return utf::utf8_charat(Data(), size, index);
+        return utf::utf8_charat(reinterpret_cast<const utf::u8char *>(Data()), size, index);
     } else {
         return Base::operator[](index);
     }
@@ -1002,6 +1043,12 @@ template <int StringType>
 void String<StringType>::Append(const CharType *str)
 {
     Append(String(str));
+}
+
+template <int StringType>
+void String<StringType>::Append(const CharType *_begin, const CharType *_end)
+{
+    Append(String(_begin, _end));
 }
 
 template <int StringType>
@@ -1079,7 +1126,7 @@ auto String<StringType>::ToLower() const -> String
 
     for (SizeType i = 0; i < Size();) {
         if constexpr (is_utf8) {
-            uint8 num_bytes = 0;
+            int cp = 0;
 
             union
             {
@@ -1088,12 +1135,12 @@ auto String<StringType>::ToLower() const -> String
             };
 
             // evil union byte magic
-            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), num_bytes);
+            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), cp);
             char_i32 = std::tolower(char_i32);
 
             result.Append(char_u32);
 
-            i += SizeType(num_bytes);
+            i += cp;
         } else {
             result.Append(std::tolower(result[i]));
 
@@ -1242,17 +1289,17 @@ String<StringType> String<StringType>::Escape() const
         }
     } else {
         for (SizeType i = 0; i < size;) {
-            uint8 num_bytes = 0;
+            int cp = 0;
 
             union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
             
             char_u32 = utf::char8to32(
                 Data() + i,
                 MathUtil::Min(sizeof(utf::u32char), size - i),
-                num_bytes
+                cp
             );
 
-            i += SizeType(num_bytes);
+            i += cp;
 
             switch (char_u32) {
             case uint32('\n'):
@@ -1288,15 +1335,15 @@ String<StringType> String<StringType>::Escape() const
             default:
                 result.Append(char_u8[0]);
 
-                if (num_bytes >= 2) {
+                if (cp >= 2) {
                     result.Append(char_u8[1]);
                 }
                 
-                if (num_bytes >= 3) {
+                if (cp >= 3) {
                     result.Append(char_u8[2]);
                 }
 
-                if (num_bytes == 4) {
+                if (cp == 4) {
                     result.Append(char_u8[3]);
                 }
 

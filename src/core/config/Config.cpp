@@ -97,7 +97,7 @@ ConfigurationTable::ConfigurationTable(const String &config_name)
     }
 }
 
-const ConfigurationValue &ConfigurationTable::Get(const String &key) const
+const ConfigurationValue &ConfigurationTable::Get(UTF8StringView key) const
 {
     if (m_is_dirty.Get(MemoryOrder::RELAXED)) {
         Mutex::Guard guard(m_mutex);
@@ -107,6 +107,7 @@ const ConfigurationValue &ConfigurationTable::Get(const String &key) const
         m_is_dirty.Set(false, MemoryOrder::RELAXED);
     }
 
+    // @FIXME: this is not threadsafe - whatif another thread is here while the current thread is setting m_root_static
     auto select_result = m_root_static.Get(key);
 
     if (select_result.value != nullptr) {
@@ -116,7 +117,7 @@ const ConfigurationValue &ConfigurationTable::Get(const String &key) const
     return g_invalid_configuration_value;
 }
 
-void ConfigurationTable::Set(const String &key, const ConfigurationValue &value)
+void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue &value)
 {
     Mutex::Guard guard(m_mutex);
 

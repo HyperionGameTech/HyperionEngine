@@ -43,7 +43,7 @@ void Lexer::Analyze()
         const SourceLocation location = m_source_location;
 
         SkipWhitespace();
-        
+
         if (token && !token.IsContinuationToken()) {
             // skip whitespace before next token
             SkipWhitespace();
@@ -146,7 +146,7 @@ Token Lexer::NextToken()
         int pos_change = 0;
         utf::u32char bad_token = m_source_stream.Next(pos_change);
 
-        char bad_token_str[5] = { '\0' };
+        utf::u8char bad_token_str[sizeof(utf::u32char) + 1] = { '\0' };
         utf::char32to8(bad_token, bad_token_str);
         
         m_compilation_unit->GetErrorList().AddError(CompilerError(
@@ -169,10 +169,10 @@ u32char Lexer::ReadEscapeCode()
 
     if (HasNext()) {
         int pos_change = 0;
-        u32char esc = m_source_stream.Next(pos_change);
+        utf::u32char esc = m_source_stream.Next(pos_change);
         m_source_location.GetColumn() += pos_change;
 
-        char esc_utf8[5] = { '\0' };
+        utf::u8char esc_utf8[sizeof(utf::u32char) + 1] = { '\0' };
         utf::char32to8(esc, esc_utf8);
 
         // TODO: add support for unicode escapes
@@ -192,7 +192,7 @@ u32char Lexer::ReadEscapeCode()
                 LEVEL_ERROR,
                 Msg_unrecognized_escape_sequence,
                 location,
-                String("\\") + esc_utf8
+                String("\\") + reinterpret_cast<const String::CharType *>(esc_utf8)
             ));
         }
     }
@@ -483,24 +483,26 @@ Token Lexer::ReadDocumentation()
     }
 
     u32char previous = 0;
+
     while (HasNext()) {
-        if (m_source_stream.Peek() == (u32char)'/' && previous == (u32char)'*') {
+        if (m_source_stream.Peek() == u32char('/') && previous == u32char('*')) {
             int pos_change = 0;
             m_source_stream.Next(pos_change);
             m_source_location.GetColumn() += pos_change;
             break;
         } else {
-            char ch[5] = { '\0' };
+            utf::u8char ch[sizeof(utf::u32char) + 1] = { '\0' };
             utf::char32to8(m_source_stream.Peek(), ch);
             // append value
-            value += ch;
+            value += reinterpret_cast<const String::CharType *>(ch);
             
-            if (m_source_stream.Peek() == (u32char)'\n') {
+            if (m_source_stream.Peek() == u32char('\n')) {
                 // just reset column and increment line
                 m_source_location.GetColumn() = 0;
                 m_source_location.GetLine()++;
             }
         }
+
         int pos_change = 0;
         previous = m_source_stream.Next(pos_change);
         m_source_location.GetColumn() += pos_change;

@@ -5,10 +5,41 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <math/MathUtil.hpp>
+
 namespace hyperion {
 namespace json {
 
 #pragma region Helpers
+
+static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView::CharType separator)
+{
+    Array<UTF8StringView> tokens;
+
+    uint32 current_index = 0;
+    uint32 start_index = 0;
+    uint32 end_index = 0;
+
+    for (utf::u32char ch : view) {
+        if (ch == separator) {
+            tokens.PushBack(view.Substr(start_index, current_index));
+
+            current_index++;
+            start_index = current_index;
+
+            continue;
+        }
+
+        current_index++;
+    }
+
+    if (start_index != current_index) {
+        tokens.PushBack(view.Substr(start_index, current_index));
+    }
+    
+
+    return tokens;
+} 
 
 static String GetIndentationString(uint32 depth)
 {
@@ -40,13 +71,13 @@ static String GetIndentationString(uint32 depth)
 }
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<String> parts, bool create_intermediate_objects = false);
+JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects = false);
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<String> parts);
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts);
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<String> parts, bool create_intermediate_objects)
+JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects)
 {
     if (parts.Size() == 0) {
         return subscript_wrapper;
@@ -84,7 +115,7 @@ JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper,
 }
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<String> parts)
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts)
 {
     if (parts.Size() == 0) {
         return subscript_wrapper;
@@ -336,35 +367,33 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[
     return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointer<decltype(this)>>(this)->operator[](key).value };
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(const String &path)
+JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path)
 {
     if (!value) {
         return *this;
     }
 
-    Array<String> parts = path.Split('.');
-
-    return SelectHelper(*this, parts.ToSpan());
+    return SelectHelper(*this, SplitStringView(path, '.').ToSpan());
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(const String &path) const
+JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path) const
 {
     return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointer<decltype(this)>>(this)->Get(path).value };
 }
 
-void JSONSubscriptWrapper<JSONValue>::Set(const String &path, const JSONValue &value)
+void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &value)
 {
     if (!value) {
         return;
     }
 
-    Array<String> parts = path.Split('.');
+    Array<UTF8StringView> parts = SplitStringView(path, '.');
 
     if (parts.Empty()) {
         return;
     }
 
-    const String key = parts.PopBack();
+    UTF8StringView key = parts.PopBack();
 
     JSONValue *target = this->value;
 
@@ -549,15 +578,13 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
     return { nullptr };
 }
 
-JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get(const String &path) const
+JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get(UTF8StringView path) const
 {
     if (!value) {
         return *this;
     }
 
-    Array<String> parts = path.Split('.');
-
-    return SelectHelper(*this, parts.ToSpan());
+    return SelectHelper(*this, SplitStringView(path, '.').ToSpan());
 }
 
 #pragma endregion JSONSubscriptWrapper<const JSONValue>
@@ -691,7 +718,7 @@ private:
 
             Expect(TokenClass::TK_CLOSE_BRACE, true);
         }
-
+        
         return object;
     }
 
@@ -762,7 +789,7 @@ private:
 
     Token MatchIdentifier(const String &value, bool read)
     {
-        const Token token = Match(TokenClass::TK_IDENT, read);
+        const Token token = Match(TokenClass::TK_IDENT, false);
 
         if (!token) {
             return Token::EMPTY;
@@ -770,6 +797,11 @@ private:
 
         if (token.GetValue() != value) {
             return Token::EMPTY;
+        }
+
+        if (read && m_token_stream->HasNext()) {
+            // read the token since it was matched
+            m_token_stream->Next();
         }
 
         return token;
@@ -787,6 +819,11 @@ private:
                 ErrorMessage::Msg_expected_identifier,
                 location
             ));
+
+            // Skip the token
+            if (read && m_token_stream->HasNext()) {
+                m_token_stream->Next();
+            }
         }
 
         return token;
@@ -901,9 +938,11 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         return result;
     }
 
-    DebugLog(LogType::Warn, "Invalid JSON value type, <Invalid> will be written\n");
-
-    return "<Invalid>";
+    if (representation) {
+        return "\"<invalid value>\"";
+    } else {
+        return "<invalid value>";
+    }
 }
 
 #pragma endregion JSONValue
@@ -922,7 +961,8 @@ ParseResult JSON::Parse(const String &json_string)
 
     CompilationUnit unit;
 
-    const auto HandleErrors = [&]() -> ParseResult {
+    const auto HandleErrors = [&]() -> ParseResult
+    {
         AssertThrow(unit.GetErrorList().HasFatalErrors());
 
         String error_message;

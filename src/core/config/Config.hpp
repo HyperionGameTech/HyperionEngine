@@ -166,8 +166,8 @@ public:
     HYP_FORCE_INLINE const ConfigurationDataStore &GetDataStore() const
         { return m_data_store; }
 
-    const ConfigurationValue &Get(const String &key) const;
-    void Set(const String &key, const ConfigurationValue &value);
+    const ConfigurationValue &Get(UTF8StringView key) const;
+    void Set(UTF8StringView key, const ConfigurationValue &value);
 
     bool Save() const;
 
