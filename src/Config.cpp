@@ -6,12 +6,106 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/ByteWriter.hpp>
 
 namespace hyperion {
+
+#pragma region Option
+
+int Option::GetInt() const
+{
+    if (auto *ptr = TryGet<int>()) {
+        return *ptr;
+    }
+
+    if (auto *ptr = TryGet<float>()) {
+        return static_cast<int>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<bool>()) {
+        return static_cast<int>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<String>()) {
+        return StringUtil::Parse<int>(*ptr, 0);
+    }
+
+    return 0;
+}
+
+float Option::GetFloat() const
+{
+    if (auto *ptr = TryGet<int>()) {
+        return static_cast<float>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<float>()) {
+        return *ptr;
+    }
+
+    if (auto *ptr = TryGet<bool>()) {
+        return static_cast<float>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<String>()) {
+        return StringUtil::Parse<float>(*ptr, 0);
+    }
+
+    return 0.0f;
+}
+
+bool Option::GetBool() const
+{
+    if (auto *ptr = TryGet<int>()) {
+        return static_cast<bool>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<float>()) {
+        return static_cast<bool>(*ptr);
+    }
+
+    if (auto *ptr = TryGet<bool>()) {
+        return *ptr;
+    }
+
+    if (auto *ptr = TryGet<String>()) {
+        const String trimmed = ptr->Trimmed().ToLower();
+
+        return trimmed == "true" || GetInt() != 0;
+    }
+
+    return false;
+}
+
+String Option::GetString() const
+{
+    if (auto *ptr = TryGet<int>()) {
+        return HYP_FORMAT("{}", *ptr);
+    }
+
+    if (auto *ptr = TryGet<float>()) {
+        return HYP_FORMAT("{}", *ptr);
+    }
+
+    if (auto *ptr = TryGet<bool>()) {
+        return HYP_FORMAT("{}", *ptr);
+    }
+
+    if (auto *ptr = TryGet<String>()) {
+        return *ptr;
+    }
+
+    return String::empty;
+}
+
+#pragma endregion Option
+
+#pragma region Configuration
 
 const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_DEBUG_MODE, "DebugMode" },
@@ -24,6 +118,7 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_SSR, "ScreenSpaceReflections" },
     { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
     { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
+    { CONFIG_ENV_GRID_GI_MODE, "EnvGridGlobalIlluminationMode" },
     { CONFIG_HBAO, "HBAO" },
     { CONFIG_HBIL, "HBIL" },
     { CONFIG_TEMPORAL_AA, "TemporalAA" },
@@ -109,7 +204,7 @@ bool Configuration::LoadFromDefinitionsFile()
                 }
             }
 
-            m_variables[option_name] = value;
+            m_variables[option_name] = std::move(value);
         }
     }
 
@@ -118,26 +213,37 @@ bool Configuration::LoadFromDefinitionsFile()
 
 bool Configuration::SaveToDefinitionsFile()
 {
+    static const String default_section_name = "Default";
+    
+    // for (Option &option : m_variables) {
+    //     if (!(option.GetFlags() & OptionFlags::SAVE)) {
+    //         continue;
+    //     }
+
+    //     String value_string = "false";
+
+    //     if (option.IsValid()) {
+    //         value_string = option.GetString();
+    //     }
+
+    //     m_ini_file
+    //         .GetSection(default_section_name)
+    //         .Set()
+    // }
+
     String str_result = "[Default]\n";
 
     for (uint index = CONFIG_NONE + 1; index < CONFIG_MAX; index++) {
         const Option &option = m_variables[index];
 
-        if (!option.GetIsSaved()) {
+        if (!(option.GetFlags() & OptionFlags::SAVE)) {
             continue;
         }
 
         String value_string = "false";
 
         if (option.IsValid()) {
-            if (option.Is<bool>()) {
-                value_string = option.GetBool() ? "true" : "false";
-            } else if (option.Is<int>()) {
-                value_string = String::ToString(option.GetInt());
-            } else if (option.Is<float>()) {
-                // TODO!
-                //value_string = String::ToString(option.GetFloat());
-            }
+            value_string = option.GetString();
         }
 
         str_result += OptionNameToString(OptionName(index)) + " = " + value_string + "\n";
@@ -172,13 +278,13 @@ void Configuration::SetToDefaultConfiguration()
 #endif
     
     m_variables[CONFIG_RT_ENABLED] = Option(g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported() && g_engine->GetGPUDevice()->GetFeatures().IsRaytracingEnabled(), true);
-    m_variables[CONFIG_RT_REFLECTIONS] = Option(m_variables[CONFIG_RT_ENABLED], true);
-    m_variables[CONFIG_RT_GI] = Option(m_variables[CONFIG_RT_ENABLED], true);
+    m_variables[CONFIG_RT_REFLECTIONS] = Option(m_variables[CONFIG_RT_ENABLED].GetBool(), true);
+    m_variables[CONFIG_RT_GI] = Option(m_variables[CONFIG_RT_ENABLED].GetBool(), true);
 
     m_variables[CONFIG_HBAO] = Option(true, true);
-    m_variables[CONFIG_HBIL] = Option(m_variables[CONFIG_HBAO], true);
+    m_variables[CONFIG_HBIL] = Option(m_variables[CONFIG_HBAO].GetBool(), true);
     
-    m_variables[CONFIG_SSR] = Option(!m_variables[CONFIG_RT_REFLECTIONS], true);
+    m_variables[CONFIG_SSR] = Option(!m_variables[CONFIG_RT_REFLECTIONS].GetBool(), true);
 
     m_variables[CONFIG_TEMPORAL_AA] = Option(true, true);
 
@@ -194,5 +300,7 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_DEBUG_REFLECTION_PROBES] = Option(false, true);
     m_variables[CONFIG_DEBUG_ENV_GRID_PROBES] = Option(false, true);
 }
+
+#pragma endregion Configuration
 
 } // namespace hyperion

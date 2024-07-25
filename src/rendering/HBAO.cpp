@@ -85,7 +85,7 @@ void HBAO::Destroy()
 void HBAO::CreatePass()
 {
     ShaderProperties shader_properties;
-    shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
+    shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL).GetBool());
 
     ShaderRef hbao_shader = g_shader_manager->GetOrCreate(
         NAME("HBAO"),

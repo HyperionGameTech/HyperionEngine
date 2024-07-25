@@ -7,7 +7,6 @@
 #include <core/HypClassRegistry.hpp>
 #include <core/ID.hpp>
 
-#include <core/utilities/StringView.hpp>
 #include <core/utilities/TypeID.hpp>
 
 #include <rendering/backend/Platform.hpp>

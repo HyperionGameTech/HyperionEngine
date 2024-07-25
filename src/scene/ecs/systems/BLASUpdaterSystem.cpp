@@ -87,7 +87,7 @@ void BLASUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         return;
     }
 
@@ -125,7 +125,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         return;
     }
 
@@ -142,7 +142,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         return;
     }
 

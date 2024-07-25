@@ -3,6 +3,7 @@
 #ifndef HYPERION_INI_FILE_HPP
 #define HYPERION_INI_FILE_HPP
 
+#include <core/Defines.hpp>
 #include <core/containers/HashMap.hpp>
 
 #include <asset/BufferedByteReader.hpp>
@@ -11,7 +12,7 @@
 
 namespace hyperion {
 
-class INIFile
+class HYP_API INIFile
 {
 public:
     struct Element
@@ -40,6 +41,21 @@ public:
                 ? elements[index]
                 : Element::empty;
         }
+
+        void SetValue(Element value)
+        {
+            elements.Clear();
+            elements.PushBack(std::move(value));
+        }
+
+        void SetValue(SizeType index, Element value)
+        {
+            if (index >= elements.Size()) {
+                elements.Resize(index + 1);
+            }
+
+            elements[index] = std::move(value);
+        }
     };
 
     using Section = HashMap<String, Value>;
@@ -47,19 +63,19 @@ public:
     INIFile(const FilePath &path);
     ~INIFile() = default;
 
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return m_is_valid; }
 
-    const FilePath &GetFilePath() const
+    HYP_FORCE_INLINE const FilePath &GetFilePath() const
         { return m_path; }
 
-    const HashMap<String, Section> &GetSections() const
+    HYP_FORCE_INLINE const HashMap<String, Section> &GetSections() const
         { return m_sections; }
 
-    bool HasSection(const String &key) const
+    HYP_FORCE_INLINE bool HasSection(UTF8StringView key) const
         { return m_sections.Contains(key); }
 
-    Section &GetSection(const String &key)
+    HYP_FORCE_INLINE Section &GetSection(UTF8StringView key)
         { return m_sections[key]; }
 
 private:

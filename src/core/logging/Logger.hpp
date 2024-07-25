@@ -22,6 +22,8 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/Util.hpp> // For HYP_PRETTY_FUNCTION_NAME
+
 namespace hyperion {
 
 enum class LogChannelFlags : uint32
@@ -63,32 +65,22 @@ public:
     ~LogChannel();
 
     /*! \brief Get the ID of this channel. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetID() const
+    HYP_FORCE_INLINE uint32 GetID() const
         { return m_id; }
 
     /*! \brief Get the name of this channel. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Name GetName() const
+    HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
 
     /*! \brief Get the flags for this channel. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    EnumFlags<LogChannelFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<LogChannelFlags> GetFlags() const
         { return m_flags; }
 
     /*! \brief Get a pointer to the parent channel, if one exists. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    LogChannel *GetParentChannel() const
+    HYP_FORCE_INLINE LogChannel *GetParentChannel() const
         { return m_parent_channel; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Bitset &GetMaskBitset() const
+    HYP_FORCE_INLINE const Bitset &GetMaskBitset() const
         { return m_mask_bitset; }
 
 private:

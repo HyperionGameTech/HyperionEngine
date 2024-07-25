@@ -10,7 +10,7 @@
 #include <core/containers/FixedArray.hpp>
 
 #include <core/Defines.hpp>
-#include <core/Util.hpp>
+#include <core/Util.hpp> // For HYP_PRETTY_FUNCTION_NAME
 
 #include <Types.hpp>
 

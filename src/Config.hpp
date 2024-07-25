@@ -4,6 +4,7 @@
 #define HYPERION_CONFIG_HPP
 
 #include <core/utilities/Variant.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FixedArray.hpp>
@@ -39,6 +40,7 @@ enum OptionName
     CONFIG_SSR,
 
     CONFIG_ENV_GRID_GI,
+    CONFIG_ENV_GRID_GI_MODE,
     CONFIG_ENV_GRID_REFLECTIONS,
     
     CONFIG_HBAO,
@@ -61,38 +63,55 @@ enum OptionName
     CONFIG_MAX
 };
 
-class Option : public Variant<bool, float, int>
+enum class OptionFlags : uint32
 {
-    using Base = Variant<bool, float, int>;
+    NONE    = 0x0,
+    SAVE    = 0x1,
+};
 
-    bool m_save = true;
+HYP_MAKE_ENUM_FLAGS(OptionFlags)
+
+class HYP_API Option : public Variant<bool, float, int, String>
+{
+    using Base = Variant<bool, float, int, String>;
+
+    EnumFlags<OptionFlags>  m_flags;
 
 public:
     Option()
-        : Base(false)
+        : Base(false),
+          m_flags(OptionFlags::SAVE)
     {
     }
 
-    Option(int int_value, bool save = true)
+    Option(int int_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
         : Base(int_value),
-          m_save(save)
+          m_flags(flags)
     {
     }
 
-    Option(float float_value, bool save = true)
+    Option(float float_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
         : Base(float_value),
-          m_save(save)
+          m_flags(flags)
     {
     }
 
-    Option(bool bool_value, bool save = true)
+    Option(bool bool_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
         : Base(bool_value),
-          m_save(save)
+          m_flags(flags)
+    {
+    }
+
+    Option(const String &string_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
+        : Base(string_value),
+          m_flags(flags)
     {
     }
 
     Option(const Option &other) = default;
     Option(Option &&other) noexcept = default;
+
+    ~Option() = default;
 
     Option &operator=(const Option &other)
         { Base::operator=(other); return *this; }
@@ -109,8 +128,8 @@ public:
             Base::Set(*ptr | other.GetInt());
         } else if (auto *ptr = TryGet<float>()) {
             Base::Set(static_cast<int>(*ptr) | other.GetInt());
-        } else if (auto *ptr = TryGet<bool>()) {
-            Base::Set(*ptr | other.GetBool());
+        } else {
+            Base::Set(GetBool() | other.GetBool());
         }
 
         return *this;
@@ -125,14 +144,14 @@ public:
             Base::Set(*ptr & other.GetInt());
         } else if (auto *ptr = TryGet<float>()) {
             Base::Set(static_cast<int>(*ptr) & other.GetInt());
-        } else if (auto *ptr = TryGet<bool>()) {
-            Base::Set(*ptr & other.GetBool());
+        } else {
+            Base::Set(GetBool() & other.GetBool());
         }
 
         return *this;
     }
 
-    Option operator~() const
+    HYP_FORCE_INLINE Option operator~() const
     {
         if (auto *ptr = TryGet<bool>()) {
             return Option(!*ptr);
@@ -141,79 +160,28 @@ public:
         return Option(~GetInt());
     }
 
-    Option operator!() const
+    HYP_FORCE_INLINE Option operator!() const
         { return Option(!GetBool()); }
 
-    ~Option() = default;
+    HYP_FORCE_INLINE EnumFlags<OptionFlags> GetFlags() const
+        { return m_flags; }
 
-    operator bool() const
+    explicit operator bool() const
         { return GetBool(); }
 
-    bool operator==(const Option &other) const
+    HYP_FORCE_INLINE bool operator==(const Option &other) const
         { return Base::operator==(other); }
 
-    bool operator!=(const Option &other) const
+    HYP_FORCE_INLINE bool operator!=(const Option &other) const
         { return Base::operator!=(other); }
 
-    int GetInt() const
-    {
-        if (auto *ptr = TryGet<int>()) {
-            return *ptr;
-        }
-
-        if (auto *ptr = TryGet<float>()) {
-            return static_cast<int>(*ptr);
-        }
-
-        if (auto *ptr = TryGet<bool>()) {
-            return static_cast<int>(*ptr);
-        }
-
-        return 0;
-    }
-
-    float GetFloat() const
-    {
-        if (auto *ptr = TryGet<int>()) {
-            return static_cast<float>(*ptr);
-        }
-
-        if (auto *ptr = TryGet<float>()) {
-            return *ptr;
-        }
-
-        if (auto *ptr = TryGet<bool>()) {
-            return static_cast<float>(*ptr);
-        }
-
-        return 0.0f;
-    }
-
-    bool GetBool() const
-    {
-        if (auto *ptr = TryGet<int>()) {
-            return static_cast<bool>(*ptr);
-        }
-
-        if (auto *ptr = TryGet<float>()) {
-            return static_cast<bool>(*ptr);
-        }
-
-        if (auto *ptr = TryGet<bool>()) {
-            return *ptr;
-        }
-
-        return false;
-    }
-
-    bool GetIsSaved() const
-        { return m_save; }
-
-    void SetIsSaved(bool save)
-        { m_save = save; }
+    int GetInt() const;
+    float GetFloat() const;
+    bool GetBool() const;
+    String GetString() const;
 };
 
-class Configuration
+class HYP_API Configuration
 {
     static const FlatMap<OptionName, String> option_name_strings;
 
@@ -231,32 +199,6 @@ public:
         return m_variables[uint(option)];
     }
 
-    // HYP_FORCE_INLINE Option &Get(OptionName option, ThreadType thread_type)
-    // {
-    //     return m_variables[uint(option)][thread_type];
-    // }
-
-    // HYP_FORCE_INLINE const Option &Get(OptionName option, ThreadType thread_type) const
-    // {
-    //     return m_variables[uint(option)][thread_type];
-    // }
-
-    // HYP_FORCE_INLINE Option &Get(OptionName option)
-    // {
-    //     ThreadType thread_type = Threads::GetThreadType();
-
-    //     if (thread_type == THREAD_TYPE_INVALID) {
-    //         thread_type = THREAD_TYPE_GAME;
-    //     }
-
-    //     return m_variables[uint(option)][thread_type];
-    // }
-
-    // HYP_FORCE_INLINE const Option &Get(OptionName option) const
-    // {
-    //     return const_cast<Configuration *>(this)->Get(option);
-    // }
-
     bool LoadFromDefinitionsFile();
     bool SaveToDefinitionsFile();
 
@@ -267,7 +209,7 @@ public:
     static bool IsRTOption(OptionName option);
 
 private:
-    FixedArray<Option, CONFIG_MAX> m_variables;
+    FixedArray<Option, CONFIG_MAX>  m_variables;
 };
 
 } // namespace hyperion

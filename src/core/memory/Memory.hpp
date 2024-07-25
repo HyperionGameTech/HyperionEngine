@@ -35,15 +35,26 @@ public:
         return std::strcmp(lhs, rhs);
     }
 
-    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs)
+    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs, SizeType length, SizeType index)
     {
         if (std::is_constant_evaluated())
         {
             return *lhs == *rhs
-                && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
+                && ((*lhs == '\0' || (!length || index >= length)) || AreStaticStringsEqual(lhs + 1, rhs + 1, length, index + 1));
         }
 
-        return StrCmp(lhs, rhs) == 0;
+        return StrCmp(lhs, rhs, length) == 0;
+    }
+
+    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs, SizeType length = 0)
+    {
+        if (std::is_constant_evaluated())
+        {
+            return *lhs == *rhs
+                && ((*lhs == '\0' || !length) || AreStaticStringsEqual(lhs + 1, rhs + 1, length, 1));
+        }
+
+        return StrCmp(lhs, rhs, length) == 0;
     }
 
     static char *StrCpy(char *dest, const char *src, SizeType length = 0)

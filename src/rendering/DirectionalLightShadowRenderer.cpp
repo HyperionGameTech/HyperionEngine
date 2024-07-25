@@ -639,7 +639,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         m_cached_view_matrix = m_camera->GetViewMatrix();
 
         // Force static objects to re-render for a few frames
-        m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(5);
+        m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(10);
 
         m_cached_view_matrix = m_camera->GetViewMatrix();
         m_cached_octant_hash_code_statics = octant_hash_statics;

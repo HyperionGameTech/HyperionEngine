@@ -5,7 +5,6 @@
 
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/Span.hpp>
-#include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/containers/TypeMap.hpp>

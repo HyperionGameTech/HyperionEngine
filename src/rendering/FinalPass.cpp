@@ -8,6 +8,8 @@
 
 #include <util/MeshBuilder.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 #define HYP_RENDER_UI_IN_COMPOSITE_PASS
@@ -79,22 +81,22 @@ CompositePass::~CompositePass() = default;
 
 void CompositePass::CreateShader()
 {
-    const Configuration &config = g_engine->GetConfig();
+    const config::ConfigurationTable &config = g_engine->GetAppContext()->GetConfiguration();
 
     ShaderProperties final_output_props;
-    final_output_props.Set("TEMPORAL_AA", config.Get(CONFIG_TEMPORAL_AA));
+    final_output_props.Set("TEMPORAL_AA", config.Get("rendering.taa.enabled").ToBool());
 
-    if (config.Get(CONFIG_DEBUG_SSR)) {
+    if (config.Get("rendering.debug.ssr").ToBool()) {
         final_output_props.Set("DEBUG_SSR");
-    } else if (config.Get(CONFIG_DEBUG_HBAO)) {
+    } else if (config.Get("rendering.debug.hbao").ToBool()) {
         final_output_props.Set("DEBUG_HBAO");
-    } else if (config.Get(CONFIG_DEBUG_HBIL)) {
+    } else if (config.Get("rendering.debug.hbil").ToBool()) {
         final_output_props.Set("DEBUG_HBIL");
-    } else if (config.Get(CONFIG_DEBUG_REFLECTIONS)) {
+    } else if (config.Get("rendering.debug.reflections").ToBool()) {
         final_output_props.Set("DEBUG_REFLECTIONS");
-    } else if (config.Get(CONFIG_DEBUG_IRRADIANCE)) {
+    } else if (config.Get("rendering.debug.irradiance").ToBool()) {
         final_output_props.Set("DEBUG_IRRADIANCE");
-    } else if (config.Get(CONFIG_PATHTRACER)) {
+    } else if (config.Get("rendering.debug.path_tracer").ToBool()) {
         final_output_props.Set("PATHTRACER");
     }
 

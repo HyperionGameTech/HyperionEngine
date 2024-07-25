@@ -530,7 +530,7 @@ LightmapRenderer::LightmapRenderer(Name name)
 
 void LightmapRenderer::Init()
 {
-    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         // trace on GPU if the card supports ray tracing
         m_trace_mode = LIGHTMAP_TRACE_MODE_GPU;
     }

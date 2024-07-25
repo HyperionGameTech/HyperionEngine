@@ -8,9 +8,12 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/RendererDevice.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <core/system/AppContext.hpp>
 
 #include <util/BlueNoise.hpp>
 
@@ -109,20 +112,52 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : renderer::RenderCommand
 static ShaderProperties GetDeferredShaderProperties()
 {
     ShaderProperties properties;
-    properties.Set("RT_REFLECTIONS_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS));
-    properties.Set("RT_GI_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_GI));
-    properties.Set("SSR_ENABLED", g_engine->GetConfig().Get(CONFIG_SSR));
-    properties.Set("REFLECTION_PROBE_ENABLED", true);
-    properties.Set("ENV_GRID_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI));
-    properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
-    properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
-    properties.Set("LIGHT_RAYS_ENABLED", g_engine->GetConfig().Get(CONFIG_LIGHT_RAYS));
 
-    if (g_engine->GetConfig().Get(CONFIG_PATHTRACER)) {
+    properties.Set(
+        "RT_REFLECTIONS_ENABLED",
+        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
+    );
+
+    properties.Set(
+        "RT_GI_ENABLED",
+        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
+    );
+
+    properties.Set(
+        "SSR_ENABLED",
+        !g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
+            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool()
+    );
+
+    properties.Set("REFLECTION_PROBE_ENABLED", true);
+    
+    properties.Set(
+        "ENV_GRID_ENABLED",
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool()
+    );
+
+    properties.Set(
+        "HBIL_ENABLED",
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool()
+    );
+
+    properties.Set(
+        "HBAO_ENABLED",
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool()
+    );
+
+    properties.Set(
+        "LIGHT_RAYS_ENABLED",
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.light_rays.enabled").ToBool()
+    );
+
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()) {
         properties.Set("PATHTRACER");
-    } else if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
+    } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool()) {
         properties.Set("DEBUG_REFLECTIONS");
-    } else if (g_engine->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
+    } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.irradiance").ToBool()) {
         properties.Set("DEBUG_IRRADIANCE");
     }
 
@@ -471,7 +506,15 @@ void EnvGridPass::CreateShader()
 
         break;
     case EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE:
-        properties.Set("MODE_IRRADIANCE");
+        switch (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI_MODE).GetInt()) {
+        case 1:
+            properties.Set("MODE_IRRADIANCE_VOXEL");
+            break;
+        case 0: // fallthrough
+        default:
+            properties.Set("MODE_IRRADIANCE");
+            break;
+        }
 
         break;
     }
@@ -1181,16 +1224,26 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool do_particles = environment && environment->IsReady();
     const bool do_gaussian_splatting = false;//environment && environment->IsReady();
 
-    const bool use_ssr = g_engine->GetConfig().Get(CONFIG_SSR);
-    const bool use_rt_radiance = g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS) || g_engine->GetConfig().Get(CONFIG_PATHTRACER);
-    const bool use_ddgi = g_engine->GetConfig().Get(CONFIG_RT_GI);
-    const bool use_hbao = g_engine->GetConfig().Get(CONFIG_HBAO);
-    const bool use_hbil = g_engine->GetConfig().Get(CONFIG_HBIL);
-    const bool use_env_grid_irradiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI);
-    const bool use_env_grid_radiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS);
+    const bool use_ssr = !g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
+        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool();
+
+    const bool use_rt_radiance = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+        && (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
+            || g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
+
+    const bool use_ddgi = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool();
+    
+    const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
+    const bool use_hbil = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool();
+
+    const bool use_env_grid_irradiance = g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool();
+    const bool use_env_grid_radiance = g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool();
+
     const bool use_reflection_probes = g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
         || g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
-    const bool use_temporal_aa = g_engine->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
+
+    const bool use_temporal_aa = g_engine->GetAppContext()->GetConfiguration().Get("rendering.taa.enabled").ToBool() && m_temporal_aa != nullptr;
 
     if (use_temporal_aa) {
         ApplyCameraJitter();

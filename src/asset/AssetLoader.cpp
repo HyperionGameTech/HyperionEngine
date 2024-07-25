@@ -1,10 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <asset/AssetLoader.hpp>
 #include <asset/Assets.hpp>
 
 #include <core/logging/Logger.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

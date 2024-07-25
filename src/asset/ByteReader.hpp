@@ -6,7 +6,6 @@
 #include <math/MathUtil.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/Core.hpp>
-#include <core/Util.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

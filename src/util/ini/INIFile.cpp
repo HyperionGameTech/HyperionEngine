@@ -38,14 +38,22 @@ void INIFile::Parse()
     auto lines = reader.ReadAllLines();
 
     for (const auto &line : lines) {
-        const auto line_trimmed = line.TrimmedLeft();
+        String line_trimmed = line.TrimmedLeft();
 
-        if (line_trimmed.Empty()) {
-            continue;
+        FixedArray<SizeType, 2> comment_indices {
+            line_trimmed.FindIndex(";"),
+            line_trimmed.FindIndex("#")
+        };
+
+        if (comment_indices[1] < comment_indices[0]) {
+            comment_indices[0] = comment_indices[1];
         }
 
-        // comment
-        if (line_trimmed.GetChar(0) == '#') {
+        if (comment_indices[0] != String::not_found) {
+            line_trimmed = line_trimmed.Substr(0, comment_indices[0]);
+        }
+
+        if (line_trimmed.Empty()) {
             continue;
         }
 

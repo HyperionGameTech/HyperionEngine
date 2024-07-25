@@ -127,7 +127,9 @@ void RenderEnvironment::Init()
     
     m_rt_radiance.Reset(new RTRadianceRenderer(
         Extent2D { 1024, 1024 },
-        g_engine->GetConfig().Get(CONFIG_PATHTRACER) ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER : RT_RADIANCE_RENDERER_OPTION_NONE
+        g_engine->GetConfig().Get(CONFIG_PATHTRACER).GetBool()
+            ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
+            : RT_RADIANCE_RENDERER_OPTION_NONE
     ));
     
     if (m_tlas) {
@@ -212,7 +214,7 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
         m_ddgi.RenderProbes(frame);
         m_ddgi.ComputeIrradiance(frame);
 
-        if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
+        if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES).GetBool()) {
             for (const Probe &probe : m_ddgi.GetProbes()) {
                 g_engine->GetDebugDrawer().Sphere(probe.position);
             }
@@ -300,7 +302,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         m_render_components_pending_removal.Clear();
     }
 
-    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
             inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
 

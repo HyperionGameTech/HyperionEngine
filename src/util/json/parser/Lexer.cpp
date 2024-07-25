@@ -40,26 +40,21 @@ void Lexer::Analyze()
             m_token_stream->Push(token);
         }
 
-        // SkipWhitespace() returns true if there was a newline
         const SourceLocation location = m_source_location;
 
-        if (SkipWhitespace()) {
-            // add the `newline` statement terminator if not a continuation token
-            if (token && /*token.GetTokenClass() != TK_NEWLINE &&*/ !token.IsContinuationToken()) {
-                // skip whitespace before next token
-                SkipWhitespace();
+        SkipWhitespace();
+        
+        if (token && !token.IsContinuationToken()) {
+            // skip whitespace before next token
+            SkipWhitespace();
 
-                // check if next token is connected
-                if (m_source_stream.HasNext() && m_source_stream.Peek() != '\0') {
-                    auto peek = m_source_stream.Peek();
-                    if (peek == '{' || peek == '.') {
-                        // do not add newline
-                        continue;
-                    }
+            // check if next token is connected
+            if (m_source_stream.HasNext() && m_source_stream.Peek() != '\0') {
+                auto peek = m_source_stream.Peek();
+                if (peek == '{' || peek == '.') {
+                    // do not add newline
+                    continue;
                 }
-
-                // add newline
-                m_token_stream->Push(Token(TK_NEWLINE, "newline", location));
             }
         }
     }

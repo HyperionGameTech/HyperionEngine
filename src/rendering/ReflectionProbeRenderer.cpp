@@ -80,7 +80,7 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
 
     m_env_probe->Render(frame);
 
-    if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTION_PROBES)) {
+    if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTION_PROBES).GetBool()) {
         g_engine->GetDebugDrawer().ReflectionProbeSphere(
             m_env_probe->GetProxy().world_position,
             0.5f,

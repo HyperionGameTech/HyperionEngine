@@ -7,11 +7,19 @@
 #include <SDL2/SDL.h>
 
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/functional/Delegate.hpp>
+
 #include <core/filesystem/FilePath.hpp>
+
 #include <core/system/ArgParse.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
+
 #include <core/memory/Memory.hpp>
+
+#include <core/config/Config.hpp>
+
 #include <core/Defines.hpp>
 
 #include <input/Mouse.hpp>
@@ -121,13 +129,19 @@ public:
     AppContext(ANSIString name, const CommandLineArguments &arguments);
     virtual ~AppContext();
 
-    const ANSIString &GetAppName() const
+    HYP_FORCE_INLINE const ANSIString &GetAppName() const
         { return m_name; }
 
-    const CommandLineArguments &GetArguments() const
+    HYP_FORCE_INLINE const CommandLineArguments &GetArguments() const
         { return m_arguments; }
 
-    ApplicationWindow *GetMainWindow() const
+    HYP_FORCE_INLINE ConfigurationTable &GetConfiguration()
+        { return m_configuration; }
+
+    HYP_FORCE_INLINE const ConfigurationTable &GetConfiguration() const
+        { return m_configuration; }
+
+    HYP_FORCE_INLINE ApplicationWindow *GetMainWindow() const
         { return m_main_window.Get(); }
 
     void SetMainWindow(UniquePtr<ApplicationWindow> &&window);
@@ -145,6 +159,7 @@ protected:
     UniquePtr<ApplicationWindow>    m_main_window;
     ANSIString                      m_name;
     CommandLineArguments            m_arguments;
+    ConfigurationTable              m_configuration;
 };
 
 class HYP_API SDLAppContext : public AppContext

@@ -176,8 +176,7 @@ public:
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED
-    static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
     {   
         if constexpr (is_handle) {
             if (Handle<T> *handle_ptr = value.TryGet<Handle<T>>()) {
@@ -190,8 +189,7 @@ public:
         }
     }
 
-    HYP_DEPRECATED
-    AssetLoaderWrapper(AssetLoaderBase &loader)
+    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
     }
@@ -206,14 +204,12 @@ public:
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED
-    static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
     {   
         return value.Get<RC<T>>();
     }
 
-    HYP_DEPRECATED
-    AssetLoaderWrapper(AssetLoaderBase &loader)
+    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
     }
@@ -227,8 +223,7 @@ struct AssetLoaderWrapper<Node>
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED
-    static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
     {
         NodeProxy *result = value.TryGet<NodeProxy>();
 
@@ -243,8 +238,7 @@ struct AssetLoaderWrapper<Node>
         return *result;
     }
 
-    HYP_DEPRECATED
-    AssetLoaderWrapper(AssetLoaderBase &loader)
+    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
     {
     }

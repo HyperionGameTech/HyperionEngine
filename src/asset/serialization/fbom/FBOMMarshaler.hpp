@@ -32,8 +32,7 @@ public:
     virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const = 0;
 
 private:
-    HYP_DEPRECATED
-    FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const;
+    HYP_DEPRECATED FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const;
 };
 
 template <class T>

@@ -101,8 +101,6 @@ UITabView::UITabView(UIStage *parent, NodeProxy node_proxy)
     : UIPanel(parent, std::move(node_proxy), UIObjectType::TAB_VIEW),
       m_selected_tab_index(~0u)
 {
-    SetBorderRadius(5);
-    SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
 }
 
 void UITabView::Init()

@@ -123,37 +123,39 @@ constexpr inline bool utf32_isalpha(u32char ch)
 
 constexpr inline int utf8_strlen(const char *first, const char *last)
 {
-    int i;
     int count = 0;
-    const char *pos = first;
-    for (i = 0; pos != last; ++pos, ++count) {
-        unsigned char c = (unsigned char)*pos;
-        if (c >= 0 && c <= 127) i += 0;
-        else if ((c & 0xE0) == 0xC0) i += 1;
-        else if ((c & 0xF0) == 0xE0) i += 2;
-        else if ((c & 0xF8) == 0xF0) i += 3;
+    int byte_index = 0;
+
+    for (; first[byte_index] != '\0' && (first + byte_index) != last; count++) {
+        const char c = first[byte_index];
+
+        if (c >= 0 && c <= 127) byte_index += 1;
+        else if ((c & 0xE0) == 0xC0) byte_index += 2;
+        else if ((c & 0xF0) == 0xE0) byte_index += 3;
+        else if ((c & 0xF8) == 0xF0) byte_index += 4;
         else return -1;//invalid utf8
     }
-    
+
     return count;
 }
 
 constexpr inline int utf8_strlen(const char *first, const char *last, int &out_num_bytes)
 {
-    int i;
     int count = 0;
-    const char *pos = first;
-    for (i = 0; pos != last; ++pos, ++count) {
-        unsigned char c = (unsigned char)*pos;
-        if (c >= 0 && c <= 127) i += 0;
-        else if ((c & 0xE0) == 0xC0) i += 1;
-        else if ((c & 0xF0) == 0xE0) i += 2;
-        else if ((c & 0xF8) == 0xF0) i += 3;
+    int byte_index = 0;
+
+    for (; first[byte_index] != '\0' && (first + byte_index) != last; count++) {
+        const char c = first[byte_index];
+
+        if (c >= 0 && c <= 127) byte_index += 1;
+        else if ((c & 0xE0) == 0xC0) byte_index += 2;
+        else if ((c & 0xF0) == 0xE0) byte_index += 3;
+        else if ((c & 0xF8) == 0xF0) byte_index += 4;
         else return -1;//invalid utf8
     }
-    if (out_num_bytes) {
-        out_num_bytes = i;
-    }
+
+    out_num_bytes = byte_index;
+
     return count;
 }
 

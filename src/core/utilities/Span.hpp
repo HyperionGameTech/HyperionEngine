@@ -131,44 +131,37 @@ struct Span
 
     constexpr ~Span() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator==(const Span &other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const Span &other) const
         { return first == other.first && last == other.last; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator!=(const Span &other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const Span &other) const
         { return first != other.first || last != other.last; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator!() const
+    HYP_FORCE_INLINE constexpr bool operator!() const
         { return ptrdiff_t(last - first) <= 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr explicit operator bool() const
+    HYP_FORCE_INLINE constexpr explicit operator bool() const
         { return ptrdiff_t(last - first) > 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr T &operator[](SizeType index)
+    HYP_FORCE_INLINE constexpr T &operator[](SizeType index)
         { return first[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr const T &operator[](SizeType index) const
+    HYP_FORCE_INLINE constexpr const T &operator[](SizeType index) const
         { return first[index]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr SizeType Size() const
+    HYP_FORCE_INLINE Span operator+(ptrdiff_t amount) const
+        { return Span(first + amount, last); }
+
+    HYP_FORCE_INLINE constexpr SizeType Size() const
         { return SizeType(last - first); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr T *Data()
+    HYP_FORCE_INLINE constexpr T *Data()
         { return first; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr const T *Data() const
+    HYP_FORCE_INLINE constexpr const T *Data() const
         { return first; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Span Slice(SizeType offset, SizeType count) const
+    HYP_FORCE_INLINE Span Slice(SizeType offset, SizeType count) const
     {
         if (offset >= Size()) {
             return Span();
@@ -185,8 +178,7 @@ struct Span
         return Span(first + offset, first + offset + count);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
         { return HashCode::GetHashCode(reinterpret_cast<const char *>(Begin()), reinterpret_cast<const char *>(End())); }
 
     HYP_DEF_STL_BEGIN_END_CONSTEXPR(

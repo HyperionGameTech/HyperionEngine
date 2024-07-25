@@ -447,7 +447,7 @@ void EnvGrid::OnRender(Frame *frame)
         m_shader_data.probe_indices[index] = probe.GetID().ToIndex();
     }
 
-    if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES)) {
+    if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES).GetBool()) {
         // Debug draw
         for (uint index = 0; index < m_env_probe_collection.num_probes; index++) {
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);

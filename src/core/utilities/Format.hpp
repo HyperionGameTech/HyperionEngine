@@ -41,6 +41,15 @@ struct Formatter< StringType, T, std::enable_if_t< std::is_integral_v< T > > >
 };
 
 template <class StringType>
+struct Formatter< StringType, bool >
+{
+    auto operator()(bool value) const
+    {
+        return StringType(value ? "true" : "false");
+    }
+};
+
+template <class StringType>
 struct Formatter< StringType, float >
 {
     auto operator()(float value) const
@@ -110,13 +119,14 @@ struct Formatter< StringType, containers::detail::String< OtherStringType > >
 };
 
 template <class StringType, int OtherStringType>
-struct Formatter< StringType, utilities::StringView< OtherStringType > >
+struct Formatter< StringType, utilities::detail::StringView< OtherStringType > >
 {
-    auto operator()(const utilities::StringView< OtherStringType > &value) const
+    auto operator()(const utilities::detail::StringView< OtherStringType > &value) const
     {
-        return StringType(value.Data());
+        return StringType(value);
     }
 };
+
 namespace detail {
 template <class StringType, class T, auto FormatString>
 struct PrintfFormatter

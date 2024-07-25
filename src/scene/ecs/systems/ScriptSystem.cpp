@@ -85,7 +85,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
         }
     }
 
-    if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path)) {
+    if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path.Data())) {
         if (dotnet::Class *class_ptr = assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             HYP_LOG(Script, LogLevel::INFO, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
 

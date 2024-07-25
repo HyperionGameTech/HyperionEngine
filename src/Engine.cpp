@@ -166,12 +166,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_configuration.SetToDefaultConfiguration();
     m_configuration.LoadFromDefinitionsFile();
 
-    // save default configuration to file if
-    // anything changed from the loading process
-    if (!m_configuration.SaveToDefinitionsFile()) {
-        HYP_LOG(Config, LogLevel::ERR, "Failed to save configuration file");
-    }
-
     if (!m_shader_compiler.LoadShaderDefinitions()) {
         HYP_BREAKPOINT;
     }

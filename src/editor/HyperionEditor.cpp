@@ -52,6 +52,8 @@
 
 #include <core/system/SystemEvent.hpp>
 
+#include <core/config/Config.hpp>
+
 // temp
 #include <core/HypClass.hpp>
 #include <core/HypClassProperty.hpp>
@@ -394,7 +396,6 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-#if 1
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -402,27 +403,7 @@ void HyperionEditorImpl::CreateMainPanel()
             loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
         }
 
-
-        // auto game_tab_content_button = loaded_ui.Cast<UIStage>()->CreateUIObject<UIButton>(CreateNameFromDynamicString("Hello_world_button"), Vec2i { 100, 300 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
-        // // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
-        // // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
-        // game_tab_content_button->SetText("Hello");
-        // loaded_ui->AddChildUIObject(game_tab_content_button);
-
-        // auto test_image = loaded_ui.Cast<UIStage>()->CreateUIObject<UIImage>(NAME("Test_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        // test_image->SetTexture(AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg").Result());
-        // loaded_ui.Cast<UIStage>()->AddChildUIObject(test_image);
-        
         loaded_ui.Cast<UIStage>()->SetDefaultFontAtlas(font_atlas);
-
-        // auto main_menu = loaded_ui->FindChildUIObject(NAME("Main_MenuBar"));
-
-        // if (main_menu != nullptr) {
-        //     DebugLog(LogType::Debug, "Main menu: %u\n", uint(main_menu->GetType()));
-        // }
-
-        // DebugLog(LogType::Debug, "Loaded position: %d, %d\n", loaded_ui->GetPosition().x, loaded_ui->GetPosition().y);
-        // DebugLog(LogType::Debug, "Loaded UI: %s\n", *loaded_ui->GetName());
 
         if (RC<UIObject> scene_image_object = loaded_ui->FindChildUIObject(NAME("Scene_Image"))) {
             RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
@@ -528,214 +509,6 @@ void HyperionEditorImpl::CreateMainPanel()
             }).Detach();
         }
     }
-
-    return;
-#else
-
-    m_main_panel = GetUIStage()->CreateUIObject<UIPanel>(NAME("Main_Panel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }), true);
-
-    RC<UIMenuBar> menu_bar = GetUIStage()->CreateUIObject<UIMenuBar>(NAME("Sample_MenuBar"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
-    menu_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
-    menu_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-
-    RC<UIMenuItem> file_menu_item = menu_bar->AddMenuItem(NAME("File_Menu_Item"), "File");
-
-#if 0
-    file_menu_item->AddDropDownMenuItem({
-        NAME("New"),
-        "New",
-        []()
-        {
-            DebugLog(LogType::Debug, "New clicked!\n");
-        }
-    });
-
-    file_menu_item->AddDropDownMenuItem({
-        NAME("Open"),
-        "Open"
-    });
-
-    file_menu_item->AddDropDownMenuItem({
-        NAME("Save"),
-        "Save"
-    });
-
-    file_menu_item->AddDropDownMenuItem({
-        NAME("Save_As"),
-        "Save As..."
-    });
-
-    file_menu_item->AddDropDownMenuItem({
-        NAME("Exit"),
-        "Exit"
-    });
-#endif
-
-    RC<UIMenuItem> edit_menu_item = menu_bar->AddMenuItem(NAME("Edit_Menu_Item"), "Edit");
-
-#if 0
-    edit_menu_item->AddDropDownMenuItem({
-        NAME("Undo"),
-        "Undo"
-    });
-
-    edit_menu_item->AddDropDownMenuItem({
-        NAME("Redo"),
-        "Redo"
-    });
-
-    edit_menu_item->AddDropDownMenuItem({
-        NAME("Cut"),
-        "Cut"
-    });
-
-    edit_menu_item->AddDropDownMenuItem({
-        NAME("Copy"),
-        "Copy"
-    });
-
-    edit_menu_item->AddDropDownMenuItem({
-        NAME("Paste"),
-        "Paste"
-    });
-#endif
-
-    RC<UIMenuItem> tools_menu_item = menu_bar->AddMenuItem(NAME("Tools_Menu_Item"), "Tools");
-    // tools_menu_item->AddDropDownMenuItem({ NAME("Build_Lightmap"), "Build Lightmaps" });
-
-    RC<UIMenuItem> view_menu_item = menu_bar->AddMenuItem(NAME("View_Menu_Item"), "View");
-    // view_menu_item->AddDropDownMenuItem({ NAME("Content_Browser"), "Content Browser" });
-    
-    RC<UIMenuItem> window_menu_item = menu_bar->AddMenuItem(NAME("Window_Menu_Item"), "Window");
-    // window_menu_item->AddDropDownMenuItem({ NAME("Reset_Layout"), "Reset Layout" });
-
-    m_main_panel->AddChildUIObject(menu_bar);
-#endif
-
-#if 1
-    RC<UIDockableContainer> dockable_container = GetUIStage()->CreateUIObject<UIDockableContainer>(NAME("Dockable_Container"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 768-30, UIObjectSize::PIXEL }));
-
-    RC<UITabView> tab_view = GetUIStage()->CreateUIObject<UITabView>(NAME("Sample_TabView"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-    tab_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
-    tab_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-
-    RC<UITab> scene_tab = tab_view->AddTab(NAME("Scene_Tab"), "Scene");
-
-    RC<UIImage> ui_image = GetUIStage()->CreateUIObject<UIImage>(NAME("Sample_Image"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-
-    ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
-    {
-        m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
-
-        if (m_camera->GetCameraController()->IsMouseLocked()) {
-            const Vec2f position = ui_image->GetAbsolutePosition();
-            const Vec2i size = ui_image->GetActualSize();
-            const Vec2i window_size = { m_camera->GetWidth(), m_camera->GetHeight() };
-
-            // Set mouse position to previous position to keep it stationary while rotating
-            event.input_manager->SetMousePosition(Vec2i(position + event.previous_position * Vec2f(size)));
-        }
-
-        return UIEventHandlerResult::OK;
-    }).Detach();
-
-    ui_image->OnMouseDown.Bind([this](const MouseEvent &event)
-    {
-        m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
-
-        return UIEventHandlerResult::OK;
-    }).Detach();
-
-    ui_image->OnMouseUp.Bind([this](const MouseEvent &event)
-    {
-        m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
-
-        return UIEventHandlerResult::OK;
-    }).Detach();
-
-    ui_image->OnKeyDown.Bind([this](const KeyboardEvent &event)
-    {
-        if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event)) {
-            return UIEventHandlerResult::STOP_BUBBLING;
-        }
-
-        return UIEventHandlerResult::OK;
-    }).Detach();
-
-    ui_image->OnGainFocus.Bind([this](const MouseEvent &event)
-    {
-        m_editor_camera_enabled = true;
-
-        return UIEventHandlerResult::OK;
-    });
-
-    ui_image->OnLoseFocus.Bind([this](const MouseEvent &event)
-    {
-        m_editor_camera_enabled = false;
-
-        return UIEventHandlerResult::OK;
-    });
-
-    scene_tab->GetContents()->AddChildUIObject(ui_image);
-
-    ui_image->SetTexture(m_scene_texture);        
-
-    dockable_container->AddChildUIObject(tab_view, UIDockableItemPosition::CENTER);
-
-    dockable_container->AddChildUIObject(CreateSceneOutline(), UIDockableItemPosition::LEFT);
-    dockable_container->AddChildUIObject(CreateDetailView(), UIDockableItemPosition::RIGHT);
-    dockable_container->AddChildUIObject(CreateBottomPanel(), UIDockableItemPosition::BOTTOM);
-
-    RC<UITab> game_tab = tab_view->AddTab(NAME("Game_Tab"), "Game");
-    game_tab->GetContents()->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    
-    auto generate_lightmaps_button = GetUIStage()->CreateUIObject<UIButton>(HYP_NAME(Generate_Lightmaps), Vec2i{60, 50}, UIObjectSize({50, UIObjectSize::PIXEL}, {25, UIObjectSize::PIXEL}));
-    generate_lightmaps_button->SetText("GenerateLightmap");
-
-    generate_lightmaps_button->OnClick.Bind([this](...)
-    {
-        struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
-        {
-            Handle<Scene> scene;
-
-            RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
-                : scene(std::move(scene))
-            {
-            }
-
-            virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
-
-            virtual Result operator()() override
-            {
-                if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
-                    scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
-                } else {
-                    scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
-                }
-
-                HYPERION_RETURN_OK;
-            }
-        };
-        
-        PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
-
-        return UIEventHandlerResult::OK;
-    }).Detach();
-
-    game_tab->GetContents()->AddChildUIObject(generate_lightmaps_button);
-
-    auto game_tab_content_button = GetUIStage()->CreateUIObject<UIButton>(CreateNameFromDynamicString("Hello_world_button"), Vec2i { 20, 0 }, UIObjectSize({ 50, UIObjectSize::PIXEL }, { 25, UIObjectSize::PIXEL }));
-    // game_tab_content_button->SetParentAlignment(UIObjectAlignment::CENTER);
-    // game_tab_content_button->SetOriginAlignment(UIObjectAlignment::CENTER);
-    game_tab_content_button->SetText("Hello");
-
-    AssertThrow(game_tab_content_button->GetScene()->GetEntityManager()->HasEntity(game_tab_content_button->GetEntity()));
-
-    game_tab->GetContents()->AddChildUIObject(game_tab_content_button);
-
-    m_main_panel->AddChildUIObject(dockable_container);
-
-#endif
 
     g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript &script)
     {
@@ -1600,7 +1373,7 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
@@ -1621,7 +1394,7 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        node.Scale(0.02f);
+        // node.Scale(0.02f);
         node.SetName("test_model");
         node.LockTransform();
 

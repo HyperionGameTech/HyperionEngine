@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/Tuple.hpp>
+#include <core/utilities/StringView.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>
@@ -98,6 +99,12 @@ struct StaticString
             data[i] = str[i];
         }
     }
+
+    constexpr operator StringView<StringType::ANSI>() const
+        { return StringView<StringType::ANSI>(Begin(), Begin() + Sz); }
+
+    constexpr operator StringView<StringType::UTF8>() const
+        { return StringView<StringType::UTF8>(Begin(), Begin() + Sz); }
 
     template <typename IntegerSequence, int Index = 0>
     constexpr SizeType FindFirst() const
@@ -230,8 +237,8 @@ struct StaticString
     }
 
     HYP_DEF_STL_BEGIN_END_CONSTEXPR(
-        &data[0],
-        &data[0] + Sz
+        data,
+        data + Sz
     )
 
     // Implementations

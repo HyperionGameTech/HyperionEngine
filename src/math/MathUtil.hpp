@@ -7,9 +7,8 @@
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 
-#include <core/Util.hpp>
-
 #include <core/Defines.hpp>
+
 #include <Types.hpp>
 
 #include <math.h>
@@ -110,7 +109,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(NaN<VectorScalarType>());
         }
 
@@ -126,7 +125,7 @@ public:
     HYP_FORCE_INLINE
     static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsNaN(const T &value)
     {
-        for (uint i = 0; i < ArraySize(value.values); i++) {
+        for (uint i = 0; i < std::size(value.values); i++) {
             if (IsNaN(value.values[i])) {
                 return true;
             }
@@ -146,7 +145,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Infinity<VectorScalarType>());
         }
 
@@ -162,7 +161,7 @@ public:
     HYP_FORCE_INLINE
     static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsFinite(const T &value)
     {
-        for (uint i = 0; i < ArraySize(value.values); i++) {
+        for (uint i = 0; i < std::size(value.values); i++) {
             if (!IsFinite(value.values[i])) {
                 return false;
             }
@@ -186,7 +185,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = RandRange(a.values[i], b.values[i]);
         }
 
@@ -232,7 +231,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = Clamp(val.values[i], min.values[i], max.values[i]);
         }
 
@@ -250,7 +249,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = Lerp(from.values[i], to.values[i], amt);
         }
 
@@ -268,7 +267,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = Step(edge.values[i], x.values[i]);
         }
 
@@ -301,7 +300,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = Min(a.values[i], b.values[i]);
         }
 
@@ -314,7 +313,7 @@ public:
     {
         T result;
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = Max(a.values[i], b.values[i]);
         }
 
@@ -334,7 +333,7 @@ public:
 
         T result { };
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Sign<VectorScalarType>(a.values[i]));
         }
 
@@ -349,7 +348,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Trunc<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -364,7 +363,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Floor<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -379,7 +378,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Ceil<VectorScalarType, IntegralType>(a.values[i]));
         }
 
@@ -429,7 +428,7 @@ public:
 
         T result { }; /* doesn't need initialization but gets rid of annoying warnings */
 
-        for (uint i = 0; i < ArraySize(result.values); i++) {
+        for (uint i = 0; i < std::size(result.values); i++) {
             result.values[i] = VectorScalarType(Abs<VectorScalarType>(a.values[i]));
         }
 

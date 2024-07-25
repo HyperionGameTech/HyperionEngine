@@ -116,6 +116,8 @@ static const Array<String> g_standard_ui_object_attributes {
     "NAME",
     "POSITION",
     "SIZE",
+    "INNERSIZE",
+    "MAXSIZE",
     "PARENTALIGNMENT",
     "ORIGINALIGNMENT",
     "VISIBLE",
@@ -311,6 +313,22 @@ public:
 
             if (const Pair<String, String> *it = attributes.TryGet("depth")) {
                 ui_object->SetDepth(StringUtil::Parse<int32>(it->second));
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("innersize")) {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
+                    ui_object->SetInnerSize(*parsed_size);
+                } else {
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid inner size property: {}", it->second);
+                }
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("maxsize")) {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
+                    ui_object->SetMaxSize(*parsed_size);
+                } else {
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid max size property: {}", it->second);
+                }
             }
 
             for (const Pair<String, String> &attribute : attributes) {

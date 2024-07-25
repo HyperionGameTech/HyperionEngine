@@ -11,6 +11,8 @@
 #include <core/threading/Threads.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -30,7 +32,8 @@ void EnvGridUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 
     bool use_voxel_grid = false;
 
-    if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS).GetBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool()
+        || g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString().ToLower() == "voxel") {
         use_voxel_grid = true;
     }
 

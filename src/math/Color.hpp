@@ -6,7 +6,10 @@
 #include <math/Vector4.hpp>
 
 #include <core/Defines.hpp>
+
 #include <core/utilities/FormatFwd.hpp>
+
+#include <core/memory/Memory.hpp>
 
 #include <util/ByteUtil.hpp>
 

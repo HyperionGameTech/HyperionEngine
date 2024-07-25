@@ -202,13 +202,14 @@ bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 #pragma region AppContext
 
 AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
-    : m_arguments(arguments)
+    : m_arguments(arguments),
+      m_configuration("app")
 {
     if (name == nullptr) {
         name = "HyperionApp";
     }
 
-    m_name = name;
+    m_name = std::move(name);
 }
 
 AppContext::~AppContext() = default;

@@ -551,7 +551,7 @@ bool Scene::CreateTLAS()
         return true;
     }
     
-    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
         // cannot create TLAS if RT is not supported.
         SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
 

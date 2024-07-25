@@ -1334,7 +1334,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
 
 bool ShaderCompiler::CanCompileShaders() const
 {
-    if (!g_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
+    if (!g_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION).GetBool()) {
         return false;
     }
 
