@@ -49,7 +49,7 @@ void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    if (m_framebuffer->GetAttachmentMap()->Size() != 0) {
+    if (m_framebuffer->GetAttachmentMap().Size() != 0) {
         if (m_effect_index == ~0u) {
             DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
 

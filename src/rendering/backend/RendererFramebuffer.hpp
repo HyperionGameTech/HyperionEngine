@@ -35,21 +35,26 @@ struct AttachmentMap
 
     FlatMap<uint, AttachmentDef<PLATFORM>>  attachments;
 
-
     ~AttachmentMap()
+    {
+        Reset();
+    }
+
+    Result Create(Device<PLATFORM> *device);
+
+    void Reset()
     {
         for (auto &it : attachments) {
             SafeRelease(std::move(it.second.attachment));
         }
+
+        attachments.Clear();
     }
 
-
-    Result Create(Device<PLATFORM> *device);
-
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
         { return attachments.Size(); }
 
-    const AttachmentRef<PLATFORM> &GetAttachment(uint binding) const
+    HYP_FORCE_INLINE const AttachmentRef<PLATFORM> &GetAttachment(uint binding) const
     {
         const auto it = attachments.Find(binding);
 
@@ -60,7 +65,7 @@ struct AttachmentMap
         return it->second.attachment;
     }
 
-    void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
+    HYP_FORCE_INLINE void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
     {
         AssertThrow(attachment.IsValid());
         AssertThrow(attachment->GetImage().IsValid());
@@ -79,7 +84,7 @@ struct AttachmentMap
         );
     }
 
-    void AddAttachment(
+    HYP_FORCE_INLINE void AddAttachment(
         uint binding,
         Extent2D extent,
         InternalFormat format,
@@ -138,42 +143,28 @@ public:
     Framebuffer &operator=(const Framebuffer &other)    = delete;
     HYP_API ~Framebuffer();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE  const FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint GetWidth() const
+    HYP_FORCE_INLINE uint GetWidth() const
         { return m_extent.width; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint GetHeight() const
+    HYP_FORCE_INLINE uint GetHeight() const
         { return m_extent.height; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Extent2D GetExtent() const
+    HYP_FORCE_INLINE Extent2D GetExtent() const
         { return m_extent; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const RenderPassRef<PLATFORM> &GetRenderPass() const
+    HYP_FORCE_INLINE const RenderPassRef<PLATFORM> &GetRenderPass() const
         { return m_render_pass; }
 
-    HYP_FORCE_INLINE
-    void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
-        { m_attachment_map->AddAttachment(attachment); }
+    HYP_FORCE_INLINE void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
+        { m_attachment_map.AddAttachment(attachment); }
 
-    HYP_FORCE_INLINE
-    void AddAttachment(
+    HYP_FORCE_INLINE void AddAttachment(
         uint binding,
         InternalFormat format,
         ImageType type,
@@ -182,7 +173,7 @@ public:
         StoreOperation store_op
     )
     {
-        m_attachment_map->AddAttachment(
+        m_attachment_map.AddAttachment(
             binding,
             m_extent,
             format,
@@ -195,14 +186,10 @@ public:
 
     HYP_API bool RemoveAttachment(uint binding);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const AttachmentRef<PLATFORM> &GetAttachment(uint binding) const
-        { return m_attachment_map->GetAttachment(binding); }
+    HYP_FORCE_INLINE const AttachmentRef<PLATFORM> &GetAttachment(uint binding) const
+        { return m_attachment_map.GetAttachment(binding); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const RC<AttachmentMap<PLATFORM>> &GetAttachmentMap() const
+    HYP_FORCE_INLINE const AttachmentMap<PLATFORM> &GetAttachmentMap() const
         { return m_attachment_map; }
 
     HYP_API bool IsCreated() const;
@@ -219,7 +206,7 @@ private:
     Extent2D                            m_extent;
 
     RenderPassRef<PLATFORM>             m_render_pass;
-    RC<AttachmentMap<PLATFORM>>         m_attachment_map;
+    AttachmentMap<PLATFORM>             m_attachment_map;
 };
 
 } // namespace platform

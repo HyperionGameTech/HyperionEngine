@@ -64,81 +64,52 @@ public:
     Attachment &operator=(const Attachment &other)  = delete;
     HYP_API ~Attachment();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ImageRef<PLATFORM> &GetImage() const
+    HYP_FORCE_INLINE const ImageRef<PLATFORM> &GetImage() const
         { return m_image; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ImageViewRef<PLATFORM> &GetImageView() const
+    HYP_FORCE_INLINE const ImageViewRef<PLATFORM> &GetImageView() const
         { return m_image_view; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    RenderPassStage GetRenderPassStage() const
+    HYP_FORCE_INLINE RenderPassStage GetRenderPassStage() const
         { return m_stage; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    InternalFormat GetFormat() const
+    HYP_FORCE_INLINE InternalFormat GetFormat() const
         { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsDepthAttachment() const
+    HYP_FORCE_INLINE bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    LoadOperation GetLoadOperation() const
+    HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
         { return m_load_operation; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    StoreOperation GetStoreOperation() const
+    HYP_FORCE_INLINE StoreOperation GetStoreOperation() const
         { return m_store_operation; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const BlendFunction &GetBlendFunction() const
+    HYP_FORCE_INLINE const BlendFunction &GetBlendFunction() const
         { return m_blend_function; }
 
-    HYP_FORCE_INLINE
-    void SetBlendFunction(const BlendFunction &blend_function)
+    HYP_FORCE_INLINE void SetBlendFunction(const BlendFunction &blend_function)
         { m_blend_function = blend_function; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint GetBinding() const
+    HYP_FORCE_INLINE uint GetBinding() const
         { return m_binding; }
     
-    HYP_FORCE_INLINE
-    void SetBinding(uint binding)
+    HYP_FORCE_INLINE void SetBinding(uint binding)
         { m_binding = binding; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HasBinding() const 
+    HYP_FORCE_INLINE bool HasBinding() const 
         { return m_binding != MathUtil::MaxSafeValue<uint>(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool AllowBlending() const
+    HYP_FORCE_INLINE bool AllowBlending() const
         { return m_allow_blending; }
 
-    HYP_FORCE_INLINE
-    void SetAllowBlending(bool allow_blending)
+    HYP_FORCE_INLINE void SetAllowBlending(bool allow_blending)
         { m_allow_blending = allow_blending; }
 
     HYP_API bool IsCreated() const;

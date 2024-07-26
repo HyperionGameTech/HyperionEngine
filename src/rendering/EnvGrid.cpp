@@ -579,7 +579,7 @@ void EnvGrid::CreateVoxelGridData()
 
     // Create shader, descriptor sets for voxelizing probes
     AssertThrowMsg(m_framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
-    AssertThrowMsg(m_framebuffer->GetAttachmentMap()->Size() >= 3, "Framebuffer must have at least 3 attachments (color, normals, distances)");
+    AssertThrowMsg(m_framebuffer->GetAttachmentMap().Size() >= 3, "Framebuffer must have at least 3 attachments (color, normals, distances)");
 
     ShaderRef voxelize_probe_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), {{ "MODE_VOXELIZE" }});
     ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), {{ "MODE_OFFSET" }});

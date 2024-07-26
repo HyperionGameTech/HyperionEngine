@@ -250,7 +250,7 @@ void TemporalBlending::CreateDescriptorSets()
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (m_input_framebuffer.IsValid()) {
-            AssertThrowMsg(m_input_framebuffer->GetAttachmentMap()->Size() != 0, "No attachment refs on input framebuffer!");
+            AssertThrowMsg(m_input_framebuffer->GetAttachmentMap().Size() != 0, "No attachment refs on input framebuffer!");
         }
 
         const ImageViewRef input_image_view = m_input_framebuffer.IsValid()

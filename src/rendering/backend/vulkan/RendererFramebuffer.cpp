@@ -45,8 +45,7 @@ Framebuffer<Platform::VULKAN>::Framebuffer(
     uint num_multiview_layers
 ) : m_platform_impl { this, VK_NULL_HANDLE },
     m_extent(extent),
-    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers)),
-    m_attachment_map(new AttachmentMap<Platform::VULKAN>())
+    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers))
 {
 }
 
@@ -71,9 +70,9 @@ Result Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         HYPERION_RETURN_OK;
     }
 
-    HYPERION_BUBBLE_ERRORS(m_attachment_map->Create(device));
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Create(device));
     
-    for (const auto &it : m_attachment_map->attachments) {
+    for (const auto &it : m_attachment_map.attachments) {
         const AttachmentDef<Platform::VULKAN> &def = it.second;
 
         AssertThrow(def.attachment.IsValid());
@@ -83,11 +82,11 @@ Result Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     HYPERION_BUBBLE_ERRORS(m_render_pass->Create(device));
 
     Array<VkImageView> attachment_image_views;
-    attachment_image_views.Reserve(m_attachment_map->attachments.Size());
+    attachment_image_views.Reserve(m_attachment_map.attachments.Size());
 
     uint num_layers = 1;
     
-    for (const auto &it : m_attachment_map->attachments) {
+    for (const auto &it : m_attachment_map.attachments) {
         AssertThrow(it.second.attachment != nullptr);
         AssertThrow(it.second.attachment->GetImageView() != nullptr);
         AssertThrow(it.second.attachment->GetImageView()->IsCreated());
@@ -139,15 +138,15 @@ Result Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 template <>
 bool Framebuffer<Platform::VULKAN>::RemoveAttachment(uint binding)
 {
-    const auto it = m_attachment_map->attachments.Find(binding);
+    const auto it = m_attachment_map.attachments.Find(binding);
 
-    if (it == m_attachment_map->attachments.End()) {
+    if (it == m_attachment_map.attachments.End()) {
         return false;
     }
 
     SafeRelease(std::move(it->second.attachment));
 
-    m_attachment_map->attachments.Erase(it);
+    m_attachment_map.attachments.Erase(it);
 
     return true;
 }
