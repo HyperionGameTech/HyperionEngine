@@ -3,6 +3,11 @@
 #include <rendering/HBAO.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
+
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -85,7 +90,7 @@ void HBAO::Destroy()
 void HBAO::CreatePass()
 {
     ShaderProperties shader_properties;
-    shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL).GetBool());
+    shader_properties.Set("HBIL_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
 
     ShaderRef hbao_shader = g_shader_manager->GetOrCreate(
         NAME("HBAO"),

@@ -9,16 +9,14 @@
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/RendererFence.hpp>
 
 #include <vulkan/vulkan.h>
 
 #include <Types.hpp>
-
-#include <vector>
 
 namespace hyperion {
 namespace renderer {
@@ -35,7 +33,7 @@ VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
 class SingleTimeCommands
 {
 public:
-    SingleTimeCommands() : command_buffer{}, pool{}, family_indices{} {}
+    SingleTimeCommands() : pool{}, family_indices{} {}
 
     void Push(Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &> &&fn)
     {
@@ -63,16 +61,16 @@ public:
         return result;
     }
 
-    CommandBufferRef_VULKAN command_buffer;
-    VkCommandPool           pool;
-    QueueFamilyIndices      family_indices;
+    platform::CommandBufferRef<Platform::VULKAN>    command_buffer;
+    VkCommandPool                                   pool;
+    QueueFamilyIndices                              family_indices;
 
 private:
-    Array<Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &>>   m_functions;
-    platform::FenceRef<Platform::VULKAN>                                        m_fence;
-
     Result Begin(Device *device);
     Result End(Device *device);
+
+    Array<Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &>>   m_functions;
+    platform::FenceRef<Platform::VULKAN>                                        m_fence;
 };
 
 } // namespace helpers

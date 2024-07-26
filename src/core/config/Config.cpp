@@ -85,30 +85,27 @@ bool ConfigurationDataStore::Write(const json::JSONValue &value) const
 
 ConfigurationTable::ConfigurationTable(const String &config_name)
     : m_data_store(config_name),
-      m_root_dynamic(json::JSONObject()),
-      m_root_static(json::JSONObject()),
-      m_is_dirty(false)
+      m_root_object(json::JSONObject()),
+      m_cached_hash_code(m_root_object.GetHashCode())
 {
     // try to read from config file
-    if (m_data_store.Read(m_root_dynamic)) {
-        m_root_static = m_root_dynamic;
+    if (m_data_store.Read(m_root_object)) {
+        m_cached_hash_code = m_root_object.GetHashCode();
     } else {
         HYP_LOG(Config, LogLevel::INFO, "Configuration could not be read: {}", m_data_store.GetFilePath());
     }
 }
 
+bool ConfigurationTable::IsChanged() const
+{
+    return m_root_object.GetHashCode() != m_cached_hash_code;
+}
+
 const ConfigurationValue &ConfigurationTable::Get(UTF8StringView key) const
 {
-    if (m_is_dirty.Get(MemoryOrder::RELAXED)) {
-        Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_READ(m_data_race_detector);
 
-        m_root_static = m_root_dynamic;
-
-        m_is_dirty.Set(false, MemoryOrder::RELAXED);
-    }
-
-    // @FIXME: this is not threadsafe - whatif another thread is here while the current thread is setting m_root_static
-    auto select_result = m_root_static.Get(key);
+    auto select_result = m_root_object.Get(key);
 
     if (select_result.value != nullptr) {
         return *select_result.value;
@@ -119,17 +116,22 @@ const ConfigurationValue &ConfigurationTable::Get(UTF8StringView key) const
 
 void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue &value)
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_RW(m_data_race_detector);
 
-    m_root_dynamic.Set(key, value);
-    m_is_dirty.Set(true, MemoryOrder::RELAXED);
+    m_root_object.Set(key, value);
 }
 
 bool ConfigurationTable::Save() const
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_RW(m_data_race_detector);
 
-    return m_data_store.Write(m_root_dynamic);
+    if (m_data_store.Write(m_root_object)) {
+        m_cached_hash_code = m_root_object.GetHashCode();
+
+        return true;
+    }
+
+    return false;
 }
 
 #pragma endregion ConfigurationTable

@@ -40,6 +40,7 @@ class TemporalBlending
 {
 public:
     friend struct RenderCommand_CreateTemporalImageOutputs;
+    friend struct RenderCommand_RecreateTemporalBlendingFramebuffer;
 
     struct ImageOutput
     {
@@ -100,10 +101,13 @@ public:
     void ResetProgressiveBlending();
 
     void Create();
-
     void Render(Frame *frame);
 
+    void Resize(Extent2D new_size);
+
 private:
+    void Resize_Internal(Extent2D new_size);
+
     ShaderProperties GetShaderProperties() const;
 
     void CreateImageOutputs();
@@ -124,6 +128,8 @@ private:
     FixedArray<ImageOutput, max_frames_in_flight>   m_image_outputs;
 
     FramebufferRef                                  m_input_framebuffer;
+
+    bool                                            m_is_initialized;
 };
 
 } // namespace hyperion

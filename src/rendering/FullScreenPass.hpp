@@ -8,6 +8,8 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <Constants.hpp>
 
 #include <Types.hpp>
@@ -21,6 +23,8 @@ class Engine;
 class HYP_API FullScreenPass
 {
 public:
+    friend struct RenderCommand_RecreateFullScreenPassFramebuffer;
+
     FullScreenPass();
 
     FullScreenPass(
@@ -89,6 +93,13 @@ public:
         Must be set before Create() is called. */
     void SetBlendFunction(const BlendFunction &blend_function);
 
+    const Optional<DescriptorTableRef> &GetDescriptorTable() const
+        { return m_descriptor_table; }
+
+    /*! \brief Resizes the full screen pass to the new size.
+     *  Callable on any thread, as it enqueues a render command. */
+    void Resize(Extent2D new_size);
+
     virtual void CreateCommandBuffers();
     virtual void CreateFramebuffer();
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
@@ -110,6 +121,8 @@ public:
 protected:
     void CreateQuad();
 
+    virtual void Resize_Internal(Extent2D new_size);
+
     FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;
@@ -124,6 +137,9 @@ protected:
     BlendFunction                                       m_blend_function;
 
     Optional<DescriptorTableRef>                        m_descriptor_table;
+
+private:
+    bool                                                m_is_initialized;
 };
 } // namespace hyperion
 

@@ -1,4 +1,5 @@
-DEF_RENDER_PLATFORM_OBJECT(Device,                                          1);
+DEF_RENDER_PLATFORM_OBJECT(Device,                                          16);
+DEF_RENDER_PLATFORM_OBJECT(Swapchain,                                       16);
 DEF_RENDER_PLATFORM_OBJECT(Image,                                           16384);
 DEF_RENDER_PLATFORM_OBJECT(ImageView,                                       65536);
 DEF_RENDER_PLATFORM_OBJECT(Sampler,                                         16384);
@@ -20,6 +21,7 @@ DEF_RENDER_PLATFORM_OBJECT_NAMED(BLAS, BottomLevelAccelerationStructure,    6553
 DEF_RENDER_PLATFORM_OBJECT_NAMED(TLAS, TopLevelAccelerationStructure,       16);
 
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Device);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(Swapchain);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Image);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(ImageView);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Sampler);

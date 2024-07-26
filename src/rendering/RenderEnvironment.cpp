@@ -7,6 +7,8 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <core/HypClassUtils.hpp>
 
 namespace hyperion {
@@ -127,7 +129,7 @@ void RenderEnvironment::Init()
     
     m_rt_radiance.Reset(new RTRadianceRenderer(
         Extent2D { 1024, 1024 },
-        g_engine->GetConfig().Get(CONFIG_PATHTRACER).GetBool()
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
             : RT_RADIANCE_RENDERER_OPTION_NONE
     ));
@@ -302,7 +304,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         m_render_components_pending_removal.Clear();
     }
 
-    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
             inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
 

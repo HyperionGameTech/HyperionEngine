@@ -383,7 +383,9 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8S
 
 void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &value)
 {
-    if (!value) {
+    JSONValue *target = this->value;
+
+    if (!target) {
         return;
     }
 
@@ -394,8 +396,6 @@ void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &
     }
 
     UTF8StringView key = parts.PopBack();
-
-    JSONValue *target = this->value;
 
     if (parts.Any()) {
         auto select_result = SelectHelper(*this, parts.ToSpan(), true);
@@ -410,6 +410,15 @@ void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &
     if (target && target->IsObject()) {
         target->AsObject().Set(key, value);
     }
+}
+
+HashCode JSONSubscriptWrapper<JSONValue>::GetHashCode() const
+{
+    if (!value) {
+        return HashCode();
+    }
+
+    return value->GetHashCode();
 }
 
 #pragma endregion JSONSubscriptWrapper<JSONValue>
@@ -585,6 +594,15 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get
     }
 
     return SelectHelper(*this, SplitStringView(path, '.').ToSpan());
+}
+
+HashCode JSONSubscriptWrapper<const JSONValue>::GetHashCode() const
+{
+    if (!value) {
+        return HashCode();
+    }
+
+    return value->GetHashCode();
 }
 
 #pragma endregion JSONSubscriptWrapper<const JSONValue>
@@ -943,6 +961,39 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
     } else {
         return "<invalid value>";
     }
+}
+
+HashCode JSONValue::GetHashCode() const
+{
+    if (IsString()) {
+        return HashCode::GetHashCode(AsString());
+    }
+
+    if (IsNumber()) {
+        return HashCode::GetHashCode(AsNumber());
+    }
+
+    if (IsBool()) {
+        return HashCode::GetHashCode(AsBool());
+    }
+
+    if (IsArray()) {
+        return HashCode::GetHashCode(AsArray());
+    }
+
+    if (IsObject()) {
+        return HashCode::GetHashCode(AsObject());
+    }
+
+    if (IsNull()) {
+        return HashCode::GetHashCode(SizeType(-1));
+    }
+
+    if (IsUndefined()) {
+        return HashCode::GetHashCode(SizeType(-2));
+    }
+
+    return HashCode();
 }
 
 #pragma endregion JSONValue

@@ -4,13 +4,18 @@
 #define HYPERION_CONFIG2_HPP
 
 #include <core/Defines.hpp>
+
 #include <core/containers/String.hpp>
+#include <core/containers/FixedArray.hpp>
+
 #include <core/utilities/StringView.hpp>
+
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <util/json/JSON.hpp>
 
@@ -166,23 +171,20 @@ public:
     HYP_FORCE_INLINE const ConfigurationDataStore &GetDataStore() const
         { return m_data_store; }
 
+    bool IsChanged() const;
+
     const ConfigurationValue &Get(UTF8StringView key) const;
     void Set(UTF8StringView key, const ConfigurationValue &value);
 
     bool Save() const;
 
 private:
-    ConfigurationDataStore                          m_data_store;
+    ConfigurationDataStore      m_data_store;
 
-    // static version is a copy of the dynamic version that is updated on calls to Get() when
-    // the dynamic version has been changed. Used to avoid locking when reading the configuration.
-    mutable json::JSONValue                         m_root_static;
+    json::JSONValue             m_root_object;
+    mutable HashCode            m_cached_hash_code;
 
-    // dynamic version is the actual configuration that is updated when Set() is called.
-    // changing it requires locking the mutex.
-    json::JSONValue                                 m_root_dynamic;
-    mutable AtomicVar<bool>                         m_is_dirty; // Used to mark the dynamic root as dirty
-    mutable Mutex                                   m_mutex;
+    DataRaceDetector            m_data_race_detector;
 };
 
 } // namespace config

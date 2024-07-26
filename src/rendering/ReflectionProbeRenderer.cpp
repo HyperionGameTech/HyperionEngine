@@ -4,6 +4,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <scene/camera/PerspectiveCamera.hpp>
 
 #include <Engine.hpp>
@@ -80,7 +82,7 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
 
     m_env_probe->Render(frame);
 
-    if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTION_PROBES).GetBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool()) {
         g_engine->GetDebugDrawer().ReflectionProbeSphere(
             m_env_probe->GetProxy().world_position,
             0.5f,

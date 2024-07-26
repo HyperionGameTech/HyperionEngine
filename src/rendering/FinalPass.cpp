@@ -4,6 +4,8 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderGroup.hpp>
 
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 #include <util/MeshBuilder.hpp>
@@ -303,6 +305,15 @@ void FinalPass::Destroy()
     SafeRelease(std::move(m_last_frame_image));
 
     FullScreenPass::Destroy();
+}
+
+void FinalPass::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    if (m_render_texture_to_screen_pass != nullptr) {
+        m_render_texture_to_screen_pass->Resize(new_size);
+    }
 }
 
 void FinalPass::Record(uint frame_index)

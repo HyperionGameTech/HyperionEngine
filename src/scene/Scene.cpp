@@ -33,6 +33,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <core/HypClassUtils.hpp>
 
 #include <math/Halton.hpp>
@@ -191,7 +193,7 @@ void Scene::Init()
 
     if (IsWorldScene()) {
         if (!m_tlas) {
-            if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported() && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
+            if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool() && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
                 CreateTLAS();
             } else {
                 SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
@@ -551,7 +553,7 @@ bool Scene::CreateTLAS()
         return true;
     }
     
-    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
+    if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         // cannot create TLAS if RT is not supported.
         SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
 

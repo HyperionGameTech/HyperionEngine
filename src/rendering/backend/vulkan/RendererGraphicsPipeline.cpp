@@ -204,7 +204,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     Array<VkVertexInputAttributeDescription> vk_vertex_attributes;
     Array<VkVertexInputBindingDescription> vk_vertex_binding_descriptions;
     
-    m_platform_impl.BuildVertexAttributes(vertex_attributes, vk_vertex_attributes, vk_vertex_binding_descriptions);
+    m_platform_impl.BuildVertexAttributes(m_vertex_attributes, vk_vertex_attributes, vk_vertex_binding_descriptions);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
     vertex_input_info.vertexBindingDescriptionCount = uint32(vk_vertex_binding_descriptions.Size());
@@ -215,7 +215,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     VkPipelineInputAssemblyStateCreateInfo input_asm_info { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     input_asm_info.primitiveRestartEnable = VK_FALSE;
 
-    switch (topology) {
+    switch (m_topology) {
     case Topology::TRIANGLES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         break;
@@ -266,7 +266,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         return { Result::RENDERER_ERR, "Invalid value for face cull mode!" };
     }
 
-    switch (fill_mode) {
+    switch (m_fill_mode) {
     case FillMode::LINE:
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.lineWidth = 1.0f; //2.5f; // have to set VK_DYNAMIC_STATE_LINE_WIDTH and wideLines feature to use any non-1.0 value
@@ -291,25 +291,25 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
     Array<VkPipelineColorBlendAttachmentState> color_blend_attachments;
-    color_blend_attachments.Reserve(render_pass->GetAttachments().Size());
+    color_blend_attachments.Reserve(m_render_pass->GetAttachments().Size());
 
-    for (const AttachmentRef<Platform::VULKAN> &attachment : render_pass->GetAttachments()) {
+    for (const AttachmentRef<Platform::VULKAN> &attachment : m_render_pass->GetAttachments()) {
         if (attachment->IsDepthAttachment()) {
             continue;
         }
 
-        const bool blend_enabled = attachment->AllowBlending() && blend_function != BlendFunction::None();
+        const bool blend_enabled = attachment->AllowBlending() && m_blend_function != BlendFunction::None();
 
         static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         color_blend_attachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable            = blend_enabled,
-            .srcColorBlendFactor    = ToVkBlendFactor(blend_function.GetSrcColor()),
-            .dstColorBlendFactor    = ToVkBlendFactor(blend_function.GetDstColor()),
+            .srcColorBlendFactor    = ToVkBlendFactor(m_blend_function.GetSrcColor()),
+            .dstColorBlendFactor    = ToVkBlendFactor(m_blend_function.GetDstColor()),
             .colorBlendOp           = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor    = ToVkBlendFactor(blend_function.GetSrcAlpha()),
-            .dstAlphaBlendFactor    = ToVkBlendFactor(blend_function.GetDstAlpha()),
+            .srcAlphaBlendFactor    = ToVkBlendFactor(m_blend_function.GetSrcAlpha()),
+            .dstAlphaBlendFactor    = ToVkBlendFactor(m_blend_function.GetDstAlpha()),
             .alphaBlendOp           = VK_BLEND_OP_ADD,
             .colorWriteMask         = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
         });
@@ -374,8 +374,8 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
     /* Depth / stencil */
     VkPipelineDepthStencilStateCreateInfo depth_stencil { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-    depth_stencil.depthTestEnable = depth_test;
-    depth_stencil.depthWriteEnable = depth_write;
+    depth_stencil.depthTestEnable = m_depth_test;
+    depth_stencil.depthWriteEnable = m_depth_write;
     depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depth_stencil.depthBoundsTestEnable = VK_FALSE;
     depth_stencil.minDepthBounds = 0.0f; // Optional
@@ -384,17 +384,17 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     depth_stencil.front = {};
     depth_stencil.back = {};
 
-    if (stencil_function.IsSet()) {
+    if (m_stencil_function.IsSet()) {
         depth_stencil.stencilTestEnable = VK_TRUE;
 
         depth_stencil.back = {
-            .failOp      = ToVkStencilOp(stencil_function.fail_op),
-            .passOp      = ToVkStencilOp(stencil_function.pass_op),
-            .depthFailOp = ToVkStencilOp(stencil_function.depth_fail_op),
-            .compareOp   = ToVkCompareOp(stencil_function.compare_op),
-            .compareMask = stencil_function.mask,
-            .writeMask   = stencil_function.mask,
-            .reference   = stencil_function.value
+            .failOp      = ToVkStencilOp(m_stencil_function.fail_op),
+            .passOp      = ToVkStencilOp(m_stencil_function.pass_op),
+            .depthFailOp = ToVkStencilOp(m_stencil_function.depth_fail_op),
+            .compareOp   = ToVkCompareOp(m_stencil_function.compare_op),
+            .compareMask = m_stencil_function.mask,
+            .writeMask   = m_stencil_function.mask,
+            .reference   = m_stencil_function.value
         };
 
         depth_stencil.front = depth_stencil.back;
@@ -416,7 +416,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     pipeline_info.pColorBlendState = &color_blending;
     pipeline_info.pDynamicState = &dynamic_state;
     pipeline_info.layout = Pipeline<Platform::VULKAN>::m_platform_impl.layout;
-    pipeline_info.renderPass = render_pass->GetHandle();
+    pipeline_info.renderPass = m_render_pass->GetHandle();
     pipeline_info.subpass = 0; /* Index of the subpass */
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     pipeline_info.basePipelineIndex = -1;
@@ -443,11 +443,16 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 template <>
 Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_shader != nullptr);
-    AssertThrow(!fbos.Empty());
+    if (!m_shader.IsValid()) {
+        return { Result::RENDERER_ERR, "Cannot create a graphics pipeline with no shader" };
+    }
 
-    const uint32 width = fbos[0]->GetWidth();
-    const uint32 height = fbos[0]->GetHeight();
+    if (m_framebuffers.Empty()) {
+        return { Result::RENDERER_ERR, "Cannot create a graphics pipeline with no framebuffers" };
+    }
+
+    const uint32 width = m_framebuffers[0]->GetWidth();
+    const uint32 height = m_framebuffers[0]->GetHeight();
 
     m_platform_impl.SetScissor(0, 0, width, height);
     m_platform_impl.SetViewport(0.0f, 0.0f, float(width), float(height));
@@ -469,9 +474,25 @@ Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devi
 template <>
 Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    fbos.Clear();
+    SafeRelease(std::move(m_framebuffers));
 
     return Pipeline<Platform::VULKAN>::Destroy(device);
+}
+
+template <>
+void GraphicsPipeline<Platform::VULKAN>::SetRenderPass(const RenderPassRef<Platform::VULKAN> &render_pass)
+{
+    SafeRelease(std::move(m_render_pass));
+
+    m_render_pass = render_pass;
+}
+
+template <>
+void GraphicsPipeline<Platform::VULKAN>::SetFramebuffers(const Array<FramebufferRef<Platform::VULKAN>> &framebuffers)
+{
+    SafeRelease(std::move(m_framebuffers));
+
+    m_framebuffers = framebuffers;
 }
 
 #pragma endregion GraphicsPipeline

@@ -196,7 +196,7 @@ public:
         { return Base::Data(); }
 
     HYP_FORCE_INLINE operator utilities::detail::StringView<string_type>() const
-        { return utilities::detail::StringView<string_type>(Begin(), End() + 1 /* StringView accounts for NUL char */, Length()); }
+        { return utilities::detail::StringView<string_type>(Begin(), End(), Length()); }
 
     /*! \brief Conversion operator to return the raw data of the string. */
     HYP_FORCE_INLINE explicit operator const CharType *() const

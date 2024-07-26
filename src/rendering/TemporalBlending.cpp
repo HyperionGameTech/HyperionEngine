@@ -33,6 +33,27 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : renderer::RenderComm
     }
 };
 
+struct RENDER_COMMAND(RecreateTemporalBlendingFramebuffer) : renderer::RenderCommand
+{
+    TemporalBlending    &temporal_blending;
+    Extent2D            new_size;
+
+    RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)(TemporalBlending &temporal_blending, Extent2D new_size)
+        : temporal_blending(temporal_blending),
+          new_size(new_size)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)() override = default;
+
+    virtual Result operator()() override
+    {
+        temporal_blending.Resize_Internal(new_size);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 TemporalBlending::TemporalBlending(
@@ -76,13 +97,15 @@ TemporalBlending::TemporalBlending(
     m_technique(technique),
     m_feedback(feedback),
     m_input_image_views(input_image_views),
-    m_blending_frame_counter(0)
+    m_blending_frame_counter(0),
+    m_is_initialized(false)
 {
 }
 
 TemporalBlending::~TemporalBlending()
 {
     SafeRelease(std::move(m_input_framebuffer));
+    
     SafeRelease(std::move(m_perform_blending));
     SafeRelease(std::move(m_descriptor_table));
 
@@ -98,6 +121,40 @@ void TemporalBlending::Create()
         DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
     }
     
+    CreateImageOutputs();
+    CreateDescriptorSets();
+    CreateComputePipelines();
+
+    m_is_initialized = true;
+}
+
+void TemporalBlending::Resize(Extent2D new_size)
+{
+    PUSH_RENDER_COMMAND(RecreateTemporalBlendingFramebuffer, *this, new_size);
+}
+
+void TemporalBlending::Resize_Internal(Extent2D new_size)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    if (m_extent == new_size) {
+        return;
+    }
+
+    m_extent = new_size;
+
+    if (!m_is_initialized) {
+        return;
+    }
+
+    SafeRelease(std::move(m_perform_blending));
+    SafeRelease(std::move(m_descriptor_table));
+
+    for (auto &image_output : m_image_outputs) {
+        SafeRelease(std::move(image_output.image));
+        SafeRelease(std::move(image_output.image_view));
+    }
+
     CreateImageOutputs();
     CreateDescriptorSets();
     CreateComputePipelines();

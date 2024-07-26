@@ -68,14 +68,15 @@ class HYP_API ApplicationWindow
 {
 public:
     ApplicationWindow(ANSIString title, Vec2u size);
-    ApplicationWindow(const ApplicationWindow &other) = delete;
-    ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
-    virtual ~ApplicationWindow() = default;
+    ApplicationWindow(const ApplicationWindow &other)               = delete;
+    ApplicationWindow &operator=(const ApplicationWindow &other)    = delete;
+    virtual ~ApplicationWindow()                                    = default;
 
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
 
     virtual Vec2u GetDimensions() const = 0;
+    virtual void HandleResize(Vec2u new_size);
 
     virtual void SetMouseLocked(bool locked) = 0;
     virtual bool HasMouseFocus() const = 0;
@@ -87,9 +88,11 @@ public:
     virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) = 0;
 #endif
 
+    Delegate<void, Vec2u>   OnWindowSizeChanged;
+
 protected:
-    ANSIString  m_title;
-    Vec2u       m_size;
+    ANSIString              m_title;
+    Vec2u                   m_size;
 };
 
 class HYP_API SDLApplicationWindow : public ApplicationWindow
@@ -148,6 +151,8 @@ public:
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent &event) = 0;
+
+    virtual void UpdateConfigurationOverrides();
 
 #ifdef HYP_VULKAN
     virtual bool GetVkExtensions(Array<const char *> &out_extensions) const = 0;

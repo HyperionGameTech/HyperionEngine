@@ -49,18 +49,18 @@ public:
     FinalPass &operator=(const FinalPass &other)    = delete;
     virtual ~FinalPass() override;
 
-    CompositePass &GetCompositePass()
+    HYP_FORCE_INLINE CompositePass &GetCompositePass()
         { return m_composite_pass; }
 
-    const CompositePass &GetCompositePass() const
+    HYP_FORCE_INLINE const CompositePass &GetCompositePass() const
         { return m_composite_pass; }
 
-    const Handle<Texture> &GetUITexture() const
+    HYP_FORCE_INLINE const Handle<Texture> &GetUITexture() const
         { return m_ui_texture; }
     
-    void SetUITexture(Handle<Texture> texture);
+    HYP_FORCE_INLINE void SetUITexture(Handle<Texture> texture);
 
-    const ImageRef &GetLastFrameImage() const
+    HYP_FORCE_INLINE const ImageRef &GetLastFrameImage() const
         { return m_last_frame_image; }
 
     virtual void Create() override;
@@ -72,13 +72,15 @@ public:
 private:
     void RenderUITexture() const;
 
-    CompositePass           m_composite_pass;
-    ImageRef                m_last_frame_image;
+    virtual void Resize_Internal(Extent2D new_size) override;
+
+    CompositePass               m_composite_pass;
+    ImageRef                    m_last_frame_image;
 
     // For UI blitting to screen
-    Handle<Texture>         m_ui_texture;
-    RC<FullScreenPass>      m_render_texture_to_screen_pass;
-    uint8                   m_dirty_frame_indices;
+    Handle<Texture>             m_ui_texture;
+    UniquePtr<FullScreenPass>   m_render_texture_to_screen_pass;
+    uint8                       m_dirty_frame_indices;
 };
 } // namespace hyperion
 

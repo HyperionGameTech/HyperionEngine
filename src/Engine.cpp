@@ -11,6 +11,7 @@
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererDevice.hpp>
 
 #include <Game.hpp>
 
@@ -66,6 +67,18 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
+{
+    virtual ~RENDER_COMMAND(RecreateSwapchain)() override = default;
+
+    virtual Result operator()() override
+    {
+        g_engine->m_should_recreate_swapchain = true;
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 Engine *Engine::GetInstance()
@@ -75,7 +88,9 @@ Engine *Engine::GetInstance()
 
 Engine::Engine()
     : m_placeholder_data(new PlaceholderData()),
-      m_global_descriptor_table(MakeRenderObject<DescriptorTable>(*renderer::g_static_descriptor_table_decl))
+      m_global_descriptor_table(MakeRenderObject<DescriptorTable>(*renderer::g_static_descriptor_table_decl)),
+      m_should_recreate_swapchain(false),
+      m_is_initialized(false)
 {
 }
 
@@ -143,12 +158,27 @@ void Engine::FindTextureFormatDefaults()
 
 HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 {
-    AssertThrow(app_context != nullptr);
+    HYP_SCOPE;
 
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertThrow(!m_is_initialized);
+
+    Threads::SetCurrentThreadPriority(ThreadPriorityValue::HIGHEST);
+
+    AssertThrow(app_context != nullptr);
     m_app_context = app_context;
 
-    Threads::AssertOnThread(ThreadName::THREAD_MAIN);
-    Threads::SetCurrentThreadPriority(ThreadPriorityValue::HIGHEST);
+    m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2u new_window_size)
+    {
+        HYP_LOG(Engine, LogLevel::INFO, "Resize window to {}", new_window_size);
+
+        PUSH_RENDER_COMMAND(RecreateSwapchain);
+
+        if (m_deferred_renderer != nullptr) {
+            m_deferred_renderer->HandleWindowSizeChanged(new_window_size);
+        }
+    }).Detach();
     
     RenderObjectDeleter<renderer::Platform::CURRENT>::Initialize();
 
@@ -160,6 +190,9 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance.Reset(new Instance());
 
     HYPERION_ASSERT_RESULT(m_instance->Initialize(*app_context, use_debug_layers));
+
+    // Update app configuration to reflect device, after instance is created (e.g RT is not supported)
+    m_app_context->UpdateConfigurationOverrides();
 
     FindTextureFormatDefaults();
 
@@ -296,52 +329,13 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_final_pass.Reset(new FinalPass);
     m_final_pass->Create();
 
-    Compile();
-}
-
-void Engine::Compile()
-{
-    for (uint i = 0; i < max_frames_in_flight; i++) {
-        /* Finalize env probes */
-        m_render_data->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize env grids */
-        m_render_data->env_grids.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize shadow maps */
-        m_render_data->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize lights */
-        m_render_data->lights.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize skeletons */
-        m_render_data->skeletons.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize materials */
-        m_render_data->materials.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize per-object data */
-        m_render_data->objects.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize scene data */
-        m_render_data->scenes.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize camera data */
-        m_render_data->cameras.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize debug draw data */
-        m_render_data->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
-
-        /* Finalize instance batch data */
-        m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
-    }
-
     m_deferred_renderer.Reset(new DeferredRenderer);
     m_deferred_renderer->Create();
     
     HYP_SYNC_RENDER();
 
     m_is_render_loop_active = true;
+    m_is_initialized = true;
 }
 
 void Engine::RequestStop()
@@ -426,11 +420,38 @@ HYP_API void Engine::RenderNextFrame(Game *game)
         RequestStop();
     }
 
-    const FrameRef &frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
-    
+    Frame *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
     HYPERION_ASSERT_RESULT(GetGPUDevice()->GetAsyncCompute()->PrepareForFrame(GetGPUDevice(), frame));
 
     PreFrameUpdate(frame);
+
+    if (m_should_recreate_swapchain) {
+        HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
+        HYPERION_ASSERT_RESULT(GetGPUInstance()->RecreateSwapchain());
+        HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
+
+        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetFrameHandler()->GetCurrentFrame()->RecreateFence(
+            GetGPUInstance()->GetDevice()
+        ));
+
+        // Need to prepare frame again now that swapchain has been recreated.
+        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetFrameHandler()->PrepareFrame(
+            GetGPUInstance()->GetDevice(),
+            GetGPUInstance()->GetSwapchain()
+        ));
+        
+        Handle<Texture> ui_texture = m_final_pass->GetUITexture();
+
+        m_final_pass->Destroy();
+
+        m_final_pass.Reset(new FinalPass);
+        m_final_pass->Create();
+        m_final_pass->SetUITexture(ui_texture);
+
+        frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
+
+        m_should_recreate_swapchain = false;
+    }
 
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
     

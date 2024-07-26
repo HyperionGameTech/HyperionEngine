@@ -13,9 +13,10 @@
 #include <core/Util.hpp>
 
 #include <rendering/RenderCollection.hpp>
-#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>

@@ -6,6 +6,10 @@
 #include <core/system/SystemEvent.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
+#include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
+
+#include <Engine.hpp>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -19,6 +23,13 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2u size)
     : m_title(std::move(title)),
       m_size(size)
 {
+}
+
+void ApplicationWindow::HandleResize(Vec2u new_size)
+{
+    m_size = new_size;
+
+    OnWindowSizeChanged.Broadcast(new_size);
 }
 
 #pragma endregion ApplicationWindow
@@ -54,6 +65,7 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
         sdl_flags |= SDL_WINDOW_HIDDEN;
     } else {
         sdl_flags |= SDL_WINDOW_SHOWN;
+        sdl_flags |= SDL_WINDOW_RESIZABLE;
 
         // make sure to use SDL_free on file name strings for these events
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
@@ -219,6 +231,22 @@ void AppContext::SetMainWindow(UniquePtr<ApplicationWindow> &&window)
     m_main_window = std::move(window);
 
     OnCurrentWindowChanged.Broadcast(m_main_window.Get());
+}
+
+void AppContext::UpdateConfigurationOverrides()
+{
+    // if ray tracing is not supported, we need to update the configuration
+    if (!g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
+        m_configuration.Set("rendering.rt.enabled", false);
+        m_configuration.Set("rendering.rt.reflections.enabled", false);
+        m_configuration.Set("rendering.rt.gi.enabled", false);
+        m_configuration.Set("rendering.rt.path_tracer.enabled", false);
+
+        // Save new configuration to disk
+        if (m_configuration.IsChanged()) {
+            m_configuration.Save();
+        }
+    }
 }
 
 #pragma endregion AppContext

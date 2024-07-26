@@ -11,6 +11,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <core/HypClassUtils.hpp>
 

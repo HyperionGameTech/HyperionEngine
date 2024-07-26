@@ -119,9 +119,6 @@ public:
     void MouseButtonUp(MouseButton btn)
         { SetMouseButton(btn, false); }
 
-    HYP_API void UpdateMousePosition();
-    HYP_API void UpdateWindowSize();
-
     HYP_API bool IsKeyDown(KeyCode key) const;
 
     bool IsKeyUp(KeyCode key) const
@@ -141,15 +138,18 @@ public:
         { m_window = window; }
 
 private:
+    void UpdateMousePosition();
+    void UpdateWindowSize(Vec2u new_size);
+
+    void SetKey(KeyCode key, bool pressed);
+    void SetMouseButton(MouseButton btn, bool pressed);
+
     InputState          m_input_state;
     Vec2i               m_mouse_position;
     Vec2i               m_previous_mouse_position;
     Scalar2D<true>      m_window_size;
 
     ApplicationWindow   *m_window;
-
-    HYP_API void SetKey(KeyCode key, bool pressed);
-    HYP_API void SetMouseButton(MouseButton btn, bool pressed);
 };
 
 } // namespace hyperion

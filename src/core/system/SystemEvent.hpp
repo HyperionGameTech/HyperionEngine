@@ -7,6 +7,8 @@
 #include <core/utilities/Variant.hpp>
 #include <core/filesystem/FilePath.hpp>
 
+#include <math/Vector2.hpp>
+
 #include <SDL2/SDL.h>
 
 #include <Types.hpp>
@@ -107,11 +109,15 @@ public:
     uint32 GetWindowId() const
         { return sdl_event.window.windowID; }
 
-    void GetWindowResizeDimensions(int *_width, int *_height)
+    Vec2i GetWindowResizeDimensions()
     {
         SDL_Event *ev = this->GetInternalEvent();
-        (*_width) = ev->window.data1;
-        (*_height) = ev->window.data2;
+        
+        Vec2i result;
+        result.x = ev->window.data1;
+        result.y = ev->window.data2;
+
+        return result;
     }
 
     SDL_Event *GetInternalEvent();

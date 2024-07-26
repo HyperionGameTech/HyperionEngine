@@ -3,19 +3,13 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
 
-#include <vector>
-
 #include <core/Defines.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererSwapchain.hpp>
-#include <rendering/backend/RendererShader.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFrameHandler.hpp>
-#include <rendering/backend/RendererQueue.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -47,33 +41,34 @@ public:
     Instance();
     Result Initialize(const AppContext &app_context, bool load_debug_layers = false);
 
-    VkInstance GetInstance() const
+    HYP_FORCE_INLINE VkInstance GetInstance() const
         { return m_instance; }
 
-    Swapchain<Platform::VULKAN> *GetSwapchain() const
+    HYP_FORCE_INLINE Device<Platform::VULKAN> *GetDevice() const
+        { return m_device; }
+
+    HYP_FORCE_INLINE const SwapchainRef<Platform::VULKAN> &GetSwapchain() const
         { return m_swapchain; }
                                                           
-    FrameHandler<Platform::VULKAN> *GetFrameHandler() const
+    HYP_FORCE_INLINE FrameHandler<Platform::VULKAN> *GetFrameHandler() const
         { return frame_handler; }
 
-    StagingBufferPool &GetStagingBufferPool()
+    HYP_FORCE_INLINE StagingBufferPool &GetStagingBufferPool()
         { return m_staging_buffer_pool; }
 
-    const StagingBufferPool &GetStagingBufferPool() const
+    HYP_FORCE_INLINE const StagingBufferPool &GetStagingBufferPool() const
         { return m_staging_buffer_pool; }
 
-    VmaAllocator GetAllocator() const
+    HYP_FORCE_INLINE VmaAllocator GetAllocator() const
         { return allocator; }
 
     helpers::SingleTimeCommands GetSingleTimeCommands();
 
     void SetValidationLayers(Array<const char *> validation_layers);
 
-    Device<Platform::VULKAN> *GetDevice() const
-        { return m_device; }
-
-    Result InitializeDevice(VkPhysicalDevice _physical_device = nullptr);
-    Result InitializeSwapchain();
+    Result CreateDevice(VkPhysicalDevice _physical_device = nullptr);
+    Result CreateSwapchain();
+    Result RecreateSwapchain();
     
     Result Destroy();
 
@@ -92,7 +87,7 @@ private:
     VmaAllocator                    allocator = nullptr;
 
     Device<Platform::VULKAN>        *m_device = nullptr;
-    Swapchain<Platform::VULKAN>     *m_swapchain = nullptr;
+    SwapchainRef<Platform::VULKAN>  m_swapchain;
     
     Array<const char *>             validation_layers;
 

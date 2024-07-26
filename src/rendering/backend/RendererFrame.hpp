@@ -55,23 +55,19 @@ public:
     Result Create(Device<PLATFORM> *device, CommandBufferRef<PLATFORM> cmd);
     Result Destroy(Device<PLATFORM> *device);
 
-    const FenceRef<PLATFORM> &GetFence() const
+    HYP_FORCE_INLINE const FenceRef<PLATFORM> &GetFence() const
         { return m_queue_submit_fence; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint GetFrameIndex() const
+    HYP_FORCE_INLINE uint GetFrameIndex() const
         { return m_frame_index; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const CommandBufferRef<PLATFORM> &GetCommandBuffer() const
+    HYP_FORCE_INLINE const CommandBufferRef<PLATFORM> &GetCommandBuffer() const
         { return m_command_buffer; }
 
-    SemaphoreChain &GetPresentSemaphores()
+    HYP_FORCE_INLINE SemaphoreChain &GetPresentSemaphores()
         { return m_present_semaphores; }
 
-    const SemaphoreChain &GetPresentSemaphores() const
+    HYP_FORCE_INLINE const SemaphoreChain &GetPresentSemaphores() const
         { return m_present_semaphores; }
 
     /* Start recording into the command buffer */
@@ -80,6 +76,8 @@ public:
     Result EndCapture(Device<PLATFORM> *device);
     /* Submit command buffer to the given queue */
     Result Submit(DeviceQueue<PLATFORM> *queue);
+
+    Result RecreateFence(Device<PLATFORM> *device);
     
     CommandBufferRef<PLATFORM>  m_command_buffer;
 

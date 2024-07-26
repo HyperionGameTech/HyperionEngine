@@ -4,6 +4,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/backend/RendererSwapchain.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/utilities/Span.hpp>
@@ -99,7 +100,7 @@ static Result HandleNextFrame(
 {
     HYPERION_VK_CHECK(vkAcquireNextImageKHR(
         device->GetDevice(),
-        swapchain->swapchain,
+        swapchain->GetPlatformImpl().handle,
         UINT64_MAX,
         frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetSemaphore(),
         VK_NULL_HANDLE,
@@ -235,9 +236,9 @@ Result Instance<Platform::VULKAN>::SetupDebug()
 Instance<Platform::VULKAN>::Instance()
     : frame_handler(nullptr),
       m_surface(VK_NULL_HANDLE),
-      m_instance(VK_NULL_HANDLE)
+      m_instance(VK_NULL_HANDLE),
+      m_swapchain(MakeRenderObject<Swapchain<Platform::VULKAN>>())
 {
-    m_swapchain = new Swapchain<Platform::VULKAN>();
 }
 
 Result Instance<Platform::VULKAN>::SetupDebugMessenger()
@@ -330,10 +331,8 @@ Result Instance<Platform::VULKAN>::Initialize(const AppContext &app_context, boo
     m_surface = app_context.GetMainWindow()->CreateVkSurface(this);
 
     /* Find and set up an adequate GPU for rendering and presentation */
-    HYPERION_BUBBLE_ERRORS(InitializeDevice());
-    /* Set up our swapchain for our GPU to present our image.
-     * This is essentially a "root" framebuffer. */
-    HYPERION_BUBBLE_ERRORS(InitializeSwapchain());
+    HYPERION_BUBBLE_ERRORS(CreateDevice());
+    HYPERION_BUBBLE_ERRORS(CreateSwapchain());
 
     /* Set up our frame handler - this class lets us abstract
      * away a little bit of the double/triple buffering stuff */
@@ -374,11 +373,7 @@ Result Instance<Platform::VULKAN>::Destroy()
 
     m_device->DestroyAllocator();
 
-    if (m_swapchain != nullptr) {
-        HYPERION_PASS_ERRORS(m_swapchain->Destroy(m_device), result);
-        delete m_swapchain;
-        m_swapchain = nullptr;
-    }
+    SafeRelease(std::move(m_swapchain));
 
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 
@@ -396,7 +391,7 @@ Result Instance<Platform::VULKAN>::Destroy()
     return result;
 }
 
-Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_device)
+Result Instance<Platform::VULKAN>::CreateDevice(VkPhysicalDevice physical_device)
 {
     /* If no physical device passed in, we select one */
     if (physical_device == VK_NULL_HANDLE) {
@@ -426,9 +421,31 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
     HYPERION_RETURN_OK;
 }
 
-Result Instance<Platform::VULKAN>::InitializeSwapchain()
+Result Instance<Platform::VULKAN>::CreateSwapchain()
 {
-    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device, m_surface));
+    if (m_surface == VK_NULL_HANDLE) {
+        return { Result::RENDERER_ERR, "Surface not created before initializing swapchain" };
+    }
+
+    m_swapchain->GetPlatformImpl().surface = m_surface;
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
+
+    HYPERION_RETURN_OK;
+}
+
+Result Instance<Platform::VULKAN>::RecreateSwapchain()
+{
+    if (m_swapchain.IsValid()) {
+        SafeRelease(std::move(m_swapchain));
+    }
+
+    if (m_surface == VK_NULL_HANDLE) {
+        return { Result::RENDERER_ERR, "Surface not created before initializing swapchain" };
+    }
+
+    m_swapchain = MakeRenderObject<Swapchain<Platform::VULKAN>>();
+    m_swapchain->GetPlatformImpl().surface = m_surface;
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
 
     HYPERION_RETURN_OK;
 }

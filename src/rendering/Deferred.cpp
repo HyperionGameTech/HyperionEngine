@@ -9,6 +9,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -486,7 +488,7 @@ EnvGridPass::EnvGridPass(EnvGridPassMode mode)
 
 EnvGridPass::~EnvGridPass()
 {
-    if (m_render_texture_to_screen_pass) {
+    if (m_render_texture_to_screen_pass != nullptr) {
         m_render_texture_to_screen_pass->Destroy();
         m_render_texture_to_screen_pass.Reset();
     }
@@ -527,6 +529,8 @@ void EnvGridPass::CreateShader()
 
 void EnvGridPass::Create()
 {
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     CreateShader();
     FullScreenPass::CreateQuad();
     FullScreenPass::CreateCommandBuffers();
@@ -547,17 +551,37 @@ void EnvGridPass::Create()
     FullScreenPass::CreatePipeline(renderable_attributes);
 
     if (m_mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE) {
-        m_temporal_blending.Reset(new TemporalBlending(
-            m_framebuffer->GetExtent(),
-            InternalFormat::RGBA8,
-            TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::LOW,
-            m_framebuffer
-        ));
-
-        m_temporal_blending->Create();
+        CreateTemporalBlending();
     }
 
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+}
+
+void EnvGridPass::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    if (m_previous_texture.IsValid()) {
+        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
+    }
+
+    if (m_render_texture_to_screen_pass != nullptr) {
+        m_render_texture_to_screen_pass->Destroy();
+        m_render_texture_to_screen_pass.Reset();
+    }
+
+    if (m_temporal_blending != nullptr) {
+        m_temporal_blending.Reset();
+    }
+
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+    CreateTemporalBlending();
+}
+
+void EnvGridPass::CreatePreviousTexture()
+{
     // Create previous image
     m_previous_texture = CreateObject<Texture>(Texture2D(
         m_extent,
@@ -567,6 +591,10 @@ void EnvGridPass::Create()
     ));
 
     InitObject(m_previous_texture);
+}
+
+void EnvGridPass::CreateRenderTextureToScreenPass()
+{
 
     // Create render texture to screen pass.
     // this is used to render the previous frame's result to the screen,
@@ -596,6 +624,19 @@ void EnvGridPass::Create()
     m_render_texture_to_screen_pass->Create();
 }
 
+void EnvGridPass::CreateTemporalBlending()
+{
+    m_temporal_blending.Reset(new TemporalBlending(
+        m_framebuffer->GetExtent(),
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_1,
+        TemporalBlendFeedback::LOW,
+        m_framebuffer
+    ));
+
+    m_temporal_blending->Create();
+}
+
 void EnvGridPass::Record(uint frame_index)
 {
 }
@@ -603,6 +644,8 @@ void EnvGridPass::Record(uint frame_index)
 void EnvGridPass::Render(Frame *frame)
 {
     HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
 
@@ -746,8 +789,100 @@ ReflectionProbePass::~ReflectionProbePass()
     }
 }
 
+void ReflectionProbePass::Create()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
+    FullScreenPass::CreateQuad();
+
+    CreateCommandBuffers();
+    FullScreenPass::CreateFramebuffer();
+
+    RenderableAttributeSet renderable_attributes(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags          = MaterialAttributeFlags::NONE
+        }
+    );
+
+    CreatePipeline(renderable_attributes);
+
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+}
+
+void ReflectionProbePass::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    if (m_previous_texture.IsValid()) {
+        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
+    }
+
+    if (m_render_texture_to_screen_pass != nullptr) {
+        m_render_texture_to_screen_pass->Destroy();
+    }
+
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+}
+
+void ReflectionProbePass::CreatePreviousTexture()
+{
+    // Create previous image
+    m_previous_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        m_image_format,
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    ));
+
+    InitObject(m_previous_texture);
+}
+
+void ReflectionProbePass::CreateRenderTextureToScreenPass()
+{
+    // Create render texture to screen pass.
+    // this is used to render the previous frame's result to the screen,
+    // so we can blend it with the current frame's result (checkerboarded)
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
+    }
+
+    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+
+    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        m_image_format,
+        m_extent
+    ));
+
+    m_render_texture_to_screen_pass->Create();
+}
+
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     // Default pass type (non parallax corrected)
 
     static const FixedArray<Pair<ApplyReflectionProbeMode, ShaderProperties>, ApplyReflectionProbeMode::MAX> apply_reflection_probe_passes = {
@@ -794,6 +929,10 @@ void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderabl
 
 void ReflectionProbePass::CreateCommandBuffers()
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     for (uint i = 0; i < ApplyReflectionProbeMode::MAX; i++) {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             m_command_buffers[i][frame_index] = MakeRenderObject<CommandBuffer>(renderer::CommandBufferType::COMMAND_BUFFER_SECONDARY);
@@ -810,65 +949,6 @@ void ReflectionProbePass::CreateCommandBuffers()
     }
 }
 
-void ReflectionProbePass::Create()
-{
-    FullScreenPass::CreateQuad();
-
-    CreateCommandBuffers();
-    FullScreenPass::CreateFramebuffer();
-
-    RenderableAttributeSet renderable_attributes(
-        MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
-        MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
-            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributeFlags::NONE
-        }
-    );
-
-    CreatePipeline(renderable_attributes);
-
-    // Create previous image
-    m_previous_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
-        m_image_format,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
-
-    InitObject(m_previous_texture);
-    
-    // Create render texture to screen pass.
-    // this is used to render the previous frame's result to the screen,
-    // so we can blend it with the current frame's result (checkerboarded)
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
-    AssertThrow(render_texture_to_screen_shader.IsValid());
-
-    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
-        AssertThrow(descriptor_set != nullptr);
-
-        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
-    }
-
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
-        render_texture_to_screen_shader,
-        std::move(descriptor_table),
-        m_image_format,
-        m_extent
-    ));
-
-    m_render_texture_to_screen_pass->Create();
-}
-
 void ReflectionProbePass::Record(uint frame_index)
 {
 }
@@ -876,6 +956,8 @@ void ReflectionProbePass::Record(uint frame_index)
 void ReflectionProbePass::Render(Frame *frame)
 {
     HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
 
@@ -1052,7 +1134,8 @@ DeferredRenderer::DeferredRenderer()
     : m_indirect_pass(true),
       m_direct_pass(false),
       m_env_grid_radiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE),
-      m_env_grid_irradiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE)
+      m_env_grid_irradiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE),
+      m_is_initialized(false)
 {
 }
 
@@ -1060,7 +1143,11 @@ DeferredRenderer::~DeferredRenderer() = default;
 
 void DeferredRenderer::Create()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertThrow(!m_is_initialized);
 
     m_env_grid_radiance_pass.Create();
     m_env_grid_irradiance_pass.Create();
@@ -1114,10 +1201,16 @@ void DeferredRenderer::Create()
     m_temporal_aa->Create();
 
     HYP_SYNC_RENDER();
+
+    m_is_initialized = true;
 }
 
 void DeferredRenderer::CreateDescriptorSets()
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
     // set global gbuffer data
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         uint element_index = 0u;
@@ -1164,6 +1257,10 @@ void DeferredRenderer::CreateDescriptorSets()
 
 void DeferredRenderer::CreateCombinePass()
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
     ShaderRef shader = g_shader_manager->GetOrCreate(
         NAME("DeferredCombine"),
         GetDeferredShaderProperties()
@@ -1182,6 +1279,8 @@ void DeferredRenderer::CreateCombinePass()
 
 void DeferredRenderer::Destroy()
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     SafeRelease(std::move(m_blue_noise_buffer));
@@ -1208,6 +1307,39 @@ void DeferredRenderer::Destroy()
 
     m_indirect_pass.Destroy();  // flushes render queue
     m_direct_pass.Destroy();    // flushes render queue
+}
+
+void DeferredRenderer::HandleWindowSizeChanged(Vec2u new_window_size)
+{
+    if (!m_is_initialized) {
+        return;
+    }
+
+    if (m_temporal_aa != nullptr) {
+        // m_temporal_aa->Resize(new_window_size);
+    }
+
+    // m_post_processing.Resize(new_window_size);
+
+    // @TODO: more resize calls
+
+    if (m_ssr != nullptr) {
+        // m_ssr->Resize(new_window_size);
+    }
+
+    if (m_hbao != nullptr) {
+        // m_hbao->Resize(new_window_size);
+    }
+
+    m_env_grid_irradiance_pass.Resize(new_window_size);
+    m_env_grid_radiance_pass.Resize(new_window_size);
+
+    m_indirect_pass.Resize(new_window_size);
+    m_direct_pass.Resize(new_window_size);
+
+    if (m_combine_pass != nullptr) {
+        m_combine_pass->Resize(new_window_size);
+    }
 }
 
 void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
@@ -1474,6 +1606,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
     HYP_SCOPE;
 
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     CommandBuffer *primary = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 
@@ -1508,7 +1642,9 @@ void DeferredRenderer::ApplyCameraJitter()
 {
     HYP_SCOPE;
 
-    Vector4 jitter;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    Vec4f jitter;
 
     const ID<Camera> camera_id = g_engine->GetRenderState().GetCamera().id;
     const CameraDrawProxy &camera = g_engine->GetRenderState().GetCamera().camera;
@@ -1527,6 +1663,10 @@ void DeferredRenderer::ApplyCameraJitter()
 
 void DeferredRenderer::CreateBlueNoiseBuffer()
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
     m_blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
     PUSH_RENDER_COMMAND(CreateBlueNoiseBuffer, m_blue_noise_buffer);

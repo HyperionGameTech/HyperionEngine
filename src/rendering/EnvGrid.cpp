@@ -5,6 +5,8 @@
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -447,7 +449,7 @@ void EnvGrid::OnRender(Frame *frame)
         m_shader_data.probe_indices[index] = probe.GetID().ToIndex();
     }
 
-    if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES).GetBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.env_grid_probes").ToBool()) {
         // Debug draw
         for (uint index = 0; index < m_env_probe_collection.num_probes; index++) {
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);

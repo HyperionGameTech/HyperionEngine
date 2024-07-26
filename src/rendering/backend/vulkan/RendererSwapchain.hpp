@@ -6,8 +6,6 @@
 #include <core/containers/Array.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
@@ -25,40 +23,23 @@ template <PlatformType PLATFORM>
 class Device;
 
 template <>
-class Swapchain<Platform::VULKAN>
+struct SwapchainPlatformImpl<Platform::VULKAN>
 {
-    static constexpr VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    Swapchain<Platform::VULKAN> *self = nullptr;
 
-    VkSurfaceFormatKHR ChooseSurfaceFormat(Device<Platform::VULKAN> *device);
-    VkPresentModeKHR GetPresentMode();
-    void RetrieveSupportDetails(Device<Platform::VULKAN> *device);
-    void RetrieveImageHandles(Device<Platform::VULKAN> *device);
+    VkSwapchainKHR              handle = VK_NULL_HANDLE;
+    VkSurfaceKHR                surface = VK_NULL_HANDLE;
+    VkSurfaceFormatKHR          surface_format;
+    VkPresentModeKHR            present_mode;
+    SwapchainSupportDetails     support_details;
 
-public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
-    Swapchain();
-    ~Swapchain() = default;
-
-    Result Create(Device<Platform::VULKAN> *device, const VkSurfaceKHR &surface);
+    Result Create(Device<Platform::VULKAN> *device);
     Result Destroy(Device<Platform::VULKAN> *device);
 
-    SizeType NumImages() const
-        { return m_images.Size(); }
-
-    const Array<ImageRef<Platform::VULKAN>> &GetImages() const
-        { return m_images; }
-
-    VkSwapchainKHR                      swapchain;
-    Extent2D                            extent;
-    VkSurfaceFormatKHR                  surface_format;
-    InternalFormat                      image_format;
-
-private:
-    Array<ImageRef<Platform::VULKAN>>   m_images;
-
-    SwapchainSupportDetails             support_details;
-    VkPresentModeKHR                    present_mode;
+    void ChooseSurfaceFormat(Device<Platform::VULKAN> *device);
+    void ChoosePresentMode();
+    void RetrieveSupportDetails(Device<Platform::VULKAN> *device);
+    void RetrieveImageHandles(Device<Platform::VULKAN> *device);
 };
 
 } // namespace platform

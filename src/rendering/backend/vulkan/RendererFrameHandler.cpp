@@ -58,7 +58,7 @@ Result FrameHandler<Platform::VULKAN>::PrepareFrame(
 {
     const FrameRef<Platform::VULKAN> &frame = GetCurrentFrame();
 
-    frame->GetFence()->WaitForGPU(device, true);
+    HYPERION_BUBBLE_ERRORS(frame->GetFence()->WaitForGPU(device, true));
 
     const VkResult vk_fence_result = frame->GetFence()->GetPlatformImpl().last_frame_result;
 
@@ -94,11 +94,11 @@ Result FrameHandler<Platform::VULKAN>::PresentFrame(
 
     const auto &signal_semaphores = frame->GetPresentSemaphores().GetSignalSemaphoresView();
 
-    VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    VkPresentInfoKHR present_info { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     present_info.waitSemaphoreCount = uint32(signal_semaphores.size());
     present_info.pWaitSemaphores = signal_semaphores.data();
     present_info.swapchainCount = 1;
-    present_info.pSwapchains = &swapchain->swapchain;
+    present_info.pSwapchains = &swapchain->GetPlatformImpl().handle;
     present_info.pImageIndices = &m_acquired_image_index;
     present_info.pResults = nullptr;
 

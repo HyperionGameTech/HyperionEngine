@@ -4,6 +4,7 @@
 #include <rendering/RenderGroup.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -19,7 +20,7 @@ using renderer::FillMode;
 
 struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 {
-    FixedArray<CommandBufferRef, max_frames_in_flight> command_buffers;
+    FixedArray<CommandBufferRef, max_frames_in_flight>  command_buffers;
 
     RENDER_COMMAND(CreateCommandBuffers)(const FixedArray<CommandBufferRef, max_frames_in_flight> &command_buffers)
         : command_buffers(command_buffers)
@@ -36,6 +37,31 @@ struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 #endif
 
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(g_engine->GetGPUDevice()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer) : renderer::RenderCommand
+{
+    FullScreenPass  &full_screen_pass;
+    Extent2D        new_size;
+
+    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)(FullScreenPass &full_screen_pass, Extent2D new_size)
+        : full_screen_pass(full_screen_pass),
+          new_size(new_size)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(RecreateFullScreenPassFramebuffer)() override = default;
+
+    virtual Result operator()() override
+    {
+        if (full_screen_pass.m_is_initialized) {
+            full_screen_pass.Resize_Internal(new_size);
+        } else {
+            full_screen_pass.m_extent = new_size;
         }
 
         HYPERION_RETURN_OK;
@@ -75,11 +101,56 @@ FullScreenPass::FullScreenPass(
 ) : m_shader(shader),
     m_image_format(image_format),
     m_extent(extent),
-    m_blend_function(BlendFunction::None())
+    m_blend_function(BlendFunction::None()),
+    m_is_initialized(false)
 {
 }
 
 FullScreenPass::~FullScreenPass() = default;
+
+void FullScreenPass::Create()
+{
+    AssertThrow(!m_is_initialized);
+
+    AssertThrowMsg(
+        m_image_format != InternalFormat::NONE,
+        "Image format must be set before creating the full screen pass"
+    );
+
+    CreateQuad();
+    CreateCommandBuffers();
+    CreateFramebuffer();
+    CreatePipeline();
+    CreateDescriptors();
+
+    m_is_initialized = true;
+}
+
+void FullScreenPass::Destroy()
+{
+    if (m_framebuffer.IsValid()) {
+        if (m_render_group.IsValid()) {
+            m_render_group->RemoveFramebuffer(m_framebuffer);
+        }
+    }
+
+    m_render_group.Reset();
+    m_full_screen_quad.Reset();
+
+    SafeRelease(std::move(m_framebuffer));    
+    SafeRelease(std::move(m_command_buffers));
+
+    HYP_SYNC_RENDER();
+}
+
+void FullScreenPass::SetShader(const ShaderRef &shader)
+{
+    if (m_shader == shader) {
+        return;
+    }
+
+    m_shader = shader;
+}
 
 const AttachmentRef &FullScreenPass::GetAttachment(uint attachment_index) const
 {
@@ -93,27 +164,37 @@ void FullScreenPass::SetBlendFunction(const BlendFunction &blend_function)
     m_blend_function = blend_function;
 }
 
-void FullScreenPass::Create()
+void FullScreenPass::Resize(Extent2D new_size)
 {
-    AssertThrowMsg(
-        m_image_format != InternalFormat::NONE,
-        "Image format must be set before creating the full screen pass"
-    );
-
-    CreateQuad();
-    CreateCommandBuffers();
-    CreateFramebuffer();
-    CreatePipeline();
-    CreateDescriptors();
+    PUSH_RENDER_COMMAND(RecreateFullScreenPassFramebuffer, *this, new_size);
 }
 
-void FullScreenPass::SetShader(const ShaderRef &shader)
+void FullScreenPass::Resize_Internal(Extent2D new_size)
 {
-    if (m_shader == shader) {
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    if (m_extent == new_size) {
         return;
     }
 
-    m_shader = shader;
+    if (!m_framebuffer.IsValid()) {
+        // Not created yet; skip
+        return;
+    }
+
+    if (m_render_group.IsValid()) {
+        m_render_group->RemoveFramebuffer(m_framebuffer);
+    }
+
+    SafeRelease(std::move(m_framebuffer));
+
+    if (new_size.Size() == 0) {
+        new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    }
+
+    m_extent = new_size;
+
+    CreateFramebuffer();
 }
 
 void FullScreenPass::CreateQuad()
@@ -213,23 +294,6 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
 
 void FullScreenPass::CreateDescriptors()
 {
-}
-
-void FullScreenPass::Destroy()
-{
-    if (m_framebuffer.IsValid()) {
-        if (m_render_group.IsValid()) {
-            m_render_group->RemoveFramebuffer(m_framebuffer);
-        }
-    }
-
-    m_render_group.Reset();
-    m_full_screen_quad.Reset();
-
-    SafeRelease(std::move(m_framebuffer));    
-    SafeRelease(std::move(m_command_buffers));
-
-    HYP_SYNC_RENDER();
 }
 
 void FullScreenPass::Record(uint frame_index)

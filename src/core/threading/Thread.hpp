@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef HYPERION_CORE_THREAD_HPP
-#define HYPERION_CORE_THREAD_HPP
+
+#ifndef HYPERION_THREAD_HPP
+#define HYPERION_THREAD_HPP
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/utilities/Tuple.hpp>

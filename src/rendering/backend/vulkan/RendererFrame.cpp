@@ -54,10 +54,7 @@ Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Command
     HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create(device));
 
     m_queue_submit_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
-
     HYPERION_BUBBLE_ERRORS(m_queue_submit_fence->Create(device));
-
-    DebugLog(LogType::Debug, "Create Sync objects!\n");
 
     HYPERION_RETURN_OK;
 }
@@ -95,6 +92,17 @@ Result Frame<Platform::VULKAN>::Submit(DeviceQueue<Platform::VULKAN> *queue)
         m_queue_submit_fence,
         &m_present_semaphores
     );
+}
+
+template <>
+Result Frame<Platform::VULKAN>::RecreateFence(Device<Platform::VULKAN> *device)
+{
+    if (m_queue_submit_fence.IsValid()) {
+        SafeRelease(std::move(m_queue_submit_fence));
+    }
+
+    m_queue_submit_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
+    return m_queue_submit_fence->Create(device);
 }
 
 } // namespace platform

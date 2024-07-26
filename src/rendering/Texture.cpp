@@ -4,10 +4,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
-#include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererSampler.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <core/HypClassUtils.hpp>
 

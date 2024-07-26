@@ -12,6 +12,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -530,7 +532,7 @@ LightmapRenderer::LightmapRenderer(Name name)
 
 void LightmapRenderer::Init()
 {
-    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED).GetBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         // trace on GPU if the card supports ray tracing
         m_trace_mode = LIGHTMAP_TRACE_MODE_GPU;
     }

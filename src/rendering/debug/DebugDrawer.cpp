@@ -6,6 +6,7 @@
 #include <rendering/RenderGroup.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <util/MeshBuilder.hpp>
 

@@ -56,7 +56,7 @@ public:
 private:
     const bool                                              m_is_indirect_pass;
 
-    FixedArray<ShaderRef, uint(LightType::MAX)>      m_direct_light_shaders;
+    FixedArray<ShaderRef, uint(LightType::MAX)>             m_direct_light_shaders;
     FixedArray<Handle<RenderGroup>, uint(LightType::MAX)>   m_direct_light_render_groups;
 
     Handle<Texture>                                         m_ltc_matrix_texture;
@@ -87,6 +87,12 @@ public:
     virtual void Render(Frame *frame) override;
 
 private:
+    virtual void Resize_Internal(Extent2D new_size) override;
+
+    void CreatePreviousTexture();
+    void CreateRenderTextureToScreenPass();
+    void CreateTemporalBlending();
+
     const EnvGridPassMode       m_mode;
     UniquePtr<TemporalBlending> m_temporal_blending;
     UniquePtr<FullScreenPass>   m_render_texture_to_screen_pass;
@@ -117,6 +123,11 @@ public:
     virtual void Render(Frame *frame) override;
 
 private:
+    virtual void Resize_Internal(Extent2D new_size) override;
+
+    void CreatePreviousTexture();
+    void CreateRenderTextureToScreenPass();
+
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
     UniquePtr<FullScreenPass>                                                                       m_render_texture_to_screen_pass;
@@ -132,33 +143,36 @@ public:
     DeferredRenderer &operator=(const DeferredRenderer &other)  = delete;
     ~DeferredRenderer();
 
-    FullScreenPass *GetCombinePass() const
+    HYP_FORCE_INLINE FullScreenPass *GetCombinePass() const
         { return m_combine_pass.Get(); }
 
-    PostProcessing &GetPostProcessing()
+    HYP_FORCE_INLINE PostProcessing &GetPostProcessing()
         { return m_post_processing; }
 
-    const PostProcessing &GetPostProcessing() const
+    HYP_FORCE_INLINE const PostProcessing &GetPostProcessing() const
         { return m_post_processing; }
 
-    DepthPyramidRenderer &GetDepthPyramidRenderer()
+    HYP_FORCE_INLINE DepthPyramidRenderer &GetDepthPyramidRenderer()
         { return m_dpr; }
 
-    const DepthPyramidRenderer &GetDepthPyramidRenderer() const
+    HYP_FORCE_INLINE const DepthPyramidRenderer &GetDepthPyramidRenderer() const
         { return m_dpr; }
 
-    const AttachmentRef &GetCombinedResult() const
+    HYP_FORCE_INLINE const AttachmentRef &GetCombinedResult() const
         { return m_combine_pass->GetAttachment(0); }
 
-    const Handle<Texture> &GetMipChain() const
+    HYP_FORCE_INLINE const Handle<Texture> &GetMipChain() const
         { return m_mip_chain; }
 
-    const GPUBufferRef &GetBlueNoiseBuffer() const
+    HYP_FORCE_INLINE const GPUBufferRef &GetBlueNoiseBuffer() const
         { return m_blue_noise_buffer; }
 
     void Create();
     void Destroy();
+    
     void Render(Frame *frame, RenderEnvironment *environment);
+
+    void HandleWindowSizeChanged(Vec2u new_window_size);
 
 private:
     void ApplyCameraJitter();
@@ -203,6 +217,8 @@ private:
     GPUBufferRef                                        m_blue_noise_buffer;
     
     CullData                                            m_cull_data;
+
+    bool                                                m_is_initialized;
 };
 
 } // namespace hyperion

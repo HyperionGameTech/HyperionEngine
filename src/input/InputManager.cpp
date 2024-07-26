@@ -50,7 +50,7 @@ void InputManager::CheckEvent(SystemEvent *event)
 
         switch (window_event_type) {
         case SystemWindowEventType::EVENT_WINDOW_RESIZED:
-            UpdateWindowSize();
+            UpdateWindowSize(Vec2u(event->GetWindowResizeDimensions()));
             break;
         }
     }
@@ -83,7 +83,7 @@ void InputManager::UpdateMousePosition()
     m_mouse_position = m_window->GetMousePosition();
 }
 
-void InputManager::UpdateWindowSize()
+void InputManager::UpdateWindowSize(Vec2u new_size)
 {
     //Threads::AssertOnThread(ThreadName::THREAD_INPUT);
     
@@ -91,10 +91,10 @@ void InputManager::UpdateWindowSize()
         return;
     }
 
-    const Vec2u window_size = m_window->GetDimensions();
+    m_window->HandleResize(new_size);
 
-    m_window_size.x.store(window_size.x, std::memory_order_relaxed);
-    m_window_size.y.store(window_size.y, std::memory_order_relaxed);
+    m_window_size.x.store(new_size.x, std::memory_order_relaxed);
+    m_window_size.y.store(new_size.y, std::memory_order_relaxed);
 }
 
 void InputManager::SetKey(KeyCode key, bool pressed)

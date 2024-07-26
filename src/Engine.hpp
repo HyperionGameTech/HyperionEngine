@@ -130,6 +130,8 @@ class Engine
 #endif
 
 public:
+    friend struct RenderCommand_RecreateSwapchain;
+
     HYP_API static Engine *GetInstance();
 
     Engine();
@@ -245,7 +247,6 @@ public:
     void FinalizeStop();
 
 private:
-    void Compile();
     void ResetRenderState(RenderStateMask mask);
     void UpdateBuffersAndDescriptors(uint32 frame_index);
 
@@ -291,6 +292,8 @@ private:
 
     AtomicVar<bool>                                         m_is_shutting_down { false };
     bool                                                    m_is_render_loop_active { false };
+    bool                                                    m_should_recreate_swapchain;
+    bool                                                    m_is_initialized;
 };
 
 } // namespace hyperion

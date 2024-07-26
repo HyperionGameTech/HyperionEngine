@@ -29,14 +29,10 @@ public:
     Fence &operator=(const Fence &other)    = delete;
     HYP_API ~Fence();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    FencePlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE FencePlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const FencePlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const FencePlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
     HYP_API Result Create(Device<PLATFORM> *device);

@@ -1041,6 +1041,7 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
 void HyperionEditorImpl::Initialize()
 {
+
     CreateMainPanel();
     CreateInitialState();
 

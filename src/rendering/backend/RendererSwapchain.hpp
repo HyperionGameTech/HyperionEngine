@@ -4,6 +4,11 @@
 #define HYPERION_BACKEND_RENDERER_SWAPCHAIN_HPP
 
 #include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RendererImage.hpp>
+
+#include <math/Extent.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -11,10 +16,50 @@ namespace renderer {
 namespace platform {
 
 template <PlatformType PLATFORM>
+class Device;
+
+template <PlatformType PLATFORM>
+struct SwapchainPlatformImpl;
+
+template <PlatformType PLATFORM>
 class Swapchain
 {
 public:
+    friend struct SwapchainPlatformImpl<PLATFORM>;
+
     static constexpr PlatformType platform = PLATFORM;
+    
+    HYP_API Swapchain();
+    Swapchain(const Swapchain &other)               = delete;
+    Swapchain &operator=(const Swapchain &other)    = delete;
+    Swapchain(Swapchain &&other) noexcept           = delete;
+    Swapchain &operator=(Swapchain &other) noexcept = delete;
+    HYP_API ~Swapchain();
+    
+    HYP_FORCE_INLINE SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl()
+        { return m_platform_impl; }
+
+    HYP_FORCE_INLINE const SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl() const
+        { return m_platform_impl; }
+
+    HYP_FORCE_INLINE SizeType NumImages() const
+        { return m_images.Size(); }
+
+    HYP_FORCE_INLINE const Array<ImageRef<PLATFORM>> &GetImages() const
+        { return m_images; }
+
+    HYP_API bool IsCreated() const;
+
+    HYP_API Result Create(Device<PLATFORM> *device);
+    HYP_API Result Destroy(Device<PLATFORM> *device);
+
+    Extent2D                        extent;
+    InternalFormat                  image_format;
+
+private:
+    Array<ImageRef<PLATFORM>>       m_images;
+
+    SwapchainPlatformImpl<PLATFORM> m_platform_impl;
 };
 
 } // namespace platform

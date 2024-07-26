@@ -120,6 +120,8 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
      *  \return A JSONSubscriptWrapper object.
      */
     JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const;
+
+    HashCode GetHashCode() const;
 };
 
 template <>
@@ -231,6 +233,8 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  \param value The value to set.
      */
     void Set(UTF8StringView path, const JSONValue &value);
+
+    HashCode GetHashCode() const;
 };
 
 class HYP_API JSONValue
@@ -623,6 +627,8 @@ public:
 
     HYP_FORCE_INLINE void Set(UTF8StringView path, const JSONValue &value)
         { JSONSubscriptWrapper<JSONValue>(this).Set(path, value); }
+
+    HashCode GetHashCode() const;
 
 private:
     JSONString ToString(bool representation, uint32 depth) const;
