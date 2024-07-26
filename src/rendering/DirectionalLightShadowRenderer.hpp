@@ -36,7 +36,7 @@ public:
     ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, ShadowMode shadow_mode);
     ShadowPass(const ShadowPass &other)             = delete;
     ShadowPass &operator=(const ShadowPass &other)  = delete;
-    virtual ~ShadowPass();
+    virtual ~ShadowPass() override;
 
     const Handle<Light> &GetLight() const { return m_light; }
 
@@ -84,7 +84,6 @@ public:
     virtual void CreateDescriptors() override;
 
     virtual void Create() override;
-    virtual void Destroy() override;
     virtual void Render(Frame *frame) override;
 
 private:

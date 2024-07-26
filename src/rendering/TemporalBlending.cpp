@@ -85,6 +85,19 @@ TemporalBlending::TemporalBlending(
     m_input_framebuffer(input_framebuffer),
     m_blending_frame_counter(0)
 {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto &image_output = m_image_outputs[frame_index];
+
+        image_output.image = MakeRenderObject<Image>(StorageImage(
+            Extent3D(m_extent),
+            m_image_format,
+            ImageType::TEXTURE_TYPE_2D,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            FilterMode::TEXTURE_FILTER_LINEAR
+        ));
+
+        image_output.image_view = MakeRenderObject<ImageView>();
+    }
 }
 
 TemporalBlending::TemporalBlending(
@@ -101,6 +114,19 @@ TemporalBlending::TemporalBlending(
     m_blending_frame_counter(0),
     m_is_initialized(false)
 {
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto &image_output = m_image_outputs[frame_index];
+
+        image_output.image = MakeRenderObject<Image>(StorageImage(
+            Extent3D(m_extent),
+            m_image_format,
+            ImageType::TEXTURE_TYPE_2D,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            FilterMode::TEXTURE_FILTER_LINEAR
+        ));
+
+        image_output.image_view = MakeRenderObject<ImageView>();
+    }
 }
 
 TemporalBlending::~TemporalBlending()
@@ -118,6 +144,25 @@ TemporalBlending::~TemporalBlending()
 
 void TemporalBlending::Create()
 {
+    if (m_is_initialized) {
+        return;
+    }
+
+    m_after_swapchain_recreated_delegate = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
+    {
+        if (!m_is_initialized) {
+            return;
+        }
+
+        const ImageViewRef &velocity_texture = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+            .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView();
+
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
+                ->SetElement(NAME("VelocityImage"), velocity_texture);
+        }
+    });
+
     if (m_input_framebuffer.IsValid()) {
         DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
     }
@@ -191,20 +236,6 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
 void TemporalBlending::CreateImageOutputs()
 {
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto &image_output = m_image_outputs[frame_index];
-
-        image_output.image = MakeRenderObject<Image>(StorageImage(
-            Extent3D(m_extent),
-            m_image_format,
-            ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR
-        ));
-
-        image_output.image_view = MakeRenderObject<ImageView>();
-    }
-
     PUSH_RENDER_COMMAND(CreateTemporalBlendingImageOutputs, m_image_outputs.Data());
 }
 
@@ -222,7 +253,10 @@ void TemporalBlending::CreateDescriptorSets()
             AssertThrowMsg(m_input_framebuffer->GetAttachmentMap()->Size() != 0, "No attachment refs on input framebuffer!");
         }
 
-        const ImageViewRef input_image_view = m_input_framebuffer ? m_input_framebuffer->GetAttachment(0)->GetImageView() : m_input_image_views[frame_index];
+        const ImageViewRef input_image_view = m_input_framebuffer.IsValid()
+            ? m_input_framebuffer->GetAttachment(0)->GetImageView()
+            : m_input_image_views[frame_index];
+
         AssertThrow(input_image_view != nullptr);
 
         // input image
@@ -246,10 +280,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("OutImage"), m_image_outputs[frame_index].image_view);
     }
 
-    DeferCreate(
-        m_descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
 }
 
 void TemporalBlending::CreateComputePipelines()

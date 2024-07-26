@@ -6,6 +6,8 @@
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/FullScreenPass.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 namespace hyperion {
 
 using renderer::Result;
@@ -14,28 +16,29 @@ class Engine;
 
 struct RenderCommand_AddHBAOFinalImagesToGlobalDescriptorSet;
 
-class HBAO
+class HBAO : public FullScreenPass
 {
 public:
     friend struct RenderCommand_AddHBAOFinalImagesToGlobalDescriptorSet;
 
-    HBAO(const Extent2D &extent);
+    HBAO();
     HBAO(const HBAO &other)             = delete;
     HBAO &operator=(const HBAO &other)  = delete;
-    ~HBAO();
+    virtual ~HBAO() override;
 
-    void Create();
-    void Destroy();
-    
-    void Render(Frame *frame);
+    virtual void Create() override;
+
+    virtual void Record(uint frame_index) override;
+    virtual void Render(Frame *frame) override;
+
+protected:
+    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
+
+    virtual void Resize_Internal(Extent2D new_size) override;
 
 private:
-    void CreatePass();
     void CreateTemporalBlending();
 
-    Extent2D                    m_extent;
-
-    UniquePtr<FullScreenPass>   m_hbao_pass;
     UniquePtr<TemporalBlending> m_temporal_blending;
 };
 

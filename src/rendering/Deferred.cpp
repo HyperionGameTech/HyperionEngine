@@ -4,6 +4,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/DepthPyramidRenderer.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -169,9 +170,9 @@ static ShaderProperties GetDeferredShaderProperties()
 
 #pragma region Deferred pass
 
-DeferredPass::DeferredPass(bool is_indirect_pass)
+DeferredPass::DeferredPass(DeferredPassMode mode)
     : FullScreenPass(InternalFormat::RGBA8_SRGB),
-      m_is_indirect_pass(is_indirect_pass)
+      m_mode(mode)
 {
 }
 
@@ -180,40 +181,68 @@ DeferredPass::~DeferredPass()
     SafeRelease(std::move(m_ltc_sampler));
 }
 
+void DeferredPass::Create()
+{
+    CreateShader();
+
+    FullScreenPass::Create();
+
+    AddToGlobalDescriptorSet();
+}
+
 void DeferredPass::CreateShader()
 {
-    if (m_is_indirect_pass) {
+    static const FixedArray<ShaderProperties, uint(LightType::MAX)> light_type_properties {
+        ShaderProperties { { "LIGHT_TYPE_DIRECTIONAL" } },
+        ShaderProperties { { "LIGHT_TYPE_POINT" } },
+        ShaderProperties { { "LIGHT_TYPE_SPOT" } },
+        ShaderProperties { { "LIGHT_TYPE_AREA_RECT" } }
+    };
+
+    switch (m_mode) {
+    case DeferredPassMode::INDIRECT_LIGHTING:
         m_shader = g_shader_manager->GetOrCreate(
             NAME("DeferredIndirect"),
             GetDeferredShaderProperties()
         );
 
         AssertThrow(m_shader.IsValid());
-    } else {
-        static const FixedArray<ShaderProperties, uint(LightType::MAX)> light_type_properties {
-            ShaderProperties { { "LIGHT_TYPE_DIRECTIONAL" } },
-            ShaderProperties { { "LIGHT_TYPE_POINT" } },
-            ShaderProperties { { "LIGHT_TYPE_SPOT" } },
-            ShaderProperties { { "LIGHT_TYPE_AREA_RECT" } }
-        };
 
+        break;
+    case DeferredPassMode::DIRECT_LIGHTING:
         for (uint i = 0; i < uint(LightType::MAX); i++) {
             ShaderProperties shader_properties = GetDeferredShaderProperties();
             shader_properties.Merge(light_type_properties[i]);
 
-            m_direct_light_shaders[i] = g_shader_manager->GetOrCreate(
-                NAME("DeferredDirect"),
-                shader_properties
-            );
+            m_direct_light_shaders[i] = g_shader_manager->GetOrCreate(NAME("DeferredDirect"), shader_properties);
 
             AssertThrow(m_direct_light_shaders[i].IsValid());
         }
+
+        break;
+    default:
+        HYP_FAIL("Invalid deferred pass mode");
     }
+}
+
+void DeferredPass::CreatePipeline()
+{
+    CreatePipeline(RenderableAttributeSet(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = m_mode == DeferredPassMode::DIRECT_LIGHTING
+                ? BlendFunction::Additive()
+                : BlendFunction::None()
+        }
+    ));
 }
 
 void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
-    if (m_is_indirect_pass) {
+    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING) {
         FullScreenPass::CreatePipeline(renderable_attributes);
         return;
     }
@@ -306,31 +335,38 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
     }
 }
 
-void DeferredPass::Create()
+void DeferredPass::Resize_Internal(Extent2D new_size)
 {
-    CreateShader();
-    FullScreenPass::CreateQuad();
-    FullScreenPass::CreateCommandBuffers();
-    FullScreenPass::CreateFramebuffer();
+    FullScreenPass::Resize_Internal(new_size);
 
-    RenderableAttributeSet renderable_attributes(
-        MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
-        MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
-            .blend_function = m_is_indirect_pass ? BlendFunction::None() : BlendFunction::Additive()
+    AddToGlobalDescriptorSet();
+}
+
+void DeferredPass::AddToGlobalDescriptorSet()
+{
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        switch (m_mode) {
+        case DeferredPassMode::INDIRECT_LIGHTING:
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("DeferredIndirectResultTexture"), GetAttachment(0)->GetImageView());
+
+            break;
+        case DeferredPassMode::DIRECT_LIGHTING:
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("DeferredDirectResultTexture"), GetAttachment(0)->GetImageView());
+
+            break;
+        default:
+            HYP_FAIL("Invalid deferred pass mode");
         }
-    );
-
-    CreatePipeline(renderable_attributes);
+    }
 }
 
 void DeferredPass::Record(uint frame_index)
 {
     HYP_SCOPE;
 
-    if (m_is_indirect_pass) {
+    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING) {
         FullScreenPass::Record(frame_index);
 
         return;
@@ -468,17 +504,17 @@ void DeferredPass::Render(Frame *frame)
 
 EnvGridPass::EnvGridPass(EnvGridPassMode mode)
     : FullScreenPass(
-        mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE
+        mode == EnvGridPassMode::RADIANCE
             ? env_grid_radiance_format
             : env_grid_irradiance_format,
-        mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE
+        mode == EnvGridPassMode::RADIANCE
             ? env_grid_radiance_extent
             : env_grid_irradiance_extent
       ),
       m_mode(mode),
       m_is_first_frame(true)
 {
-    if (mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE) {
+    if (mode == EnvGridPassMode::RADIANCE) {
         SetBlendFunction(BlendFunction(
             BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA
@@ -488,14 +524,27 @@ EnvGridPass::EnvGridPass(EnvGridPassMode mode)
 
 EnvGridPass::~EnvGridPass()
 {
-    if (m_render_texture_to_screen_pass != nullptr) {
-        m_render_texture_to_screen_pass->Destroy();
-        m_render_texture_to_screen_pass.Reset();
+    m_render_texture_to_screen_pass.Reset();
+
+    m_temporal_blending.Reset();
+}
+
+void EnvGridPass::Create()
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    CreateShader();
+
+    FullScreenPass::Create();
+
+    if (m_mode == EnvGridPassMode::RADIANCE) {
+        CreateTemporalBlending();
     }
 
-    if (m_temporal_blending) {
-        m_temporal_blending.Reset();
-    }
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+
+    AddToGlobalDescriptorSet();
 }
 
 void EnvGridPass::CreateShader()
@@ -503,11 +552,11 @@ void EnvGridPass::CreateShader()
     ShaderProperties properties { };
 
     switch (m_mode) {
-    case EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE:
+    case EnvGridPassMode::RADIANCE:
         properties.Set("MODE_RADIANCE");
 
         break;
-    case EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE:
+    case EnvGridPassMode::IRRADIANCE:
         switch (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI_MODE).GetInt()) {
         case 1:
             properties.Set("MODE_IRRADIANCE_VOXEL");
@@ -527,16 +576,9 @@ void EnvGridPass::CreateShader()
     );
 }
 
-void EnvGridPass::Create()
+void EnvGridPass::CreatePipeline()
 {
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    CreateShader();
-    FullScreenPass::CreateQuad();
-    FullScreenPass::CreateCommandBuffers();
-    FullScreenPass::CreateFramebuffer();
-
-    RenderableAttributeSet renderable_attributes(
+    FullScreenPass::CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes
         },
@@ -546,38 +588,7 @@ void EnvGridPass::Create()
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .flags          = MaterialAttributeFlags::NONE
         }
-    );
-
-    FullScreenPass::CreatePipeline(renderable_attributes);
-
-    if (m_mode == EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE) {
-        CreateTemporalBlending();
-    }
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-}
-
-void EnvGridPass::Resize_Internal(Extent2D new_size)
-{
-    FullScreenPass::Resize_Internal(new_size);
-
-    if (m_previous_texture.IsValid()) {
-        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
-    }
-
-    if (m_render_texture_to_screen_pass != nullptr) {
-        m_render_texture_to_screen_pass->Destroy();
-        m_render_texture_to_screen_pass.Reset();
-    }
-
-    if (m_temporal_blending != nullptr) {
-        m_temporal_blending.Reset();
-    }
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-    CreateTemporalBlending();
+    ));
 }
 
 void EnvGridPass::CreatePreviousTexture()
@@ -595,6 +606,8 @@ void EnvGridPass::CreatePreviousTexture()
 
 void EnvGridPass::CreateRenderTextureToScreenPass()
 {
+    AssertThrow(m_previous_texture.IsValid());
+    AssertThrow(m_previous_texture->GetImageView().IsValid());
 
     // Create render texture to screen pass.
     // this is used to render the previous frame's result to the screen,
@@ -635,6 +648,44 @@ void EnvGridPass::CreateTemporalBlending()
     ));
 
     m_temporal_blending->Create();
+}
+
+void EnvGridPass::AddToGlobalDescriptorSet()
+{
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        switch (m_mode) {
+        case EnvGridPassMode::RADIANCE:
+            AssertThrow(m_temporal_blending->GetImageOutput(frame_index).image_view.IsValid());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("EnvGridRadianceResultTexture"), m_temporal_blending->GetImageOutput(frame_index).image_view);
+
+            break;
+        case EnvGridPassMode::IRRADIANCE:
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("EnvGridIrradianceResultTexture"), GetAttachment(0)->GetImageView());
+
+            break;
+        }
+    }
+}
+
+void EnvGridPass::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    if (m_previous_texture.IsValid()) {
+        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
+    }
+
+    m_render_texture_to_screen_pass.Reset();
+    
+    m_temporal_blending.Reset();
+
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+    CreateTemporalBlending();
+
+    AddToGlobalDescriptorSet();
 }
 
 void EnvGridPass::Record(uint frame_index)
@@ -777,10 +828,7 @@ ReflectionProbePass::ReflectionProbePass()
 
 ReflectionProbePass::~ReflectionProbePass()
 {
-    if (m_render_texture_to_screen_pass) {
-        m_render_texture_to_screen_pass->Destroy();
-        m_render_texture_to_screen_pass.Reset();
-    }
+    m_render_texture_to_screen_pass.Reset();
 
     g_safe_deleter->SafeRelease(std::move(m_previous_texture));
 
@@ -793,14 +841,19 @@ void ReflectionProbePass::Create()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-    
-    FullScreenPass::CreateQuad();
+    FullScreenPass::Create();
 
-    CreateCommandBuffers();
-    FullScreenPass::CreateFramebuffer();
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
 
-    RenderableAttributeSet renderable_attributes(
+    AddToGlobalDescriptorSet();
+}
+
+void ReflectionProbePass::CreatePipeline()
+{
+    HYP_SCOPE;
+
+    CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes
         },
@@ -810,71 +863,7 @@ void ReflectionProbePass::Create()
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .flags          = MaterialAttributeFlags::NONE
         }
-    );
-
-    CreatePipeline(renderable_attributes);
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-}
-
-void ReflectionProbePass::Resize_Internal(Extent2D new_size)
-{
-    FullScreenPass::Resize_Internal(new_size);
-
-    if (m_previous_texture.IsValid()) {
-        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
-    }
-
-    if (m_render_texture_to_screen_pass != nullptr) {
-        m_render_texture_to_screen_pass->Destroy();
-    }
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-}
-
-void ReflectionProbePass::CreatePreviousTexture()
-{
-    // Create previous image
-    m_previous_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
-        m_image_format,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     ));
-
-    InitObject(m_previous_texture);
-}
-
-void ReflectionProbePass::CreateRenderTextureToScreenPass()
-{
-    // Create render texture to screen pass.
-    // this is used to render the previous frame's result to the screen,
-    // so we can blend it with the current frame's result (checkerboarded)
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
-    AssertThrow(render_texture_to_screen_shader.IsValid());
-
-    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
-        AssertThrow(descriptor_set != nullptr);
-
-        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
-    }
-
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
-        render_texture_to_screen_shader,
-        std::move(descriptor_table),
-        m_image_format,
-        m_extent
-    ));
-
-    m_render_texture_to_screen_pass->Create();
 }
 
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
@@ -946,6 +935,76 @@ void ReflectionProbePass::CreateCommandBuffers()
             );
         }
     }
+}
+
+void ReflectionProbePass::CreatePreviousTexture()
+{
+    // Create previous image
+    m_previous_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        m_image_format,
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    ));
+
+    InitObject(m_previous_texture);
+}
+
+void ReflectionProbePass::CreateRenderTextureToScreenPass()
+{
+    AssertThrow(m_previous_texture.IsValid());
+    AssertThrow(m_previous_texture->GetImageView().IsValid());
+
+    // Create render texture to screen pass.
+    // this is used to render the previous frame's result to the screen,
+    // so we can blend it with the current frame's result (checkerboarded)
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
+    }
+
+    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+
+    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        m_image_format,
+        m_extent
+    ));
+
+    m_render_texture_to_screen_pass->Create();
+}
+
+void ReflectionProbePass::AddToGlobalDescriptorSet()
+{
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(NAME("ReflectionProbeResultTexture"), GetAttachment(0)->GetImageView());
+    }
+}
+
+void ReflectionProbePass::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    if (m_previous_texture.IsValid()) {
+        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
+    }
+
+    m_render_texture_to_screen_pass.Reset();
+
+    CreatePreviousTexture();
+    CreateRenderTextureToScreenPass();
+
+    AddToGlobalDescriptorSet();
 }
 
 void ReflectionProbePass::Record(uint frame_index)
@@ -1131,10 +1190,6 @@ void ReflectionProbePass::Render(Frame *frame)
 
 DeferredRenderer::DeferredRenderer()
     : m_gbuffer(new GBuffer),
-      m_indirect_pass(true),
-      m_direct_pass(false),
-      m_env_grid_radiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE),
-      m_env_grid_irradiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE),
       m_is_initialized(false)
 {
 }
@@ -1151,14 +1206,22 @@ void DeferredRenderer::Create()
 
     m_gbuffer->Create();
 
-    m_env_grid_radiance_pass.Create();
-    m_env_grid_irradiance_pass.Create();
+    m_env_grid_radiance_pass.Reset(new EnvGridPass(EnvGridPassMode::RADIANCE));
+    m_env_grid_radiance_pass->Create();
 
-    m_reflection_probe_pass.Create();
+    m_env_grid_irradiance_pass.Reset(new EnvGridPass(EnvGridPassMode::IRRADIANCE));
+    m_env_grid_irradiance_pass->Create();
+
+    m_reflection_probe_pass.Reset(new ReflectionProbePass);
+    m_reflection_probe_pass->Create();
 
     m_post_processing.Create();
-    m_indirect_pass.Create();
-    m_direct_pass.Create();
+
+    m_indirect_pass.Reset(new DeferredPass(DeferredPassMode::INDIRECT_LIGHTING));
+    m_indirect_pass->Create();
+
+    m_direct_pass.Reset(new DeferredPass(DeferredPassMode::DIRECT_LIGHTING));
+    m_direct_pass->Create();
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
@@ -1170,7 +1233,8 @@ void DeferredRenderer::Create()
 
     AssertThrow(depth_attachment != nullptr);
 
-    m_dpr.Create(depth_attachment);
+    m_depth_pyramid_renderer.Reset(new DepthPyramidRenderer);
+    m_depth_pyramid_renderer->Create(depth_attachment);
 
     m_mip_chain = CreateObject<Texture>(Texture2D(
         mip_chain_extent,
@@ -1181,7 +1245,7 @@ void DeferredRenderer::Create()
 
     InitObject(m_mip_chain);
 
-    m_hbao.Reset(new HBAO(g_engine->GetGPUInstance()->GetSwapchain()->extent / 2));
+    m_hbao.Reset(new HBAO());
     m_hbao->Create();
 
     CreateBlueNoiseBuffer();
@@ -1239,21 +1303,6 @@ void DeferredRenderer::CreateDescriptorSets()
 
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("BlueNoiseBuffer"), m_blue_noise_buffer);
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("EnvGridIrradianceResultTexture"), m_env_grid_irradiance_pass.GetAttachment(0)->GetImageView());
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("EnvGridRadianceResultTexture"), m_env_grid_radiance_pass.GetTemporalBlending()->GetImageOutput(frame_index).image_view);
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("ReflectionProbeResultTexture"), m_reflection_probe_pass.GetAttachment(0)->GetImageView());
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("DeferredIndirectResultTexture"), m_indirect_pass.GetAttachment(0)->GetImageView());
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("DeferredDirectResultTexture"), m_direct_pass.GetAttachment(0)->GetImageView());
     }
 }
 
@@ -1287,63 +1336,36 @@ void DeferredRenderer::Destroy()
 
     SafeRelease(std::move(m_blue_noise_buffer));
 
+    m_depth_pyramid_renderer.Reset();
+
     m_ssr->Destroy();
-    m_hbao->Destroy();
+    m_ssr.Reset();
+
+    m_hbao.Reset();
+
     m_temporal_aa->Destroy();
+    m_temporal_aa.Reset();
 
     // m_dof_blur->Destroy();
 
     m_post_processing.Destroy();
 
-    m_combine_pass->Destroy();
+    m_combine_pass.Reset();
 
-    m_env_grid_irradiance_pass.Destroy();
-    m_env_grid_radiance_pass.Destroy();
+    m_env_grid_radiance_pass.Reset();
+    m_env_grid_irradiance_pass.Reset();
 
-    m_reflection_probe_pass.Destroy();
+    m_reflection_probe_pass.Reset();
 
     m_mip_chain.Reset();
 
     m_opaque_fbo.Reset();
     m_translucent_fbo.Reset();
 
-    m_indirect_pass.Destroy();  // flushes render queue
-    m_direct_pass.Destroy();    // flushes render queue
+    m_indirect_pass.Reset();
+    m_direct_pass.Reset();
 
     m_gbuffer->Destroy();
-}
-
-void DeferredRenderer::HandleWindowSizeChanged(Vec2u new_window_size)
-{
-    if (!m_is_initialized) {
-        return;
-    }
-
-    if (m_temporal_aa != nullptr) {
-        // m_temporal_aa->Resize(new_window_size);
-    }
-
-    // m_post_processing.Resize(new_window_size);
-
-    // @TODO: more resize calls
-
-    if (m_ssr != nullptr) {
-        // m_ssr->Resize(new_window_size);
-    }
-
-    if (m_hbao != nullptr) {
-        // m_hbao->Resize(new_window_size);
-    }
-
-    m_env_grid_irradiance_pass.Resize(new_window_size);
-    m_env_grid_radiance_pass.Resize(new_window_size);
-
-    m_indirect_pass.Resize(new_window_size);
-    m_direct_pass.Resize(new_window_size);
-
-    if (m_combine_pass != nullptr) {
-        m_combine_pass->Resize(new_window_size);
-    }
 }
 
 void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
@@ -1416,15 +1438,15 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     { // indirect lighting
         DebugMarker marker(primary, "Record deferred indirect lighting pass");
 
-        m_indirect_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_indirect_pass.Record(frame_index); // could be moved to only do once
+        m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_indirect_pass->Record(frame_index); // could be moved to only do once
     }
 
     { // direct lighting
         DebugMarker marker(primary, "Record deferred direct lighting pass");
 
-        m_direct_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_direct_pass.Record(frame_index);
+        m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_direct_pass->Record(frame_index);
     }
 
     { // opaque objects
@@ -1441,25 +1463,25 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     if (use_env_grid_irradiance) { // submit env grid command buffer
         DebugMarker marker(primary, "Apply env grid irradiance");
 
-        m_env_grid_irradiance_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_irradiance_pass.Record(frame_index);
-        m_env_grid_irradiance_pass.Render(frame);
+        m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_irradiance_pass->Record(frame_index);
+        m_env_grid_irradiance_pass->Render(frame);
     }
 
     if (use_env_grid_radiance) { // submit env grid command buffer
         DebugMarker marker(primary, "Apply env grid radiance");
 
-        m_env_grid_radiance_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_radiance_pass.Record(frame_index);
-        m_env_grid_radiance_pass.Render(frame);
+        m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_radiance_pass->Record(frame_index);
+        m_env_grid_radiance_pass->Render(frame);
     }
 
     if (use_reflection_probes) { // submit reflection probes command buffer
         DebugMarker marker(primary, "Apply reflection probes");
 
-        m_reflection_probe_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_reflection_probe_pass.Record(frame_index);
-        m_reflection_probe_pass.Render(frame);
+        m_reflection_probe_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_reflection_probe_pass->Record(frame_index);
+        m_reflection_probe_pass->Render(frame);
     }
 
     if (use_rt_radiance) {
@@ -1489,7 +1511,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     // Redirect indirect and direct lighting into the same framebuffer
-    const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
+    const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
 
     m_post_processing.RenderPre(frame);
 
@@ -1498,10 +1520,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         deferred_pass_framebuffer->BeginCapture(primary, frame_index);
 
-        m_indirect_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
+        m_indirect_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
         if (g_engine->GetRenderState().lights.Any()) {
-            m_direct_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
+            m_direct_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
         }
 
         deferred_pass_framebuffer->EndCapture(primary, frame_index);
@@ -1590,10 +1612,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     { // render depth pyramid
-        m_dpr.Render(frame);
+        m_depth_pyramid_renderer->Render(frame);
         // update culling info now that depth pyramid has been rendered
-        m_cull_data.depth_pyramid_image_view = m_dpr.GetResultImageView();
-        m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
+        m_cull_data.depth_pyramid_image_view = m_depth_pyramid_renderer->GetResultImageView();
+        m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
     }
 
     m_post_processing.RenderPost(frame);

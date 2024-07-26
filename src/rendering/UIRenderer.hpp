@@ -5,6 +5,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <rendering/RenderComponent.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -51,8 +53,7 @@ private:
     Array<ID<Entity>>   m_proxy_ordering;
 };
 
-class HYP_API UIRenderer
-    : public RenderComponent<UIRenderer>
+class HYP_API UIRenderer : public RenderComponent<UIRenderer>
 {
 public:
     UIRenderer(Name name, RC<UIStage> ui_stage);
@@ -77,6 +78,8 @@ private:
     FramebufferRef  m_framebuffer;
     ShaderRef       m_shader;
     UIRenderList    m_render_list;
+
+    DelegateHandler m_after_swapchain_recreated_delegate;
 };
 
 } // namespace hyperion

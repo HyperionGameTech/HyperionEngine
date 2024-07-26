@@ -106,7 +106,23 @@ FullScreenPass::FullScreenPass(
 {
 }
 
-FullScreenPass::~FullScreenPass() = default;
+FullScreenPass::~FullScreenPass()
+{
+    if (m_framebuffer.IsValid() && m_render_group.IsValid()) {
+        m_render_group->RemoveFramebuffer(m_framebuffer);
+    }
+
+    m_render_group.Reset();
+    m_full_screen_quad.Reset();
+
+    SafeRelease(std::move(m_framebuffer));
+    SafeRelease(std::move(m_command_buffers));
+
+    if (m_is_initialized) {
+        // Prevent dangling reference from render commands
+        HYP_SYNC_RENDER();
+    }
+}
 
 void FullScreenPass::Create()
 {
@@ -124,23 +140,6 @@ void FullScreenPass::Create()
     CreateDescriptors();
 
     m_is_initialized = true;
-}
-
-void FullScreenPass::Destroy()
-{
-    if (m_framebuffer.IsValid()) {
-        if (m_render_group.IsValid()) {
-            m_render_group->RemoveFramebuffer(m_framebuffer);
-        }
-    }
-
-    m_render_group.Reset();
-    m_full_screen_quad.Reset();
-
-    SafeRelease(std::move(m_framebuffer));    
-    SafeRelease(std::move(m_command_buffers));
-
-    HYP_SYNC_RENDER();
 }
 
 void FullScreenPass::SetShader(const ShaderRef &shader)
@@ -182,9 +181,9 @@ void FullScreenPass::Resize_Internal(Extent2D new_size)
         return;
     }
 
-    if (m_render_group.IsValid()) {
-        m_render_group->RemoveFramebuffer(m_framebuffer);
-    }
+    // if (m_render_group.IsValid()) {
+    //     m_render_group->RemoveFramebuffer(m_framebuffer);
+    // }
 
     SafeRelease(std::move(m_framebuffer));
 

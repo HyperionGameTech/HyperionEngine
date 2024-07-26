@@ -35,8 +35,6 @@ public:
     virtual void Create() override;
     virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;
-
-private:
 };
 
 class FinalPass : public FullScreenPass
@@ -64,7 +62,6 @@ public:
         { return m_last_frame_image; }
 
     virtual void Create() override;
-    virtual void Destroy() override;
 
     virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;

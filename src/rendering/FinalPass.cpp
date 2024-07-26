@@ -158,13 +158,13 @@ FinalPass::FinalPass()
 
 FinalPass::~FinalPass()
 {
+    SafeRelease(std::move(m_last_frame_image));
+
     if (m_render_texture_to_screen_pass != nullptr) {
-        m_render_texture_to_screen_pass->Destroy();
         m_render_texture_to_screen_pass.Reset();
     }
 
-    // Prevent any dangling pointers from render commands
-    HYP_SYNC_RENDER();
+    // @NOTE: FullScreenPass will flush render queue, preventing dangling references from render commands
 }
 
 void FinalPass::SetUITexture(Handle<Texture> texture)
@@ -296,15 +296,6 @@ void FinalPass::Create()
     ));
 
     m_render_texture_to_screen_pass->Create();
-}
-
-void FinalPass::Destroy()
-{
-    m_composite_pass.Destroy();
-
-    SafeRelease(std::move(m_last_frame_image));
-
-    FullScreenPass::Destroy();
 }
 
 void FinalPass::Resize_Internal(Extent2D new_size)

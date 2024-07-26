@@ -8,6 +8,8 @@
 
 #include <core/system/AppContext.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -59,76 +61,92 @@ struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-HBAO::HBAO(const Extent2D &extent)
-    : m_extent(extent)
+HBAO::HBAO()
+    : FullScreenPass(InternalFormat::RGBA8)
 {
 }
 
-HBAO::~HBAO() = default;
-
-void HBAO::Create()
+HBAO::~HBAO()
 {
-    CreatePass();
-    CreateTemporalBlending();
-
-    PUSH_RENDER_COMMAND(
-        AddHBAOFinalImagesToGlobalDescriptorSet,
-        FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_hbao_pass->GetAttachment(0)->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_hbao_pass->GetAttachment(0)->GetImageView()
-        }
-    );
-}
-
-void HBAO::Destroy()
-{
-    m_hbao_pass->Destroy();
+    m_temporal_blending.Reset();
 
     PUSH_RENDER_COMMAND(RemoveHBAODescriptors);
 }
 
-void HBAO::CreatePass()
+void HBAO::Create()
 {
     ShaderProperties shader_properties;
     shader_properties.Set("HBIL_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
 
-    ShaderRef hbao_shader = g_shader_manager->GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         NAME("HBAO"),
         shader_properties
     );
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = hbao_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    FullScreenPass::Create();
+
+    CreateTemporalBlending();
+}
+
+void HBAO::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
+{
+    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-    m_hbao_pass.Reset(new FullScreenPass(
-        hbao_shader,
-        std::move(descriptor_table),
-        InternalFormat::RGBA8,
-        m_extent
-    ));
+    m_descriptor_table = descriptor_table;
 
-    m_hbao_pass->Create();
+    m_render_group = CreateObject<RenderGroup>(
+        m_shader,
+        renderable_attributes,
+        *m_descriptor_table,
+        RenderGroupFlags::NONE
+    );
+
+    m_render_group->AddFramebuffer(m_framebuffer);
+
+    InitObject(m_render_group);
 }
 
 void HBAO::CreateTemporalBlending()
 {
-    AssertThrow(m_hbao_pass != nullptr);
-
     m_temporal_blending.Reset(new TemporalBlending(
-        m_hbao_pass->GetFramebuffer()->GetExtent(),
+        GetFramebuffer()->GetExtent(),
         InternalFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
         TemporalBlendFeedback::LOW,
-        m_hbao_pass->GetFramebuffer()
+        GetFramebuffer()
     ));
 
     m_temporal_blending->Create();
 }
 
+void HBAO::Resize_Internal(Extent2D new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+
+    m_temporal_blending.Reset();
+
+    CreateTemporalBlending();
+
+    PUSH_RENDER_COMMAND(
+        AddHBAOFinalImagesToGlobalDescriptorSet,
+        FixedArray<ImageViewRef, max_frames_in_flight> {
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : GetAttachment(0)->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : GetAttachment(0)->GetImageView()
+        }
+    );
+}
+
+void HBAO::Record(uint frame_index)
+{
+}
+
 void HBAO::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
     const uint frame_index = frame->GetFrameIndex();
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
@@ -140,14 +158,14 @@ void HBAO::Render(Frame *frame)
 
         push_constants.dimension = m_extent;
 
-        m_hbao_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
-        m_hbao_pass->Begin(frame);
+        GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
+        Begin(frame);
 
-        Frame temporary_frame = Frame::TemporaryFrame(m_hbao_pass->GetCommandBuffer(frame_index), frame_index);
+        Frame temporary_frame = Frame::TemporaryFrame(GetCommandBuffer(frame_index), frame_index);
         
-        m_hbao_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
+        GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
             &temporary_frame,
-            m_hbao_pass->GetRenderGroup()->GetPipeline(),
+            GetRenderGroup()->GetPipeline(),
             {
                 {
                     NAME("Scene"),
@@ -162,8 +180,8 @@ void HBAO::Render(Frame *frame)
             }
         );
         
-        m_hbao_pass->GetQuadMesh()->Render(m_hbao_pass->GetCommandBuffer(frame_index));
-        m_hbao_pass->End(frame);
+        GetQuadMesh()->Render(GetCommandBuffer(frame_index));
+        End(frame);
     }
     
     m_temporal_blending->Render(frame);

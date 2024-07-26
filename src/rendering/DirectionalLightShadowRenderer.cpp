@@ -190,7 +190,24 @@ ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, Shado
 {
 }
 
-ShadowPass::~ShadowPass() = default;
+ShadowPass::~ShadowPass()
+{
+    m_render_list_statics.Reset();
+    m_render_list_dynamics.Reset();
+    m_parent_scene.Reset();
+    m_shadow_map_all.Reset();
+    m_shadow_map_statics.Reset();
+    m_shadow_map_dynamics.Reset();
+
+    SafeRelease(std::move(m_blur_shadow_map_pipeline));
+
+    if (m_shadow_map_index != ~0u) {
+        PUSH_RENDER_COMMAND(
+            UnsetShadowMapInGlobalDescriptorSet,
+            m_shadow_map_index
+        );
+    }
+}
 
 void ShadowPass::CreateShader()
 {
@@ -352,27 +369,6 @@ void ShadowPass::Create()
     CreateCommandBuffers();
 }
 
-void ShadowPass::Destroy()
-{
-    m_render_list_statics.Reset();
-    m_render_list_dynamics.Reset();
-    m_parent_scene.Reset();
-    m_shadow_map_all.Reset();
-    m_shadow_map_statics.Reset();
-    m_shadow_map_dynamics.Reset();
-
-    SafeRelease(std::move(m_blur_shadow_map_pipeline));
-
-    if (m_shadow_map_index != ~0u) {
-        PUSH_RENDER_COMMAND(
-            UnsetShadowMapInGlobalDescriptorSet,
-            m_shadow_map_index
-        );
-    }
-
-    FullScreenPass::Destroy(); // flushes render queue, releases command buffers...
-}
-
 void ShadowPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -514,7 +510,6 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Extent
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
     if (m_shadow_pass) {
-        m_shadow_pass->Destroy(); // flushes render queue
         m_shadow_pass.Reset();
     }
 }

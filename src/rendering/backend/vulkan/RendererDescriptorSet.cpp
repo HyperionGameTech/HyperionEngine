@@ -466,6 +466,11 @@ Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 template <>
 Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
+    DebugLog(LogType::Debug, "Destroying descriptor set: %s\n", m_layout.GetName().LookupString());
+    if (!std::strcmp(m_layout.GetName().LookupString(), "Scene")) {
+        HYP_BREAKPOINT;
+    }
+
     if (m_platform_impl.handle != VK_NULL_HANDLE) {
         device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_platform_impl.handle);
         m_platform_impl.handle = VK_NULL_HANDLE;
@@ -475,6 +480,12 @@ Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
     m_platform_impl.vk_layout_wrapper.Reset();
 
     return Result { };
+}
+
+template <>
+bool DescriptorSet<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.handle != VK_NULL_HANDLE;
 }
 
 template <>
@@ -794,20 +805,25 @@ RC<VulkanDescriptorSetLayoutWrapper> DescriptorSetManager<Platform::VULKAN>::Get
 {
     const HashCode hash_code = layout.GetHashCode();
 
+    RC<VulkanDescriptorSetLayoutWrapper> vk_descriptor_set_layout;
+
     auto it = m_vk_descriptor_set_layouts.Find(hash_code);
 
-    if (it == m_vk_descriptor_set_layouts.End()) {
-        RC<VulkanDescriptorSetLayoutWrapper> vk_descriptor_set_layout;
-        vk_descriptor_set_layout.Reset(new VulkanDescriptorSetLayoutWrapper);
-        
-        HYPERION_ASSERT_RESULT(vk_descriptor_set_layout->Create(device, layout));
+    if (it != m_vk_descriptor_set_layouts.End()) {
+        vk_descriptor_set_layout = it->second.Lock();
+    }
 
-        m_vk_descriptor_set_layouts.Insert(hash_code, vk_descriptor_set_layout);
-
+    if (vk_descriptor_set_layout != nullptr) {
         return vk_descriptor_set_layout;
     }
 
-    return it->second.Lock();
+    vk_descriptor_set_layout.Reset(new VulkanDescriptorSetLayoutWrapper);
+    
+    HYPERION_ASSERT_RESULT(vk_descriptor_set_layout->Create(device, layout));
+
+    m_vk_descriptor_set_layouts.Set(hash_code, vk_descriptor_set_layout);
+
+    return vk_descriptor_set_layout;
 }
 
 #pragma endregion DescriptorSetManager

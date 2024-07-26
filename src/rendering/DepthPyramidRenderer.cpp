@@ -79,15 +79,6 @@ DepthPyramidRenderer::~DepthPyramidRenderer()
     SafeRelease(std::move(m_generate_depth_pyramid));
 }
 
-Extent3D DepthPyramidRenderer::GetExtent() const
-{
-    if (!m_depth_pyramid.IsValid()) {
-        return Extent3D { 1, 1, 1 };
-    }
-
-    return m_depth_pyramid->GetExtent();
-}
-
 void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -185,6 +176,15 @@ void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
         SetDepthPyramidInGlobalDescriptorSet,
         m_depth_pyramid_view
     );
+}
+
+Extent3D DepthPyramidRenderer::GetExtent() const
+{
+    if (!m_depth_pyramid.IsValid()) {
+        return Extent3D { 1, 1, 1 };
+    }
+
+    return m_depth_pyramid->GetExtent();
 }
 
 void DepthPyramidRenderer::Render(Frame *frame)

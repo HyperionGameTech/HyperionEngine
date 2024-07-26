@@ -4,6 +4,7 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/DepthPyramidRenderer.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -476,7 +477,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     push_constants.batch_offset = 0;
     push_constants.num_instances = num_instances;
     push_constants.scene_id = scene_id.Value();
-    push_constants.depth_pyramid_dimensions = Extent2D(g_engine->GetDeferredRenderer()->GetDepthPyramidRenderer().GetExtent());
+    push_constants.depth_pyramid_dimensions = Extent2D(g_engine->GetDeferredRenderer()->GetDepthPyramidRenderer()->GetExtent());
 
     m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
 

@@ -76,7 +76,6 @@ public:
 
         const AttachmentRef &GetGBufferAttachment(GBufferResourceName resource_name) const;
 
-        void AddRenderGroup(const Handle<RenderGroup> &render_group);
         void CreateFramebuffer();
         void Destroy();
     };
@@ -93,6 +92,9 @@ public:
 
     HYP_FORCE_INLINE const GBufferBucket &GetBucket(Bucket bucket) const
         { return m_buckets[int(bucket)]; }
+
+    HYP_FORCE_INLINE const FixedArray<GBufferBucket, Bucket::BUCKET_MAX> &GetBuckets() const
+        { return m_buckets; }
 
     void Create();
     void Destroy();

@@ -82,17 +82,7 @@ PostProcessingEffect::PostProcessingEffect(
 {
 }
 
-PostProcessingEffect::~PostProcessingEffect()
-{
-    if (IsInitCalled()) {
-        SetReady(false);
-
-        m_pass.Destroy();
-        m_shader.Reset();
-
-        HYP_SYNC_RENDER();
-    }
-}
+PostProcessingEffect::~PostProcessingEffect() = default;
 
 void PostProcessingEffect::Init()
 {

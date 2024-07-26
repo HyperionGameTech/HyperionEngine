@@ -32,7 +32,7 @@ void RenderObjectDeleter<Platform::CURRENT>::Iterate()
 }
 
 template <>
-void RenderObjectDeleter<Platform::CURRENT>::ForceDeleteAll()
+void RenderObjectDeleter<Platform::CURRENT>::RemoveAllNow(bool force)
 {
     HYP_NAMED_SCOPE("Force delete all rendering resources");
 
@@ -48,7 +48,7 @@ void RenderObjectDeleter<Platform::CURRENT>::ForceDeleteAll()
     // Loop until all queues are empty
     while (queue_num_items.Any([](AtomicVar<int32> *count) { return count != nullptr && count->Get(MemoryOrder::ACQUIRE) > 0; })) {
         for (DeletionQueueBase **queue = queues.Data(); *queue; ++queue) {
-            (*queue)->ForceDeleteAll();
+            (*queue)->RemoveAllNow(force);
         }
     }
 }

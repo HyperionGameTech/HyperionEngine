@@ -440,13 +440,20 @@ UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
 UIRenderer::~UIRenderer()
 {
     SafeRelease((std::move(m_framebuffer)));
-
     g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
 void UIRenderer::Init()
 {
     HYP_SCOPE;
+
+    m_after_swapchain_recreated_delegate = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
+    {
+        // SafeRelease((std::move(m_framebuffer)));
+        // g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+
+        // CreateFramebuffer(); // testing
+    });
 
     CreateFramebuffer();
 
@@ -455,19 +462,20 @@ void UIRenderer::Init()
     AssertThrow(m_ui_stage->GetScene() != nullptr);
     AssertThrow(m_ui_stage->GetScene()->GetCamera().IsValid());
 
-    m_ui_stage->GetScene()->GetCamera()->SetFramebuffer(m_framebuffer);
-
     m_render_list.SetCamera(m_ui_stage->GetScene()->GetCamera());
-
-    g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
-        m_framebuffer->GetAttachment(0)->GetImage(),
-        m_framebuffer->GetAttachment(0)->GetImageView()
-    ));
 }
 
 void UIRenderer::CreateFramebuffer()
 {
     m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
+    AssertThrow(m_framebuffer.IsValid());
+
+    m_ui_stage->GetScene()->GetCamera()->SetFramebuffer(m_framebuffer);
+
+    g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
+        m_framebuffer->GetAttachment(0)->GetImage(),
+        m_framebuffer->GetAttachment(0)->GetImageView()
+    ));
 }
 
 // called from game thread

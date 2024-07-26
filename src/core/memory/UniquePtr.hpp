@@ -113,8 +113,7 @@ struct UniquePtrHolder
         dtor(value);
     }
 
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return value != nullptr; }
 };
 
@@ -145,41 +144,32 @@ public:
         Reset();
     }
 
-    HYP_FORCE_INLINE
-    void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return m_holder.value; }
 
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return Get() != nullptr; }
 
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return Get() == nullptr; }
 
-    HYP_FORCE_INLINE
-    bool operator==(const UniquePtrBase &other) const
+    HYP_FORCE_INLINE bool operator==(const UniquePtrBase &other) const
         { return m_holder.value == other.m_holder.value; }
 
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Get() == nullptr; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const UniquePtrBase &other) const
+    HYP_FORCE_INLINE bool operator!=(const UniquePtrBase &other) const
         { return m_holder.value != other.m_holder.value; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
 
-    HYP_FORCE_INLINE
-    TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_holder.type_id; }
 
     /*! \brief Destroys any currently held object.  */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (m_holder) {
             m_holder.Destruct();
@@ -191,8 +181,7 @@ public:
         The value held within the UniquePtr will be unset,
         and the T* returned from this method will NEED to be deleted
         manually. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    void *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE void *Release()
     {
         if (m_holder) {
             void *ptr = m_holder.value;
@@ -205,11 +194,8 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE
-    UniquePtr<T> CastUnsafe()
-    {
-        return UniquePtr<T>(static_cast<T *>(Release()));
-    }
+    HYP_FORCE_INLINE UniquePtr<T> CastUnsafe()
+        { return UniquePtr<T>(static_cast<T *>(Release())); }
 
 protected:
     explicit UniquePtrBase(UniquePtrHolder &&holder)
@@ -312,13 +298,11 @@ public:
 
     ~UniquePtr() = default;
 
-    HYP_FORCE_INLINE
-    T *Get() const
+    HYP_FORCE_INLINE T *Get() const
         { return static_cast<T *>(Base::m_holder.value); }
 
     template <class OtherType>
-    HYP_FORCE_INLINE
-    OtherType *TryGetAs() const
+    HYP_FORCE_INLINE OtherType *TryGetAs() const
     {
         if (!Is<OtherType>()) {
             return nullptr;
@@ -328,8 +312,7 @@ public:
     }
 
     template <class OtherType>
-    HYP_FORCE_INLINE
-    OtherType *TryGetAsDynamic() const
+    HYP_FORCE_INLINE OtherType *TryGetAsDynamic() const
     {
         if (OtherType *ptr = dynamic_cast<OtherType *>(Get())) {
             return ptr;
@@ -338,16 +321,13 @@ public:
         return nullptr;
     }
 
-    HYP_FORCE_INLINE
-    T *operator->() const
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
 
-    HYP_FORCE_INLINE
-    T &operator*() const
+    HYP_FORCE_INLINE T &operator*() const
         { return *Get(); }
     
-    HYP_FORCE_INLINE
-    bool operator<(const UniquePtr &other) const
+    HYP_FORCE_INLINE bool operator<(const UniquePtr &other) const
         { return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get()); }
     
     /*! \brief Drops any currently held value and constructs a new value using \ref{value}.
@@ -355,8 +335,7 @@ public:
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Set(const T &value)
+    HYP_FORCE_INLINE void Set(const T &value)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
@@ -371,8 +350,7 @@ public:
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Set(Ty &&value)
+    HYP_FORCE_INLINE void Set(Ty &&value)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
@@ -391,8 +369,7 @@ public:
         Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Reset(Ty *ptr)
+    HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
@@ -404,29 +381,25 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE
-    void Reset(std::nullptr_t)
+    HYP_FORCE_INLINE void Reset(std::nullptr_t)
         { Reset(); }
 
     /*! \brief Destroys any currently held object.  */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
     /*! \brief Releases the ptr to be managed externally.
         The value held within the UniquePtr will be unset,
         and the T* returned from this method will NEED to be deleted
         manually. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE T *Release()
         { return static_cast<T *>(Base::Release()); }
 
     /*! \brief Constructs a new RefCountedPtr from this object.
         The value held within this UniquePtr will be unset,
         the RefCountedPtr taking over management of the pointer. */
     template <class CountType = std::atomic<uint>>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> ToRefCountedPtr()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> ToRefCountedPtr()
     {
         RefCountedPtr<T, CountType> rc;
         rc.Reset(Release());
@@ -436,8 +409,7 @@ public:
 
     /*! \brief Constructs a new UniquePtr<T> from the given arguments. */
     template <class ...Args>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static UniquePtr Construct(Args &&... args)
+    HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr Construct(Args &&... args)
     {
         return UniquePtr(new T(std::forward<Args>(args)...));
     }
@@ -446,8 +418,7 @@ public:
      *  \note This function will not check if the pointer can be casted to the given type using dynamically, so if you have a base class pointer and want to check if it can be casted to a derived class, use IsDynamic().
      *  However, there is still limited functionality for checking if a base class pointer can be casted to a derived class pointer, as long as the UniquePtr was constructed or Reset() with a derived class pointer. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
         return GetTypeID() == TypeID::ForType<Ty>()
             || GetBaseTypeID() == TypeID::ForType<Ty>()
@@ -458,8 +429,7 @@ public:
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
      *  This function will also check if the pointer can be casted to the given type using dynamic_cast. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    bool IsDynamic() const
+    HYP_FORCE_INLINE bool IsDynamic() const
         { return Is<Ty>() || dynamic_cast<Ty *>(Get()) != nullptr; }
 
     /*! \brief Attempts to cast the pointer directly to the given type.
@@ -467,8 +437,7 @@ public:
         no cast is performed and a null UniquePtr is returned. Otherwise, the
         value currently held in the UniquePtr being casted is std::move'd to the returned value. */
     template <class Ty>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniquePtr<Ty> Cast()
+    HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<Ty> Cast()
     {
         if (Is<Ty>()) {
             return Base::CastUnsafe<Ty>();
@@ -482,8 +451,7 @@ public:
         no cast is performed and a null UniquePtr is returned. Otherwise, the
         value currently held in the UniquePtr being casted is std::move'd to the returned value. */
     template <class Ty>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniquePtr<Ty> CastDynamic()
+    HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<Ty> CastDynamic()
     {
         if (IsDynamic<Ty>()) {
             return Base::CastUnsafe<Ty>();
@@ -559,22 +527,18 @@ public:
 
     ~UniquePtr() = default;
 
-    HYP_FORCE_INLINE
-    void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return Base::Get(); }
     
-    HYP_FORCE_INLINE
-    bool operator<(const UniquePtr &other) const
+    HYP_FORCE_INLINE bool operator<(const UniquePtr &other) const
         { return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get()); }
 
     /*! \brief Destroys any currently held object.  */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
     template <class Ty>
-    HYP_FORCE_INLINE
-    bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
         return GetTypeID() == TypeID::ForType<Ty>()
             || GetBaseTypeID() == TypeID::ForType<Ty>()
@@ -593,8 +557,7 @@ public:
         \returns A UniquePtr<Ty> if the cast is successful, otherwise a null UniquePtr.
     */
     template <class Ty>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniquePtr<Ty> Cast()
+    HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<Ty> Cast()
     {
         if (Is<Ty>()) {
             return Base::CastUnsafe<Ty>();
@@ -610,8 +573,7 @@ public:
         \returns A reference counted pointer to the value held in this UniquePtr.
     */
     template <class CountType = std::atomic<uint>>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountedPtr<void, CountType> ToRefCountedPtr()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<void, CountType> ToRefCountedPtr()
     {
         RefCountedPtr<void, CountType> rc;
         rc.Reset(Base::Release());

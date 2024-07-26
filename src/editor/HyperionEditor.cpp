@@ -743,12 +743,6 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     UniquePtr<UIDataSource<Weak<Node>>> temp_data_source(new UIDataSource<Weak<Node>>());
     RC<UIListView> list_view = GetUIStage()->CreateUIObject<UIListView>(NAME("Scene_Outline_ListView"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-
-    // for (uint32 i = 0; i < 100; i++) {
-    //     RC<UIText> text = GetUIStage()->CreateUIObject<UIText>(NAME("Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
-    //     text->SetText(HYP_FORMAT("Node {}", i));
-    //     list_view->AddChildUIObject(text);
-    // }
     
 #if 1
     list_view->SetDataSource(std::move(temp_data_source));
@@ -986,24 +980,6 @@ RC<UIObject> HyperionEditorImpl::CreateBottomPanel()
 
     bottom_panel->AddChildUIObject(tab_view);
     
-
-    // RC<UIPanel> asset_browser_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Asset_Browser_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    // asset_browser_header->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
-
-    // RC<UIText> asset_browser_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Asset_Browser_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
-    // asset_browser_header_text->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-    // asset_browser_header_text->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
-    // asset_browser_header_text->SetText("Assets");
-    // asset_browser_header_text->SetTextColor(Vec4f::One());
-    // asset_browser_header->AddChildUIObject(asset_browser_header_text);
-
-    // asset_browser->AddChildUIObject(asset_browser_header);
-
-    // RC<UIPanel> asset_browser_content = GetUIStage()->CreateUIObject<UIPanel>(NAME("Asset_Browser_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
-    // asset_browser_content->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-
-    // asset_browser->AddChildUIObject(asset_browser_content);
-
     return bottom_panel;
 }
 
@@ -1043,31 +1019,6 @@ void HyperionEditorImpl::Initialize()
 {
     CreateMainPanel();
     CreateInitialState();
-
-    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(NAME("Sample_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 18, UIObjectSize::PIXEL }));
-    // ui_text->SetText("Hi hello");
-    // ui_text->SetParentAlignment(UIObjectAlignment::CENTER);
-    // ui_text->SetOriginAlignment(UIObjectAlignment::CENTER);
-    // ui_text->OnClick.Bind([ui_text](...) -> bool
-    // {
-    //     ui_text->SetText("Hi hello world\nMultiline test");
-
-    //     return false;
-    // }).Detach();
-
-    // btn->AddChildUIObject(ui_text);
-    
-    // ui_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
-
-    // auto new_btn = GetUIStage()->CreateUIObject<UIButton>(NAME("Nested_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }, { 100, UIObjectSize::PERCENT | UIObjectSize::RELATIVE }));
-    // new_btn->SetOriginAlignment(UIObjectAlignment::CENTER);
-    // new_btn->SetParentAlignment(UIObjectAlignment::CENTER);
-    // btn->AddChildUIObject(new_btn);
-    // new_btn->UpdatePosition();
-    // new_btn->UpdateSize();
-
-    // DebugLog(LogType::Debug, "ui_text aabb [%f, %f, %f, %f]\n", ui_text->GetLocalAABB().min.x, ui_text->GetLocalAABB().min.y, ui_text->GetLocalAABB().max.x, ui_text->GetLocalAABB().max.y);
-    // DebugLog(LogType::Debug, "new_btn aabb [%f, %f, %f, %f]\n", new_btn->GetLocalAABB().min.x, new_btn->GetLocalAABB().min.y, new_btn->GetLocalAABB().max.x, new_btn->GetLocalAABB().max.y);
 }
 
 void HyperionEditorImpl::UpdateEditorCamera(GameCounter::TickUnit delta)
@@ -1187,7 +1138,7 @@ void HyperionEditor::Init()
         window_size = Extent2D { 1280, 720 };
     }
 
-    auto screen_capture_component = GetScene()->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), window_size);
+    RC<ScreenCaptureRenderComponent> screen_capture_component = GetScene()->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), window_size);
 
     m_impl = new HyperionEditorImpl(GetScene(), GetScene()->GetCamera(), m_input_manager.Get(), GetUIStage());
     m_impl->SetSceneTexture(screen_capture_component->GetTexture());

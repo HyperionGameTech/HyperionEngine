@@ -148,18 +148,6 @@ const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourc
     return framebuffer->GetAttachment(uint(resource_name));
 }
 
-void GBuffer::GBufferBucket::AddRenderGroup(const Handle<RenderGroup> &render_group)
-{
-    if (render_group->GetRenderableAttributes().GetFramebuffer().IsValid()) {
-
-        render_group->AddFramebuffer(render_group->GetRenderableAttributes().GetFramebuffer());
-
-        return;
-    }
-
-    render_group->AddFramebuffer(framebuffer);
-}
-
 void GBuffer::GBufferBucket::CreateFramebuffer()
 {
     renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
@@ -217,7 +205,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
 
 void GBuffer::GBufferBucket::Destroy()
 {
-    framebuffer.Reset();
+    SafeRelease(std::move(framebuffer));
 }
 
 } // namespace hyperion

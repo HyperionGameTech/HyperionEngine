@@ -109,9 +109,6 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    /*! \brief Destroy the full screen pass */
-    virtual void Destroy();
-
     virtual void Render(Frame *frame);
     virtual void Record(uint frame_index);
 

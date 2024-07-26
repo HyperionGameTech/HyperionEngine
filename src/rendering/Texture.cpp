@@ -341,10 +341,6 @@ public:
 
     void Destroy()
     {
-        for (auto &pass : m_passes) {
-            pass->Destroy();
-        }
-
         m_passes.Clear();
 
         SafeRelease(std::move(m_image));

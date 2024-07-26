@@ -51,11 +51,13 @@ void ScreenCaptureRenderComponent::OnUpdate(GameCounter::TickUnit delta)
 
 void ScreenCaptureRenderComponent::OnRender(Frame *frame)
 {
+    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
+
     FinalPass *final_pass = g_engine->GetFinalPass();
+    AssertThrow(final_pass != nullptr);
+
     const ImageRef &image_ref = final_pass->GetLastFrameImage();
     AssertThrow(image_ref.IsValid());
-    
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     image_ref->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
 

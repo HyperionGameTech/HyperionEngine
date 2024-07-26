@@ -43,6 +43,9 @@ ShaderManagerSystem *g_shader_manager = nullptr;
 MaterialCache       *g_material_system = nullptr;
 SafeDeleter         *g_safe_deleter = nullptr;
 
+/* \brief Should the swapchain be rebuilt on the next frame? */
+static bool g_should_recreate_swapchain = false;
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
@@ -74,7 +77,7 @@ struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        g_engine->m_should_recreate_swapchain = true;
+        g_should_recreate_swapchain = true;
 
         HYPERION_RETURN_OK;
     }
@@ -90,7 +93,6 @@ Engine *Engine::GetInstance()
 Engine::Engine()
     : m_placeholder_data(new PlaceholderData()),
       m_global_descriptor_table(MakeRenderObject<DescriptorTable>(*renderer::g_static_descriptor_table_decl)),
-      m_should_recreate_swapchain(false),
       m_is_initialized(false)
 {
 }
@@ -175,10 +177,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         HYP_LOG(Engine, LogLevel::INFO, "Resize window to {}", new_window_size);
 
         PUSH_RENDER_COMMAND(RecreateSwapchain);
-
-        if (m_deferred_renderer != nullptr) {
-            m_deferred_renderer->HandleWindowSizeChanged(new_window_size);
-        }
     }).Detach();
     
     RenderObjectDeleter<renderer::Platform::CURRENT>::Initialize();
@@ -217,10 +215,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     ));
 
     m_scripting_service->Start();
-
-    // Create world (must happen after scripting service is created)
-    m_world = CreateObject<World>();
-    InitObject(m_world);
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // Global
@@ -329,6 +323,9 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_final_pass->Create();
 
     m_debug_drawer.Create();
+
+    m_world = CreateObject<World>();
+    InitObject(m_world);
     
     HYP_SYNC_RENDER();
 
@@ -371,7 +368,6 @@ void Engine::FinalizeStop()
     m_deferred_renderer->Destroy();
     m_deferred_renderer.Reset();
 
-    m_final_pass->Destroy();
     m_final_pass.Reset();
 
     m_debug_drawer.Destroy();
@@ -385,7 +381,7 @@ void Engine::FinalizeStop()
     HYPERION_ASSERT_RESULT(m_instance->GetDevice()->Wait());
 
     g_safe_deleter->ForceDeleteAll();
-    ForceDeleteAllEnqueuedRenderObjects<renderer::Platform::CURRENT>();
+    RemoveAllEnqueuedRenderObjectsNow<renderer::Platform::CURRENT>(/* force */true);
 
     HYPERION_ASSERT_RESULT(m_instance->GetDevice()->Wait());
 
@@ -419,7 +415,9 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     PreFrameUpdate(frame);
 
-    if (m_should_recreate_swapchain) {
+    if (g_should_recreate_swapchain) {
+        GetDelegates().OnBeforeSwapchainRecreated.Broadcast();
+
         HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
         HYPERION_ASSERT_RESULT(GetGPUInstance()->RecreateSwapchain());
         HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
@@ -433,10 +431,15 @@ HYP_API void Engine::RenderNextFrame(Game *game)
             GetGPUInstance()->GetDevice(),
             GetGPUInstance()->GetSwapchain()
         ));
+
+        // m_deferred_renderer->Destroy();
+
+        // RemoveAllEnqueuedRenderObjectsNow<renderer::Platform::CURRENT>(/* force */false);
+
+        // m_deferred_renderer.Reset(new DeferredRenderer);
+        // m_deferred_renderer->Create();
         
         Handle<Texture> ui_texture = m_final_pass->GetUITexture();
-
-        m_final_pass->Destroy();
 
         m_final_pass.Reset(new FinalPass);
         m_final_pass->Create();
@@ -444,7 +447,9 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
         frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
-        m_should_recreate_swapchain = false;
+        GetDelegates().OnAfterSwapchainRecreated.Broadcast();
+
+        g_should_recreate_swapchain = false;
     }
 
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));

@@ -7,6 +7,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <rendering/Shader.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -128,6 +130,8 @@ private:
     FixedArray<ImageOutput, max_frames_in_flight>   m_image_outputs;
 
     FramebufferRef                                  m_input_framebuffer;
+
+    DelegateHandler                                 m_after_swapchain_recreated_delegate;
 
     bool                                            m_is_initialized;
 };

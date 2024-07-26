@@ -332,14 +332,23 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
 
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
     
-    AssertThrowMsg(m_descriptor_table.IsValid(), "No descriptor table set for pipeline");
+    if (!m_descriptor_table.IsValid()) {
+        return Result { Result::RENDERER_ERR, "No descriptor table set for pipeline" };
+    }
+    
     Array<VkDescriptorSetLayout> used_layouts = Pipeline<Platform::VULKAN>::m_platform_impl.GetDescriptorSetLayouts();
     
     DebugLog(
         LogType::Debug,
-        "Using %llu descriptor set layouts in pipeline:\n",
+        "Using %llu descriptor set layouts in pipeline\n",
         used_layouts.Size()
     );
+
+    for (VkDescriptorSetLayout vk_descriptor_set_layout : used_layouts) {
+        if (vk_descriptor_set_layout == VK_NULL_HANDLE) {
+            return Result { Result::RENDERER_ERR, "Null descriptor set layout in pipeline" };
+        }
+    }
     
     if (used_layouts.Size() > max_set_layouts) {
         DebugLog(
@@ -349,7 +358,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
             max_set_layouts
         );
 
-        return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
+        return Result { Result::RENDERER_ERR, "Device max bound descriptor sets exceeded" };
     }
 
     layout_info.setLayoutCount = uint32(used_layouts.Size());

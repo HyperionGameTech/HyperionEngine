@@ -529,9 +529,6 @@ void RenderList::CollectDrawCalls(
             (*iterators[index]).second.GetRenderGroup()->PerformOcclusionCulling(frame, cull_data);
         }
     }
-
-    // test
-    // g_engine->GetRenderData()->entity_instance_batches.UpdateBuffer(g_engine->GetGPUDevice(), frame->GetFrameIndex());
 }
 
 void RenderList::ExecuteDrawCalls(

@@ -118,6 +118,8 @@ private:
 struct EngineDelegates
 {
     Delegate<void>  OnShutdown;
+    Delegate<void>  OnBeforeSwapchainRecreated;
+    Delegate<void>  OnAfterSwapchainRecreated;
 };
 
 class Engine
@@ -129,8 +131,6 @@ class Engine
 #endif
 
 public:
-    friend struct RenderCommand_RecreateSwapchain;
-
     HYP_API static Engine *GetInstance();
 
     Engine();
@@ -265,7 +265,6 @@ private:
 
     AtomicVar<bool>                                         m_is_shutting_down { false };
     bool                                                    m_is_render_loop_active { false };
-    bool                                                    m_should_recreate_swapchain;
     bool                                                    m_is_initialized;
 };
 

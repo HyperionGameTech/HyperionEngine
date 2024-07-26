@@ -5,10 +5,10 @@
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 
 #include <Types.hpp>
 
-#include <rendering/backend/RendererFeatures.hpp>
 
 namespace hyperion {
 namespace renderer {

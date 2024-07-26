@@ -9,7 +9,6 @@
 #include <rendering/Texture.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
-#include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/DOFBlur.hpp>
@@ -23,6 +22,7 @@ namespace hyperion {
 class IndirectDrawState;
 class RenderEnvironment;
 class GBuffer;
+class DepthPyramidRenderer;
 
 using DeferredFlagBits = uint32;
 
@@ -38,24 +38,38 @@ enum DeferredFlags : DeferredFlagBits
     DEFERRED_FLAGS_DDGI_ENABLED         = 0x40
 };
 
+enum class DeferredPassMode
+{
+    INDIRECT_LIGHTING,
+    DIRECT_LIGHTING
+};
+
 class DeferredPass : public FullScreenPass
 {
     friend class DeferredRenderer;
 
 public:
-    DeferredPass(bool is_indirect_pass);
+    DeferredPass(DeferredPassMode mode);
     DeferredPass(const DeferredPass &other)             = delete;
     DeferredPass &operator=(const DeferredPass &other)  = delete;
     virtual ~DeferredPass() override;
 
-    void CreateShader();
-    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
     virtual void Create() override;
     virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;
 
+protected:
+    void CreateShader();
+
+    virtual void CreatePipeline() override;
+    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
+
+    virtual void Resize_Internal(Extent2D new_size) override;
+
 private:
-    const bool                                              m_is_indirect_pass;
+    void AddToGlobalDescriptorSet();
+
+    const DeferredPassMode                                  m_mode;
 
     FixedArray<ShaderRef, uint(LightType::MAX)>             m_direct_light_shaders;
     FixedArray<Handle<RenderGroup>, uint(LightType::MAX)>   m_direct_light_render_groups;
@@ -65,10 +79,10 @@ private:
     SamplerRef                                              m_ltc_sampler;
 };
 
-enum EnvGridPassMode
+enum class EnvGridPassMode
 {
-    ENV_GRID_PASS_MODE_RADIANCE,
-    ENV_GRID_PASS_MODE_IRRADIANCE
+    RADIANCE,
+    IRRADIANCE
 };
 
 class EnvGridPass : public FullScreenPass
@@ -82,17 +96,22 @@ public:
     TemporalBlending *GetTemporalBlending() const
         { return m_temporal_blending.Get(); }
 
-    void CreateShader();
     virtual void Create() override;
     virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;
 
-private:
-    virtual void Resize_Internal(Extent2D new_size) override;
+protected:
+    void CreateShader();
+    virtual void CreatePipeline() override;
 
+private:
     void CreatePreviousTexture();
     void CreateRenderTextureToScreenPass();
     void CreateTemporalBlending();
+
+    void AddToGlobalDescriptorSet();
+    
+    virtual void Resize_Internal(Extent2D new_size) override;
 
     const EnvGridPassMode       m_mode;
     UniquePtr<TemporalBlending> m_temporal_blending;
@@ -117,17 +136,21 @@ public:
     ReflectionProbePass &operator=(const ReflectionProbePass &other)    = delete;
     virtual ~ReflectionProbePass() override;
     
-    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
-    virtual void CreateCommandBuffers() override;
     virtual void Create() override;
     virtual void Record(uint frame_index) override;
     virtual void Render(Frame *frame) override;
 
 private:
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void CreatePipeline() override;
+    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
+    virtual void CreateCommandBuffers() override;
 
     void CreatePreviousTexture();
     void CreateRenderTextureToScreenPass();
+
+    void AddToGlobalDescriptorSet();
+
+    virtual void Resize_Internal(Extent2D new_size) override;
 
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
@@ -156,11 +179,8 @@ public:
     HYP_FORCE_INLINE const PostProcessing &GetPostProcessing() const
         { return m_post_processing; }
 
-    HYP_FORCE_INLINE DepthPyramidRenderer &GetDepthPyramidRenderer()
-        { return m_dpr; }
-
-    HYP_FORCE_INLINE const DepthPyramidRenderer &GetDepthPyramidRenderer() const
-        { return m_dpr; }
+    HYP_FORCE_INLINE DepthPyramidRenderer *GetDepthPyramidRenderer() const
+        { return m_depth_pyramid_renderer.Get(); }
 
     HYP_FORCE_INLINE const AttachmentRef &GetCombinedResult() const
         { return m_combine_pass->GetAttachment(0); }
@@ -175,8 +195,6 @@ public:
     void Destroy();
     
     void Render(Frame *frame, RenderEnvironment *environment);
-
-    void HandleWindowSizeChanged(Vec2u new_window_size);
 
 private:
     void ApplyCameraJitter();
@@ -196,12 +214,12 @@ private:
 
     UniquePtr<GBuffer>                                  m_gbuffer;
 
-    DeferredPass                                        m_indirect_pass;
-    DeferredPass                                        m_direct_pass;
+    UniquePtr<DeferredPass>                             m_indirect_pass;
+    UniquePtr<DeferredPass>                             m_direct_pass;
 
-    EnvGridPass                                         m_env_grid_radiance_pass;
-    EnvGridPass                                         m_env_grid_irradiance_pass;
-    ReflectionProbePass                                 m_reflection_probe_pass;
+    UniquePtr<EnvGridPass>                              m_env_grid_radiance_pass;
+    UniquePtr<EnvGridPass>                              m_env_grid_irradiance_pass;
+    UniquePtr<ReflectionProbePass>                      m_reflection_probe_pass;
 
     PostProcessing                                      m_post_processing;
     UniquePtr<HBAO>                                     m_hbao;
@@ -213,7 +231,7 @@ private:
     UniquePtr<FullScreenPass>                           m_combine_pass;
 
     UniquePtr<SSRRenderer>                              m_ssr;
-    DepthPyramidRenderer                                m_dpr;
+    UniquePtr<DepthPyramidRenderer>                     m_depth_pyramid_renderer;
 
     UniquePtr<DOFBlur>                                  m_dof_blur;
 

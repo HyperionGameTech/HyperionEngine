@@ -781,7 +781,7 @@ struct DeletionQueueBase
     virtual ~DeletionQueueBase() = default;
 
     virtual void Iterate() = 0;
-    virtual int32 ForceDeleteAll() = 0;
+    virtual int32 RemoveAllNow(bool force = false) = 0;
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -847,7 +847,7 @@ struct RenderObjectDeleter
             }
         }
 
-        virtual int32 ForceDeleteAll() override
+        virtual int32 RemoveAllNow(bool force) override
         {
             Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
@@ -873,6 +873,10 @@ struct RenderObjectDeleter
 
             while (to_delete.Any()) {
                 auto object = to_delete.Pop();
+
+                if (object.GetRefCount() > 1) {
+                    continue;
+                }
                 
                 HYPERION_ASSERT_RESULT(object->Destroy(GetEngineDevice()));
             }
@@ -926,7 +930,7 @@ struct RenderObjectDeleter
 
     static void Initialize();
     static void Iterate();
-    static void ForceDeleteAll();
+    static void RemoveAllNow(bool force = false);
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -936,15 +940,15 @@ template <renderer::PlatformType PLATFORM>
 AtomicVar<uint16> RenderObjectDeleter<PLATFORM>::queue_index = { 0 };
 
 template <renderer::PlatformType PLATFORM>
-static inline void ForceDeleteAllEnqueuedRenderObjects()
+static inline void RemoveAllEnqueuedRenderObjectsNow(bool force = false)
 {
-    RenderObjectDeleter<PLATFORM>::ForceDeleteAll();
+    RenderObjectDeleter<PLATFORM>::RemoveAllNow(force);
 }
 
 template <class T, renderer::PlatformType PLATFORM>
-static inline void ForceDeleteAllEnqueuedRenderObjects()
+static inline void RemoveAllEnqueuedRenderObjectsNow(bool force = false)
 {
-    RenderObjectDeleter<PLATFORM>::template GetQueue<T>().ForceDeleteAll();
+    RenderObjectDeleter<PLATFORM>::template GetQueue<T>().RemoveAllNow(force);
 }
 
 template <class T, renderer::PlatformType PLATFORM>

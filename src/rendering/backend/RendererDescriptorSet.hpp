@@ -507,29 +507,25 @@ public:
     DescriptorSet &operator=(DescriptorSet &&other) noexcept  = delete;
     ~DescriptorSet();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const DescriptorSetLayout<PLATFORM> &GetLayout() const
+    HYP_FORCE_INLINE const DescriptorSetLayout<PLATFORM> &GetLayout() const
         { return m_layout; }
+
+    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement<PLATFORM>> &GetElements() const
+        { return m_elements; }
+
+    HYP_API bool IsCreated() const;
 
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
     HYP_API Result Update(Device<PLATFORM> *device);
 
     bool HasElement(Name name) const;
-
-    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement<PLATFORM>> &GetElements() const
-        { return m_elements; }
 
     void SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<PLATFORM> &ref);
     void SetElement(Name name, uint index, const GPUBufferRef<PLATFORM> &ref);
@@ -722,17 +718,17 @@ public:
     DescriptorTable &operator=(DescriptorTable &&other) noexcept  = default;
     ~DescriptorTable()                                            = default;
 
-    const DescriptorTableDeclaration &GetDeclaration() const
+    HYP_FORCE_INLINE const DescriptorTableDeclaration &GetDeclaration() const
         { return m_decl; }
 
-    const FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight> &GetSets() const
+    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight> &GetSets() const
         { return m_sets; }
 
     /*! \brief Get a descriptor set from the table
         \param name The name of the descriptor set
         \param frame_index The index of the frame for the descriptor set
         \return The descriptor set, or an unset reference if not found */
-    const DescriptorSetRef<PLATFORM> &GetDescriptorSet(Name name, uint frame_index) const
+    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(Name name, uint frame_index) const
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             if (set->GetLayout().GetName() == name) {
@@ -746,8 +742,7 @@ public:
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE
-    uint GetDescriptorSetIndex(Name name) const
+    HYP_FORCE_INLINE uint GetDescriptorSetIndex(Name name) const
         { return m_decl.GetDescriptorSetIndex(name); }
 
     /*! \brief Create all descriptor sets in the table

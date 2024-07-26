@@ -108,6 +108,10 @@ public:
     void Init();
 
 private:
+    void CreateIndirectRenderer();
+    void CreateCommandBuffers();
+    void CreateGraphicsPipeline();
+
     void BindDescriptorSets(
         CommandBuffer *command_buffer,
         uint scene_index
