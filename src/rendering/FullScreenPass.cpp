@@ -288,7 +288,6 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
 
     m_render_group->AddFramebuffer(m_framebuffer);
 
-    g_engine->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
 }
 

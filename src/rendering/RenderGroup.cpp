@@ -2,6 +2,7 @@
 
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -194,6 +195,17 @@ void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet &renderab
     m_renderable_attributes = renderable_attributes;
 }
 
+void RenderGroup::AddFramebuffer(const FramebufferRef &framebuffer)
+{
+    const auto it = m_fbos.Find(framebuffer);
+
+    if (it != m_fbos.End()) {
+        return;
+    }
+
+    m_fbos.PushBack(framebuffer);
+}
+
 void RenderGroup::RemoveFramebuffer(const FramebufferRef &framebuffer)
 {
     const auto it = m_fbos.Find(framebuffer);
@@ -251,21 +263,31 @@ void RenderGroup::Init()
         }
     }
 
+    if (m_fbos.Empty()) {
+        FramebufferRef framebuffer = m_renderable_attributes.GetFramebuffer();
+
+        if (!framebuffer.IsValid()) {
+            framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(m_renderable_attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+        }
+
+        AddFramebuffer(framebuffer);
+    }
+
     AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to render group");
 
-    for (const FramebufferRef &fbo : m_fbos) {
-        AssertThrow(fbo.IsValid());
+    for (const FramebufferRef &framebuffer : m_fbos) {
+        AssertThrow(framebuffer.IsValid());
         
-        DeferCreate(fbo, g_engine->GetGPUDevice());
+        DeferCreate(framebuffer, g_engine->GetGPUDevice());
     }
 
     AssertThrow(m_shader.IsValid());
 
     RenderPassRef render_pass;
 
-    for (auto &fbo : m_fbos) {
+    for (const FramebufferRef &framebuffer : m_fbos) {
         if (!render_pass.IsValid()) {
-            render_pass = fbo->GetRenderPass();
+            render_pass = framebuffer->GetRenderPass();
         }
     }
 

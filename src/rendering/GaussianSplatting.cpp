@@ -7,6 +7,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -541,8 +542,6 @@ void GaussianSplattingInstance::CreateRenderGroup()
         descriptor_table,
         RenderGroupFlags::NONE
     );
-
-    m_render_group->AddFramebuffer(g_engine->GetGBuffer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }

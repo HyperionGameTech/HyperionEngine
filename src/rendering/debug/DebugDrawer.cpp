@@ -4,6 +4,7 @@
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -57,7 +58,7 @@ void DebugDrawer::Create()
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-    m_render_group = g_engine->CreateRenderGroup(
+    m_render_group = CreateObject<RenderGroup>(
         m_shader,
         RenderableAttributeSet(
             MeshAttributes {
@@ -70,16 +71,14 @@ void DebugDrawer::Create()
                 .cull_faces     = FaceCullMode::NONE
             }
         ),
-        std::move(descriptor_table)
+        std::move(descriptor_table),
+        RenderGroupFlags::DEFAULT
     );
 
-    if (m_render_group) {
-        g_engine->GetGBuffer()
-            .Get(m_render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
-            .AddFramebuffersToRenderGroup(m_render_group);
+    const FramebufferRef &framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(m_render_group->GetRenderableAttributes().GetMaterialAttributes().bucket).GetFramebuffer();
+    m_render_group->AddFramebuffer(framebuffer);
 
-        InitObject(m_render_group);
-    }
+    InitObject(m_render_group);
 }
 
 void DebugDrawer::Destroy()

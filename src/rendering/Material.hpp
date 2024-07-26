@@ -73,8 +73,8 @@ public:
     {
         union
         {
-            float float_values[4];
-            int int_values[4];
+            float   float_values[4];
+            int     int_values[4];
         } values;
 
         enum Type : uint32
@@ -165,13 +165,13 @@ public:
 
         ~Parameter() = default;
 
-        bool IsIntType() const
+        HYP_FORCE_INLINE bool IsIntType() const
             { return type >= MATERIAL_PARAMETER_TYPE_INT && type <= MATERIAL_PARAMETER_TYPE_INT4; }
 
-        bool IsFloatType() const
+        HYP_FORCE_INLINE bool IsFloatType() const
             { return type >= MATERIAL_PARAMETER_TYPE_FLOAT && type <= MATERIAL_PARAMETER_TYPE_FLOAT4; }
 
-        uint Size() const
+        HYP_FORCE_INLINE uint Size() const
         {
             if (type == MATERIAL_PARAMETER_TYPE_NONE) {
                 return 0u;
@@ -184,41 +184,37 @@ public:
             return uint(type);
         }
 
-        void Copy(uint8 *dst) const
-        {
-            std::memcpy(dst, &values, Size());
-        }
+        HYP_FORCE_INLINE void Copy(uint8 *dst) const
+            { std::memcpy(dst, &values, Size()); }
 
-        bool operator==(const Parameter &other) const
-        {
-            return std::memcmp(&values, &other.values, sizeof(values)) == 0;
-        }
+        HYP_FORCE_INLINE bool operator==(const Parameter &other) const
+            { return std::memcmp(&values, &other.values, sizeof(values)) == 0; }
 
-        explicit operator int() const
+        HYP_FORCE_INLINE explicit operator int() const
             { return values.int_values[0]; }
 
-        explicit operator Vec2i() const
+        HYP_FORCE_INLINE explicit operator Vec2i() const
             { return Vec2i { values.int_values[0], values.int_values[1] }; }
 
-        explicit operator Vec3i() const
+        HYP_FORCE_INLINE explicit operator Vec3i() const
             { return Vec3i { values.int_values[0], values.int_values[1], values.int_values[2] }; }
 
-        explicit operator Vec4i() const
+        HYP_FORCE_INLINE explicit operator Vec4i() const
             { return Vec4i { values.int_values[0], values.int_values[1], values.int_values[2], values.int_values[3] }; }
 
-        explicit operator float() const
+        HYP_FORCE_INLINE explicit operator float() const
             { return values.float_values[0]; }
 
-        explicit operator Vec2f() const
+        HYP_FORCE_INLINE explicit operator Vec2f() const
             { return Vec2f { values.float_values[0], values.float_values[1] }; }
 
-        explicit operator Vec3f() const
+        HYP_FORCE_INLINE explicit operator Vec3f() const
             { return Vec3f { values.float_values[0], values.float_values[1], values.float_values[2] }; }
 
-        explicit operator Vec4f() const
+        HYP_FORCE_INLINE explicit operator Vec4f() const
             { return Vec4f { values.float_values[0], values.float_values[1], values.float_values[2], values.float_values[3] }; }
 
-        HashCode GetHashCode() const
+        HYP_FORCE_INLINE HashCode GetHashCode() const
         {
             HashCode hc;
 
@@ -294,27 +290,29 @@ public:
         const ParameterTable &parameters,
         const TextureSet &textures
     );
-    Material(const Material &other) = delete;
-    Material &operator=(const Material &other) = delete;
+    Material(const Material &other)                 = delete;
+    Material &operator=(const Material &other)      = delete;
+    Material(Material &&other) noexcept             = delete;
+    Material &operator=(Material &&other) noexcept  = delete;
     ~Material();
 
     /*! \brief Get the current mutation state of this Material.
         \return The current mutation state of this Material */
-    DataMutationState GetMutationState() const
+    HYP_FORCE_INLINE DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
-    const ShaderRef &GetShader() const
+    HYP_FORCE_INLINE const ShaderRef &GetShader() const
         { return m_shader; }
 
     void SetShader(const ShaderRef &shader);
 
-    ParameterTable &GetParameters()
+    HYP_FORCE_INLINE ParameterTable &GetParameters()
         { return m_parameters; }
 
-    const ParameterTable &GetParameters() const
+    HYP_FORCE_INLINE const ParameterTable &GetParameters() const
         { return m_parameters; }
 
-    const Parameter &GetParameter(MaterialKey key) const
+    HYP_FORCE_INLINE const Parameter &GetParameter(MaterialKey key) const
         { return m_parameters.Get(key); }
 
     template <class T>
@@ -378,10 +376,10 @@ public:
      *  \param textures The TextureSet to set. */
     void SetTextures(const TextureSet &textures);
 
-    TextureSet &GetTextures()
+    HYP_FORCE_INLINE TextureSet &GetTextures()
         { return m_textures; }
 
-    const TextureSet &GetTextures() const
+    HYP_FORCE_INLINE const TextureSet &GetTextures() const
         { return m_textures; }
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
@@ -398,23 +396,23 @@ public:
 
     /*! \brief Get the bucket for this Material.
      *  \return The bucket for this Material. */
-    Bucket GetBucket() const
+    HYP_FORCE_INLINE Bucket GetBucket() const
         { return m_render_attributes.bucket; }
 
     /*! \brief Set the bucket for this Material.
      *  \param bucket The bucket to set. */
-    void SetBucket(Bucket bucket)
+    HYP_FORCE_INLINE void SetBucket(Bucket bucket)
         { m_render_attributes.bucket = bucket; }
 
     /*! \brief Get whether this Material is alpha blended.
      *  \return True if the Material is alpha blended, false otherwise. */
-    bool IsAlphaBlended() const
+    HYP_FORCE_INLINE bool IsAlphaBlended() const
         { return m_render_attributes.blend_function != BlendFunction::None(); }
 
     /*! \brief Set whether this Material is alpha blended.
      *  \param is_alpha_blended True if the Material is alpha blended, false otherwise.
      *  \param blend_function The blend function to use if the Material is alpha blended. By default, it is set to \ref{BlendFunction::AlphaBlending()}. */
-    void SetIsAlphaBlended(bool is_alpha_blended, BlendFunction blend_function = BlendFunction::AlphaBlending())
+    HYP_FORCE_INLINE void SetIsAlphaBlended(bool is_alpha_blended, BlendFunction blend_function = BlendFunction::AlphaBlending())
     {
         if (is_alpha_blended) {
             m_render_attributes.blend_function = blend_function;
@@ -425,22 +423,22 @@ public:
 
     /*! \brief Get the blend function for this Material.
      *  \return The blend function for this Material. */
-    BlendFunction GetBlendFunction() const
+    HYP_FORCE_INLINE BlendFunction GetBlendFunction() const
         { return m_render_attributes.blend_function; }
 
     /*! \brief Set the blend function for this Material.
      *  \param blend_function The blend function to set. */
-    void SetBlendMode(BlendFunction blend_function)
+    HYP_FORCE_INLINE void SetBlendMode(BlendFunction blend_function)
         { m_render_attributes.blend_function = blend_function; }
 
     /*! \brief Get whether depth writing is enabled for this Material.
      *  \return True if depth writing is enabled, false otherwise. */
-    bool IsDepthWriteEnabled() const
+    HYP_FORCE_INLINE bool IsDepthWriteEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributeFlags::DEPTH_WRITE); }
 
     /*! \brief Set whether depth writing is enabled for this Material.
      *  \param is_depth_write_enabled True if depth writing is enabled, false otherwise. */
-    void SetIsDepthWriteEnabled(bool is_depth_write_enabled)
+    HYP_FORCE_INLINE void SetIsDepthWriteEnabled(bool is_depth_write_enabled)
     {
         if (is_depth_write_enabled) {
             m_render_attributes.flags |= MaterialAttributeFlags::DEPTH_WRITE;
@@ -451,12 +449,12 @@ public:
 
     /*! \brief Get whether depth testing is enabled for this Material.
      *  \return True if depth testing is enabled, false otherwise. */
-    bool IsDepthTestEnabled() const
+    HYP_FORCE_INLINE bool IsDepthTestEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributeFlags::DEPTH_TEST); }
 
     /*! \brief Set whether depth testing is enabled for this Material.
      *  \param is_depth_test_enabled True if depth testing is enabled, false otherwise. */
-    void SetIsDepthTestEnabled(bool is_depth_test_enabled)
+    HYP_FORCE_INLINE void SetIsDepthTestEnabled(bool is_depth_test_enabled)
     {
         if (is_depth_test_enabled) {
             m_render_attributes.flags |= MaterialAttributeFlags::DEPTH_TEST;
@@ -467,29 +465,29 @@ public:
 
     /*! \brief Get the face culling mode for this Material.
      *  \return The face culling mode for this Material. */
-    FaceCullMode GetFaceCullMode() const
+    HYP_FORCE_INLINE FaceCullMode GetFaceCullMode() const
         { return m_render_attributes.cull_faces; }
 
     /*! \brief Set the face culling mode for this Material.
      *  \param cull_mode The face culling mode to set. */
-    void SetFaceCullMode(FaceCullMode cull_mode)
+    HYP_FORCE_INLINE void SetFaceCullMode(FaceCullMode cull_mode)
         { m_render_attributes.cull_faces = cull_mode; }
 
     /*! \brief Get the render attributes of this Material.
      *  \return The render attributes of this Material. */
-    MaterialAttributes &GetRenderAttributes()
+    HYP_FORCE_INLINE MaterialAttributes &GetRenderAttributes()
         { return m_render_attributes; }
 
     /*! \brief Get the render attributes of this Material.
      *  \return The render attributes of this Material. */
-    const MaterialAttributes &GetRenderAttributes() const
+    HYP_FORCE_INLINE const MaterialAttributes &GetRenderAttributes() const
         { return m_render_attributes; }
 
     /*! \brief If a Material is static, it is expected to not change frequently and
      *  may be shared across many objects. Otherwise, it is considered dynamic and may
      *  be modified.
      *  \return True if the Material is static, false if it is dynamic. */
-    bool IsStatic() const
+    HYP_FORCE_INLINE bool IsStatic() const
         { return !m_is_dynamic; }
 
     /*! \brief If a Material is
@@ -497,10 +495,10 @@ public:
      *  it is considered static and should not be modified as it may be shared across many
      *  objects.
      *  \return True if the Material is dynamic, false if it is static. */
-    bool IsDynamic() const
+    HYP_FORCE_INLINE bool IsDynamic() const
         { return m_is_dynamic; }
 
-    void SetIsDynamic(bool is_dynamic)
+    HYP_FORCE_INLINE void SetIsDynamic(bool is_dynamic)
         { m_is_dynamic = is_dynamic; }
 
     void Init();
@@ -521,9 +519,7 @@ public:
      */
     Handle<Material> Clone() const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 

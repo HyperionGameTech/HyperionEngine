@@ -65,36 +65,34 @@ public:
         GBufferBucket &operator=(GBufferBucket &&other) noexcept    = delete;
         ~GBufferBucket();
 
-        Bucket GetBucket() const { return bucket; }
-        void SetBucket(Bucket bucket) { this->bucket = bucket; }
+        HYP_FORCE_INLINE Bucket GetBucket() const
+            { return bucket; }
+            
+        HYP_FORCE_INLINE void SetBucket(Bucket bucket)
+            { this->bucket = bucket; }
         
-        const FramebufferRef &GetFramebuffer() const
+        HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
             { return framebuffer; }
 
         const AttachmentRef &GetGBufferAttachment(GBufferResourceName resource_name) const;
 
-        void AddRenderGroup(Handle<RenderGroup> &render_group);
-        void AddFramebuffersToRenderGroup(Handle<RenderGroup> &render_group);
+        void AddRenderGroup(const Handle<RenderGroup> &render_group);
         void CreateFramebuffer();
         void Destroy();
     };
 
     GBuffer();
-    GBuffer(const GBuffer &other)               = delete;
-    GBuffer &operator=(const GBuffer &other)    = delete;
-    ~GBuffer()                                  = default;
+    GBuffer(const GBuffer &other)                   = delete;
+    GBuffer &operator=(const GBuffer &other)        = delete;
+    GBuffer(GBuffer &&other) noexcept               = delete;
+    GBuffer &operator=(GBuffer &&other) noexcept    = delete;
+    ~GBuffer()                                      = default;
 
-    GBufferBucket &Get(Bucket bucket)
-        { return m_buckets[static_cast<uint>(bucket)]; }
+    HYP_FORCE_INLINE GBufferBucket &GetBucket(Bucket bucket)
+        { return m_buckets[int(bucket)]; }
 
-    const GBufferBucket &Get(Bucket bucket) const
-        { return m_buckets[static_cast<uint>(bucket)]; }
-
-    GBufferBucket &operator[](Bucket bucket)
-        { return Get(bucket); }
-
-    const GBufferBucket &operator[](Bucket bucket) const
-        { return Get(bucket); }
+    HYP_FORCE_INLINE const GBufferBucket &GetBucket(Bucket bucket) const
+        { return m_buckets[int(bucket)]; }
 
     void Create();
     void Destroy();

@@ -3,6 +3,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -295,7 +296,6 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 
         render_group->AddFramebuffer(m_framebuffer);
 
-        g_engine->AddRenderGroup(render_group);
         InitObject(render_group);
 
         m_direct_light_render_groups[i] = render_group;
@@ -918,7 +918,6 @@ void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderabl
 
         render_group->AddFramebuffer(m_framebuffer);
 
-        g_engine->AddRenderGroup(render_group);
         InitObject(render_group);
 
         m_render_groups[it.first] = std::move(render_group);
@@ -1131,7 +1130,8 @@ void ReflectionProbePass::Render(Frame *frame)
 #pragma region Deferred renderer
 
 DeferredRenderer::DeferredRenderer()
-    : m_indirect_pass(true),
+    : m_gbuffer(new GBuffer),
+      m_indirect_pass(true),
       m_direct_pass(false),
       m_env_grid_radiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE),
       m_env_grid_irradiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE),
@@ -1149,6 +1149,8 @@ void DeferredRenderer::Create()
 
     AssertThrow(!m_is_initialized);
 
+    m_gbuffer->Create();
+
     m_env_grid_radiance_pass.Create();
     m_env_grid_irradiance_pass.Create();
 
@@ -1159,11 +1161,11 @@ void DeferredRenderer::Create()
     m_direct_pass.Create();
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_opaque_fbo = g_engine->GetGBuffer()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
-        m_translucent_fbo = g_engine->GetGBuffer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
+        m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+        m_translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
     }
 
-    const AttachmentRef &depth_attachment = g_engine->GetGBuffer().Get(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer()
+    const AttachmentRef &depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer()
         ->GetAttachmentMap()->attachments.Back().second.attachment;
 
     AssertThrow(depth_attachment != nullptr);
@@ -1307,6 +1309,8 @@ void DeferredRenderer::Destroy()
 
     m_indirect_pass.Destroy();  // flushes render queue
     m_direct_pass.Destroy();    // flushes render queue
+
+    m_gbuffer->Destroy();
 }
 
 void DeferredRenderer::HandleWindowSizeChanged(Vec2u new_window_size)

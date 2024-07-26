@@ -2,6 +2,7 @@
 
 #include <rendering/TemporalAA.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -122,10 +123,10 @@ void TemporalAA::CreateComputePipelines()
         descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
         descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetImageView());
 
-        descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(NAME("InDepthTexture"), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InDepthTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
     
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
@@ -177,7 +178,7 @@ void TemporalAA::Render(Frame *frame)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
     );
     push_constants.camera_near_far = Vector2(camera.clip_near, camera.clip_far);

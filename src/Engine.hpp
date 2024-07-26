@@ -6,7 +6,6 @@
 #include <Config.hpp>
 
 #include <rendering/Deferred.hpp>
-#include <rendering/GBuffer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DefaultFormats.hpp>
@@ -149,12 +148,6 @@ public:
     HYP_FORCE_INLINE DeferredRenderer *GetDeferredRenderer() const
         { return m_deferred_renderer.Get(); }
     
-    HYP_FORCE_INLINE GBuffer &GetGBuffer()
-        { return m_gbuffer; }
-    
-    HYP_FORCE_INLINE const GBuffer &GetGBuffer() const
-        { return m_gbuffer; }
-    
     HYP_FORCE_INLINE RenderState &GetRenderState()
         { return render_state; }
 
@@ -215,21 +208,6 @@ public:
     HYP_FORCE_INLINE bool IsShuttingDown() const
         { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 
-    Handle<RenderGroup> CreateRenderGroup(
-        const RenderableAttributeSet &renderable_attributes,
-        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT
-    );
-    
-    /*! \brief Create a RenderGroup using defined set of DescriptorSets. The result will not be cached. */
-    Handle<RenderGroup> CreateRenderGroup(
-        const ShaderRef &shader,
-        const RenderableAttributeSet &renderable_attributes,
-        const DescriptorTableRef &descriptor_table,
-        EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT
-    );
-
-    void AddRenderGroup(Handle<RenderGroup> &render_group);
-
     HYP_FORCE_INLINE bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
@@ -255,8 +233,6 @@ private:
 
     void FindTextureFormatDefaults();
 
-    void AddRenderGroupInternal(Handle<RenderGroup> &, bool cache);
-
     RC<AppContext>                                          m_app_context;
     
     UniquePtr<Instance>                                     m_instance;
@@ -270,9 +246,6 @@ private:
     HashMap<TextureFormatDefault, InternalFormat>           m_texture_format_defaults;
 
     UniquePtr<DeferredRenderer>                             m_deferred_renderer;
-    GBuffer                                                 m_gbuffer;
-    FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_group_mapping;
-    std::mutex                                              m_render_group_mapping_mutex;
 
     UniquePtr<ShaderGlobals>                                m_render_data;
 

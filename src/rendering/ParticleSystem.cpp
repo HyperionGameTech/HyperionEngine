@@ -6,6 +6,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -298,8 +299,6 @@ void ParticleSpawner::CreateRenderGroup()
         descriptor_table,
         RenderGroupFlags::NONE
     );
-
-    m_render_group->AddFramebuffer(g_engine->GetGBuffer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }

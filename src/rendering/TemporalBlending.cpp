@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/TemporalBlending.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 
@@ -232,7 +233,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("PrevImage"), m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view);
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("VelocityImage"), g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+            ->SetElement(NAME("VelocityImage"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
@@ -275,7 +276,8 @@ void TemporalBlending::Render(Frame *frame)
 
     const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
 
-    struct alignas(128) {
+    struct alignas(128)
+    {
         Vec2u   output_dimensions;
         Vec2u   depth_texture_dimensions;
         uint32  blending_frame_counter;
@@ -283,7 +285,7 @@ void TemporalBlending::Render(Frame *frame)
 
     push_constants.output_dimensions = Extent2D(extent);
     push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetGBuffer().Get(BUCKET_OPAQUE)
+        g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
     );
 

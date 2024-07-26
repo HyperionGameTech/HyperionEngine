@@ -68,10 +68,10 @@ static void AddSharedAttachment(
     FramebufferRef &framebuffer
 )
 {
-    const FramebufferRef &opaque_fbo = g_engine->GetGBuffer().Get(BUCKET_OPAQUE).GetFramebuffer();
-    AssertThrowMsg(opaque_fbo.IsValid(), "Bucket framebuffers added in wrong order");
+    const FramebufferRef &opaque_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(BUCKET_OPAQUE).GetFramebuffer();
+    AssertThrowMsg(opaque_framebuffer.IsValid(), "GBuffer framebuffers added in wrong order");
 
-    const AttachmentRef &parent_attachment = opaque_fbo->GetAttachment(binding);
+    const AttachmentRef &parent_attachment = opaque_framebuffer->GetAttachment(binding);
     AssertThrow(parent_attachment.IsValid());
     
     AttachmentRef attachment = MakeRenderObject<Attachment>(
@@ -148,20 +148,15 @@ const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourc
     return framebuffer->GetAttachment(uint(resource_name));
 }
 
-void GBuffer::GBufferBucket::AddRenderGroup(Handle<RenderGroup> &render_group)
+void GBuffer::GBufferBucket::AddRenderGroup(const Handle<RenderGroup> &render_group)
 {
     if (render_group->GetRenderableAttributes().GetFramebuffer().IsValid()) {
-        const FramebufferRef &framebuffer = render_group->GetRenderableAttributes().GetFramebuffer();
-        AssertThrowMsg(framebuffer != nullptr, "Invalid framebuffer");
 
-        render_group->AddFramebuffer(framebuffer);
-    } else {
-        AddFramebuffersToRenderGroup(render_group);
+        render_group->AddFramebuffer(render_group->GetRenderableAttributes().GetFramebuffer());
+
+        return;
     }
-}
 
-void GBuffer::GBufferBucket::AddFramebuffersToRenderGroup(Handle<RenderGroup> &render_group)
-{
     render_group->AddFramebuffer(framebuffer);
 }
 
@@ -192,29 +187,14 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        AddOwnedAttachment(
-            0,
-            InternalFormat::RGBA8_SRGB,
-            framebuffer,
-            extent
-        );
+        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer, extent);
 
         // Needed for stencil
-        AddOwnedAttachment(
-            1,
-            InternalFormat::DEPTH_32F,
-            framebuffer,
-            extent
-        );
+        AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer, extent);
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets
-        AddOwnedAttachment(
-            0,
-            color_format,
-            framebuffer,
-            extent
-        );
+        AddOwnedAttachment(0, color_format, framebuffer, extent);
 
         // opaque creates the main non-color gbuffer attachments,
         // which will be shared with other renderable buckets
@@ -222,20 +202,12 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
             for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
-                AddOwnedAttachment(
-                    i,
-                    format,
-                    framebuffer,
-                    extent
-                );
+                AddOwnedAttachment(i, format, framebuffer, extent);
             }
         } else {
             // add the attachments shared with opaque bucket
             for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
-                AddSharedAttachment(
-                    i,
-                    framebuffer
-                );
+                AddSharedAttachment(i, framebuffer);
             }
         }
     }

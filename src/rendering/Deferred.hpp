@@ -22,6 +22,7 @@ namespace hyperion {
 
 class IndirectDrawState;
 class RenderEnvironment;
+class GBuffer;
 
 using DeferredFlagBits = uint32;
 
@@ -143,6 +144,9 @@ public:
     DeferredRenderer &operator=(const DeferredRenderer &other)  = delete;
     ~DeferredRenderer();
 
+    HYP_FORCE_INLINE GBuffer *GetGBuffer() const
+        { return m_gbuffer.Get(); }
+
     HYP_FORCE_INLINE FullScreenPass *GetCombinePass() const
         { return m_combine_pass.Get(); }
 
@@ -189,6 +193,8 @@ private:
     void RenderTranslucentObjects(Frame *frame);
 
     void GenerateMipChain(Frame *frame, Image *image);
+
+    UniquePtr<GBuffer>                                  m_gbuffer;
 
     DeferredPass                                        m_indirect_pass;
     DeferredPass                                        m_direct_pass;

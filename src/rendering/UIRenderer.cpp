@@ -3,6 +3,7 @@
 #include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/UIComponent.hpp>
@@ -170,10 +171,13 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
                 if (!render_proxy_group.GetRenderGroup().IsValid()) {
                     // Create RenderGroup
-                    Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(
+                    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+                        g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                         attributes,
                         RenderGroupFlags::NONE /* disable parallel rendering, to preserve number of command buffers */
                     );
+
+                    InitObject(render_group);
 
                     HYP_LOG(UI, LogLevel::DEBUG, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
 
@@ -463,7 +467,7 @@ void UIRenderer::Init()
 
 void UIRenderer::CreateFramebuffer()
 {
-    m_framebuffer = g_engine->GetGBuffer()[Bucket::BUCKET_UI].GetFramebuffer();
+    m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
 }
 
 // called from game thread

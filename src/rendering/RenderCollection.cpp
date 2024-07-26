@@ -15,6 +15,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/GBuffer.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
@@ -143,7 +144,11 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 attributes.GetDrawableLayer());
 
             // Create RenderGroup
-            Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
+            Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+                g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
+                attributes
+            );
+
             InitObject(render_group);
 
             render_proxy_group.SetRenderGroup(render_group);

@@ -120,9 +120,7 @@ public:
 
     void SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes);
 
-    HYP_FORCE_INLINE void AddFramebuffer(FramebufferRef framebuffer)
-        { m_fbos.PushBack(std::move(framebuffer)); }
-
+    void AddFramebuffer(const FramebufferRef &framebuffer);
     void RemoveFramebuffer(const FramebufferRef &framebuffer);
 
     HYP_FORCE_INLINE const Array<FramebufferRef> &GetFramebuffers() const

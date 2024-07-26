@@ -6,6 +6,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererInstance.hpp>
@@ -319,18 +320,15 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_material_descriptor_set_manager.Initialize();
 
-    m_gbuffer.Create();
-
-    // has to be after we create framebuffers
-    m_debug_drawer.Create();
-
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
+
+    m_deferred_renderer.Reset(new DeferredRenderer);
+    m_deferred_renderer->Create();
 
     m_final_pass.Reset(new FinalPass);
     m_final_pass->Create();
 
-    m_deferred_renderer.Reset(new DeferredRenderer);
-    m_deferred_renderer->Create();
+    m_debug_drawer.Create();
     
     HYP_SYNC_RENDER();
 
@@ -370,8 +368,6 @@ void Engine::FinalizeStop()
         HYP_LOG(Tasks, LogLevel::INFO, "Task system stopped");
     }
 
-    m_gbuffer.Destroy();
-
     m_deferred_renderer->Destroy();
     m_deferred_renderer.Reset();
 
@@ -381,8 +377,6 @@ void Engine::FinalizeStop()
     m_debug_drawer.Destroy();
 
     m_render_data->Destroy();
-
-    m_render_group_mapping.Clear();
 
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Destroy(m_instance->GetDevice()));
 
@@ -484,105 +478,6 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     GetGPUInstance()->GetFrameHandler()->PresentFrame(&GetGPUDevice()->GetGraphicsQueue(), GetGPUInstance()->GetSwapchain());
     GetGPUInstance()->GetFrameHandler()->NextFrame();
-}
-
-Handle<RenderGroup> Engine::CreateRenderGroup(
-    const RenderableAttributeSet &renderable_attributes,
-    EnumFlags<RenderGroupFlags> flags
-)
-{
-    HYP_SCOPE;
-
-    const ShaderDefinition &shader_definition = renderable_attributes.GetShaderDefinition();
-    AssertThrowMsg(shader_definition, "Shader definition is unset");
-
-    ShaderRef shader = g_shader_manager->GetOrCreate(shader_definition);
-
-    if (!shader) {
-        HYP_LOG(Engine, LogLevel::ERR, "Shader is empty; Cannot create RenderGroup.");
-
-        return Handle<RenderGroup>::empty;
-    }
-
-    // create a RenderGroup with the given params
-    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
-        shader,
-        renderable_attributes,
-        flags
-    );
-
-    HYP_LOG(Engine, LogLevel::DEBUG, "Created RenderGroup for RenderableAttributeSet with hash {} from thread {}",
-        renderable_attributes.GetHashCode().Value(),
-        Threads::CurrentThreadID().name);
-
-    std::lock_guard guard(m_render_group_mapping_mutex);
-
-    AddRenderGroupInternal(render_group, false);
-
-    return render_group;
-}
-
-Handle<RenderGroup> Engine::CreateRenderGroup(
-    const ShaderRef &shader,
-    const RenderableAttributeSet &renderable_attributes,
-    const DescriptorTableRef &descriptor_table,
-    EnumFlags<RenderGroupFlags> flags
-)
-{
-    HYP_SCOPE;
-
-    if (!shader.IsValid()) {
-        HYP_LOG(Engine, LogLevel::ERR, "Shader is empty; Cannot create RenderGroup.");
-
-        return Handle<RenderGroup>::empty;
-    }
-
-    if (!shader->GetCompiledShader()) {
-        HYP_LOG(Engine, LogLevel::ERR, "Shader is not compiled; Cannot create RenderGroup.");
-
-        return Handle<RenderGroup>::empty;
-    }
-
-    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.SetShaderDefinition(shader->GetCompiledShader()->GetDefinition());
-    
-    // create a RenderGroup with the given params
-    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
-        shader,
-        new_renderable_attributes,
-        descriptor_table,
-        flags
-    );
-
-    return render_group;
-}
-
-void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
-{
-    HYP_SCOPE;
-
-    std::lock_guard guard(m_render_group_mapping_mutex);
-
-    AddRenderGroupInternal(render_group, true);
-}
-
-void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
-{
-    HYP_SCOPE;
-
-    if (cache) {
-        HYP_LOG(Engine, LogLevel::DEBUG, "Insert RenderGroup in mapping for renderable attribute set hash {}",
-            render_group->GetRenderableAttributes().GetHashCode().Value());
-
-        m_render_group_mapping.Insert(
-            render_group->GetRenderableAttributes(),
-            render_group
-        );
-    }
-
-    m_gbuffer
-        .Get(render_group->GetRenderableAttributes().GetMaterialAttributes().bucket)
-        .AddRenderGroup(render_group);
 }
 
 void Engine::PreFrameUpdate(Frame *frame)
