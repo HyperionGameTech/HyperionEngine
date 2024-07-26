@@ -32,42 +32,6 @@ class Skeleton;
 class Entity;
 class RenderList;
 
-/*! \brief Represents a handle to a graphics pipeline,
-    which can be used for doing standalone drawing without requiring
-    all objects to be Entities or have them attached to the RenderGroup */
-class HYP_API RendererProxy
-{
-    friend class RenderGroup;
-
-    RendererProxy(RenderGroup *renderer_instance)
-        : m_render_group(renderer_instance)
-    {
-    }
-
-    RendererProxy(const RendererProxy &other) = delete;
-    RendererProxy &operator=(const RendererProxy &other) = delete;
-
-public:
-    const CommandBufferRef &GetCommandBuffer(uint frame_index) const;
-
-    const GraphicsPipelineRef &GetGraphicsPipeline() const;
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void Bind(Frame *frame);
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void DrawMesh(Frame *frame, Mesh *mesh);
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void Submit(Frame *frame);
-
-private:
-    RenderGroup *m_render_group;
-};
-
 enum class RenderGroupFlags : uint32
 {
     NONE                = 0x0,
@@ -82,7 +46,7 @@ HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
 class HYP_API RenderGroup : public BasicObject<RenderGroup>
 {
-    friend class RendererProxy;
+    friend class DebugDrawerRenderGroupProxy;
 
 public:
     using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
@@ -106,8 +70,7 @@ public:
     RenderGroup &operator=(const RenderGroup &other)    = delete;
     ~RenderGroup();
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const GraphicsPipelineRef &GetPipeline() const
+    HYP_FORCE_INLINE const GraphicsPipelineRef &GetPipeline() const
         { return m_pipeline; }
 
     HYP_FORCE_INLINE const ShaderRef &GetShader() const
@@ -143,9 +106,6 @@ public:
     void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
 
     void Init();
-
-    RendererProxy GetProxy()
-        { return RendererProxy(this); }
 
 private:
     void BindDescriptorSets(

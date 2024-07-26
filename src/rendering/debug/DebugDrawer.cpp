@@ -15,6 +15,87 @@
 
 namespace hyperion {
 
+#pragma region DebugDrawerRenderGroupProxy
+
+class DebugDrawerRenderGroupProxy
+{
+public:
+    DebugDrawerRenderGroupProxy(RenderGroup *render_group)
+        : m_render_group(render_group)
+    {
+    }
+
+    const CommandBufferRef &GetCommandBuffer(Frame *frame) const;
+
+    const GraphicsPipelineRef &GetGraphicsPipeline() const;
+
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void Bind(Frame *frame);
+
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void DrawMesh(Frame *frame, Mesh *mesh);
+
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void Submit(Frame *frame);
+
+private:
+    RenderGroup *m_render_group;
+};
+
+const CommandBufferRef &DebugDrawerRenderGroupProxy::GetCommandBuffer(Frame *frame) const
+{
+    if (m_render_group->m_command_buffers != nullptr) {
+        return (*m_render_group->m_command_buffers)[frame->GetFrameIndex()].Front();
+    }
+
+    return frame->GetCommandBuffer();
+}
+
+const GraphicsPipelineRef &DebugDrawerRenderGroupProxy::GetGraphicsPipeline() const
+{
+    return m_render_group->m_pipeline;
+}
+
+void DebugDrawerRenderGroupProxy::Bind(Frame *frame)
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    CommandBuffer *command_buffer = GetCommandBuffer(frame);
+    AssertThrow(command_buffer != nullptr);
+
+    if (command_buffer != frame->GetCommandBuffer()) {
+        command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetRenderPass());
+    }
+
+    m_render_group->m_pipeline->Bind(command_buffer);
+}
+
+void DebugDrawerRenderGroupProxy::DrawMesh(Frame *frame, Mesh *mesh)
+{
+    CommandBuffer *command_buffer = GetCommandBuffer(frame);
+    AssertThrow(command_buffer != nullptr);
+
+    mesh->Render(command_buffer);
+}
+
+void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
+{
+    CommandBuffer *command_buffer = GetCommandBuffer(frame);
+    AssertThrow(command_buffer != nullptr);
+
+    if (command_buffer != frame->GetCommandBuffer()) {
+        command_buffer->End(g_engine->GetGPUDevice());
+        command_buffer->SubmitSecondary(frame->GetCommandBuffer());
+    }
+}
+
+#pragma endregion DebugDrawerRenderGroupProxy
+
+#pragma region DebugDrawer
+
 DebugDrawer::DebugDrawer()
 {
     m_draw_commands.Reserve(256);
@@ -138,14 +219,14 @@ void DebugDrawer::Render(Frame *frame)
         g_engine->GetRenderData()->immediate_draws.Set(index, shader_data);
     }
 
-    RendererProxy proxy = m_render_group->GetProxy();
+    DebugDrawerRenderGroupProxy proxy(m_render_group.Get());
     proxy.Bind(frame);
 
     const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
 
     if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
         proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-            proxy.GetCommandBuffer(frame_index),
+            proxy.GetCommandBuffer(frame),
             frame_index,
             proxy.GetGraphicsPipeline(),
             {
@@ -177,7 +258,7 @@ void DebugDrawer::Render(Frame *frame)
         );
     } else {
         proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-            proxy.GetCommandBuffer(frame_index),
+            proxy.GetCommandBuffer(frame),
             frame_index,
             proxy.GetGraphicsPipeline(),
             {
@@ -212,7 +293,7 @@ void DebugDrawer::Render(Frame *frame)
         const DebugDrawCommand &draw_command = m_draw_commands[index];
 
         proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index)->Bind(
-            proxy.GetCommandBuffer(frame_index),
+            proxy.GetCommandBuffer(frame),
             proxy.GetGraphicsPipeline(),
             {
                 { NAME("ImmediateDrawsBuffer"), HYP_RENDER_OBJECT_OFFSET(ImmediateDraw, index) }
@@ -317,7 +398,9 @@ void DebugDrawer::Plane(const FixedArray<Vec3f, 4> &points, Color color)
     });
 }
 
-// command list methods
+#pragma endregion DebugDrawer
+
+#pragma region DebugDrawCommandList
 
 void DebugDrawCommandList::Sphere(const Vec3f &position, float radius, Color color)
 {
@@ -361,5 +444,7 @@ void DebugDrawCommandList::Commit()
     
     m_debug_drawer->CommitCommands(*this);
 }
+
+#pragma endregion DebugDrawCommandList
 
 } // namespace hyperion

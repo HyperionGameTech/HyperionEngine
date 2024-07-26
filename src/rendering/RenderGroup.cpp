@@ -794,46 +794,6 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
 
 #pragma region RendererProxy
 
-const CommandBufferRef &RendererProxy::GetCommandBuffer(uint frame_index) const
-{
-    AssertThrowMsg(m_render_group->m_command_buffers != nullptr, "Must have PARALLEL_RENDERING flag set");
-
-    return (*m_render_group->m_command_buffers)[frame_index].Front();
-}
-
-const GraphicsPipelineRef &RendererProxy::GetGraphicsPipeline() const
-{
-    return m_render_group->m_pipeline;
-}
-
-void RendererProxy::Bind(Frame *frame)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    CommandBuffer *command_buffer = GetCommandBuffer(frame->GetFrameIndex());
-    AssertThrow(command_buffer != nullptr);
-
-    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetRenderPass());
-
-    m_render_group->m_pipeline->Bind(command_buffer);
-}
-
-void RendererProxy::DrawMesh(Frame *frame, Mesh *mesh)
-{
-    CommandBuffer *command_buffer = GetCommandBuffer(frame->GetFrameIndex());
-    AssertThrow(command_buffer != nullptr);
-
-    mesh->Render(command_buffer);
-}
-
-void RendererProxy::Submit(Frame *frame)
-{
-    CommandBuffer *command_buffer = GetCommandBuffer(frame->GetFrameIndex());
-    AssertThrow(command_buffer != nullptr);
-
-    command_buffer->End(g_engine->GetGPUDevice());
-    command_buffer->SubmitSecondary(frame->GetCommandBuffer());
-}
 
 #pragma endregion RendererProxy
 
