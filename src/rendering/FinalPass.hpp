@@ -23,7 +23,7 @@ struct RENDER_COMMAND(SetUITexture);
 class FinalPass;
 
 // Performs tonemapping, samples last postfx in chain
-class CompositePass : public FullScreenPass
+class CompositePass final : public FullScreenPass
 {
 public:
     CompositePass();
@@ -37,7 +37,7 @@ public:
     virtual void Render(Frame *frame) override;
 };
 
-class FinalPass : public FullScreenPass
+class FinalPass final : public FullScreenPass
 {
 public:
     friend struct RENDER_COMMAND(SetUITexture);

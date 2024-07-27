@@ -41,6 +41,7 @@ struct AttachmentMap
     }
 
     Result Create(Device<PLATFORM> *device);
+    Result Resize(Device<PLATFORM> *device, Extent2D new_size);
 
     void Reset()
     {
@@ -196,6 +197,8 @@ public:
 
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
+
+    HYP_API Result Resize(Device<PLATFORM> *device, Extent2D new_size);
 
     HYP_API void BeginCapture(CommandBuffer<PLATFORM> *command_buffer, uint frame_index);
     HYP_API void EndCapture(CommandBuffer<PLATFORM> *command_buffer, uint frame_index);

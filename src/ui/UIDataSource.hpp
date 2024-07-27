@@ -216,8 +216,8 @@ public:
 
         auto &element = m_values.PushBack(UIDataSourceElement<T>(UUID(), value.Get<T>()));
 
-        OnElementAdd.Broadcast(this, &element);
-        OnChange.Broadcast(this);
+        OnElementAdd(this, &element);
+        OnChange(this);
     }
     
     virtual const IUIDataSourceElement *Get(SizeType index) const override
@@ -246,8 +246,8 @@ public:
 
         m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
 
-        OnElementUpdate.Broadcast(this, &m_values[index]);
-        OnChange.Broadcast(this);
+        OnElementUpdate(this, &m_values[index]);
+        OnChange(this);
     }
 
     virtual void Set(const UUID &uuid, AnyRef value) override
@@ -259,8 +259,8 @@ public:
 
                 m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
 
-                OnElementUpdate.Broadcast(this, &m_values[index]);
-                OnChange.Broadcast(this);
+                OnElementUpdate(this, &m_values[index]);
+                OnChange(this);
 
                 return;
             }
@@ -273,11 +273,11 @@ public:
     {
         AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
 
-        OnElementRemove.Broadcast(this, &m_values[index]);
+        OnElementRemove(this, &m_values[index]);
 
         m_values.EraseAt(index);
 
-        OnChange.Broadcast(this);
+        OnChange(this);
     }
 
     virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) override
@@ -292,7 +292,7 @@ public:
 
         if (elements_to_remove.Any()) {
             for (SizeType index = 0; index < elements_to_remove.Size(); index++) {
-                OnElementRemove.Broadcast(this, elements_to_remove[index]);
+                OnElementRemove(this, elements_to_remove[index]);
 
                 const auto it = m_values.FindIf([element_to_remove = elements_to_remove[index]](const UIDataSourceElement<T> &element)
                 {
@@ -304,7 +304,7 @@ public:
                 }
             }
 
-            OnChange.Broadcast(this);
+            OnChange(this);
         }
     }
 
@@ -329,12 +329,12 @@ public:
         // @TODO check if delegate has any functions bound,
         // or better yet, have a way to call in bulk (prevent lots of mutex locks/unlocks)
         for (SizeType index = 0; index < m_values.Size(); index++) {
-            OnElementRemove.Broadcast(this, &m_values[index]);
+            OnElementRemove(this, &m_values[index]);
         }
 
         m_values.Clear();
 
-        OnChange.Broadcast(this);
+        OnChange(this);
     }
 
     virtual Array<IUIDataSourceElement *> GetValues() override

@@ -170,7 +170,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
     virtual Result operator()() override
     {
         // draw a quad for each level
-        auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
         commands.Push([this](const CommandBufferRef &command_buffer)
         {
@@ -275,7 +275,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
             HYPERION_RETURN_OK;
         });
 
-        return commands.Execute(g_engine->GetGPUInstance()->GetDevice());
+        return commands.Execute();
     }
 };
 
@@ -516,7 +516,7 @@ void Texture::Readback() const
             gpu_buffer->Map(g_engine->GetGPUDevice());
             gpu_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 
-            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
             commands.Push([this, &gpu_buffer](const CommandBufferRef &command_buffer)
             {
@@ -534,7 +534,7 @@ void Texture::Readback() const
                 HYPERION_RETURN_OK;
             });
 
-            renderer::Result result = commands.Execute(g_engine->GetGPUInstance()->GetDevice());
+            renderer::Result result = commands.Execute();
 
             if (!result) {
                 return result;

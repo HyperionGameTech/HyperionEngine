@@ -30,50 +30,20 @@ VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
 VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
 
-class SingleTimeCommands
+} // namespace helpers
+
+namespace platform {
+
+template <>
+struct SingleTimeCommandsPlatformImpl<Platform::VULKAN>
 {
-public:
-    SingleTimeCommands() : pool{}, family_indices{} {}
-
-    void Push(Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &> &&fn)
-    {
-        m_functions.PushBack(std::move(fn));
-    }
-
-    Result Execute(Device *device)
-    {
-        HYPERION_BUBBLE_ERRORS(Begin(device));
-
-        Result result;
-
-        for (auto &fn : m_functions) {
-            HYPERION_PASS_ERRORS(fn(command_buffer), result);
-
-            if (!result) {
-                break;
-            }
-        }
-
-        m_functions.Clear();
-
-        HYPERION_PASS_ERRORS(End(device), result);
-
-        return result;
-    }
-
-    platform::CommandBufferRef<Platform::VULKAN>    command_buffer;
-    VkCommandPool                                   pool;
-    QueueFamilyIndices                              family_indices;
-
-private:
-    Result Begin(Device *device);
-    Result End(Device *device);
-
-    Array<Proc<Result, const platform::CommandBufferRef<Platform::VULKAN> &>>   m_functions;
-    platform::FenceRef<Platform::VULKAN>                                        m_fence;
+    SingleTimeCommands<Platform::VULKAN>    *self = nullptr;
+    VkCommandPool                           pool { };
+    QueueFamilyIndices                      family_indices { };
 };
 
-} // namespace helpers
+} // namespace platform
+
 } // namespace renderer
 } // namespace hyperion
 

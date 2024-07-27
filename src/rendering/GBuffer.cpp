@@ -8,9 +8,15 @@
 #include <core/system/App.hpp>
 #include <core/system/AppContext.hpp>
 
+#include <core/threading/Threads.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
+
+#pragma region GBuffer
 
 const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resources = {
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_COLOR) }, // color
@@ -34,6 +40,9 @@ static void AddOwnedAttachment(
     Extent2D extent = Extent2D { 0, 0 }
 )
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     if (!extent.Size()) {
         extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
@@ -68,6 +77,9 @@ static void AddSharedAttachment(
     FramebufferRef &framebuffer
 )
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     const FramebufferRef &opaque_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(BUCKET_OPAQUE).GetFramebuffer();
     AssertThrowMsg(opaque_framebuffer.IsValid(), "GBuffer framebuffers added in wrong order");
 
@@ -90,6 +102,9 @@ static void AddSharedAttachment(
 
 static InternalFormat GetImageFormat(GBufferResourceName resource)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     InternalFormat color_format = InternalFormat::NONE;
 
     if (const InternalFormat *format = GBuffer::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
@@ -120,6 +135,9 @@ GBuffer::GBuffer()
 
 void GBuffer::Create()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     for (auto &bucket : m_buckets) {
         bucket.CreateFramebuffer();
     }
@@ -127,10 +145,29 @@ void GBuffer::Create()
 
 void GBuffer::Destroy()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     for (auto &bucket : m_buckets) {
         bucket.Destroy();
     }
 }
+
+void GBuffer::Resize(Extent2D new_size)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    for (auto &bucket : m_buckets) {
+        bucket.Resize(new_size);
+    }
+
+    OnGBufferResolutionChanged(new_size);
+}
+
+#pragma endregion GBuffer
+
+#pragma region GBufferBucket
 
 GBuffer::GBufferBucket::GBufferBucket()
 {
@@ -142,6 +179,9 @@ GBuffer::GBufferBucket::~GBufferBucket()
 
 const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourceName resource_name) const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     AssertThrow(framebuffer != nullptr);
     AssertThrow(uint(resource_name) < uint(GBUFFER_RESOURCE_MAX));
 
@@ -150,6 +190,9 @@ const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourc
 
 void GBuffer::GBufferBucket::CreateFramebuffer()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
     if (bucket == BUCKET_SWAPCHAIN || bucket == BUCKET_UI) {
@@ -205,7 +248,20 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
 
 void GBuffer::GBufferBucket::Destroy()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     SafeRelease(std::move(framebuffer));
 }
+
+void GBuffer::GBufferBucket::Resize(Extent2D new_size)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), new_size));
+}
+
+#pragma endregion GBufferBucket
 
 } // namespace hyperion

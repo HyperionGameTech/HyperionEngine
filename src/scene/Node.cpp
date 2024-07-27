@@ -322,7 +322,7 @@ void Node::SetScene(Scene *scene)
 void Node::OnNestedNodeAdded(const NodeProxy &node, bool direct)
 {
     if (m_delegates) {
-        m_delegates->OnNestedNodeAdded.Broadcast(node, direct);
+        m_delegates->OnNestedNodeAdded(node, direct);
     }
 
     m_descendents.PushBack(node);
@@ -335,7 +335,7 @@ void Node::OnNestedNodeAdded(const NodeProxy &node, bool direct)
 void Node::OnNestedNodeRemoved(const NodeProxy &node, bool direct)
 {
     if (m_delegates) {
-        m_delegates->OnNestedNodeRemoved.Broadcast(node, direct);
+        m_delegates->OnNestedNodeRemoved(node, direct);
     }
 
     const auto it = m_descendents.Find(node);

@@ -79,7 +79,7 @@ private:
     ShaderRef       m_shader;
     UIRenderList    m_render_list;
 
-    DelegateHandler m_after_swapchain_recreated_delegate;
+    DelegateHandler m_on_gbuffer_resolution_changed_handle;
 };
 
 } // namespace hyperion

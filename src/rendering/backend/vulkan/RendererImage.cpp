@@ -746,8 +746,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
         .num_levels = NumMipmaps()
     };
 
-    auto commands = instance->GetSingleTimeCommands();
-    
+    SingleTimeCommands<Platform::VULKAN> commands { device };
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     if (HasAssignedImageData()) {
@@ -848,7 +847,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
     });
 
     // execute command stack
-    HYPERION_PASS_ERRORS(commands.Execute(device), result);
+    HYPERION_PASS_ERRORS(commands.Execute(), result);
 
     if (HasAssignedImageData()) {
         if (result) {
@@ -885,10 +884,17 @@ void Image<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_re
 template <>
 void Image<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state,
-    ImageSubResourceFlagBits flags
+    ResourceState new_state
 )
 {
+    ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_NONE;
+
+    if (IsDepthStencil()) {
+        flags |= IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL;
+    } else {
+        flags |= IMAGE_SUB_RESOURCE_FLAGS_COLOR;
+    }
+
     m_platform_impl.InsertBarrier(command_buffer, new_state, flags);
 }
 
@@ -1173,7 +1179,8 @@ ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, I
 {
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
-    auto commands = instance->GetSingleTimeCommands();
+    SingleTimeCommands<Platform::VULKAN> commands { device };
+
     Result result = Result { };
 
     if (HasAssignedImageData()) {
@@ -1193,7 +1200,7 @@ ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, I
     }
 
     // execute command stack
-    HYPERION_PASS_ERRORS(commands.Execute(device), result);
+    HYPERION_PASS_ERRORS(commands.Execute(), result);
     
     if (result) {
         // destroy staging buffer

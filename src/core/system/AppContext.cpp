@@ -29,7 +29,7 @@ void ApplicationWindow::HandleResize(Vec2u new_size)
 {
     m_size = new_size;
 
-    OnWindowSizeChanged.Broadcast(new_size);
+    OnWindowSizeChanged(new_size);
 }
 
 #pragma endregion ApplicationWindow
@@ -230,7 +230,7 @@ void AppContext::SetMainWindow(UniquePtr<ApplicationWindow> &&window)
 {
     m_main_window = std::move(window);
 
-    OnCurrentWindowChanged.Broadcast(m_main_window.Get());
+    OnCurrentWindowChanged(m_main_window.Get());
 }
 
 void AppContext::UpdateConfigurationOverrides()

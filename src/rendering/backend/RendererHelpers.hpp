@@ -4,6 +4,11 @@
 #define HYPERION_BACKEND_RENDERER_HELPERS_HPP
 
 #include <core/Defines.hpp>
+
+#include <core/functional/Proc.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -13,6 +18,73 @@ namespace helpers {
 uint MipmapSize(uint src_size, int lod);
 
 } // namespace helpers
+
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <PlatformType PLATFORM>
+class CommandBuffer;
+
+template <PlatformType PLATFORM>
+class Fence;
+
+template <PlatformType PLATFORM>
+struct SingleTimeCommandsPlatformImpl;
+
+template <PlatformType PLATFORM>
+class SingleTimeCommands
+{
+public:
+    HYP_API SingleTimeCommands(Device<PLATFORM> *device);
+    SingleTimeCommands(const SingleTimeCommands &other)                 = delete;
+    SingleTimeCommands &operator=(const SingleTimeCommands &other)      = delete;
+    SingleTimeCommands(SingleTimeCommands &&other) noexcept             = delete;
+    SingleTimeCommands &operator=(SingleTimeCommands &&other) noexcept  = delete;
+    HYP_API ~SingleTimeCommands();
+
+    void Push(Proc<Result, const platform::CommandBufferRef<PLATFORM> &> &&fn)
+    {
+        m_functions.PushBack(std::move(fn));
+    }
+
+    Result Execute()
+    {
+        HYPERION_BUBBLE_ERRORS(Begin());
+
+        Result result;
+
+        for (auto &fn : m_functions) {
+            HYPERION_PASS_ERRORS(fn(m_command_buffer), result);
+
+            if (!result) {
+                break;
+            }
+        }
+
+        m_functions.Clear();
+
+        HYPERION_PASS_ERRORS(End(), result);
+
+        return result;
+    }
+
+private:
+    SingleTimeCommandsPlatformImpl<PLATFORM>                            m_platform_impl;
+
+    HYP_API Result Begin();
+    HYP_API Result End();
+
+    Device<PLATFORM>                                                    *m_device;
+    Array<Proc<Result, const platform::CommandBufferRef<PLATFORM> &>>   m_functions;
+    FenceRef<PLATFORM>                                                  m_fence;
+
+    CommandBufferRef<PLATFORM>                                          m_command_buffer;
+};
+
+} // namespace platform
+
 } // namespace renderer
 } // namespace hyperion
 
@@ -21,5 +93,13 @@ uint MipmapSize(uint src_size, int lod);
 #else
 #error Unsupported rendering backend
 #endif
+
+namespace hyperion {
+namespace renderer {
+
+using SingleTimeCommands = platform::SingleTimeCommands<Platform::CURRENT>;
+
+} // namespace renderer
+} // namespace hyperion
 
 #endif

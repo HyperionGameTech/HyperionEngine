@@ -1012,7 +1012,7 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
     m_focused_node = node;
 
-    OnFocusedNodeChanged.Broadcast(m_focused_node, previous_focused_node);
+    OnFocusedNodeChanged(m_focused_node, previous_focused_node);
 }
 
 void HyperionEditorImpl::Initialize()

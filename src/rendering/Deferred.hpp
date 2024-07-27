@@ -44,7 +44,7 @@ enum class DeferredPassMode
     DIRECT_LIGHTING
 };
 
-class DeferredPass : public FullScreenPass
+class DeferredPass final : public FullScreenPass
 {
     friend class DeferredRenderer;
 
@@ -85,7 +85,7 @@ enum class EnvGridPassMode
     IRRADIANCE
 };
 
-class EnvGridPass : public FullScreenPass
+class EnvGridPass final : public FullScreenPass
 {
 public:
     EnvGridPass(EnvGridPassMode mode);
@@ -93,7 +93,7 @@ public:
     EnvGridPass &operator=(const EnvGridPass &other)    = delete;
     virtual ~EnvGridPass() override;
 
-    TemporalBlending *GetTemporalBlending() const
+    HYP_FORCE_INLINE TemporalBlending *GetTemporalBlending() const
         { return m_temporal_blending.Get(); }
 
     virtual void Create() override;
@@ -120,9 +120,9 @@ private:
     bool                        m_is_first_frame;
 };
 
-class ReflectionProbePass : public FullScreenPass
+class ReflectionProbePass final : public FullScreenPass
 {
-    enum ApplyReflectionProbeMode : uint
+    enum ApplyReflectionProbeMode : uint32
     {
         DEFAULT = 0,
         PARALLAX_CORRECTED,
@@ -195,6 +195,8 @@ public:
     void Destroy();
     
     void Render(Frame *frame, RenderEnvironment *environment);
+
+    void Resize(Extent2D new_size);
 
 private:
     void ApplyCameraJitter();

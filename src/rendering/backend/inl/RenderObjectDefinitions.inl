@@ -8,12 +8,12 @@ DEF_RENDER_PLATFORM_OBJECT(CommandBuffer,                                   1638
 DEF_RENDER_PLATFORM_OBJECT(ComputePipeline,                                 4096);
 DEF_RENDER_PLATFORM_OBJECT(GraphicsPipeline,                                4096);
 DEF_RENDER_PLATFORM_OBJECT(RaytracingPipeline,                              128);
-DEF_RENDER_PLATFORM_OBJECT(Framebuffer,                                     8192);
-DEF_RENDER_PLATFORM_OBJECT(RenderPass,                                      8192);
-DEF_RENDER_PLATFORM_OBJECT(Shader,                                          2048);
+DEF_RENDER_PLATFORM_OBJECT(Framebuffer,                                     16384);
+DEF_RENDER_PLATFORM_OBJECT(RenderPass,                                      16384);
+DEF_RENDER_PLATFORM_OBJECT(Shader,                                          16384);
 DEF_RENDER_PLATFORM_OBJECT(AccelerationGeometry,                            8192);
-DEF_RENDER_PLATFORM_OBJECT(Fence,                                           16);
-DEF_RENDER_PLATFORM_OBJECT(Frame,                                           16);
+DEF_RENDER_PLATFORM_OBJECT(Fence,                                           4096);
+DEF_RENDER_PLATFORM_OBJECT(Frame,                                           4096);
 DEF_RENDER_PLATFORM_OBJECT(Attachment,                                      4096);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorSet,                                   16384);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorTable,                                 4096);

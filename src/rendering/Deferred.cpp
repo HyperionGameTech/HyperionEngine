@@ -1203,7 +1203,46 @@ void DeferredRenderer::Create()
 
     AssertThrow(!m_is_initialized);
 
-    m_gbuffer->Create();
+    { // initialize GBuffer
+        m_gbuffer->Create();
+
+        auto InitializeGBufferFramebuffers = [this]()
+        {
+            HYP_SCOPE;
+            Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+            m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+            m_translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+
+            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                uint element_index = 0;
+
+                // not including depth texture here (hence the - 1)
+                for (uint attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+                    g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                        ->SetElement(NAME("GBufferTextures"), element_index++, m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+                }
+
+                // add translucent bucket's albedo
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                    ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
+
+                // depth attachment goes into separate slot
+                const AttachmentRef &depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+                AssertThrow(depth_attachment != nullptr);
+
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                    ->SetElement(NAME("GBufferDepthTexture"), depth_attachment->GetImageView());
+            }
+        };
+
+        InitializeGBufferFramebuffers();
+
+        m_gbuffer->OnGBufferResolutionChanged.Bind([this, InitializeGBufferFramebuffers](...)
+        {
+            InitializeGBufferFramebuffers();
+        }).Detach();
+    }
 
     m_env_grid_radiance_pass.Reset(new EnvGridPass(EnvGridPassMode::RADIANCE));
     m_env_grid_radiance_pass->Create();
@@ -1221,11 +1260,6 @@ void DeferredRenderer::Create()
 
     m_direct_pass.Reset(new DeferredPass(DeferredPassMode::DIRECT_LIGHTING));
     m_direct_pass->Create();
-
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-        m_translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
-    }
 
     const AttachmentRef &depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer()
         ->GetAttachmentMap().attachments.Back().second.attachment;
@@ -1278,25 +1312,6 @@ void DeferredRenderer::CreateDescriptorSets()
     
     // set global gbuffer data
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        uint element_index = 0u;
-
-        // not including depth texture here
-        for (uint attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("GBufferTextures"), element_index++, m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
-        }
-
-        // add translucent bucket's albedo
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
-
-        // depth attachment goes into separate slot
-        const AttachmentRef &depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-        AssertThrow(depth_attachment != nullptr);
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("GBufferDepthTexture"), depth_attachment->GetImageView());
-
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("GBufferMipChain"), m_mip_chain->GetImageView());
 
@@ -1342,7 +1357,6 @@ void DeferredRenderer::Destroy()
 
     m_hbao.Reset();
 
-    m_temporal_aa->Destroy();
     m_temporal_aa.Reset();
 
     // m_dof_blur->Destroy();
@@ -1365,6 +1379,19 @@ void DeferredRenderer::Destroy()
     m_direct_pass.Reset();
 
     m_gbuffer->Destroy();
+}
+
+void DeferredRenderer::Resize(Extent2D new_size)
+{
+    HYP_SCOPE;
+    
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    if (!m_is_initialized) {
+        return;
+    }
+
+    m_gbuffer->Resize(new_size);
 }
 
 void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)

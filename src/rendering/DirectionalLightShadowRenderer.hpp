@@ -30,7 +30,7 @@ struct ShadowMapCameraData
     BoundingBox aabb;
 };
 
-class ShadowPass : public FullScreenPass
+class ShadowPass final : public FullScreenPass
 {
 public:
     ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, ShadowMode shadow_mode);

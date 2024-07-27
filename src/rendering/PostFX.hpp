@@ -28,7 +28,7 @@ enum PostProcessingStage
     POST_PROCESSING_STAGE_POST_SHADING
 };
 
-class HYP_API PostFXPass : public FullScreenPass
+class HYP_API PostFXPass final : public FullScreenPass
 {
 public:
     PostFXPass(
@@ -50,7 +50,7 @@ public:
     PostFXPass(const PostFXPass &) = delete;
     PostFXPass &operator=(const PostFXPass &) = delete;
 
-    virtual ~PostFXPass();
+    virtual ~PostFXPass() override;
 
     virtual void CreateDescriptors() override;
 

@@ -78,6 +78,8 @@ public:
     HYP_FORCE_INLINE Vec2i GetSurfaceSize() const
         { return m_surface_size; }
 
+    void SetSurfaceSize(Vec2i surface_size);
+
     /*! \brief Get the scene that contains the UI objects.
      * 
      *  \return Handle to the scene. */

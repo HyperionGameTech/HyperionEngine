@@ -222,8 +222,7 @@ public:
 
     HYP_API void InsertBarrier(
         CommandBuffer<PLATFORM> *command_buffer,
-        ResourceState new_state,
-        ImageSubResourceFlagBits flags = ImageSubResourceFlags::IMAGE_SUB_RESOURCE_FLAGS_COLOR
+        ResourceState new_state
     );
 
     HYP_API void InsertBarrier(

@@ -186,7 +186,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
             list_view_item->SetIsSelectedItem(true);
 
-            OnSelectedItemChange.Broadcast(list_view_item.Get());
+            OnSelectedItemChange(list_view_item.Get());
 
             return UIEventHandlerResult::OK;
         }).Detach();
@@ -216,7 +216,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
             if (m_selected_item.Lock().Get() == *it) {
                 m_selected_item.Reset();
 
-                OnSelectedItemChange.Broadcast(nullptr);
+                OnSelectedItemChange(nullptr);
             }
             
             RemoveChildUIObject(*it);

@@ -16,7 +16,7 @@ class Engine;
 
 struct RenderCommand_AddHBAOFinalImagesToGlobalDescriptorSet;
 
-class HBAO : public FullScreenPass
+class HBAO final : public FullScreenPass
 {
 public:
     friend struct RenderCommand_AddHBAOFinalImagesToGlobalDescriptorSet;

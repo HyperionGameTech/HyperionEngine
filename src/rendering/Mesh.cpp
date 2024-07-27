@@ -4,6 +4,7 @@
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <core/HypClassUtils.hpp>
 
@@ -78,7 +79,7 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
             device,
             [&](renderer::StagingBufferPool::Context &holder)
             {
-                auto commands = instance->GetSingleTimeCommands();
+                renderer::SingleTimeCommands commands { device };
 
                 auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
                 staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_data.Data());
@@ -98,7 +99,7 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
                     HYPERION_RETURN_OK;
                 });
 
-                HYPERION_BUBBLE_ERRORS(commands.Execute(device));
+                HYPERION_BUBBLE_ERRORS(commands.Execute());
 
                 HYPERION_RETURN_OK;
             }));

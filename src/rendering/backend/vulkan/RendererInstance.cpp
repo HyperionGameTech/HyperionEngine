@@ -450,17 +450,6 @@ Result Instance<Platform::VULKAN>::RecreateSwapchain()
     HYPERION_RETURN_OK;
 }
 
-helpers::SingleTimeCommands Instance<Platform::VULKAN>::GetSingleTimeCommands()
-{
-    const QueueFamilyIndices &family_indices = m_device->GetQueueFamilyIndices();
-
-    helpers::SingleTimeCommands single_time_commands { };
-    single_time_commands.pool = m_device->GetGraphicsQueue().command_pools[0];
-    single_time_commands.family_indices = family_indices;
-
-    return single_time_commands;
-}
-
 } // namespace platform
 } // namespace renderer
 } // namespace hyperion

@@ -208,7 +208,7 @@ void ScriptingService::Update()
         for (ScriptEvent &event : script_event_queue) {
             switch (event.type) {
             case ScriptEventType::STATE_CHANGED:
-                OnScriptStateChanged.Broadcast(*event.script);
+                OnScriptStateChanged(*event.script);
 
                 break;
             default:

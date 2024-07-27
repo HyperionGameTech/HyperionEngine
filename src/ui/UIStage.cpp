@@ -45,6 +45,31 @@ UIStage::~UIStage()
 {
 }
 
+void UIStage::SetSurfaceSize(Vec2i surface_size)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
+    if (m_surface_size == surface_size) {
+        return;
+    }
+
+    m_surface_size = surface_size;
+    
+    if (m_scene.IsValid() && m_scene->GetCamera().IsValid()) {
+        m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+            0.0f, -float(m_surface_size.x),
+            0.0f, float(m_surface_size.y),
+            float(min_depth), float(max_depth)
+        ));
+    }
+
+    UpdateSize(true);
+    UpdatePosition(true);
+
+    SetNeedsRepaintFlag();
+}
+
 Scene *UIStage::GetScene() const
 {
     /*// UIStage parenting - GetScene() returns parent stages' scene
@@ -61,6 +86,9 @@ Scene *UIStage::GetScene() const
 
 const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     if (m_default_font_atlas != nullptr) {
         return m_default_font_atlas;
     }
@@ -75,6 +103,9 @@ const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
 
 void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     m_default_font_atlas = std::move(font_atlas);
     
     OnFontAtlasUpdate();
@@ -82,6 +113,9 @@ void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
 
 void UIStage::Init()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
         const auto UpdateSurfaceSize = [this](ApplicationWindow *window)
         {
@@ -146,6 +180,9 @@ void UIStage::Init()
 
 void UIStage::AddChildUIObject(UIObject *ui_object)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     if (!ui_object) {
         return;
     }
@@ -163,6 +200,7 @@ void UIStage::AddChildUIObject(UIObject *ui_object)
 void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
 
     UIObject::Update_Internal(delta);
 
@@ -176,6 +214,9 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
 
 void UIStage::OnAttached_Internal(UIObject *parent)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     AssertThrow(parent != nullptr);
     AssertThrow(parent->GetNode() != nullptr);
 
@@ -187,6 +228,9 @@ void UIStage::OnAttached_Internal(UIObject *parent)
 
 void UIStage::OnRemoved_Internal()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     // Remove m_stage parent object
     // UIObject::OnRemoved_Internal();
 
@@ -199,6 +243,9 @@ void UIStage::OnRemoved_Internal()
 
 void UIStage::SetStage_Internal(UIStage *stage)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     m_stage = stage;
     
     SetNeedsRepaintFlag();
@@ -219,6 +266,7 @@ void UIStage::SetOwnerThreadID(ThreadID thread_id)
 
 bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
     const Vec4f world_position = m_scene->GetCamera()->TransformScreenToWorld(position);
@@ -266,6 +314,9 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
 RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
         return ui_component->ui_object;
     }
@@ -275,6 +326,9 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 
 void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     HYP_LOG(UI, LogLevel::DEBUG, "Set focused UIObject to: {}", ui_object != nullptr ? *ui_object->GetName() : "<none>");
 
     RC<UIObject> current_focused_ui_object = m_focused_object.Lock();
@@ -299,6 +353,9 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 
 void UIStage::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     // stage with a parent stage: treat self like a normal UIObject
     if (m_stage != nullptr) {
         UIObject::ComputeActualSize(in_size, out_actual_size, phase, is_inner);
@@ -321,6 +378,9 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
     const SystemEvent &event
 )
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     EnumFlags<UIEventHandlerResult> event_handler_result = UIEventHandlerResult::OK;
 
     RayTestResults ray_test_results;
@@ -349,7 +409,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 if (it.second.held_time >= 0.05f) {
                     // signal mouse drag
                     if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
-                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag.Broadcast(MouseEvent {
+                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -390,7 +450,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     if (m_hovered_entities.Contains(ui_object->GetEntity())) {
                         // Already hovered, trigger mouse move event instead
-                        mouse_move_event_handler_result |= ui_object->OnMouseMove.Broadcast(MouseEvent {
+                        mouse_move_event_handler_result |= ui_object->OnMouseMove(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -422,7 +482,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
                         // Already hovered, trigger mouse move event instead
-                        event_handler_result |= ui_object->OnMouseMove.Broadcast(MouseEvent {
+                        event_handler_result |= ui_object->OnMouseMove(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -436,7 +496,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
-                    mouse_hover_event_handler_result |= ui_object->OnMouseHover.Broadcast(MouseEvent {
+                    mouse_hover_event_handler_result |= ui_object->OnMouseHover(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -467,7 +527,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 if (RC<UIObject> other_ui_object = GetUIObjectForEntity(*it)) {
                     other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
-                    other_ui_object->OnMouseLeave.Broadcast(MouseEvent {
+                    other_ui_object->OnMouseLeave(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = other_ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = other_ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -533,7 +593,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
-                    event_handler_result |= ui_object->OnMouseDown.Broadcast(MouseEvent {
+                    event_handler_result |= ui_object->OnMouseDown(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -565,7 +625,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
                 if (const RC<UIObject> &ui_object = *ray_test_results_it) {
-                    event_handler_result |= ui_object->OnClick.Broadcast(MouseEvent {
+                    event_handler_result |= ui_object->OnClick(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -586,7 +646,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
-                event_handler_result |= ui_object->OnMouseUp.Broadcast(MouseEvent {
+                event_handler_result |= ui_object->OnMouseUp(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -626,7 +686,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         first_hit = ui_object;
                     }
 
-                    event_handler_result |= ui_object->OnScroll.Broadcast(MouseEvent {
+                    event_handler_result |= ui_object->OnScroll(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -652,7 +712,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         RC<UIObject> ui_object = m_focused_object.Lock();
 
         while (ui_object != nullptr) {
-            event_handler_result |= ui_object->OnKeyDown.Broadcast(KeyboardEvent {
+            event_handler_result |= ui_object->OnKeyDown(KeyboardEvent {
                 .input_manager  = input_manager,
                 .key_code       = key_code
             });
@@ -677,7 +737,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         if (keyed_down_objects_it != m_keyed_down_objects.End()) {
             for (const Weak<UIObject> &weak_ui_object : keyed_down_objects_it->second) {
                 if (RC<UIObject> ui_object = weak_ui_object.Lock()) {
-                    ui_object->OnKeyUp.Broadcast(KeyboardEvent {
+                    ui_object->OnKeyUp(KeyboardEvent {
                         .input_manager  = input_manager,
                         .key_code       = key_code
                     });
@@ -698,6 +758,9 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
 bool UIStage::Remove(ID<Entity> entity)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+    
     if (!m_scene.IsValid()) {
         return false;
     }

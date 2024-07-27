@@ -12,6 +12,8 @@
 #include <math/MathUtil.hpp>
 #include <math/Halton.hpp>
 
+#include <core/threading/Threads.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
@@ -48,29 +50,51 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
 #pragma endregion Render commands
 
 TemporalAA::TemporalAA(const Extent2D &extent)
-    : m_extent(extent)
+    : m_extent(extent),
+      m_is_initialized(false)
 {
 }
 
-TemporalAA::~TemporalAA() = default;
-
-void TemporalAA::Create()
-{
-    CreateImages();
-    CreateComputePipelines();
-}
-
-void TemporalAA::Destroy()
+TemporalAA::~TemporalAA()
 {
     SafeRelease(std::move(m_compute_taa));
 
-    PUSH_RENDER_COMMAND(
-        SetTemporalAAResultInGlobalDescriptorSet,
-        Handle<Texture>::empty
-    );
-
     g_safe_deleter->SafeRelease(std::move(m_result_texture));
     g_safe_deleter->SafeRelease(std::move(m_history_texture));
+
+    if (m_is_initialized) {
+        PUSH_RENDER_COMMAND(
+            SetTemporalAAResultInGlobalDescriptorSet,
+            Handle<Texture>::empty
+        );
+    }
+}
+
+void TemporalAA::Create()
+{
+    if (m_is_initialized) {
+        return;
+    }
+
+    // Handle GBuffer size changed
+    g_engine->GetDeferredRenderer()->GetGBuffer()->OnGBufferResolutionChanged.Bind([this](...)
+    {
+        HYP_SCOPE;
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+        if (!m_is_initialized) {
+            return;
+        }
+
+        SafeRelease(std::move(m_compute_taa));
+
+        CreateComputePipelines();
+    }).Detach();
+
+    CreateImages();
+    CreateComputePipelines();
+
+    m_is_initialized = true;
 }
 
 void TemporalAA::CreateImages()

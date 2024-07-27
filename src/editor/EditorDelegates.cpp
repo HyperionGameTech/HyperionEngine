@@ -60,7 +60,7 @@ void EditorDelegates::OnNodeUpdate(Node *node, Name property_name, ConstAnyRef d
             continue;
         }
 
-        node_watcher.delegate.Broadcast(node, property_name, data);
+        node_watcher.delegate(node, property_name, data);
     }
 }
 

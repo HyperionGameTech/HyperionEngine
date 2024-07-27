@@ -350,7 +350,7 @@ void Engine::FinalizeStop()
 
     HYP_LOG(Engine, LogLevel::INFO, "Stopping all engine processes");
 
-    m_delegates.OnShutdown.Broadcast();
+    m_delegates.OnShutdown();
 
     m_scripting_service->Stop();
     m_scripting_service.Reset();
@@ -416,7 +416,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     PreFrameUpdate(frame);
 
     if (g_should_recreate_swapchain) {
-        GetDelegates().OnBeforeSwapchainRecreated.Broadcast();
+        GetDelegates().OnBeforeSwapchainRecreated();
 
         HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
         HYPERION_ASSERT_RESULT(GetGPUInstance()->RecreateSwapchain());
@@ -431,6 +431,8 @@ HYP_API void Engine::RenderNextFrame(Game *game)
             GetGPUInstance()->GetDevice(),
             GetGPUInstance()->GetSwapchain()
         ));
+
+        m_deferred_renderer->Resize(GetGPUInstance()->GetSwapchain()->extent);
 
         // m_deferred_renderer->Destroy();
 
@@ -447,7 +449,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
         frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
-        GetDelegates().OnAfterSwapchainRecreated.Broadcast();
+        GetDelegates().OnAfterSwapchainRecreated();
 
         g_should_recreate_swapchain = false;
     }

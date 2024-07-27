@@ -6,7 +6,11 @@
 #include <Constants.hpp>
 
 #include <core/containers/FixedArray.hpp>
+
 #include <core/utilities/Variant.hpp>
+
+#include <core/functional/Delegate.hpp>
+
 #include <core/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>
@@ -77,6 +81,7 @@ public:
         const AttachmentRef &GetGBufferAttachment(GBufferResourceName resource_name) const;
 
         void CreateFramebuffer();
+        void Resize(Extent2D new_size);
         void Destroy();
     };
 
@@ -98,6 +103,10 @@ public:
 
     void Create();
     void Destroy();
+
+    void Resize(Extent2D new_size);
+
+    Delegate<void, Extent2D>                        OnGBufferResolutionChanged;
 
 private:
     FixedArray<GBufferBucket, Bucket::BUCKET_MAX>   m_buckets;

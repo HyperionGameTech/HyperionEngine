@@ -447,12 +447,20 @@ void UIRenderer::Init()
 {
     HYP_SCOPE;
 
-    m_after_swapchain_recreated_delegate = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDeferredRenderer()->GetGBuffer()->OnGBufferResolutionChanged.Bind([this](Extent2D new_size)
     {
-        // SafeRelease((std::move(m_framebuffer)));
-        // g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-        // CreateFramebuffer(); // testing
+        m_ui_stage->GetScene()->GetEntityManager()->PushCommand([this, new_size](EntityManager &mgr, GameCounter::TickUnit delta)
+        {
+            Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+            m_ui_stage->SetSurfaceSize(Vec2i(new_size));
+        });
+
+        SafeRelease(std::move(m_framebuffer));
+
+        CreateFramebuffer();
     });
 
     CreateFramebuffer();

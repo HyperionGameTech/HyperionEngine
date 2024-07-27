@@ -2,6 +2,9 @@
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererRenderPass.hpp>
+#include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererInstance.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -14,7 +17,7 @@ namespace platform {
 template <>
 Result AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
-    for (auto &it : attachments) {
+    for (KeyValuePair<uint, AttachmentDef<Platform::VULKAN>> &it : attachments) {
         AttachmentDef<Platform::VULKAN> &def = it.second;
 
         AssertThrow(def.image.IsValid());
@@ -31,6 +34,64 @@ Result AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     }
 
     HYPERION_RETURN_OK;
+}
+
+template <>
+Result AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Extent2D new_size)
+{
+    for (KeyValuePair<uint, AttachmentDef<Platform::VULKAN>> &it : attachments) {
+        AttachmentDef<Platform::VULKAN> &def = it.second;
+
+        AssertThrow(def.image.IsValid());
+
+        ImageRef<Platform::VULKAN> new_image = MakeRenderObject<Image<Platform::VULKAN>>(
+            TextureDesc
+            {
+                def.image->GetType(),
+                def.image->GetTextureFormat(),
+                Extent3D(new_size.width, new_size.height, 1)
+            }
+        );
+
+        new_image->SetIsAttachmentTexture(true);
+
+        DeferCreate(new_image, device);
+
+        AttachmentRef<Platform::VULKAN> new_attachment = MakeRenderObject<Attachment<Platform::VULKAN>>(
+            new_image,
+            def.attachment->GetRenderPassStage()
+        );
+
+        DeferCreate(new_attachment, device);
+
+        if (def.image.IsValid()) {
+            SafeRelease(std::move(def.image));
+        }
+
+        if (def.attachment.IsValid()) {
+            SafeRelease(std::move(def.attachment));
+        }
+
+        def = AttachmentDef<Platform::VULKAN> {
+            std::move(new_image),
+            std::move(new_attachment)
+        };
+    }
+
+    SingleTimeCommands<Platform::VULKAN> commands { device };
+
+    commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer) -> Result
+    {
+        for (KeyValuePair<uint, AttachmentDef<Platform::VULKAN>> &it : attachments) {
+            AttachmentDef<Platform::VULKAN> &def = it.second;
+
+            def.image->InsertBarrier(command_buffer, ResourceState::SHADER_RESOURCE);
+        }
+
+        HYPERION_RETURN_OK;
+    });
+
+    return commands.Execute();
 }
 
 #pragma endregion AttachmentMap
@@ -131,6 +192,61 @@ Result Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
     SafeRelease(std::move(m_render_pass));
 
     m_attachment_map.Reset();
+
+    HYPERION_RETURN_OK;
+}
+
+template <>
+Result Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Extent2D new_size)
+{
+    if (m_extent == new_size) {
+        HYPERION_RETURN_OK;
+    }
+
+    m_extent = new_size;
+
+    if (!IsCreated()) {
+        HYPERION_RETURN_OK;
+    }
+
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Resize(device, new_size));
+
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        if (m_platform_impl.handles[frame_index] != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(device->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
+            m_platform_impl.handles[frame_index] = VK_NULL_HANDLE;
+        }
+    }
+
+    Array<VkImageView> attachment_image_views;
+    attachment_image_views.Reserve(m_attachment_map.attachments.Size());
+
+    uint num_layers = 1;
+    
+    for (const auto &it : m_attachment_map.attachments) {
+        AssertThrow(it.second.attachment != nullptr);
+        AssertThrow(it.second.attachment->GetImageView() != nullptr);
+        AssertThrow(it.second.attachment->GetImageView()->IsCreated());
+
+        attachment_image_views.PushBack(it.second.attachment->GetImageView()->GetPlatformImpl().handle);
+    }
+
+    VkFramebufferCreateInfo framebuffer_create_info { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+    framebuffer_create_info.renderPass = m_render_pass->GetHandle();
+    framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
+    framebuffer_create_info.pAttachments = attachment_image_views.Data();
+    framebuffer_create_info.width = new_size.width;
+    framebuffer_create_info.height = new_size.height;
+    framebuffer_create_info.layers = num_layers;
+
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        HYPERION_VK_CHECK(vkCreateFramebuffer(
+            device->GetDevice(),
+            &framebuffer_create_info,
+            nullptr,
+            &m_platform_impl.handles[frame_index]
+        ));
+    }
 
     HYPERION_RETURN_OK;
 }

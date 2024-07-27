@@ -209,10 +209,10 @@ public:
             auto it = m_delegates.Find(name);
 
             if (it != m_delegates.End()) {
-                it->second.Broadcast(value);
+                it->second(value);
             }
 
-            m_catchall.Broadcast(name, value);
+            m_catchall(name, value);
         }
 
         void RemoveAll()

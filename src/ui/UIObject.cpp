@@ -520,7 +520,7 @@ void UIObject::Focus()
     // Some UI object types may need to know if any child object is focused when handling `OnLoseFocus`
     m_stage->SetFocusedObject(RefCountedPtrFromThis());
 
-    OnGainFocus.Broadcast(MouseEvent { });
+    OnGainFocus(MouseEvent { });
 }
 
 void UIObject::Blur(bool blur_children)
@@ -529,7 +529,7 @@ void UIObject::Blur(bool blur_children)
 
     if (GetFocusState() & UIObjectFocusState::FOCUSED) {
         SetFocusState(GetFocusState() & ~UIObjectFocusState::FOCUSED);
-        OnLoseFocus.Broadcast(MouseEvent { });
+        OnLoseFocus(MouseEvent { });
     }
 
     if (blur_children) {

@@ -32,8 +32,6 @@ public:
     ~TemporalAA();
 
     void Create();
-    void Destroy();
-    
     void Render(Frame *frame);
 
 private:
@@ -47,6 +45,8 @@ private:
     Handle<Texture>     m_history_texture;
 
     ComputePipelineRef  m_compute_taa;
+
+    bool                m_is_initialized;
 };
 
 } // namespace hyperion

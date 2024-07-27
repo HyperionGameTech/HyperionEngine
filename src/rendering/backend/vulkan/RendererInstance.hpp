@@ -9,7 +9,6 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFrameHandler.hpp>
-#include <rendering/backend/RendererHelpers.hpp>
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -61,8 +60,6 @@ public:
 
     HYP_FORCE_INLINE VmaAllocator GetAllocator() const
         { return allocator; }
-
-    helpers::SingleTimeCommands GetSingleTimeCommands();
 
     void SetValidationLayers(Array<const char *> validation_layers);
 

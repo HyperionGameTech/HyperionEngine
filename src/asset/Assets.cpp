@@ -159,7 +159,7 @@ void AssetManager::Update(GameCounter::TickUnit delta)
             it.second.OnPostLoad();
         }
         
-        batch->OnComplete.Broadcast(results);
+        batch->OnComplete(results);
     }
 
     m_completed_batches.Clear();

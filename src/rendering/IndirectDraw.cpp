@@ -8,6 +8,7 @@
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <math/MathUtil.hpp>
 #include <Engine.hpp>
@@ -184,9 +185,9 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto single_time_commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
-        single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result
+        commands.Push([this](const CommandBufferRef &command_buffer) -> Result
         {
             for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 Frame frame = Frame::TemporaryFrame(command_buffer, frame_index);
@@ -203,7 +204,7 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
             HYPERION_RETURN_OK;
         });
 
-        return single_time_commands.Execute(g_engine->GetGPUDevice());
+        return commands.Execute();
     }
 };
 

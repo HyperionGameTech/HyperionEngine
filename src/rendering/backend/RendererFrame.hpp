@@ -98,4 +98,12 @@ private:
 #error Unsupported rendering backend
 #endif
 
+namespace hyperion {
+namespace renderer {
+
+using Frame = platform::Frame<Platform::CURRENT>;
+
+} // namespace renderer
+} // namespace hyperion
+
 #endif

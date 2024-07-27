@@ -137,43 +137,64 @@ VkImageViewType ToVkImageViewType(ImageType type, bool is_array)
     AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
 }
 
+} // namespace renderer
+
+namespace platform {
+
 #pragma region SingleTimeCommands
 
-Result SingleTimeCommands::Begin(Device *device)
+template <>
+SingleTimeCommands<Platform::VULKAN>::SingleTimeCommands(Device<Platform::VULKAN> *device)
+    : m_platform_impl { this },
+      m_device(device)
 {
-    m_fence = MakeRenderObject<platform::Fence<Platform::VULKAN>>();
-
-    command_buffer = MakeRenderObject<platform::CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-    command_buffer->GetPlatformImpl().command_pool = pool;
-    HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
-
-    return command_buffer->Begin(device);
 }
 
-Result SingleTimeCommands::End(Device *device)
+template <>
+SingleTimeCommands<Platform::VULKAN>::~SingleTimeCommands()
+{
+    SafeRelease(std::move(m_fence));
+    SafeRelease(std::move(m_command_buffer));
+}
+
+template <>
+Result SingleTimeCommands<Platform::VULKAN>::Begin()
+{
+    m_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
+
+    m_command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
+    m_command_buffer->GetPlatformImpl().command_pool = m_device->GetGraphicsQueue().command_pools[0];
+    HYPERION_BUBBLE_ERRORS(m_command_buffer->Create(m_device));
+
+    return m_command_buffer->Begin(m_device);
+}
+
+template <>
+Result SingleTimeCommands<Platform::VULKAN>::End()
 {
     Result result;
 
-    HYPERION_PASS_ERRORS(command_buffer->End(device), result);
+    HYPERION_PASS_ERRORS(m_command_buffer->End(m_device), result);
 
-    HYPERION_PASS_ERRORS(m_fence->Create(device), result);
-    HYPERION_PASS_ERRORS(m_fence->Reset(device), result);
+    HYPERION_PASS_ERRORS(m_fence->Create(m_device), result);
+    HYPERION_PASS_ERRORS(m_fence->Reset(m_device), result);
 
     // Submit to the queue
-    platform::DeviceQueue<Platform::VULKAN> &queue_graphics = device->GetGraphicsQueue();
+    DeviceQueue<Platform::VULKAN> &queue_graphics = m_device->GetGraphicsQueue();
 
-    HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&queue_graphics, m_fence, nullptr), result);
+    HYPERION_PASS_ERRORS(m_command_buffer->SubmitPrimary(&queue_graphics, m_fence, nullptr), result);
     
-    HYPERION_PASS_ERRORS(m_fence->WaitForGPU(device), result);
-    HYPERION_PASS_ERRORS(m_fence->Destroy(device), result);
+    HYPERION_PASS_ERRORS(m_fence->WaitForGPU(m_device), result);
+    HYPERION_PASS_ERRORS(m_fence->Destroy(m_device), result);
 
-    HYPERION_PASS_ERRORS(command_buffer->Destroy(device), result);
+    HYPERION_PASS_ERRORS(m_command_buffer->Destroy(m_device), result);
 
     return result;
 }
 
 #pragma endregion SingleTimeCommands
 
-} // namespace renderer
+} // namespace platform
+
 } // namespace helpers
 } // namespace hyperion

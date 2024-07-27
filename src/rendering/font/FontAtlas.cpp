@@ -1,7 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/font/FontAtlas.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -226,7 +228,7 @@ void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D
 
         virtual Result operator()() override
         {
-            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
             const ImageRef &image = glyph_texture->GetImage();
 
@@ -261,7 +263,7 @@ void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D
                 HYPERION_RETURN_OK;
             });
 
-            return commands.Execute(g_engine->GetGPUInstance()->GetDevice());
+            return commands.Execute();
         }
     };
 
@@ -355,7 +357,7 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
                 return result;
             }
 
-            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
+            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
             AssertThrow(atlas);
             AssertThrow(atlas->GetImage());
@@ -376,7 +378,8 @@ void FontAtlas::WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const
                 HYPERION_RETURN_OK;
             });
 
-            HYPERION_PASS_ERRORS(commands.Execute(g_engine->GetGPUDevice()), result);
+            HYPERION_PASS_ERRORS(commands.Execute(), result);
+
             buffer->Read(g_engine->GetGPUDevice(), buffer_size, out_buffer.Data());
 
             HYPERION_RETURN_OK;

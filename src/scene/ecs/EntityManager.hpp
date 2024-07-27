@@ -82,7 +82,7 @@ public:
     HYP_FORCE_INLINE const TypeMap<UniquePtr<SystemBase>> &GetSystems() const
         { return m_systems; }
 
-    TaskBatch *GetTaskBatch() const
+    HYP_FORCE_INLINE TaskBatch *GetTaskBatch() const
         { return m_task_batch.Get(); }
 
     /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
@@ -233,17 +233,13 @@ public:
     EntityManagerCommandQueue &operator=(EntityManagerCommandQueue &&) noexcept = delete;
     ~EntityManagerCommandQueue()                                                = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    EnumFlags<EntityManagerCommandQueueFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<EntityManagerCommandQueueFlags> GetFlags() const
         { return m_flags; }
 
-    void SetFlags(EnumFlags<EntityManagerCommandQueueFlags> flags)
+    HYP_FORCE_INLINE void SetFlags(EnumFlags<EntityManagerCommandQueueFlags> flags)
         { m_flags = flags; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HasUpdates() const
+    HYP_FORCE_INLINE bool HasUpdates() const
         { return m_count.Get(MemoryOrder::ACQUIRE) != 0; }
 
     /*! \brief Waits for the command queue to be empty.

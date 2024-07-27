@@ -152,7 +152,9 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
         return result;
     }
 
-    auto commands = instance->GetSingleTimeCommands();
+    
+    SingleTimeCommands<Platform::CURRENT> commands { device };
+
     commands.Push([&](CommandBuffer<Platform::VULKAN> *cmd)
     {
         m_packed_vertex_buffer->CopyFrom(cmd, vertices_staging_buffer, packed_vertices_size);
@@ -161,7 +163,7 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
         HYPERION_RETURN_OK;
     });
 
-    HYPERION_PASS_ERRORS(commands.Execute(device), result);
+    HYPERION_PASS_ERRORS(commands.Execute(), result);
 
     SafeRelease(std::move(vertices_staging_buffer));
     SafeRelease(std::move(indices_staging_buffer));
@@ -432,9 +434,9 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
         range_info_ptrs[i] = &range_infos[i];
     }
 
-    auto commands = instance->GetSingleTimeCommands();
+    SingleTimeCommands<Platform::VULKAN> commands { device };
 
-    commands.Push([&](const CommandBufferRef_VULKAN &command_buffer)
+    commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer)
     {
         device->GetFeatures().dyn_functions.vkCmdBuildAccelerationStructuresKHR(
             command_buffer->GetPlatformImpl().command_buffer,
@@ -446,7 +448,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
         HYPERION_RETURN_OK; 
     });
 
-    HYPERION_PASS_ERRORS(commands.Execute(device), result);
+    HYPERION_PASS_ERRORS(commands.Execute(), result);
 
     ClearFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 
