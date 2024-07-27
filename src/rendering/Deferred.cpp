@@ -655,9 +655,10 @@ void EnvGridPass::AddToGlobalDescriptorSet()
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         switch (m_mode) {
         case EnvGridPassMode::RADIANCE:
-            AssertThrow(m_temporal_blending->GetImageOutput(frame_index).image_view.IsValid());
+            AssertThrow(m_temporal_blending->GetResultTexture()->GetImageView().IsValid());
+            AssertThrow(m_temporal_blending->GetResultTexture()->GetImageView()->IsCreated());
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("EnvGridRadianceResultTexture"), m_temporal_blending->GetImageOutput(frame_index).image_view);
+                ->SetElement(NAME("EnvGridRadianceResultTexture"), m_temporal_blending->GetResultTexture()->GetImageView());
 
             break;
         case EnvGridPassMode::IRRADIANCE:
@@ -869,7 +870,6 @@ void ReflectionProbePass::CreatePipeline()
 void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     // Default pass type (non parallax corrected)
@@ -918,7 +918,6 @@ void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderabl
 void ReflectionProbePass::CreateCommandBuffers()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     for (uint i = 0; i < ApplyReflectionProbeMode::MAX; i++) {
@@ -993,6 +992,7 @@ void ReflectionProbePass::AddToGlobalDescriptorSet()
 
 void ReflectionProbePass::Resize_Internal(Extent2D new_size)
 {
+    HYP_SCOPE;
     FullScreenPass::Resize_Internal(new_size);
 
     if (m_previous_texture.IsValid()) {
@@ -1014,7 +1014,6 @@ void ReflectionProbePass::Record(uint frame_index)
 void ReflectionProbePass::Render(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
@@ -1229,7 +1228,7 @@ void DeferredRenderer::Create()
     }
 
     const AttachmentRef &depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer()
-        ->GetAttachmentMap()->attachments.Back().second.attachment;
+        ->GetAttachmentMap().attachments.Back().second.attachment;
 
     AssertThrow(depth_attachment != nullptr);
 

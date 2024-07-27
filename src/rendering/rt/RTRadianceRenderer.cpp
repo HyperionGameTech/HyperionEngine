@@ -304,8 +304,8 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
     PUSH_RENDER_COMMAND(
         SetRTRadianceImageInGlobalDescriptorSet,
         FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending->GetImageOutput(0).image_view,
-            m_temporal_blending->GetImageOutput(1).image_view
+            m_temporal_blending->GetResultTexture()->GetImageView(),
+            m_temporal_blending->GetResultTexture()->GetImageView()
         }
     );
 }

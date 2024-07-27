@@ -17,10 +17,6 @@ namespace hyperion {
 
 using renderer::Result;
 
-class Engine;
-
-struct RenderCommand_CreateTemporalImageOutputs;
-
 enum class TemporalBlendTechnique
 {
     TECHNIQUE_0,
@@ -41,25 +37,7 @@ enum class TemporalBlendFeedback
 class TemporalBlending
 {
 public:
-    friend struct RenderCommand_CreateTemporalImageOutputs;
     friend struct RenderCommand_RecreateTemporalBlendingFramebuffer;
-
-    struct ImageOutput
-    {
-        ImageRef image;
-        ImageViewRef image_view;
-
-        Result Create(Device *device)
-        {
-            AssertThrow(image.IsValid());
-            AssertThrow(image_view.IsValid());
-
-            HYPERION_BUBBLE_ERRORS(image->Create(device));
-            HYPERION_BUBBLE_ERRORS(image_view->Create(device, image.Get()));
-
-            HYPERION_RETURN_OK;
-        }
-    };
 
     TemporalBlending(
         const Extent2D &extent,
@@ -88,17 +66,17 @@ public:
     TemporalBlending &operator=(const TemporalBlending &other) = delete;
     ~TemporalBlending();
 
-    ImageOutput &GetImageOutput(uint frame_index)
-        { return m_image_outputs[frame_index]; }
-
-    const ImageOutput &GetImageOutput(uint frame_index) const
-        { return m_image_outputs[frame_index]; }
-
     TemporalBlendTechnique GetTechnique() const
         { return m_technique; }
 
     TemporalBlendFeedback GetFeedback() const
         { return m_feedback; }
+
+    const Handle<Texture> &GetResultTexture() const
+        { return m_result_texture; }
+
+    const Handle<Texture> &GetHistoryTexture() const
+        { return m_history_texture; }
 
     void ResetProgressiveBlending();
 
@@ -127,9 +105,10 @@ private:
     DescriptorTableRef                              m_descriptor_table;
 
     FixedArray<ImageViewRef, max_frames_in_flight>  m_input_image_views;
-    FixedArray<ImageOutput, max_frames_in_flight>   m_image_outputs;
-
     FramebufferRef                                  m_input_framebuffer;
+
+    Handle<Texture>                                 m_result_texture;
+    Handle<Texture>                                 m_history_texture;
 
     DelegateHandler                                 m_after_swapchain_recreated_delegate;
 

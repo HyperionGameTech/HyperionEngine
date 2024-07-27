@@ -108,7 +108,7 @@ void TemporalAA::CreateComputePipelines()
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    auto descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,

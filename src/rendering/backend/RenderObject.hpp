@@ -4,10 +4,14 @@
 #define HYPERION_BACKEND_RENDERER_RENDER_OBJECT_HPP
 
 #include <core/utilities/ValueStorage.hpp>
+
 #include <core/threading/Threads.hpp>
+#include <core/threading/DataRaceDetector.hpp>
+
+#include <core/containers/FixedArray.hpp>
+
 #include <core/Core.hpp>
 #include <core/Name.hpp>
-#include <core/containers/FixedArray.hpp>
 #include <core/IDGenerator.hpp>
 
 #include <HashCode.hpp>

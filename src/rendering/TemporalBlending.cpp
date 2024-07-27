@@ -13,27 +13,6 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : renderer::RenderCommand
-{
-    TemporalBlending::ImageOutput *image_outputs;
-
-    RENDER_COMMAND(CreateTemporalBlendingImageOutputs)(TemporalBlending::ImageOutput *image_outputs)
-        : image_outputs(image_outputs)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateTemporalBlendingImageOutputs)() override = default;
-
-    virtual Result operator()() override
-    {
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(g_engine->GetGPUDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(RecreateTemporalBlendingFramebuffer) : renderer::RenderCommand
 {
     TemporalBlending    &temporal_blending;
@@ -83,21 +62,9 @@ TemporalBlending::TemporalBlending(
     m_technique(technique),
     m_feedback(feedback),
     m_input_framebuffer(input_framebuffer),
-    m_blending_frame_counter(0)
+    m_blending_frame_counter(0),
+    m_is_initialized(false)
 {
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto &image_output = m_image_outputs[frame_index];
-
-        image_output.image = MakeRenderObject<Image>(StorageImage(
-            Extent3D(m_extent),
-            m_image_format,
-            ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR
-        ));
-
-        image_output.image_view = MakeRenderObject<ImageView>();
-    }
 }
 
 TemporalBlending::TemporalBlending(
@@ -114,32 +81,17 @@ TemporalBlending::TemporalBlending(
     m_blending_frame_counter(0),
     m_is_initialized(false)
 {
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto &image_output = m_image_outputs[frame_index];
-
-        image_output.image = MakeRenderObject<Image>(StorageImage(
-            Extent3D(m_extent),
-            m_image_format,
-            ImageType::TEXTURE_TYPE_2D,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR
-        ));
-
-        image_output.image_view = MakeRenderObject<ImageView>();
-    }
 }
 
 TemporalBlending::~TemporalBlending()
 {
     SafeRelease(std::move(m_input_framebuffer));
-    
+
     SafeRelease(std::move(m_perform_blending));
     SafeRelease(std::move(m_descriptor_table));
 
-    for (auto &image_output : m_image_outputs) {
-        SafeRelease(std::move(image_output.image));
-        SafeRelease(std::move(image_output.image_view));
-    }
+    g_safe_deleter->SafeRelease(std::move(m_result_texture));
+    g_safe_deleter->SafeRelease(std::move(m_history_texture));
 }
 
 void TemporalBlending::Create()
@@ -196,10 +148,8 @@ void TemporalBlending::Resize_Internal(Extent2D new_size)
     SafeRelease(std::move(m_perform_blending));
     SafeRelease(std::move(m_descriptor_table));
 
-    for (auto &image_output : m_image_outputs) {
-        SafeRelease(std::move(image_output.image));
-        SafeRelease(std::move(image_output.image_view));
-    }
+    g_safe_deleter->SafeRelease(std::move(m_result_texture));
+    g_safe_deleter->SafeRelease(std::move(m_history_texture));
 
     CreateImageOutputs();
     CreateDescriptorSets();
@@ -236,7 +186,25 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
 void TemporalBlending::CreateImageOutputs()
 {
-    PUSH_RENDER_COMMAND(CreateTemporalBlendingImageOutputs, m_image_outputs.Data());
+    m_result_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        m_image_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    ));
+
+    m_result_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_result_texture);
+
+    m_history_texture = CreateObject<Texture>(Texture2D(
+        m_extent,
+        m_image_format,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    ));
+
+    m_history_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_history_texture);
 }
 
 void TemporalBlending::CreateDescriptorSets()
@@ -247,6 +215,11 @@ void TemporalBlending::CreateDescriptorSets()
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     m_descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+
+    const FixedArray<Handle<Texture> *, 2> textures = {
+        &m_result_texture,
+        &m_history_texture
+    };
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (m_input_framebuffer.IsValid()) {
@@ -264,7 +237,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("InImage"), input_image_view);
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("PrevImage"), m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view);
+            ->SetElement(NAME("PrevImage"),  (*textures[(frame_index + 1) % 2])->GetImageView());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
             ->SetElement(NAME("VelocityImage"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
@@ -277,7 +250,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("OutImage"), m_image_outputs[frame_index].image_view);
+            ->SetElement(NAME("OutImage"), (*textures[frame_index % 2])->GetImageView());
     }
 
     DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
@@ -295,17 +268,21 @@ void TemporalBlending::CreateComputePipelines()
         m_descriptor_table
     );
 
-    DeferCreate(
-        m_perform_blending,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_perform_blending, g_engine->GetGPUDevice());
 }
 
 void TemporalBlending::Render(Frame *frame)
-{   
-    m_image_outputs[frame->GetFrameIndex()].image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+{
+    const FixedArray<Handle<Texture> *, 2> textures = {
+        &m_result_texture,
+        &m_history_texture
+    };
 
-    const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
+    Handle<Texture> &active_texture = *textures[frame->GetFrameIndex() % 2];
+
+    active_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    const Extent3D &extent = active_texture->GetExtent();
 
     struct alignas(128)
     {
@@ -352,7 +329,7 @@ void TemporalBlending::Render(Frame *frame)
     );
 
     // set it to be able to be used as texture2D for next pass, or outside of this
-    m_image_outputs[frame->GetFrameIndex()].image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    active_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
     m_blending_frame_counter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blending_frame_counter + 1

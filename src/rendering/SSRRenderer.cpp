@@ -306,8 +306,8 @@ void SSRRenderer::CreateComputePipelines()
     PUSH_RENDER_COMMAND(
         CreateSSRDescriptors,
         FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : m_image_outputs[1]->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : m_image_outputs[1]->GetImageView()
+            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : m_image_outputs[1]->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : m_image_outputs[1]->GetImageView()
         }
     );
 }

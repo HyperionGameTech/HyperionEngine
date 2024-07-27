@@ -146,7 +146,7 @@ public:
     HYP_FORCE_INLINE FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    HYP_FORCE_INLINE  const FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
     HYP_FORCE_INLINE uint GetWidth() const

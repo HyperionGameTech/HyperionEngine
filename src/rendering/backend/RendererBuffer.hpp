@@ -96,28 +96,19 @@ public:
 
     HYP_API ~GPUBuffer();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const GPUBufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    GPUBufferType GetBufferType() const
+    HYP_FORCE_INLINE GPUBufferType GetBufferType() const
         { return m_type; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ResourceState GetResourceState() const
+    HYP_FORCE_INLINE ResourceState GetResourceState() const
         { return m_resource_state; }
 
-    HYP_FORCE_INLINE
-    void SetResourceState(ResourceState resource_state)
+    HYP_FORCE_INLINE void SetResourceState(ResourceState resource_state)
         { m_resource_state = resource_state; }
 
     HYP_API bool IsCreated() const;

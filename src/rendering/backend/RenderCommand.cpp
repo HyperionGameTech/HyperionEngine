@@ -36,7 +36,7 @@ void RenderScheduler::Commit(RenderCommand *command)
 void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 {
     out_container = std::move(m_commands);
-    m_num_enqueued.Set(0, MemoryOrder::RELEASE);
+    m_num_enqueued.Decrement(out_container.Size(), MemoryOrder::RELEASE);
 }
 
 #pragma endregion RenderScheduler

@@ -133,8 +133,8 @@ void HBAO::Resize_Internal(Extent2D new_size)
     PUSH_RENDER_COMMAND(
         AddHBAOFinalImagesToGlobalDescriptorSet,
         FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(0).image_view : GetAttachment(0)->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetImageOutput(1).image_view : GetAttachment(0)->GetImageView()
+            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : GetAttachment(0)->GetImageView(),
+            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : GetAttachment(0)->GetImageView()
         }
     );
 }
