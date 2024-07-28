@@ -8,6 +8,7 @@
 #include <core/Defines.hpp>
 #include <util/EnumOptions.hpp>
 #include <math/Extent.hpp>
+#include <math/Vector2.hpp>
 #include <Types.hpp>
 #include <HashCode.hpp>
 
@@ -535,6 +536,24 @@ struct ImageSubResource
 
         return hc;
     }
+};
+
+struct Viewport
+{
+    Vec2i   position;
+    Vec2i   extent;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return position != Vec2i::Zero() || extent != Vec2i::Zero(); }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return position == Vec2i::Zero() && extent == Vec2i::Zero(); }
+
+    HYP_FORCE_INLINE bool operator==(const Viewport &other) const
+        { return position == other.position && extent == other.extent; }
+
+    HYP_FORCE_INLINE bool operator!=(const Viewport &other) const
+        { return position != other.position || extent != other.extent; }
 };
 
 } // namespace renderer

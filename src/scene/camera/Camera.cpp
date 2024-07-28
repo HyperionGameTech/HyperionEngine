@@ -376,7 +376,8 @@ void Camera::Update(GameCounter::TickUnit dt)
 
     UpdateMatrices();
 
-    PUSH_RENDER_COMMAND(UpdateCameraDrawProxy, 
+    PUSH_RENDER_COMMAND(
+        UpdateCameraDrawProxy, 
         this,
         CameraDrawProxy {
             .view           = m_view_mat,

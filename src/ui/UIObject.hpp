@@ -105,6 +105,12 @@ enum class UIObjectBorderFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectBorderFlags)
 
+enum class UIObjectIterationResult : uint8
+{
+    CONTINUE = 0,
+    STOP
+};
+
 #pragma region UIObjectSize
 
 struct UIObjectSize
@@ -693,6 +699,8 @@ protected:
 
     HYP_FORCE_INLINE const Handle<Texture> &GetCachedTexture() const
         { return m_cached_texture; }
+
+    void ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep = true) const;
 
     UIStage                         *m_stage;
 

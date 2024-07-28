@@ -17,16 +17,20 @@
 
 #include <core/containers/Array.hpp>
 
+#include <math/Vector2.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
-
 namespace platform {
 
 template <PlatformType PLATFORM>
 class Framebuffer;
+
+template <PlatformType PLATFORM>
+class CommandBuffer;
 
 template <PlatformType PLATFORM>
 class RenderPass;
@@ -35,14 +39,7 @@ template <>
 struct GraphicsPipelinePlatformImpl<Platform::VULKAN>
 {
     GraphicsPipeline<Platform::VULKAN>  *self = nullptr;
-
-    Array<VkDynamicState>               vk_dynamic_states;
-
-    VkViewport                          vk_viewport;
-    VkRect2D                            vk_scissor;
-
-    void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
-    void SetScissor(int x, int y, uint32 width, uint32 height);
+    Viewport                            viewport;
 
     void BuildVertexAttributes(
         const VertexAttributeSet &attribute_set,
@@ -50,7 +47,7 @@ struct GraphicsPipelinePlatformImpl<Platform::VULKAN>
         Array<VkVertexInputBindingDescription> &out_vk_vertex_binding_descriptions
     );
 
-    void UpdateDynamicStates(VkCommandBuffer cmd);
+    void UpdateViewport(CommandBuffer<Platform::VULKAN> *command_buffer, const Viewport &viewport);
 };
 
 } // namsepace platform

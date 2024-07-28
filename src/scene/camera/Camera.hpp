@@ -187,6 +187,10 @@ public:
         if (m_camera_controller) {
             m_camera_controller->OnAdded(this);
         }
+
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+        UpdateViewProjectionMatrix();
     }
 
     void SetToPerspectiveProjection(

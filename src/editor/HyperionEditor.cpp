@@ -467,43 +467,53 @@ void HyperionEditorImpl::CreateMainPanel()
         }
 
         GetUIStage()->AddChildUIObject(loaded_ui);
+        // GetUIStage()->AddChildUIObject(loaded_ui->FindChildUIObject(NAME("Main_Panel")));
+
+        return;
+
+        // overflowing inner sizes is messing up AABB calculation for higher up parents
 
         InitSceneOutline();
         InitDetailView();
 
         // test generate lightmap
-        if (RC<UIObject> generate_lightmaps_button = GetUIStage()->FindChildUIObject(NAME("Generate_Lightmaps_Button"))) {
-            HYP_BREAKPOINT;
-            
+        if (RC<UIObject> generate_lightmaps_button = loaded_ui->FindChildUIObject(NAME("Generate_Lightmaps_Button"))) {
+
             generate_lightmaps_button->OnClick.RemoveAll();
             generate_lightmaps_button->OnClick.Bind([this](...)
             {
-                HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
-
-                struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
+                GetUIStage()->GetScene()->GetEntityManager()->PushCommand([ui_stage = GetUIStage()](EntityManager &mgr, GameCounter::TickUnit delta)
                 {
-                    Handle<Scene> scene;
+                    ui_stage->UpdateSize(true);
+                    ui_stage->UpdatePosition(true);
+                });
 
-                    RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
-                        : scene(std::move(scene))
-                    {
-                    }
+                // HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
 
-                    virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
+                // struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
+                // {
+                //     Handle<Scene> scene;
 
-                    virtual Result operator()() override
-                    {
-                        if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
-                            scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
-                        } else {
-                            scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
-                        }
+                //     RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
+                //         : scene(std::move(scene))
+                //     {
+                //     }
 
-                        HYPERION_RETURN_OK;
-                    }
-                };
+                //     virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
+
+                //     virtual Result operator()() override
+                //     {
+                //         if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
+                //             scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
+                //         } else {
+                //             scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
+                //         }
+
+                //         HYPERION_RETURN_OK;
+                //     }
+                // };
                 
-                PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
+                // PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
 
                 return UIEventHandlerResult::OK;
             }).Detach();

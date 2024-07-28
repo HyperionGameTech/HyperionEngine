@@ -7,6 +7,8 @@
 
 #include <core/functional/Delegate.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <rendering/RenderComponent.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -53,9 +55,11 @@ private:
     Array<ID<Entity>>   m_proxy_ordering;
 };
 
-class HYP_API UIRenderer : public RenderComponent<UIRenderer>
+class HYP_API UIRenderer : public RenderComponent<UIRenderer>, public EnableRefCountedPtrFromThis<UIRenderer>
 {
 public:
+    friend struct RenderCommand_CreateUIRendererFramebuffer;
+
     UIRenderer(Name name, RC<UIStage> ui_stage);
     UIRenderer(const UIRenderer &other)             = delete;
     UIRenderer &operator=(const UIRenderer &other)  = delete;

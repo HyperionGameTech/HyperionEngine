@@ -506,10 +506,10 @@ void UIMenuBar::UpdateMenuItemSizes()
     Vec2i offset = { 0, 0 };
 
     for (SizeType i = 0; i < m_menu_items.Size(); i++) {
-        m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
         m_menu_items[i]->SetPosition(offset);
+        m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
-        offset.x += m_menu_items[i]->GetNode()->GetWorldAABB().GetExtent().x;
+        offset.x += m_menu_items[i]->GetActualSize().x;
     }
 }
 

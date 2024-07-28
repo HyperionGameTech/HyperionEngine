@@ -5,6 +5,7 @@
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererPipeline.hpp>
+#include <rendering/backend/RendererStructs.hpp>
 
 #include <math/Vertex.hpp>
 
@@ -86,12 +87,12 @@ public:
     HYP_FORCE_INLINE const RenderPassRef<PLATFORM> &GetRenderPass() const
         { return m_render_pass; }
 
-    void SetRenderPass(const RenderPassRef<PLATFORM> &render_pass);
+    HYP_API void SetRenderPass(const RenderPassRef<PLATFORM> &render_pass);
 
     HYP_FORCE_INLINE const Array<FramebufferRef<PLATFORM>> &GetFramebuffers() const
         { return m_framebuffers; }
 
-    void SetFramebuffers(const Array<FramebufferRef<PLATFORM>> &framebuffers);
+    HYP_API void SetFramebuffers(const Array<FramebufferRef<PLATFORM>> &framebuffers);
 
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);

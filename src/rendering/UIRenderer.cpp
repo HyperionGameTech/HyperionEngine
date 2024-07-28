@@ -15,6 +15,8 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/system/AppContext.hpp>
+
 #include <ui/UIStage.hpp>
 
 #include <util/fs/FsUtil.hpp>
@@ -245,6 +247,26 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateUIRendererFramebuffer) : renderer::RenderCommand
+{
+    RC<UIRenderer>  ui_renderer;
+
+    RENDER_COMMAND(CreateUIRendererFramebuffer)(RC<UIRenderer> ui_renderer)
+        : ui_renderer(ui_renderer)
+    {
+        AssertThrow(ui_renderer != nullptr);
+    }
+
+    virtual ~RENDER_COMMAND(CreateUIRendererFramebuffer)() override = default;
+
+    virtual Result operator()() override
+    {
+        ui_renderer->CreateFramebuffer();
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 #pragma region UIRenderList
@@ -447,23 +469,17 @@ void UIRenderer::Init()
 {
     HYP_SCOPE;
 
-    m_on_gbuffer_resolution_changed_handle = g_engine->GetDeferredRenderer()->GetGBuffer()->OnGBufferResolutionChanged.Bind([this](Extent2D new_size)
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
     {
         Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-        m_ui_stage->GetScene()->GetEntityManager()->PushCommand([this, new_size](EntityManager &mgr, GameCounter::TickUnit delta)
-        {
-            Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-            m_ui_stage->SetSurfaceSize(Vec2i(new_size));
-        });
-
         SafeRelease(std::move(m_framebuffer));
+        g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 
         CreateFramebuffer();
     });
 
-    CreateFramebuffer();
+    PUSH_RENDER_COMMAND(CreateUIRendererFramebuffer, RefCountedPtrFromThis());
 
     AssertThrow(m_ui_stage != nullptr);
 
@@ -475,6 +491,18 @@ void UIRenderer::Init()
 
 void UIRenderer::CreateFramebuffer()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    const Vec2i surface_size = Vec2i(g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
+    
+    //Vec2i(g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution());
+
+    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
+    {
+        ui_stage->SetSurfaceSize(surface_size);
+    });
+
     m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
     AssertThrow(m_framebuffer.IsValid());
 
@@ -515,15 +543,14 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         AssertThrow(mesh_component != nullptr);
         AssertThrow(mesh_component->proxy != nullptr);
 
-        m_render_list.PushEntityToRender(
-            entity,
-            *mesh_component->proxy
-        );
+        m_render_list.PushEntityToRender(entity, *mesh_component->proxy);
 
         // HYP_LOG(UI, LogLevel::DEBUG, "Pushed UIObject {} to render list", object->GetName());
     });
 
     // HYP_LOG(UI, LogLevel::DEBUG, "END Collecting UIObjects");
+
+    // HYP_LOG(UI, LogLevel::DEBUG, "UI framebuffer size: {}", Vec2i(Extent2D(g_engine->GetFinalPass()->GetUITexture()->GetExtent())));
 
     m_render_list.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
 }

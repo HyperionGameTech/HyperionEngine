@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <ui/UIStage.hpp>
 #include <ui/UIButton.hpp>
 #include <ui/UIText.hpp>
@@ -50,22 +51,35 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
-    if (m_surface_size == surface_size) {
-        return;
-    }
-
     m_surface_size = surface_size;
     
     if (m_scene.IsValid() && m_scene->GetCamera().IsValid()) {
+        m_scene->GetCamera()->SetWidth(surface_size.x);
+        m_scene->GetCamera()->SetHeight(surface_size.y);
         m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
-            0.0f, -float(m_surface_size.x),
-            0.0f, float(m_surface_size.y),
+            0.0f, -float(surface_size.x),
+            0.0f, float(surface_size.y),
             float(min_depth), float(max_depth)
         ));
     }
 
     UpdateSize(true);
     UpdatePosition(true);
+    
+
+    // ForEachChildUIObject_Proc([this](const RC<UIObject> &object) -> UIObjectIterationResult
+    // {
+    //     object->UpdateSize(true);
+
+    //     return UIObjectIterationResult::CONTINUE;
+    // }, false);
+
+    // ForEachChildUIObject_Proc([this](const RC<UIObject> &object) -> UIObjectIterationResult
+    // {
+    //     object->UpdatePosition(true);
+
+    //     return UIObjectIterationResult::CONTINUE;
+    // }, false);
 
     SetNeedsRepaintFlag();
 }
@@ -269,7 +283,8 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
-    const Vec4f world_position = m_scene->GetCamera()->TransformScreenToWorld(position);
+    const Vec4f world_position = Vec4f(position.x * float(GetActualSize().x), position.y * float(GetActualSize().y), 0.0f, 1.0f);
+        //m_scene->GetCamera()->TransformScreenToWorld(position);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };
 
     Ray ray;
@@ -385,11 +400,9 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
     RayTestResults ray_test_results;
 
-    const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
     const Vec2i mouse_position = input_manager->GetMousePosition();
     const Vec2i previous_mouse_position = input_manager->GetPreviousMousePosition();
-    const Vec2f mouse_screen = Vec2f(mouse_position) / Vec2f(window_size);
+    const Vec2f mouse_screen = Vec2f(mouse_position) / Vec2f(m_surface_size);
 
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION:
@@ -505,10 +518,12 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .is_down            = false
                     });
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}",
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, Actual Size: {}, Mouse Position: {}",
                         ui_object->GetName(), ui_object->GetActualSize(), ui_object->GetActualInnerSize(),
                         ui_object->GetWorldAABB(),
-                        ui_object->GetNode()->GetEntityAABB());
+                        ui_object->GetNode()->GetEntityAABB(),
+                        ui_object->GetActualSize(),
+                        ui_object->TransformScreenCoordsToRelative(mouse_position));
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
@@ -667,8 +682,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         int wheel_y;
         event.GetMouseWheel(&wheel_x, &wheel_y);
 
-        const Vec2u window_size = input_manager->GetWindow()->GetDimensions();
-
         Array<RC<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results)) {
@@ -760,7 +773,7 @@ bool UIStage::Remove(ID<Entity> entity)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
-    
+
     if (!m_scene.IsValid()) {
         return false;
     }

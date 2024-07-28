@@ -127,6 +127,7 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
 }
 
 GBuffer::GBuffer()
+    : m_resolution(0, 0)
 {
     for (SizeType i = 0; i < m_buckets.Size(); i++) {
         m_buckets[i].SetBucket(Bucket(i));
@@ -138,8 +139,10 @@ void GBuffer::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
+    m_resolution = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+
     for (auto &bucket : m_buckets) {
-        bucket.CreateFramebuffer();
+        bucket.CreateFramebuffer(m_resolution);
     }
 }
 
@@ -153,16 +156,28 @@ void GBuffer::Destroy()
     }
 }
 
-void GBuffer::Resize(Extent2D new_size)
+void GBuffer::Resize(Extent2D resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    for (auto &bucket : m_buckets) {
-        bucket.Resize(new_size);
+    for (GBufferBucket &bucket : m_buckets) {
+        Extent2D framebuffer_extent = resolution;
+
+        if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
+            if (window->IsHighDPI() && bucket.bucket != BUCKET_UI) {
+                // if the window is high DPI like retina on mac, we need to scale it down
+                // to avoid rendering at a resolution that will crush performance like a soda can
+                framebuffer_extent = framebuffer_extent / 2;
+            }
+        }
+
+        bucket.Resize(framebuffer_extent);
     }
 
-    OnGBufferResolutionChanged(new_size);
+    m_resolution = resolution;
+
+    OnGBufferResolutionChanged(resolution);
 }
 
 #pragma endregion GBuffer
@@ -188,7 +203,7 @@ const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourc
     return framebuffer->GetAttachment(uint(resource_name));
 }
 
-void GBuffer::GBufferBucket::CreateFramebuffer()
+void GBuffer::GBufferBucket::CreateFramebuffer(Extent2D resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -199,18 +214,18 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 
-    Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    Extent2D framebuffer_extent = resolution;
 
     if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
         if (window->IsHighDPI() && bucket != BUCKET_UI) {
             // if the window is high DPI like retina on mac, we need to scale it down
             // to avoid rendering at a resolution that will crush performance like a soda can
-            extent = extent / 2;
+            framebuffer_extent = framebuffer_extent / 2;
         }
     }
 
     framebuffer = MakeRenderObject<Framebuffer>(
-        extent,
+        framebuffer_extent,
         renderer::RenderPassStage::SHADER,
         mode
     );
@@ -218,14 +233,14 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer, extent);
+        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer, framebuffer_extent);
 
         // Needed for stencil
-        AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer, extent);
+        AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer, framebuffer_extent);
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets
-        AddOwnedAttachment(0, color_format, framebuffer, extent);
+        AddOwnedAttachment(0, color_format, framebuffer, framebuffer_extent);
 
         // opaque creates the main non-color gbuffer attachments,
         // which will be shared with other renderable buckets
@@ -233,7 +248,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer()
             for (uint i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
-                AddOwnedAttachment(i, format, framebuffer, extent);
+                AddOwnedAttachment(i, format, framebuffer, framebuffer_extent);
             }
         } else {
             // add the attachments shared with opaque bucket
@@ -254,12 +269,12 @@ void GBuffer::GBufferBucket::Destroy()
     SafeRelease(std::move(framebuffer));
 }
 
-void GBuffer::GBufferBucket::Resize(Extent2D new_size)
+void GBuffer::GBufferBucket::Resize(Extent2D resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), new_size));
+    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), resolution));
 }
 
 #pragma endregion GBufferBucket

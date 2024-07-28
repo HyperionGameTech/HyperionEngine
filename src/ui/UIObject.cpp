@@ -38,12 +38,6 @@
 
 namespace hyperion {
 
-enum class UIObjectIterationResult : uint8
-{
-    CONTINUE = 0,
-    STOP
-};
-
 enum class UIObjectFlags : uint32
 {
     NONE                = 0x0,
@@ -373,8 +367,6 @@ void UIObject::UpdateSize(bool update_children)
         return;
     }
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Updating size for UIObject with name: {}, current size: {}", GetName(), m_actual_size);
-
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetEntityAABB(CalculateAABB());
 
@@ -396,7 +388,7 @@ void UIObject::UpdateSize(bool update_children)
     // auto needs recalculation
     const bool needs_update_after_children = (m_size.GetAllFlags() & UIObjectSize::AUTO)
         || (m_inner_size.GetAllFlags() & UIObjectSize::AUTO)
-        || (m_max_size.GetAllFlags() &  UIObjectSize::AUTO);
+        || (m_max_size.GetAllFlags() & UIObjectSize::AUTO);
 
     if (needs_update_after_children) {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
@@ -411,8 +403,6 @@ void UIObject::UpdateSize(bool update_children)
 
     UpdateMeshData();
     SetNeedsRepaintFlag();
-
-    HYP_LOG(UI, LogLevel::DEBUG, "Updated size for UIObject with name: {} to {}", GetName(), m_actual_size);
 }
 
 Vec2i UIObject::GetScrollOffset() const
@@ -995,7 +985,15 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
 BoundingBox UIObject::CalculateAABB() const
 {
     const Vec3f min = Vec3f::Zero();
-    const Vec3f max = Vec3f { float(m_actual_size.x), float(m_actual_size.y), 0.0f };
+    Vec3f max = Vec3f { float(m_actual_size.x), float(m_actual_size.y), 0.0f };
+
+    // if (m_size.GetFlagsX() & UIObjectSize::AUTO) {
+    //     max.x = 0.0f;
+    // }
+
+    // if (m_size.GetFlagsY() & UIObjectSize::AUTO) {
+    //     max.y = 0.0f;
+    // }
 
     return BoundingBox { min, max };
 }
@@ -1208,6 +1206,8 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
     } else if (m_stage != nullptr) {
         parent_size = m_stage->GetSurfaceSize();
         self_padding = GetPadding();
+    } else if (m_type == UIObjectType::STAGE) {
+        actual_size = static_cast<UIStage *>(this)->GetSurfaceSize();
     } else {
         return;
     }
@@ -1246,20 +1246,22 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         if (phase == UpdateSizePhase::AFTER_CHILDREN) {
             Vec2i dynamic_size;
 
-            BoundingBox node_aabb = BoundingBox::Empty();
+            Optional<Vec3f> extent;
 
             if (const NodeProxy &node = GetNode()) {
-                node_aabb = node->GetLocalAABB();
+                const BoundingBox &node_aabb = node->GetLocalAABB();
+
+                if (node_aabb.IsFinite() && node_aabb.IsValid()) {
+                    extent = node_aabb.GetExtent();
+                }
             }
 
-            if (node_aabb.IsFinite() && node_aabb.IsValid()) {
-                const Vec3f extent = node_aabb.GetExtent();
-
+            if (extent.HasValue()) {
                 if ((in_size.GetFlagsX() & UIObjectSize::AUTO) && (in_size.GetFlagsY() & UIObjectSize::AUTO)) {
                     // If both X and Y are set to auto, use the AABB size (we can't calculate a ratio if both are auto)
-                    dynamic_size = Vec2i { MathUtil::Floor(extent.x), MathUtil::Floor(extent.y) };
+                    dynamic_size = Vec2i { MathUtil::Floor(extent->x), MathUtil::Floor(extent->y) };
                 } else {
-                    const float ratio = extent.x / MathUtil::Max(extent.y, MathUtil::epsilon_f);
+                    const float ratio = extent->x / MathUtil::Max(extent->y, MathUtil::epsilon_f);
 
                     dynamic_size = Vec2i {
                         MathUtil::Floor(float(actual_size.y) * ratio),
@@ -1843,6 +1845,11 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
             queue.Push(child.Get());
         }
     }
+}
+
+void UIObject::ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep) const
+{
+    ForEachChildUIObject(proc, deep);
 }
 
 template <class Lambda>

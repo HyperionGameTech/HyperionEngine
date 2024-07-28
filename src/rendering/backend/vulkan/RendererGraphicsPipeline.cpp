@@ -85,27 +85,30 @@ static VkCompareOp ToVkCompareOp(StencilCompareOp compare_op)
 
 #pragma region GraphicsPipelinePlatformImpl
 
-void GraphicsPipelinePlatformImpl<Platform::VULKAN>::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth)
+void GraphicsPipelinePlatformImpl<Platform::VULKAN>::UpdateViewport(
+    CommandBuffer<Platform::VULKAN> *command_buffer,
+    const Viewport &viewport
+)
 {
-    VkViewport *vp = &vk_viewport;
-    vp->x = x;
-    vp->y = y;
-    vp->width = width;
-    vp->height = height;
-    vp->minDepth = min_depth;
-    vp->maxDepth = max_depth;
-}
+    //if (viewport == this->viewport) {
+    //    return;
+    //}
 
-void GraphicsPipelinePlatformImpl<Platform::VULKAN>::SetScissor(int x, int y, uint32_t width, uint32_t height)
-{
-    vk_scissor.offset = { x, y };
-    vk_scissor.extent = { width, height };
-}
+    VkViewport vk_viewport { };
+    vk_viewport.x = viewport.position.x;
+    vk_viewport.y = viewport.position.y;
+    vk_viewport.width = viewport.extent.x;
+    vk_viewport.height = viewport.extent.y;
+    vk_viewport.minDepth = 0.0f;
+    vk_viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(command_buffer->GetPlatformImpl().command_buffer, 0, 1, &vk_viewport);
 
-void GraphicsPipelinePlatformImpl<Platform::VULKAN>::UpdateDynamicStates(VkCommandBuffer cmd)
-{
-    vkCmdSetViewport(cmd, 0, 1, &vk_viewport);
-    vkCmdSetScissor(cmd, 0, 1, &vk_scissor);
+    VkRect2D vk_scissor { };
+    vk_scissor.offset = { viewport.position.x, viewport.position.y };
+    vk_scissor.extent = { uint32(viewport.extent.x), uint32(viewport.extent.y) };
+    vkCmdSetScissor(command_buffer->GetPlatformImpl().command_buffer, 0, 1, &vk_scissor);
+
+    this->viewport = viewport;
 }
 
 void GraphicsPipelinePlatformImpl<Platform::VULKAN>::BuildVertexAttributes(
@@ -178,7 +181,12 @@ GraphicsPipeline<Platform::VULKAN>::~GraphicsPipeline()
 template <>
 void GraphicsPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd)
 {
-    m_platform_impl.UpdateDynamicStates(cmd->GetPlatformImpl().command_buffer);
+    if (m_framebuffers.Any()) {
+        Viewport viewport;
+        viewport.position = Vec2i::Zero();
+        viewport.extent = Vec2i(m_framebuffers[0]->GetExtent());
+        m_platform_impl.UpdateViewport(cmd, viewport);
+    }
 
     vkCmdBindPipeline(
         cmd->GetPlatformImpl().command_buffer,
@@ -238,14 +246,28 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
         break;
     }
 
-    VkPipelineViewportStateCreateInfo viewport_state { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-    VkViewport viewports[] = { m_platform_impl.vk_viewport };
-    viewport_state.viewportCount = 1;
-    viewport_state.pViewports = viewports;
+    m_platform_impl.viewport = {
+        Vec2i::Zero(),
+        Vec2i(m_framebuffers[0]->GetExtent())
+    };
 
-    VkRect2D scissors[] = { m_platform_impl.vk_scissor };
+    VkViewport vk_viewport { };
+    vk_viewport.x = m_platform_impl.viewport.position.x;
+    vk_viewport.y = m_platform_impl.viewport.position.y;
+    vk_viewport.width = m_platform_impl.viewport.extent.x;
+    vk_viewport.height = m_platform_impl.viewport.extent.y;
+    vk_viewport.minDepth = 0.0f;
+    vk_viewport.maxDepth = 1.0f;
+
+    VkRect2D vk_scissor { };
+    vk_scissor.offset = { m_platform_impl.viewport.position.x, m_platform_impl.viewport.position.y };
+    vk_scissor.extent = { uint32(m_platform_impl.viewport.extent.x), uint32(m_platform_impl.viewport.extent.y) };
+
+    VkPipelineViewportStateCreateInfo viewport_state { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+    viewport_state.viewportCount = 1;
+    viewport_state.pViewports = &vk_viewport;
     viewport_state.scissorCount = 1;
-    viewport_state.pScissors = scissors;
+    viewport_state.pScissors = &vk_scissor;
 
     VkPipelineRasterizationStateCreateInfo rasterizer { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
     rasterizer.depthClampEnable = VK_FALSE;
@@ -324,9 +346,15 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     color_blending.blendConstants[2] = 0.0f;
     color_blending.blendConstants[3] = 0.0f;
 
+    // Allow updating viewport and scissor at runtime
+    const FixedArray<VkDynamicState, 2> dynamic_states {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
     VkPipelineDynamicStateCreateInfo dynamic_state { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    dynamic_state.dynamicStateCount = uint32(m_platform_impl.vk_dynamic_states.Size());
-    dynamic_state.pDynamicStates = m_platform_impl.vk_dynamic_states.Data();
+    dynamic_state.dynamicStateCount = uint32(dynamic_states.Size());
+    dynamic_state.pDynamicStates = dynamic_states.Data();
 
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
@@ -459,17 +487,6 @@ Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devi
     if (m_framebuffers.Empty()) {
         return { Result::RENDERER_ERR, "Cannot create a graphics pipeline with no framebuffers" };
     }
-
-    const uint32 width = m_framebuffers[0]->GetWidth();
-    const uint32 height = m_framebuffers[0]->GetHeight();
-
-    m_platform_impl.SetScissor(0, 0, width, height);
-    m_platform_impl.SetViewport(0.0f, 0.0f, float(width), float(height));
-
-    m_platform_impl.vk_dynamic_states = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
 
     Result rebuild_result = Rebuild(device);
 

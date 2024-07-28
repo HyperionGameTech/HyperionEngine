@@ -115,6 +115,9 @@ void UIDockableContainer::UpdateLayout()
 {
     HYP_SCOPE;
 
+    // Debugging
+    HYP_PRINT_STACK_TRACE();
+
     const Vec2i container_size = GetActualSize();
 
     // Top

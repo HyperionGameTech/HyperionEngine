@@ -102,10 +102,7 @@ void CompositePass::CreateShader()
         final_output_props.Set("PATHTRACER");
     }
 
-    m_shader = g_shader_manager->GetOrCreate(
-        NAME("Composite"),
-        final_output_props
-    );
+    m_shader = g_shader_manager->GetOrCreate(NAME("Composite"), final_output_props);
 }
 
 void CompositePass::Create()
@@ -114,8 +111,7 @@ void CompositePass::Create()
     FullScreenPass::CreateQuad();
     FullScreenPass::CreateCommandBuffers();
     FullScreenPass::CreateFramebuffer();
-
-    RenderableAttributeSet renderable_attributes(
+    FullScreenPass::CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes
         },
@@ -124,9 +120,7 @@ void CompositePass::Create()
             .blend_function = BlendFunction::Default(),
             .flags          = MaterialAttributeFlags::NONE
         }
-    );
-
-    FullScreenPass::CreatePipeline(renderable_attributes);
+    ));
 }
 
 void CompositePass::Record(uint frame_index)
@@ -136,6 +130,9 @@ void CompositePass::Record(uint frame_index)
 
 void CompositePass::Render(Frame *frame)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
     uint frame_index = frame->GetFrameIndex();
 
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
@@ -189,6 +186,7 @@ void FinalPass::SetUITexture(Handle<Texture> texture)
 
 void FinalPass::Create()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
@@ -264,7 +262,7 @@ void FinalPass::Create()
     // Create UI stuff
     InitObject(m_ui_texture);
 
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
@@ -300,6 +298,9 @@ void FinalPass::Create()
 
 void FinalPass::Resize_Internal(Extent2D new_size)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     FullScreenPass::Resize_Internal(new_size);
 
     if (m_render_texture_to_screen_pass != nullptr) {
@@ -314,7 +315,6 @@ void FinalPass::Record(uint frame_index)
 void FinalPass::Render(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();

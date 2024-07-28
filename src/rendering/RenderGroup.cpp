@@ -244,54 +244,6 @@ void RenderGroup::Init()
 
     BasicObject::Init();
 
-    // AddDelegateHandler(g_engine->GetDelegates().OnBeforeSwapchainRecreated.Bind([this]()
-    // {
-    //     HYP_SCOPE;
-    //     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    //     if (!IsReady()) {
-    //         return;
-    //     }
-
-    //     Array<FramebufferRef> framebuffers_to_remove;
-
-    //     for (const FramebufferRef &framebuffer : m_fbos) {
-    //         for (const GBuffer::GBufferBucket &bucket : g_engine->GetDeferredRenderer()->GetGBuffer()->GetBuckets()) {
-    //             if (bucket.GetFramebuffer() == framebuffer) {
-    //                 framebuffers_to_remove.PushBack(framebuffer);
-    //             }
-    //         }
-    //     }
-
-    //     for (const FramebufferRef &framebuffer : framebuffers_to_remove) {
-    //         RemoveFramebuffer(framebuffer);
-    //     }
-    // }));
-
-    // AddDelegateHandler(g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
-    // {
-    //     HYP_SCOPE;
-    //     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    //     if (!IsReady()) {
-    //         return;
-    //     }
-
-    //     if (m_indirect_renderer != nullptr) {
-    //         m_indirect_renderer->Destroy();
-    //     }
-
-    //     if (m_pipeline.IsValid()) {
-    //         DebugLog(LogType::Debug, "Recreating pipeline for %s\n", m_pipeline.GetName().LookupString());
-    //     }
-        
-    //     SafeRelease(std::move(m_pipeline));
-    //     m_pipeline = MakeRenderObject<GraphicsPipeline>();
-        
-    //     CreateIndirectRenderer();
-    //     CreateGraphicsPipeline();
-    // }));
-    
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
         HYP_SCOPE;

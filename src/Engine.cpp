@@ -440,12 +440,9 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
         // m_deferred_renderer.Reset(new DeferredRenderer);
         // m_deferred_renderer->Create();
-        
-        Handle<Texture> ui_texture = m_final_pass->GetUITexture();
 
         m_final_pass.Reset(new FinalPass);
         m_final_pass->Create();
-        m_final_pass->SetUITexture(ui_texture);
 
         frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
