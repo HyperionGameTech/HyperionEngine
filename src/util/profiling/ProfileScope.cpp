@@ -15,7 +15,12 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/system/AppContext.hpp>
+#include <core/system/ArgParse.hpp>
+
 #include <util/json/JSON.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -73,6 +78,9 @@ public:
     ProfilerConnection()
         : m_endpoint_url("http://localhost:8000/trace")
     {
+        if (json::JSONValue trace_url_argument = g_engine->GetAppContext()->GetArguments()["TraceURL"]) {
+            m_endpoint_url = trace_url_argument.ToString();
+        }
     }
 
     ProfilerConnection(const ProfilerConnection &other)                 = delete;

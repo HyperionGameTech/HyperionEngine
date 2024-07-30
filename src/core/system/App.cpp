@@ -1,5 +1,6 @@
 #include <core/system/App.hpp>
 #include <core/system/AppContext.hpp>
+#include <core/system/ArgParse.hpp>
 #include <core/system/SystemEvent.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -82,22 +83,22 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
     #error "No AppContext implementation for this platform!"
 #endif
 
-    Vec2u resolution = { 1280, 720 };
+    Vec2i resolution = { 1280, 720 };
 
     EnumFlags<WindowFlags> window_flags = WindowFlags::HIGH_DPI;
 
-    if (arguments["Headless"].Is<bool>()) {
-        if (arguments["Headless"].Get<bool>()) {
+    if (arguments["Headless"].IsBool()) {
+        if (arguments["Headless"].AsBool()) {
             window_flags |= WindowFlags::HEADLESS;
         }
     }
 
-    if (arguments["ResX"].Is<uint32>()) {
-        resolution.x = arguments["ResX"].Get<uint32>();
+    if (arguments["ResX"].IsNumber()) {
+        resolution.x = arguments["ResX"].ToInt32();
     }
 
-    if (arguments["ResY"].Is<uint32>()) {
-        resolution.y = arguments["ResY"].Get<uint32>();
+    if (arguments["ResY"].IsNumber()) {
+        resolution.y = arguments["ResY"].ToInt32();
     }
 
     if (!(window_flags & WindowFlags::HEADLESS)) {

@@ -7,6 +7,25 @@
 namespace hyperion {
 namespace sys {
 
+#pragma region CommandLineArguments
+
+const CommandLineArgumentValue &CommandLineArguments::operator[](UTF8StringView key) const
+{
+    static const CommandLineArgumentValue empty_value = json::JSONUndefined();
+
+    const auto it = Find(key);
+
+    if (it == End()) {
+        return empty_value;
+    }
+
+    return it->second;
+}
+
+#pragma endregion CommandLineArguments
+
+#pragma region ArgParse
+
 void ArgParse::Add(
     String name,
     String shorthand,
@@ -96,49 +115,43 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
 
     FlatSet<String> used_arguments;
 
-    auto ParseArgument = [](const ArgumentDefinition &argument_definition, const String &str) -> Optional<CommandLineArgumentValue>
+    auto ParseArgument = [](const ArgumentDefinition &argument_definition, const String &str) -> Variant<CommandLineArgumentValue, CommandLineArgumentError>
     {
         const CommandLineArgumentType type = argument_definition.type;
 
+        json::ParseResult parse_result = json::JSON::Parse(str);
+
+        if (!parse_result.ok) {
+            return CommandLineArgumentError { "Failed to parse argument" };
+        }
+
         switch (type) {
         case CommandLineArgumentType::STRING:
-            return CommandLineArgumentValue { str };
-        case CommandLineArgumentType::INTEGER: {
-            int i = 0;
-
-            if (!StringUtil::Parse(str, &i)) {
-                return { };
-            }
-
-            return CommandLineArgumentValue { i };
-        }
-        case CommandLineArgumentType::FLOAT: {
-            float f = 0.0f;
-
-            if (!StringUtil::Parse(str, &f)) {
-                return { };
-            }
-
-            return CommandLineArgumentValue { f };
-        }
+            return json::JSONValue(parse_result.value.ToString());
+        case CommandLineArgumentType::INTEGER:
+            return json::JSONValue(parse_result.value.ToInt32());
+        case CommandLineArgumentType::FLOAT:
+            return json::JSONValue(parse_result.value.ToFloat());
         case CommandLineArgumentType::BOOLEAN:
-            return CommandLineArgumentValue { str == "true" };
+            return json::JSONValue(parse_result.value.ToBool());
         case CommandLineArgumentType::ENUM: {
+            const json::JSONString string_value = parse_result.value.ToString();
+
             const Array<String> *enum_values = argument_definition.enum_values.TryGet();
 
             if (!enum_values) {
-                return { };
+                return CommandLineArgumentError { "Internal error parsing enum argument" };
             }
 
-            if (!enum_values->Contains(str)) {
-                return { };
+            if (!enum_values->Contains(string_value)) {
+                return CommandLineArgumentError { "Not a valid value for argument" };
             }
 
-            return CommandLineArgumentValue { str };
+            return json::JSONValue(string_value);
         }
         }
 
-        return { };
+        return CommandLineArgumentError { "Invalid argument" };
     };
 
     for (SizeType i = 0; i < args.Size(); i++) {
@@ -171,22 +184,22 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
         used_arguments.Insert(it->name);
 
         if (parts.Size() > 1) {
-            Optional<CommandLineArgumentValue> parsed_value = ParseArgument(*it, parts[1]);
+            Variant<CommandLineArgumentValue, CommandLineArgumentError> parsed_value = ParseArgument(*it, parts[1]);
 
-            if (!parsed_value.HasValue()) {
+            if (CommandLineArgumentError *error = parsed_value.TryGet<CommandLineArgumentError>()) {
                 result.ok = false;
-                result.message = "Invalid value for argument: " + arg;
+                result.message = error->message;
 
                 return result;
             }
 
-            result.result.values.PushBack({ arg, std::move(parsed_value.Get()) });
+            result.result.values.EmplaceBack(arg, std::move(parsed_value.Get<CommandLineArgumentValue>()));
 
             continue;
         }
 
         if (it->type == CommandLineArgumentType::BOOLEAN) {
-            result.result.values.PushBack({ arg, CommandLineArgumentValue { true } });
+            result.result.values.EmplaceBack(arg, CommandLineArgumentValue { true });
 
             continue;
         }
@@ -198,16 +211,16 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
             return result;
         }
 
-        Optional<CommandLineArgumentValue> parsed_value = ParseArgument(*it, args[++i]);
+        Variant<CommandLineArgumentValue, CommandLineArgumentError> parsed_value = ParseArgument(*it, args[++i]);
 
-        if (!parsed_value.HasValue()) {
+        if (CommandLineArgumentError *error = parsed_value.TryGet<CommandLineArgumentError>()) {
             result.ok = false;
-            result.message = "Invalid value for argument: " + arg;
+            result.message = error->message;
 
             return result;
         }
 
-        result.result.values.PushBack({ arg, std::move(parsed_value.Get()) });
+        result.result.values.EmplaceBack(arg, std::move(parsed_value.Get<CommandLineArgumentValue>()));
     }
 
     for (const ArgumentDefinition &def : m_definitions) {
@@ -216,7 +229,7 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
         }
 
         if (def.default_value.HasValue()) {
-            result.result.values.PushBack({ def.name, def.default_value });
+            result.result.values.EmplaceBack(def.name, *def.default_value);
 
             continue;
         }
@@ -231,6 +244,8 @@ ArgParse::ParseResult ArgParse::Parse(const String &command, const Array<String>
 
     return result;
 }
+
+#pragma endregion ArgParse
 
 } // namespace sys
 } // namespace hyperion

@@ -42,7 +42,7 @@ static void AddOwnedAttachment(
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
+    
     if (!extent.Size()) {
         extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
@@ -162,17 +162,7 @@ void GBuffer::Resize(Extent2D resolution)
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     for (GBufferBucket &bucket : m_buckets) {
-        Extent2D framebuffer_extent = resolution;
-
-        if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
-            if (window->IsHighDPI() && bucket.bucket != BUCKET_UI) {
-                // if the window is high DPI like retina on mac, we need to scale it down
-                // to avoid rendering at a resolution that will crush performance like a soda can
-                framebuffer_extent = framebuffer_extent / 2;
-            }
-        }
-
-        bucket.Resize(framebuffer_extent);
+        bucket.Resize(resolution);
     }
 
     m_resolution = resolution;
@@ -274,7 +264,17 @@ void GBuffer::GBufferBucket::Resize(Extent2D resolution)
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), resolution));
+    Extent2D framebuffer_extent = resolution;
+
+    if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
+        if (window->IsHighDPI() && bucket != BUCKET_UI) {
+            // if the window is high DPI like retina on mac, we need to scale it down
+            // to avoid rendering at a resolution that will crush performance like a soda can
+            framebuffer_extent = framebuffer_extent / 2;
+        }
+    }
+
+    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), framebuffer_extent));
 }
 
 #pragma endregion GBufferBucket

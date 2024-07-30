@@ -398,13 +398,6 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-    net::HTTPRequest req("http://localhost:8000/test", net::HTTPMethod::GET);
-    auto response = req.Send();
-    auto json = response.Await().ToJSON();
-    if (json.HasValue()) {
-        HYP_LOG(Editor, LogLevel::INFO, "HTTP Response: {}", json.Get().ToString());
-    }
-
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -476,6 +469,8 @@ void HyperionEditorImpl::CreateMainPanel()
         }
 
         GetUIStage()->AddChildUIObject(loaded_ui);
+
+        return; // temp
 
         // overflowing inner sizes is messing up AABB calculation for higher up parents
 
@@ -1340,7 +1335,7 @@ void HyperionEditor::Init()
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");
+    batch->Add("test_model", "models/sponza/sponza.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
@@ -1361,7 +1356,7 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        // node.Scale(0.02f);
+        node.Scale(0.02f);
         node.SetName("test_model");
         node.LockTransform();
 

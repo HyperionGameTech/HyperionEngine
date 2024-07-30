@@ -6,11 +6,16 @@
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatMap.hpp>
+
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/StringView.hpp>
+
 #include <core/Defines.hpp>
+
+#include <util/json/JSON.hpp>
 
 namespace hyperion {
 
@@ -33,11 +38,16 @@ enum class CommandLineArgumentType
 
 namespace sys {
 
-using CommandLineArgumentValue = Variant<String, int, float, bool>;
+using CommandLineArgumentValue = json::JSONValue;
+
+struct CommandLineArgumentError
+{
+    String  message;
+};
 
 class ArgParse;
 
-class CommandLineArguments
+class HYP_API CommandLineArguments
 {
     String                                          command;
     Array<Pair<String, CommandLineArgumentValue>>   values;
@@ -48,30 +58,21 @@ public:
     using Iterator = Array<Pair<String, CommandLineArgumentValue>>::Iterator;
     using ConstIterator = Array<Pair<String, CommandLineArgumentValue>>::ConstIterator;
 
-    CommandLineArgumentValue operator[](const String &key) const
-    {
-        auto it = Find(key);
+    const CommandLineArgumentValue &operator[](UTF8StringView key) const;
 
-        if (it == values.End()) {
-            return CommandLineArgumentValue { };
-        }
-
-        return it->second;
-    }
-
-    const String &GetCommand() const
+    HYP_FORCE_INLINE const String &GetCommand() const
         { return command; }
 
-    const Array<Pair<String, CommandLineArgumentValue>> &GetValues() const
+    HYP_FORCE_INLINE const Array<Pair<String, CommandLineArgumentValue>> &GetValues() const
         { return values; }
 
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
         { return values.Size(); }
 
-    ConstIterator Find(const String &key) const
+    HYP_FORCE_INLINE ConstIterator Find(const UTF8StringView &key) const
         { return values.FindIf([key](const auto &pair) { return pair.first == key; }); }
 
-    bool Contains(const String &key) const
+    HYP_FORCE_INLINE bool Contains(const UTF8StringView &key) const
         { return Find(key) != values.End(); }
 
     HYP_DEF_STL_BEGIN_END(
@@ -89,18 +90,18 @@ public:
         bool                    ok;
         Optional<String>        message;
 
-        explicit operator bool() const
+        HYP_FORCE_INLINE explicit operator bool() const
             { return ok; }
     };
 
     struct ArgumentDefinition
     {
-        String                      name;
-        Optional<String>            shorthand;
-        ArgFlags                    flags;
-        CommandLineArgumentType     type;
-        CommandLineArgumentValue    default_value;
-        Optional<Array<String>>     enum_values;
+        String                              name;
+        Optional<String>                    shorthand;
+        ArgFlags                            flags;
+        CommandLineArgumentType             type;
+        Optional<CommandLineArgumentValue>  default_value;
+        Optional<Array<String>>             enum_values;
     };
 
     // Add an argument - may be a string, int, float, bool.

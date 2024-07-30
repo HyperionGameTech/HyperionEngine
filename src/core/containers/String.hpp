@@ -86,9 +86,6 @@ public:
     friend constexpr bool operator<(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator==(const containers::detail::String<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
-
-    template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator==(const StringView<FirstStringType> &lhs, const containers::detail::String<SecondStringType> &rhs);
 
     String();

@@ -12,8 +12,6 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/system/ArgParse.hpp>
-
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/Memory.hpp>
@@ -56,18 +54,19 @@ HYP_MAKE_ENUM_FLAGS(WindowFlags)
 namespace sys {
 
 class SystemEvent;
+class CommandLineArguments;
 
 struct WindowOptions
 {
     ANSIString  title;
-    Vec2u       size;
+    Vec2i       size;
     WindowFlags flags = WindowFlags::NONE;
 };
 
 class HYP_API ApplicationWindow
 {
 public:
-    ApplicationWindow(ANSIString title, Vec2u size);
+    ApplicationWindow(ANSIString title, Vec2i size);
     ApplicationWindow(const ApplicationWindow &other)               = delete;
     ApplicationWindow &operator=(const ApplicationWindow &other)    = delete;
     virtual ~ApplicationWindow()                                    = default;
@@ -75,8 +74,8 @@ public:
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
 
-    virtual Vec2u GetDimensions() const = 0;
-    virtual void HandleResize(Vec2u new_size);
+    virtual Vec2i GetDimensions() const = 0;
+    virtual void HandleResize(Vec2i new_size);
 
     virtual void SetMouseLocked(bool locked) = 0;
     virtual bool HasMouseFocus() const = 0;
@@ -88,23 +87,23 @@ public:
     virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) = 0;
 #endif
 
-    Delegate<void, Vec2u>   OnWindowSizeChanged;
+    Delegate<void, Vec2i>   OnWindowSizeChanged;
 
 protected:
     ANSIString              m_title;
-    Vec2u                   m_size;
+    Vec2i                   m_size;
 };
 
 class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
 public:
-    SDLApplicationWindow(ANSIString title, Vec2u size);
+    SDLApplicationWindow(ANSIString title, Vec2i size);
     virtual ~SDLApplicationWindow() override;
 
     virtual void SetMousePosition(Vec2i position) override;
     virtual Vec2i GetMousePosition() const override;
 
-    virtual Vec2u GetDimensions() const override;
+    virtual Vec2i GetDimensions() const override;
 
     virtual void SetMouseLocked(bool locked) override;
     virtual bool HasMouseFocus() const override;
@@ -135,8 +134,7 @@ public:
     HYP_FORCE_INLINE const ANSIString &GetAppName() const
         { return m_name; }
 
-    HYP_FORCE_INLINE const CommandLineArguments &GetArguments() const
-        { return m_arguments; }
+    const CommandLineArguments &GetArguments() const;
 
     HYP_FORCE_INLINE ConfigurationTable &GetConfiguration()
         { return m_configuration; }
@@ -163,7 +161,7 @@ public:
 protected:
     UniquePtr<ApplicationWindow>    m_main_window;
     ANSIString                      m_name;
-    CommandLineArguments            m_arguments;
+    UniquePtr<CommandLineArguments> m_arguments;
     ConfigurationTable              m_configuration;
 };
 

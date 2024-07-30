@@ -50,7 +50,7 @@ void InputManager::CheckEvent(SystemEvent *event)
 
         switch (window_event_type) {
         case SystemWindowEventType::EVENT_WINDOW_RESIZED:
-            UpdateWindowSize(Vec2u(event->GetWindowResizeDimensions()));
+            UpdateWindowSize(event->GetWindowResizeDimensions());
             break;
         }
     }
@@ -83,7 +83,7 @@ void InputManager::UpdateMousePosition()
     m_mouse_position = m_window->GetMousePosition();
 }
 
-void InputManager::UpdateWindowSize(Vec2u new_size)
+void InputManager::UpdateWindowSize(Vec2i new_size)
 {
     //Threads::AssertOnThread(ThreadName::THREAD_INPUT);
     

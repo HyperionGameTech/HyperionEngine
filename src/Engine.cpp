@@ -32,6 +32,8 @@
 
 #include <core/net/NetRequestThread.hpp>
 
+#include <core/system/ArgParse.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
 namespace hyperion {
@@ -174,7 +176,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     AssertThrow(app_context != nullptr);
     m_app_context = app_context;
 
-    m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2u new_window_size)
+    m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i new_window_size)
     {
         HYP_LOG(Engine, LogLevel::INFO, "Resize window to {}", new_window_size);
 
@@ -219,10 +221,12 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_scripting_service->Start();
 
     m_net_request_thread.Reset(new net::NetRequestThread);
-    m_net_request_thread->Start();
+    // m_net_request_thread->Start();
 
     // must start after net request thread
-    StartProfilerConnectionThread();
+    if (m_app_context->GetArguments()["Profile"]) {
+        StartProfilerConnectionThread();
+    }
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // Global

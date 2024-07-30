@@ -6,12 +6,12 @@
 #include <asset/Assets.hpp>
 
 #include <core/system/AppContext.hpp>
+#include <core/system/ArgParse.hpp>
+
 #include <core/dll/DynamicLibrary.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
-
-#include <Engine.hpp>
 
 #include <util/fs/FsUtil.hpp>
 #include <util/json/JSON.hpp>
@@ -19,6 +19,8 @@
 #include <util/profiling/ProfileScope.hpp>
 
 #include <dotnet/Class.hpp>
+
+#include <Engine.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnetcore/hostfxr.h>

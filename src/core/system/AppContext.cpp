@@ -2,8 +2,8 @@
 
 #include <core/system/AppContext.hpp>
 #include <core/system/Debug.hpp>
-
 #include <core/system/SystemEvent.hpp>
+#include <core/system/ArgParse.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererDevice.hpp>
@@ -19,13 +19,13 @@ namespace sys {
 
 #pragma region ApplicationWindow
 
-ApplicationWindow::ApplicationWindow(ANSIString title, Vec2u size)
+ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size)
 {
 }
 
-void ApplicationWindow::HandleResize(Vec2u new_size)
+void ApplicationWindow::HandleResize(Vec2i new_size)
 {
     m_size = new_size;
 
@@ -36,7 +36,7 @@ void ApplicationWindow::HandleResize(Vec2u new_size)
 
 #pragma region SDLApplicationWindow
 
-SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2u size)
+SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
       window(nullptr)
 {
@@ -108,12 +108,12 @@ Vec2i SDLApplicationWindow::GetMousePosition() const
     return position;
 }
 
-Vec2u SDLApplicationWindow::GetDimensions() const
+Vec2i SDLApplicationWindow::GetDimensions() const
 {
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
 
-    return Vec2u { uint32(width), uint32(height) };
+    return Vec2i { width, height };
 }
 
 void SDLApplicationWindow::SetMouseLocked(bool locked)
@@ -214,17 +214,26 @@ bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 #pragma region AppContext
 
 AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
-    : m_arguments(arguments),
+    : m_arguments(UniquePtr<CommandLineArguments>::Construct(arguments)),
       m_configuration("app")
 {
-    if (name == nullptr) {
-        name = "HyperionApp";
-    }
-
     m_name = std::move(name);
+
+    if (m_name.Empty()) {
+        if (json::JSONValue config_app_name = m_configuration.Get("app.name")) {
+            m_name = m_configuration.Get("app.name").ToString();
+        }
+    }
 }
 
 AppContext::~AppContext() = default;
+
+const CommandLineArguments &AppContext::GetArguments() const
+{
+    AssertThrow(m_arguments != nullptr);
+
+    return *m_arguments;
+}
 
 void AppContext::SetMainWindow(UniquePtr<ApplicationWindow> &&window)
 {

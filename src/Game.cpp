@@ -256,7 +256,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     {
         if (m_input_manager->GetWindow()->HasMouseFocus()) {
             const Vec2i mouse_position = m_input_manager->GetMousePosition();
-            const Vec2u window_size = m_input_manager->GetWindow()->GetDimensions();
+            const Vec2i window_size = m_input_manager->GetWindow()->GetDimensions();
 
             const float mx = (float(mouse_position.x) - float(window_size.x) * 0.5f) / (float(window_size.x));
             const float my = (float(mouse_position.y) - float(window_size.y) * 0.5f) / (float(window_size.y));

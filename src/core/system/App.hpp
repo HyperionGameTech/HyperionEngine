@@ -2,7 +2,7 @@
 #define HYPERION_APP_HPP
 
 #include <core/Defines.hpp>
-#include <core/system/ArgParse.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
 
 namespace hyperion {
@@ -12,6 +12,7 @@ class Game;
 namespace sys {
 
 class AppContext;
+class CommandLineArguments;
 
 class HYP_API App
 {

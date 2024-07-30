@@ -139,7 +139,7 @@ public:
 
 private:
     void UpdateMousePosition();
-    void UpdateWindowSize(Vec2u new_size);
+    void UpdateWindowSize(Vec2i new_size);
 
     void SetKey(KeyCode key, bool pressed);
     void SetMouseButton(MouseButton btn, bool pressed);
