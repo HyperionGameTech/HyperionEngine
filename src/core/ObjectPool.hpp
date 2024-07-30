@@ -257,7 +257,7 @@ public:
         // Mutex for accessing the map
         Mutex                                                       mutex;
 
-        // Maps component type ID to object container
+        // Maps type ID to object container
         // Use a linked list so that iterators are never invalidated.
         LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>>    map;
 
@@ -311,8 +311,7 @@ public:
     HYP_API static ObjectContainerHolder &GetObjectContainerHolder();
 
     template <class T>
-    HYP_FORCE_INLINE
-    static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> *allotted_container)
+    HYP_FORCE_INLINE static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> *allotted_container)
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 
@@ -320,16 +319,14 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE
-    static UniquePtr<ObjectContainerBase> *AllotContainer()
+    HYP_FORCE_INLINE static UniquePtr<ObjectContainerBase> *AllotContainer()
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 
         return GetObjectContainerHolder().AllotObjectContainer(TypeID::ForType<T>());
     }
 
-    HYP_FORCE_INLINE
-    static ObjectContainerBase *TryGetContainer(TypeID type_id)
+    HYP_FORCE_INLINE static ObjectContainerBase *TryGetContainer(TypeID type_id)
     {
         return GetObjectContainerHolder().TryGetObjectContainer(type_id);
     }

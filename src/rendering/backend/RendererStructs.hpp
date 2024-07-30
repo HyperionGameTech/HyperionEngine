@@ -14,7 +14,6 @@
 
 namespace hyperion::renderer {
 
-
 using ImageFlags = uint32;
 
 enum ImageFlagBits : ImageFlags
@@ -136,8 +135,7 @@ struct TextureDesc
     uint32          num_layers = 1;
     uint32          num_faces = 1;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(type);
@@ -158,12 +156,10 @@ struct TextureData
     TextureDesc desc;
     ByteBuffer  buffer;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return buffer.Any(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(desc.GetHashCode());
@@ -274,80 +270,53 @@ struct BlendFunction
     BlendFunction &operator=(BlendFunction &&other) noexcept    = default;
     ~BlendFunction()                                            = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    BlendModeFactor GetSrcColor() const
+    HYP_FORCE_INLINE BlendModeFactor GetSrcColor() const
         { return BlendModeFactor(value & 0xF); }
 
-    HYP_FORCE_INLINE
-    void SetSrcColor(BlendModeFactor src)
+    HYP_FORCE_INLINE void SetSrcColor(BlendModeFactor src)
         { value |= uint32(src); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    BlendModeFactor GetDstColor() const
+    HYP_FORCE_INLINE BlendModeFactor GetDstColor() const
         { return BlendModeFactor((value >> 4) & 0xF); }
 
     HYP_FORCE_INLINE
     void SetDstColor(BlendModeFactor dst)
         { value |= uint32(dst) << 4; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    BlendModeFactor GetSrcAlpha() const
+    HYP_FORCE_INLINE BlendModeFactor GetSrcAlpha() const
         { return BlendModeFactor((value >> 8) & 0xF); }
 
-    HYP_FORCE_INLINE
-    void SetSrcAlpha(BlendModeFactor src)
+    HYP_FORCE_INLINE void SetSrcAlpha(BlendModeFactor src)
         { value |= uint32(src) << 8; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    BlendModeFactor GetDstAlpha() const
+    HYP_FORCE_INLINE BlendModeFactor GetDstAlpha() const
         { return BlendModeFactor((value >> 12) & 0xF); }
 
-    HYP_FORCE_INLINE
-    void SetDstAlpha(BlendModeFactor dst)
+    HYP_FORCE_INLINE void SetDstAlpha(BlendModeFactor dst)
         { value |= uint32(dst) << 12; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const BlendFunction &other) const
+    HYP_FORCE_INLINE bool operator==(const BlendFunction &other) const
         { return value == other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const BlendFunction &other) const
+    HYP_FORCE_INLINE bool operator!=(const BlendFunction &other) const
         { return value != other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const BlendFunction &other) const
+    HYP_FORCE_INLINE bool operator<(const BlendFunction &other) const
         { return value < other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
         { return HashCode::GetHashCode(value); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static BlendFunction None()
+    HYP_FORCE_INLINE static BlendFunction None()
         { return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static BlendFunction Default()
+    HYP_FORCE_INLINE static BlendFunction Default()
         { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static BlendFunction AlphaBlending()
+    HYP_FORCE_INLINE static BlendFunction AlphaBlending()
         { return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    static BlendFunction Additive()
+    HYP_FORCE_INLINE static BlendFunction Additive()
         { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE); }
 };
 
@@ -398,27 +367,16 @@ struct StencilFunction
     StencilFunction &operator=(StencilFunction &&other) noexcept    = default;
     ~StencilFunction()                                              = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const StencilFunction &other) const = default;
+    HYP_FORCE_INLINE bool operator==(const StencilFunction &other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const StencilFunction &other) const = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const StencilFunction &other) const = default;
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const StencilFunction &other) const
+    HYP_FORCE_INLINE bool operator<(const StencilFunction &other) const
         { return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsSet() const
-        { return mask != 0x0; }
+    HYP_FORCE_INLINE bool IsSet() const
+        { return mask != 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
         { return HashCode::GetHashCode(value); }
 };
 
@@ -458,13 +416,13 @@ struct PushConstantData
     PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
     ~PushConstantData()                                             = default;
 
-    const void *Data() const
+    HYP_FORCE_INLINE const void *Data() const
         { return data; }
 
-    uint Size() const
+    HYP_FORCE_INLINE uint Size() const
         { return size; }
 
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return size != 0; }
 };
 

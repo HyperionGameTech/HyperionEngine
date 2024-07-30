@@ -52,19 +52,13 @@ public:
     CommandBuffer &operator=(const CommandBuffer &other)    = delete;
     HYP_API ~CommandBuffer();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    CommandBufferPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE CommandBufferPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const CommandBufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const CommandBufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    CommandBufferType GetType() const
+    HYP_FORCE_INLINE CommandBufferType GetType() const
         { return m_type; }
 
     HYP_API Result Create(Device<PLATFORM> *device);
@@ -98,7 +92,7 @@ public:
     HYP_API void DebugMarkerEnd() const;
 
     template <class LambdaFunction>
-    Result Record(Device<PLATFORM> *device, const RenderPass<PLATFORM> *render_pass, const LambdaFunction &fn)
+    Result Record(Device<PLATFORM> *device, const RenderPass<PLATFORM> *render_pass, LambdaFunction &&fn)
     {
         HYPERION_BUBBLE_ERRORS(Begin(device, render_pass));
 

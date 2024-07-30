@@ -83,9 +83,9 @@ set(OpenGL_GL_PREFERENCE GLVND)
 link_directories(${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE} /usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
 find_package(PkgConfig)
-pkg_check_modules(GST gstreamer-1.0>=1.4
-                      gstreamer-video-1.0>=1.4
-                      gstreamer-app-1.0>=1.4)
+pkg_check_modules(GST gstreamer-1.0=1.24.5
+                      gstreamer-video-1.0=1.24.5
+                      gstreamer-app-1.0=1.24.5)
 
 # # TODO: Add windows, linux mono support
 # set(ENV{PKG_CONFIG_PATH} "/Library/Frameworks/Mono.framework/Versions/Current/lib/pkgconfig")
@@ -97,6 +97,7 @@ find_package(OpenAL)
 find_package(Vulkan)
 find_package(Bullet)
 find_package(Freetype)
+# find_package(CURL)
 
 if (NOT DEFINED RENDERING_BACKEND)
     if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
@@ -193,6 +194,24 @@ if(Bullet_FOUND)
         ${COMMON_LIBRARIES}
         ${BULLET_LIBRARIES}
     )
+endif()
+
+set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
+set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
+
+find_package(CURL)
+# include_directories(${CURL_INCLUDE_DIR})
+# link_directories(${CURL_LIBRARY})
+
+# message(STATUS "CURL found, linking to it: ${CURL_LIBRARIES}\nInclude directories: ${CURL_INCLUDE_DIRS}")
+
+if(CURL_FOUND)
+    message(STATUS "CURL found at ${CURL_INCLUDE_DIRS}")
+
+    add_definitions(-DHYP_CURL=1)
+
+    include_directories(${CURL_INCLUDE_DIRS})
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${CURL_LIBRARIES})
 endif()
 
 if (${NATIVE})

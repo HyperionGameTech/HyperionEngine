@@ -42,6 +42,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/net/HTTPRequest.hpp>
+
 #include <scripting/Script.hpp>
 #include <scripting/ScriptingService.hpp>
 
@@ -396,6 +398,13 @@ void HyperionEditorImpl::CreateMainPanel()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
+    net::HTTPRequest req("http://localhost:8000/test", net::HTTPMethod::GET);
+    auto response = req.Send();
+    auto json = response.Await().ToJSON();
+    if (json.HasValue()) {
+        HYP_LOG(Editor, LogLevel::INFO, "HTTP Response: {}", json.Get().ToString());
+    }
+
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
@@ -467,9 +476,6 @@ void HyperionEditorImpl::CreateMainPanel()
         }
 
         GetUIStage()->AddChildUIObject(loaded_ui);
-        // GetUIStage()->AddChildUIObject(loaded_ui->FindChildUIObject(NAME("Main_Panel")));
-
-        return;
 
         // overflowing inner sizes is messing up AABB calculation for higher up parents
 

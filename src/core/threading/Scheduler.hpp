@@ -96,7 +96,7 @@ public:
         // Callback to be executed after the task is completed
         OnTaskCompletedCallback     callback;
 
-        ScheduledTask() = default;
+        ScheduledTask()                                         = default;
 
         ScheduledTask(const ScheduledTask &other)               = delete;
         ScheduledTask &operator=(const ScheduledTask &other)    = delete;

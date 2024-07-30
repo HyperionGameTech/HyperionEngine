@@ -23,6 +23,7 @@ public:
     using Scheduler = Thread::Scheduler;
 
     TaskThread(const ThreadID &thread_id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    TaskThread(Name name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
     virtual ~TaskThread() override = default;
 

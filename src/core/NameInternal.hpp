@@ -81,30 +81,29 @@ struct Name
     constexpr Name(Name &&other) noexcept               = default;
     constexpr Name &operator=(Name &&other) noexcept    = default;
 
-    constexpr NameID GetID() const
+    HYP_FORCE_INLINE constexpr NameID GetID() const
         { return hash_code; }
 
-    constexpr bool IsValid() const
+    HYP_FORCE_INLINE constexpr bool IsValid() const
         { return hash_code != 0; }
 
-    constexpr explicit operator bool() const
+    HYP_FORCE_INLINE constexpr explicit operator bool() const
         { return IsValid(); }
 
-    constexpr explicit operator uint64() const
+    HYP_FORCE_INLINE constexpr explicit operator uint64() const
         { return hash_code; }
 
     /*! \brief For convenience, operator* is overloaded to return the string representation of the name,
      *  if it is found in the name registry. Otherwise, it returns an empty string. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const char *operator*() const
+    HYP_FORCE_INLINE const char *operator*() const
         { return LookupString(); }
 
-    constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
 
     /*! \brief Returns the string representation of the name, if it is found in the name registry.
      *  Otherwise, it returns an empty string. */
-    HYP_NODISCARD HYP_API const char *LookupString() const;
+    HYP_API const char *LookupString() const;
 
     HYP_API static NameRegistry *GetRegistry();
 
@@ -113,8 +112,7 @@ struct Name
     /*! \brief Generates a unique name with a prefix. */
     HYP_API static Name Unique(const char *prefix);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static constexpr Name Invalid()
+    HYP_FORCE_INLINE static constexpr Name Invalid()
         { return Name { 0 }; };
 
     // template <class StaticStringType>
@@ -191,23 +189,22 @@ struct WeakName
     constexpr WeakName(WeakName &&other) noexcept               = default;
     constexpr WeakName &operator=(WeakName &&other) noexcept    = default;
 
-    constexpr NameID GetID() const
+    HYP_FORCE_INLINE constexpr NameID GetID() const
         { return hash_code; }
 
-    constexpr bool IsValid() const
+    HYP_FORCE_INLINE constexpr bool IsValid() const
         { return hash_code != 0; }
 
-    constexpr explicit operator bool() const
+    HYP_FORCE_INLINE constexpr explicit operator bool() const
         { return IsValid(); }
 
-    constexpr explicit operator uint64() const
+    HYP_FORCE_INLINE constexpr explicit operator uint64() const
         { return hash_code; }
 
-    constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static constexpr WeakName Invalid()
+    HYP_FORCE_INLINE static constexpr WeakName Invalid()
         { return WeakName { }; };
 };
 
@@ -349,12 +346,6 @@ constexpr Name MakeName_Impl(StringType str_arg)
 
     return Name { CreateNameFromStaticString_WithLock<HashCode::GetHashCode(str)>(str.data).hash_code };
 }
-
-// template <class StringType>
-// constexpr auto MakeStaticString_Impl(StringType str_arg)
-// {
-//     return StaticString(HYP_GET_CONST_ARG(str_arg));
-// }
 
 } // namespace detail
 

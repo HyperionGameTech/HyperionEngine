@@ -420,14 +420,14 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertSubResourceBarrier(
         | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
         | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
-    VkImageSubresourceRange range{};
+    VkImageSubresourceRange range { };
     range.aspectMask = aspect_flag_bits;
     range.baseArrayLayer = sub_resource.base_array_layer;
     range.layerCount = sub_resource.num_layers;
     range.baseMipLevel = sub_resource.base_mip_level;
     range.levelCount = sub_resource.num_levels;
 
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.oldLayout = GetVkImageLayout(prev_resource_state);
     barrier.newLayout = GetVkImageLayout(new_state);
     barrier.srcAccessMask = GetVkAccessMask(prev_resource_state);

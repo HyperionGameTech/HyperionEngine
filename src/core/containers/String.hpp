@@ -739,7 +739,7 @@ String<StringType>::String(const CharType *_begin, const CharType *_end)
         return;
     }
 
-    const SizeType cp = SizeType(_end - _begin);
+    const SizeType size = SizeType(_end - _begin);
 
     if constexpr (is_utf8) {
         const int len = utf::utf8_strlen(_begin, _end);
@@ -751,14 +751,14 @@ String<StringType>::String(const CharType *_begin, const CharType *_end)
 
         m_length = len;
     } else {
-        m_length = cp;
+        m_length = size;
     }
     
-    Base::Resize(cp + 1);
+    Base::Resize(size + 1);
 
     CharType *data = Data();
 
-    for (int i = 0; i < cp; ++i) {
+    for (int i = 0; i < size; ++i) {
         data[i] = _begin[i];
     }
 }

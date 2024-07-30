@@ -101,10 +101,10 @@ struct StaticString
     }
 
     constexpr operator StringView<StringType::ANSI>() const
-        { return StringView<StringType::ANSI>(Begin(), Begin() + Sz); }
+        { return StringView<StringType::ANSI>(Begin(), Begin() + Sz - 1); }
 
     constexpr operator StringView<StringType::UTF8>() const
-        { return StringView<StringType::UTF8>(Begin(), Begin() + Sz); }
+        { return StringView<StringType::UTF8>(Begin(), Begin() + Sz - 1); }
 
     template <typename IntegerSequence, int Index = 0>
     constexpr SizeType FindFirst() const

@@ -42,6 +42,10 @@ class AppContext;
 
 using sys::AppContext;
 
+namespace net {
+class NetRequestThread;
+} // namespace net
+
 class Engine;
 class Game;
 class GameThread;
@@ -199,6 +203,9 @@ public:
     HYP_FORCE_INLINE const MaterialDescriptorSetManager &GetMaterialDescriptorSetManager() const
         { return m_material_descriptor_set_manager; }
 
+    HYP_FORCE_INLINE net::NetRequestThread *GetNetRequestThread() const
+        { return m_net_request_thread.Get(); }
+
     HYP_FORCE_INLINE EngineDelegates &GetDelegates()
         { return m_delegates; }
 
@@ -258,6 +265,8 @@ private:
     UniquePtr<FinalPass>                                    m_final_pass;
 
     UniquePtr<ScriptingService>                             m_scripting_service;
+
+    UniquePtr<net::NetRequestThread>                        m_net_request_thread;
 
     CrashHandler                                            m_crash_handler;
 

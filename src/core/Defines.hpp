@@ -383,7 +383,7 @@
 #pragma region Engine Static Configuration
 
 #define HYP_FEATURES_PARALLEL_RENDERING 1
-// #define HYP_ENABLE_PROFILE
+#define HYP_ENABLE_PROFILE
 
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1

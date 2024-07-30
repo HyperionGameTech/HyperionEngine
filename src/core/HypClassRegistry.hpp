@@ -43,8 +43,7 @@ public:
      *  \return The HypClass instance for the given type, or the null HypClass instance if the type is not registered.
      */
     template <class T>
-    HYP_FORCE_INLINE
-    const HypClass *GetClass() const
+    HYP_FORCE_INLINE const HypClass *GetClass() const
     {
         return GetClass(TypeID::ForType<NormalizedType<T>>());
     }

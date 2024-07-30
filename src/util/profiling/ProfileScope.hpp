@@ -8,6 +8,10 @@
 #include <core/utilities/StringView.hpp>
 
 #include <core/containers/FixedArray.hpp>
+#include <core/containers/String.hpp>
+#include <core/containers/Queue.hpp>
+
+#include <core/threading/Mutex.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Util.hpp> // For HYP_PRETTY_FUNCTION_NAME
@@ -18,6 +22,12 @@ namespace hyperion {
 
 class ProfileScopeStack;
 struct ProfileScopeEntry;
+
+class ProfilerConnection;
+
+extern HYP_API void SetProfilerConnectionEndpoint(ANSIStringView endpoint_url);
+extern HYP_API void StartProfilerConnectionThread();
+extern HYP_API void StopProfilerConnectionThread();
 
 struct HYP_API ProfileScope
 {

@@ -15,6 +15,14 @@ TaskThread::TaskThread(const ThreadID &thread_id, ThreadPriorityValue priority)
 {
 }
 
+TaskThread::TaskThread(Name name, ThreadPriorityValue priority)
+    : Thread(name, priority),
+      m_is_running(false),
+      m_stop_requested(false),
+      m_num_tasks(0)
+{
+}
+
 void TaskThread::Stop()
 {
     m_stop_requested.Set(true, MemoryOrder::RELAXED);

@@ -69,10 +69,10 @@ struct DescriptorSetLayoutElement
     uint                        count = 1; // Set to -1 for bindless
     uint                        size = -1;
 
-    bool IsBindless() const
+    HYP_FORCE_INLINE bool IsBindless() const
         { return count == ~0u; }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -121,8 +121,7 @@ struct DescriptorDeclaration
     bool                is_dynamic = false;
     uint                index = ~0u;
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -166,21 +165,21 @@ struct DescriptorSetDeclaration
     DescriptorSetDeclaration &operator=(DescriptorSetDeclaration &&other) noexcept  = default;
     ~DescriptorSetDeclaration()                                                     = default;
 
-    Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot)
+    HYP_FORCE_INLINE Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot)
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
         return slots[uint(slot) - 1];
     }
 
-    const Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot) const
+    HYP_FORCE_INLINE const Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot) const
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
         return slots[uint(slot) - 1];
     }
 
-    void AddDescriptorDeclaration(renderer::DescriptorDeclaration decl)
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(renderer::DescriptorDeclaration decl)
     {
         AssertThrow(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
 
@@ -194,8 +193,7 @@ struct DescriptorSetDeclaration
 
     DescriptorDeclaration *FindDescriptorDeclaration(Name name) const;
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -251,7 +249,7 @@ public:
     {
         HashCode hc;
 
-        for (const auto &decl : m_elements) {
+        for (const DescriptorSetDeclaration &decl : m_elements) {
             hc.Add(decl.GetHashCode());
         }
 
@@ -405,19 +403,19 @@ public:
 
     DescriptorSetRef<PLATFORM> CreateDescriptorSet() const;
 
-    Name GetName() const
+    HYP_FORCE_INLINE Name GetName() const
         { return m_decl.name; }
 
-    const DescriptorSetDeclaration &GetDeclaration() const
+    HYP_FORCE_INLINE const DescriptorSetDeclaration &GetDeclaration() const
         { return m_decl; }
 
-    const HashMap<Name, DescriptorSetLayoutElement> &GetElements() const
+    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetLayoutElement> &GetElements() const
         { return m_elements; }
 
-    void AddElement(Name name, DescriptorSetElementType type, uint binding, uint count, uint size = -1)
+    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint binding, uint count, uint size = -1)
         { m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size }); }
 
-    const DescriptorSetLayoutElement *GetElement(Name name) const
+    HYP_FORCE_INLINE const DescriptorSetLayoutElement *GetElement(Name name) const
     {
         const auto it = m_elements.Find(name);
 
@@ -428,10 +426,10 @@ public:
         return &it->second;
     }
 
-    const Array<Name> &GetDynamicElements() const
+    HYP_FORCE_INLINE const Array<Name> &GetDynamicElements() const
         { return m_dynamic_elements; }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -486,8 +484,7 @@ struct DescriptorSetElement
         }
     }
 
-    HYP_FORCE_INLINE
-    bool IsDirty() const
+    HYP_FORCE_INLINE bool IsDirty() const
         { return bool(dirty_range); }
 };
 

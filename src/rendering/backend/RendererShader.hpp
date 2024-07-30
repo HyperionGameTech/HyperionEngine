@@ -86,34 +86,22 @@ public:
     Shader &operator=(const Shader &other)    = delete;
     HYP_API ~Shader();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ShaderPlatformImpl<PLATFORM> &GetPlatformImpl()
+    HYP_FORCE_INLINE ShaderPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ShaderPlatformImpl<PLATFORM> &GetPlatformImpl() const
+    HYP_FORCE_INLINE const ShaderPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const String &GetEntryPointName() const
+    HYP_FORCE_INLINE const String &GetEntryPointName() const
         { return m_entry_point_name; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Array<ShaderModule<PLATFORM>> &GetShaderModules() const
+    HYP_FORCE_INLINE const Array<ShaderModule<PLATFORM>> &GetShaderModules() const
         { return m_shader_modules; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Array<ShaderGroup<PLATFORM>> &GetShaderGroups() const
+    HYP_FORCE_INLINE const Array<ShaderGroup<PLATFORM>> &GetShaderGroups() const
         { return m_shader_groups; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsRaytracing() const
+    HYP_FORCE_INLINE bool IsRaytracing() const
     {
         return m_shader_modules.Any([](const ShaderModule<PLATFORM> &it)
         {
@@ -123,9 +111,7 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const RC<CompiledShader> &GetCompiledShader() const
+    HYP_FORCE_INLINE const RC<CompiledShader> &GetCompiledShader() const
         { return m_compiled_shader; }
 
     HYP_API void SetCompiledShader(const RC<CompiledShader> &compiled_shader);
@@ -133,9 +119,7 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 

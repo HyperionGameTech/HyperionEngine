@@ -30,6 +30,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/net/NetRequestThread.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
 namespace hyperion {
@@ -216,6 +218,12 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_scripting_service->Start();
 
+    m_net_request_thread.Reset(new net::NetRequestThread);
+    m_net_request_thread->Start();
+
+    // must start after net request thread
+    StartProfilerConnectionThread();
+
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // Global
 
@@ -354,6 +362,19 @@ void Engine::FinalizeStop()
 
     m_scripting_service->Stop();
     m_scripting_service.Reset();
+
+    // must stop before net request thread
+    StopProfilerConnectionThread();
+
+    if (m_net_request_thread != nullptr) {
+        if (m_net_request_thread->IsRunning()) {
+            m_net_request_thread->Stop();
+        }
+
+        if (m_net_request_thread->CanJoin()) {
+            m_net_request_thread->Join();
+        }
+    }
 
     m_world.Reset();
 

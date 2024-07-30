@@ -4,8 +4,6 @@
 #define HYPERION_BACKEND_RENDERER_ASYNC_COMPUTE_HPP
 
 #include <core/Defines.hpp>
-#include <math/MathUtil.hpp>
-#include <math/Extent.hpp>
 
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/ArrayMap.hpp>
@@ -14,6 +12,9 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+
+#include <math/MathUtil.hpp>
+#include <math/Extent.hpp>
 
 #include <Types.hpp>
 
@@ -41,7 +42,7 @@ public:
     AsyncCompute &operator=(AsyncCompute &&) noexcept   = delete;
     HYP_API ~AsyncCompute();
 
-    bool IsSupported() const
+    HYP_FORCE_INLINE bool IsSupported() const
         { return m_is_supported; }
 
     HYP_API Result Create(Device<PLATFORM> *device);

@@ -5,7 +5,6 @@
 namespace hyperion {
 namespace renderer {
 
-
 StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
 {
     if (required_size == 0) {

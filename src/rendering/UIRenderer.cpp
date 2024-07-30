@@ -350,7 +350,6 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
 void UIRenderList::CollectDrawCalls(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
