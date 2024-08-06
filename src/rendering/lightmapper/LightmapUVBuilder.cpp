@@ -95,7 +95,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
         for (SizeType i = 0; i < ref->GetMeshData().vertices.Size(); i++) {
             const Vec3f position = element.transform * ref->GetMeshData().vertices[i].GetPosition();
-            const Vec3f normal = (normal_matrix * Vec4f(ref->GetMeshData().vertices[i].GetNormal(), 0.0f)).GetXYZ();
+            const Vec3f normal = (normal_matrix * Vec4f(ref->GetMeshData().vertices[i].GetNormal(), 0.0f)).GetXYZ().Normalize();
             const Vec2f uv = ref->GetMeshData().vertices[i].GetTexCoord0();
 
             lightmap_mesh_data.vertex_positions[i * 3] = position.x;

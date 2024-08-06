@@ -11,7 +11,7 @@ Vec3f MathUtil::RandomInSphere(Vec3f rnd)
     float ang1 = (rnd.x + 1.0) * pi<float>;
     float u = rnd.y;
     float u2 = u * u;
-    float sqrt1MinusU2 = Sqrt(1.0 - u2);
+    float sqrt1MinusU2 = Sqrt(1.0f - u2);
     float x = sqrt1MinusU2 * Cos(ang1);
     float y = sqrt1MinusU2 * Sin(ang1);
     float z = u;
@@ -23,7 +23,7 @@ Vec3f MathUtil::RandomInHemisphere(Vec3f rnd, Vec3f n)
 {
     const Vec3f v = RandomInSphere(rnd);
 
-    return v * float(Sign(v.Dot(n)));
+    return v * float(Sign(v.Dot(n.Normalize())));
 }
 
 Vec2f MathUtil::VogelDisk(uint sample_index, uint num_samples, float phi)

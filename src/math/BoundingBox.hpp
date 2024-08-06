@@ -15,6 +15,8 @@
 
 namespace hyperion {
 
+class Triangle;
+
 class HYP_API BoundingBox
 {
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
@@ -96,6 +98,8 @@ public:
 
     // does this AABB completely contain other?
     bool Contains(const BoundingBox &other) const;
+
+    bool ContainsTriangle(const Triangle &triangle) const;
 
     bool ContainsPoint(const Vec3f &vec) const;
     

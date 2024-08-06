@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <math/BoundingBox.hpp>
+#include <math/Triangle.hpp>
 #include <math/MathUtil.hpp>
 
 #include <core/HypClassUtils.hpp>
@@ -242,6 +243,54 @@ bool BoundingBox::Contains(const BoundingBox &other) const
     if (!ContainsPoint(corners[5])) return false;
     if (!ContainsPoint(corners[6])) return false;
     if (!ContainsPoint(corners[7])) return false;
+
+    return true;
+}
+
+bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
+{
+    // Get the axes to test for separation
+    static const FixedArray<Vec3f, 3> axes = {
+        Vec3f(1.0f, 0.0f, 0.0f),
+        Vec3f(0.0f, 1.0f, 0.0f),
+        Vec3f(0.0f, 0.0f, 1.0f)
+    };
+
+    // Get the corners of the bounding box
+    const FixedArray<Vec3f, 8> aabb_corners = GetCorners();
+
+    // Get the corners of the triangle
+    const FixedArray<Vec3f, 3> triangle_corners = {
+        triangle.GetPoint(0).GetPosition(),
+        triangle.GetPoint(1).GetPosition(),
+        triangle.GetPoint(2).GetPosition()
+    };
+
+    for (const Vec3f &axis : axes) {
+        float aabb_min = MathUtil::MaxSafeValue<float>();
+        float aabb_max = MathUtil::MinSafeValue<float>();
+        
+        for (const Vec3f &corner : aabb_corners) {
+            const float projection = corner.Dot(axis);
+
+            aabb_min = MathUtil::Min(aabb_min, projection);
+            aabb_max = MathUtil::Max(aabb_max, projection);
+        }
+
+        float triangle_min = MathUtil::MaxSafeValue<float>();
+        float triangle_max = MathUtil::MinSafeValue<float>();
+
+        for (const Vec3f &corner : triangle_corners) {
+            const float projection = corner.Dot(axis);
+
+            triangle_min = MathUtil::Min(triangle_min, projection);
+            triangle_max = MathUtil::Max(triangle_max, projection);
+        }
+
+        if (aabb_max < triangle_min || aabb_min > triangle_max) {
+            return false;
+        }
+    }
 
     return true;
 }

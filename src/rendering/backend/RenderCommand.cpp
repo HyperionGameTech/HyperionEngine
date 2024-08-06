@@ -30,7 +30,6 @@ uint RenderCommands::buffer_index = 0;
 void RenderScheduler::Commit(RenderCommand *command)
 {
     m_commands.PushBack(command);
-    m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
 }
 
 void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
@@ -45,6 +44,8 @@ void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 
 void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command)
 {
+    scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
+
     std::unique_lock lock(mtx);
 
     scheduler.Commit(command);

@@ -174,20 +174,8 @@ private:
 
                     for (const Triangle &triangle : m_triangles) {
                         for (const UniquePtr<LightmapBVHNode> &node : m_children) {
-                            bool intersects_triangle = false;
-
-                            for (int i = 0; i < 3; i++) {
-                                if (node->GetAABB().ContainsPoint(triangle.GetPoint(i).GetPosition())) {
-                                    intersects_triangle = true;
-
-                                    break;
-                                }
-                            }
-
-                            if (intersects_triangle) {
+                            if (node->GetAABB().ContainsTriangle(triangle)) {
                                 node->m_triangles.PushBack(triangle);
-
-                                break;
                             }
                         }
                     }
@@ -281,17 +269,17 @@ private:
             triangle[1].position = model_matrix * triangle[1].position;
             triangle[2].position = model_matrix * triangle[2].position;
 
-            triangle[0].normal = (normal_matrix * Vec4f(triangle[0].normal, 0.0f)).GetXYZ();
-            triangle[1].normal = (normal_matrix * Vec4f(triangle[1].normal, 0.0f)).GetXYZ();
-            triangle[2].normal = (normal_matrix * Vec4f(triangle[2].normal, 0.0f)).GetXYZ();
+            triangle[0].normal = (model_matrix * Vec4f(triangle[0].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[1].normal = (model_matrix * Vec4f(triangle[1].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[2].normal = (model_matrix * Vec4f(triangle[2].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
 
-            triangle[0].tangent = (normal_matrix * Vec4f(triangle[0].tangent, 0.0f)).GetXYZ();
-            triangle[1].tangent = (normal_matrix * Vec4f(triangle[1].tangent, 0.0f)).GetXYZ();
-            triangle[2].tangent = (normal_matrix * Vec4f(triangle[2].tangent, 0.0f)).GetXYZ();
+            triangle[0].tangent = (model_matrix * Vec4f(triangle[0].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[1].tangent = (model_matrix * Vec4f(triangle[1].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[2].tangent = (model_matrix * Vec4f(triangle[2].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
 
-            triangle[0].bitangent = (normal_matrix * Vec4f(triangle[0].bitangent, 0.0f)).GetXYZ();
-            triangle[1].bitangent = (normal_matrix * Vec4f(triangle[1].bitangent, 0.0f)).GetXYZ();
-            triangle[2].bitangent = (normal_matrix * Vec4f(triangle[2].bitangent, 0.0f)).GetXYZ();
+            triangle[0].bitangent = (model_matrix * Vec4f(triangle[0].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[1].bitangent = (model_matrix * Vec4f(triangle[1].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+            triangle[2].bitangent = (model_matrix * Vec4f(triangle[2].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
 
             root->AddTriangle(triangle);
         }
@@ -691,22 +679,22 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         };
 
         const Vec3f vertex_normals[3] = {
-            (normal_matrix * Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 0]].normal, 0.0f)).GetXYZ(),
-            (normal_matrix * Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 1]].normal, 0.0f)).GetXYZ(),
-            (normal_matrix * Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 2]].normal, 0.0f)).GetXYZ()
+            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 0]].normal, 0.0f)).GetXYZ(),
+            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 1]].normal, 0.0f)).GetXYZ(),
+            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 2]].normal, 0.0f)).GetXYZ()
         };
 
         const Vec3f position = vertex_positions[0] * uv.barycentric_coords.x
             + vertex_positions[1] * uv.barycentric_coords.y
             + vertex_positions[2] * uv.barycentric_coords.z;
         
-        const Vec3f normal = (vertex_normals[0] * uv.barycentric_coords.x
+        const Vec3f normal = (uv.transform * Vec4f((vertex_normals[0] * uv.barycentric_coords.x
             + vertex_normals[1] * uv.barycentric_coords.y
-            + vertex_normals[2] * uv.barycentric_coords.z).Normalize();
+            + vertex_normals[2] * uv.barycentric_coords.z), 0.0f)).GetXYZ().Normalize();
 
         out_rays.PushBack(LightmapRay {
             Ray {
-                position + normal * 0.01f,
+                position,
                 normal
             },
             mesh.GetID(),
@@ -736,8 +724,6 @@ void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *h
             uv.irradiance = (uv.irradiance * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
             break;
         }
-
-        //uv.color = (uv.color * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
     }
 }
 
@@ -765,6 +751,10 @@ void LightmapJob::TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayl
     }
     
     for (const Pair<float, LightmapRayHitData> &hit_data : results) {
+        if (hit_data.first < 0.0f) {
+            continue;
+        }
+
         if (!hit_data.second.entity.IsValid()) {
             continue;
         }
@@ -772,7 +762,7 @@ void LightmapJob::TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayl
         const MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(hit_data.second.entity);
         const TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(hit_data.second.entity);
 
-        if (mesh_component != nullptr && mesh_component->mesh.IsValid() && mesh_component->material.IsValid() && mesh_component->mesh->NumIndices() != 0 && transform_component != nullptr) {
+        if (mesh_component != nullptr && mesh_component->mesh.IsValid() && mesh_component->material.IsValid()) {
             const ID<Mesh> mesh_id = mesh_component->mesh.GetID();
 
             const Vec3f barycentric_coords = hit_data.second.hit.barycentric_coords;
@@ -804,7 +794,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 {
     rays.ParallelForEach(TaskSystem::GetInstance(), [this, shading_type](const LightmapRay &first_ray, uint index, uint batch_index)
     {
-        uint32 seed = uint32((uint64(Time::Now()) % UINT32_MAX) ^ (index << 16));
+        uint32 seed = (uint32)rand();//index * m_texel_index;
 
         FixedArray<LightmapRay, max_bounces_cpu + 1> rays;
         
@@ -853,9 +843,11 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
                 // @TODO Sample environment map
                 const Vec3f normal = bounce_index == 0 ? first_ray.ray.direction : bounces[bounce_index - 1].normal;
 
-                // testing!! @FIXME
-                const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
-                payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+                // // testing!! @FIXME
+                // const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
+                // payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+
+                payload.emissive += Vec4f(1.0f);
 
                 ++num_bounces;
 
@@ -1165,64 +1157,64 @@ void LightmapRenderer::HandleCompletedJob(LightmapJob *job)
         uv_map.ToBitmapIrradiance()
     };
 
-    for (auto &bitmap : bitmaps) {
-        Bitmap<4, float> bitmap_dilated = bitmap;
+    // for (auto &bitmap : bitmaps) {
+    //     Bitmap<4, float> bitmap_dilated = bitmap;
 
-        // Dilate lightmap
-        for (uint x = 0; x < bitmap.GetWidth(); x++) {
-            for (uint y = 0; y < bitmap.GetHeight(); y++) {
-                Vec3f color = bitmap.GetPixel(x, y);
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y - 1));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x, y - 1));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y - 1));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y + 1));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x, y + 1));
-                color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y + 1));
+    //     // Dilate lightmap
+    //     for (uint x = 0; x < bitmap.GetWidth(); x++) {
+    //         for (uint y = 0; y < bitmap.GetHeight(); y++) {
+    //             Vec3f color = bitmap.GetPixel(x, y);
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y - 1));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x, y - 1));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y - 1));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x - 1, y + 1));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x, y + 1));
+    //             color = MathUtil::Max(color.x, MathUtil::Max(color.y, color.z)) > 0.0f ? color : Vec3f(bitmap.GetPixel(x + 1, y + 1));
 
-                bitmap_dilated.GetPixel(x, y) = color;
-            }
-        }
+    //             bitmap_dilated.GetPixel(x, y) = color;
+    //         }
+    //     }
 
-        bitmap = bitmap_dilated;
+    //     bitmap = bitmap_dilated;
 
-        // Apply bilateral blur
-        Bitmap<4, float> bitmap_blurred = bitmap;
+    //     // Apply bilateral blur
+    //     Bitmap<4, float> bitmap_blurred = bitmap;
 
-        for (uint x = 0; x < bitmap.GetWidth(); x++) {
-            for (uint y = 0; y < bitmap.GetHeight(); y++) {
-                Vec3f color = Vec3f(0.0f);
+    //     for (uint x = 0; x < bitmap.GetWidth(); x++) {
+    //         for (uint y = 0; y < bitmap.GetHeight(); y++) {
+    //             Vec3f color = Vec3f(0.0f);
 
-                float total_weight = 0.0f;
+    //             float total_weight = 0.0f;
 
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dy = -1; dy <= 1; dy++) {
-                        const uint nx = x + dx;
-                        const uint ny = y + dy;
+    //             for (int dx = -1; dx <= 1; dx++) {
+    //                 for (int dy = -1; dy <= 1; dy++) {
+    //                     const uint nx = x + dx;
+    //                     const uint ny = y + dy;
 
-                        if (nx >= bitmap.GetWidth() || ny >= bitmap.GetHeight()) {
-                            continue;
-                        }
+    //                     if (nx >= bitmap.GetWidth() || ny >= bitmap.GetHeight()) {
+    //                         continue;
+    //                     }
 
-                        const Vec3f neighbor_color = bitmap.GetPixel(nx, ny);
+    //                     const Vec3f neighbor_color = bitmap.GetPixel(nx, ny);
 
-                        const float spatial_weight = MathUtil::Exp(-float(dx * dx + dy * dy) / (2.0f * 1.0f));
-                        const float color_weight = MathUtil::Exp(-(neighbor_color - bitmap.GetPixel(x, y)).LengthSquared() / (2.0f * 0.1f));
+    //                     const float spatial_weight = MathUtil::Exp(-float(dx * dx + dy * dy) / (2.0f * 1.0f));
+    //                     const float color_weight = MathUtil::Exp(-(neighbor_color - bitmap.GetPixel(x, y)).LengthSquared() / (2.0f * 0.1f));
 
-                        const float weight = spatial_weight * color_weight;
+    //                     const float weight = spatial_weight * color_weight;
 
-                        color += neighbor_color * weight;
-                        total_weight += weight;
-                    }
-                }
+    //                     color += neighbor_color * weight;
+    //                     total_weight += weight;
+    //                 }
+    //             }
 
-                bitmap_blurred.GetPixel(x, y) = color / MathUtil::Max(total_weight, MathUtil::epsilon_f);
-            }
-        }
+    //             bitmap_blurred.GetPixel(x, y) = color / MathUtil::Max(total_weight, MathUtil::epsilon_f);
+    //         }
+    //     }
 
-        bitmap = bitmap_blurred;
-    }
+    //     bitmap = bitmap_blurred;
+    // }
     
     // Temp; write to rgb8 bitmap
     uint num = rand() % 150;

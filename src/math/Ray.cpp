@@ -58,7 +58,7 @@ bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_da
         distance = tmax;
     }
 
-    const auto hitpoint = position + (direction * distance);
+    const Vec3f hitpoint = position + (direction * distance);
 
     out_results.AddHit(RayHit {
         .hitpoint = hitpoint,

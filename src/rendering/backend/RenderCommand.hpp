@@ -214,6 +214,8 @@ public:
 
         Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
 
+        scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
+
         std::unique_lock lock(mtx);
         
         void *mem = Alloc<T>(buffer_index);
