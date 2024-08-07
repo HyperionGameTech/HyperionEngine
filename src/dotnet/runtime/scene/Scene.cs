@@ -3,11 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding]
     public class Scene
     {
         private ManagedHandle handle;
-
-
         private Node? root;
         private EntityManager? entityManager;
 
@@ -92,7 +91,7 @@ namespace Hyperion
         private static extern TypeID Scene_GetTypeID();
 
         [DllImport("hyperion", EntryPoint = "Scene_Create")]
-        private static extern void Scene_Create([Out] out ManagedHandle scene);
+        private static extern void Scene_Create([Out] out ManagedHandle handle);
 
         [DllImport("hyperion", EntryPoint = "Scene_GetWorld")]
         private static extern IntPtr Scene_GetWorld(ManagedHandle scene);

@@ -9,11 +9,18 @@
 
 #include <core/containers/TypeMap.hpp>
 
+#include <core/threading/Mutex.hpp>
+
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 #include <core/Util.hpp>
 
 namespace hyperion {
+
+namespace dotnet {
+class Class;
+class Object;
+} // namespace dotnet
 
 class HypClass;
 
@@ -64,8 +71,14 @@ public:
 
     void RegisterClass(TypeID type_id, HypClass *hyp_class);
 
+    void RegisterManagedClass(const HypClass *hyp_class, dotnet::Class *managed_class);
+    dotnet::Class *GetManagedClass(const HypClass *hyp_class) const;
+
 private:
-    TypeMap<HypClass *> m_registered_classes;
+    TypeMap<HypClass *>                     m_registered_classes;
+
+    HashMap<HypClass *, dotnet::Class *>    m_managed_classes;
+    mutable Mutex                           m_managed_classes_mutex;
 };
 
 namespace detail {

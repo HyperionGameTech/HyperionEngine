@@ -9,6 +9,9 @@
 #include <dotnet/interop/ManagedGuid.hpp>
 
 namespace hyperion {
+
+class HypClass;
+
 namespace dotnet {
 
 extern "C" {
@@ -38,6 +41,7 @@ public:
         { return m_owner_assembly; }
 
     Class *NewClass(int32 type_hash, const char *type_name, Class *parent_class);
+    Class *NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class);
     Class *FindClassByName(const char *type_name);
     Class *FindClassByTypeHash(int32 type_hash);
 

@@ -7,6 +7,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/HypClassRegistry.hpp>
+
 namespace hyperion {
 namespace dotnet {
 
@@ -61,6 +63,11 @@ bool ClassHolder::CheckAssemblyLoaded() const
 
 Class *ClassHolder::NewClass(int32 type_hash, const char *type_name, Class *parent_class)
 {
+    return NewClass(nullptr, type_hash, type_name, parent_class);
+}
+
+Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class)
+{
     auto it = m_class_objects.Find(type_hash);
 
     if (it != m_class_objects.End()) {
@@ -70,6 +77,10 @@ Class *ClassHolder::NewClass(int32 type_hash, const char *type_name, Class *pare
     }
 
     it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class))).first;
+
+    if (hyp_class != nullptr) {
+        HypClassRegistry::GetInstance().RegisterManagedClass(hyp_class, it->second.Get());
+    }
 
     return it->second.Get();
 }

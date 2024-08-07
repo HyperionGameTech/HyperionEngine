@@ -81,30 +81,25 @@ inline bool InitObject(Handle<T> &handle)
 }
 
 template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE
-inline const HypClass *GetClass()
+HYP_FORCE_INLINE const HypClass *GetClass()
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
 template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE
-inline const HypClass *GetClass(const T *ptr)
+HYP_FORCE_INLINE const HypClass *GetClass(const T *ptr)
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
 template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE
-inline const HypClass *GetClass(const Handle<T> &handle)
+HYP_FORCE_INLINE const HypClass *GetClass(const Handle<T> &handle)
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();
 }
 
-HYP_NODISCARD
 HYP_API const HypClass *GetClass(TypeID type_id);
 
-HYP_NODISCARD
 HYP_API const HypClass *GetClass(WeakName type_name);
 
 } // namespace hyperion

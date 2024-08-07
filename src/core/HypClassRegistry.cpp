@@ -51,6 +51,36 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
     m_registered_classes.Set(type_id, hyp_class);
 }
 
+void HypClassRegistry::RegisterManagedClass(const HypClass *hyp_class, dotnet::Class *managed_class)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(managed_class != nullptr);
+
+    Mutex::Guard guard(m_managed_classes_mutex);
+
+    auto it = m_managed_classes.FindAs(hyp_class);
+    AssertThrowMsg(it == m_managed_classes.End(), "Class %s already has a managed class registered for it", *hyp_class->GetName());
+
+    m_managed_classes.Insert(const_cast<HypClass *>(hyp_class), managed_class);
+}
+
+dotnet::Class *HypClassRegistry::GetManagedClass(const HypClass *hyp_class) const
+{
+    if (!hyp_class) {
+        return nullptr;
+    }
+
+    Mutex::Guard guard(m_managed_classes_mutex);
+
+    auto it = m_managed_classes.FindAs(hyp_class);
+
+    if (it == m_managed_classes.End()) {
+        return nullptr;
+    }
+
+    return it->second;
+}
+
 #pragma endregion HypClassRegistry
 
 #pragma region HypClassRegistrationBase

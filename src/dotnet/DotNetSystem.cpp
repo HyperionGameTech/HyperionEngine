@@ -149,8 +149,6 @@ public:
         interop_assembly_path_platform = *interop_assembly_path;
 #endif
 
-        m_root_assembly.Reset(new Assembly());
-
         m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
             interop_assembly_path_platform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
@@ -199,13 +197,24 @@ public:
             "AddObjectToCache could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
         );
 
-        // Call the Initialize method in the NativeInterop class directly,
-        // to load all the classes and methods into the class object holder
-        m_initialize_assembly_fptr(
-            &m_root_assembly->GetGuid(),
-            &m_root_assembly->GetClassObjectHolder(),
-            interop_assembly_path->Data()
-        );
+        static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
+            Pair<String, FilePath> { "interop", *interop_assembly_path },
+            Pair<String, FilePath> { "core", *FindAssemblyFilePath("HyperionCore.dll") },
+            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath("HyperionRuntime.dll") }
+        };
+
+        for (const Pair<String, FilePath> &entry : core_assemblies) {
+            auto it = m_core_assemblies.Insert(entry.first, UniquePtr<Assembly>(new Assembly())).first;
+
+            Assembly *assembly = it->second.Get();
+
+            // Initialize all core assemblies
+            m_initialize_assembly_fptr(
+                &assembly->GetGuid(),
+                &assembly->GetClassObjectHolder(),
+                entry.second.Data()
+            );
+        }
     }
 
     virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
@@ -217,8 +226,6 @@ public:
         if (!filepath.HasValue()) {
             return nullptr;
         }
-
-        AssertThrow(m_root_assembly != nullptr);
 
         m_initialize_assembly_fptr(
             &assembly->GetGuid(),
@@ -395,7 +402,7 @@ private:
 
     UniquePtr<DynamicLibrary>                   m_dll;
 
-    UniquePtr<Assembly>                         m_root_assembly;
+    HashMap<String, UniquePtr<Assembly>>        m_core_assemblies;
 
     InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
     UnloadAssemblyDelegate                      m_unload_assembly_fptr;

@@ -18,6 +18,11 @@
 
 namespace hyperion {
 
+namespace dotnet {
+class Class;
+class Object;
+} // namespace dotnet
+
 class HypClassProperty;
 
 class HYP_API HypClass
@@ -32,31 +37,26 @@ public:
     HypClass &operator=(HypClass &&other) noexcept  = delete;
     virtual ~HypClass();
 
-    HYP_NODISCARD
     virtual Name GetName() const = 0;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    EnumFlags<HypClassFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<HypClassFlags> GetFlags() const
         { return m_flags; }
 
-    HYP_NODISCARD
     virtual bool IsValid() const
         { return false; }
 
-    HYP_NODISCARD
     HypClassProperty *GetProperty(WeakName name) const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Array<HypClassProperty *> &GetProperties() const
+    HYP_FORCE_INLINE const Array<HypClassProperty *> &GetProperties() const
         { return m_properties; }
 
+    dotnet::Class *GetManagedClass() const;
+
     template <class T>
-    HYP_FORCE_INLINE
-    void CreateInstance(T *out_ptr) const
+    HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
     {
         AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
             TypeID::ForType<T>().Value(), GetTypeID().Value());
@@ -64,14 +64,12 @@ public:
         CreateInstance_Internal(out_ptr);
     }
 
-    HYP_FORCE_INLINE
-    void CreateInstance(Any &out) const
+    HYP_FORCE_INLINE void CreateInstance(Any &out) const
     {
         CreateInstance_Internal(out);
     }
 
-    HYP_FORCE_INLINE
-    HashCode GetInstanceHashCode(ConstAnyRef ref) const
+    HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {
         AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
             ref.GetTypeID().Value(), GetTypeID().Value());

@@ -12,6 +12,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/StaticString.hpp>
 
+#include <core/memory/UniquePtr.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <core/threading/AtomicVar.hpp>
@@ -22,6 +24,12 @@
 #include <type_traits>
 
 namespace hyperion {
+
+class HypClass;
+
+namespace dotnet {
+class Object;
+} // namespace dotnet
 
 using ComponentFlags = uint;
 
@@ -38,11 +46,24 @@ class BasicObjectBase
 };
 
 template <class T>
+struct BasicObjectClassInfo
+{
+    static constexpr TypeID type_id = TypeID::ForType<T>();
+
+    HYP_FORCE_INLINE const HypClass *GetClass() const
+    {
+        return ::hyperion::GetClass(type_id);
+    }
+};
+
+template <class T>
 class BasicObject : public BasicObjectBase
 {
     using InnerType = T;
 
     static constexpr auto type_name = TypeNameWithoutNamespace<InnerType>();
+    
+    static constexpr BasicObjectClassInfo<InnerType> class_info = { };
 
 public:
     using InitInfo = ComponentInitInfo<InnerType>;
@@ -86,7 +107,8 @@ public:
         : m_name(std::move(other.m_name)),
           m_init_info(std::move(other.m_init_info)),
           m_id(other.m_id),
-          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
+          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED)),
+          m_managed_object(std::move(other.m_managed_object))
     {
         other.m_id = empty_id;
         other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
@@ -128,6 +150,15 @@ public:
 
     HYP_FORCE_INLINE bool IsReady() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_READY; }
+
+    HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const
+        { return m_managed_object.Get(); }
+
+    HYP_FORCE_INLINE static const BasicObjectClassInfo<InnerType> &GetClassInfo()
+        { return class_info; }
+
+    HYP_FORCE_INLINE static const HypClass *GetClass()
+        { return class_info.GetClass(); }
 
     void Init()
     {
@@ -180,11 +211,12 @@ protected:
         m_delegate_handlers.PushBack(std::move(delegate_handler));
     }
     
-    ID<InnerType>           m_id;
-    Name                    m_name;
-    AtomicVar<uint16>       m_init_state;
-    InitInfo                m_init_info;
-    Array<DelegateHandler>  m_delegate_handlers;
+    ID<InnerType>               m_id;
+    Name                        m_name;
+    AtomicVar<uint16>           m_init_state;
+    InitInfo                    m_init_info;
+    Array<DelegateHandler>      m_delegate_handlers;
+    UniquePtr<dotnet::Object>   m_managed_object;
 };
 
 } // namespace hyperion
