@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_LIGHTMAP_RENDERER_HPP
-#define HYPERION_LIGHTMAP_RENDERER_HPP
+#ifndef HYPERION_LIGHTMAPPER_HPP
+#define HYPERION_LIGHTMAPPER_HPP
 
 #include <core/Base.hpp>
 
@@ -19,7 +19,6 @@
 #include <math/Ray.hpp>
 
 #include <scene/Scene.hpp>
-#include <scene/Subsystem.hpp>
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
@@ -304,24 +303,6 @@ private:
 
     Array<LightmapEntity>                   m_lightmap_entities;
     HashMap<ID<Entity>, LightmapEntity *>   m_all_entities_map;
-};
-
-class HYP_API LightmapperSubsystem : public Subsystem<LightmapperSubsystem>
-{
-public:
-    LightmapperSubsystem();
-    virtual ~LightmapperSubsystem() override = default;
-
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
-
-    Task<void> *GenerateLightmaps(const Handle<Scene> &scene);
-
-private:
-    LightmapTraceMode                           m_trace_mode;
-    HashMap<ID<Scene>, UniquePtr<Lightmapper>>  m_lightmappers;
-    LinkedList<Task<void>>                      m_tasks;
 };
 
 } // namespace hyperion

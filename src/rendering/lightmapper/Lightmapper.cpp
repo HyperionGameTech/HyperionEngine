@@ -1,14 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/lightmapper/LightmapRenderer.hpp>
+#include <rendering/lightmapper/Lightmapper.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-
-#include <core/HypClassUtils.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
@@ -1378,96 +1377,5 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
 }
 
 #pragma endregion Lightmapper
-
-#pragma region LightmapperSubsystem
-
-HYP_DEFINE_CLASS(LightmapperSubsystem);
-
-LightmapperSubsystem::LightmapperSubsystem()
-    : m_trace_mode(LIGHTMAP_TRACE_MODE_CPU)
-{
-}
-
-void LightmapperSubsystem::Initialize()
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        // trace on GPU if the card supports ray tracing
-        m_trace_mode = LIGHTMAP_TRACE_MODE_GPU;
-    }
-}
-
-void LightmapperSubsystem::Shutdown()
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    m_lightmappers.Clear();
-}
-
-void LightmapperSubsystem::Update(GameCounter::TickUnit delta)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    for (auto it = m_tasks.Begin(); it != m_tasks.End();) {
-        if (it->IsCompleted()) {
-            it = m_tasks.Erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    Array<ID<Scene>> lightmappers_to_remove;
-
-    for (auto &it : m_lightmappers) {
-        it.second->Update(delta);
-
-        if (it.second->IsComplete()) {
-            lightmappers_to_remove.PushBack(it.first);
-        }
-    }
-
-    for (ID<Scene> scene_id : lightmappers_to_remove) {
-        m_lightmappers.Erase(scene_id);
-    }
-}
-
-Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    if (!scene.IsValid()) {
-        return nullptr;
-    }
-
-    if (!scene->IsWorldScene()) {
-        return nullptr;
-    }
-
-    auto it = m_lightmappers.Find(scene.GetID());
-
-    if (it != m_lightmappers.End()) {
-        // already running
-        
-        return nullptr;
-    }
-
-    UniquePtr<Lightmapper> lightmapper(new Lightmapper(m_trace_mode, scene));
-
-    Task<void> &task = m_tasks.EmplaceBack();
-
-    lightmapper->OnComplete.Bind([executor = task.Initialize()]()
-    {
-        executor->Fulfill();
-    });
-
-    lightmapper->PerformLightmapping();
-
-    m_lightmappers.Insert(scene.GetID(), std::move(lightmapper));
-
-    return &task;
-}
-
-#pragma endregion LightmapperSubsystem
 
 } // namespace hyperion

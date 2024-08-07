@@ -30,8 +30,6 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/system/ArgParse.hpp>
 #include <util/json/JSON.hpp>
-#include <rendering/lightmapper/LightmapRenderer.hpp>
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
 #include <core/net/Socket.hpp>
 #include <core/system/SystemEvent.hpp>
@@ -66,6 +64,8 @@
 #include <rtc/RTCClientList.hpp>
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCDataChannel.hpp>
+
+#include <math/Triangle.hpp>
 
 // static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
 // {
@@ -638,24 +638,6 @@ void SampleStreamer::Init()
             auto cart = results["cart"].ExtractAs<Node>();
             cart.Scale(1.5f);
             cart.SetName("cart");
-
-            //m_scene->GetRoot()->AddChild(cart);
-
-            // ByteBuffer lightmap_bitmap_bytebuffer = lightmap_result.result.bitmap.ToByteBuffer();
-            // UniquePtr<StreamedData> streamed_data(new MemoryStreamedData(std::move(lightmap_bitmap_bytebuffer)));
-            // streamed_data->Load();
-
-            // auto lightmap_texture = CreateObject<Texture>(
-            //     Extent3D { lightmap_result.result.bitmap.GetWidth(), lightmap_result.result.bitmap.GetHeight(), 1 },
-            //     InternalFormat::RGB8,
-            //     ImageType::TEXTURE_TYPE_2D,
-            //     FilterMode::TEXTURE_FILTER_LINEAR,
-            //     WrapMode::TEXTURE_WRAP_REPEAT,
-            //     std::move(streamed_data)
-            // );
-            // InitObject(lightmap_texture);
-
-            // mesh_component.material->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_LIGHT_MAP, lightmap_texture);
         }
         
         if (results["test_model"]) {
@@ -720,8 +702,6 @@ void SampleStreamer::Init()
     // ui_text->SetDepth(1);
     // ui_text->UpdatePosition();
     // ui_text->UpdateSize();
-
-    //RC<LightmapRenderer> lightmap_renderer = m_scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(HYP_NAME(LightmapRenderer0));
 }
 
 void SampleStreamer::Teardown()
@@ -1085,34 +1065,6 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
     }
 
     if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
-#if 0
-        struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
-        {
-            Handle<Scene> scene;
-
-            RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
-                : scene(std::move(scene))
-            {
-            }
-
-            virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
-
-            virtual Result operator()() override
-            {
-                if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
-                    scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
-                } else {
-                    scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
-                }
-
-                HYPERION_RETURN_OK;
-            }
-        };
-
-        // PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
-        m_scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
-#endif
-
         // shoot bullet on mouse button left
         if (event.GetMouseButtons() == MouseButtonState::LEFT) {
 #if 0

@@ -1285,12 +1285,39 @@ void DeferredRenderer::Create()
 
     CreateBlueNoiseBuffer();
 
-    m_ssr.Reset(new SSRRenderer(
-        g_engine->GetGPUInstance()->GetSwapchain()->extent,
-        SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING | SSR_RENDERER_OPTIONS_CONE_TRACING
-    ));
+    { // screenspace reflections
+        const String ssr_quality = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.quality").ToString().ToLower();
 
-    m_ssr->Create();
+        Extent2D ssr_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+
+        if (ssr_quality == "low") {
+            ssr_extent /= 4;
+        } else if (ssr_quality == "medium") {
+            ssr_extent /= 2;
+        }
+
+        static const SSRRendererOptions default_options = SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING | SSR_RENDERER_OPTIONS_CONE_TRACING;
+
+        SSRRendererOptions options = default_options;
+
+        const json::JSONValue roughness_scattering_option = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.roughness_scattering");
+        const json::JSONValue cone_tracing_option = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.cone_tracing");
+
+        if (!roughness_scattering_option.IsUndefined() || !cone_tracing_option.IsUndefined()) {
+            options = SSR_RENDERER_OPTIONS_NONE;
+        }
+
+        if (roughness_scattering_option.ToBool()) {
+            options |= SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING;
+        }
+
+        if (cone_tracing_option.ToBool()) {
+            options |= SSR_RENDERER_OPTIONS_CONE_TRACING;
+        }
+
+        m_ssr.Reset(new SSRRenderer(ssr_extent, options));
+        m_ssr->Create();
+    }
 
     // m_dof_blur.Reset(new DOFBlur(g_engine->GetGPUInstance()->GetSwapchain()->extent));
     // m_dof_blur->Create();
