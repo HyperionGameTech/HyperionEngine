@@ -158,12 +158,24 @@ void World::Update(GameCounter::TickUnit delta)
     update_subsystem_tasks.Reserve(m_subsystems.Size());
 
     for (auto &it : m_subsystems) {
+        if (it.second->RequiresUpdateOnGameThread()) {
+            continue;
+        }
+
         update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
         {
             HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetName());
 
             subsystem->Update(delta);
         }));
+    }
+
+    for (auto &it : m_subsystems) {
+        if (!it.second->RequiresUpdateOnGameThread()) {
+            continue;
+        }
+
+        it.second->Update(delta);
     }
 
     for (Task<void> &task : update_subsystem_tasks) {

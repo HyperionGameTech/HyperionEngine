@@ -51,11 +51,11 @@ struct LightmapMeshData
 
 struct LightmapUV
 {
-    ID<Mesh>    mesh_id;
-    Matrix4     transform;
-    uint        triangle_index;
-    Vec3f       barycentric_coords;
-    Vec2f       lightmap_uv;
+    ID<Mesh>    mesh_id = ID<Mesh>::invalid;
+    Matrix4     transform = Matrix4::identity;
+    uint        triangle_index = ~0u;
+    Vec3f       barycentric_coords = Vec3f::Zero();
+    Vec2f       lightmap_uv = Vec2f::Zero();
     Vec4f       radiance = Vec4f::Zero();
     Vec4f       irradiance = Vec4f::Zero();
 };

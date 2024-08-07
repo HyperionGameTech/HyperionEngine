@@ -226,21 +226,21 @@ public:
     HYP_FORCE_INLINE ReturnType Result() const &&
         { return m_result_value.Get(); }
 
-    virtual void Execute(ArgTypes... args) override final
+    virtual void Execute(ArgTypes... args) override
     {
         AssertThrow(m_fn.IsValid());
 
         m_result_value.Emplace(m_fn(std::forward<ArgTypes>(args)...));
     }
 
-private:
+protected:
     Function                m_fn;
     Optional<ReturnType>    m_result_value;
 };
 
 /*! \brief Specialization for void return type. */
 template <class... ArgTypes>
-class TaskExecutorInstance<void, ArgTypes...> final : public TaskExecutor<ArgTypes...>
+class TaskExecutorInstance<void, ArgTypes...> : public TaskExecutor<ArgTypes...>
 {
     using Function = Proc<void, ArgTypes...>;
 
@@ -273,16 +273,114 @@ public:
     
     virtual ~TaskExecutorInstance() override = default;
 
-    virtual void Execute(ArgTypes... args) override final
+    virtual void Execute(ArgTypes... args) override
     {
         AssertThrow(m_fn.IsValid());
         
         m_fn(std::forward<ArgTypes>(args)...);
     }
 
-private:
+protected:
     Function    m_fn;
 };
+
+template <class ReturnType, class... ArgTypes>
+class ManuallyFulfilledTaskExecutorInstance : public TaskExecutorInstance<ReturnType, ArgTypes...>
+{
+public:
+    using Base = TaskExecutorInstance<ReturnType, ArgTypes...>;
+
+    ManuallyFulfilledTaskExecutorInstance()
+        : Base(static_cast<ReturnType(*)(void)>(nullptr))
+    {
+    }
+
+    ManuallyFulfilledTaskExecutorInstance(const ManuallyFulfilledTaskExecutorInstance &other)               = delete;
+    ManuallyFulfilledTaskExecutorInstance &operator=(const ManuallyFulfilledTaskExecutorInstance &other)    = delete;
+
+    ManuallyFulfilledTaskExecutorInstance(ManuallyFulfilledTaskExecutorInstance &&other) noexcept
+        : Base(static_cast<Base &&>(other))
+    {
+    }
+
+    ManuallyFulfilledTaskExecutorInstance &operator=(ManuallyFulfilledTaskExecutorInstance &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        Base::operator=(static_cast<Base &&>(other));
+
+        return *this;
+    }
+    
+    virtual ~ManuallyFulfilledTaskExecutorInstance() override = default;
+
+    void Fulfill(ReturnType &&value)
+    {
+        AssertThrow(!Base::IsCompleted());
+
+        Base::m_result_value.Set(std::move(value));
+
+        Base::GetSemaphore().Release(1);
+    }
+
+    void Fulfill(const ReturnType &value)
+    {
+        AssertThrow(!Base::IsCompleted());
+        
+        Base::m_result_value.Set(value);
+
+        Base::GetSemaphore().Release(1);
+    }
+
+protected:
+    virtual void Execute(ArgTypes... args) override final { }
+};
+
+template <class... ArgTypes>
+class ManuallyFulfilledTaskExecutorInstance<void, ArgTypes...> : public TaskExecutorInstance<void, ArgTypes...>
+{
+public:
+    using Base = TaskExecutorInstance<void, ArgTypes...>;
+
+    ManuallyFulfilledTaskExecutorInstance()
+        : Base(static_cast<void(*)(void)>(nullptr))
+    {
+    }
+
+    ManuallyFulfilledTaskExecutorInstance(const ManuallyFulfilledTaskExecutorInstance &other)               = delete;
+    ManuallyFulfilledTaskExecutorInstance &operator=(const ManuallyFulfilledTaskExecutorInstance &other)    = delete;
+
+    ManuallyFulfilledTaskExecutorInstance(ManuallyFulfilledTaskExecutorInstance &&other) noexcept
+        : Base(static_cast<Base &&>(other))
+    {
+    }
+
+    ManuallyFulfilledTaskExecutorInstance &operator=(ManuallyFulfilledTaskExecutorInstance &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        Base::operator=(static_cast<Base &&>(other));
+
+        return *this;
+    }
+    
+    virtual ~ManuallyFulfilledTaskExecutorInstance() override = default;
+
+    void Fulfill()
+    {
+        AssertThrow(!Base::IsCompleted());
+
+        Base::GetSemaphore().Release(1);
+    }
+
+protected:
+    virtual void Execute(ArgTypes...) override final { }
+};
+
 
 template <class ReturnType, class... Args>
 class Task;
@@ -378,10 +476,6 @@ public:
 
     virtual bool IsValid() const
     {
-        if (!m_id.IsValid() || !m_assigned_scheduler) {
-            return false;
-        }
-
         const ITaskExecutor *executor = GetTaskExecutor();
 
         return executor != nullptr && executor->GetTaskID().IsValid();
@@ -397,6 +491,12 @@ public:
 protected:
     virtual void Await_Internal() const;
 
+    void Reset()
+    {
+        m_id = TaskID::Invalid();
+        m_assigned_scheduler = nullptr;
+    }
+
     // Message logging for tasks
     
     void LogWarning(ANSIStringView message) const;
@@ -411,6 +511,14 @@ class Task final : public TaskBase
 public:
     using Base = TaskBase;
     using TaskExecutorType = TaskExecutorInstance<ReturnType, Args...>;
+
+    // Default constructor, sets task as invalid
+    Task()
+        : TaskBase({ }, nullptr),
+          m_executor(nullptr),
+          m_owns_executor(false)
+    {
+    }
 
     Task(TaskID id, SchedulerBase *assigned_scheduler, TaskExecutorType *executor, bool owns_executor)
         : TaskBase(id, assigned_scheduler),
@@ -433,6 +541,8 @@ public:
 
     Task &operator=(Task &&other) noexcept
     {
+        Reset();
+
         TaskBase::operator=(static_cast<TaskBase &&>(other));
 
         m_executor = other.m_executor;
@@ -446,20 +556,7 @@ public:
 
     virtual ~Task() override
     {
-        if (m_owns_executor) {
-            // Wait for the task to complete when not in debug mode
-            if (IsValid() && !IsCompleted()) {
-#ifdef HYP_DEBUG_MODE
-                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-#else
-                Base::LogWarning("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-
-                Base::Await_Internal();
-#endif
-            }
-
-            delete m_executor;
-        }
+        Reset();
 
         // otherwise, the executor will be freed when the task is completed
     }
@@ -467,6 +564,29 @@ public:
     virtual ITaskExecutor *GetTaskExecutor() const override
     {
         return m_executor;
+    }
+
+    /*! \brief Initialize the task without scheduling it.
+     *  The task must be resolved with the \ref{Fulfill} method. */
+    ManuallyFulfilledTaskExecutorInstance<ReturnType, Args...> *Initialize()
+    {
+        Reset();
+
+        m_id = TaskID { ~0u };
+
+        m_executor = new ManuallyFulfilledTaskExecutorInstance<ReturnType, Args...>();
+        m_owns_executor = true;
+
+        return static_cast<ManuallyFulfilledTaskExecutorInstance<ReturnType, Args...> *>(m_executor);
+    }
+
+    /*! \brief Emplace a value of type \ref{ReturnType} to resolve the task with. Constructs it in place. */
+    void Fulfill(Args... args)
+    {
+        AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot manually Fulfill() scheduled tasks!");
+
+        m_executor->Execute(std::forward<Args>(args)...);
+        m_executor->GetSemaphore().Release(1);
     }
 
     /*! \brief Wait for the task to complete.
@@ -518,6 +638,29 @@ protected:
         // Sanity Check
         AssertThrow(IsCompleted());
 #endif
+    }
+
+    void Reset()
+    {
+        if (m_owns_executor) {
+            // Wait for the task to complete when not in debug mode
+            if (IsValid() && !IsCompleted()) {
+#ifdef HYP_DEBUG_MODE
+                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+#else
+                Base::LogWarning("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+
+                Base::Await_Internal();
+#endif
+            }
+
+            delete m_executor;
+        }
+
+        m_executor = nullptr;
+        m_owns_executor = false;
+
+        TaskBase::Reset();
     }
 
 private:
@@ -597,6 +740,29 @@ public:
         return m_executor;
     }
 
+    /*! \brief Initialize the task without scheduling it.
+     *  The task must be resolved with the \ref{Fulfill} method. */
+    ManuallyFulfilledTaskExecutorInstance<void, Args...> *Initialize()
+    {
+        Reset();
+
+        m_id = TaskID { ~0u };
+
+        m_executor = new ManuallyFulfilledTaskExecutorInstance<void, Args...>();
+        m_owns_executor = true;
+
+        return static_cast<ManuallyFulfilledTaskExecutorInstance<void, Args...> *>(m_executor);
+    }
+
+    // /*! \brief Emplace a value of type \ref{ReturnType} to resolve the task with. Constructs it in place. */
+    // void Fulfill(Args... args)
+    // {
+    //     AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot manually Fulfill() scheduled tasks!");
+
+    //     m_executor->Execute(std::forward<Args>(args)...);
+    //     m_executor->GetSemaphore().Release(1);
+    // }
+
     HYP_FORCE_INLINE void Await()
     {
         Await_Internal();
@@ -611,6 +777,29 @@ protected:
         // Sanity Check
         AssertThrow(IsCompleted());
 #endif
+    }
+
+    void Reset()
+    {
+        if (m_owns_executor) {
+            // Wait for the task to complete when not in debug mode
+            if (IsValid() && !IsCompleted()) {
+#ifdef HYP_DEBUG_MODE
+                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+#else
+                Base::LogWarning("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+
+                Base::Await_Internal();
+#endif
+            }
+
+            delete m_executor;
+        }
+
+        m_executor = nullptr;
+        m_owns_executor = false;
+
+        TaskBase::Reset();
     }
 
 private:

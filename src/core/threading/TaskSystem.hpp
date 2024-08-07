@@ -353,9 +353,75 @@ public:
             std::forward<CallbackFunction>(cb)
         );
     }
+
+
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into \ref{num_batches} batches.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    Array<Task<void>> ParallelForEach_Async(TaskThreadPoolName pool, uint32 num_batches, uint32 num_items, CallbackFunction &&cb)
+    {
+        Array<Task<void>> tasks;
+
+        if (num_items == 0) {
+            return tasks;
+        }
+
+        num_batches = MathUtil::Clamp(num_batches, 1u, num_items);
+
+        const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
+
+        for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
+            tasks.PushBack(Enqueue([batch_index, items_per_batch, num_items, _cb = std::forward<CallbackFunction>(cb)]() mutable -> void
+            {
+                const uint32 offset_index = batch_index * items_per_batch;
+                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+
+                for (uint32 i = offset_index; i < max_index; i++) {
+                    _cb(i, batch_index);
+                }
+            }, TaskEnqueueFlags::NONE, pool));
+        }
+
+        return tasks;
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(TaskThreadPoolName priority, uint32 num_items, CallbackFunction &&cb)
+    {
+        const auto &pool = GetPool(priority);
+
+        return ParallelForEach_Async(
+            priority,
+            pool.threads.Size(),
+            num_items,
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(uint32 num_items, CallbackFunction &&cb)
+    {
+        constexpr auto priority = THREAD_POOL_GENERIC;
+        const auto &pool = GetPool(priority);
+
+        return ParallelForEach_Async(
+            priority,
+            pool.threads.Size(),
+            num_items,
+            std::forward<CallbackFunction>(cb)
+        );
+    }
     
-    template <class Container, class CallbackFunction>
-    HYP_NODISCARD auto ParallelForEach_Async(TaskThreadPoolName pool, uint32 num_batches, Container &&items, CallbackFunction &&cb) -> Array<Task<void>>
+    template <class Container, class CallbackFunction, typename = std::enable_if_t< std::is_class_v< NormalizedType<Container> > > >
+    HYP_NODISCARD Array<Task<void>> ParallelForEach_Async(TaskThreadPoolName pool, uint32 num_batches, Container &&items, CallbackFunction &&cb)
     {
         //static_assert(Container::is_contiguous, "Container must be contiguous to use ParallelForEach");
 
@@ -388,11 +454,10 @@ public:
         return tasks;
     }
 
-
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Container, class CallbackFunction>
+    template <class Container, class CallbackFunction, typename = std::enable_if_t< std::is_class_v< NormalizedType<Container> > > >
     HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(TaskThreadPoolName priority, Container &&items, CallbackFunction &&cb)
     {
         const auto &pool = GetPool(priority);
@@ -408,7 +473,7 @@ public:
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Container, class CallbackFunction>
+    template <class Container, class CallbackFunction, typename = std::enable_if_t< std::is_class_v< NormalizedType<Container> > > >
     HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(Container &&items, CallbackFunction &&cb)
     {
         constexpr auto priority = THREAD_POOL_GENERIC;

@@ -6,17 +6,20 @@
 #include <core/Base.hpp>
 
 #include <core/containers/Queue.hpp>
+#include <core/containers/LinkedList.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Task.hpp>
 
 #include <core/utilities/Span.hpp>
+#include <core/utilities/UUID.hpp>
 
 #include <math/Triangle.hpp>
 #include <math/Ray.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Subsystem.hpp>
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
@@ -91,7 +94,7 @@ struct LightmapRayHitPayload
     float       distance = -1.0f;
     Vec3f       barycentric_coords;
     ID<Mesh>    mesh_id;
-    uint32      triangle_index;
+    uint32      triangle_index = ~0u;
 };
 
 class HYP_API LightmapPathTracer
@@ -126,19 +129,45 @@ private:
     RaytracingPipelineRef                               m_raytracing_pipeline;
 };
 
+struct LightmapJobGPUParams
+{
+    RC<LightmapPathTracer>  path_tracer_radiance;
+    RC<LightmapPathTracer>  path_tracer_irradiance;
+};
+
+struct LightmapJobCPUParams
+{
+    UniquePtr<LightmapTopLevelAccelerationStructure>    acceleration_structure;
+};
+
+struct LightmapJobParams
+{
+    LightmapTraceMode                                   trace_mode;
+    Handle<Scene>                                       scene;
+    Span<LightmapEntity>                                entities_view;
+    HashMap<ID<Entity>, LightmapEntity *>               *all_entities_map;
+    Variant<LightmapJobCPUParams, LightmapJobGPUParams> params;
+};
+
 class HYP_API LightmapJob
 {
 public:
+    friend struct RenderCommand_LightmapTraceRaysOnGPU;
+
     static constexpr uint num_multisamples = 1;
 
-    LightmapJob(LightmapTraceMode trace_mode, Scene *scene, Span<LightmapEntity> entities_view, HashMap<ID<Entity>, LightmapEntity *> *all_entities_map);
-    LightmapJob(LightmapTraceMode trace_mode, Scene *scene, Span<LightmapEntity> entities_view, HashMap<ID<Entity>, LightmapEntity *> *all_entities_map, UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure);
-
+    LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;
     LightmapJob &operator=(const LightmapJob &other)        = delete;
     LightmapJob(LightmapJob &&other) noexcept               = delete;
     LightmapJob &operator=(LightmapJob &&other) noexcept    = delete;
     ~LightmapJob();
+
+    HYP_FORCE_INLINE const LightmapJobParams &GetParams() const
+        { return m_params; }
+
+    HYP_FORCE_INLINE const UUID &GetUUID() const
+        { return m_uuid; }
     
     HYP_FORCE_INLINE LightmapUVMap &GetUVMap()
         { return m_uv_map; }
@@ -147,10 +176,10 @@ public:
         { return m_uv_map; }
 
     HYP_FORCE_INLINE Scene *GetScene() const
-        { return m_scene; }
+        { return m_params.scene.Get(); }
 
     HYP_FORCE_INLINE Span<LightmapEntity> GetEntities() const
-        { return m_entities_view; }
+        { return m_params.entities_view; }
 
     HYP_FORCE_INLINE uint32 GetTexelIndex() const
         { return m_texel_index; }
@@ -158,11 +187,19 @@ public:
     HYP_FORCE_INLINE const Array<uint> &GetTexelIndices() const
         { return m_texel_indices; }
 
-    HYP_FORCE_INLINE const Array<LightmapRay> &GetPreviousFrameRays(uint frame_index) const
-        { return m_previous_frame_rays[frame_index]; }
+    HYP_FORCE_INLINE void GetPreviousFrameRays(uint frame_index, Array<LightmapRay> &out_rays) const
+    {
+        Mutex::Guard guard(m_previous_frame_rays_mutex);
+
+        out_rays = m_previous_frame_rays[frame_index];
+    }
         
-    HYP_FORCE_INLINE void SetPreviousFrameRays(uint frame_index, Array<LightmapRay> rays)
-        { m_previous_frame_rays[frame_index] = std::move(rays); }
+    HYP_FORCE_INLINE void SetPreviousFrameRays(uint frame_index, const Array<LightmapRay> &rays)
+    {
+        Mutex::Guard guard(m_previous_frame_rays_mutex);
+
+        m_previous_frame_rays[frame_index] = rays;
+    }
 
     void Start();
 
@@ -193,19 +230,27 @@ private:
     void BuildUVMap();
     void TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayload &out_payload);
 
-    LightmapTraceMode                                       m_trace_mode;
+    HYP_FORCE_INLINE LightmapTopLevelAccelerationStructure *GetAccelerationStructure() const
+    {
+        if (m_params.trace_mode == LIGHTMAP_TRACE_MODE_CPU) {
+            return m_params.params.Get<LightmapJobCPUParams>().acceleration_structure.Get();
+        }
 
-    Scene                                                   *m_scene;
-    Span<LightmapEntity>                                    m_entities_view;
-    HashMap<ID<Entity>, LightmapEntity *>                   *m_all_entities_map;
+        return nullptr;
+    }
+    
+    LightmapJobParams                                       m_params;
+
+    UUID                                                    m_uuid;
 
     LightmapUVMap                                           m_uv_map;
 
     Array<uint>                                             m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
 
-    UniquePtr<LightmapTopLevelAccelerationStructure>        m_acceleration_structure; // for CPU tracing
+    Array<LightmapRay>                                      m_current_rays;
 
     FixedArray<Array<LightmapRay>, max_frames_in_flight>    m_previous_frame_rays;
+    mutable Mutex                                           m_previous_frame_rays_mutex;
 
     Array<Task<void>>                                       m_current_tasks;
 
@@ -214,45 +259,69 @@ private:
     uint                                                    m_texel_index;
 };
 
-class HYP_API LightmapRenderer : public RenderComponent<LightmapRenderer>
+class HYP_API Lightmapper
 {
 public:
-    LightmapRenderer(Name name);
-    virtual ~LightmapRenderer() override = default;
+    Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scene);
+    Lightmapper(const Lightmapper &other)                   = delete;
+    Lightmapper &operator=(const Lightmapper &other)        = delete;
+    Lightmapper(Lightmapper &&other) noexcept               = delete;
+    Lightmapper &operator=(Lightmapper &&other) noexcept    = delete;
+    ~Lightmapper();
+
+    bool IsComplete() const;
+
+    void PerformLightmapping();
+    void Update(GameCounter::TickUnit delta);
+
+    Delegate<void>  OnComplete;
+
+private:
+    LightmapJobParams CreateLightmapJobParams(
+        SizeType lightmap_entities_index_start,
+        SizeType lightmap_entities_index_end,
+        UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure = nullptr
+    );
 
     void AddJob(UniquePtr<LightmapJob> &&job)
     {
-        Mutex::Guard guard(m_queue_mutex);
-
         m_queue.Push(std::move(job));
 
         m_num_jobs.Increment(1, MemoryOrder::RELEASE);
     }
 
-    void Init();
-    void InitGame();
-
-    void OnRemoved();
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
-private:
     void HandleCompletedJob(LightmapJob *job);
-
-    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
-        { }
 
     LightmapTraceMode                       m_trace_mode;
 
-    UniquePtr<LightmapPathTracer>           m_path_tracer_radiance;
-    UniquePtr<LightmapPathTracer>           m_path_tracer_irradiance;
+    Handle<Scene>                           m_scene;
+
+    RC<LightmapPathTracer>                  m_path_tracer_radiance;
+    RC<LightmapPathTracer>                  m_path_tracer_irradiance;
 
     Queue<UniquePtr<LightmapJob>>           m_queue;
-    Mutex                                   m_queue_mutex;
     AtomicVar<uint>                         m_num_jobs;
 
     Array<LightmapEntity>                   m_lightmap_entities;
     HashMap<ID<Entity>, LightmapEntity *>   m_all_entities_map;
+};
+
+class HYP_API LightmapperSubsystem : public Subsystem<LightmapperSubsystem>
+{
+public:
+    LightmapperSubsystem();
+    virtual ~LightmapperSubsystem() override = default;
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+    virtual void Update(GameCounter::TickUnit delta) override;
+
+    Task<void> *GenerateLightmaps(const Handle<Scene> &scene);
+
+private:
+    LightmapTraceMode                           m_trace_mode;
+    HashMap<ID<Scene>, UniquePtr<Lightmapper>>  m_lightmappers;
+    LinkedList<Task<void>>                      m_tasks;
 };
 
 } // namespace hyperion

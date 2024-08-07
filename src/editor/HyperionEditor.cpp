@@ -595,30 +595,13 @@ void HyperionEditorImpl::CreateMainPanel()
             {
                 HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
 
-                struct RENDER_COMMAND(SubmitLightmapJob) : renderer::RenderCommand
-                {
-                    Handle<Scene> scene;
+                LightmapperSubsystem *lightmapper_subsystem = g_engine->GetWorld()->GetSubsystem<LightmapperSubsystem>();
 
-                    RENDER_COMMAND(SubmitLightmapJob)(Handle<Scene> scene)
-                        : scene(std::move(scene))
-                    {
-                    }
+                if (!lightmapper_subsystem) {
+                    lightmapper_subsystem = g_engine->GetWorld()->AddSubsystem<LightmapperSubsystem>();
+                }
 
-                    virtual ~RENDER_COMMAND(SubmitLightmapJob)() override = default;
-
-                    virtual Result operator()() override
-                    {
-                        if (scene->GetEnvironment()->HasRenderComponent<LightmapRenderer>()) {
-                            scene->GetEnvironment()->RemoveRenderComponent<LightmapRenderer>();
-                        } else {
-                            scene->GetEnvironment()->AddRenderComponent<LightmapRenderer>(Name::Unique("LightmapRenderer"));
-                        }
-
-                        HYPERION_RETURN_OK;
-                    }
-                };
-                
-                PUSH_RENDER_COMMAND(SubmitLightmapJob, m_scene);
+                lightmapper_subsystem->GenerateLightmaps(m_scene);
 
                 return UIEventHandlerResult::OK;
             }).Detach();

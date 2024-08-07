@@ -25,6 +25,9 @@ public:
     SubsystemBase &operator=(SubsystemBase &&other)         = delete;
     virtual ~SubsystemBase();
 
+    virtual bool RequiresUpdateOnGameThread() const
+        { return true; }
+
     virtual ANSIStringView GetName() const = 0;
 
     virtual void Initialize() = 0;
