@@ -177,8 +177,8 @@ public:
         return nullptr;
     }
 
-    template <class Lambda>
-    auto Enqueue(Lambda &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC) -> Task<typename FunctionTraits<Lambda>::ReturnType>
+    template <class TaskFunction>
+    auto Enqueue(TaskFunction &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC) -> Task<typename FunctionTraits<TaskFunction>::ReturnType>
     {
         AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
         
@@ -186,7 +186,7 @@ public:
 
         TaskThread *task_thread = GetNextTaskThread(pool);
 
-        return task_thread->GetSchedulerInstance()->Enqueue(std::forward<Lambda>(fn), flags);
+        return task_thread->GetSchedulerInstance()->Enqueue(std::forward<TaskFunction>(fn), flags);
     }
 
     /*! \brief Enqueue a batch of multiple Tasks. Each task will be enqueued to run in parallel.
@@ -209,8 +209,8 @@ public:
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
-    template <class Lambda>
-    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, uint32 num_items, Lambda &&lambda)
+    template <class CallbackFunction>
+    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, uint32 num_items, CallbackFunction &&cb)
     {
         if (num_items == 0) {
             return;
@@ -224,13 +224,13 @@ public:
         const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
-            batch.AddTask([batch_index, items_per_batch, num_items, &lambda](...)
+            batch.AddTask([batch_index, items_per_batch, num_items, &cb](...)
             {
                 const uint32 offset_index = batch_index * items_per_batch;
                 const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
                 for (uint32 i = offset_index; i < max_index; i++) {
-                    lambda(i, batch_index);
+                    cb(i, batch_index);
                 }
             });
         }
@@ -247,8 +247,8 @@ public:
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, uint32 num_items, Lambda &&lambda)
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, uint32 num_items, CallbackFunction &&cb)
     {
         const auto &pool = GetPool(priority);
 
@@ -256,15 +256,15 @@ public:
             priority,
             pool.threads.Size(),
             num_items,
-            std::forward<Lambda>(lambda)
+            std::forward<CallbackFunction>(cb)
         );
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(uint32 num_items, Lambda &&lambda)
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(uint32 num_items, CallbackFunction &&cb)
     {
         constexpr auto priority = THREAD_POOL_GENERIC;
         const auto &pool = GetPool(priority);
@@ -273,15 +273,15 @@ public:
             priority,
             pool.threads.Size(),
             num_items,
-            std::forward<Lambda>(lambda)
+            std::forward<CallbackFunction>(cb)
         );
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
-    template <class Container, class Lambda>
-    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, Container &&items, Lambda &&lambda)
+    template <class Container, class CallbackFunction>
+    void ParallelForEach(TaskThreadPoolName pool, uint32 num_batches, Container &&items, CallbackFunction &&cb)
     {
         //static_assert(Container::is_contiguous, "Container must be contiguous to use ParallelForEach");
 
@@ -301,13 +301,13 @@ public:
         auto *data_ptr = items.Data();
 
         for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
-            batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, &lambda](...)
+            batch.AddTask([data_ptr, batch_index, items_per_batch, num_items, &cb](...)
             {
                 const uint32 offset_index = batch_index * items_per_batch;
                 const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
                 for (uint32 i = offset_index; i < max_index; i++) {
-                    lambda(*(data_ptr + i), i, batch_index);
+                    cb(*(data_ptr + i), i, batch_index);
                 }
             });
         }
@@ -324,8 +324,8 @@ public:
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Container, class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, Container &&items, Lambda &&lambda)
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(TaskThreadPoolName priority, Container &&items, CallbackFunction &&cb)
     {
         const auto &pool = GetPool(priority);
 
@@ -333,15 +333,15 @@ public:
             priority,
             pool.threads.Size(),
             std::forward<Container>(items),
-            std::forward<Lambda>(lambda)
+            std::forward<CallbackFunction>(cb)
         );
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
      *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
         The lambda will be called with (item, index) for each item. */
-    template <class Container, class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(Container &&items, Lambda &&lambda)
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(Container &&items, CallbackFunction &&cb)
     {
         constexpr auto priority = THREAD_POOL_GENERIC;
         const auto &pool = GetPool(priority);
@@ -350,7 +350,75 @@ public:
             priority,
             pool.threads.Size(),
             std::forward<Container>(items),
-            std::forward<Lambda>(lambda)
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+    
+    template <class Container, class CallbackFunction>
+    HYP_NODISCARD auto ParallelForEach_Async(TaskThreadPoolName pool, uint32 num_batches, Container &&items, CallbackFunction &&cb) -> Array<Task<void>>
+    {
+        //static_assert(Container::is_contiguous, "Container must be contiguous to use ParallelForEach");
+
+        Array<Task<void>> tasks;
+
+        const uint32 num_items = uint32(items.Size());
+
+        if (num_items == 0) {
+            return tasks;
+        }
+
+        num_batches = MathUtil::Clamp(num_batches, 1u, num_items);
+
+        const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
+
+        auto *data_ptr = items.Data();
+
+        for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
+            tasks.PushBack(Enqueue([data_ptr, batch_index, items_per_batch, num_items, _cb = std::forward<CallbackFunction>(cb)]() mutable -> void
+            {
+                const uint32 offset_index = batch_index * items_per_batch;
+                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+
+                for (uint32 i = offset_index; i < max_index; i++) {
+                    _cb(*(data_ptr + i), i, batch_index);
+                }
+            }, TaskEnqueueFlags::NONE, pool));
+        }
+
+        return tasks;
+    }
+
+
+    /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(TaskThreadPoolName priority, Container &&items, CallbackFunction &&cb)
+    {
+        const auto &pool = GetPool(priority);
+
+        return ParallelForEach_Async(
+            priority,
+            pool.threads.Size(),
+            std::forward<Container>(items),
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE Array<Task<void>> ParallelForEach_Async(Container &&items, CallbackFunction &&cb)
+    {
+        constexpr auto priority = THREAD_POOL_GENERIC;
+        const auto &pool = GetPool(priority);
+
+        return ParallelForEach_Async(
+            priority,
+            pool.threads.Size(),
+            std::forward<Container>(items),
+            std::forward<CallbackFunction>(cb)
         );
     }
 

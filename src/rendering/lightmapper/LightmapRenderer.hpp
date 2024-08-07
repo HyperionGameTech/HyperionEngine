@@ -4,9 +4,14 @@
 #define HYPERION_LIGHTMAP_RENDERER_HPP
 
 #include <core/Base.hpp>
+
 #include <core/containers/Queue.hpp>
+
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Task.hpp>
+
+#include <core/utilities/Span.hpp>
 
 #include <math/Triangle.hpp>
 #include <math/Ray.hpp>
@@ -126,14 +131,14 @@ class HYP_API LightmapJob
 public:
     static constexpr uint num_multisamples = 1;
 
-    LightmapJob(Scene *scene, Array<LightmapEntity> entities);
-    LightmapJob(Scene *scene, Array<LightmapEntity> entities, UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure);
+    LightmapJob(LightmapTraceMode trace_mode, Scene *scene, Span<LightmapEntity> entities_view, HashMap<ID<Entity>, LightmapEntity *> *all_entities_map);
+    LightmapJob(LightmapTraceMode trace_mode, Scene *scene, Span<LightmapEntity> entities_view, HashMap<ID<Entity>, LightmapEntity *> *all_entities_map, UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure);
 
     LightmapJob(const LightmapJob &other)                   = delete;
     LightmapJob &operator=(const LightmapJob &other)        = delete;
     LightmapJob(LightmapJob &&other) noexcept               = delete;
     LightmapJob &operator=(LightmapJob &&other) noexcept    = delete;
-    ~LightmapJob()                                          = default;
+    ~LightmapJob();
     
     HYP_FORCE_INLINE LightmapUVMap &GetUVMap()
         { return m_uv_map; }
@@ -144,8 +149,8 @@ public:
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_scene; }
 
-    HYP_FORCE_INLINE const Array<LightmapEntity> &GetEntities() const
-        { return m_entities; }
+    HYP_FORCE_INLINE Span<LightmapEntity> GetEntities() const
+        { return m_entities_view; }
 
     HYP_FORCE_INLINE uint32 GetTexelIndex() const
         { return m_texel_index; }
@@ -161,12 +166,9 @@ public:
 
     void Start();
 
-    void GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays);
+    void Update();
 
-    /*! \brief Trace rays on the CPU.
-     *  \param rays The rays to trace.    
-     */
-    void TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type);
+    void GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays);
 
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
@@ -183,11 +185,19 @@ public:
         { return m_is_ready.Get(MemoryOrder::RELAXED); }
 
 private:
+    /*! \brief Trace rays on the CPU.
+     *  \param rays The rays to trace.    
+     */
+    void TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type);
+
     void BuildUVMap();
     void TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayload &out_payload);
 
+    LightmapTraceMode                                       m_trace_mode;
+
     Scene                                                   *m_scene;
-    Array<LightmapEntity>                                   m_entities;
+    Span<LightmapEntity>                                    m_entities_view;
+    HashMap<ID<Entity>, LightmapEntity *>                   *m_all_entities_map;
 
     LightmapUVMap                                           m_uv_map;
 
@@ -196,6 +206,8 @@ private:
     UniquePtr<LightmapTopLevelAccelerationStructure>        m_acceleration_structure; // for CPU tracing
 
     FixedArray<Array<LightmapRay>, max_frames_in_flight>    m_previous_frame_rays;
+
+    Array<Task<void>>                                       m_current_tasks;
 
     AtomicVar<bool>                                         m_is_ready;
     AtomicVar<bool>                                         m_is_started;
@@ -230,14 +242,17 @@ private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { }
 
-    LightmapTraceMode               m_trace_mode;
+    LightmapTraceMode                       m_trace_mode;
 
-    UniquePtr<LightmapPathTracer>   m_path_tracer_radiance;
-    UniquePtr<LightmapPathTracer>   m_path_tracer_irradiance;
+    UniquePtr<LightmapPathTracer>           m_path_tracer_radiance;
+    UniquePtr<LightmapPathTracer>           m_path_tracer_irradiance;
 
-    Queue<UniquePtr<LightmapJob>>   m_queue;
-    Mutex                           m_queue_mutex;
-    AtomicVar<uint>                 m_num_jobs;
+    Queue<UniquePtr<LightmapJob>>           m_queue;
+    Mutex                                   m_queue_mutex;
+    AtomicVar<uint>                         m_num_jobs;
+
+    Array<LightmapEntity>                   m_lightmap_entities;
+    HashMap<ID<Entity>, LightmapEntity *>   m_all_entities_map;
 };
 
 } // namespace hyperion

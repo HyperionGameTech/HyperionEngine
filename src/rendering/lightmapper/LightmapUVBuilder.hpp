@@ -6,6 +6,8 @@
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 
+#include <core/utilities/Span.hpp>
+
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
@@ -23,13 +25,13 @@ struct LightmapEntity
     ID<Entity>          entity_id;
     Handle<Mesh>        mesh;
     Handle<Material>    material;
-    Matrix4             transform;
+    Transform           transform;
     BoundingBox         aabb;
 };
 
 struct LightmapUVBuilderParams
 {
-    Array<LightmapEntity>   elements;
+    Span<const LightmapEntity>  elements;
 };
 
 struct LightmapMeshData

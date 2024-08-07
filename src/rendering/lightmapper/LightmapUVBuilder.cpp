@@ -81,7 +81,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
         lightmap_mesh_data.mesh_id = element.mesh.GetID();
 
-        lightmap_mesh_data.transform = element.transform;
+        lightmap_mesh_data.transform = element.transform.GetMatrix();
 
         lightmap_mesh_data.vertex_positions.Resize(ref->GetMeshData().vertices.Size() * 3);
         lightmap_mesh_data.vertex_normals.Resize(ref->GetMeshData().vertices.Size() * 3);
@@ -91,10 +91,10 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
         lightmap_mesh_data.lightmap_uvs.Resize(ref->GetMeshData().vertices.Size());
 
-        const Matrix4 normal_matrix = element.transform.Inverted().Transpose();
+        const Matrix4 normal_matrix = element.transform.GetMatrix().Inverted().Transpose();
 
         for (SizeType i = 0; i < ref->GetMeshData().vertices.Size(); i++) {
-            const Vec3f position = element.transform * ref->GetMeshData().vertices[i].GetPosition();
+            const Vec3f position = element.transform.GetMatrix() * ref->GetMeshData().vertices[i].GetPosition();
             const Vec3f normal = (normal_matrix * Vec4f(ref->GetMeshData().vertices[i].GetNormal(), 0.0f)).GetXYZ().Normalize();
             const Vec2f uv = ref->GetMeshData().vertices[i].GetTexCoord0();
 
@@ -115,7 +115,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
 LightmapUVBuilder::Result LightmapUVBuilder::Build()
 {
-    if (!m_params.elements.Any()) {
+    if (!m_params.elements) {
         return { Result::RESULT_ERR, "No elements to build lightmap" };
     }
 

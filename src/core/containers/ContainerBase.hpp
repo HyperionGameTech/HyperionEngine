@@ -345,7 +345,7 @@ public:
             std::forward<Lambda>(lambda)
         );
     }
-    
+
     HashCode GetHashCode() const
     {
         HashCode hc;
