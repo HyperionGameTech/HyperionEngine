@@ -278,15 +278,6 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-const HypClass *FBOMObject::GetHypClass() const
-{
-    if (const TypeID type_id = GetType().GetTypeID()) {
-        return GetClass(type_id);
-    }
-
-    return nullptr;
-}
-
 FBOMMarshalerBase *FBOMObject::GetMarshal(const TypeAttributes &type_attributes)
 {
     return FBOM::GetInstance().GetMarshal(type_attributes);

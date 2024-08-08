@@ -52,10 +52,12 @@ namespace Hyperion
             this.assetManager = assetManager;
             this.uiStage = new UIStage(uiStageRc);
 
-            foreach (var property in this.scene.HypClass.Properties)
+            var mesh = new Mesh();
+
+            foreach (var property in mesh.HypClass.Properties)
             {
-                var result = property.InvokeGetter(this.scene);
-                Console.WriteLine("Game BeforeInit: this.scene.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.GetUInt32());
+                var result = property.InvokeGetter(mesh);
+                Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
             }
 
             Console.WriteLine("Game BeforeInit: this.scene = {0}", this.scene.HypClass.TypeID.Value);

@@ -76,6 +76,24 @@ HYP_EXPORT const char *FBOMType_GetName(const FBOMType *ptr)
     return ptr->name.Data();
 }
 
+HYP_EXPORT void FBOMType_GetNativeTypeID(const FBOMType *ptr, TypeID *out_type_id)
+{
+    if (!ptr || !out_type_id) {
+        return;
+    }
+
+    *out_type_id = ptr->GetNativeTypeID();
+}
+
+HYP_EXPORT const HypClass *FBOMType_GetHypClass(const FBOMType *ptr)
+{
+    if (!ptr) {
+        return nullptr;
+    }
+
+    return ptr->GetHypClass();
+}
+
 #pragma endregion FBOMType
 
 #pragma region FBOMData

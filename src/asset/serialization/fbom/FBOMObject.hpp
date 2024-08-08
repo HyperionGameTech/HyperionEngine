@@ -285,7 +285,8 @@ public:
      *  
      *  If this object's FBOMType has no native TypeID (e.g it is a FBOM-only type like `seq`), or if
      *  no HypClass has been registered for the type, nullptr will be returned. */
-    const HypClass *GetHypClass() const;
+    HYP_FORCE_INLINE const HypClass *GetHypClass() const
+        { return m_object_type.GetHypClass(); }
 
 private:
     static FBOMMarshalerBase *GetMarshal(const TypeAttributes &);

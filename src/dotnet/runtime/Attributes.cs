@@ -12,5 +12,17 @@ namespace Hyperion
     public class HypClassBinding : Attribute
     {
         public string Name { get; set; }
+
+        private HypClass LoadHypClass()
+        {
+            HypClass? hypClass = HypClass.GetClass(Name);
+
+            if (hypClass == null)
+            {
+                throw new Exception("Failed to load HypClass: " + Name);
+            }
+
+            return (HypClass)hypClass;
+        }
     }
 }

@@ -19,6 +19,9 @@
 
 namespace hyperion {
 
+class HypClass;
+extern HYP_API const HypClass *GetClass(TypeID);
+
 enum class FBOMTypeFlags : uint8
 {
     NONE        = 0x0,
@@ -78,11 +81,23 @@ public:
     /*! \brief Get the C++ TypeID of this type object.
      *  \note Not all types will give a valid TypeID, which is OK - not all types correspond
      *  directly to a C++ type. */
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetNativeTypeID() const
         { return type_id; }
 
     HYP_FORCE_INLINE bool HasNativeTypeID() const
         { return type_id != TypeID::Void(); }
+
+    /*! \brief Gets a pointer to the HypClass that corresponds to the native TypeID for this type.
+     *  If there is no valid TypeID for this object, or the native type corresponding to the native TypeID for this object
+     *  does not have a corresponding HypClass, nullptr will be returned. */
+    HYP_FORCE_INLINE const HypClass *GetHypClass() const
+    {
+        if (!type_id) {
+            return nullptr;
+        }
+
+        return GetClass(type_id);
+    }
 
     FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
         { return Visit(GetUniqueID(), writer, out, attributes); }
