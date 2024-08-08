@@ -183,7 +183,6 @@ public:
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type ID,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
      *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
-     *      For POD types, the basic struct marshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
      *  \tparam T The type of the class to get the marshal for
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
@@ -195,7 +194,6 @@ public:
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type ID,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
      *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
-     *      For POD types, the basic struct marshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
      *  \param type_attributes The type attributes of the class to get the marshal for
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type

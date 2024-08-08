@@ -577,6 +577,9 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMType &type, UniqueID id,
         // write size of the type
         out->Write<uint64>(type.size);
 
+        // write native TypeID
+        out->Write<TypeID::ValueType>(type.GetTypeID().Value());
+
         if (static_data_ptr) {
             m_write_stream->MarkStaticDataWritten(id);
         }

@@ -209,17 +209,21 @@ public:
 #pragma endregion ByteBuffer
 
 #pragma region Struct
-    HYP_FORCE_INLINE bool IsStruct(const char *type_name) const
-        { return type.IsOrExtends(FBOMStruct(type_name, -1)); }
+    template <class T>
+    HYP_FORCE_INLINE bool IsStruct() const
+        { return type.IsOrExtends(FBOMStruct(TypeNameWithoutNamespace<NormalizedType<T>>(), -1, TypeID::ForType<NormalizedType<T>>()), /* allow_unbounded */ true, /* allow_void_type_id */ true); }
 
-    HYP_FORCE_INLINE bool IsStruct(const char *type_name, SizeType size) const
-        { return type.IsOrExtends(FBOMStruct(type_name, size)); }
+    HYP_FORCE_INLINE bool IsStruct(const char *type_name, TypeID type_id) const
+        { return type.IsOrExtends(FBOMStruct(type_name, -1, type_id), /* allow_unbounded */ true, /* allow_void_type_id */ true); }
 
-    HYP_FORCE_INLINE FBOMResult ReadStruct(const char *type_name, SizeType size, void *out) const
+    HYP_FORCE_INLINE bool IsStruct(const char *type_name, SizeType size, TypeID type_id) const
+        { return type.IsOrExtends(FBOMStruct(type_name, size, type_id), /* allow_unbounded */ true, /* allow_void_type_id */ true); }
+
+    HYP_FORCE_INLINE FBOMResult ReadStruct(const char *type_name, SizeType size, TypeID type_id, void *out) const
     {
         AssertThrow(out != nullptr);
 
-        FBOM_ASSERT(IsStruct(type_name, size), "Object is not a struct or not struct of requested size");
+        FBOM_ASSERT(IsStruct(type_name, size, type_id), "Object is not a struct or not struct of requested size");
 
         ReadBytes(size, out);
 
@@ -232,7 +236,7 @@ public:
         static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
 
-        return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(T), out);
+        return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeID::ForType<NormalizedType<T>>(), out);
     }
 
     template <class T>
@@ -243,8 +247,8 @@ public:
 
         ValueStorage<NormalizedType<T>> result_storage;
 
-        if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), result_storage.GetPointer())) {
-            AssertThrowMsg(false, "Failed to read struct of type %s: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data(), *err.message);
+        if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeID::ForType<NormalizedType<T>>(), result_storage.GetPointer())) {
+            HYP_FAIL("Failed to read struct of type %s: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data(), *err.message);
         }
 
         return result_storage.Get();
@@ -263,7 +267,7 @@ public:
 
 #pragma region Name
     HYP_FORCE_INLINE bool IsName() const
-        { return IsStruct("Name"); }
+        { return IsStruct<Name>(); }
 
     HYP_FORCE_INLINE FBOMResult ReadName(Name *out) const
         { return ReadStruct<Name>(out); }

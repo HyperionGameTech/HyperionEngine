@@ -44,12 +44,10 @@ struct TypeAttributes
     SizeType                        alignment = 0;
     EnumFlags<TypeAttributeFlags>   flags = TypeAttributeFlags::NONE;
 
-    HYP_FORCE_INLINE
-    constexpr operator bool() const
+    HYP_FORCE_INLINE constexpr operator bool() const
         { return IsValid(); }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsValid() const
+    HYP_FORCE_INLINE constexpr bool IsValid() const
         { return id != TypeID::Void(); }
 
     template <class T>
@@ -100,44 +98,34 @@ struct TypeAttributes
         };
     }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsPOD() const
+    HYP_FORCE_INLINE constexpr bool IsPOD() const
         { return flags & TypeAttributeFlags::POD_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsClass() const
+    HYP_FORCE_INLINE constexpr bool IsClass() const
         { return flags & TypeAttributeFlags::CLASS_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsEnum() const
+    HYP_FORCE_INLINE constexpr bool IsEnum() const
         { return flags & TypeAttributeFlags::ENUM_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsFundamental() const
+    HYP_FORCE_INLINE constexpr bool IsFundamental() const
         { return flags & TypeAttributeFlags::FUNDAMENTAL_TYPE; }
     
-    HYP_FORCE_INLINE
-    constexpr bool IsMathType() const
+    HYP_FORCE_INLINE constexpr bool IsMathType() const
         { return flags & TypeAttributeFlags::MATH_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsIntegralType() const
+    HYP_FORCE_INLINE constexpr bool IsIntegralType() const
         { return flags & TypeAttributeFlags::INTEGRAL_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool IsFloatType() const
+    HYP_FORCE_INLINE constexpr bool IsFloatType() const
         { return flags & TypeAttributeFlags::FLOAT_TYPE; }
 
-    HYP_FORCE_INLINE
-    constexpr bool HasHypClass() const
+    HYP_FORCE_INLINE constexpr bool HasHypClass() const
         { return flags & TypeAttributeFlags::HYP_CLASS; }
 
-    HYP_FORCE_INLINE
-    const HypClass *GetHypClass() const
+    HYP_FORCE_INLINE const HypClass *GetHypClass() const
         { return GetClass(id); }
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(id.GetHashCode());

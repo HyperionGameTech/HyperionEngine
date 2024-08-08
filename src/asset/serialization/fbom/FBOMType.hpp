@@ -10,6 +10,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/TypeID.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>
@@ -36,14 +37,15 @@ class HYP_API FBOMType : public IFBOMSerializable
 public:
     ANSIString                  name;
     SizeType                    size;
+    TypeID                      type_id;
     EnumFlags<FBOMTypeFlags>    flags;
     FBOMType                    *extends;
 
     FBOMType();
-    FBOMType(const ANSIStringView &name, SizeType size);
-    FBOMType(const ANSIStringView &name, SizeType size, const FBOMType &extends);
-    FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags);
-    FBOMType(const ANSIStringView &name, SizeType size, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends);
+    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id);
+    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, const FBOMType &extends);
+    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags);
+    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends);
     FBOMType(const FBOMType &other);
     FBOMType &operator=(const FBOMType &other);
     FBOMType(FBOMType &&other) noexcept;
@@ -52,56 +54,53 @@ public:
 
     FBOMType Extend(const FBOMType &object) const;
 
-    HYP_NODISCARD
     bool HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents = true) const;
 
-    HYP_NODISCARD
-    bool Is(const FBOMType &other, bool allow_unbounded = true) const;
+    bool Is(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool IsOrExtends(const ANSIStringView &name, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool Extends(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
 
-    HYP_NODISCARD
-    bool IsOrExtends(const ANSIStringView &name) const;
-
-    HYP_NODISCARD
-    bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true) const;
-
-    HYP_NODISCARD
-    bool Extends(const FBOMType &other, bool allow_unbounded = true) const;
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsUnbounded() const
+    HYP_FORCE_INLINE bool IsUnbounded() const
         { return size == SizeType(-1); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsUnset() const
+    HYP_FORCE_INLINE bool IsUnset() const
         { return name == "UNSET"; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const FBOMType &other) const
+    HYP_FORCE_INLINE bool operator==(const FBOMType &other) const
     {
         return name == other.name
             && size == other.size
+            && type_id == other.type_id
             && extends == other.extends;
     }
+
+    /*! \brief Get the C++ TypeID of this type object.
+     *  \note Not all types will give a valid TypeID, which is OK - not all types correspond
+     *  directly to a C++ type. */
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+        { return type_id; }
+
+    HYP_FORCE_INLINE bool HasNativeTypeID() const
+        { return type_id != TypeID::Void(); }
 
     FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
         { return Visit(GetUniqueID(), writer, out, attributes); }
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
-    HYP_NODISCARD
     virtual String ToString(bool deep = true) const override;
 
-    HYP_NODISCARD
     virtual UniqueID GetUniqueID() const override
         { return UniqueID(GetHashCode()); }
     
-    HYP_NODISCARD
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
 
         hc.Add(name);
         hc.Add(size);
+        hc.Add(type_id);
 
         if (extends != nullptr) {
             hc.Add(extends->GetHashCode());

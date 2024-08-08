@@ -188,7 +188,7 @@ namespace Hyperion
 
             ManagedClass? parentClass = null;
 
-            Type baseType = type.BaseType;
+            Type? baseType = type.BaseType;
 
             if (baseType != null)
             {
@@ -200,7 +200,7 @@ namespace Hyperion
 
             IntPtr hypClassPtr = IntPtr.Zero;
 
-            var classAttributes = type.GetCustomAttributes();//typeof(HypClassBinding), false);
+            var classAttributes = type.GetCustomAttributes();
 
             foreach (var attr in classAttributes)
             {
@@ -223,21 +223,6 @@ namespace Hyperion
                     break;
                 }
             }
-
-            // foreach (HypClassBinding attribute in classAttributes)
-            // {
-            //     hypClassPtr = HypClass_GetClassByName(attribute.Name);
-
-            //     if (hypClassPtr == IntPtr.Zero)
-            //     {
-            //         throw new Exception(string.Format("No HypClass found for {0}!", attribute.Name));
-            //     }
-
-            //     break;
-            // }
-
-            ; // @TODO Use attribute on class
-            Console.WriteLine("HypClass for {0} = {1}", typeName, hypClassPtr);
 
             ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, parentClass?.classObjectPtr ?? IntPtr.Zero, out managedClass);
 

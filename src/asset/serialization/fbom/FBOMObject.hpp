@@ -52,12 +52,10 @@ struct FBOMExternalObjectInfo
     UUID    library_id = UUID::Invalid();
     uint32  index = ~0u;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniqueID GetUniqueID() const
+    HYP_FORCE_INLINE UniqueID GetUniqueID() const
         { return UniqueID(GetHashCode()); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsLinked() const
+    HYP_FORCE_INLINE bool IsLinked() const
         { return library_id != UUID::Invalid() && index != ~0u; }
 
     HashCode GetHashCode() const
@@ -88,12 +86,10 @@ public:
     FBOMObject &operator=(FBOMObject &&other) noexcept;
     virtual ~FBOMObject();
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsExternal() const
+    HYP_FORCE_INLINE bool IsExternal() const
         { return m_external_info.HasValue(); }
 
-    HYP_FORCE_INLINE
-    void SetIsExternal(bool is_external)
+    HYP_FORCE_INLINE void SetIsExternal(bool is_external)
     {
         if (is_external) {
             m_external_info.Set({ });
@@ -102,26 +98,20 @@ public:
         }
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    FBOMExternalObjectInfo *GetExternalObjectInfo()
+    HYP_FORCE_INLINE FBOMExternalObjectInfo *GetExternalObjectInfo()
         { return IsExternal() ? m_external_info.TryGet() : nullptr; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMExternalObjectInfo *GetExternalObjectInfo() const
+    HYP_FORCE_INLINE const FBOMExternalObjectInfo *GetExternalObjectInfo() const
         { return IsExternal() ? m_external_info.TryGet() : nullptr; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FBOMType &GetType() const
+    HYP_FORCE_INLINE const FBOMType &GetType() const
         { return m_object_type; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const FlatMap<Name, FBOMData> &GetProperties() const
+    HYP_FORCE_INLINE const FlatMap<Name, FBOMData> &GetProperties() const
         { return properties; }
 
-    HYP_NODISCARD
     bool HasProperty(WeakName key) const;
 
-    HYP_NODISCARD
     const FBOMData &GetProperty(WeakName key) const;
 
     FBOMObject &SetProperty(Name key, const FBOMData &data);
@@ -132,44 +122,34 @@ public:
     FBOMObject &SetProperty(Name key, const FBOMType &type, const void *bytes);
     FBOMObject &SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes);
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, const UTF8StringView &str)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, const UTF8StringView &str)
         { return SetProperty(key, FBOMData::FromString(str)); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, const ANSIStringView &str)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, const ANSIStringView &str)
         { return SetProperty(key, FBOMData::FromString(str)); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, bool value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, bool value)
         { return SetProperty(key, FBOMBool(), sizeof(uint8) /* bool = 1 byte */, &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, uint8 value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint8 value)
         { return SetProperty(key, FBOMByte(), sizeof(uint8), &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, uint32 value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint32 value)
         { return SetProperty(key, FBOMUnsignedInt(), sizeof(uint32), &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, uint64 value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint64 value)
         { return SetProperty(key, FBOMUnsignedLong(), sizeof(uint64), &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, int32 value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int32 value)
         { return SetProperty(key, FBOMInt(), sizeof(int32), &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, int64 value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int64 value)
         { return SetProperty(key, FBOMLong(), sizeof(int64), &value); }
 
-    HYP_FORCE_INLINE
-    FBOMObject &SetProperty(Name key, float value)
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, float value)
         { return SetProperty(key, FBOMFloat(), sizeof(float), &value); }
 
     template <class T, typename = typename std::enable_if_t< !std::is_pointer_v<NormalizedType<T> > && !std::is_fundamental_v<NormalizedType<T> > > >
-    HYP_FORCE_INLINE
     FBOMObject &SetProperty(Name key, const T &in)
     {
         FBOMObject subobject;
@@ -183,7 +163,6 @@ public:
         return SetProperty(key, FBOMData::FromObject(std::move(subobject)));
     }
 
-    HYP_NODISCARD
     const FBOMData &operator[](WeakName key) const;
 
     /*! \brief Add a child object to this object node.
@@ -211,14 +190,11 @@ public:
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
-    HYP_NODISCARD
     virtual String ToString(bool deep = true) const override;
     
-    HYP_NODISCARD
     virtual UniqueID GetUniqueID() const override
         { return m_unique_id;  }
 
-    HYP_NODISCARD
     virtual HashCode GetHashCode() const override;
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
@@ -281,7 +257,6 @@ public:
             return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
         }
 
-        // Explicit overload call forces a linker error if the marshal class is not registered.
         if (FBOMResult err = marshal->Deserialize(in, out.any_value)) {
             HYP_FAIL("Failed to deserialize object: %s", *err.message);
         }
@@ -302,23 +277,21 @@ public:
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static bool HasMarshal()
+    HYP_FORCE_INLINE static bool HasMarshal()
         { return GetMarshal<T>() != nullptr; }
 
     /*! \brief Returns the associated HypClass for this object type, if applicable.
-     *  The type must be registered using the HYP_DEFINE_CLASS() macro, and a marshal class must exist.
-     *  If no HypClass has been registered for the type, nullptr will be returned. */
-    HYP_NODISCARD
+     *  The type must be registered using the HYP_DEFINE_CLASS() macro.
+     *  
+     *  If this object's FBOMType has no native TypeID (e.g it is a FBOM-only type like `seq`), or if
+     *  no HypClass has been registered for the type, nullptr will be returned. */
     const HypClass *GetHypClass() const;
 
 private:
-    HYP_NODISCARD
     static FBOMMarshalerBase *GetMarshal(const TypeAttributes &);
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    static FBOMMarshalerBase *GetMarshal()
+    HYP_FORCE_INLINE static FBOMMarshalerBase *GetMarshal()
         { return GetMarshal(TypeAttributes::ForType<T>()); }
 };
 

@@ -480,6 +480,13 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
 
         out_type.size = type_size;
 
+        // read native TypeID
+        TypeID::ValueType type_id_value;
+        reader->Read(&type_id_value);
+        CheckEndianness(type_id_value);
+
+        out_type.type_id = TypeID { type_id_value };
+
         break;
     }
     case FBOMDataLocation::LOC_STATIC:

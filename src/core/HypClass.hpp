@@ -137,12 +137,6 @@ protected:
         { return HashCode::GetHashCode(ref.Get<T>()); }
 };
 
-// Leave implementation empty - stub class
-template <>
-class HypClassInstance<void>;
-
-using HypClassInstanceStub = HypClassInstance<void>;
-
 } // namespace hyperion
 
 #endif

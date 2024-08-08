@@ -75,25 +75,25 @@ public:
     Class &operator=(Class &&) noexcept = delete;
     ~Class()                            = default;
 
-    const String &GetName() const
+    HYP_FORCE_INLINE const String &GetName() const
         { return m_name; }
 
-    Class *GetParentClass() const
+    HYP_FORCE_INLINE Class *GetParentClass() const
         { return m_parent_class; }
 
-    ClassHolder *GetClassHolder() const
+    HYP_FORCE_INLINE ClassHolder *GetClassHolder() const
         { return m_class_holder; }
 
-    NewObjectFunction GetNewObjectFunction() const
+    HYP_FORCE_INLINE NewObjectFunction GetNewObjectFunction() const
         { return m_new_object_fptr; }
 
-    void SetNewObjectFunction(NewObjectFunction new_object_fptr)
+    HYP_FORCE_INLINE void SetNewObjectFunction(NewObjectFunction new_object_fptr)
         { m_new_object_fptr = new_object_fptr; }
 
-    FreeObjectFunction GetFreeObjectFunction() const
+    HYP_FORCE_INLINE FreeObjectFunction GetFreeObjectFunction() const
         { return m_free_object_fptr; }
 
-    void SetFreeObjectFunction(FreeObjectFunction free_object_fptr)
+    HYP_FORCE_INLINE void SetFreeObjectFunction(FreeObjectFunction free_object_fptr)
         { m_free_object_fptr = free_object_fptr; }
 
     /*! \brief Check if a method exists by name.
@@ -102,7 +102,7 @@ public:
      *
      *  \return True if the method exists, otherwise false.
      */
-    bool HasMethod(UTF8StringView method_name) const
+    HYP_FORCE_INLINE bool HasMethod(UTF8StringView method_name) const
         { return m_methods.FindAs(method_name) != m_methods.End(); }
 
     /*! \brief Get a method by name.
@@ -111,7 +111,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    ManagedMethod *GetMethod(UTF8StringView method_name)
+    HYP_FORCE_INLINE ManagedMethod *GetMethod(UTF8StringView method_name)
     {
         auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
@@ -127,7 +127,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    const ManagedMethod *GetMethod(UTF8StringView method_name) const
+    HYP_FORCE_INLINE const ManagedMethod *GetMethod(UTF8StringView method_name) const
     {
         auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
@@ -142,25 +142,25 @@ public:
      *  \param method_name The name of the method to add.
      *  \param method_object The method object to add.
      */
-    void AddMethod(const String &method_name, ManagedMethod &&method_object)
+    HYP_FORCE_INLINE void AddMethod(const String &method_name, ManagedMethod &&method_object)
         { m_methods[method_name] = std::move(method_object); }
 
     /*! \brief Get all methods of this class.
      *
      *  \return A reference to the map of methods.
      */
-    const HashMap<String, ManagedMethod> &GetMethods() const
+    HYP_FORCE_INLINE const HashMap<String, ManagedMethod> &GetMethods() const
         { return m_methods; }
 
     void EnsureLoaded() const;
 
     /*! \brief Create a new managed object of this class.
-     *     The new object will be managed by the .NET runtime and will be freed when the unique pointer goes out of scope.
-     *      The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
+     *  The new object will be removed from the managed object cache when the unique pointer goes out of scope, allowing for the .NET runtime to collect it.
+     *  The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
      *
      *  \return A unique pointer to the new managed object.
      */
-    UniquePtr<Object> NewObject();
+    HYP_NODISCARD UniquePtr<Object> NewObject();
 
     /*! \brief Check if this class has a parent class with the given name.
      *

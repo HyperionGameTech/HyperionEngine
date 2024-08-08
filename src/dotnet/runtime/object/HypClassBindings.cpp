@@ -6,6 +6,8 @@
 
 #include <core/Name.hpp>
 
+#include <dotnet/Object.hpp>
+
 #include <asset/serialization/fbom/FBOM.hpp>
 
 #include <Engine.hpp>
