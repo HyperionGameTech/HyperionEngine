@@ -13,27 +13,40 @@ namespace Hyperion
         public static InvokeMethodDelegate InvokeMethodDelegate = InvokeMethod;
 
         [UnmanagedCallersOnly]
-        public static void InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr)
+        public static void InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
             // Create a managed string from the pointer
             string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
 
-            if (AssemblyCache.Instance.Get(assemblyPath) != null)
+            if (isCoreAssembly != 0)
             {
-                // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
+                if (AssemblyCache.Instance.Get(assemblyPath) != null)
+                {
+                    // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
 
-                Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
+                    Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
 
-                return;
+                    return;
+                }
             }
 
             Guid assemblyGuid = Guid.NewGuid();
             Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
 
             Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
+            
+            Assembly? assembly = null;
 
-            AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
-            Assembly? assembly = assemblyInstance.Assembly;
+            if (isCoreAssembly != 0)
+            {
+                // Load in same context
+                assembly = Assembly.LoadFrom(assemblyPath);
+            }
+            else
+            {
+                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
+                assembly = assemblyInstance.Assembly;
+            }
 
             if (assembly == null)
             {
@@ -266,15 +279,6 @@ namespace Hyperion
                 constructorInfo.Invoke(obj, null);
 
                 Guid objectGuid = Guid.NewGuid();
-
-                // @TODO: Reduce complexity - this is a bit of a mess between C# adn C++ interop
-                // ManagedObject managedObject = new ManagedObject();
-
-                // NativeInterop_AddObjectToCache(ref assemblyGuid, ref objectGuid, GCHandle.ToIntPtr(objHandle), out managedObject);
-
-                // objHandle.Free();
-
-                // return managedObject;
                 
                 return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
             });
@@ -318,6 +322,26 @@ namespace Hyperion
                 if (paramType == typeof(IntPtr))
                 {
                     parameters[i] = Marshal.ReadIntPtr(paramAddress);
+
+                    continue;
+                }
+
+                if (paramType.IsClass)
+                {
+                    // // Read ManagedObject
+                    // ManagedObject managedObject = Marshal.PtrToStructure<ManagedObject>(paramAddress);
+
+                    // // @TODO: Validate type via class GUID?
+                    
+                    IntPtr ptr = Marshal.ReadIntPtr(paramAddress);
+                    object* objectPtr = (object*)ptr.ToPointer();
+
+                    if (objectPtr == null)
+                    {
+                        throw new NullReferenceException("Marshaled object pointer is null!");
+                    }
+
+                    parameters[i] = *objectPtr;
 
                     continue;
                 }

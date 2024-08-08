@@ -99,7 +99,7 @@ protected:
                 m_watch_directory.Data(),
                 m_intermediate_directory.Data(),
                 m_binary_output_directory.Data(),
-                m_callback,
+                (void *)m_callback,
                 m_callback_self_ptr
             );
         }

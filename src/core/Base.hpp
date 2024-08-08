@@ -41,19 +41,20 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class BasicObjectBase
+class HYP_API BasicObjectBase
 {
-};
+public:
+    // HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const
+    //     { return m_managed_object.Get(); }
 
-template <class T>
-struct BasicObjectClassInfo
-{
-    static constexpr TypeID type_id = TypeID::ForType<T>();
+protected:
+    // BasicObjectBase(const IClassInfo *class_info);
 
-    HYP_FORCE_INLINE const HypClass *GetClass() const
-    {
-        return ::hyperion::GetClass(type_id);
-    }
+    BasicObjectBase() = default;
+    BasicObjectBase(BasicObjectBase &&other) noexcept;
+    ~BasicObjectBase();
+
+    // UniquePtr<dotnet::Object>   m_managed_object;
 };
 
 template <class T>
@@ -63,7 +64,7 @@ class BasicObject : public BasicObjectBase
 
     static constexpr auto type_name = TypeNameWithoutNamespace<InnerType>();
     
-    static constexpr BasicObjectClassInfo<InnerType> class_info = { };
+    // static const ClassInfo<InnerType> s_class_info;
 
 public:
     using InitInfo = ComponentInitInfo<InnerType>;
@@ -107,8 +108,7 @@ public:
         : m_name(std::move(other.m_name)),
           m_init_info(std::move(other.m_init_info)),
           m_id(other.m_id),
-          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED)),
-          m_managed_object(std::move(other.m_managed_object))
+          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
     {
         other.m_id = empty_id;
         other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
@@ -151,14 +151,8 @@ public:
     HYP_FORCE_INLINE bool IsReady() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_READY; }
 
-    HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const
-        { return m_managed_object.Get(); }
-
-    HYP_FORCE_INLINE static const BasicObjectClassInfo<InnerType> &GetClassInfo()
-        { return class_info; }
-
-    HYP_FORCE_INLINE static const HypClass *GetClass()
-        { return class_info.GetClass(); }
+    // HYP_FORCE_INLINE static const HypClass *GetClass()
+    //     { return s_class_info.GetClass(); }
 
     void Init()
     {
@@ -216,8 +210,10 @@ protected:
     AtomicVar<uint16>           m_init_state;
     InitInfo                    m_init_info;
     Array<DelegateHandler>      m_delegate_handlers;
-    UniquePtr<dotnet::Object>   m_managed_object;
 };
+
+// template <class T>
+// const ClassInfo<T> BasicObject<T>::s_class_info = { };
 
 } // namespace hyperion
 

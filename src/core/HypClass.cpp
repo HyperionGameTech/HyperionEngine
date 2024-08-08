@@ -3,6 +3,8 @@
 #include <core/HypClass.hpp>
 #include <core/HypClassProperty.hpp>
 
+#include <core/HypClassRegistry.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -43,6 +45,11 @@ HypClassProperty *HypClass::GetProperty(WeakName name) const
     }
 
     return it->second;
+}
+
+dotnet::Class *HypClass::GetManagedClass() const
+{
+    return HypClassRegistry::GetInstance().GetManagedClass(this);
 }
 
 #pragma endregion HypClass

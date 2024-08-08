@@ -17,9 +17,7 @@ struct ManagedGuid
     uint64  low;
     uint64  high;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
     {
         return low != 0 || high != 0;
     }

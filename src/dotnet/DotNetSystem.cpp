@@ -3,7 +3,6 @@
 #include <dotnet/DotNetSystem.hpp>
 
 #include <asset/ByteWriter.hpp>
-#include <asset/Assets.hpp>
 
 #include <core/system/AppContext.hpp>
 #include <core/system/ArgParse.hpp>
@@ -20,8 +19,6 @@
 
 #include <dotnet/Class.hpp>
 
-#include <Engine.hpp>
-
 #ifdef HYP_DOTNET
 #include <dotnetcore/hostfxr.h>
 #include <dotnetcore/nethost.h>
@@ -29,6 +26,12 @@
 #endif
 
 namespace hyperion {
+
+static FilePath GetBasePath()
+{
+    return FilePath::Join(HYP_ROOT_DIR, "res");
+}
+
 namespace dotnet {
 namespace detail {
 
@@ -37,7 +40,7 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual void Initialize() = 0;
+    virtual void Initialize(const RC<AppContext> &app_context) = 0;
     virtual UniquePtr<Assembly> LoadAssembly(const char *path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
@@ -52,28 +55,28 @@ public:
     ) const = 0;
 };
 
-using InitializeAssemblyDelegate = void(*)(ManagedGuid *, ClassHolder *, const char *);
+using InitializeAssemblyDelegate = void(*)(ManagedGuid *, ClassHolder *, const char *, int32);
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
 
 using AddMethodToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *);
 using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, ManagedObject *);
 
-static Optional<FilePath> FindAssemblyFilePath(const char *path)
+static Optional<FilePath> FindAssemblyFilePath(AppContext *app_context, const char *path)
 {
     HYP_NAMED_SCOPE("Find .NET Assembly File Path");
 
     FilePath filepath = FilePath::Current() / path;
 
-    if (!filepath.Exists() && g_engine->GetAppContext() != nullptr) {
+    if (!filepath.Exists() && app_context != nullptr) {
         HYP_LOG(DotNET, LogLevel::WARNING, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
 
-        filepath = FilePath(g_engine->GetAppContext()->GetArguments().GetCommand()).BasePath() / path;
+        filepath = FilePath(app_context->GetArguments().GetCommand()).BasePath() / path;
     }
     
     if (!filepath.Exists()) {
         HYP_LOG(DotNET, LogLevel::WARNING, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
 
-        filepath = g_asset_manager->GetBasePath() / "scripts" / "bin" / path;
+        filepath = GetBasePath() / "scripts" / "bin" / path;
     }
     
     if (!filepath.Exists()) {
@@ -110,7 +113,7 @@ public:
     }
 
     FilePath GetDotNetPath() const
-        { return g_asset_manager->GetBasePath() / "data/dotnet"; }
+        { return GetBasePath() / "data/dotnet"; }
 
     FilePath GetLibraryPath() const
         { return GetDotNetPath() / "lib"; }
@@ -118,8 +121,12 @@ public:
     FilePath GetRuntimeConfigPath() const
         { return GetDotNetPath() / "runtimeconfig.json"; }
 
-    virtual void Initialize() override
+    virtual void Initialize(const RC<AppContext> &app_context) override
     {
+        AssertThrow(app_context != nullptr);
+
+        m_app_context = app_context;
+
         // ensure the mono directories exists
         FileSystem::MkDir(GetDotNetPath().Data());
         FileSystem::MkDir(GetLibraryPath().Data());
@@ -135,7 +142,7 @@ public:
             HYP_THROW("Could not initialize .NET runtime: Failed to initialize runtime");
         }
 
-        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath("HyperionInterop.dll");
+        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath(m_app_context.Get(), "HyperionInterop.dll");
 
         if (!interop_assembly_path.HasValue()) {
             HYP_THROW("Could not initialize .NET runtime: Could not locate HyperionInterop.dll!");
@@ -199,8 +206,8 @@ public:
 
         static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
             Pair<String, FilePath> { "interop", *interop_assembly_path },
-            Pair<String, FilePath> { "core", *FindAssemblyFilePath("HyperionCore.dll") },
-            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath("HyperionRuntime.dll") }
+            Pair<String, FilePath> { "core", *FindAssemblyFilePath(app_context, "HyperionCore.dll") },
+            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath(app_context, "HyperionRuntime.dll") }
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
@@ -212,7 +219,8 @@ public:
             m_initialize_assembly_fptr(
                 &assembly->GetGuid(),
                 &assembly->GetClassObjectHolder(),
-                entry.second.Data()
+                entry.second.Data(),
+                /* is_core_assembly */ 1
             );
         }
     }
@@ -221,7 +229,7 @@ public:
     {
         UniquePtr<Assembly> assembly(new Assembly());
 
-        Optional<FilePath> filepath = FindAssemblyFilePath(path);
+        Optional<FilePath> filepath = FindAssemblyFilePath(m_app_context.Get(), path);
 
         if (!filepath.HasValue()) {
             return nullptr;
@@ -230,7 +238,8 @@ public:
         m_initialize_assembly_fptr(
             &assembly->GetGuid(),
             &assembly->GetClassObjectHolder(),
-            filepath->Data()
+            filepath->Data(),
+            /* is_core_assembly */ 0
         );
 
         return assembly;
@@ -238,6 +247,15 @@ public:
 
     virtual bool UnloadAssembly(ManagedGuid assembly_guid) const override
     {
+        const bool is_core_assembly = m_core_assemblies.FindIf([assembly_guid](const auto &it)
+        {
+            return Memory::MemCmp(&it.second->GetGuid(), &assembly_guid, sizeof(ManagedGuid)) == 0;
+        }) != m_core_assemblies.End();
+
+        if (is_core_assembly) {
+            return false;
+        }
+
         HYP_LOG(DotNET, LogLevel::INFO, "Unloading assembly...");
 
         // if (Class *native_interop_class = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop")) {
@@ -308,8 +326,8 @@ private:
 
         probing_paths.PushBack(FilePath::Relative(GetLibraryPath(), current_path));
 
-        if (g_engine->GetAppContext() != nullptr) {
-            probing_paths.PushBack(FilePath::Relative(FilePath(g_engine->GetAppContext()->GetArguments().GetCommand()).BasePath(), current_path));
+        if (m_app_context != nullptr) {
+            probing_paths.PushBack(FilePath::Relative(FilePath(m_app_context->GetArguments().GetCommand()).BasePath(), current_path));
         }
 
         const json::JSONValue runtime_config_json(json::JSONObject {
@@ -400,6 +418,8 @@ private:
         return true;
     }
 
+    RC<AppContext>                              m_app_context;
+
     UniquePtr<DynamicLibrary>                   m_dll;
 
     HashMap<String, UniquePtr<Assembly>>        m_core_assemblies;
@@ -423,7 +443,7 @@ public:
     DotNetImpl()                    = default;
     virtual ~DotNetImpl() override  = default;
 
-    virtual void Initialize() override
+    virtual void Initialize(const RC<AppContext> &app_context) override
     {
     }
 
@@ -542,7 +562,7 @@ bool DotNetSystem::IsInitialized() const
     return m_is_initialized;
 }
 
-void DotNetSystem::Initialize()
+void DotNetSystem::Initialize(const RC<AppContext> &app_context)
 {
     if (!IsEnabled()) {
         return;
@@ -557,7 +577,7 @@ void DotNetSystem::Initialize()
     AssertThrow(m_impl == nullptr);
 
     m_impl.Reset(new detail::DotNetImpl());
-    m_impl->Initialize();
+    m_impl->Initialize(app_context);
 
     m_is_initialized = true;
 }

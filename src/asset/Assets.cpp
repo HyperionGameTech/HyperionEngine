@@ -1,24 +1,33 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <asset/Assets.hpp>
 #include <asset/AssetBatch.hpp>
+
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
 #include <asset/model_loaders/PLYModelLoader.hpp>
-#include <asset/material_loaders/MTLMaterialLoader.hpp>
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
+#include <asset/material_loaders/MTLMaterialLoader.hpp>
+
 #include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
+
 #include <asset/texture_loaders/TextureLoader.hpp>
+
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
+
 #include <asset/data_loaders/JSONLoader.hpp>
+
 #include <asset/font_loaders/FontFaceLoader.hpp>
 #include <asset/font_loaders/FontAtlasLoader.hpp>
+
 #include <asset/ui_loaders/UILoader.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/utilities/Format.hpp>
+
+#include <core/HypClassUtils.hpp>
 
 #include <ui/UIObject.hpp>
 
@@ -28,6 +37,8 @@
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(AssetManager);
 
 AssetManager *AssetManager::GetInstance()
 {

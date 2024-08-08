@@ -4,6 +4,8 @@
 
 #include <Engine.hpp>
 
+#include <asset/Assets.hpp>
+
 #include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/system/SystemEvent.hpp>
@@ -26,17 +28,13 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 Game::Game()
-    : m_is_init(false),
-      m_input_manager(new InputManager()),
-      m_ui_stage(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)))
+    : m_is_init(false)
 {
 }
 
 Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
-      m_input_manager(new InputManager()),
-      m_managed_game_info(std::move(managed_game_info)),
-      m_ui_stage(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)))
+      m_managed_game_info(std::move(managed_game_info))
 {
 }
 
@@ -58,22 +56,6 @@ void Game::Init_Internal()
     m_game_thread.Reset(new GameThread);
 
     AssertThrowMsg(m_app_context != nullptr, "No valid Application instance was provided to Game constructor!");
-    
-    Extent2D window_size;
-
-    if (m_app_context->GetMainWindow()) {
-        m_input_manager->SetWindow(m_app_context->GetMainWindow());
-
-        window_size = m_app_context->GetMainWindow()->GetDimensions();
-    }
-
-    if (m_managed_game_info.HasValue()) {
-        if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
-            if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
-                m_managed_game_object = class_ptr->NewObject();
-            }
-        }
-    }
 
     m_scene = CreateObject<Scene>(
         Handle<Camera>(),
@@ -83,8 +65,22 @@ void Game::Init_Internal()
         }
     );
 
-    m_game_thread->GetSchedulerInstance()->Enqueue([this, window_size](GameCounter::TickUnit delta) -> void
+    m_game_thread->GetSchedulerInstance()->Enqueue([this](GameCounter::TickUnit delta) -> void
     {
+        Extent2D window_size;
+
+        if (m_app_context->GetMainWindow()) {
+            window_size = m_app_context->GetMainWindow()->GetDimensions();
+        }
+
+        if (m_managed_game_info.HasValue()) {
+            if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
+                if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
+                    m_managed_game_object = class_ptr->NewObject();
+                }
+            }
+        }
+
         m_scene->SetCamera(CreateObject<Camera>(
             70.0f,
             window_size.width, window_size.height,
@@ -95,6 +91,11 @@ void Game::Init_Internal()
 
         g_engine->GetWorld()->AddScene(m_scene);
         InitObject(m_scene);
+
+        m_input_manager.Reset(new InputManager());
+        m_input_manager->SetWindow(m_app_context->GetMainWindow());
+        
+        m_ui_stage.Reset(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)));
 
         // Call Init method (overridden)
         Init();
@@ -133,11 +134,11 @@ void Game::Init()
     m_ui_stage->Init();
 
     if (m_managed_game_object) {
-        m_managed_game_object->InvokeMethodByName<void, ManagedHandle, void *, void *, ManagedRefCountedPtr>(
+        m_managed_game_object->InvokeMethodByName<void, dotnet::Object *, dotnet::Object *, dotnet::Object *, ManagedRefCountedPtr>(
             "BeforeInit",
-            CreateManagedHandleFromHandle(m_scene),
-            m_input_manager.Get(),
-            g_asset_manager,
+            m_scene->GetManagedObject(),
+            m_input_manager->GetManagedObject(),
+            g_asset_manager->GetManagedObject(),
             UnmarshalRefCountedPtr(m_ui_stage)
         );
 

@@ -3,7 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class AssetManager
+    [HypClassBinding]
+    public class AssetManager : HypObject
     {
         public static AssetManager Instance
         {
@@ -14,6 +15,10 @@ namespace Hyperion
         }
 
         private IntPtr ptr;
+
+        public AssetManager()
+        {
+        }
 
         public AssetManager(IntPtr ptr)
         {
@@ -32,7 +37,9 @@ namespace Hyperion
         {
             get
             {
-                return AssetManager_GetBasePath(ptr);
+                IntPtr stringPtr = AssetManager_GetBasePath(ptr);
+                
+                return Marshal.PtrToStringAnsi(stringPtr);
             }
             set
             {
@@ -44,8 +51,7 @@ namespace Hyperion
         private static extern IntPtr AssetManager_GetInstance();
 
         [DllImport("hyperion", EntryPoint = "AssetManager_GetBasePath")]
-        [return: MarshalAs(UnmanagedType.LPStr)]
-        private static extern string AssetManager_GetBasePath(IntPtr assetManagerPtr);
+        private static extern IntPtr AssetManager_GetBasePath(IntPtr assetManagerPtr);
 
         [DllImport("hyperion", EntryPoint = "AssetManager_SetBasePath")]
         private static extern void AssetManager_SetBasePath(IntPtr assetManagerPtr, [MarshalAs(UnmanagedType.LPStr)] string basePath);

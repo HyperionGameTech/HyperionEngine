@@ -45,17 +45,17 @@ namespace Hyperion
         /// <summary>
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Game instance.
-        /// </summary>
-        /// <param name="sceneHandle">Native handle to the scene</param>
-        /// <param name="inputManagerPtr">Native pointer to the input manager</param>
-        /// <param name="assetManagerPtr">Native pointer to the asset manager</param>
-        /// <param name="uiStageRc">Native RefCountedPtr to the UI stage</param>
-        internal void BeforeInit(ManagedHandle sceneHandle, IntPtr inputManagerPtr, IntPtr assetManagerPtr, RefCountedPtr uiStageRc)
+        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, RefCountedPtr uiStageRc)
         {
-            scene = new Scene(sceneHandle);
-            inputManager = new InputManager(inputManagerPtr);
-            assetManager = new AssetManager(assetManagerPtr);
-            uiStage = new UIStage(uiStageRc);
+            this.scene = scene;
+            this.inputManager = inputManager;
+            this.assetManager = assetManager;
+            this.uiStage = new UIStage(uiStageRc);
+
+            Console.WriteLine("this.inputManager.HypClass = {0} {1}", this.inputManager.HypClass, this.inputManager.HypClass.Name);
+            Console.WriteLine("this.assetManager.HypClass = {0} {1}", this.assetManager.HypClass, this.assetManager.HypClass.Name);
+
+            Console.WriteLine("Game BeforeInit: this.scene = {0}, this.inputManager = {1}", this.scene, this.inputManager);
         }
 
         public abstract void Init();

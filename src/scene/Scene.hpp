@@ -11,7 +11,10 @@
 
 #include <core/Base.hpp>
 #include <core/Name.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
+
+#include <core/HypObject.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
@@ -66,6 +69,8 @@ class HYP_API Scene : public BasicObject<Scene>
     friend class Entity;
     friend class World;
     friend class UIStage;
+
+    HYP_OBJECT_BODY(Scene);
 
 public:
     Scene();

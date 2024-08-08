@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding]
-    public class Scene
+    public class Scene : HypObject
     {
         private ManagedHandle handle;
         private Node? root;
@@ -12,14 +12,14 @@ namespace Hyperion
 
         public Scene()
         {
-            this.handle = new ManagedHandle();
-            Scene_Create(out this.handle);
+            // this.handle = new ManagedHandle();
+            // Scene_Create(out this.handle);
 
-            ManagedNode rootNode = new ManagedNode();
-            Scene_GetRoot(this.handle, out rootNode);
+            // ManagedNode rootNode = new ManagedNode();
+            // Scene_GetRoot(this.handle, out rootNode);
 
-            this.root = new Node(rootNode);
-            this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
+            // this.root = new Node(rootNode);
+            // this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
         public Scene(ManagedHandle handle)

@@ -15,6 +15,21 @@ namespace Hyperion
 
         protected override Assembly? Load(AssemblyName name)
         {
+            // Check if the assembly is already loaded
+            //
+            // For instance, a script referencing Hyperion.Core or Hyperion.Runtime
+            // should use those shared assemblies
+            //
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.GetName().Name == name.Name)
+                {
+                    return assembly;
+                }
+            }
+            
+            Logger.Log(LogType.Info, "Loading assembly: {0}", name.Name);
+
             string assemblyPath = resolver.ResolveAssemblyToPath(name);
 
             if (assemblyPath != null)

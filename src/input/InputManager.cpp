@@ -2,12 +2,16 @@
 
 #include <input/InputManager.hpp>
 
+#include <core/HypClassUtils.hpp>
+
 #include <core/system/AppContext.hpp>
 #include <core/system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_CLASS(InputManager);
 
 InputManager::InputManager()
     : m_window(nullptr)

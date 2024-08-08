@@ -4,7 +4,10 @@
 #define HYPERION_MESH_HPP
 
 #include <core/Base.hpp>
+#include <core/HypObject.hpp>
+
 #include <core/utilities/Pair.hpp>
+
 #include <core/containers/Array.hpp>
 
 #include <math/BoundingBox.hpp>
@@ -30,6 +33,8 @@ struct RENDER_COMMAND(SetStreamedMeshData);
 
 class HYP_API Mesh final : public BasicObject<Mesh>
 {
+    HYP_OBJECT_BODY(Mesh);
+    
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
 

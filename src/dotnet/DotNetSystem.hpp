@@ -10,6 +10,13 @@
 #include <dotnet/Assembly.hpp>
 
 namespace hyperion {
+
+namespace sys {
+class AppContext;
+} // namespace sys
+
+using sys::AppContext;
+
 namespace dotnet {
 
 struct ManagedObject;
@@ -44,7 +51,7 @@ public:
 
     bool IsInitialized() const;
 
-    void Initialize();
+    void Initialize(const RC<AppContext> &app_context);
     void Shutdown();
 
 private:

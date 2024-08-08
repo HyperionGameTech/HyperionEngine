@@ -19,6 +19,8 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
         "Hyperion already initialized!"
     );
 
+    dotnet::DotNetSystem::GetInstance().Initialize(app_context);
+
     g_engine = new Engine;
     g_asset_manager = new AssetManager;
     g_shader_manager = new ShaderManagerSystem;
@@ -26,7 +28,6 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
     g_safe_deleter = new SafeDeleter;
 
     ComponentInterfaceRegistry::GetInstance().Initialize();
-    dotnet::DotNetSystem::GetInstance().Initialize();
 
     g_engine->Initialize(app_context);
 }

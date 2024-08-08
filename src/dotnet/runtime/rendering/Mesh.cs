@@ -3,9 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class Mesh
+    [HypClassBinding]
+    public class Mesh : HypObject
     {
         private ManagedHandle handle;
+
+        public Mesh()
+        {
+        }
 
         public Mesh(List<Vertex> vertices, List<uint> indices)
         {

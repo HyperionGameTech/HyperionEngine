@@ -7,10 +7,14 @@
 
 #include <util/fs/FsUtil.hpp>
 
+#include <core/HypObject.hpp>
+
 #include <core/Core.hpp>
 #include <core/Defines.hpp>
-#include <core/logging/LoggerFwd.hpp>
+
 #include <core/ObjectPool.hpp>
+
+#include <core/logging/LoggerFwd.hpp>
 
 #include <GameCounter.hpp>
 
@@ -75,6 +79,8 @@ class AssetManager
     friend struct AssetBatch;
     friend class AssetLoader;
 
+    HYP_OBJECT_BODY(AssetManager);
+
 public:
     using ProcessAssetFunctorFactory = std::add_pointer_t<UniquePtr<ProcessAssetFunctorBase>(const String & /* key */, const String & /* path */, AssetBatchCallbacks * /* callbacks */)>;
 
@@ -89,10 +95,10 @@ public:
     AssetManager &operator=(AssetManager &&other) noexcept  = delete;
     ~AssetManager()                                         = default;
 
-    const FilePath &GetBasePath() const
+    HYP_FORCE_INLINE const FilePath &GetBasePath() const
         { return m_base_path; }
 
-    void SetBasePath(const FilePath &base_path)
+    HYP_FORCE_INLINE void SetBasePath(const FilePath &base_path)
         { m_base_path = base_path; }
 
     template <class Loader, class ResultType, class ... Formats>
@@ -128,8 +134,7 @@ public:
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    HYP_NODISCARD
-    LoadedAssetInstance<NormalizedType<T>> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD LoadedAssetInstance<NormalizedType<T>> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
         using Normalized = NormalizedType<T>;
 
@@ -161,6 +166,9 @@ public:
         { return m_asset_cache.Get(); }
 
     HYP_API void Update(GameCounter::TickUnit delta);
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+        { return HashCode(); }
 
 private:
     HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::Void());

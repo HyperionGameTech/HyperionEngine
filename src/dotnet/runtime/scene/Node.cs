@@ -52,7 +52,7 @@ namespace Hyperion
         {
             get
             {
-                return Node_GetName(managedNode);
+                return Marshal.PtrToStringAnsi(Node_GetName(managedNode));
             }
             set
             {
@@ -297,8 +297,7 @@ namespace Hyperion
         private static extern void Node_Create([Out] out ManagedNode managedNode);
 
         [DllImport("hyperion", EntryPoint = "Node_GetName")]
-        [return: MarshalAs(UnmanagedType.LPStr)]
-        private static extern string Node_GetName(ManagedNode managedNode);
+        private static extern IntPtr Node_GetName(ManagedNode managedNode);
 
         [DllImport("hyperion", EntryPoint = "Node_SetName")]
         private static extern void Node_SetName(ManagedNode managedNode, [MarshalAs(UnmanagedType.LPStr)] string namePtr);

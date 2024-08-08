@@ -26,7 +26,7 @@ Object::~Object()
     m_class_ptr->GetFreeObjectFunction()(m_managed_object);
 }
 
-void *Object::InvokeMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr)
+void *Object::InvokeMethod_Internal(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr)
 {
     m_class_ptr->EnsureLoaded();
 
@@ -45,5 +45,14 @@ const ManagedMethod *Object::GetMethod(UTF8StringView method_name) const
 
     return &it->second;
 }
+
+namespace detail {
+
+void *TransformArgument<Object *>::operator()(Object *value) const
+{
+    return value->GetUnderlyingObject().ptr;
+}
+
+} // namespace detail
 
 } // namespace hyperion::dotnet

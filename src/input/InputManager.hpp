@@ -6,8 +6,11 @@
 #define NUM_KEYBOARD_KEYS 350
 #define NUM_MOUSE_BUTTONS 3
 
+#include <core/HypObject.hpp>
+
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Bitset.hpp>
+
 #include <core/system/AppContext.hpp>
 
 #include <math/Vector2.hpp>
@@ -83,6 +86,8 @@ struct InputState
 
 class InputManager
 {
+    HYP_OBJECT_BODY(InputManager);
+
 public:
     HYP_API InputManager();
     InputManager(const InputManager &other)                 = delete;
@@ -136,6 +141,9 @@ public:
 
     void SetWindow(ApplicationWindow *window)
         { m_window = window; }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+        { return HashCode(); }
 
 private:
     void UpdateMousePosition();

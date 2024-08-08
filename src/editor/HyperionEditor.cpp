@@ -1130,13 +1130,21 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
     OnFocusedNodeChanged(m_focused_node, previous_focused_node);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void HyperionEditorImpl::Initialize()
 {
+    Handle<Scene> test_scene = CreateObject<Scene>();
+    auto *managed_object = test_scene->GetManagedObject();
+    AssertThrow(managed_object != nullptr);
+
+    HYP_BREAKPOINT;
+
     CreateHighlightNode();
 
     CreateMainPanel();
     CreateInitialState();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void HyperionEditorImpl::UpdateEditorCamera(GameCounter::TickUnit delta)
 {
@@ -1186,7 +1194,7 @@ void HyperionEditorImpl::UpdateEditorCamera(GameCounter::TickUnit delta)
 #pragma region HyperionEditor
 
 HyperionEditor::HyperionEditor()
-    : Game()
+    : Game(ManagedGameInfo { "GameName.dll", "TestGame1" })
 {
 }
 
@@ -1197,6 +1205,8 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
+
+    HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();

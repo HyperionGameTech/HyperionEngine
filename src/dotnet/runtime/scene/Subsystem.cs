@@ -16,12 +16,13 @@ namespace Hyperion
         {
             get
             {
-                return Subsystem_GetName(ptr);
+                IntPtr stringPtr = Subsystem_GetName(ptr);
+                
+                return Marshal.PtrToStringAnsi(stringPtr);
             }
         }
 
         [DllImport("hyperion", EntryPoint = "Subsystem_GetName")]
-        [return: MarshalAs(UnmanagedType.LPStr)]
-        private static extern string Subsystem_GetName(IntPtr subsystemPtr);
+        private static extern IntPtr Subsystem_GetName(IntPtr subsystemPtr);
     }
 }

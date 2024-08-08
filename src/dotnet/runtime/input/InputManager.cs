@@ -76,9 +76,14 @@ namespace Hyperion
         ArrowUp = 0x52
     }
 
-    public class InputManager
+    [HypClassBinding]
+    public class InputManager : HypObject
     {
         private IntPtr ptr;
+
+        public InputManager()
+        {
+        }
 
         public InputManager(IntPtr ptr)
         {

@@ -70,29 +70,19 @@ public:
     Assembly &operator=(Assembly &&) noexcept   = delete;
     ~Assembly();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ManagedGuid &GetGuid()
+    HYP_FORCE_INLINE ManagedGuid &GetGuid()
         { return m_guid; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ManagedGuid &GetGuid() const
+    HYP_FORCE_INLINE const ManagedGuid &GetGuid() const
         { return m_guid; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ClassHolder &GetClassObjectHolder()
+    HYP_FORCE_INLINE ClassHolder &GetClassObjectHolder()
         { return m_class_object_holder; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ClassHolder &GetClassObjectHolder() const
+    HYP_FORCE_INLINE const ClassHolder &GetClassObjectHolder() const
         { return m_class_object_holder; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsLoaded() const
+    HYP_FORCE_INLINE bool IsLoaded() const
         { return m_guid.IsValid(); }
 
     bool Unload();
