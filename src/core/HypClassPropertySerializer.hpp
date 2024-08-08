@@ -501,6 +501,9 @@ public:
         // if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
         //     return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
         // } else {
+
+            // @TODO: Add 'lazy serialization' 
+
             fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
 
             object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
@@ -623,7 +626,7 @@ class HypClassPropertySerializer< ID<T> > : public IHypClassPropertySerializer
 public:
     fbom::FBOMData Serialize(const ID<T> &id) const
     {
-        return fbom::FBOMData(uint32(id.value));
+        return fbom::FBOMData::FromUnsignedInt(id.value);
     }
 
     ID<T> Deserialize(const fbom::FBOMData &value) const

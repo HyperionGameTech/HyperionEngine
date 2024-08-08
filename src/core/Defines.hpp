@@ -302,6 +302,10 @@
     #endif
 #endif
 
+#define HYP_NOT_IMPLEMENTED() \
+    HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
+    return { }
+
 #pragma endregion Error Handling
 
 #pragma region Synchonization

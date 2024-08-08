@@ -168,7 +168,7 @@ public:
     HYP_API void Update(GameCounter::TickUnit delta);
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return HashCode(); }
+        { HYP_NOT_IMPLEMENTED(); }
 
 private:
     HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::Void());

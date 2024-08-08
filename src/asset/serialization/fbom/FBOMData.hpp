@@ -256,7 +256,7 @@ public:
         return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
     }
 
-    template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > > >
+    template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > && std::is_class_v< NormalizedType<T> > > >
     explicit FBOMData(const T &value) : FBOMData(FromStruct(value)) { }
 
 #pragma endregion Struct

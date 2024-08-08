@@ -53,6 +53,19 @@ namespace Hyperion
             FBOMType_Destroy(this.ptr);
         }
 
+        public string TypeName
+        {
+            get
+            {
+                return Marshal.PtrToStringAnsi(FBOMType_GetName(ptr));
+            }
+        }
+
+        public bool IsOrExtends(FBOMType other, bool allowUnbounded = true)
+        {
+            return FBOMType_IsOrExtends(this.ptr, other.ptr, allowUnbounded);
+        }
+
         public override bool Equals(object other)
         {
             if (other is FBOMType)
@@ -63,10 +76,13 @@ namespace Hyperion
             return false;
         }
 
-        public bool IsOrExtends(FBOMType other, bool allowUnbounded = true)
+        public override string ToString()
         {
-            return FBOMType_IsOrExtends(this.ptr, other.ptr, allowUnbounded);
+            return TypeName;
         }
+
+        [DllImport("hyperion", EntryPoint = "FBOMType_GetName")]
+        public static extern IntPtr FBOMType_GetName([In] IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Unset")]
         public static extern IntPtr FBOMType_Unset();
@@ -114,12 +130,12 @@ namespace Hyperion
         public static extern IntPtr FBOMType_Quaternion();
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Destroy")]
-        private static extern void FBOMType_Destroy(IntPtr ptr);
+        private static extern void FBOMType_Destroy([In] IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Equals")]
-        private static extern bool FBOMType_Equals(IntPtr lhs, IntPtr rhs);
+        private static extern bool FBOMType_Equals([In] IntPtr lhs, [In] IntPtr rhs);
 
         [DllImport("hyperion", EntryPoint = "FBOMType_IsOrExtends")]
-        private static extern bool FBOMType_IsOrExtends(IntPtr lhs, IntPtr rhs, bool allowUnbounded);
+        private static extern bool FBOMType_IsOrExtends([In] IntPtr lhs, [In] IntPtr rhs, bool allowUnbounded);
     }
 }

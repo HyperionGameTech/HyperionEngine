@@ -11,5 +11,6 @@ namespace Hyperion
     [AttributeUsage(AttributeTargets.Class, Inherited = true)]
     public class HypClassBinding : Attribute
     {
+        public string Name { get; set; }
     }
 }

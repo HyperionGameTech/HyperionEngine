@@ -22,7 +22,9 @@
 
 #include <core/system/AppContext.hpp>
 #include <core/system/SystemEvent.hpp>
+
 #include <core/threading/Threads.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <input/InputManager.hpp>

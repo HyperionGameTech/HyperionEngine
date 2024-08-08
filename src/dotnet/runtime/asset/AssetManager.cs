@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding]
+    [HypClassBinding(Name="AssetManager")]
     public class AssetManager : HypObject
     {
         public static AssetManager Instance

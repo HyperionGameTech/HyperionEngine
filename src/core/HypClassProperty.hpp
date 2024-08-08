@@ -112,16 +112,14 @@ struct HypClassPropertyGetter
 
                 return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(&unwrapped));
           })
-     {
-          type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
-     }
+    {
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return GetterForTargetPointer.IsValid() && GetterForTargetData.IsValid(); }
 
     fbom::FBOMData operator()(const fbom::FBOMData &target) const
@@ -208,12 +206,10 @@ struct HypClassPropertySetter
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return SetterForTargetPointer.IsValid() && SetterForTargetData.IsValid(); }
 
     void operator()(fbom::FBOMData &target, const fbom::FBOMData &value) const
@@ -286,82 +282,64 @@ struct HypClassProperty
     HypClassProperty &operator=(HypClassProperty &&other) noexcept  = default;
 
     /*! \brief Get the type id of the property, if defined. Otherwise, returns an unset type ID. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetTypeID() const
         { return type_id; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return type_id != TypeID::Void() && HasGetter(); }
 
     // getter
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasGetter() const
+    HYP_FORCE_INLINE bool HasGetter() const
         { return getter.IsValid(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    fbom::FBOMData InvokeGetter(const fbom::FBOMData &target) const
+    HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData InvokeGetter(const fbom::FBOMData &target) const
         { return getter(target); }
 
     template <class ReturnType>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    decltype(auto) InvokeGetter(const fbom::FBOMData &target) const
+    HYP_NODISCARD HYP_FORCE_INLINE decltype(auto) InvokeGetter(const fbom::FBOMData &target) const
         { return getter.Invoke<ReturnType>(target); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    fbom::FBOMData InvokeGetter(ConstAnyRef target) const
+    HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData InvokeGetter(ConstAnyRef target) const
         { return getter(target); }
 
     template <class ReturnType>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    decltype(auto) InvokeGetter(ConstAnyRef target) const
+    HYP_NODISCARD HYP_FORCE_INLINE decltype(auto) InvokeGetter(ConstAnyRef target) const
         { return getter.Invoke<ReturnType>(target); }
 
     // setter
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool HasSetter() const
+    HYP_FORCE_INLINE bool HasSetter() const
         { return setter.IsValid(); }
 
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &target, const fbom::FBOMData &value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &target, const fbom::FBOMData &value) const
         { setter(target, value); }
 
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &target, fbom::FBOMData &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &target, fbom::FBOMData &&value) const
         { setter(target, std::move(value)); }
 
     template <class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, ValueType > > >
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &target, ValueType &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &target, ValueType &&value) const
         { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &&target, const fbom::FBOMData &value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &&target, const fbom::FBOMData &value) const
         { setter(target, value); }
 
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &&target, fbom::FBOMData &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &&target, fbom::FBOMData &&value) const
         { setter(target, std::move(value)); }
 
     template <class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, ValueType > > >
-    HYP_FORCE_INLINE
-    void InvokeSetter(fbom::FBOMData &&target, ValueType &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(fbom::FBOMData &&target, ValueType &&value) const
         { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 
-
-    HYP_FORCE_INLINE
-    void InvokeSetter(AnyRef target, const fbom::FBOMData &value) const
+    HYP_FORCE_INLINE void InvokeSetter(AnyRef target, const fbom::FBOMData &value) const
         { setter(target, value); }
 
-    HYP_FORCE_INLINE
-    void InvokeSetter(AnyRef target, fbom::FBOMData &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(AnyRef target, fbom::FBOMData &&value) const
         { setter(target, std::move(value)); }
 
     template <class ValueType, typename = std::enable_if_t< !std::is_same_v< fbom::FBOMData, ValueType > > >
-    HYP_FORCE_INLINE
-    void InvokeSetter(AnyRef target, ValueType &&value) const
+    HYP_FORCE_INLINE void InvokeSetter(AnyRef target, ValueType &&value) const
         { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */

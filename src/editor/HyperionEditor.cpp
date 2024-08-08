@@ -1133,12 +1133,6 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 HYP_DISABLE_OPTIMIZATION;
 void HyperionEditorImpl::Initialize()
 {
-    Handle<Scene> test_scene = CreateObject<Scene>();
-    auto *managed_object = test_scene->GetManagedObject();
-    AssertThrow(managed_object != nullptr);
-
-    HYP_BREAKPOINT;
-
     CreateHighlightNode();
 
     CreateMainPanel();

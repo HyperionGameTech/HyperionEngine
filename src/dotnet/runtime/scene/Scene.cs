@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding]
+    [HypClassBinding(Name="Scene")]
     public class Scene : HypObject
     {
         private ManagedHandle handle;

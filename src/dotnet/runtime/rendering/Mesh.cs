@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding]
+    [HypClassBinding(Name="Mesh")]
     public class Mesh : HypObject
     {
         private ManagedHandle handle;

@@ -48,7 +48,10 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Scene);
+HYP_DEFINE_CLASS(
+    Scene,
+    HypClassProperty(NAME("ID"), &Scene::GetID, &Scene::SetID)
+);
 
 using renderer::Result;
 

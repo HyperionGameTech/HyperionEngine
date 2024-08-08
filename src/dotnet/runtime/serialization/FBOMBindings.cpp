@@ -67,6 +67,15 @@ HYP_EXPORT bool FBOMType_IsOrExtends(FBOMType *lhs, FBOMType *rhs, bool allow_un
     return lhs->IsOrExtends(*rhs, allow_unbounded);
 }
 
+HYP_EXPORT const char *FBOMType_GetName(const FBOMType *ptr)
+{
+    if (!ptr) {
+        return "";
+    }
+
+    return ptr->name.Data();
+}
+
 #pragma endregion FBOMType
 
 #pragma region FBOMData
@@ -206,6 +215,15 @@ HYP_EXPORT bool FBOMObject_SetProperty(FBOMObject *ptr, Name *name_ptr, FBOMData
     ptr->SetProperty(*name_ptr, *data_ptr);
 
     return true;
+}
+
+HYP_EXPORT void *FBOMObject_GetDeserializedValue(FBOMObject *ptr)
+{
+    if (!ptr || !ptr->m_deserialized_object) {
+        return nullptr;
+    }
+
+    return ptr->m_deserialized_object->any_value.GetPointer();
 }
 
 #pragma endregion FBOMObject

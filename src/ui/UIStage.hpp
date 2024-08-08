@@ -6,6 +6,7 @@
 #include <ui/UIObject.hpp>
 
 #include <core/Base.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <scene/Node.hpp>
@@ -23,6 +24,7 @@
 #include <math/Transform.hpp>
 
 #include <GameCounter.hpp>
+#include <HashCode.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

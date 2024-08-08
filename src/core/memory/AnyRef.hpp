@@ -116,11 +116,6 @@ protected:
 
 class AnyRef : public detail::AnyRefBase
 {
-    AnyRef(TypeID type_id, void *ptr)
-        : AnyRefBase(type_id, ptr)
-    {
-    }
-
 public:
     friend class detail::AnyBase;
     friend class Any;
@@ -131,8 +126,10 @@ public:
     {
     }
 
-    static AnyRef Empty()
-        { return AnyRef(); }
+    AnyRef(TypeID type_id, void *ptr)
+        : AnyRefBase(type_id, ptr)
+    {
+    }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
     AnyRef(T &value)
@@ -207,8 +204,7 @@ public:
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Get()
+    HYP_FORCE_INLINE T &Get()
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
@@ -218,8 +214,7 @@ public:
     
     /*! \brief Returns the held object as a const reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Get() const
+    HYP_FORCE_INLINE const T &Get() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
@@ -229,8 +224,7 @@ public:
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *TryGet()
+    HYP_FORCE_INLINE T *TryGet()
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
 
@@ -243,8 +237,7 @@ public:
     
     /*! \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T *TryGet() const
+    HYP_FORCE_INLINE const T *TryGet() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         if (m_type_id == requested_type_id) {
@@ -260,15 +253,13 @@ public:
         m_type_id = TypeID::ForType<NormalizedType<T>>();
         m_ptr = &value;
     }
+
+    static AnyRef Empty()
+        { return AnyRef(); }
 };
 
 class ConstAnyRef : public detail::AnyRefBase
 {
-    ConstAnyRef(TypeID type_id, void *ptr)
-        : AnyRefBase(type_id, ptr)
-    {
-    }
-
 public:
     friend class detail::AnyBase;
     friend class Any;
@@ -279,8 +270,10 @@ public:
     {
     }
 
-    static ConstAnyRef Empty()
-        { return ConstAnyRef(); }
+    ConstAnyRef(TypeID type_id, void *ptr)
+        : AnyRefBase(type_id, ptr)
+    {
+    }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
     ConstAnyRef(T &&value)
@@ -363,8 +356,7 @@ public:
     
     /*! \brief Returns the held object as a const reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Get() const
+    HYP_FORCE_INLINE const T &Get() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
@@ -374,8 +366,7 @@ public:
     
     /*! \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T *TryGet() const
+    HYP_FORCE_INLINE const T *TryGet() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         if (m_type_id == requested_type_id) {
@@ -391,6 +382,9 @@ public:
         m_type_id = TypeID::ForType<NormalizedType<T>>();
         m_ptr = const_cast<T *>(&value);
     }
+
+    static ConstAnyRef Empty()
+        { return ConstAnyRef(); }
 };
 
 } // namespace memory

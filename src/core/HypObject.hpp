@@ -58,6 +58,8 @@ private:
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         \
     public: \
+        static constexpr bool is_hyp_object = true; \
+        \
         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
             { return m_hyp_object_initializer.GetManagedObject(); } \
         \
@@ -72,6 +74,18 @@ private:
             return hyp_class; \
         } \
     private:
+
+template <class T, class T2 = void>
+struct IsHypObject
+{
+    static constexpr bool value = false;
+};
+
+template <class T>
+struct IsHypObject<T, std::enable_if_t< T::is_hyp_object > >
+{
+    static constexpr bool value = true;
+};
 
 } // namespace hyperion
 

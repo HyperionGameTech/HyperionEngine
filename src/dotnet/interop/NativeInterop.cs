@@ -206,11 +206,18 @@ namespace Hyperion
             {
                 if (attr.GetType().Name == "HypClassBinding")
                 {
-                    hypClassPtr = HypClass_GetClassByName(typeName);
+                    string hypClassName = (string)attr.GetType().GetProperty("Name").GetValue(attr);
+
+                    if (hypClassName == null || hypClassName.Length == 0)
+                    {
+                        hypClassName = typeName;
+                    }
+
+                    hypClassPtr = HypClass_GetClassByName(hypClassName);
 
                     if (hypClassPtr == IntPtr.Zero)
                     {
-                        throw new Exception(string.Format("No HypClass found for \"{0}\"", typeName));
+                        throw new Exception(string.Format("No HypClass found for \"{0}\"", hypClassName));
                     }
 
                     break;
@@ -311,59 +318,7 @@ namespace Hyperion
                 IntPtr paramAddress = Marshal.ReadIntPtr(paramsPtr, paramsOffset);
                 paramsOffset += IntPtr.Size;
 
-                // Helper for strings
-                if (paramType == typeof(string))
-                {
-                    parameters[i] = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(paramAddress));
-
-                    continue;
-                }
-
-                if (paramType == typeof(IntPtr))
-                {
-                    parameters[i] = Marshal.ReadIntPtr(paramAddress);
-
-                    continue;
-                }
-
-                if (paramType.IsClass)
-                {
-                    // // Read ManagedObject
-                    // ManagedObject managedObject = Marshal.PtrToStructure<ManagedObject>(paramAddress);
-
-                    // // @TODO: Validate type via class GUID?
-                    
-                    IntPtr ptr = Marshal.ReadIntPtr(paramAddress);
-                    object* objectPtr = (object*)ptr.ToPointer();
-
-                    if (objectPtr == null)
-                    {
-                        throw new NullReferenceException("Marshaled object pointer is null!");
-                    }
-
-                    parameters[i] = *objectPtr;
-
-                    continue;
-                }
-
-                if (paramType.IsValueType)
-                {
-                    parameters[i] = Marshal.PtrToStructure(paramAddress, paramType);
-
-                    continue;
-                }
-
-                if (paramType.IsPointer)
-                {
-                    throw new NotImplementedException("Pointer parameter type not implemented");
-                }
-
-                if (paramType.IsByRef)
-                {
-                    throw new NotImplementedException("ByRef parameter type not implemented");
-                }
-
-                throw new NotImplementedException("Parameter type not implemented");
+                MarshalHelpers.MarshalInObject(paramAddress, paramType, out parameters[i]);
             }
         }
 
@@ -393,49 +348,7 @@ namespace Hyperion
 
             object? returnValue = methodInfo.Invoke(thisObject, parameters);
 
-            // If returnType is an enum we need to get the underlying type and cast the value to it
-            if (returnType.IsEnum)
-            {
-                returnType = Enum.GetUnderlyingType(returnType);
-                returnValue = Convert.ChangeType(returnValue, returnType);
-            }
-
-            if (returnType == typeof(void))
-            {
-                // No need to fill out the outPtr
-                return;
-            }
-
-            if (returnType == typeof(string))
-            {
-                throw new NotImplementedException("String return type not implemented");
-            }
-
-            if (returnType == typeof(bool))
-            {
-                Marshal.WriteByte(outPtr, (byte)((bool)returnValue ? 1 : 0));
-
-                return;
-            }
-
-            // write the return value to the outPtr
-            // there MUST be enough space allocated at the outPtr,
-            // or else this will cause memory corruption
-            if (returnType.IsValueType)
-            {
-                Marshal.StructureToPtr(returnValue, outPtr, false);
-
-                return;
-            }
-
-            if (returnType == typeof(IntPtr))
-            {
-                Marshal.WriteIntPtr(outPtr, (IntPtr)returnValue);
-
-                return;
-            }
-
-            throw new NotImplementedException("Return type not implemented");
+            MarshalHelpers.MarshalOutObject(outPtr, returnType, returnValue);
         }
 
         public static void FreeObject(ManagedObject obj)
