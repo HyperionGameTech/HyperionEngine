@@ -22,7 +22,6 @@ class AssetManager;
 
 using AssetMap = FlatMap<String, LoadedAsset>;
 
-
 struct AssetBatchCallbackData
 {
     using AssetKeyValuePair = Pair<const String &, LoadedAsset &>;

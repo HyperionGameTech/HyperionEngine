@@ -150,14 +150,14 @@ HYP_EXPORT void NativeInterop_AddMethodToCache(ManagedGuid *assembly_guid, Manag
     DotNetSystem::GetInstance().AddMethodToCache(*assembly_guid, *method_guid, method_info_ptr);
 }
 
-HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ManagedObject *out_managed_object)
+HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive)
 {
     AssertThrow(assembly_guid != nullptr);
     AssertThrow(object_guid != nullptr);
     AssertThrow(object_ptr != nullptr);
     AssertThrow(out_managed_object != nullptr);
 
-    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_managed_object);
+    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_managed_object, keep_alive);
 }
 
 } // extern "C"

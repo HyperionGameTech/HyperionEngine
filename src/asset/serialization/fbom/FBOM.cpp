@@ -55,6 +55,7 @@ FBOMMarshalerBase *FBOM::GetMarshal(const TypeAttributes &type_attributes) const
 
     // If the type has a HypClass defined, then use the default HypClass instance marshal
     if (type_attributes.HasHypClass()) {
+        AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
     }
 
@@ -74,6 +75,7 @@ FBOMMarshalerBase *FBOM::GetMarshal(const ANSIStringView &type_name) const
     }
 
     if (const HypClass *hyp_class = GetClass(type_name)) {
+        AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
     }
 

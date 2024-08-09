@@ -12,6 +12,7 @@
 using namespace hyperion;
 
 extern "C" {
+
 HYP_EXPORT uint32 Mesh_GetTypeID()
 {
     return TypeID::ForType<Mesh>().Value();
@@ -51,4 +52,5 @@ HYP_EXPORT void Mesh_GetAABB(ManagedHandle mesh_handle, BoundingBox *out_aabb)
 
     *out_aabb = mesh->GetAABB();
 }
+
 } // extern "C"

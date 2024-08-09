@@ -36,8 +36,7 @@ HYP_API Engine *GetEngine();
 HYP_API renderer::Device *GetEngineDevice();
 
 template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE
-inline Handle<T> CreateObject()
+HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 {
     auto &container = Handle<T>::GetContainer();
 
@@ -48,8 +47,7 @@ inline Handle<T> CreateObject()
 }
 
 template <class T, class ... Args>
-HYP_NODISCARD HYP_FORCE_INLINE
-inline Handle<T> CreateObject(Args &&... args)
+HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 {
     auto &container = Handle<T>::GetContainer();
 
@@ -64,8 +62,7 @@ inline Handle<T> CreateObject(Args &&... args)
 }
 
 template <class T>
-HYP_FORCE_INLINE
-inline bool InitObject(Handle<T> &handle)
+HYP_FORCE_INLINE inline bool InitObject(Handle<T> &handle)
 {
     if (!handle) {
         return false;

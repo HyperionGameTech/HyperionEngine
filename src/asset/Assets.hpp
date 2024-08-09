@@ -7,6 +7,8 @@
 
 #include <util/fs/FsUtil.hpp>
 
+#include <core/Base.hpp>
+
 #include <core/HypObject.hpp>
 
 #include <core/Core.hpp>
@@ -74,7 +76,7 @@ struct AssetLoaderDefinition
     }
 };
 
-class AssetManager
+class AssetManager : public BasicObject<AssetManager>
 {
     friend struct AssetBatch;
     friend class AssetLoader;
@@ -86,7 +88,7 @@ public:
 
     static constexpr bool asset_cache_enabled = false;
 
-    HYP_API static AssetManager *GetInstance();
+    HYP_API static const Handle<AssetManager> &GetInstance();
 
     HYP_API AssetManager();
     AssetManager(const AssetManager &other)                 = delete;

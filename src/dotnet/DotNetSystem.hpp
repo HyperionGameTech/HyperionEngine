@@ -45,7 +45,7 @@ public:
     bool UnloadAssembly(ManagedGuid guid) const;
 
     void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const;
-    void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object) const;
+    void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive) const;
 
     bool IsEnabled() const;
 

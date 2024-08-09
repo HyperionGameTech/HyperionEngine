@@ -19,7 +19,21 @@ UniquePtr<Object> Class::NewObject()
 
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
-    ManagedObject managed_object = m_new_object_fptr();
+    ManagedObject managed_object = m_new_object_fptr(/* keep_alive */ true, nullptr, nullptr);
+
+    return UniquePtr<Object>::Construct(this, managed_object);
+}
+
+UniquePtr<Object> Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
+{
+    EnsureLoaded();
+
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(owning_object_ptr != nullptr);
+
+    AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
+
+    ManagedObject managed_object = m_new_object_fptr(/* keep_alive */ true, hyp_class, owning_object_ptr);
 
     return UniquePtr<Object>::Construct(this, managed_object);
 }

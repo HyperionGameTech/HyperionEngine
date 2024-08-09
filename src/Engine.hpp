@@ -54,7 +54,7 @@ class AssetManager;
 class DebugDrawer;
 
 extern Engine               *g_engine;
-extern AssetManager         *g_asset_manager;
+extern Handle<AssetManager> g_asset_manager;
 extern ShaderManagerSystem  *g_shader_manager;
 extern MaterialCache        *g_material_system;
 extern SafeDeleter          *g_safe_deleter;

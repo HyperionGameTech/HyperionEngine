@@ -6,6 +6,8 @@
 #define NUM_KEYBOARD_KEYS 350
 #define NUM_MOUSE_BUTTONS 3
 
+#include <core/Base.hpp>
+
 #include <core/HypObject.hpp>
 
 #include <core/containers/FlatMap.hpp>
@@ -84,7 +86,7 @@ struct InputState
     }
 };
 
-class InputManager
+class InputManager : public BasicObject<InputManager>
 {
     HYP_OBJECT_BODY(InputManager);
 

@@ -213,7 +213,7 @@ FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const 
     if (!marshal) {
         return {
             FBOMResult::FBOM_ERR,
-            HYP_FORMAT("No registered marshal class for type {}", type_attributes.name)
+            HYP_FORMAT("No registered marshal class for type: {}", type_attributes.name)
         };
     }
 

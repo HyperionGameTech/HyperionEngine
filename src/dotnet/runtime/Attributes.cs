@@ -13,7 +13,7 @@ namespace Hyperion
     {
         public string Name { get; set; }
 
-        private HypClass LoadHypClass()
+        public HypClass LoadHypClass()
         {
             HypClass? hypClass = HypClass.GetClass(Name);
 

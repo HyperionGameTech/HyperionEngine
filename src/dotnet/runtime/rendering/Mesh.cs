@@ -12,21 +12,44 @@ namespace Hyperion
         {
         }
 
-        public Mesh(List<Vertex> vertices, List<uint> indices)
-        {
-            var verticesArray = vertices.ToArray();
-            var indicesArray = indices.ToArray();
-
-            handle = new ManagedHandle();
-            
-            Mesh_Create(verticesArray, (uint)vertices.Count, indicesArray, (uint)indices.Count, out handle);
-        }
-
         public Mesh(ManagedHandle handle)
         {
-            this.handle = handle;
-            this.handle.IncRef(Mesh_GetTypeID());
         }
+
+        // // temp impl to call from C#..
+        // public static Mesh Create()
+        // {
+        //     IntPtr objectPtr = IntPtr.Zero;
+        //     Mesh_Initialize(out objectPtr);
+
+        //     if (objectPtr == IntPtr.Zero)
+        //     {
+        //         throw new Exception("Failed to initialize Mesh object");
+        //     }
+
+        //     unsafe
+        //     {
+        //         Mesh* meshPtr = (Mesh*)objectPtr.ToPointer();
+
+        //         return *meshPtr;
+        //     }
+        // }
+
+        // public Mesh(List<Vertex> vertices, List<uint> indices)
+        // {
+        //     var verticesArray = vertices.ToArray();
+        //     var indicesArray = indices.ToArray();
+
+        //     handle = new ManagedHandle();
+            
+        //     Mesh_Create(verticesArray, (uint)vertices.Count, indicesArray, (uint)indices.Count, out handle);
+        // }
+
+        // public Mesh(ManagedHandle handle)
+        // {
+        //     this.handle = handle;
+        //     this.handle.IncRef(Mesh_GetTypeID());
+        // }
 
         ~Mesh()
         {
@@ -71,6 +94,12 @@ namespace Hyperion
                 return handle.GetRefCountStrong(Mesh_GetTypeID());
             }
         }
+
+
+
+        [DllImport("hyperion", EntryPoint = "Mesh_Initialize")]
+        private static extern void Mesh_Initialize([Out] out IntPtr objectPtr);
+
 
         [DllImport("hyperion", EntryPoint = "Mesh_GetTypeID")]
         [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]

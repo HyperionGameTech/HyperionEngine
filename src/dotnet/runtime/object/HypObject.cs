@@ -5,29 +5,70 @@ namespace Hyperion
 {
     public class HypObject
     {
-        private IntPtr nativeAddress = IntPtr.Zero;
-        private HypClass hypClass = HypClass.Invalid;
+        public IntPtr _hypClassPtr;
+        public IntPtr _nativeAddress;
 
-        private void InitializeHypObject(IntPtr nativeAddress, IntPtr hypClassPtr)
+        // public void InitializeHypObject(IntPtr hypClassPtr, IntPtr nativeAddress)
+        // {
+        //     this.hypClass = new HypClass(hypClassPtr);
+        //     this.nativeAddress = nativeAddress;
+        // }
+
+        protected HypObject()
         {
-            this.nativeAddress = nativeAddress;
-            this.hypClass = new HypClass(hypClassPtr);
+            Console.WriteLine("HypObject constructor, _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                if (_nativeAddress != IntPtr.Zero)
+                {
+                    throw new Exception("Native address is not null - object is already initialized");
+                }
+
+                // Read the HypClassBinding attribute
+                HypClassBinding attribute = (HypClassBinding)Attribute.GetCustomAttribute(this.GetType(), typeof(HypClassBinding));
+
+                if (attribute == null)
+                {
+                    throw new Exception("Failed to get HypClassBinding attribute");
+                }
+
+                HypClass hypClass = attribute.LoadHypClass();
+
+                if (hypClass == HypClass.Invalid)
+                {
+                    throw new Exception("Invalid HypClass returned from HypClassBinding attribute");
+                }
+
+                _hypClassPtr = hypClass.Address;
+                _nativeAddress = hypClass.CreateInstance();
+            }
+
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                throw new Exception("HypClass pointer is null - object is not correctly initialized");
+            }
+
+            if (_nativeAddress == IntPtr.Zero)
+            {
+                throw new Exception("Native address is null - object is not correctly initialized");
+            }
+        }
+
+        ~HypObject()
+        {
+            if (IsValid)
+            {
+                HypObject_DecRef(_hypClassPtr, _nativeAddress);
+            }
         }
 
         public bool IsValid
         {
             get
             {
-                return nativeAddress != IntPtr.Zero
-                    && hypClass.Address != IntPtr.Zero;
-            }
-        }
-
-        public IntPtr NativeAddress
-        {
-            get
-            {
-                return nativeAddress;
+                return _hypClassPtr != IntPtr.Zero
+                    && _nativeAddress != IntPtr.Zero;
             }
         }
 
@@ -35,8 +76,22 @@ namespace Hyperion
         {
             get
             {
-                return hypClass;
+                return new HypClass(_hypClassPtr);
             }
         }
+
+        public IntPtr NativeAddress
+        {
+            get
+            {
+                return _nativeAddress;
+            }
+        }
+
+        [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
+        private static extern void HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+
+        [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
+        private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
     }
 }

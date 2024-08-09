@@ -33,6 +33,20 @@ UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectCo
     return &object_container_map.map.Back().second;
 }
 
+ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID type_id)
+{
+    const auto it = object_container_map.map.FindIf([type_id](const auto &element)
+    {
+        return element.first == type_id;
+    });
+
+    if (it == object_container_map.map.End()) {
+        HYP_FAIL("No object container for TypeID: %u", type_id.Value());
+    }
+
+    return *it->second;
+}
+
 ObjectContainerBase *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
 {
     const auto it = object_container_map.map.FindIf([type_id](const auto &element)

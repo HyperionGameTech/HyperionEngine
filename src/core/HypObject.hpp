@@ -53,6 +53,35 @@ private:
     UniquePtr<dotnet::Object>   m_managed_object;
 };
 
+// #define HYP_OBJECT_BODY(T) \
+//     private: \
+//         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
+//         ID<T>                   m_id; \
+//         \
+//     public: \
+//         static constexpr bool is_hyp_object = true; \
+//         \
+//         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
+//             { return m_hyp_object_initializer.GetManagedObject(); } \
+//         \
+//         static TypeID GetTypeID() \
+//         { \
+//             static constexpr TypeID type_id = TypeID::ForType<T>(); \
+//             return type_id; \
+//         } \
+//         static const HypClass *GetClass() \
+//         { \
+//             static const HypClass *hyp_class = ::hyperion::GetClass(GetTypeID()); \
+//             return hyp_class; \
+//         } \
+//         \
+//         HYP_FORCE_INLINE ID<T> GetID() const \
+//             { return m_id; } \
+//         \
+//         HYP_FORCE_INLINE void SetID(ID<T> id) \
+//             { m_id = id; } \
+//     private:
+
 #define HYP_OBJECT_BODY(T) \
     private: \
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \

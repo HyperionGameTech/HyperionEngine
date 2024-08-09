@@ -12,27 +12,35 @@ namespace Hyperion
 
         public Scene()
         {
-            // this.handle = new ManagedHandle();
-            // Scene_Create(out this.handle);
-
-            // ManagedNode rootNode = new ManagedNode();
-            // Scene_GetRoot(this.handle, out rootNode);
-
-            // this.root = new Node(rootNode);
-            // this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
 
         public Scene(ManagedHandle handle)
         {
-            this.handle = handle;
-            this.handle.IncRef(Scene_GetTypeID());
-
-            ManagedNode rootNode = new ManagedNode();
-            Scene_GetRoot(this.handle, out rootNode);
-
-            this.root = new Node(rootNode);
-            this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
         }
+
+        // public Scene()
+        // {
+        //     // this.handle = new ManagedHandle();
+        //     // Scene_Create(out this.handle);
+
+        //     // ManagedNode rootNode = new ManagedNode();
+        //     // Scene_GetRoot(this.handle, out rootNode);
+
+        //     // this.root = new Node(rootNode);
+        //     // this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
+        // }
+
+        // public Scene(ManagedHandle handle)
+        // {
+        //     this.handle = handle;
+        //     this.handle.IncRef(Scene_GetTypeID());
+
+        //     ManagedNode rootNode = new ManagedNode();
+        //     Scene_GetRoot(this.handle, out rootNode);
+
+        //     this.root = new Node(rootNode);
+        //     this.entityManager = new EntityManager(Scene_GetEntityManager(this.handle));
+        // }
 
         ~Scene()
         {

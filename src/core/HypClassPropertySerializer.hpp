@@ -493,66 +493,6 @@ public:
 };
 
 template <class T>
-class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
-{
-public:
-    fbom::FBOMData Serialize(const NormalizedType<T> &value) const
-    {
-        // if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
-        //     return fbom::FBOMData::FromStruct< NormalizedType<T> >(value);
-        // } else {
-
-            // @TODO: Add 'lazy serialization' 
-
-            fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
-
-            object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
-            object.m_deserialized_object->any_value.Set<T>(value);
-
-            return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
-        // }
-    }
-
-    decltype(auto) Deserialize(const fbom::FBOMData &value) const
-    {
-        // if constexpr (fbom::FBOMStruct::is_valid_struct_type< NormalizedType<T> >) {
-        //     NormalizedType<T> result { };
-
-        //     if (fbom::FBOMResult err = value.ReadStruct(&result)) {
-        //         return result;
-        //     }
-
-        //     return result;
-        // } else {
-            Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject();
-            AssertThrow(deserialized_object_opt.HasValue());
-
-            return deserialized_object_opt->Get< NormalizedType<T> >();
-
-#if 0
-            // Check if object is already stored in memory
-            if (Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject(); deserialized_object_opt.HasValue()) {
-                return deserialized_object_opt->Get< NormalizedType<T> >();
-            } else {
-                fbom::FBOMResult result;
-
-                fbom::FBOMDeserializedObject deserialized_object;
-
-                fbom::FBOMObject object;
-                result = value.ReadObject(object);
-                AssertThrowMsg(result.IsOK(), "Failed to read object: %s", *result.message);
-
-                result = fbom::FBOMObject::Deserialize< NormalizedType<T> >(object, deserialized_object);
-                AssertThrowMsg(result.IsOK(), "Failed to deserialize object: %s", *result.message);
-
-                return deserialized_object.Get< NormalizedType<T> >();
-            }
-#endif
-        // }
-    }
-};
-
-template <class T>
 class HypClassPropertySerializer< Handle<T> > : public IHypClassPropertySerializer
 {
 public:
@@ -641,6 +581,21 @@ public:
     }
 };
 
+// template <class T>
+// class HypClassPropertySerializer<T, std::enable_if_t< std::is_enum_v< T > > > : public HypClassPropertySerializer< std::underlying_type_t< T > >
+// {
+// public:
+//     fbom::FBOMData Serialize(const T &value) const
+//     {
+//         return HypClassPropertySerializer< std::underlying_type_t< T > >::Serialize(static_cast<std::underlying_type_t< T >>(value));
+//     }
+
+//     T Deserialize(const fbom::FBOMData &value) const
+//     {
+//         return static_cast<T>(HypClassPropertySerializer< std::underlying_type_t< T > >::Deserialize(value));
+//     }
+// };
+
 template <class T, SizeType Sz>
 class HypClassPropertySerializer<FixedArray<T, Sz>> : public IHypClassPropertySerializer
 {
@@ -670,6 +625,46 @@ public:
         }
 
         return result;
+    }
+};
+
+template <class T>
+class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(const NormalizedType<T> &value) const
+    {
+        if constexpr (std::is_class_v<T>) {
+            // Use marshal class or default HypClass instance marshal
+
+            // @TODO: Add 'lazy serialization' 
+            fbom::FBOMObject object = fbom::FBOMObject::Serialize(value);
+
+            object.m_deserialized_object.Reset(new fbom::FBOMDeserializedObject());
+            object.m_deserialized_object->any_value.Set<T>(value);
+
+            return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
+        } else if constexpr (std::is_enum_v<T>) {
+            return HypClassPropertySerializer<std::underlying_type_t<T>>().Serialize(static_cast<std::underlying_type_t<T>>(value));
+        } else {
+            static_assert(resolution_failure<T>, "No serializer found for type T");
+        }
+    }
+
+    decltype(auto) Deserialize(const fbom::FBOMData &value) const
+    {
+        if constexpr (std::is_class_v<T>) {
+            // Use marshal class or default HypClass instance marshal
+
+            Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject();
+            AssertThrow(deserialized_object_opt.HasValue());
+
+            return deserialized_object_opt->Get< NormalizedType<T> >();
+        } else if constexpr (std::is_enum_v<T>) {
+            return static_cast<T>(HypClassPropertySerializer<std::underlying_type_t<T>>().Deserialize(value));
+        } else {
+            static_assert(resolution_failure<T>, "No serializer found for type T");
+        }
     }
 };
 

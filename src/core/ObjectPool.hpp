@@ -33,16 +33,29 @@ class ObjectContainerBase
 public:
     virtual ~ObjectContainerBase() = default;
 
+    virtual uint32 NextIndex() = 0;
+
+    /*! \brief Check if an object at the given address is a valid object within this ObjectContainer instance. */
+    virtual bool IsValidObject(const void *address) const = 0;
+
+    /*! \brief If the object at the given address is a valid object within this ObjectContainer instance,
+     *  returns its given index. Otherwise, ~0u (-1) is returned. */
+    virtual uint32 GetObjectIndex(const void *address) const = 0;
+
+    virtual void *GetObjectPointer(uint32 index) = 0;
+
     virtual void IncRefStrong(uint32 index) = 0;
     virtual void IncRefWeak(uint32 index) = 0;
     virtual void DecRefStrong(uint32 index) = 0;
     virtual void DecRefWeak(uint32 index) = 0;
     virtual uint32 GetRefCountStrong(uint32 index) = 0;
     virtual uint32 GetRefCountWeak(uint32 index) = 0;
+
+    virtual void ConstructAtIndex(uint32 index) = 0;
 };
 
 template <class T>
-class ObjectContainer : public ObjectContainerBase
+class ObjectContainer final : public ObjectContainerBase
 {
     struct ObjectBytes
     {
@@ -157,7 +170,7 @@ public:
     ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
     virtual ~ObjectContainer() override                             = default;
 
-    HYP_FORCE_INLINE uint32 NextIndex()
+    virtual uint32 NextIndex() override
     {
         const uint32 index = m_id_generator.NextID() - 1;
 
@@ -169,6 +182,34 @@ public:
         );
 
         return index;
+    }
+
+    virtual bool IsValidObject(const void *address) const override
+    {
+        const uintptr_t addr = reinterpret_cast<uintptr_t>(address);
+
+        if (addr < reinterpret_cast<uintptr_t>(&m_data[0]) || addr > reinterpret_cast<uintptr_t>(&m_data[max_size - 1]) + offsetof(ObjectBytes, bytes)) {
+            return false;
+        }
+
+        return ((addr - reinterpret_cast<uintptr_t>(&m_data[0])) % sizeof(ObjectBytes)) == offsetof(ObjectBytes, bytes);
+    }
+
+    virtual uint32 GetObjectIndex(const void *address) const override
+    {
+        if (!IsValidObject(address)) {
+            return ~0u;
+        }
+        
+        const uintptr_t addr = reinterpret_cast<uintptr_t>(address);
+        const uintptr_t base_ptr = addr - reinterpret_cast<uintptr_t>(&m_data[0]) - offsetof(ObjectBytes, bytes);
+
+        return uint32(base_ptr / sizeof(ObjectBytes));
+    }
+
+    virtual void *GetObjectPointer(uint32 index) override
+    {
+        return m_data[index].GetPointer();
     }
 
     virtual void IncRefStrong(uint32 index) override
@@ -231,10 +272,21 @@ public:
     const ObjectBytes &GetObjectBytes(uint32 index) const
         { return m_data[index]; }
     
-    template <class ...Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(uint32 index, Args &&... args)
+    virtual void ConstructAtIndex(uint32 index) override
     {
-        T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
+        T *ptr = m_data[index].Construct();
+
+#ifdef HYP_OBJECT_POOL_DEBUG
+        m_data[index].has_value = true;
+#endif
+
+        ptr->SetID(ID<T> { index + 1 });
+    }
+    
+    template <class Arg0, class... Args>
+    HYP_FORCE_INLINE void ConstructAtIndex(uint32 index, Arg0 &&arg0, Args &&... args)
+    {
+        T *ptr = m_data[index].Construct(std::forward<Arg0>(arg0), std::forward<Args>(args)...);
 
 #ifdef HYP_OBJECT_POOL_DEBUG
         m_data[index].has_value = true;
@@ -305,6 +357,7 @@ public:
         
         HYP_API UniquePtr<ObjectContainerBase> *AllotObjectContainer(TypeID type_id);
 
+        HYP_API ObjectContainerBase &GetObjectContainer(TypeID type_id);
         HYP_API ObjectContainerBase *TryGetObjectContainer(TypeID type_id);
     };
 
@@ -329,6 +382,11 @@ public:
     HYP_FORCE_INLINE static ObjectContainerBase *TryGetContainer(TypeID type_id)
     {
         return GetObjectContainerHolder().TryGetObjectContainer(type_id);
+    }
+
+    HYP_FORCE_INLINE static ObjectContainerBase &GetContainer(TypeID type_id)
+    {
+        return GetObjectContainerHolder().GetObjectContainer(type_id);
     }
 };
 

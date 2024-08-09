@@ -1,6 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/AssetBatch.hpp>
+#include <asset/Assets.hpp>
+
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
 #include <Engine.hpp>
@@ -9,9 +11,10 @@
 using namespace hyperion;
 
 extern "C" {
+
 HYP_EXPORT AssetBatch *AssetBatch_Create()
 {
-    return new AssetBatch(g_asset_manager);
+    return new AssetBatch(AssetManager::GetInstance().Get());
 }
 
 HYP_EXPORT void AssetBatch_Destroy(AssetBatch *batch)
@@ -37,4 +40,5 @@ HYP_EXPORT void AssetBatch_AddToBatch(AssetBatch *batch, const char *key, const 
 {
     batch->Add(key, path);
 }
+
 } // extern "C"

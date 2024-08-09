@@ -9,8 +9,6 @@
 
 namespace hyperion {
 
-extern AssetManager *g_asset_manager;
-
 DataStoreBase::DataStoreBase(const String &prefix, DataStoreOptions options)
     : m_prefix(prefix),
       m_options(options)
@@ -112,7 +110,7 @@ bool DataStoreBase::Read(const String &key, ByteBuffer &out_byte_buffer) const
 
 FilePath DataStoreBase::GetDirectory() const
 {
-    return g_asset_manager->GetBasePath() / "data" / m_prefix;
+    return AssetManager::GetInstance()->GetBasePath() / "data" / m_prefix;
 }
 
 } // namespace hyperion

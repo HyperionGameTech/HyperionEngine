@@ -22,7 +22,7 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
     dotnet::DotNetSystem::GetInstance().Initialize(app_context);
 
     g_engine = new Engine;
-    g_asset_manager = new AssetManager;
+    g_asset_manager = CreateObject<AssetManager>();
     g_shader_manager = new ShaderManagerSystem;
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;
@@ -46,8 +46,7 @@ HYP_API void ShutdownApplication()
     dotnet::DotNetSystem::GetInstance().Shutdown();
     ComponentInterfaceRegistry::GetInstance().Shutdown();
 
-    delete g_asset_manager;
-    g_asset_manager = nullptr;
+    g_asset_manager.Reset();
 
     delete g_shader_manager;
     g_shader_manager = nullptr;

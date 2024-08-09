@@ -13,12 +13,12 @@ namespace Hyperion
         public object obj;
         public GCHandle gcHandle;
 
-        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj)
+        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive)
         {
             this.guid = objectGuid;
             this.assemblyGuid = assemblyGuid;
             this.obj = obj;
-            this.gcHandle = GCHandle.Alloc(this.obj);
+            this.gcHandle = GCHandle.Alloc(this.obj, keepAlive ? GCHandleType.Normal : GCHandleType.Weak);
         }
 
         public void Dispose()
@@ -56,13 +56,13 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedObject> objects = new Dictionary<Guid, StoredManagedObject>();
         private object lockObject = new object();
 
-        public ManagedObject AddObject(Guid assemblyGuid, Guid objectGuid, object obj)
+        public ManagedObject AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive)
         {
             Logger.Log(LogType.Debug, $"Adding object {obj} to cache for assembly {assemblyGuid}");
 
             lock (lockObject)
             {
-                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj);
+                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive);
 
                 objects.Add(objectGuid, storedObject);
 

@@ -92,7 +92,7 @@ void Game::Init_Internal()
         g_engine->GetWorld()->AddScene(m_scene);
         InitObject(m_scene);
 
-        m_input_manager.Reset(new InputManager());
+        m_input_manager = CreateObject<InputManager>();
         m_input_manager->SetWindow(m_app_context->GetMainWindow());
         
         m_ui_stage.Reset(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)));

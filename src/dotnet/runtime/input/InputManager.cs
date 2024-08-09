@@ -85,10 +85,10 @@ namespace Hyperion
         {
         }
 
-        public InputManager(IntPtr ptr)
-        {
-            this.ptr = ptr;
-        }
+        // public InputManager(IntPtr ptr)
+        // {
+        //     this.ptr = ptr;
+        // }
 
         public bool IsKeyDown(KeyCode key)
         {

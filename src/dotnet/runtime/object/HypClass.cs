@@ -127,14 +127,30 @@ namespace Hyperion
 
         public HypClassProperty? GetProperty(Name name)
         {
-            IntPtr ptr = HypClass_GetProperty(this.ptr, ref name);
+            IntPtr propertyPtr = HypClass_GetProperty(ptr, ref name);
 
-            if (ptr == IntPtr.Zero)
+            if (propertyPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return new HypClassProperty(ptr);
+            return new HypClassProperty(propertyPtr);
+        }
+
+        /// <summary>
+        ///  Creates a native instance of this object. The object has an initial ref count of zero,
+        ///  so the reference must be manually decremented to destroy the object (with HypObject_DecRef)  
+        /// </summary>
+        public IntPtr CreateInstance()
+        {
+            IntPtr instancePtr = HypClass_CreateInstance(ptr);
+
+            if (instancePtr == IntPtr.Zero)
+            {
+                throw new Exception("Failed to initialize HypObject");
+            }
+
+            return instancePtr;
         }
 
         public static bool operator==(HypClass a, HypClass b)
@@ -159,6 +175,9 @@ namespace Hyperion
             return new HypClass(ptr);
         }
         
+        [DllImport("hyperion", EntryPoint = "HypClass_CreateInstance")]
+        private static extern IntPtr HypClass_CreateInstance([In] IntPtr hypClassPtr);
+
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
         

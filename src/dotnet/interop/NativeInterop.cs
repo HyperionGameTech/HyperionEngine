@@ -136,7 +136,7 @@ namespace Hyperion
         }
 
         [UnmanagedCallersOnly]
-        public static unsafe void AddObjectToCache(IntPtr assemblyGuidPtr, IntPtr objectGuidPtr, IntPtr objectPtr, IntPtr outManagedObjectPtr)
+        public static unsafe void AddObjectToCache(IntPtr assemblyGuidPtr, IntPtr objectGuidPtr, IntPtr objectPtr, IntPtr outManagedObjectPtr, bool keepAlive)
         {
             Guid assemblyGuid = Marshal.PtrToStructure<Guid>(assemblyGuidPtr);
             Guid objectGuid = Marshal.PtrToStructure<Guid>(objectGuidPtr);
@@ -144,7 +144,7 @@ namespace Hyperion
             // read object as reference
             ref object obj = ref System.Runtime.CompilerServices.Unsafe.AsRef<object>(objectPtr.ToPointer());
 
-            ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
+            ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive);
 
             // write managedObject to outManagedObjectPtr
             Marshal.StructureToPtr(managedObject, outManagedObjectPtr, false);
@@ -254,25 +254,64 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClass.NewObjectFunction = new NewObjectDelegate(() =>
+            managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
-                // GCHandle objHandle = GCHandle.Alloc(obj);
 
                 // Call the constructor
-                ConstructorInfo constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                ConstructorInfo? constructorInfo;
+                object[]? parameters = null;
+
+                if (hypClassPtr != IntPtr.Zero)
+                {
+                    Type objType = obj.GetType();
+
+                    FieldInfo? hypClassPtrField = objType.GetField("_hypClassPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+                    FieldInfo? nativeAddressField = objType.GetField("_nativeAddress", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+
+                    if (hypClassPtrField == null || nativeAddressField == null)
+                    {
+                        throw new InvalidOperationException("Could not find hypClassPtr or nativeAddress field on class " + type.Name);
+                    }
+
+                    Console.WriteLine("Setting hypClassPtr and nativeAddress on object: " + objType.Name + " (" + hypClassPtr + ", " + nativeAddress + ")");
+
+                    hypClassPtrField.SetValue(obj, hypClassPtr);
+                    nativeAddressField.SetValue(obj, nativeAddress);
+
+                    Console.WriteLine("Set hypClassPtr and nativeAddress on object: " + objType.Name + " (" + hypClassPtrField.GetValue(obj) + ", " + nativeAddressField.GetValue(obj) + ")");
+                }
+
+                constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
 
                 if (constructorInfo == null)
                 {
-                    throw new Exception("Failed to find empty constructor for type: " + type.Name);
+                    throw new InvalidOperationException("Failed to find empty constructor for type: " + type.Name);
                 }
 
-                constructorInfo.Invoke(obj, null);
+                constructorInfo.Invoke(obj, parameters);
+
+                // if (hypClassPtr != IntPtr.Zero)
+                // {
+                //     if (nativeAddress == IntPtr.Zero)
+                //     {
+                //         throw new ArgumentNullException(nameof(nativeAddress));
+                //     }
+
+                //     MethodInfo? initializeHypObjectMethod = type.GetMethod("InitializeHypObject", BindingFlags.Instance | BindingFlags.FlattenHierarchy | BindingFlags.Public);
+
+                //     if (initializeHypObjectMethod == null)
+                //     {
+                //         throw new InvalidOperationException("Could not find InitializeHypObject method on class " + type.Name);
+                //     }
+
+                //     initializeHypObjectMethod.Invoke(obj, new object[]{ hypClassPtr, nativeAddress });
+                // }
 
                 Guid objectGuid = Guid.NewGuid();
                 
-                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj);
+                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive);
             });
 
             managedClass.FreeObjectFunction = new FreeObjectDelegate(FreeObject);

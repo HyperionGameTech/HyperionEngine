@@ -45,11 +45,11 @@ namespace hyperion {
 using renderer::FillMode;
 using renderer::GPUBufferType;
 
-Engine              *g_engine = nullptr;
-AssetManager        *g_asset_manager = nullptr;
-ShaderManagerSystem *g_shader_manager = nullptr;
-MaterialCache       *g_material_system = nullptr;
-SafeDeleter         *g_safe_deleter = nullptr;
+Engine                  *g_engine = nullptr;
+Handle<AssetManager>    g_asset_manager { };
+ShaderManagerSystem     *g_shader_manager = nullptr;
+MaterialCache           *g_material_system = nullptr;
+SafeDeleter             *g_safe_deleter = nullptr;
 
 /* \brief Should the swapchain be rebuilt on the next frame? */
 static bool g_should_recreate_swapchain = false;

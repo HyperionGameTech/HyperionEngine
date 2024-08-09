@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    public delegate ManagedObject NewObjectDelegate();
+    public delegate ManagedObject NewObjectDelegate(bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress);
     public delegate void FreeObjectDelegate(ManagedObject obj);
 
     internal class DelegateCache

@@ -6,23 +6,10 @@ namespace Hyperion
     [HypClassBinding(Name="AssetManager")]
     public class AssetManager : HypObject
     {
-        public static AssetManager Instance
-        {
-            get
-            {
-                return new AssetManager(AssetManager_GetInstance());
-            }
-        }
-
         private IntPtr ptr;
 
         public AssetManager()
         {
-        }
-
-        public AssetManager(IntPtr ptr)
-        {
-            this.ptr = ptr;
         }
 
         public IntPtr Handle

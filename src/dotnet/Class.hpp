@@ -16,6 +16,10 @@
 #include <dotnet/interop/ManagedObject.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
 
+namespace hyperion {
+class HypClass;
+} // namespace hyperion
+
 namespace hyperion::dotnet {
 class Object;
 class Class;
@@ -57,8 +61,16 @@ constexpr inline T *ToPointerType(T **value)
 class Class
 {
 public:
-    // Function to create a new object of this class with the given arguments
-    using NewObjectFunction = ManagedObject(*)(void);
+    /*! \brief Function to create a new object of this class.
+     *  If keep_alive is true, the object will be stored in the ManagedObjectCache and will not be collected by the .NET runtime
+     *  until the object is released via \ref{Class::~Class}.
+     *  If it is false, it will be stored in the ManagedObjectCache as a weak object, and is not expected to be removed via \ref{Class::~Class}.
+     *  
+     *  If hyp_class is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
+     *  In this case, native_object_ptr must also be provided.
+     *  Both hyp_class and native_object_ptr can be nullptr. */
+    using NewObjectFunction = ManagedObject(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr);
+
     using FreeObjectFunction = void(*)(ManagedObject);
 
     Class(ClassHolder *class_holder, String name, Class *parent_class)
@@ -161,6 +173,14 @@ public:
      *  \return A unique pointer to the new managed object.
      */
     HYP_NODISCARD UniquePtr<Object> NewObject();
+
+    /*! \brief Create a new managed object of this class, providing the owning object's address (C++), along with the HypClass that represents it.
+     *  The new object will be removed from the managed object cache when the unique pointer goes out of scope, allowing for the .NET runtime to collect it.
+     *  The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
+     *
+     *  \return A unique pointer to the new managed object.
+     */
+    HYP_NODISCARD UniquePtr<Object> NewObject(const HypClass *hyp_class, void *owning_object_ptr);
 
     /*! \brief Check if this class has a parent class with the given name.
      *

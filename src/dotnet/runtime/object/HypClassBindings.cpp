@@ -3,10 +3,13 @@
 #include <core/HypClass.hpp>
 #include <core/HypClassProperty.hpp>
 #include <core/HypClassRegistry.hpp>
+#include <core/HypObject.hpp>
 
 #include <core/Name.hpp>
 
 #include <dotnet/Object.hpp>
+
+#include <dotnet/runtime/ManagedHandle.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 
@@ -51,6 +54,25 @@ HYP_EXPORT bool HypClassProperty_InvokeGetter(const HypClassProperty *property, 
 #pragma endregion HypClassProperty
 
 #pragma region HypClass
+
+HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
+{
+    if (!hyp_class) {
+        return nullptr;
+    }
+
+    const TypeID type_id = hyp_class->GetTypeID();
+
+    ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+    
+    const uint32 index = container.NextIndex();
+    container.ConstructAtIndex(index);
+    container.IncRefStrong(index);
+
+    // *out_handle = ManagedHandle { index + 1 };
+
+    return container.GetObjectPointer(index);
+}
 
 HYP_EXPORT const HypClass *HypClass_GetClassByName(const char *name)
 {

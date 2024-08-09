@@ -73,12 +73,12 @@ protected:
     const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
 
-    const UniquePtr<InputManager> &GetInputManager() const
+    const Handle<InputManager> &GetInputManager() const
         { return m_input_manager; }
 
     RC<AppContext>              m_app_context;
 
-    UniquePtr<InputManager>     m_input_manager;
+    Handle<InputManager>        m_input_manager;
     Handle<Scene>               m_scene;
 
     RC<UIStage>                 m_ui_stage;

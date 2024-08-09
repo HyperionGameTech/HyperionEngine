@@ -10,7 +10,7 @@ extern "C" {
 
 HYP_EXPORT AssetManager *AssetManager_GetInstance()
 {
-    return g_asset_manager;
+    return g_asset_manager.Get();
 }
 
 HYP_EXPORT const char *AssetManager_GetBasePath(AssetManager *manager)
