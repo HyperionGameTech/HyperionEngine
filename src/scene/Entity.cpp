@@ -2,7 +2,7 @@
 
 #include <scene/Entity.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 
@@ -14,8 +14,8 @@ static int TestHelperMethod(const Entity *entity)
 // @TODO Add helpers so we can get components from an entity
 HYP_DEFINE_CLASS(
     Entity,
-    HypClassProperty(NAME("ID"), &Entity::GetID),
-    HypClassProperty(NAME("Components"), &TestHelperMethod)
+    HypProperty(NAME("ID"), &Entity::GetID),
+    HypProperty(NAME("Components"), &TestHelperMethod)
 );
 
 } // namespace hyperion

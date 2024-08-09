@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct HypClassProperty
+    public struct HypProperty
     {
-        public static readonly HypClassProperty Invalid = new HypClassProperty(IntPtr.Zero);
+        public static readonly HypProperty Invalid = new HypProperty(IntPtr.Zero);
 
         internal IntPtr ptr;
 
-        internal HypClassProperty(IntPtr ptr)
+        internal HypProperty(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -19,7 +19,7 @@ namespace Hyperion
             get
             {
                 Name name = new Name(0);
-                HypClassProperty_GetName(ptr, out name);
+                HypProperty_GetName(ptr, out name);
                 return name;
             }
         }
@@ -29,7 +29,7 @@ namespace Hyperion
             get
             {
                 TypeID typeId;
-                HypClassProperty_GetTypeID(ptr, out typeId);
+                HypProperty_GetTypeID(ptr, out typeId);
                 return typeId;
             }
         }
@@ -48,7 +48,7 @@ namespace Hyperion
 
             IntPtr valuePtr = IntPtr.Zero;
 
-            if (!HypClassProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out valuePtr))
+            if (!HypProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out valuePtr))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
@@ -56,15 +56,15 @@ namespace Hyperion
             return new FBOMData(valuePtr);
         }
         
-        [DllImport("hyperion", EntryPoint = "HypClassProperty_GetName")]
-        private static extern void HypClassProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
+        [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
+        private static extern void HypProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClassProperty_GetTypeID")]
-        private static extern void HypClassProperty_GetTypeID([In] IntPtr propertyPtr, [Out] out TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "HypProperty_GetTypeID")]
+        private static extern void HypProperty_GetTypeID([In] IntPtr propertyPtr, [Out] out TypeID typeId);
 
-        [DllImport("hyperion", EntryPoint = "HypClassProperty_InvokeGetter")]
+        [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypClassProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out IntPtr outValuePtr);
+        private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out IntPtr outValuePtr);
     }
 
     public struct HypClass
@@ -110,7 +110,7 @@ namespace Hyperion
             }
         }
 
-        public IEnumerable<HypClassProperty> Properties
+        public IEnumerable<HypProperty> Properties
         {
             get
             {
@@ -120,12 +120,12 @@ namespace Hyperion
                 for (int i = 0; i < count; i++)
                 {
                     IntPtr propertyPtr = Marshal.ReadIntPtr(propertiesPtr, i * IntPtr.Size);
-                    yield return new HypClassProperty(propertyPtr);
+                    yield return new HypProperty(propertyPtr);
                 }
             }
         }
 
-        public HypClassProperty? GetProperty(Name name)
+        public HypProperty? GetProperty(Name name)
         {
             IntPtr propertyPtr = HypClass_GetProperty(ptr, ref name);
 
@@ -134,7 +134,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new HypClassProperty(propertyPtr);
+            return new HypProperty(propertyPtr);
         }
 
         /// <summary>

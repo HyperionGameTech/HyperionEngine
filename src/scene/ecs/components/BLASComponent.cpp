@@ -1,6 +1,6 @@
 #include <scene/ecs/components/BLASComponent.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 

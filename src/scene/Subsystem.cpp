@@ -2,7 +2,7 @@
 
 #include <scene/Subsystem.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <Engine.hpp>
 

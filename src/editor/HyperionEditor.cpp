@@ -62,8 +62,8 @@
 #include <core/config/Config.hpp>
 
 // temp
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
 
 namespace hyperion {
 
@@ -160,7 +160,7 @@ public:
         // RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         // grid->SetNumColumns(1);
 
-        // for (const HypClassProperty *property : hyp_class->GetProperties()) {
+        // for (const HypProperty *property : hyp_class->GetProperties()) {
         //     if (!property->HasGetter()) {
         //         continue;
         //     }
@@ -241,7 +241,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
 struct EditorNodePropertyRef
 {
     Weak<Node>              node;
-    const HypClassProperty  *property = nullptr;
+    const HypProperty  *property = nullptr;
 };
 
 class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef>
@@ -780,7 +780,7 @@ void HyperionEditorImpl::InitDetailView()
 
         UIDataSourceBase *data_source = list_view->GetDataSource();
 
-        for (const HypClassProperty *property : hyp_class->GetProperties()) {
+        for (const HypProperty *property : hyp_class->GetProperties()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
 
             if (!property->HasGetter()) {
@@ -1016,7 +1016,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
 
         UIDataSourceBase *data_source = list_view->GetDataSource();
 
-        for (const HypClassProperty *property : hyp_class->GetProperties()) {
+        for (const HypProperty *property : hyp_class->GetProperties()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Property: {}", property->name.LookupString());
 
             if (!property->HasGetter()) {
@@ -1208,7 +1208,7 @@ void HyperionEditor::Init()
 
     // Handle<Mesh> mesh = CreateObject<Mesh>();
     
-    // if (HypClassProperty *property = cls->GetProperty("VertexAttributes")) {
+    // if (HypProperty *property = cls->GetProperty("VertexAttributes")) {
     //     auto vertex_attributes_value = property->InvokeGetter(*mesh);
     //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
 
@@ -1225,13 +1225,13 @@ void HyperionEditor::Init()
     LightComponent light_component;
     light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
 
-    // for (HypClassProperty *property : cls->GetProperties()) {
+    // for (HypProperty *property : cls->GetProperties()) {
     //     fbom::FBOMObject data_object;
     //     property->getter(light_component).ReadObject(data_object);
     //     HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, data_object.ToString());
     // }
 
-    if (HypClassProperty *property = cls->GetProperty("Light")) {
+    if (HypProperty *property = cls->GetProperty("Light")) {
         // property->InvokeSetter(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
 
         HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->InvokeGetter(light_component).ToString());
@@ -1239,7 +1239,7 @@ void HyperionEditor::Init()
         if (const HypClass *light_class = property->GetHypClass()) {
             AssertThrow(property->GetTypeID() == TypeID::ForType<Light>());
             HYP_LOG(Editor, LogLevel::INFO, "light_class: {}", light_class->GetName());
-            HypClassProperty *light_radius_property = light_class->GetProperty("radius");
+            HypProperty *light_radius_property = light_class->GetProperty("radius");
             AssertThrow(light_radius_property != nullptr);
 
             light_radius_property->InvokeSetter(property->InvokeGetter(light_component), 123.4f);
@@ -1249,11 +1249,11 @@ void HyperionEditor::Init()
     }
 #endif
 
-    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
     //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
     // }
 
-    // if (HypClassProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
+    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
     //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
     // }
 

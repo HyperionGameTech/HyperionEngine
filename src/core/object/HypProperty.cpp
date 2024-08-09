@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/HypClassProperty.hpp>
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypProperty.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
-const HypClass *HypClassProperty::GetHypClass() const
+const HypClass *HypProperty::GetHypClass() const
 {
     return HypClassRegistry::GetInstance().GetClass(type_id);
 }

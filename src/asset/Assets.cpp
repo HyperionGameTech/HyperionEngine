@@ -27,7 +27,7 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <ui/UIObject.hpp>
 

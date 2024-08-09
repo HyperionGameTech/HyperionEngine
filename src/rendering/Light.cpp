@@ -3,7 +3,7 @@
 #include <rendering/Light.hpp>
 #include <rendering/ShaderGlobals.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -16,9 +16,9 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Light,
-    HypClassProperty(NAME("Type"), &Light::GetType),
-    HypClassProperty(NAME("Radius"), &Light::GetRadius, &Light::SetRadius),
-    HypClassProperty(NAME("SpotAngles"), &Light::GetSpotAngles)
+    HypProperty(NAME("Type"), &Light::GetType),
+    HypProperty(NAME("Radius"), &Light::GetRadius, &Light::SetRadius),
+    HypProperty(NAME("SpotAngles"), &Light::GetSpotAngles)
 );
 
 #pragma region Render commands

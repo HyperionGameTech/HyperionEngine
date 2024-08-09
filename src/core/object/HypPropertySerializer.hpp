@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_CORE_HYP_CLASS_PROPERTY_SERIALIZER_HPP
-#define HYPERION_CORE_HYP_CLASS_PROPERTY_SERIALIZER_HPP
+#ifndef HYPERION_CORE_HYP_PROPERTY_SERIALIZER_HPP
+#define HYPERION_CORE_HYP_PROPERTY_SERIALIZER_HPP
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -20,42 +20,42 @@
 
 namespace hyperion {
 
-class IHypClassPropertySerializer
+class IHypPropertySerializer
 {
 
 };
 
 template <class T, class EnableIfResult = void>
-class HypClassPropertySerializer
+class HypPropertySerializer
 {
     static_assert(resolution_failure<T>, "No serializer found for type T");
 
 private:
-    HypClassPropertySerializer() = default;
+    HypPropertySerializer() = default;
 };
 
-class HYP_API HypClassPropertySerializerRegistry
+class HYP_API HypPropertySerializerRegistry
 {
 public:
-    static HypClassPropertySerializerRegistry &GetInstance();
+    static HypPropertySerializerRegistry &GetInstance();
 
-    void RegisterSerializer(TypeID type_id, IHypClassPropertySerializer *serializer);
-    IHypClassPropertySerializer *GetSerializer(TypeID type_id);
+    void RegisterSerializer(TypeID type_id, IHypPropertySerializer *serializer);
+    IHypPropertySerializer *GetSerializer(TypeID type_id);
 
 private:
-    TypeMap<IHypClassPropertySerializer *>  m_serializers;
+    TypeMap<IHypPropertySerializer *>  m_serializers;
 };
 
 namespace detail {
 
 template <class T, class Serializer>
-struct HypClassPropertySerializerRegistration
+struct HypPropertySerializerRegistration
 {
     Serializer serializer { };
     
-    HypClassPropertySerializerRegistration()
+    HypPropertySerializerRegistration()
     {
-        HypClassPropertySerializerRegistry::GetInstance().RegisterSerializer(
+        HypPropertySerializerRegistry::GetInstance().RegisterSerializer(
             TypeID::ForType<T>(),
             &serializer
         );
@@ -65,15 +65,15 @@ struct HypClassPropertySerializerRegistration
 } // namespace detail
 
 template <class T>
-HypClassPropertySerializer<T> &GetClassPropertySerializer()
+HypPropertySerializer<T> &GetClassPropertySerializer()
 {
-    static HypClassPropertySerializer<T> serializer { };
+    static HypPropertySerializer<T> serializer { };
 
     return serializer;
 }
 
 template <>
-class HypClassPropertySerializer<uint8> : public IHypClassPropertySerializer
+class HypPropertySerializer<uint8> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(uint8 value) const
@@ -94,7 +94,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<uint32> : public IHypClassPropertySerializer
+class HypPropertySerializer<uint32> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(uint32 value) const
@@ -115,7 +115,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<uint64> : public IHypClassPropertySerializer
+class HypPropertySerializer<uint64> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(uint64 value) const
@@ -136,7 +136,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<int32> : public IHypClassPropertySerializer
+class HypPropertySerializer<int32> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(int32 value) const
@@ -157,7 +157,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<int64> : public IHypClassPropertySerializer
+class HypPropertySerializer<int64> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(int64 value) const
@@ -178,7 +178,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<float> : public IHypClassPropertySerializer
+class HypPropertySerializer<float> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(float value) const
@@ -199,7 +199,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<bool> : public IHypClassPropertySerializer
+class HypPropertySerializer<bool> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(bool value) const
@@ -220,7 +220,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec2i> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec2i> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec2i &value) const
@@ -241,7 +241,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec3i> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec3i> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec3i &value) const
@@ -262,7 +262,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec4i> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec4i> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec4i &value) const
@@ -283,7 +283,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec2u> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec2u> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec2u &value) const
@@ -304,7 +304,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec3u> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec3u> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec3u &value) const
@@ -325,7 +325,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec4u> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec4u> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec4u &value) const
@@ -346,7 +346,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec2f> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec2f> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec2f &value) const
@@ -367,7 +367,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec3f> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec3f> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec3f &value) const
@@ -388,7 +388,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Vec4f> : public IHypClassPropertySerializer
+class HypPropertySerializer<Vec4f> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Vec4f &value) const
@@ -409,7 +409,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Matrix3> : public IHypClassPropertySerializer
+class HypPropertySerializer<Matrix3> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Matrix3 &value) const
@@ -430,7 +430,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Matrix4> : public IHypClassPropertySerializer
+class HypPropertySerializer<Matrix4> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Matrix4 &value) const
@@ -451,7 +451,7 @@ public:
 };
 
 template <>
-class HypClassPropertySerializer<Quaternion> : public IHypClassPropertySerializer
+class HypPropertySerializer<Quaternion> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Quaternion &value) const
@@ -472,7 +472,7 @@ public:
 };
 
 template <int StringType>
-class HypClassPropertySerializer<containers::detail::String<StringType>> : public IHypClassPropertySerializer
+class HypPropertySerializer<containers::detail::String<StringType>> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const containers::detail::String<StringType> &value) const
@@ -493,7 +493,7 @@ public:
 };
 
 template <class T>
-class HypClassPropertySerializer< Handle<T> > : public IHypClassPropertySerializer
+class HypPropertySerializer< Handle<T> > : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const Handle<T> &value) const
@@ -532,7 +532,7 @@ public:
 };
 
 // template <class T>
-// class HypClassPropertySerializer< RC<T> > : public IHypClassPropertySerializer
+// class HypPropertySerializer< RC<T> > : public IHypPropertySerializer
 // {
 // public:
 //     fbom::FBOMData Serialize(const RC<T> &value) const
@@ -541,7 +541,7 @@ public:
 //             return fbom::FBOMData { };
 //         }
 
-//         return HypClassPropertySerializer<T>().Serialize(*value);
+//         return HypPropertySerializer<T>().Serialize(*value);
 //     }
 
 //     RC<T> Deserialize(const fbom::FBOMData &value) const
@@ -555,13 +555,13 @@ public:
 //             return deserialized_object_opt->Get<RC<T>>();
 //         } else {
 
-//             return RC<T>(std::move(*HypClassPropertySerializer<T>().Deserialize(value)));
+//             return RC<T>(std::move(*HypPropertySerializer<T>().Deserialize(value)));
 //         }
 //     }
 // };
 
 template <class T>
-class HypClassPropertySerializer< ID<T> > : public IHypClassPropertySerializer
+class HypPropertySerializer< ID<T> > : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const ID<T> &id) const
@@ -582,22 +582,22 @@ public:
 };
 
 // template <class T>
-// class HypClassPropertySerializer<T, std::enable_if_t< std::is_enum_v< T > > > : public HypClassPropertySerializer< std::underlying_type_t< T > >
+// class HypPropertySerializer<T, std::enable_if_t< std::is_enum_v< T > > > : public HypPropertySerializer< std::underlying_type_t< T > >
 // {
 // public:
 //     fbom::FBOMData Serialize(const T &value) const
 //     {
-//         return HypClassPropertySerializer< std::underlying_type_t< T > >::Serialize(static_cast<std::underlying_type_t< T >>(value));
+//         return HypPropertySerializer< std::underlying_type_t< T > >::Serialize(static_cast<std::underlying_type_t< T >>(value));
 //     }
 
 //     T Deserialize(const fbom::FBOMData &value) const
 //     {
-//         return static_cast<T>(HypClassPropertySerializer< std::underlying_type_t< T > >::Deserialize(value));
+//         return static_cast<T>(HypPropertySerializer< std::underlying_type_t< T > >::Deserialize(value));
 //     }
 // };
 
 template <class T, SizeType Sz>
-class HypClassPropertySerializer<FixedArray<T, Sz>> : public IHypClassPropertySerializer
+class HypPropertySerializer<FixedArray<T, Sz>> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const FixedArray<T, Sz> &value) const
@@ -605,7 +605,7 @@ public:
         fbom::FBOMArray array;
 
         for (SizeType index = 0; index < Sz; index++) {
-            array.AddElement(HypClassPropertySerializer<T>().Serialize(value[index]));
+            array.AddElement(HypPropertySerializer<T>().Serialize(value[index]));
         }
 
         return fbom::FBOMData::FromArray(array);
@@ -621,7 +621,7 @@ public:
         AssertThrowMsg(err.IsOK(), "Failed to read array: %s", *err.message);
 
         for (SizeType index = 0; index < Sz; index++) {
-            result[index] = HypClassPropertySerializer<T>().Deserialize(array.GetElement(index));
+            result[index] = HypPropertySerializer<T>().Deserialize(array.GetElement(index));
         }
 
         return result;
@@ -629,7 +629,7 @@ public:
 };
 
 template <class T>
-class HypClassPropertySerializer<T> : public IHypClassPropertySerializer
+class HypPropertySerializer<T> : public IHypPropertySerializer
 {
 public:
     fbom::FBOMData Serialize(const NormalizedType<T> &value) const
@@ -645,7 +645,7 @@ public:
 
             return fbom::FBOMData::FromObject(std::move(object), /* keep_native_object */ true);
         } else if constexpr (std::is_enum_v<T>) {
-            return HypClassPropertySerializer<std::underlying_type_t<T>>().Serialize(static_cast<std::underlying_type_t<T>>(value));
+            return HypPropertySerializer<std::underlying_type_t<T>>().Serialize(static_cast<std::underlying_type_t<T>>(value));
         } else {
             static_assert(resolution_failure<T>, "No serializer found for type T");
         }
@@ -661,7 +661,7 @@ public:
 
             return deserialized_object_opt->Get< NormalizedType<T> >();
         } else if constexpr (std::is_enum_v<T>) {
-            return static_cast<T>(HypClassPropertySerializer<std::underlying_type_t<T>>().Deserialize(value));
+            return static_cast<T>(HypPropertySerializer<std::underlying_type_t<T>>().Deserialize(value));
         } else {
             static_assert(resolution_failure<T>, "No serializer found for type T");
         }
@@ -669,7 +669,7 @@ public:
 };
 
 #define HYP_DEFINE_CLASS_PROPERTY_SERIALIZER(T, Serializer) \
-    static ::hyperion::detail::HypClassPropertySerializerRegistration<T, Serializer> T##_ClassPropertySerializerRegistration { }
+    static ::hyperion::detail::HypPropertySerializerRegistration<T, Serializer> T##_ClassPropertySerializerRegistration { }
 
 } // namespace hyperion
 

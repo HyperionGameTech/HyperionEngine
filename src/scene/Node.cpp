@@ -14,7 +14,7 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <editor/EditorDelegates.hpp>
 
@@ -27,13 +27,13 @@ namespace hyperion {
 // @TODO More properties
 HYP_DEFINE_CLASS(
     Node,
-    HypClassProperty(NAME("Name"), &Node::GetName, &Node::SetName),
-    HypClassProperty(NAME("Entity"), &Node::GetEntity, &Node::SetEntity),
-    HypClassProperty(NAME("EntityAABB"), &Node::GetEntityAABB, &Node::SetEntityAABB),
-    HypClassProperty(NAME("LocalTransform"), &Node::GetLocalTransform, &Node::SetLocalTransform),
-    HypClassProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform),
-    HypClassProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
-    HypClassProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
+    HypProperty(NAME("Name"), &Node::GetName, &Node::SetName),
+    HypProperty(NAME("Entity"), &Node::GetEntity, &Node::SetEntity),
+    HypProperty(NAME("EntityAABB"), &Node::GetEntityAABB, &Node::SetEntityAABB),
+    HypProperty(NAME("LocalTransform"), &Node::GetLocalTransform, &Node::SetLocalTransform),
+    HypProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform),
+    HypProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
+    HypProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
 );
 
 static const String unnamed_node_name = "<unnamed>";

@@ -6,7 +6,7 @@
 
 #include <scene/ecs/EntityManager.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/logging/Logger.hpp>
 

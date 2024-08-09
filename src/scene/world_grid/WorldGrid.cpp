@@ -11,7 +11,7 @@
 #include <scene/ecs/components/WorldGridComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 

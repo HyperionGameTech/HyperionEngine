@@ -10,7 +10,7 @@
 
 #include <scene/Entity.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/util/ForEach.hpp>
 

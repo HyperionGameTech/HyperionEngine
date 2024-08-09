@@ -7,7 +7,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/system/AppContext.hpp>
 

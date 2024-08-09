@@ -9,7 +9,7 @@
 
 #include <core/Base.hpp>
 
-#include <core/HypObject.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/Core.hpp>
 #include <core/Defines.hpp>

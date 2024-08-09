@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_HYP_CLASS_HPP
 #define HYPERION_CORE_HYP_CLASS_HPP
 
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
@@ -23,14 +23,14 @@ class Class;
 class Object;
 } // namespace dotnet
 
-class HypClassProperty;
+class HypProperty;
 
 class HYP_API HypClass
 {
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties);
+    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypProperty> properties);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -48,9 +48,9 @@ public:
     virtual bool IsValid() const
         { return false; }
 
-    HypClassProperty *GetProperty(WeakName name) const;
+    HypProperty *GetProperty(WeakName name) const;
 
-    HYP_FORCE_INLINE const Array<HypClassProperty *> &GetProperties() const
+    HYP_FORCE_INLINE const Array<HypProperty *> &GetProperties() const
         { return m_properties; }
 
     dotnet::Class *GetManagedClass() const;
@@ -84,22 +84,22 @@ protected:
 
     TypeID                              m_type_id;
     EnumFlags<HypClassFlags>            m_flags;
-    Array<HypClassProperty *>           m_properties;
-    HashMap<Name, HypClassProperty *>   m_properties_by_name;
+    Array<HypProperty *>           m_properties;
+    HashMap<Name, HypProperty *>   m_properties_by_name;
 };
 
 template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
+    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
     {
         static HypClassInstance instance { flags, properties };
 
         return instance;
     }
 
-    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
+    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
         : HypClass(TypeID::ForType<T>(), flags, properties)
     {
     }

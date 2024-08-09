@@ -4,26 +4,26 @@
 #include <math/Vector4.hpp>
 #include <math/MathUtil.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Vec2f,
-    HypClassProperty(NAME("X"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetX), &Vec2f::SetX),
-    HypClassProperty(NAME("Y"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetY), &Vec2f::SetY)
+    HypProperty(NAME("X"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetX), &Vec2f::SetX),
+    HypProperty(NAME("Y"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetY), &Vec2f::SetY)
 );
 
 HYP_DEFINE_CLASS(
     Vec2i,
-    HypClassProperty(NAME("X"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetX), &Vec2i::SetX),
-    HypClassProperty(NAME("Y"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetY), &Vec2i::SetY)
+    HypProperty(NAME("X"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetX), &Vec2i::SetX),
+    HypProperty(NAME("Y"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetY), &Vec2i::SetY)
 );
 
 HYP_DEFINE_CLASS(
     Vec2u,
-    HypClassProperty(NAME("X"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetX), &Vec2u::SetX),
-    HypClassProperty(NAME("Y"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetY), &Vec2u::SetY)
+    HypProperty(NAME("X"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetX), &Vec2u::SetX),
+    HypProperty(NAME("Y"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetY), &Vec2u::SetY)
 );
 
 namespace math {

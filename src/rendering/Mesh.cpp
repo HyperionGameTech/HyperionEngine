@@ -6,7 +6,7 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -20,11 +20,11 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Mesh,
-    HypClassProperty(NAME("ID"), &Mesh::GetID, &Mesh::SetID),
-    HypClassProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
-    HypClassProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes),
-    HypClassProperty(NAME("Topology"), &Mesh::GetTopology),
-    HypClassProperty(NAME("NumIndices"), &Mesh::NumIndices)
+    HypProperty(NAME("ID"), &Mesh::GetID, &Mesh::SetID),
+    HypProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
+    HypProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes),
+    HypProperty(NAME("Topology"), &Mesh::GetTopology),
+    HypProperty(NAME("NumIndices"), &Mesh::NumIndices)
 );
 
 using renderer::Result;

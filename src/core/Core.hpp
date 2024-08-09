@@ -4,7 +4,7 @@
 #define HYP_CORE_CORE_HPP
 
 #include <core/Defines.hpp>
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClassRegistry.hpp>
 #include <core/ID.hpp>
 
 #include <core/utilities/TypeID.hpp>

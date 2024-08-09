@@ -4,7 +4,7 @@
 #define HYPERION_MESH_HPP
 
 #include <core/Base.hpp>
-#include <core/HypObject.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/utilities/Pair.hpp>
 

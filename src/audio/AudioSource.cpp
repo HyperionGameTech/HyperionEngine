@@ -3,7 +3,7 @@
 #include <audio/AudioSource.hpp>
 #include <audio/AudioManager.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <Engine.hpp>
 

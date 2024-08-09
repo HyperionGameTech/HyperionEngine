@@ -1,6 +1,6 @@
 #include <scene/ecs/components/ScriptComponent.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 

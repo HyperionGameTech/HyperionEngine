@@ -8,7 +8,7 @@
 
 #include <core/Base.hpp>
 
-#include <core/HypObject.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Bitset.hpp>

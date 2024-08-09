@@ -3,7 +3,7 @@
 
 #include <core/utilities/Variant.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 

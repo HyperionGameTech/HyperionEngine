@@ -35,7 +35,7 @@
 
 #include <core/system/AppContext.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <math/Halton.hpp>
 
@@ -50,7 +50,7 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Scene,
-    HypClassProperty(NAME("ID"), &Scene::GetID, &Scene::SetID)
+    HypProperty(NAME("ID"), &Scene::GetID, &Scene::SetID)
 );
 
 using renderer::Result;

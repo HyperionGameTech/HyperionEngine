@@ -2,7 +2,7 @@
 
 #include <math/Vertex.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 
@@ -10,7 +10,7 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     VertexAttributeSet,
-    HypClassProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
+    HypProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
 );
 
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
@@ -65,16 +65,16 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
 
 HYP_DEFINE_CLASS(
     Vertex,
-    HypClassProperty(NAME("Position"), &Vertex::GetPosition, &Vertex::SetPosition),
-    HypClassProperty(NAME("Normal"), &Vertex::GetNormal, &Vertex::SetNormal),
-    HypClassProperty(NAME("TexCoord0"), &Vertex::GetTexCoord0, &Vertex::SetTexCoord0),
-    HypClassProperty(NAME("TexCoord1"), &Vertex::GetTexCoord1, &Vertex::SetTexCoord1),
-    HypClassProperty(NAME("Tangent"), &Vertex::GetTangent, &Vertex::SetTangent),
-    HypClassProperty(NAME("Bitangent"), &Vertex::GetBitangent, &Vertex::SetBitangent),
-    HypClassProperty(NAME("BoneWeights"), &Vertex::GetBoneWeights, &Vertex::SetBoneWeights),
-    HypClassProperty(NAME("BoneIndices"), &Vertex::GetBoneIndices, &Vertex::SetBoneIndices),
-    HypClassProperty(NAME("NumIndices"), &Vertex::GetNumIndices),
-    HypClassProperty(NAME("NumWeights"), &Vertex::GetNumWeights)
+    HypProperty(NAME("Position"), &Vertex::GetPosition, &Vertex::SetPosition),
+    HypProperty(NAME("Normal"), &Vertex::GetNormal, &Vertex::SetNormal),
+    HypProperty(NAME("TexCoord0"), &Vertex::GetTexCoord0, &Vertex::SetTexCoord0),
+    HypProperty(NAME("TexCoord1"), &Vertex::GetTexCoord1, &Vertex::SetTexCoord1),
+    HypProperty(NAME("Tangent"), &Vertex::GetTangent, &Vertex::SetTangent),
+    HypProperty(NAME("Bitangent"), &Vertex::GetBitangent, &Vertex::SetBitangent),
+    HypProperty(NAME("BoneWeights"), &Vertex::GetBoneWeights, &Vertex::SetBoneWeights),
+    HypProperty(NAME("BoneIndices"), &Vertex::GetBoneIndices, &Vertex::SetBoneIndices),
+    HypProperty(NAME("NumIndices"), &Vertex::GetNumIndices),
+    HypProperty(NAME("NumWeights"), &Vertex::GetNumWeights)
 );
 
 bool Vertex::operator==(const Vertex &other) const

@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
-
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <Engine.hpp>
 
@@ -11,13 +10,13 @@ namespace hyperion {
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypClassProperty> properties)
+HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
     : m_type_id(type_id),
       m_flags(flags)
 {
     // initialize properties containers
-    for (HypClassProperty &property : properties) {
-        HypClassProperty *property_ptr = new HypClassProperty(std::move(property));
+    for (HypProperty &property : properties) {
+        HypProperty *property_ptr = new HypProperty(std::move(property));
 
 #ifdef HYP_DEBUG_MODE
         property_ptr->getter.type_info.target_type_id = type_id;
@@ -31,12 +30,12 @@ HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypClass
 
 HypClass::~HypClass()
 {
-    for (HypClassProperty *property_ptr : m_properties) {
+    for (HypProperty *property_ptr : m_properties) {
         delete property_ptr;
     }
 }
 
-HypClassProperty *HypClass::GetProperty(WeakName name) const
+HypProperty *HypClass::GetProperty(WeakName name) const
 {
     const auto it = m_properties_by_name.FindAs(name);
 

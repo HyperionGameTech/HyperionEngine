@@ -8,8 +8,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
 
 #include <Engine.hpp>
 
@@ -55,7 +55,7 @@ public:
 
             FBOMArray properties_array;
 
-            for (const HypClassProperty *property : component_class->GetProperties()) {
+            for (const HypProperty *property : component_class->GetProperties()) {
                 if (!property->HasGetter()) {
                     continue;
                 }
@@ -144,7 +144,7 @@ public:
                     return err;
                 }
 
-                HypClassProperty *component_property = component_class->GetProperty(property_name);
+                HypProperty *component_property = component_class->GetProperty(property_name);
 
                 if (!component_property) {
                     return { FBOMResult::FBOM_ERR, "Invalid property referenced" };

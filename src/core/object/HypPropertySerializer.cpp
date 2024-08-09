@@ -1,21 +1,21 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/HypClassPropertySerializer.hpp>
+#include <core/object/HypPropertySerializer.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
 
-#pragma region HypClassPropertySerializerRegistry
+#pragma region HypPropertySerializerRegistry
 
-HypClassPropertySerializerRegistry &HypClassPropertySerializerRegistry::GetInstance()
+HypPropertySerializerRegistry &HypPropertySerializerRegistry::GetInstance()
 {
-    static HypClassPropertySerializerRegistry instance;
+    static HypPropertySerializerRegistry instance;
 
     return instance;
 }
 
-void HypClassPropertySerializerRegistry::RegisterSerializer(TypeID type_id, IHypClassPropertySerializer *serializer)
+void HypPropertySerializerRegistry::RegisterSerializer(TypeID type_id, IHypPropertySerializer *serializer)
 {
     AssertThrow(serializer != nullptr);
 
@@ -25,7 +25,7 @@ void HypClassPropertySerializerRegistry::RegisterSerializer(TypeID type_id, IHyp
     m_serializers.Set(type_id, serializer);
 }
 
-IHypClassPropertySerializer *HypClassPropertySerializerRegistry::GetSerializer(TypeID type_id)
+IHypPropertySerializer *HypPropertySerializerRegistry::GetSerializer(TypeID type_id)
 {
     const auto it = m_serializers.Find(type_id);
 
@@ -36,7 +36,7 @@ IHypClassPropertySerializer *HypClassPropertySerializerRegistry::GetSerializer(T
     return it->second;
 }
 
-#pragma endregion HypClassPropertySerializerRegistry
+#pragma endregion HypPropertySerializerRegistry
 
 #pragma region Default serializers
 

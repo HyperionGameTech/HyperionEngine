@@ -2,7 +2,7 @@
 
 #include <rendering/PostFX.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <util/MeshBuilder.hpp>
 

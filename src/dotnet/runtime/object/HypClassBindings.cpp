@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
-#include <core/HypClassRegistry.hpp>
-#include <core/HypObject.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
+#include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/Name.hpp>
 
@@ -20,9 +20,9 @@ using namespace hyperion;
 
 extern "C" {
 
-#pragma region HypClassProperty
+#pragma region HypProperty
 
-HYP_EXPORT void HypClassProperty_GetName(const HypClassProperty *property, Name *out_name)
+HYP_EXPORT void HypProperty_GetName(const HypProperty *property, Name *out_name)
 {
     if (!property || !out_name) {
         return;
@@ -31,7 +31,7 @@ HYP_EXPORT void HypClassProperty_GetName(const HypClassProperty *property, Name 
     *out_name = property->name;
 }
 
-HYP_EXPORT void HypClassProperty_GetTypeID(const HypClassProperty *property, TypeID *out_type_id)
+HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_type_id)
 {
     if (!property || !out_type_id) {
         return;
@@ -40,7 +40,7 @@ HYP_EXPORT void HypClassProperty_GetTypeID(const HypClassProperty *property, Typ
     *out_type_id = property->type_id;
 }
 
-HYP_EXPORT bool HypClassProperty_InvokeGetter(const HypClassProperty *property, const HypClass *target_class, void *target_ptr, fbom::FBOMData **out_value_ptr)
+HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, fbom::FBOMData **out_value_ptr)
 {
     if (!property || !target_class || !target_ptr || !out_value_ptr) {
         return false;
@@ -51,7 +51,7 @@ HYP_EXPORT bool HypClassProperty_InvokeGetter(const HypClassProperty *property, 
     return true;
 }
 
-#pragma endregion HypClassProperty
+#pragma endregion HypProperty
 
 #pragma region HypClass
 
@@ -118,7 +118,7 @@ HYP_EXPORT uint32 HypClass_GetProperties(const HypClass *hyp_class, const void *
     return (uint32)hyp_class->GetProperties().Size();
 }
 
-HYP_EXPORT HypClassProperty *HypClass_GetProperty(const HypClass *hyp_class, const Name *name)
+HYP_EXPORT HypProperty *HypClass_GetProperty(const HypClass *hyp_class, const Name *name)
 {
     if (!hyp_class || !name) {
         return nullptr;

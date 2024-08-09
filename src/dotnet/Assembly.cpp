@@ -7,7 +7,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 namespace hyperion {
 namespace dotnet {

@@ -14,7 +14,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <math/MathUtil.hpp>
 #include <math/Color.hpp>

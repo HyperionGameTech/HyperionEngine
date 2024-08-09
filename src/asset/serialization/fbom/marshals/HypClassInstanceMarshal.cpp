@@ -2,8 +2,8 @@
 
 #include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <core/HypClass.hpp>
-#include <core/HypClassProperty.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -23,7 +23,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
     const HashCode hash_code = hyp_class->GetInstanceHashCode(in);
     out.m_unique_id = UniqueID(hash_code);
 
-    for (HypClassProperty *property : hyp_class->GetProperties()) {
+    for (HypProperty *property : hyp_class->GetProperties()) {
         AssertThrow(property != nullptr);
 
         if (!property->HasGetter()) {
@@ -48,7 +48,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize(const FBOMObject &in, Any &out) 
     hyp_class->CreateInstance(out);
     
     for (const KeyValuePair<Name, FBOMData> &it : in.GetProperties()) {
-        if (const HypClassProperty *property = hyp_class->GetProperty(it.first)) {
+        if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
             if (!property->HasSetter()) {
                 HYP_LOG(Serialization, LogLevel::WARNING, "Property {} on HypClass {} has no setter", it.first, hyp_class->GetName());
 

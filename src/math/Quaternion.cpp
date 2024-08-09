@@ -3,7 +3,7 @@
 #include <math/Quaternion.hpp>
 #include <math/Matrix4.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <float.h>
 
@@ -11,10 +11,10 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Quaternion,
-    HypClassProperty(NAME("X"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetX), &Quaternion::SetX),
-    HypClassProperty(NAME("Y"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetY), &Quaternion::SetY),
-    HypClassProperty(NAME("Z"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetZ), &Quaternion::SetZ),
-    HypClassProperty(NAME("W"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetW), &Quaternion::SetW)
+    HypProperty(NAME("X"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetX), &Quaternion::SetX),
+    HypProperty(NAME("Y"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetY), &Quaternion::SetY),
+    HypProperty(NAME("Z"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetZ), &Quaternion::SetZ),
+    HypProperty(NAME("W"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetW), &Quaternion::SetW)
 );
 
 Quaternion::Quaternion()

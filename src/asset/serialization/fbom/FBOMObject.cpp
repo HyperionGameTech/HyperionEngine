@@ -5,7 +5,7 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 namespace hyperion::fbom {
 

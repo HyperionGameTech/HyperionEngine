@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_CORE_HYP_CLASS_PROPERTY_HPP
-#define HYPERION_CORE_HYP_CLASS_PROPERTY_HPP
+#ifndef HYPERION_CORE_HYP_PROPERTY_HPP
+#define HYPERION_CORE_HYP_PROPERTY_HPP
 
-#include <core/HypClassPropertySerializer.hpp>
+#include <core/object/HypPropertySerializer.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -22,7 +22,7 @@ namespace hyperion {
 
 class HypClass;
 
-struct HypClassPropertyTypeInfo
+struct HypPropertyTypeInfo
 {
     TypeID  target_type_id;
     TypeID  value_type_id; // for getter or setter: getter is param type, setter is return type
@@ -41,16 +41,16 @@ constexpr TypeID GetUnwrappedSerializationTypeID()
 
 } // namespace detail
 
-struct HypClassPropertyGetter
+struct HypPropertyGetter
 {
     Proc<fbom::FBOMData, const void *>              GetterForTargetPointer;
     Proc<fbom::FBOMData, const fbom::FBOMData &>    GetterForTargetData;
-    HypClassPropertyTypeInfo                        type_info;
+    HypPropertyTypeInfo                             type_info;
 
-    HypClassPropertyGetter() = default;
+    HypPropertyGetter() = default;
 
     template <class ReturnType, class TargetType>
-    HypClassPropertyGetter(ReturnType(TargetType::*MemFn)())
+    HypPropertyGetter(ReturnType(TargetType::*MemFn)())
         : GetterForTargetPointer([MemFn](const void *target) -> fbom::FBOMData
           {
               return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize((static_cast<TargetType *>(target)->*MemFn)());
@@ -73,7 +73,7 @@ struct HypClassPropertyGetter
     }
 
     template <class ReturnType, class TargetType>
-    HypClassPropertyGetter(ReturnType(TargetType::*MemFn)() const)
+    HypPropertyGetter(ReturnType(TargetType::*MemFn)() const)
         : GetterForTargetPointer([MemFn](const void *target) -> fbom::FBOMData
           {
               return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize((static_cast<const TargetType *>(target)->*MemFn)());
@@ -95,22 +95,22 @@ struct HypClassPropertyGetter
     }
 
     template <class ReturnType, class TargetType>
-    HypClassPropertyGetter(ReturnType(*fnptr)(const TargetType *))
+    HypPropertyGetter(ReturnType(*fnptr)(const TargetType *))
         : GetterForTargetPointer([fnptr](const void *target) -> fbom::FBOMData
           {
               return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(static_cast<const TargetType *>(target)));
           }),
           GetterForTargetData([fnptr](const fbom::FBOMData &target_data) -> fbom::FBOMData
           {
-                Optional<const fbom::FBOMDeserializedObject &> deserialized_object = target_data.GetDeserializedObject();
+              Optional<const fbom::FBOMDeserializedObject &> deserialized_object = target_data.GetDeserializedObject();
 
 #ifdef HYP_DEBUG_MODE
-                AssertThrowMsg(deserialized_object.HasValue(), "Object has no in-memory representation");
+              AssertThrowMsg(deserialized_object.HasValue(), "Object has no in-memory representation");
 #endif
     
-                const TargetType &unwrapped = SerializationWrapper<TargetType>::Unwrap(deserialized_object->Get<TargetType>());
+              const TargetType &unwrapped = SerializationWrapper<TargetType>::Unwrap(deserialized_object->Get<TargetType>());
 
-                return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(&unwrapped));
+              return GetClassPropertySerializer<NormalizedType<ReturnType>>().Serialize(fnptr(&unwrapped));
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
@@ -153,17 +153,17 @@ struct HypClassPropertyGetter
     }
 };
 
-struct HypClassPropertySetter
+struct HypPropertySetter
 {
     Proc<void, void *, const fbom::FBOMData &>              SetterForTargetPointer;
     Proc<void, fbom::FBOMData &, const fbom::FBOMData &>    SetterForTargetData;
 
-    HypClassPropertyTypeInfo                                type_info;
+    HypPropertyTypeInfo                                type_info;
 
-    HypClassPropertySetter() = default;
+    HypPropertySetter() = default;
 
     template <class ReturnType, class TargetType, class ValueType>
-    HypClassPropertySetter(ReturnType(TargetType::*MemFn)(ValueType))
+    HypPropertySetter(ReturnType(TargetType::*MemFn)(ValueType))
         : SetterForTargetPointer([MemFn](void *target, const fbom::FBOMData &data) -> void
           {
               (static_cast<TargetType *>(target)->*MemFn)(GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
@@ -185,7 +185,7 @@ struct HypClassPropertySetter
     }
 
     template <class ReturnType, class TargetType, class ValueType>
-    HypClassPropertySetter(ReturnType(*fnptr)(TargetType *, const ValueType &))
+    HypPropertySetter(ReturnType(*fnptr)(TargetType *, const ValueType &))
         : SetterForTargetPointer([fnptr](void *target, const fbom::FBOMData &data) -> void
           {
               fnptr(static_cast<TargetType *>(target), GetClassPropertySerializer<NormalizedType<ValueType>>().Deserialize(data));
@@ -243,28 +243,28 @@ struct HypClassPropertySetter
     }
 };
 
-struct HypClassProperty
+struct HypProperty
 {
     Name                    name;
     TypeID                  type_id;
-    HypClassPropertyGetter  getter;
-    HypClassPropertySetter  setter;
+    HypPropertyGetter  getter;
+    HypPropertySetter  setter;
 
-    HypClassProperty() = default;
+    HypProperty() = default;
 
-    HypClassProperty(Name name)
+    HypProperty(Name name)
         : name(name)
     {
     }
 
-    HypClassProperty(Name name, HypClassPropertyGetter &&getter)
+    HypProperty(Name name, HypPropertyGetter &&getter)
         : name(name),
           getter(std::move(getter))
     {
         type_id = this->getter.type_info.value_type_id;
     }
 
-    HypClassProperty(Name name, HypClassPropertyGetter &&getter, HypClassPropertySetter &&setter)
+    HypProperty(Name name, HypPropertyGetter &&getter, HypPropertySetter &&setter)
         : name(name),
           getter(std::move(getter)),
           setter(std::move(setter))
@@ -276,10 +276,10 @@ struct HypClassProperty
 #endif
     }
 
-    HypClassProperty(const HypClassProperty &other)                 = delete;
-    HypClassProperty &operator=(const HypClassProperty &other)      = delete;
-    HypClassProperty(HypClassProperty &&other) noexcept             = default;
-    HypClassProperty &operator=(HypClassProperty &&other) noexcept  = default;
+    HypProperty(const HypProperty &other)                 = delete;
+    HypProperty &operator=(const HypProperty &other)      = delete;
+    HypProperty(HypProperty &&other) noexcept             = default;
+    HypProperty &operator=(HypProperty &&other) noexcept  = default;
 
     /*! \brief Get the type id of the property, if defined. Otherwise, returns an unset type ID. */
     HYP_FORCE_INLINE TypeID GetTypeID() const

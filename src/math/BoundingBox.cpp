@@ -4,7 +4,7 @@
 #include <math/Triangle.hpp>
 #include <math/MathUtil.hpp>
 
-#include <core/HypClassUtils.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 

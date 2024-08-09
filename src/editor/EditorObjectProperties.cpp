@@ -8,8 +8,8 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UITextbox.hpp>
 
-#include <core/HypClass.hpp>
-#include <core/HypClassRegistry.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 namespace hyperion {
 
