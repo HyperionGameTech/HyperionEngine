@@ -31,9 +31,9 @@ HYP_DEFINE_CLASS(
     HypProperty(NAME("Entity"), &Node::GetEntity, &Node::SetEntity),
     HypProperty(NAME("EntityAABB"), &Node::GetEntityAABB, &Node::SetEntityAABB),
     HypProperty(NAME("LocalTransform"), &Node::GetLocalTransform, &Node::SetLocalTransform),
-    HypProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform),
-    HypProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
-    HypProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
+    HypProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform)
+    // HypProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
+    // HypProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
 );
 
 static const String unnamed_node_name = "<unnamed>";

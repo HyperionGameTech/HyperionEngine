@@ -15,7 +15,10 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Camera);
+HYP_DEFINE_CLASS(
+    Camera,
+    HypProperty(NAME("ID"), &Camera::GetID)
+);
 
 using renderer::Result;
 

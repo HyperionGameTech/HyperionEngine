@@ -4,6 +4,7 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObject.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/Name.hpp>
 
@@ -40,13 +41,13 @@ HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_t
     *out_type_id = property->type_id;
 }
 
-HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, fbom::FBOMData **out_value_ptr)
+HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)
 {
-    if (!property || !target_class || !target_ptr || !out_value_ptr) {
+    if (!property || !target_class || !target_ptr || !out_result) {
         return false;
     }
 
-    *out_value_ptr = new fbom::FBOMData(property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr)));
+    *out_result = property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr));
 
     return true;
 }

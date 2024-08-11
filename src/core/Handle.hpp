@@ -28,7 +28,6 @@ struct HandleBase
 {
     uint index;
 
-protected:
     HandleBase() : index(0) { }
     HandleBase(uint index) : index(index) { }
     HandleBase(const HandleBase &other)                 = default;
@@ -188,6 +187,11 @@ struct Handle : HandleBase
     HYP_FORCE_INLINE IDType GetID() const
         { return { uint(index) }; }
     
+    /*! \brief Get the TypeID for this handle type
+     *  \return The TypeID for the handle */
+    HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
+        { return TypeID::ForType<T>(); }
+    
     /*! \brief Get a pointer to the object that the handle is referencing.
      *  \return A pointer to the object. */
     HYP_FORCE_INLINE T *Get() const
@@ -335,8 +339,7 @@ struct WeakHandle
     /*! \brief Lock the weak handle to get a strong reference to the object.
      *  \details If the object is still alive, a strong reference is returned. Otherwise, an empty handle is returned.
      *  \return A strong reference to the object. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Handle<T> Lock() const
+    HYP_NODISCARD HYP_FORCE_INLINE Handle<T> Lock() const
     {
         if (index == 0) {
             return Handle<T>();
@@ -347,65 +350,55 @@ struct WeakHandle
             : Handle<T>();
     }
     
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return !IsValid(); }
     
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return !IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return IsValid(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(const WeakHandle &other) const
+    HYP_FORCE_INLINE bool operator==(const WeakHandle &other) const
         { return index == other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const WeakHandle &other) const
+    HYP_FORCE_INLINE bool operator!=(const WeakHandle &other) const
         { return index != other.index; }
 
-    HYP_FORCE_INLINE
-    bool operator<(const WeakHandle &other) const
+    HYP_FORCE_INLINE bool operator<(const WeakHandle &other) const
         { return index < other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator==(const Handle<T> &other) const
+    HYP_FORCE_INLINE bool operator==(const Handle<T> &other) const
         { return index == other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const Handle<T> &other) const
+    HYP_FORCE_INLINE bool operator!=(const Handle<T> &other) const
         { return index != other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator<(const Handle<T> &other) const
+    HYP_FORCE_INLINE bool operator<(const Handle<T> &other) const
         { return index < other.index; }
     
-    HYP_FORCE_INLINE
-    bool operator==(const IDType &id) const
+    HYP_FORCE_INLINE bool operator==(const IDType &id) const
         { return index == id.Value(); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const IDType &id) const
+    HYP_FORCE_INLINE bool operator!=(const IDType &id) const
         { return index != id.Value(); }
     
-    HYP_FORCE_INLINE
-    bool operator<(const IDType &id) const
+    HYP_FORCE_INLINE bool operator<(const IDType &id) const
         { return index < id.Value(); }
     
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return index != 0; }
     
-    HYP_FORCE_INLINE
-    IDType GetID() const
+    HYP_FORCE_INLINE IDType GetID() const
         { return { uint(index) }; }
+    
+    /*! \brief Get the TypeID for this handle type
+     *  \return The TypeID for the handle */
+    HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
+        { return TypeID::ForType<T>(); }
 
     void Reset()
     {
@@ -430,6 +423,121 @@ struct WeakHandle
         hc.Add(index);
 
         return hc;
+    }
+};
+
+struct AnyHandle
+{
+    using IDType = IDBase;
+
+    TypeID  type_id = TypeID::Void();
+    uint32  index = 0;
+
+    HYP_API AnyHandle(TypeID type_id, IDBase id);
+
+    template <class T>
+    explicit AnyHandle(ID<T> id)
+        : AnyHandle(TypeID::ForType<T>(), IDBase { id.Value() })
+    {
+    }
+
+    template <class T>
+    AnyHandle(const Handle<T> &handle)
+        : AnyHandle(TypeID::ForType<T>(), IDBase { handle.index })
+    {
+    }
+
+    template <class T>
+    AnyHandle(Handle<T> &&handle)
+        : AnyHandle(TypeID::ForType<T>(), IDBase { handle.index })
+    {
+        handle.index = 0;
+    }
+
+    AnyHandle(const AnyHandle &other)
+        : AnyHandle(other.type_id, IDBase { other.index })
+    {
+    }
+
+    HYP_API AnyHandle &operator=(const AnyHandle &other);
+
+    AnyHandle(AnyHandle &&other) noexcept
+        : AnyHandle(other.type_id, IDBase { other.index })
+    {
+        other.type_id = TypeID::Void();
+        other.index = 0;
+    }
+
+    HYP_API AnyHandle &operator=(AnyHandle &&other) noexcept;
+
+    HYP_API ~AnyHandle();
+    
+    HYP_FORCE_INLINE bool operator!() const
+        { return !IsValid(); }
+    
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return IsValid(); }
+    
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return !IsValid(); }
+    
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return IsValid(); }
+    
+    HYP_FORCE_INLINE bool operator==(const AnyHandle &other) const
+        { return type_id == other.type_id && index == other.index; }
+    
+    template <class T>
+    HYP_FORCE_INLINE bool operator==(const Handle<T> &other) const
+        { return type_id == other.GetTypeID() && index == other.index; }
+    
+    HYP_FORCE_INLINE bool operator!=(const AnyHandle &other) const
+        { return type_id != other.type_id || index != other.index; }
+    
+    template <class T>
+    HYP_FORCE_INLINE bool operator!=(const Handle<T> &other) const
+        { return type_id != other.GetTypeID() || index != other.index; }
+    
+    /*! \brief Compare two handles by their index.
+     *  \param other The handle to compare to.
+     *  \return True if the handle is less than the other handle. */
+    HYP_FORCE_INLINE bool operator<(const AnyHandle &other) const
+        { return index < other.index; }
+    
+    template <class T>
+    HYP_FORCE_INLINE bool operator==(const ID<T> &id) const
+        { return TypeID::ForType<T>() == type_id && index == id.Value(); }
+    
+    template <class T>
+    HYP_FORCE_INLINE bool operator!=(const IDType &id) const
+        { return TypeID::ForType<T>() != type_id || index != id.Value(); }
+    
+    /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
+     *  \return True if the handle is valid. */
+    HYP_FORCE_INLINE bool IsValid() const
+        { return index != 0; }
+    
+    /*! \brief Get a referenceable ID for the object that the handle is referencing.
+     *  \return The ID of the object. */
+    HYP_FORCE_INLINE IDType GetID() const
+        { return { uint(index) }; }
+    
+    /*! \brief Get the TypeID for this handle type
+     *  \return The TypeID for the handle */
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+        { return type_id; }
+
+
+    HYP_API AnyRef ToAnyRef() const;
+
+    template <class T>
+    HYP_NODISCARD Handle<T> Cast() const
+    {
+        if (!type_id || type_id != TypeID::ForType<T>()) {
+            return { };
+        }
+
+        return Handle<T>(typename Handle<T>::IDType { index });
     }
 };
 

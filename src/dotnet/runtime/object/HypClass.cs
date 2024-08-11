@@ -34,7 +34,7 @@ namespace Hyperion
             }
         }
         
-        public FBOMData InvokeGetter(HypObject hypObject)
+        public HypData InvokeGetter(HypObject hypObject)
         {
             if (ptr == IntPtr.Zero)
             {
@@ -46,14 +46,14 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke getter: Invalid target object");
             }
 
-            IntPtr valuePtr = IntPtr.Zero;
+            HypData result;
 
-            if (!HypProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out valuePtr))
+            if (!HypProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out result))
             {
                 throw new InvalidOperationException("Failed to invoke getter");
             }
 
-            return new FBOMData(valuePtr);
+            return result;
         }
         
         [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
@@ -64,7 +64,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out IntPtr outValuePtr);
+        private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypData outResult);
     }
 
     public struct HypClass

@@ -28,6 +28,7 @@ public:
     virtual ~IHypObjectInitializer() = default;
 
     virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) = 0;
+    virtual dotnet::Object *GetManagedObject() const = 0;
 };
 
 template <class T>
@@ -46,7 +47,7 @@ public:
         m_managed_object = std::move(managed_object);
     }
 
-    HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const
+    virtual dotnet::Object *GetManagedObject() const override
         { return m_managed_object.Get(); }
 
 private:
@@ -89,6 +90,9 @@ private:
     public: \
         static constexpr bool is_hyp_object = true; \
         \
+        HYP_FORCE_INLINE const HypObjectInitializer<T> &GetObjectInitializer() const \
+            { return m_hyp_object_initializer; } \
+        \
         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
             { return m_hyp_object_initializer.GetManagedObject(); } \
         \
@@ -115,6 +119,25 @@ struct IsHypObject<T, std::enable_if_t< T::is_hyp_object > >
 {
     static constexpr bool value = true;
 };
+
+namespace detail {
+
+template <class T, class T2>
+struct HypObjectType_Impl;
+
+template <class T>
+struct HypObjectType_Impl<T, std::false_type>;
+
+template <class T>
+struct HypObjectType_Impl<T, std::true_type>
+{
+    using Type = T;
+};
+
+} // namespace detail
+
+template <class T>
+using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant< IsHypObject<T>::value > >::Type;
 
 } // namespace hyperion
 

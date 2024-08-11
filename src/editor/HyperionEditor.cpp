@@ -64,6 +64,7 @@
 // temp
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
+#include <core/object/HypData.hpp>
 
 namespace hyperion {
 
@@ -267,26 +268,26 @@ public:
             panel->AddChildUIObject(header_text);
         }
 
-        fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
+        // fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
 
-        if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
-            const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
+        // if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
+        //     const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
 
-            IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
+        //     IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
 
-            if (element_factory) {
-                // RC<UIPanel> sub_panel = stage->CreateUIObject<UIPanel>(NAME("PropertySubPanel"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        //     if (element_factory) {
+        //         // RC<UIPanel> sub_panel = stage->CreateUIObject<UIPanel>(NAME("PropertySubPanel"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
-                panel->AddChildUIObject(element);
+        //         RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
+        //         panel->AddChildUIObject(element);
 
-                // panel->AddChildUIObject(sub_panel);
-            } else {
-                HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
-            }
-         } else {
-            HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
-        }
+        //         // panel->AddChildUIObject(sub_panel);
+        //     } else {
+        //         HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+        //     }
+        // } else {
+        //     HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
+        // }
 
         return panel;
     }
@@ -298,21 +299,21 @@ public:
             return;
         }
 
-        fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
+        // fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
 
-        if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
-            const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
+        // if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
+        //     const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
 
-            IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
+        //     IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
 
-            if (element_factory) {
-                element_factory->UpdateUIObject(ui_object, deserialized_object->any_value.ToRef());
-            } else {
-                HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
-            }
-        } else {
-            HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
-        }
+        //     if (element_factory) {
+        //         element_factory->UpdateUIObject(ui_object, deserialized_object->any_value.ToRef());
+        //     } else {
+        //         HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
+        //     }
+        // } else {
+        //     HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
+        // }
     }
 };
 
@@ -1199,6 +1200,12 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
+
+    constexpr bool b = std::is_fundamental_v<const float &>;
+
+    HypData test_hyp_data(Handle<Scene>{});
+    auto item = test_hyp_data.Get<Handle<Scene>>();
+    // test_hyp_data.Get<Handle<Scene>>()
 
     HYP_BREAKPOINT;
 

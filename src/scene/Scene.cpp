@@ -50,7 +50,8 @@ namespace hyperion {
 
 HYP_DEFINE_CLASS(
     Scene,
-    HypProperty(NAME("ID"), &Scene::GetID, &Scene::SetID)
+    HypProperty(NAME("ID"), &Scene::GetID),
+    HypProperty(NAME("Camera"), &Scene::GetCamera)
 );
 
 using renderer::Result;

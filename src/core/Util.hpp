@@ -316,8 +316,7 @@ constexpr uint ArraySize(const T (&)[N])
  *  \param value The value to convert to an rvalue reference.
  *  \returns The value as an rvalue reference. */
 template <class T>
-HYP_FORCE_INLINE
-constexpr std::remove_reference_t<T> &&Move(T &&value) noexcept
+HYP_FORCE_INLINE constexpr std::remove_reference_t<T> &&Move(T &&value) noexcept
 {
     static_assert(std::is_lvalue_reference_v<T>, "T must be an lvalue reference to use Move()");
     static_assert(!std::is_same_v<const typename std::remove_reference_t<T> &, typename std::remove_reference_t<T> &> , "T must not be const to use Move()");
@@ -330,15 +329,13 @@ constexpr std::remove_reference_t<T> &&Move(T &&value) noexcept
  *  \param value The value to convert to an rvalue reference.
  *  \returns The value as an rvalue reference. */
 template <class T>
-HYP_FORCE_INLINE
-constexpr std::remove_reference_t<T> &&TryMove(T &&value) noexcept
+HYP_FORCE_INLINE constexpr std::remove_reference_t<T> &&TryMove(T &&value) noexcept
 {
     return static_cast<std::remove_reference_t<T> &&>(value);
 }
 
 template <class T>
-HYP_FORCE_INLINE
-void Swap(T &a, T &b)
+HYP_FORCE_INLINE void Swap(T &a, T &b)
 {
     static_assert(std::is_move_constructible_v<T> && std::is_move_assignable_v<T>, "Swap requires T to be move constructible and move assignable");
 

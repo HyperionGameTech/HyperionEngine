@@ -24,9 +24,28 @@ struct HypObjectInitializer
 
 #pragma region HypObject
 
+HYP_EXPORT void HypObject_Validate(const HypClass *hyp_class, void *native_address)
+{
+    if (!hyp_class || !native_address) {
+        return;
+    }
+
+    const TypeID type_id = hyp_class->GetTypeID();
+
+    ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+    
+    const uint32 index = container.GetObjectIndex(native_address);
+
+    if (index == ~0u) {
+        HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
+    }
+}
+
 HYP_EXPORT void HypObject_IncRef(const HypClass *hyp_class, void *native_address)
 {
-    AssertThrow(native_address != nullptr && hyp_class != nullptr);
+    if (!hyp_class || !native_address) {
+        return;
+    }
 
     const TypeID type_id = hyp_class->GetTypeID();
 
@@ -34,7 +53,7 @@ HYP_EXPORT void HypObject_IncRef(const HypClass *hyp_class, void *native_address
     
     const uint32 index = container.GetObjectIndex(native_address);
     if (index == ~0u) {
-        HYP_FAIL("Address %p is not valid for object container for TypeID %u", type_id.Value());
+        HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
     }
 
     container.IncRefStrong(index);
@@ -42,7 +61,9 @@ HYP_EXPORT void HypObject_IncRef(const HypClass *hyp_class, void *native_address
 
 HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address)
 {
-    AssertThrow(native_address != nullptr && hyp_class != nullptr);
+    if (!native_address || !hyp_class) {
+        return;
+    }
 
     const TypeID type_id = hyp_class->GetTypeID();
 
@@ -50,10 +71,19 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     
     const uint32 index = container.GetObjectIndex(native_address);
     if (index == ~0u) {
-        HYP_FAIL("Address %p is not valid for object container for TypeID %u", type_id.Value());
+        HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
     }
     
     container.DecRefStrong(index);
+}
+
+HYP_EXPORT HypProperty *HypObject_GetProperty(const HypClass *hyp_class, const Name *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    return hyp_class->GetProperty(*name);
 }
 
 #pragma endregion HypObject

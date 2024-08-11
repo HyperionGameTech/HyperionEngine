@@ -12,56 +12,60 @@ namespace hyperion::fbom {
 
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) const
 {
-    const HypClass *hyp_class = GetClass(in.GetTypeID());
+    HYP_NOT_IMPLEMENTED();
 
-    if (!hyp_class) {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
-    }
+    // const HypClass *hyp_class = GetClass(in.GetTypeID());
 
-    out = fbom::FBOMObject(FBOMObjectType(hyp_class->GetName().LookupString()));
+    // if (!hyp_class) {
+    //     return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
+    // }
 
-    const HashCode hash_code = hyp_class->GetInstanceHashCode(in);
-    out.m_unique_id = UniqueID(hash_code);
+    // out = fbom::FBOMObject(FBOMObjectType(hyp_class->GetName().LookupString()));
 
-    for (HypProperty *property : hyp_class->GetProperties()) {
-        AssertThrow(property != nullptr);
+    // const HashCode hash_code = hyp_class->GetInstanceHashCode(in);
+    // out.m_unique_id = UniqueID(hash_code);
 
-        if (!property->HasGetter()) {
-            continue;
-        }
+    // for (HypProperty *property : hyp_class->GetProperties()) {
+    //     AssertThrow(property != nullptr);
 
-        fbom::FBOMData property_value = property->InvokeGetter(in);
-        out.SetProperty(property->name, std::move(property_value));
-    }
+    //     if (!property->HasGetter()) {
+    //         continue;
+    //     }
 
-    return { FBOMResult::FBOM_OK };
+    //     fbom::FBOMData property_value = property->InvokeGetter(in);
+    //     out.SetProperty(property->name, std::move(property_value));
+    // }
+
+    // return { FBOMResult::FBOM_OK };
 }
 
 FBOMResult HypClassInstanceMarshal::Deserialize(const FBOMObject &in, Any &out) const
 {
-    const HypClass *hyp_class = in.GetHypClass();
-
-    if (!hyp_class) {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
-    }
-
-    hyp_class->CreateInstance(out);
+    HYP_NOT_IMPLEMENTED();
     
-    for (const KeyValuePair<Name, FBOMData> &it : in.GetProperties()) {
-        if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
-            if (!property->HasSetter()) {
-                HYP_LOG(Serialization, LogLevel::WARNING, "Property {} on HypClass {} has no setter", it.first, hyp_class->GetName());
+    // const HypClass *hyp_class = in.GetHypClass();
 
-                continue;
-            }
+    // if (!hyp_class) {
+    //     return { FBOMResult::FBOM_ERR, "Cannot serialize object using HypClassInstanceMarshal, object has no associated HypClass" };
+    // }
 
-            property->InvokeSetter(out, it.second);
-        } else {
-            HYP_LOG(Serialization, LogLevel::WARNING, "No property {} on HypClass {}", it.first, hyp_class->GetName());
-        }
-    }
+    // hyp_class->CreateInstance(out);
+    
+    // for (const KeyValuePair<Name, FBOMData> &it : in.GetProperties()) {
+    //     if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
+    //         if (!property->HasSetter()) {
+    //             HYP_LOG(Serialization, LogLevel::WARNING, "Property {} on HypClass {} has no setter", it.first, hyp_class->GetName());
 
-    return { FBOMResult::FBOM_OK };
+    //             continue;
+    //         }
+
+    //         property->InvokeSetter(out, it.second);
+    //     } else {
+    //         HYP_LOG(Serialization, LogLevel::WARNING, "No property {} on HypClass {}", it.first, hyp_class->GetName());
+    //     }
+    // }
+
+    // return { FBOMResult::FBOM_OK };
 }
 
 } // namespace hyperion::fbom

@@ -4,10 +4,13 @@
 #define HYPERION_CAMERA_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/containers/Queue.hpp>
+
 #include <core/memory/UniquePtr.hpp>
-#include <core/Handle.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
@@ -157,6 +160,8 @@ struct CameraDrawProxy
 
 class HYP_API Camera : public BasicObject<Camera>
 {
+    HYP_OBJECT_BODY(Camera);
+
 public:
     friend class CameraController;
     friend class PerspectiveCameraController;

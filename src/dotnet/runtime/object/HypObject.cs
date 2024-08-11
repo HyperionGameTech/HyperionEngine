@@ -53,6 +53,8 @@ namespace Hyperion
             {
                 throw new Exception("Native address is null - object is not correctly initialized");
             }
+
+            HypObject_Validate(_hypClassPtr, _nativeAddress);
         }
 
         ~HypObject()
@@ -88,10 +90,40 @@ namespace Hyperion
             }
         }
 
+        protected HypProperty GetProperty(Name name)
+        {
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                throw new Exception("HypClass pointer is null");
+            }
+
+            IntPtr propertyPtr = HypObject_GetProperty(_hypClassPtr, ref name);
+
+            if (propertyPtr == IntPtr.Zero)
+            {
+                string propertiesString = "";
+
+                foreach (HypProperty property in HypClass.Properties)
+                {
+                    propertiesString += property.Name + ", ";
+                }
+
+                throw new Exception("Failed to get property \"" + name + "\" from HypClass \"" + HypClass.Name + "\". Available properties: " + propertiesString);
+            }
+
+            return new HypProperty(propertyPtr);
+        }
+
+        [DllImport("hyperion", EntryPoint = "HypObject_Validate")]
+        private static extern void HypObject_Validate([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+
         [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
         private static extern void HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
 
         [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
         private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+
+        [DllImport("hyperion", EntryPoint = "HypObject_GetProperty")]
+        private static extern IntPtr HypObject_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
     }
 }

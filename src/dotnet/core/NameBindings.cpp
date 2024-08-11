@@ -15,7 +15,7 @@ extern "C" {
 static_assert(sizeof(Name) == 8, "Name size mismatch, ensure C# implementation matches C++");
 static_assert(std::is_standard_layout_v<Name>, "Name is not standard layout");
 
-HYP_EXPORT void Name_FromString(const char *str, Name *out_name)
+HYP_EXPORT void Name_FromString(const char *str, bool weak, Name *out_name)
 {
     if (!out_name) {
         return;
@@ -27,7 +27,11 @@ HYP_EXPORT void Name_FromString(const char *str, Name *out_name)
         return;
     }
 
-    *out_name = CreateNameFromDynamicString(str).hash_code;
+    if (weak) {
+        *out_name = CreateWeakNameFromDynamicString(str).hash_code;
+    } else {
+        *out_name = CreateNameFromDynamicString(str).hash_code;
+    }
 }
 
 HYP_EXPORT const char *Name_LookupString(const Name *name)

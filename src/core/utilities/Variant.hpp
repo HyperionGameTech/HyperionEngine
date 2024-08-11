@@ -23,7 +23,7 @@ namespace detail {
 template <class ... Ts>
 struct VariantHelper;
 
-template <class T, class ... Ts>
+template <class T, class... Ts>
 struct VariantHelper<T, Ts...>
 {
     template <class SrcType>
@@ -48,24 +48,28 @@ struct VariantHelper<T, Ts...>
 
     static inline bool CopyAssign(TypeID type_id, void *dst, const void *src)
     {
-        if (type_id == TypeID::ForType<NormalizedType<T>>()) {
-            *static_cast<NormalizedType<T> *>(dst) = *static_cast<const NormalizedType<T> *>(src);
+        if constexpr (std::is_copy_assignable_v<T>) {
+            if (type_id == TypeID::ForType<NormalizedType<T>>()) {
+                *static_cast<NormalizedType<T> *>(dst) = *static_cast<const NormalizedType<T> *>(src);
 
-            return true;
-        } else {
-            return VariantHelper<Ts...>::CopyAssign(type_id, dst, src);
+                return true;
+            }
         }
+
+        return VariantHelper<Ts...>::CopyAssign(type_id, dst, src);
     }
 
     static inline bool CopyConstruct(TypeID type_id, void *dst, const void *src)
     {
-        if (type_id == TypeID::ForType<NormalizedType<T>>()) {
-            Memory::Construct<NormalizedType<T>>(dst, *static_cast<const NormalizedType<T> *>(src));
+        if constexpr (std::is_copy_constructible_v<T>) {
+            if (type_id == TypeID::ForType<NormalizedType<T>>()) {
+                Memory::Construct<NormalizedType<T>>(dst, *static_cast<const NormalizedType<T> *>(src));
 
-            return true;
-        } else {
-            return VariantHelper<Ts...>::CopyConstruct(type_id, dst, src);
+                return true;
+            }
         }
+
+        return VariantHelper<Ts...>::CopyConstruct(type_id, dst, src);
     }
 
     static inline void MoveAssign(TypeID type_id, void *dst, void *src)
@@ -147,7 +151,7 @@ struct VariantHelper<>
     static inline HashCode GetHashCode(TypeID type_id, const void *data) { return {}; }
 };
 
-template <class ...Types>
+template <class... Types>
 class VariantBase
 {
 protected:
@@ -164,8 +168,8 @@ public:
 #endif
     }
 
-    VariantBase(const VariantBase &other) = default;
-    VariantBase &operator=(const VariantBase &other) = default;
+    VariantBase(const VariantBase &other)               = default;
+    VariantBase &operator=(const VariantBase &other)    = default;
 
     VariantBase(VariantBase &&other) noexcept
         : VariantBase()
@@ -214,7 +218,7 @@ public:
         return *this;
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T> && std::is_copy_constructible_v<T>>>
     explicit VariantBase(const T &value)
         : m_current_type_id(invalid_type_id)
     {
@@ -336,7 +340,7 @@ public:
         return static_cast<const T *>(m_storage.GetPointer());
     }
 
-    template <class T>
+    template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
     void Set(const T &value)
     {
         static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
@@ -410,10 +414,10 @@ protected:
     } m_storage;
 };
 
-template <bool IsCopyable, class ...Types>
+template <bool IsCopyable, class... Types>
 struct Variant : public VariantBase<Types...> { };
 
-template <class ...Types>
+template <class... Types>
 struct Variant<true, Types...> : public VariantBase<Types...>
 {
 private:
@@ -478,7 +482,7 @@ public:
         return *this;
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
     explicit Variant(const T &value)
         : Base(value)
     {
@@ -493,7 +497,7 @@ public:
     ~Variant() = default;
 };
 
-template <class ...Types>
+template <class... Types>
 struct Variant<false, Types...> : public VariantBase<Types...>
 {
 private:
@@ -513,10 +517,10 @@ public:
         return *this;
     }
 
-    Variant(const Variant &other) = delete;
-    Variant &operator=(const Variant &other) = delete;
+    Variant(const Variant &other)               = delete;
+    Variant &operator=(const Variant &other)    = delete;
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
     explicit Variant(const T &value)
         : Base(value)
     {
@@ -548,14 +552,14 @@ struct Variant
     // {
     // }
 
-    Variant() = default;
-    Variant(const Variant &other) = default;
-    Variant &operator=(const Variant &other) = default;
-    Variant(Variant &&other) noexcept = default;
-    Variant &operator=(Variant &&other) noexcept = default;
-    ~Variant() = default;
+    Variant()                                       = default;
+    Variant(const Variant &other)                   = default;
+    Variant &operator=(const Variant &other)        = default;
+    Variant(Variant &&other) noexcept               = default;
+    Variant &operator=(Variant &&other) noexcept    = default;
+    ~Variant()                                      = default;
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
     Variant(const T &value)
         : m_holder(value)
     {
@@ -623,7 +627,7 @@ struct Variant
     HYP_FORCE_INLINE const T *TryGet() const &
         { return m_holder.template TryGet<T>(); }
 
-    template <class T>
+    template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
     HYP_FORCE_INLINE void Set(const T &value)
         { m_holder.template Set<T>(value); }
 

@@ -54,10 +54,18 @@ namespace Hyperion
 
             var mesh = new Mesh();
 
-            foreach (var property in mesh.HypClass.Properties)
+            foreach (var property in this.scene.HypClass.Properties)
             {
-                var result = property.InvokeGetter(mesh);
-                Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
+                var result = property.InvokeGetter(this.scene);
+                var camera = result.GetHypObject<Camera>();
+
+                if (camera != null)
+                {
+                    Console.WriteLine("Camera = {0}, ID = {1}", camera, camera.ID);
+                    // Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
+                }
+                // Console.WriteLine("{0} = {1} Value (Camera) = {2}", property.Name, result, camera);
+                // Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
             }
 
             Console.WriteLine("Game BeforeInit: this.scene = {0}", this.scene.HypClass.TypeID.Value);

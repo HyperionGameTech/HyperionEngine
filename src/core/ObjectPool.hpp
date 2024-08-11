@@ -3,14 +3,20 @@
 #ifndef HYPERION_CORE_OBJECT_POOL_HPP
 #define HYPERION_CORE_OBJECT_POOL_HPP
 
-#include <core/threading/Mutex.hpp>
-#include <core/system/Debug.hpp>
-#include <core/containers/LinkedList.hpp>
-#include <core/memory/UniquePtr.hpp>
 #include <core/IDGenerator.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
+
+#include <core/object/HypObject.hpp>
+
+#include <core/threading/Mutex.hpp>
+
+#include <core/system/Debug.hpp>
+
+#include <core/containers/LinkedList.hpp>
+
+#include <core/memory/UniquePtr.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -43,6 +49,7 @@ public:
     virtual uint32 GetObjectIndex(const void *address) const = 0;
 
     virtual void *GetObjectPointer(uint32 index) = 0;
+    virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
 
     virtual void IncRefStrong(uint32 index) = 0;
     virtual void IncRefWeak(uint32 index) = 0;
@@ -192,7 +199,7 @@ public:
             return false;
         }
 
-        return ((addr - reinterpret_cast<uintptr_t>(&m_data[0])) % sizeof(ObjectBytes)) == offsetof(ObjectBytes, bytes);
+        return ((addr - reinterpret_cast<uintptr_t>(&m_data[0]) - offsetof(ObjectBytes, bytes)) % sizeof(ObjectBytes)) == 0;
     }
 
     virtual uint32 GetObjectIndex(const void *address) const override
@@ -210,6 +217,16 @@ public:
     virtual void *GetObjectPointer(uint32 index) override
     {
         return m_data[index].GetPointer();
+    }
+
+    virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) override
+    {
+        // check is temporary for now
+        if constexpr (IsHypObject<T>::value) {
+            return &m_data[index].Get().GetObjectInitializer();
+        }
+
+        return nullptr;
     }
 
     virtual void IncRefStrong(uint32 index) override
