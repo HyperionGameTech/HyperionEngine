@@ -4,6 +4,4 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(ShadowMapComponent);
-
 } // namespace hyperion

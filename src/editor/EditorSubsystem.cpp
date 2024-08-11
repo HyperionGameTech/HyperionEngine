@@ -20,8 +20,6 @@ namespace hyperion {
 
 #pragma region EditorSubsystem
 
-HYP_DEFINE_CLASS(EditorSubsystem);
-
 EditorSubsystem::EditorSubsystem()
 {
 }

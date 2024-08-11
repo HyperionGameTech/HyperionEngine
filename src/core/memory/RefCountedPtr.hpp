@@ -38,6 +38,11 @@ class EnableRefCountedPtrFromThisBase;
 template <class CountType>
 class RefCountedPtrBase;
 
+
+#ifndef HYP_DEBUG_MODE
+    #define EnsureUninitialized()
+#endif
+
 template <class CountType>
 struct RefCountData
 {
@@ -50,7 +55,7 @@ struct RefCountData
     RefCountData()
     {
         value = nullptr;
-        type_id = TypeID { };
+        type_id = TypeID::Void();
         strong_count = 0;
         weak_count = 0;
         dtor = nullptr;
@@ -59,10 +64,29 @@ struct RefCountData
 #ifdef HYP_DEBUG_MODE
     ~RefCountData()
     {
-        AssertThrow(strong_count == 0);
-        AssertThrow(weak_count == 0);
+        EnsureUninitialized();
     }
 #endif
+
+#ifdef HYP_DEBUG_MODE
+    HYP_FORCE_INLINE void EnsureUninitialized() const
+    {
+        AssertThrow(this->value == nullptr);
+        AssertThrow(this->type_id == TypeID::Void());
+        AssertThrow(this->strong_count == 0);
+        AssertThrow(this->weak_count == 0);
+        AssertThrow(this->dtor == nullptr);
+    }
+#endif
+
+    HYP_FORCE_INLINE void InitFromParams(void *value, TypeID type_id, void(*dtor)(void *))
+    {
+        EnsureUninitialized();
+
+        this->value = value;
+        this->type_id = type_id;
+        this->dtor = dtor;
+    }
 
     HYP_FORCE_INLINE bool HasValue() const
         { return value != nullptr; }
@@ -179,6 +203,10 @@ struct RefCountData
     }
 };
 
+#ifndef HYP_DEBUG_MODE
+    #undef EnsureUninitialized
+#endif
+
 template <class CountType>
 class RefCountedPtrBase
 {
@@ -279,25 +307,21 @@ public:
         { return m_ref->type_id; }
 
     template <class T>
-    HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> CastUnsafe()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() const
     {
         RefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
-        
-        IncRefCount();
+        rc.IncRefCount();
 
         return rc;
     }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { DropRefCount(); }
     
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Reset(Ty *ptr)
+    HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
 
@@ -491,8 +515,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE
-    WeakRefCountedPtr<T, CountType> CastUnsafe() const
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> CastUnsafe() const
     {
         WeakRefCountedPtr<T, CountType> rc;
         rc.SetRefCountData_Internal(m_ref, true);
@@ -732,8 +755,7 @@ public:
         no cast is performed and a null RefCountedPtr is returned. Otherwise, a new RefCountedPtr is returned,
         with the currently held pointer casted to Ty as the held value. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    RefCountedPtr<Ty, CountType> Cast()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<Ty, CountType> Cast() const
     {
         if (Is<Ty>()) {
             return Base::template CastUnsafe<Ty>();
@@ -742,8 +764,7 @@ public:
         return RefCountedPtr<Ty, CountType>();
     }
 
-    HYP_FORCE_INLINE
-    WeakRefCountedPtr<T, CountType> ToWeak() const
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
     {
         return WeakRefCountedPtr<T, CountType>(*this);
     }
@@ -869,8 +890,7 @@ public:
         no cast is performed and a null RefCountedPtr is returned. Otherwise, a new RefCountedPtr is returned,
         with the currently held pointer casted to Ty as the held value. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    RefCountedPtr<Ty, CountType> Cast()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<Ty, CountType> Cast() const
     {
         if (Is<Ty>()) {
             return Base::template CastUnsafe<Ty>();
@@ -879,8 +899,7 @@ public:
         return RefCountedPtr<Ty, CountType>();
     }
 
-    HYP_FORCE_INLINE
-    WeakRefCountedPtr<void, CountType> ToWeak() const
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<void, CountType> ToWeak() const
     {
         return WeakRefCountedPtr<void, CountType>(*this);
     }
@@ -1086,8 +1105,7 @@ protected:
 template <class T, class CountType>
 struct RawPtrToRefCountedPtrHelper
 {
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> operator()(T *ptr)
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> operator()(T *ptr)
     {
         if (!ptr) {
             return RefCountedPtr<T, CountType>();
@@ -1096,14 +1114,37 @@ struct RawPtrToRefCountedPtrHelper
         return ptr->RefCountedPtrFromThis();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountedPtr<const T, CountType> operator()(const T *ptr)
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<const T, CountType> operator()(const T *ptr)
     {
         if (!ptr) {
             return RefCountedPtr<const T, CountType>();
         }
 
         return ptr->RefCountedPtrFromThis();
+    }
+};
+
+/*! \brief Helper struct to convert raw pointers to WeakRefCountedPtrs.
+ *  For internal use only. */
+template <class T, class CountType>
+struct RawPtrToWeakRefCountedPtrHelper
+{
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> operator()(T *ptr)
+    {
+        if (!ptr) {
+            return WeakRefCountedPtr<T, CountType>();
+        }
+
+        return ptr->WeakRefCountedPtrFromThis();
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<const T, CountType> operator()(const T *ptr)
+    {
+        if (!ptr) {
+            return WeakRefCountedPtr<const T, CountType>();
+        }
+
+        return ptr->WeakRefCountedPtrFromThis();
     }
 };
 
@@ -1114,6 +1155,7 @@ class EnableRefCountedPtrFromThis : public detail::EnableRefCountedPtrFromThisBa
 
 public:
     friend struct RawPtrToRefCountedPtrHelper<T, CountType>;
+    friend struct RawPtrToWeakRefCountedPtrHelper<T, CountType>;
 
     EnableRefCountedPtrFromThis()
     {
@@ -1160,6 +1202,9 @@ using EnableRefCountedPtrFromThis = memory::EnableRefCountedPtrFromThis<T, Count
 
 template <class T, class CountType = std::atomic<uint>>
 using RawPtrToRefCountedPtrHelper = memory::RawPtrToRefCountedPtrHelper<T, CountType>;
+
+template <class T, class CountType = std::atomic<uint>>
+using RawPtrToWeakRefCountedPtrHelper = memory::RawPtrToWeakRefCountedPtrHelper<T, CountType>;
 
 } // namespace hyperion
 

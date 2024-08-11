@@ -31,9 +31,6 @@ class Engine;
 template <class T>
 struct HandleDefinition;
 
-template <class T>
-constexpr bool has_opaque_handle_defined = implementation_exists<HandleDefinition<T>>;
-
 class ObjectContainerBase
 {
 public:

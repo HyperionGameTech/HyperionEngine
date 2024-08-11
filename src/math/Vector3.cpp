@@ -11,26 +11,26 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Vec3f,
-    HypProperty(NAME("X"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetX), &Vec3f::SetX),
-    HypProperty(NAME("Y"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetY), &Vec3f::SetY),
-    HypProperty(NAME("Z"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetZ), &Vec3f::SetZ)
-);
+// HYP_DEFINE_CLASS(
+//     Vec3f,
+//     HypProperty(NAME("X"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetX), &Vec3f::SetX),
+//     HypProperty(NAME("Y"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetY), &Vec3f::SetY),
+//     HypProperty(NAME("Z"), static_cast<float (Vec3f::*)() const>(&Vec3f::GetZ), &Vec3f::SetZ)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec3i,
-    HypProperty(NAME("X"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetX), &Vec3i::SetX),
-    HypProperty(NAME("Y"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetY), &Vec3i::SetY),
-    HypProperty(NAME("Z"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetZ), &Vec3i::SetZ)
-);
+// HYP_DEFINE_CLASS(
+//     Vec3i,
+//     HypProperty(NAME("X"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetX), &Vec3i::SetX),
+//     HypProperty(NAME("Y"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetY), &Vec3i::SetY),
+//     HypProperty(NAME("Z"), static_cast<int (Vec3i::*)() const>(&Vec3i::GetZ), &Vec3i::SetZ)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec3u,
-    HypProperty(NAME("X"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetX), &Vec3u::SetX),
-    HypProperty(NAME("Y"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetY), &Vec3u::SetY),
-    HypProperty(NAME("Z"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetZ), &Vec3u::SetZ)
-);
+// HYP_DEFINE_CLASS(
+//     Vec3u,
+//     HypProperty(NAME("X"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetX), &Vec3u::SetX),
+//     HypProperty(NAME("Y"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetY), &Vec3u::SetY),
+//     HypProperty(NAME("Z"), static_cast<uint (Vec3u::*)() const>(&Vec3u::GetZ), &Vec3u::SetZ)
+// );
 
 Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const
 {

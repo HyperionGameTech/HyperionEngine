@@ -8,23 +8,23 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Vec2f,
-    HypProperty(NAME("X"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetX), &Vec2f::SetX),
-    HypProperty(NAME("Y"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetY), &Vec2f::SetY)
-);
+// HYP_DEFINE_CLASS(
+//     Vec2f,
+//     HypProperty(NAME("X"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetX), &Vec2f::SetX),
+//     HypProperty(NAME("Y"), static_cast<float (Vec2f::*)() const>(&Vec2f::GetY), &Vec2f::SetY)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec2i,
-    HypProperty(NAME("X"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetX), &Vec2i::SetX),
-    HypProperty(NAME("Y"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetY), &Vec2i::SetY)
-);
+// HYP_DEFINE_CLASS(
+//     Vec2i,
+//     HypProperty(NAME("X"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetX), &Vec2i::SetX),
+//     HypProperty(NAME("Y"), static_cast<int (Vec2i::*)() const>(&Vec2i::GetY), &Vec2i::SetY)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec2u,
-    HypProperty(NAME("X"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetX), &Vec2u::SetX),
-    HypProperty(NAME("Y"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetY), &Vec2u::SetY)
-);
+// HYP_DEFINE_CLASS(
+//     Vec2u,
+//     HypProperty(NAME("X"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetX), &Vec2u::SetX),
+//     HypProperty(NAME("Y"), static_cast<uint (Vec2u::*)() const>(&Vec2u::GetY), &Vec2u::SetY)
+// );
 
 namespace math {
 namespace detail {

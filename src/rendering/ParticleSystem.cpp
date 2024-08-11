@@ -26,9 +26,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(ParticleSpawner);
-HYP_DEFINE_CLASS(ParticleSystem);
-
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
 using renderer::Result;

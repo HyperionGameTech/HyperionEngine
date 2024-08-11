@@ -18,8 +18,6 @@ namespace hyperion {
 
 #pragma region LightmapperSubsystem
 
-HYP_DEFINE_CLASS(LightmapperSubsystem);
-
 LightmapperSubsystem::LightmapperSubsystem()
 {
 }

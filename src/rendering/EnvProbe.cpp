@@ -13,17 +13,12 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(EnvProbe);
-
 using renderer::Result;
 
 static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin);
-
-#pragma region Render commands
-
 
 #pragma region Render commands
 

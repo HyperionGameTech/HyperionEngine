@@ -8,8 +8,6 @@
 
 namespace hyperion::physics {
 
-HYP_DEFINE_CLASS(RigidBody);
-
 RigidBody::RigidBody()
     : RigidBody(nullptr, { })
 {

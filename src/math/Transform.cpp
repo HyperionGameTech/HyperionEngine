@@ -6,12 +6,12 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Transform,
-    HypProperty(NAME("Translation"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetTranslation), &Transform::SetTranslation),
-    HypProperty(NAME("Rotation"), static_cast<const Quaternion &(Transform::*)() const>(&Transform::GetRotation), &Transform::SetRotation),
-    HypProperty(NAME("Scale"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetScale), &Transform::SetScale)
-);
+// HYP_DEFINE_CLASS(
+//     Transform,
+//     HypProperty(NAME("Translation"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetTranslation), &Transform::SetTranslation),
+//     HypProperty(NAME("Rotation"), static_cast<const Quaternion &(Transform::*)() const>(&Transform::GetRotation), &Transform::SetRotation),
+//     HypProperty(NAME("Scale"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetScale), &Transform::SetScale)
+// );
 
 const Transform Transform::identity{};
 

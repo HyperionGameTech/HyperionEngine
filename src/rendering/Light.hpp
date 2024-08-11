@@ -4,8 +4,12 @@
 #define HYPERION_LIGHT_HPP
 
 #include <core/Base.hpp>
+
 #include <core/containers/Bitset.hpp>
+
 #include <core/utilities/DataMutationState.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <rendering/Material.hpp>
 
@@ -49,6 +53,8 @@ struct RENDER_COMMAND(UpdateLightShaderData);
 class HYP_API Light : public BasicObject<Light>
 {
     friend struct RENDER_COMMAND(UpdateLightShaderData);
+
+    HYP_OBJECT_BODY(Light);
 
 public:
     Light();

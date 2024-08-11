@@ -29,9 +29,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(GaussianSplatting);
-HYP_DEFINE_CLASS(GaussianSplattingInstance);
-
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
 using renderer::Result;

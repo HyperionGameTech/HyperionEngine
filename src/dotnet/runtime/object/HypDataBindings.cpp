@@ -37,19 +37,6 @@ HYP_EXPORT bool HypData_IsID(const HypData *hyp_data)
     return hyp_data->Is<IDBase>();
 }
 
-HYP_EXPORT bool HypData_IsHypObject(const HypData *hyp_data)
-{
-    if (!hyp_data) {
-        return false;
-    }
-
-    if (!hyp_data->Is<AnyHandle>()) {
-        return false;
-    }
-
-    return hyp_data->Get<AnyHandle>().IsValid();
-}
-
 HYP_EXPORT bool HypData_GetID(const HypData *hyp_data, IDBase *out_id)
 {
     if (!hyp_data || !out_id) {
@@ -65,41 +52,68 @@ HYP_EXPORT bool HypData_GetID(const HypData *hyp_data, IDBase *out_id)
     return false;
 }
 
+HYP_EXPORT bool HypData_IsHypObject(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    TypeID type_id;
+    AnyRef any_ref;
+
+    if (hyp_data->Is<AnyHandle>()) {
+        const AnyHandle &handle = hyp_data->Get<AnyHandle>();
+        return handle.IsValid() && GetClass(handle.GetTypeID()) != nullptr;
+    } else if (hyp_data->Is<RC<void>>()) {
+        const RC<void> &rc = hyp_data->Get<RC<void>>();
+
+        return rc != nullptr && GetClass(rc.GetTypeID()) != nullptr;
+    } else {
+        return false;
+    }
+}
+
 HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
 {
     if (!hyp_data || !out_object) {
         return false;
     }
 
-    if (!hyp_data->Is<AnyHandle>()) {
+    TypeID type_id;
+    AnyRef any_ref;
+
+    if (hyp_data->Is<AnyHandle>()) {
+        const AnyHandle &handle = hyp_data->Get<AnyHandle>();
+
+        type_id = handle.GetTypeID();
+        any_ref = handle.ToAnyRef();
+    } else if (hyp_data->Is<RC<void>>()) {
+        const RC<void> &rc = hyp_data->Get<RC<void>>();
+
+        type_id = rc.GetTypeID();
+        any_ref = AnyRef(type_id, rc.Get());
+    } else {
         return false;
     }
 
-    const AnyHandle &handle = hyp_data->Get<AnyHandle>();
-
     *out_object = nullptr;
 
-    if (handle.type_id) {
-        // const HypClass *hyp_class = GetClass(handle.type_id);
+    if (type_id && any_ref.HasValue()) {
+        const HypClass *hyp_class = GetClass(type_id);
 
-        AnyRef any_ref = handle.ToAnyRef();
-
-        if (any_ref.HasValue()) {
-            ObjectContainerBase &container = ObjectPool::GetContainer(handle.type_id);
-            // container.IncRefStrong(handle.index - 1);
-
-            // *out_native_address = any_ref.GetPointer();
-
-            const IHypObjectInitializer *object_initializer = container.GetObjectInitializer(handle.index - 1);
-            AssertThrow(object_initializer != nullptr);
-
-            dotnet::Object *managed_object = object_initializer->GetManagedObject();
-            AssertThrow(managed_object != nullptr);
-
-            *out_object = managed_object->GetUnderlyingObject().ptr;
-
-            return true;
+        if (!hyp_class) {
+            return false;
         }
+
+        const IHypObjectInitializer *object_initializer = hyp_class->GetObjectInitializer(any_ref.GetPointer());
+        AssertThrow(object_initializer != nullptr);
+
+        dotnet::Object *managed_object = object_initializer->GetManagedObject();
+        AssertThrow(managed_object != nullptr);
+
+        *out_object = managed_object->GetUnderlyingObject().ptr;
+
+        return true;
     }
 
     return false;

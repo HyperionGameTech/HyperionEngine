@@ -24,8 +24,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(RenderGroup);
-
 using renderer::Result;
 using renderer::CommandBufferType;
 

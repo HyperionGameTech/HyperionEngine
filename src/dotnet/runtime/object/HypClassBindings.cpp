@@ -61,18 +61,23 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
     if (!hyp_class) {
         return nullptr;
     }
-
-    const TypeID type_id = hyp_class->GetTypeID();
-
-    ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
     
-    const uint32 index = container.NextIndex();
-    container.ConstructAtIndex(index);
-    container.IncRefStrong(index);
+    if (hyp_class->UseHandles()) {
+        ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+        
+        const uint32 index = container.NextIndex();
+        container.ConstructAtIndex(index);
+        container.IncRefStrong(index);
 
-    // *out_handle = ManagedHandle { index + 1 };
+        return container.GetObjectPointer(index);
+    } else if (hyp_class->UseRefCountedPtr()) {
+        Any any_value;
+        hyp_class->CreateInstance(any_value);
 
-    return container.GetObjectPointer(index);
+        return UniquePtr<void>(std::move(any_value)).ToRefCountedPtr().GetRefCountData_Internal();
+    } else {
+        HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+    }
 }
 
 HYP_EXPORT const HypClass *HypClass_GetClassByName(const char *name)

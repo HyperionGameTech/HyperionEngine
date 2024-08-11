@@ -14,6 +14,7 @@
 #include <core/utilities/Variant.hpp>
 
 #include <core/memory/Any.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <Types.hpp>
 
@@ -46,6 +47,7 @@ struct HypData
         bool,
         IDBase,
         AnyHandle,
+        RC<void>,
         Any
     > value;
 
@@ -63,7 +65,8 @@ struct HypData
         || std::is_same_v<T, bool>
         || std::is_base_of_v<IDBase, T>
         || std::is_base_of_v<HandleBase, T>
-        || std::is_same_v<T, AnyHandle>;
+        || std::is_same_v<T, AnyHandle>
+        || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>;
 
     HypData()                                       = default;
 
@@ -283,6 +286,48 @@ struct HypDataInitializer<AnyHandle>
     void Set(HypData &hyp_data, AnyHandle &&value) const
     {
         hyp_data.value.Set<AnyHandle>(std::move(value));
+    }
+};
+
+template <class T>
+struct HypDataInitializer<RC<T>, std::enable_if_t< !std::is_void_v<T> >>
+{
+    using StorageType = RC<void>;
+
+    RC<T> Get(const RC<void> &value) const
+    {
+        return value.template Cast<T>();
+    }
+
+    void Set(HypData &hyp_data, const RC<T> &value) const
+    {
+        hyp_data.value.Set<RC<void>>(value.template Cast<void>());
+    }
+
+    void Set(HypData &hyp_data, RC<T> &&value) const
+    {
+        hyp_data.value.Set<RC<void>>(value.template Cast<void>());
+    }
+};
+
+template <>
+struct HypDataInitializer<RC<void>>
+{
+    using StorageType = RC<void>;
+
+    const RC<void> &Get(const RC<void> &value) const
+    {
+        return value;
+    }
+
+    void Set(HypData &hyp_data, const RC<void> &value) const
+    {
+        hyp_data.value.Set<RC<void>>(value);
+    }
+
+    void Set(HypData &hyp_data, RC<void> &&value) const
+    {
+        hyp_data.value.Set<RC<void>>(std::move(value));
     }
 };
 

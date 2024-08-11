@@ -7,7 +7,9 @@
 #define MAX_BONE_INDICES 4
 
 #include <core/containers/FixedArray.hpp>
+
 #include <core/utilities/Variant.hpp>
+
 #include <core/Defines.hpp>
 
 #include <util/EnumOptions.hpp>
@@ -46,14 +48,10 @@ struct VertexAttribute
     uint32      binding;
     uint32      size; // total size == num elements * 4
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const VertexAttribute &other) const
+    HYP_FORCE_INLINE bool operator<(const VertexAttribute &other) const
         { return location < other.location; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(name);

@@ -83,8 +83,6 @@ void WorldGridState::PushUpdate(WorldGridPatchUpdate &&update)
 
 #pragma region WorldGrid
 
-HYP_DEFINE_CLASS(WorldGrid);
-
 WorldGrid::WorldGrid()
     : m_params { },
       m_is_initialized(false)

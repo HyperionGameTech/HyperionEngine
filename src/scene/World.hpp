@@ -6,6 +6,8 @@
 #include <scene/Scene.hpp>
 #include <scene/Subsystem.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <physics/PhysicsWorld.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -149,6 +151,8 @@ private:
 
 class HYP_API World : public BasicObject<World>
 {
+    HYP_OBJECT_BODY(World);
+
 public:
     World();
     World(const World &other)                   = delete;

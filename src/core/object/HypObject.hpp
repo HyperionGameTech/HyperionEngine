@@ -5,6 +5,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/object/HypObjectEnums.hpp>
+
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -22,6 +24,8 @@ class IHypObjectInitializer;
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
+extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
+
 class IHypObjectInitializer
 {
 public:
@@ -35,9 +39,9 @@ template <class T>
 class HypObjectInitializer final : public IHypObjectInitializer
 {
 public:
-    HypObjectInitializer(T *parent)
+    HypObjectInitializer(void *native_address)
     {
-        InitHypObjectInitializer(this, parent, T::GetTypeID(), T::GetClass());
+        InitHypObjectInitializer(this, native_address, T::GetTypeID(), T::GetClass());
     }
 
     virtual ~HypObjectInitializer() override = default;
@@ -83,9 +87,53 @@ private:
 //             { m_id = id; } \
 //     private:
 
+namespace detail {
+
+template <class T, bool Condition = std::is_base_of_v<memory::EnableRefCountedPtrFromThis<T>, T>>
+struct HypObject_WeakRefCountedPtrFromThis_Impl;
+
+template <class T>
+struct HypObject_WeakRefCountedPtrFromThis_Impl<T, true>
+{
+    Weak<T> operator()(T *ptr) const
+    {
+        return RawPtrToWeakRefCountedPtrHelper<T>{}(ptr);
+    }
+};
+
+template <class T>
+struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
+{
+    Weak<T> operator()(T *ptr) const
+    {
+        // Would fail at compile time on instantiation of HypClassInstance<T>, anyway - but throw an error to be sure
+
+        HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis for HypObject that does not use ObjectPool",
+            TypeName<T>().Data());
+        
+        return { };
+    }
+};
+
+} // namespace detail
+
 #define HYP_OBJECT_BODY(T) \
     private: \
-        HypObjectInitializer<T> m_hyp_object_initializer { this }; \
+        friend class HypObjectInitializer<T>; \
+        \
+        void *GetHypObjectNativeAddress() \
+        { \
+            switch (GetHypClassAllocationMethod(GetClass())) { \
+            case HypClassAllocationMethod::OBJECT_POOL_HANDLE: \
+                return this; \
+            case HypClassAllocationMethod::REF_COUNTED_PTR: \
+                return detail::HypObject_WeakRefCountedPtrFromThis_Impl<T>{}(this).GetRefCountData_Internal(); \
+            default: \
+                HYP_NOT_IMPLEMENTED(); \
+            } \
+        } \
+        \
+        HypObjectInitializer<T> m_hyp_object_initializer { GetHypObjectNativeAddress() }; \
         \
     public: \
         static constexpr bool is_hyp_object = true; \

@@ -4,9 +4,4 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    LightComponent,
-    HypProperty(NAME("Light"), &LightComponent::GetLight, &LightComponent::SetLight)
-);
-
 } // namespace hyperion

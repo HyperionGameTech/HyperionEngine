@@ -4,6 +4,9 @@
 #define HYPERION_AUDIO_SOURCE_HPP
 
 #include <core/Base.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <math/Vector3.hpp>
 
 #include <Types.hpp>
@@ -14,6 +17,8 @@ class Engine;
 
 class AudioSource : public BasicObject<AudioSource>
 {
+    HYP_OBJECT_BODY(AudioSource);
+
 public:
     enum class Format : uint
     {

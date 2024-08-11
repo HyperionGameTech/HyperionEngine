@@ -13,8 +13,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Skeleton);
-
 using renderer::Result;
 
 #pragma region Render commands

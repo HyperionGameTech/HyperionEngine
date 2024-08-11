@@ -576,7 +576,17 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<void, CountType> ToRefCountedPtr()
     {
         RefCountedPtr<void, CountType> rc;
-        rc.Reset(Base::Release());
+
+        auto *ref_count_data = new typename RefCountedPtr<void, CountType>::RefCountedPtrBase::RefCountDataType;
+        ref_count_data->InitFromParams(
+            Base::m_holder.value,
+            Base::m_holder.type_id,
+            Base::m_holder.dtor
+        );
+
+        (void)Base::Release();
+
+        rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
 
         return rc;
     }

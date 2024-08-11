@@ -6,6 +6,4 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(BLASComponent);
-
 } // namespace hyperion

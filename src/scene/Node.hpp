@@ -5,12 +5,18 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/functional/Delegate.hpp>
+
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Variant.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <core/Name.hpp>
 
 #include <scene/Entity.hpp>
@@ -163,6 +169,8 @@ class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
     friend class Scene;
     friend class Entity;
     friend class NodeProxy;
+
+    HYP_OBJECT_BODY(Node);
 
 public:
 #ifdef HYP_EDITOR

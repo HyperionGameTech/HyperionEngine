@@ -10,29 +10,29 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Vec4f,
-    HypProperty(NAME("X"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetX), &Vec4f::SetX),
-    HypProperty(NAME("Y"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetY), &Vec4f::SetY),
-    HypProperty(NAME("Z"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetZ), &Vec4f::SetZ),
-    HypProperty(NAME("W"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetW), &Vec4f::SetW)
-);
+// HYP_DEFINE_CLASS(
+//     Vec4f,
+//     HypProperty(NAME("X"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetX), &Vec4f::SetX),
+//     HypProperty(NAME("Y"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetY), &Vec4f::SetY),
+//     HypProperty(NAME("Z"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetZ), &Vec4f::SetZ),
+//     HypProperty(NAME("W"), static_cast<float (Vec4f::*)() const>(&Vec4f::GetW), &Vec4f::SetW)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec4i,
-    HypProperty(NAME("X"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetX), &Vec4i::SetX),
-    HypProperty(NAME("Y"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetY), &Vec4i::SetY),
-    HypProperty(NAME("Z"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetZ), &Vec4i::SetZ),
-    HypProperty(NAME("W"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetW), &Vec4i::SetW)
-);
+// HYP_DEFINE_CLASS(
+//     Vec4i,
+//     HypProperty(NAME("X"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetX), &Vec4i::SetX),
+//     HypProperty(NAME("Y"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetY), &Vec4i::SetY),
+//     HypProperty(NAME("Z"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetZ), &Vec4i::SetZ),
+//     HypProperty(NAME("W"), static_cast<int (Vec4i::*)() const>(&Vec4i::GetW), &Vec4i::SetW)
+// );
 
-HYP_DEFINE_CLASS(
-    Vec4u,
-    HypProperty(NAME("X"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetX), &Vec4u::SetX),
-    HypProperty(NAME("Y"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetY), &Vec4u::SetY),
-    HypProperty(NAME("Z"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetZ), &Vec4u::SetZ),
-    HypProperty(NAME("W"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetW), &Vec4u::SetW)
-);
+// HYP_DEFINE_CLASS(
+//     Vec4u,
+//     HypProperty(NAME("X"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetX), &Vec4u::SetX),
+//     HypProperty(NAME("Y"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetY), &Vec4u::SetY),
+//     HypProperty(NAME("Z"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetZ), &Vec4u::SetZ),
+//     HypProperty(NAME("W"), static_cast<uint (Vec4u::*)() const>(&Vec4u::GetW), &Vec4u::SetW)
+// );
 
 template<>
 int math::detail::Vec4<int>::Max() const

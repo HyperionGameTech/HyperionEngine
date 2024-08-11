@@ -54,7 +54,7 @@ namespace Hyperion
                 throw new Exception("Native address is null - object is not correctly initialized");
             }
 
-            HypObject_Validate(_hypClassPtr, _nativeAddress);
+            HypObject_Verify(_hypClassPtr, _nativeAddress);
         }
 
         ~HypObject()
@@ -114,8 +114,8 @@ namespace Hyperion
             return new HypProperty(propertyPtr);
         }
 
-        [DllImport("hyperion", EntryPoint = "HypObject_Validate")]
-        private static extern void HypObject_Validate([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+        [DllImport("hyperion", EntryPoint = "HypObject_Verify")]
+        private static extern void HypObject_Verify([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
 
         [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
         private static extern void HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);

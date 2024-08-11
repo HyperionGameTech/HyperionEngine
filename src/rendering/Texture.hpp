@@ -5,9 +5,14 @@
 
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/containers/FixedArray.hpp>
+
 #include <core/utilities/Pair.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <streaming/StreamedData.hpp>
 
@@ -25,9 +30,10 @@
 
 namespace hyperion {
 
-class HYP_API Texture
-    : public BasicObject<Texture>
+class HYP_API Texture : public BasicObject<Texture>
 {
+    HYP_OBJECT_BODY(Texture);
+
 public:
     static const FixedArray<Pair<Vec3f, Vec3f>, 6> cubemap_directions;
 

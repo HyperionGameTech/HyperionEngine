@@ -1204,7 +1204,7 @@ void HyperionEditor::Init()
     constexpr bool b = std::is_fundamental_v<const float &>;
 
     HypData test_hyp_data(Handle<Scene>{});
-    auto item = test_hyp_data.Get<Handle<Scene>>();
+    // decltype(auto) item = test_hyp_data.Get<RC<Scene>>();
     // test_hyp_data.Get<Handle<Scene>>()
 
     HYP_BREAKPOINT;

@@ -9,11 +9,15 @@
 #include <rendering/RenderableAttributes.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
+
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
+
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <Types.hpp>
 
@@ -24,6 +28,8 @@ namespace hyperion {
 
 class HYP_API Material : public BasicObject<Material>
 {
+    HYP_OBJECT_BODY(Material);
+
 public:
     static constexpr uint max_parameters = 32u;
     static constexpr uint max_textures = 32u;
@@ -551,6 +557,8 @@ private:
 
 class MaterialGroup : public BasicObject<MaterialGroup>
 {
+    HYP_OBJECT_BODY(MaterialGroup);
+
 public:
     MaterialGroup();
     MaterialGroup(const MaterialGroup &other) = delete;
