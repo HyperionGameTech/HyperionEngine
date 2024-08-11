@@ -222,25 +222,21 @@ private:
     Flags   flags[2];
     Vec2i   value;
 
-    template <Flags mask>
-    HYP_FORCE_INLINE
-    void ApplyDefaultFlagMask()
+    template <Flags Mask>
+    HYP_FORCE_INLINE void ApplyDefaultFlagMask()
     { 
         for (int i = 0; i < 2; i++) {
-            if (!(flags[i] & mask)) {
-                flags[i] |= (DEFAULT & mask);
+            if (!(flags[i] & Mask)) {
+                flags[i] |= (DEFAULT & Mask);
             }
         }
     }
 
-    HYP_FORCE_INLINE
-    void ApplyDefaultFlags()
+    HYP_FORCE_INLINE void ApplyDefaultFlags()
     {
         ApplyDefaultFlagMask<PIXEL | PERCENT>();
     }
 };
-
-
 
 enum class UIObjectUpdateSizeFlags : uint32
 {

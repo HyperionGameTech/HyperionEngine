@@ -51,6 +51,7 @@ namespace hyperion {
 HYP_DEFINE_CLASS(
     Scene,
     HypProperty(NAME("ID"), &Scene::GetID),
+    HypProperty(NAME("World"), &Scene::GetWorld),
     HypProperty(NAME("Camera"), &Scene::GetCamera)
 );
 

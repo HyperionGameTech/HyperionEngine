@@ -28,10 +28,10 @@ namespace Hyperion
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Script instance.
         /// </summary>
-        /// <param name="sceneHandle">Native handle to the scene</param>
-        internal void BeforeInit(ManagedHandle sceneHandle)
+        /// <param name="scene">Native handle to the scene</param>
+        internal void BeforeInit(Scene scene)
         {
-            scene = new Scene(sceneHandle);
+            this.scene = scene;
         }
 
         public virtual void Init(Entity entity)

@@ -16,7 +16,6 @@ DEF_HANDLE(ParticleSystem,              8192)
 DEF_HANDLE(ParticleSpawner,             8192)
 DEF_HANDLE(InputManager,                16)
 DEF_HANDLE(AssetManager,                1)
-DEF_HANDLE(UIStage,                     8192)
 DEF_HANDLE_NS(physics, RigidBody,       8192)
 
 DEF_HANDLE(GaussianSplattingInstance,   16)

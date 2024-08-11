@@ -38,7 +38,6 @@ class EnableRefCountedPtrFromThisBase;
 template <class CountType>
 class RefCountedPtrBase;
 
-
 #ifndef HYP_DEBUG_MODE
     #define EnsureUninitialized()
 #endif
@@ -274,36 +273,28 @@ public:
         DropRefCount();
     }
 
-    HYP_FORCE_INLINE
-    void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return m_ref->value; }
     
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return m_ref->value != nullptr; }
     
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return m_ref->value == nullptr; }
     
-    HYP_FORCE_INLINE
-    bool operator==(const RefCountedPtrBase &other) const
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtrBase &other) const
         { return Get() == other.Get(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Get() == nullptr; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const RefCountedPtrBase &other) const
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtrBase &other) const
         { return Get() != other.Get(); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
     
-    HYP_FORCE_INLINE
-    TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_ref->type_id; }
 
     template <class T>
@@ -339,13 +330,11 @@ public:
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */
-    HYP_FORCE_INLINE
-    RefCountDataType *GetRefCountData_Internal() const
+    HYP_FORCE_INLINE RefCountDataType *GetRefCountData_Internal() const
         { return m_ref; }
 
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
-    HYP_FORCE_INLINE
-    void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
+    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
     {
         DropRefCount();
         m_ref = ref;
@@ -358,8 +347,7 @@ public:
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
         * The caller is responsible for handling the reference count of the returned value.
     */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountDataType *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
         m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
@@ -373,8 +361,7 @@ protected:
     {
     }
     
-    HYP_FORCE_INLINE
-    void IncRefCount()
+    HYP_FORCE_INLINE void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
         AssertThrow(m_ref != nullptr);
@@ -481,32 +468,26 @@ public:
         DropRefCount();
     }
     
-    HYP_FORCE_INLINE
-    bool operator==(const RefCountedPtrBase<CountType> &other) const
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtrBase<CountType> &other) const
         { return m_ref == other.m_ref; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const RefCountedPtrBase<CountType> &other) const
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtrBase<CountType> &other) const
         { return m_ref != other.m_ref; }
     
-    HYP_FORCE_INLINE
-    bool operator==(const WeakRefCountedPtrBase &other) const
+    HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtrBase &other) const
         { return m_ref == other.m_ref; }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const WeakRefCountedPtrBase &other) const
+    HYP_FORCE_INLINE bool operator!=(const WeakRefCountedPtrBase &other) const
         { return m_ref != other.m_ref; }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { DropRefCount(); }
         
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
         * The caller is responsible for handling the reference count of the returned value.
     */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RefCountDataType *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release()
     {
         RefCountDataType *ref = m_ref;
         m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
@@ -523,13 +504,11 @@ public:
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */
-    HYP_FORCE_INLINE
-    RefCountDataType *GetRefCountData_Internal() const
+    HYP_FORCE_INLINE RefCountDataType *GetRefCountData_Internal() const
         { return m_ref; }
 
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
-    HYP_FORCE_INLINE
-    void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
+    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
     {
         DropRefCount();
         m_ref = ref;
@@ -545,8 +524,7 @@ protected:
     {
     }
 
-    HYP_FORCE_INLINE
-    void IncRefCount()
+    HYP_FORCE_INLINE void IncRefCount()
     {
 #ifdef HYP_DEBUG_MODE
         AssertThrow(m_ref != nullptr);
@@ -559,8 +537,7 @@ protected:
         m_ref->IncRefCount_Weak();
     }
     
-    HYP_FORCE_INLINE
-    void DropRefCount()
+    HYP_FORCE_INLINE void DropRefCount()
     {
         if (m_ref->HasValue()) {
             if (m_ref->DecRefCount_Weak() == 0u && m_ref->UseCount_Strong() == 0u) {
@@ -682,52 +659,41 @@ public:
 
     ~RefCountedPtr() = default;
     
-    HYP_FORCE_INLINE
-    operator T *() const
+    HYP_FORCE_INLINE operator T *() const
         { return Get(); }
 
-    HYP_FORCE_INLINE
-    T *Get() const
+    HYP_FORCE_INLINE T *Get() const
         { return static_cast<T *>(Base::m_ref->value); }
     
-    HYP_FORCE_INLINE
-    T *operator->() const
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
     
-    HYP_FORCE_INLINE
-    T &operator*() const
+    HYP_FORCE_INLINE T &operator*() const
         { return *Get(); }
     
-    HYP_FORCE_INLINE
-    operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return Base::operator bool(); }
     
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return Base::operator!(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(const RefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtr &other) const
         { return Base::operator==(other); }
     
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const RefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtr &other) const
         { return Base::operator!=(other); }
 
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Reset(Ty *ptr)
+    HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
@@ -736,14 +702,12 @@ public:
     }
 
     /*! \brief Drops the reference to the currently held value, if any. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
     /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type, or if the given type is convertible to the type of this RefCountedPtr. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
         return Base::GetTypeID() == TypeID::ForType<Ty>()
             || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>

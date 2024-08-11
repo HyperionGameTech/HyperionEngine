@@ -527,7 +527,6 @@ struct AnyHandle
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return type_id; }
 
-
     HYP_API AnyRef ToAnyRef() const;
 
     template <class T>

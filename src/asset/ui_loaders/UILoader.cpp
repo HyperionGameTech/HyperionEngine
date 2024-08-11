@@ -371,7 +371,7 @@ public:
 
             LastObject()->AddChildUIObject(ui_object.Get());
 
-            m_ui_object_stack.Push(ui_object);
+            m_ui_object_stack.Push(ui_object.Get());
         } else if (node_name_upper == "SCRIPT") {
             const Pair<String, String> *assembly_it = attributes.TryGet("assembly");
             const Pair<String, String> *class_it = attributes.TryGet("class");

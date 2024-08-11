@@ -69,6 +69,7 @@ template <class T> constexpr bool implementation_exists = decltype(implementatio
 template <class T> struct HandleDefinition;
 template <class T> constexpr bool has_opaque_handle_defined = implementation_exists<HandleDefinition<T>>;
 
+template <class T> constexpr bool is_const_pointer = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;
 template <class T> using RemoveConstPointer = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
 
 static inline bool IsBigEndian()

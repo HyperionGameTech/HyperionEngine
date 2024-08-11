@@ -52,16 +52,19 @@ namespace Hyperion
             this.assetManager = assetManager;
             this.uiStage = new UIStage(uiStageRc);
 
+
+            Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
+
             var mesh = new Mesh();
 
             foreach (var property in this.scene.HypClass.Properties)
             {
                 var result = property.InvokeGetter(this.scene);
-                var camera = result.GetHypObject<Camera>();
+                var camera = result.GetValue();
 
                 if (camera != null)
                 {
-                    Console.WriteLine("Camera = {0}, ID = {1}", camera, camera.ID);
+                    Console.WriteLine("Camera = {0}, type = {1}", camera, camera.GetType().Name);
                     // Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
                 }
                 // Console.WriteLine("{0} = {1} Value (Camera) = {2}", property.Name, result, camera);

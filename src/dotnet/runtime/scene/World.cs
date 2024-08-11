@@ -3,28 +3,26 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class World
+    [HypClassBinding(Name="World")]
+    public class World : HypObject
     {
-        private IntPtr ptr;
-
-        public World(IntPtr ptr)
+        public World()
         {
-            this.ptr = ptr;
         }
 
-        public Subsystem? GetSubsystem(TypeID typeID)
-        {
-            IntPtr subsystemPtr = World_GetSubsystem(ptr, typeID);
+        // public Subsystem? GetSubsystem(TypeID typeID)
+        // {
+        //     IntPtr subsystemPtr = World_GetSubsystem(ptr, typeID);
 
-            if (subsystemPtr == IntPtr.Zero)
-            {
-                return null;
-            }
+        //     if (subsystemPtr == IntPtr.Zero)
+        //     {
+        //         return null;
+        //     }
 
-            return new Subsystem(subsystemPtr);
-        }
+        //     return new Subsystem(subsystemPtr);
+        // }
 
-        [DllImport("hyperion", EntryPoint = "World_GetSubsystem")]
-        private static extern IntPtr World_GetSubsystem(IntPtr worldPtr, TypeID typeID);
+        // [DllImport("hyperion", EntryPoint = "World_GetSubsystem")]
+        // private static extern IntPtr World_GetSubsystem(IntPtr worldPtr, TypeID typeID);
     }
 }

@@ -63,11 +63,16 @@ HYP_EXPORT bool HypData_IsHypObject(const HypData *hyp_data)
 
     if (hyp_data->Is<AnyHandle>()) {
         const AnyHandle &handle = hyp_data->Get<AnyHandle>();
+
         return handle.IsValid() && GetClass(handle.GetTypeID()) != nullptr;
     } else if (hyp_data->Is<RC<void>>()) {
         const RC<void> &rc = hyp_data->Get<RC<void>>();
 
         return rc != nullptr && GetClass(rc.GetTypeID()) != nullptr;
+    } else if (hyp_data->Is<AnyRef>()) {
+        const AnyRef &any_ref = hyp_data->Get<AnyRef>();
+
+        return any_ref.HasValue() && GetClass(any_ref.GetTypeID()) != nullptr;
     } else {
         return false;
     }
@@ -92,6 +97,9 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
 
         type_id = rc.GetTypeID();
         any_ref = AnyRef(type_id, rc.Get());
+    } else if (hyp_data->Is<AnyRef>()) {
+        any_ref = hyp_data->Get<AnyRef>();
+        type_id = any_ref.GetTypeID();
     } else {
         return false;
     }

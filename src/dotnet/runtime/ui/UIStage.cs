@@ -107,16 +107,6 @@ namespace Hyperion
         {
         }
 
-        public Scene Scene
-        {
-            get
-            {
-                ManagedHandle sceneHandle = new ManagedHandle();
-                UIStage_GetScene(refCountedPtr, out sceneHandle);
-                return new Scene(sceneHandle);
-            }
-        }
-
         public Vec2i SurfaceSize
         {
             get
@@ -143,9 +133,6 @@ namespace Hyperion
 
             return UIObjectHelpers.MarshalUIObject(result) as T;
         }
-
-        [DllImport("hyperion", EntryPoint = "UIStage_GetScene")]
-        private static extern void UIStage_GetScene(RefCountedPtr rc, [Out] out ManagedHandle sceneHandle);
 
         [DllImport("hyperion", EntryPoint = "UIStage_GetSurfaceSize")]
         private static extern void UIStage_GetSurfaceSize(RefCountedPtr rc, [Out] out Vec2i size);

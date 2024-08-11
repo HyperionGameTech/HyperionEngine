@@ -3,6 +3,61 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    internal unsafe struct InternalHypDataValue
+    {
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.I1)]
+        public sbyte valueI8;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.I2)]
+        public short valueI16;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.I4)]
+        public int valueI32;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.I8)]
+        public long valueI64;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U1)]
+        public byte valueU8;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U2)]
+        public ushort valueU16;
+        
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U4)]
+        public uint valueU32;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U8)]
+        public ulong valueU64;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.R4)]
+        public float valueFloat;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.R8)]
+        public double valueDouble;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.I1)]
+        public bool valueBool;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U4)]
+        public uint valueId;
+        
+        [FieldOffset(0)]
+        public IntPtr valueHypObjectPtr;
+    }
+
     [StructLayout(LayoutKind.Sequential, Size = 32)]
     public unsafe struct HypData
     {
@@ -16,6 +71,88 @@ namespace Hyperion
                 HypData_GetTypeID(ref this, out typeId);
                 return typeId;
             }
+        }
+
+        public unsafe object? GetValue()
+        {
+            InternalHypDataValue value;
+
+            if (HypData_GetInt8(ref this, out value.valueI8))
+            {
+                return value.valueI8;
+            }
+
+            if (HypData_GetInt16(ref this, out value.valueI16))
+            {
+                return value.valueI16;
+            }
+
+            if (HypData_GetInt32(ref this, out value.valueI32))
+            {
+                return value.valueI32;
+            }
+
+            if (HypData_GetInt64(ref this, out value.valueI64))
+            {
+                return value.valueI64;
+            }
+
+            if (HypData_GetUInt8(ref this, out value.valueU8))
+            {
+                return value.valueU8;
+            }
+
+            if (HypData_GetUInt16(ref this, out value.valueU16))
+            {
+                return value.valueU16;
+            }
+
+            if (HypData_GetUInt32(ref this, out value.valueU32))
+            {
+                return value.valueU32;
+            }
+
+            if (HypData_GetUInt64(ref this, out value.valueU64))
+            {
+                return value.valueU64;
+            }
+
+            if (HypData_GetFloat(ref this, out value.valueFloat))
+            {
+                return value.valueFloat;
+            }
+
+            if (HypData_GetDouble(ref this, out value.valueDouble))
+            {
+                return value.valueDouble;
+            }
+
+            if (HypData_GetBool(ref this, out value.valueBool))
+            {
+                return value.valueBool;
+            }
+
+            if (HypData_GetID(ref this, out value.valueId))
+            {
+                return new IDBase(value.valueId);
+            }
+
+            if (HypData_GetHypObject(ref this, out value.valueHypObjectPtr))
+            {
+                if (value.valueHypObjectPtr == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                return *((object*)value.valueHypObjectPtr.ToPointer());
+            }
+
+            throw new NotImplementedException();
+
+            // if (HypData_GetRefCountedPtr(ref this, out value.valueRefCountedPtr))
+            // {
+            //     return value.valueRefCountedPtr;
+            // }
         }
 
         public bool IsInt8
@@ -268,18 +405,18 @@ namespace Hyperion
 
         public unsafe T? GetHypObject<T>() where T : HypObject
         {
-            object* objPtr = null;
+            IntPtr objPtr;
 
             if (!HypData_GetHypObject(ref this, out objPtr))
             {
                 return null;
             }
 
-            if (objPtr == null) {
+            if (objPtr == IntPtr.Zero) {
                 return null;
             }
 
-            return (T)(*objPtr);
+            return (T)(*((object*)objPtr.ToPointer()));
         }
 
         [DllImport("hyperion", EntryPoint = "HypData_GetTypeID")]
@@ -331,7 +468,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_GetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypData_GetHypObject([In] ref HypData hypData, [Out] out object* outObjectPtr);
+        private static extern bool HypData_GetHypObject([In] ref HypData hypData, [Out] out IntPtr outObjectPtr);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetID")]
         [return: MarshalAs(UnmanagedType.I1)]

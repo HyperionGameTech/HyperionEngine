@@ -28,16 +28,16 @@ namespace Hyperion
         {
             this.ptr = ptr;
 
-            IntPtr worldPtr = Engine_GetWorld(ptr);
+            // IntPtr worldPtr = Engine_GetWorld(ptr);
 
-            if (worldPtr != IntPtr.Zero)
-            {
-                this.world = new World(worldPtr);
-            }
-            else
-            {
-                this.world = null;
-            }
+            // if (worldPtr != IntPtr.Zero)
+            // {
+            //     this.world = new World(worldPtr);
+            // }
+            // else
+            // {
+            //     this.world = null;
+            // }
         }
 
         public World? World

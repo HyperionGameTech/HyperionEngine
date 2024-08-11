@@ -14,9 +14,9 @@ namespace Hyperion
         {
             get
             {
-                return GetProperty(PropertyNames.ID)
+                return (IDBase)GetProperty(PropertyNames.ID)
                     .InvokeGetter(this)
-                    .GetID<Camera>();
+                    .GetValue();
             }
         }
     }

@@ -13,17 +13,13 @@ namespace Hyperion
         {
         }
 
-        public Scene(ManagedHandle handle)
-        {
-        }
-
         public ID<Scene> ID
         {
             get
             {
-                return GetProperty(PropertyNames.ID)
+                return (IDBase)GetProperty(PropertyNames.ID)
                     .InvokeGetter(this)
-                    .GetID<Scene>();
+                    .GetValue();
             }
         }
 

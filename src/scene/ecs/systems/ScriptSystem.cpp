@@ -101,9 +101,9 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
                 if (dotnet::ManagedMethod *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
 
-                    script_component.object->InvokeMethod<void, ManagedHandle>(
+                    script_component.object->InvokeMethod<void, dotnet::Object *>(
                         before_init_method_ptr,
-                        CreateManagedHandleFromID(GetEntityManager().GetScene()->GetID())
+                        GetEntityManager().GetScene()->GetManagedObject()
                     );
 
                     script_component.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;

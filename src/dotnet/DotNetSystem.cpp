@@ -206,8 +206,8 @@ public:
 
         static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
             Pair<String, FilePath> { "interop", *interop_assembly_path },
-            Pair<String, FilePath> { "core", *FindAssemblyFilePath(app_context, "HyperionCore.dll") },
-            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath(app_context, "HyperionRuntime.dll") }
+            Pair<String, FilePath> { "core", *FindAssemblyFilePath(app_context.Get(), "HyperionCore.dll") },
+            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath(app_context.Get(), "HyperionRuntime.dll") }
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
