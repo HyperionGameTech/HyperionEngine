@@ -14,8 +14,8 @@ struct GameCounter
 {
     using Clock = std::chrono::high_resolution_clock;
 
-    using TickUnit = float32;
-    using TickUnitHighPrec = float64;
+    using TickUnit = float;
+    using TickUnitHighPrec = double;
     using TimePoint = Clock::time_point;
 
     TimePoint last_time_point = Now();

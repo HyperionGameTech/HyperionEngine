@@ -527,7 +527,9 @@ struct AnyHandle
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return type_id; }
 
-    HYP_API AnyRef ToAnyRef() const;
+    template <class T>
+    HYP_FORCE_INLINE bool Is() const
+        { return type_id == TypeID::ForType<T>(); }
 
     template <class T>
     HYP_NODISCARD Handle<T> Cast() const
@@ -538,6 +540,12 @@ struct AnyHandle
 
         return Handle<T>(typename Handle<T>::IDType { index });
     }
+
+    HYP_API AnyRef ToAnyRef() const;
+
+    template <class T>
+    HYP_FORCE_INLINE T *TryGet() const
+        { return ToAnyRef().TryGet<T>(); }
 };
 
 template <class T>

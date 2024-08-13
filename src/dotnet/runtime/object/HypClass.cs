@@ -3,70 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct HypProperty
-    {
-        public static readonly HypProperty Invalid = new HypProperty(IntPtr.Zero);
-
-        internal IntPtr ptr;
-
-        internal HypProperty(IntPtr ptr)
-        {
-            this.ptr = ptr;
-        }
-
-        public Name Name
-        {
-            get
-            {
-                Name name = new Name(0);
-                HypProperty_GetName(ptr, out name);
-                return name;
-            }
-        }
-
-        public TypeID TypeID
-        {
-            get
-            {
-                TypeID typeId;
-                HypProperty_GetTypeID(ptr, out typeId);
-                return typeId;
-            }
-        }
-        
-        public HypData InvokeGetter(HypObject hypObject)
-        {
-            if (ptr == IntPtr.Zero)
-            {
-                throw new InvalidOperationException("Cannot invoke getter: Invalid property");
-            }
-
-            if (!hypObject.IsValid)
-            {
-                throw new InvalidOperationException("Cannot invoke getter: Invalid target object");
-            }
-
-            HypData result;
-
-            if (!HypProperty_InvokeGetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, out result))
-            {
-                throw new InvalidOperationException("Failed to invoke getter");
-            }
-
-            return result;
-        }
-        
-        [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
-        private static extern void HypProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
-
-        [DllImport("hyperion", EntryPoint = "HypProperty_GetTypeID")]
-        private static extern void HypProperty_GetTypeID([In] IntPtr propertyPtr, [Out] out TypeID typeId);
-
-        [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypData outResult);
-    }
-
     public struct HypClass
     {
         public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
@@ -137,6 +73,33 @@ namespace Hyperion
             return new HypProperty(propertyPtr);
         }
 
+        public IEnumerable<HypMethod> Methods
+        {
+            get
+            {
+                IntPtr methodsPtr;
+                uint count = HypClass_GetMethods(ptr, out methodsPtr);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IntPtr methodPtr = Marshal.ReadIntPtr(methodsPtr, i * IntPtr.Size);
+                    yield return new HypMethod(methodPtr);
+                }
+            }
+        }
+
+        public HypMethod? GetMethod(Name name)
+        {
+            IntPtr methodPtr = HypClass_GetMethod(ptr, ref name);
+
+            if (methodPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new HypMethod(methodPtr);
+        }
+
         /// <summary>
         ///  Creates a native instance of this object. The object has an initial ref count of zero,
         ///  so the reference must be manually decremented to destroy the object (with HypObject_DecRef)  
@@ -192,5 +155,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetProperty")]
         private static extern IntPtr HypClass_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetMethods")]
+        private static extern uint HypClass_GetMethods([In] IntPtr hypClassPtr, [Out] out IntPtr outMethodsPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetMethod")]
+        private static extern IntPtr HypClass_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
     }
 }

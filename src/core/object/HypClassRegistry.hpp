@@ -27,7 +27,7 @@ class HypClass;
 template <class T>
 class HypClassInstance;
 
-class HypProperty;
+struct HypMember;
 
 enum class HypClassFlags : uint32
 {
@@ -92,8 +92,8 @@ protected:
 template <class T>
 struct HypClassRegistration : public HypClassRegistrationBase
 {   
-    HypClassRegistration(EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(flags, Span<HypProperty>(properties.Begin(), properties.End())))
+    HypClassRegistration(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

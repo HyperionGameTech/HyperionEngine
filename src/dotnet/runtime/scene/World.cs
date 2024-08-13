@@ -10,6 +10,26 @@ namespace Hyperion
         {
         }
 
+        public IDBase ID
+        {
+            get
+            {
+                return (IDBase)GetProperty(PropertyNames.ID)
+                    .InvokeGetter(this)
+                    .GetValue();
+            }
+        }
+
+        public float GameTime
+        {
+            get
+            {
+                return (float)GetProperty(PropertyNames.GameTime)
+                    .InvokeGetter(this)
+                    .GetValue();
+            }
+        }
+
         // public Subsystem? GetSubsystem(TypeID typeID)
         // {
         //     IntPtr subsystemPtr = World_GetSubsystem(ptr, typeID);

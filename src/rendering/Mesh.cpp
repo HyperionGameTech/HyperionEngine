@@ -24,7 +24,13 @@ HYP_DEFINE_CLASS(
     HypProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
     HypProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes),
     HypProperty(NAME("Topology"), &Mesh::GetTopology),
-    HypProperty(NAME("NumIndices"), &Mesh::NumIndices)
+    HypProperty(NAME("NumIndices"), &Mesh::NumIndices),
+    HypMethod(NAME("TestMethod"), [](const Handle<Mesh> &mesh, int test_int) -> int
+    {
+        HYP_LOG(Mesh, LogLevel::DEBUG, "Logged from Mesh log channel, called from C#. Mesh ID = {}", mesh->GetID().Value());
+
+        return test_int * 4;
+    })
 );
 
 using renderer::Result;

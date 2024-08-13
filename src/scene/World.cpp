@@ -25,7 +25,11 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(World);
+HYP_DEFINE_CLASS(
+    World,
+    HypProperty(NAME("ID"), &World::GetID),
+    HypProperty(NAME("GameTime"), &World::GetGameTime)
+);
 
 using renderer::RTUpdateStateFlags;
 

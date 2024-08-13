@@ -24,7 +24,10 @@ class Class;
 class Object;
 } // namespace dotnet
 
-class HypProperty;
+struct HypMember;
+struct HypProperty;
+struct HypMethod;
+
 class IHypObjectInitializer;
 
 class HYP_API HypClass
@@ -32,7 +35,7 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypProperty> properties);
+    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -64,6 +67,11 @@ public:
 
     HYP_FORCE_INLINE const Array<HypProperty *> &GetProperties() const
         { return m_properties; }
+
+    HypMethod *GetMethod(WeakName name) const;
+
+    HYP_FORCE_INLINE const Array<HypMethod *> &GetMethods() const
+        { return m_methods; }
 
     dotnet::Class *GetManagedClass() const;
 
@@ -98,21 +106,23 @@ protected:
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
+    Array<HypMethod *>              m_methods;
+    HashMap<Name, HypMethod *>      m_methods_by_name;
 };
 
 template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
+    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypClassInstance instance { flags, properties };
+        static HypClassInstance instance { flags, members };
 
         return instance;
     }
 
-    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypProperty> properties)
-        : HypClass(TypeID::ForType<T>(), flags, properties)
+    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(TypeID::ForType<T>(), flags, members)
     {
     }
 

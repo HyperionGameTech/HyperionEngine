@@ -41,6 +41,9 @@ public:
     /*! \brief Check if an object at the given address is a valid object within this ObjectContainer instance. */
     virtual bool IsValidObject(const void *address) const = 0;
 
+    /*! \brief Get TypeID for any object held in this container */
+    virtual TypeID GetObjectTypeID() const = 0;
+
     /*! \brief If the object at the given address is a valid object within this ObjectContainer instance,
      *  returns its given index. Otherwise, ~0u (-1) is returned. */
     virtual uint32 GetObjectIndex(const void *address) const = 0;
@@ -197,6 +200,13 @@ public:
         }
 
         return ((addr - reinterpret_cast<uintptr_t>(&m_data[0]) - offsetof(ObjectBytes, bytes)) % sizeof(ObjectBytes)) == 0;
+    }
+
+    virtual TypeID GetObjectTypeID() const override
+    {
+        static const TypeID type_id = TypeID::ForType<T>();
+
+        return type_id;
     }
 
     virtual uint32 GetObjectIndex(const void *address) const override

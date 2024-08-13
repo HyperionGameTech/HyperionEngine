@@ -10,7 +10,7 @@ namespace Hyperion
         {
         }
 
-        public ID<Camera> ID
+        public IDBase ID
         {
             get
             {

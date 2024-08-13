@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/object/HypClass.hpp>
-#include <core/object/HypProperty.hpp>
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObject.hpp>
 #include <core/object/HypData.hpp>
@@ -21,39 +20,6 @@ using namespace hyperion;
 
 extern "C" {
 
-#pragma region HypProperty
-
-HYP_EXPORT void HypProperty_GetName(const HypProperty *property, Name *out_name)
-{
-    if (!property || !out_name) {
-        return;
-    }
-
-    *out_name = property->name;
-}
-
-HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_type_id)
-{
-    if (!property || !out_type_id) {
-        return;
-    }
-
-    *out_type_id = property->type_id;
-}
-
-HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)
-{
-    if (!property || !target_class || !target_ptr || !out_result) {
-        return false;
-    }
-
-    *out_result = property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr));
-
-    return true;
-}
-
-#pragma endregion HypProperty
-
 #pragma region HypClass
 
 HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
@@ -61,7 +27,7 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
     if (!hyp_class) {
         return nullptr;
     }
-    
+
     if (hyp_class->UseHandles()) {
         ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
         
@@ -131,6 +97,30 @@ HYP_EXPORT HypProperty *HypClass_GetProperty(const HypClass *hyp_class, const Na
     }
 
     return hyp_class->GetProperty(*name);
+}
+
+HYP_EXPORT uint32 HypClass_GetMethods(const HypClass *hyp_class, const void **out_methods)
+{
+    if (!hyp_class || !out_methods) {
+        return 0;
+    }
+
+    if (hyp_class->GetMethods().Empty()) {
+        return 0;
+    }
+
+    *out_methods = hyp_class->GetMethods().Begin();
+
+    return (uint32)hyp_class->GetMethods().Size();
+}
+
+HYP_EXPORT HypMethod *HypClass_GetMethod(const HypClass *hyp_class, const Name *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    return hyp_class->GetMethod(*name);
 }
 
 #pragma endregion HypClass

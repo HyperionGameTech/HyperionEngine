@@ -54,8 +54,31 @@ namespace Hyperion
 
 
             Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
+            Console.WriteLine("this.scene.World = {0}", this.scene.World);
+            Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);
+            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GameTime);
 
             var mesh = new Mesh();
+
+            HypMethod? testMethod = mesh.HypClass.GetMethod(Name.FromString("TestMethod"));
+
+            if (testMethod != null)
+            {
+                HypData testMethodResult = ((HypMethod)testMethod).Invoke(mesh, 8);
+                Console.WriteLine("TestMethod result = {0}", testMethodResult.GetValue());
+            }
+
+            // // iterate over methods
+            // foreach (var method in mesh.HypClass.Methods)
+            // {
+            //     Console.WriteLine("Game BeforeInit: mesh.HypClass.Method = {0}", method.Name);
+
+            //     // iterate over parameters
+            //     foreach (var parameter in method.Parameters)
+            //     {
+            //         Console.WriteLine("Game BeforeInit: mesh.HypClass.Method = {0}, parameter = {1}", method.Name, parameter.TypeID);
+            //     }
+            // }
 
             foreach (var property in this.scene.HypClass.Properties)
             {

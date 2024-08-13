@@ -13,11 +13,21 @@ namespace Hyperion
         {
         }
 
-        public ID<Scene> ID
+        public IDBase ID
         {
             get
             {
                 return (IDBase)GetProperty(PropertyNames.ID)
+                    .InvokeGetter(this)
+                    .GetValue();
+            }
+        }
+
+        public World? World
+        {
+            get
+            {
+                return (World?)GetProperty(PropertyNames.World)
                     .InvokeGetter(this)
                     .GetValue();
             }
@@ -28,23 +38,6 @@ namespace Hyperion
             get
             {
                 return root!;
-            }
-        }
-
-        public World? World
-        {
-            get
-            {
-                // IntPtr worldPtr = Scene_GetWorld(handle);
-
-                // if (worldPtr == IntPtr.Zero)
-                // {
-                //     return null;
-                // }
-
-                // return new World(worldPtr);
-
-                throw new NotImplementedException();
             }
         }
 
