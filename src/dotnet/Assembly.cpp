@@ -61,12 +61,12 @@ bool ClassHolder::CheckAssemblyLoaded() const
     return false;
 }
 
-Class *ClassHolder::NewClass(int32 type_hash, const char *type_name, Class *parent_class)
+Class *ClassHolder::NewClass(int32 type_hash, const char *type_name, Class *parent_class, uint32 flags)
 {
-    return NewClass(nullptr, type_hash, type_name, parent_class);
+    return NewClass(nullptr, type_hash, type_name, parent_class, flags);
 }
 
-Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class)
+Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags)
 {
     auto it = m_class_objects.Find(type_hash);
 
@@ -76,7 +76,7 @@ Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const c
         return it->second.Get();
     }
 
-    it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class))).first;
+    it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class, EnumFlags<ManagedClassFlags>(flags)))).first;
 
     if (hyp_class != nullptr) {
         HypClassRegistry::GetInstance().RegisterManagedClass(hyp_class, it->second.Get());

@@ -6,9 +6,9 @@
 
 namespace hyperion::dotnet {
 
-Object::Object(Class *class_ptr, ManagedObject managed_object)
+Object::Object(Class *class_ptr, ObjectReference object_reference)
     : m_class_ptr(class_ptr),
-      m_managed_object(managed_object)
+      m_object_reference(object_reference)
 {
     AssertThrowMsg(m_class_ptr != nullptr, "Class pointer not set!");
 
@@ -23,14 +23,14 @@ Object::~Object()
 {
     m_class_ptr->EnsureLoaded();
 
-    m_class_ptr->GetFreeObjectFunction()(m_managed_object);
+    m_class_ptr->GetFreeObjectFunction()(m_object_reference);
 }
 
 void *Object::InvokeMethod_Internal(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr)
 {
     m_class_ptr->EnsureLoaded();
 
-    return m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->guid, m_managed_object.guid, args_vptr, return_value_vptr);
+    return m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->guid, m_object_reference.guid, args_vptr, return_value_vptr);
 }
 
 const ManagedMethod *Object::GetMethod(UTF8StringView method_name) const
@@ -50,7 +50,7 @@ namespace detail {
 
 void *TransformArgument<Object *>::operator()(Object *value) const
 {
-    return value->GetUnderlyingObject().ptr;
+    return value->GetObjectReference().ptr;
 }
 
 } // namespace detail

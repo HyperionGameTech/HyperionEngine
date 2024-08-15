@@ -22,11 +22,13 @@ namespace hyperion {
 namespace dotnet {
 class Class;
 class Object;
+struct ObjectReference;
 } // namespace dotnet
 
 struct HypMember;
 struct HypProperty;
 struct HypMethod;
+struct HypField;
 
 class IHypObjectInitializer;
 
@@ -55,6 +57,8 @@ public:
 
     virtual Name GetName() const = 0;
 
+    virtual SizeType GetSize() const = 0;
+
     virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const = 0;
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
@@ -62,6 +66,12 @@ public:
 
     HYP_FORCE_INLINE EnumFlags<HypClassFlags> GetFlags() const
         { return m_flags; }
+
+    HYP_FORCE_INLINE bool IsClassType() const
+        { return m_flags & HypClassFlags::CLASS_TYPE; }
+
+    HYP_FORCE_INLINE bool IsStructType() const
+        { return m_flags & HypClassFlags::STRUCT_TYPE; }
 
     HypProperty *GetProperty(WeakName name) const;
 
@@ -73,7 +83,14 @@ public:
     HYP_FORCE_INLINE const Array<HypMethod *> &GetMethods() const
         { return m_methods; }
 
+    HypField *GetField(WeakName name) const;
+
+    HYP_FORCE_INLINE const Array<HypField *> &GetFields() const
+        { return m_fields; }
+
     dotnet::Class *GetManagedClass() const;
+
+    virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const = 0;
 
     template <class T>
     HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
@@ -102,12 +119,16 @@ protected:
     virtual void CreateInstance_Internal(Any &out) const = 0;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
+    static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference);
+
     TypeID                          m_type_id;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
     Array<HypMethod *>              m_methods;
     HashMap<Name, HypMethod *>      m_methods_by_name;
+    Array<HypField *>               m_fields;
+    HashMap<Name, HypField *>       m_fields_by_name;
 };
 
 template <class T>
@@ -150,6 +171,11 @@ public:
         return name;
     }
 
+    virtual SizeType GetSize() const override
+    {
+        return sizeof(T);
+    }
+
     virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const override
     {
         if (!object_ptr) {
@@ -157,6 +183,15 @@ public:
         }
 
         return &static_cast<const T *>(object_ptr)->GetObjectInitializer();
+    }
+
+    virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
+    {
+        if (!object_ptr) {
+            return false;
+        }
+
+        return GetManagedObjectFromObjectInitializer(GetObjectInitializer(object_ptr), out_object_reference);
     }
 
     T CreateInstance() const

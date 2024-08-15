@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="BoundingBox")]
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct BoundingBox
     {
@@ -11,6 +12,12 @@ namespace Hyperion
         private Vec3f min;
         [FieldOffset(16)]
         private Vec3f max;
+
+        public BoundingBox()
+        {
+            min = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
+            max = new Vec3f(float.MinValue, float.MinValue, float.MinValue);
+        }
 
         public BoundingBox(Vec3f min, Vec3f max)
         {

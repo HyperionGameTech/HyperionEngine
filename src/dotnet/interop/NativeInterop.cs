@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Hyperion
 {
     public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
+    public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
 
     public class NativeInterop
     {
@@ -78,8 +79,9 @@ namespace Hyperion
 
             foreach (Type type in types)
             {
-                if (type.IsClass)
+                if (type.IsClass || (type.IsValueType && !type.IsEnum))
                 {
+                    // Register classes and structs
                     InitManagedClass(assemblyGuid, classHolderPtr, type);
                 }
             }
@@ -136,7 +138,7 @@ namespace Hyperion
         }
 
         [UnmanagedCallersOnly]
-        public static unsafe void AddObjectToCache(IntPtr assemblyGuidPtr, IntPtr objectGuidPtr, IntPtr objectPtr, IntPtr outManagedObjectPtr, bool keepAlive)
+        public static unsafe void AddObjectToCache(IntPtr assemblyGuidPtr, IntPtr objectGuidPtr, IntPtr objectPtr, IntPtr outObjectReferencePtr, bool keepAlive)
         {
             Guid assemblyGuid = Marshal.PtrToStructure<Guid>(assemblyGuidPtr);
             Guid objectGuid = Marshal.PtrToStructure<Guid>(objectGuidPtr);
@@ -144,10 +146,10 @@ namespace Hyperion
             // read object as reference
             ref object obj = ref System.Runtime.CompilerServices.Unsafe.AsRef<object>(objectPtr.ToPointer());
 
-            ManagedObject managedObject = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive);
+            ObjectReference objectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive);
 
-            // write managedObject to outManagedObjectPtr
-            Marshal.StructureToPtr(managedObject, outManagedObjectPtr, false);
+            // write objectReference to outObjectReferencePtr
+            Marshal.StructureToPtr(objectReference, outObjectReferencePtr, false);
         }
 
         private static void CollectMethods(Type type, Dictionary<string, MethodInfo> methods)
@@ -198,6 +200,21 @@ namespace Hyperion
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
+            ManagedClassFlags managedClassFlags = ManagedClassFlags.None;
+
+            if (type.IsClass)
+            {
+                managedClassFlags |= ManagedClassFlags.ClassType;
+            }
+            else if (type.IsValueType)
+            {
+                managedClassFlags |= ManagedClassFlags.StructType;
+            }
+            else if (type.IsEnum)
+            {
+                managedClassFlags |= ManagedClassFlags.EnumType;
+            }
+
             IntPtr hypClassPtr = IntPtr.Zero;
 
             var classAttributes = type.GetCustomAttributes();
@@ -224,7 +241,7 @@ namespace Hyperion
                 }
             }
 
-            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, parentClass?.classObjectPtr ?? IntPtr.Zero, out managedClass);
+            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, parentClass?.classObjectPtr ?? IntPtr.Zero, (uint)managedClassFlags, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -254,7 +271,7 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress) =>
+            managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
@@ -265,6 +282,11 @@ namespace Hyperion
 
                 if (hypClassPtr != IntPtr.Zero)
                 {
+                    if (nativeAddress == IntPtr.Zero)
+                    {
+                        throw new ArgumentNullException(nameof(nativeAddress));
+                    }
+
                     Type objType = obj.GetType();
 
                     FieldInfo? hypClassPtrField = objType.GetField("_hypClassPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
@@ -275,12 +297,8 @@ namespace Hyperion
                         throw new InvalidOperationException("Could not find hypClassPtr or nativeAddress field on class " + type.Name);
                     }
 
-                    Console.WriteLine("Setting hypClassPtr and nativeAddress on object: " + objType.Name + " (" + hypClassPtr + ", " + nativeAddress + ")");
-
                     hypClassPtrField.SetValue(obj, hypClassPtr);
                     nativeAddressField.SetValue(obj, nativeAddress);
-
-                    Console.WriteLine("Set hypClassPtr and nativeAddress on object: " + objType.Name + " (" + hypClassPtrField.GetValue(obj) + ", " + nativeAddressField.GetValue(obj) + ")");
                 }
 
                 constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
@@ -292,22 +310,21 @@ namespace Hyperion
 
                 constructorInfo.Invoke(obj, parameters);
 
-                // if (hypClassPtr != IntPtr.Zero)
-                // {
-                //     if (nativeAddress == IntPtr.Zero)
-                //     {
-                //         throw new ArgumentNullException(nameof(nativeAddress));
-                //     }
+                if (callbackPtr != IntPtr.Zero)
+                {
+                    if (!type.IsValueType)
+                    {
+                        throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
+                    }
 
-                //     MethodInfo? initializeHypObjectMethod = type.GetMethod("InitializeHypObject", BindingFlags.Instance | BindingFlags.FlattenHierarchy | BindingFlags.Public);
+                    // If callback has been set, invoke it so we can set up the object from C++
+                    GCHandle objectHandle = GCHandle.Alloc(obj, GCHandleType.Pinned);
 
-                //     if (initializeHypObjectMethod == null)
-                //     {
-                //         throw new InvalidOperationException("Could not find InitializeHypObject method on class " + type.Name);
-                //     }
+                    InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(callbackPtr);
+                    callbackDelegate(contextPtr, objectHandle.AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
 
-                //     initializeHypObjectMethod.Invoke(obj, new object[]{ hypClassPtr, nativeAddress });
-                // }
+                    objectHandle.Free();
+                }
 
                 Guid objectGuid = Guid.NewGuid();
                 
@@ -315,6 +332,26 @@ namespace Hyperion
             });
 
             managedClass.FreeObjectFunction = new FreeObjectDelegate(FreeObject);
+
+            managedClass.MarshalObjectFunction = new MarshalObjectDelegate((IntPtr ptr, uint size) =>
+            {
+                if (ptr == IntPtr.Zero)
+                {
+                    throw new ArgumentNullException(nameof(ptr));
+                }
+
+                if (size != Marshal.SizeOf(type))
+                {
+                    throw new ArgumentException("Size does not match type size", nameof(size));
+                }
+
+                // Marshal object from pointer
+                object obj = Marshal.PtrToStructure(ptr, type);
+
+                Guid objectGuid = Guid.NewGuid();
+
+                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, false);
+            });
 
             return managedClass;
         }
@@ -375,7 +412,7 @@ namespace Hyperion
             MarshalHelpers.MarshalOutObject(outPtr, returnType, returnValue);
         }
 
-        public static void FreeObject(ManagedObject obj)
+        public static void FreeObject(ObjectReference obj)
         {
             if (!ManagedObjectCache.Instance.RemoveObject(obj.guid))
             {
@@ -384,7 +421,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, IntPtr parentClassPtr, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         private static extern bool ManagedClass_FindByTypeHash(ref Guid assemblyGuid, IntPtr classHolderPtr, int typeHash, [Out] out ManagedClass result);

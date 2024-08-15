@@ -8,15 +8,9 @@ namespace Hyperion
         public IntPtr _hypClassPtr;
         public IntPtr _nativeAddress;
 
-        // public void InitializeHypObject(IntPtr hypClassPtr, IntPtr nativeAddress)
-        // {
-        //     this.hypClass = new HypClass(hypClassPtr);
-        //     this.nativeAddress = nativeAddress;
-        // }
-
         protected HypObject()
         {
-            Console.WriteLine("HypObject constructor, _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Console.WriteLine("HypObject constructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
 
             if (_hypClassPtr == IntPtr.Zero)
             {
@@ -33,7 +27,7 @@ namespace Hyperion
                     throw new Exception("Failed to get HypClassBinding attribute");
                 }
 
-                HypClass hypClass = attribute.LoadHypClass();
+                HypClass hypClass = attribute.HypClass;
 
                 if (hypClass == HypClass.Invalid)
                 {
@@ -54,7 +48,9 @@ namespace Hyperion
                 throw new Exception("Native address is null - object is not correctly initialized");
             }
 
+#if DEBUG
             HypObject_Verify(_hypClassPtr, _nativeAddress);
+#endif
         }
 
         ~HypObject()

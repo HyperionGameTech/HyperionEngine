@@ -7,6 +7,7 @@
 
 #include <core/object/HypMethod.hpp>
 #include <core/object/HypProperty.hpp>
+#include <core/object/HypField.hpp>
 
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -16,7 +17,7 @@ namespace hyperion {
 
 struct HypMember
 {
-    Variant<HypProperty, HypMethod> value;
+    Variant<HypProperty, HypMethod, HypField> value;
 
     HypMember(HypProperty &&property)
         : value(std::move(property))
@@ -25,6 +26,11 @@ struct HypMember
 
     HypMember(HypMethod &&method)
         : value(std::move(method))
+    {
+    }
+
+    HypMember(HypField &&field)
+        : value(std::move(field))
     {
     }
 

@@ -11,6 +11,7 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
 #include <core/utilities/StringView.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
@@ -18,6 +19,17 @@
 
 namespace hyperion {
 class HypClass;
+
+enum class ManagedClassFlags : uint32
+{
+    NONE = 0x0,
+    CLASS_TYPE = 0x1,
+    STRUCT_TYPE = 0x2,
+    ENUM_TYPE = 0x4
+};
+
+HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
+
 } // namespace hyperion
 
 namespace hyperion::dotnet {
@@ -36,6 +48,8 @@ struct ManagedClass
     hyperion::dotnet::ManagedGuid   assembly_guid;
     hyperion::dotnet::ManagedGuid   new_object_guid;
     hyperion::dotnet::ManagedGuid   free_object_guid;
+    hyperion::dotnet::ManagedGuid   marshal_object_guid;
+    hyperion::uint32                flags;
 };
 
 }
@@ -69,15 +83,20 @@ public:
      *  If hyp_class is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
      *  In this case, native_object_ptr must also be provided.
      *  Both hyp_class and native_object_ptr can be nullptr. */
-    using NewObjectFunction = ManagedObject(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr);
+    using InitializeObjectCallbackFunction = void(*)(void *ctx, void *dst, uint32 dst_size);
 
-    using FreeObjectFunction = void(*)(ManagedObject);
+    using NewObjectFunction = ObjectReference(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr, void *context_ptr, InitializeObjectCallbackFunction callback);
+    using FreeObjectFunction = void(*)(ObjectReference);
+    using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
 
-    Class(ClassHolder *class_holder, String name, Class *parent_class)
+    Class(ClassHolder *class_holder, String name, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
         : m_class_holder(class_holder),
           m_name(std::move(name)),
           m_parent_class(parent_class),
-          m_new_object_fptr(nullptr)
+          m_flags(flags),
+          m_new_object_fptr(nullptr),
+          m_free_object_fptr(nullptr),
+          m_marshal_object_fptr(nullptr)
     {
     }
 
@@ -93,6 +112,9 @@ public:
     HYP_FORCE_INLINE Class *GetParentClass() const
         { return m_parent_class; }
 
+    HYP_FORCE_INLINE EnumFlags<ManagedClassFlags> GetFlags() const
+        { return m_flags; }
+
     HYP_FORCE_INLINE ClassHolder *GetClassHolder() const
         { return m_class_holder; }
 
@@ -107,6 +129,12 @@ public:
 
     HYP_FORCE_INLINE void SetFreeObjectFunction(FreeObjectFunction free_object_fptr)
         { m_free_object_fptr = free_object_fptr; }
+
+    HYP_FORCE_INLINE void SetMarshalObjectFunction(MarshalObjectFunction marshal_object_fptr)
+        { m_marshal_object_fptr = marshal_object_fptr; }
+
+    HYP_FORCE_INLINE MarshalObjectFunction GetMarshalObjectFunction() const
+        { return m_marshal_object_fptr; }
 
     /*! \brief Check if a method exists by name.
      *
@@ -182,6 +210,13 @@ public:
      */
     HYP_NODISCARD UniquePtr<Object> NewObject(const HypClass *hyp_class, void *owning_object_ptr);
 
+    /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
+     *  A struct containing the object's GUID and .NET object address will be returned.
+     *
+     *  \return A struct containing the object's GUID and .NET object address
+     */
+    HYP_NODISCARD ObjectReference NewManagedObject(void *context_ptr = nullptr, InitializeObjectCallbackFunction callback = nullptr);
+
     /*! \brief Check if this class has a parent class with the given name.
      *
      *  \param parent_class_name The name of the parent class to check.
@@ -226,12 +261,14 @@ private:
 
     String                          m_name;
     Class                           *m_parent_class;
+    EnumFlags<ManagedClassFlags>    m_flags;
     HashMap<String, ManagedMethod>  m_methods;
 
     ClassHolder                     *m_class_holder;
 
     NewObjectFunction               m_new_object_fptr;
     FreeObjectFunction              m_free_object_fptr;
+    MarshalObjectFunction           m_marshal_object_fptr;
 };
 
 } // namespace hyperion::dotnet

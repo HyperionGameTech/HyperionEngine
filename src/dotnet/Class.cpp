@@ -19,9 +19,9 @@ UniquePtr<Object> Class::NewObject()
 
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
-    ManagedObject managed_object = m_new_object_fptr(/* keep_alive */ true, nullptr, nullptr);
+    ObjectReference object_reference = m_new_object_fptr(/* keep_alive */ true, nullptr, nullptr, nullptr, nullptr);
 
-    return UniquePtr<Object>::Construct(this, managed_object);
+    return UniquePtr<Object>::Construct(this, object_reference);
 }
 
 UniquePtr<Object> Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
@@ -33,9 +33,18 @@ UniquePtr<Object> Class::NewObject(const HypClass *hyp_class, void *owning_objec
 
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
-    ManagedObject managed_object = m_new_object_fptr(/* keep_alive */ true, hyp_class, owning_object_ptr);
+    ObjectReference object_reference = m_new_object_fptr(/* keep_alive */ true, hyp_class, owning_object_ptr, nullptr, nullptr);
 
-    return UniquePtr<Object>::Construct(this, managed_object);
+    return UniquePtr<Object>::Construct(this, object_reference);
+}
+
+ObjectReference Class::NewManagedObject(void *context_ptr, InitializeObjectCallbackFunction callback)
+{
+    EnsureLoaded();
+
+    AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
+
+    return m_new_object_fptr(/* keep_alive */ false, nullptr, nullptr, context_ptr, callback);
 }
 
 bool Class::HasParentClass(UTF8StringView parent_class_name) const

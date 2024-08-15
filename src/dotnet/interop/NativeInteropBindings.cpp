@@ -68,14 +68,21 @@ HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid
     // @TODO: Store the assembly guid somewhere
 }
 
-HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, ManagedClass *out_managed_class)
+HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
 {
     AssertThrow(assembly_guid != nullptr);
     AssertThrow(class_holder != nullptr);
 
-    Class *class_object = class_holder->NewClass(hyp_class, type_hash, type_name, parent_class);
+    HYP_LOG(DotNET, LogLevel::INFO, "Registering .NET managed class {}", type_name);
 
-    *out_managed_class = ManagedClass { type_hash, class_object, *assembly_guid };
+    Class *class_object = class_holder->NewClass(hyp_class, type_hash, type_name, parent_class, flags);
+
+    ManagedClass &managed_class = *out_managed_class;
+    managed_class = { };
+    managed_class.type_hash = type_hash;
+    managed_class.class_object = class_object;
+    managed_class.assembly_guid = *assembly_guid;
+    managed_class.flags = flags;
 }
 
 HYP_EXPORT bool ManagedClass_FindByTypeHash(ManagedGuid *assembly_guid, ClassHolder *class_holder, int32 type_hash, ManagedClass *out_managed_class)
@@ -94,9 +101,11 @@ HYP_EXPORT bool ManagedClass_FindByTypeHash(ManagedGuid *assembly_guid, ClassHol
     return true;
 }
 
-HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)
+HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)
 {
-    if (!managed_class.class_object || !method_name) {
+    AssertThrow(managed_class != nullptr);
+
+    if (!managed_class->class_object || !method_name) {
         return;
     }
 
@@ -111,34 +120,40 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass managed_class, const char *m
         }
     }
 
-    if (managed_class.class_object->HasMethod(method_name)) {
-        HYP_LOG(DotNET, LogLevel::ERR, "Class '{}' already has a method named '{}'!", managed_class.class_object->GetName(), method_name);
+    if (managed_class->class_object->HasMethod(method_name)) {
+        HYP_LOG(DotNET, LogLevel::ERR, "Class '{}' already has a method named '{}'!", managed_class->class_object->GetName(), method_name);
 
         return;
     }
 
-    managed_class.class_object->AddMethod(
+    managed_class->class_object->AddMethod(
         method_name,
         std::move(method_object)
     );
 }
 
-HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass managed_class, Class::NewObjectFunction new_object_fptr)
+HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass *managed_class, Class::NewObjectFunction new_object_fptr)
 {
-    if (!managed_class.class_object) {
-        return;
-    }
+    AssertThrow(managed_class != nullptr);
+    AssertThrow(managed_class->class_object != nullptr);
 
-    managed_class.class_object->SetNewObjectFunction(new_object_fptr);
+    managed_class->class_object->SetNewObjectFunction(new_object_fptr);
 }
 
-HYP_EXPORT void ManagedClass_SetFreeObjectFunction(ManagedClass managed_class, Class::FreeObjectFunction free_object_fptr)
+HYP_EXPORT void ManagedClass_SetFreeObjectFunction(ManagedClass *managed_class, Class::FreeObjectFunction free_object_fptr)
 {
-    if (!managed_class.class_object) {
-        return;
-    }
+    AssertThrow(managed_class != nullptr);
+    AssertThrow(managed_class->class_object != nullptr);
 
-    managed_class.class_object->SetFreeObjectFunction(free_object_fptr);
+    managed_class->class_object->SetFreeObjectFunction(free_object_fptr);
+}
+
+HYP_EXPORT void ManagedClass_SetMarshalObjectFunction(ManagedClass *managed_class, Class::MarshalObjectFunction marshal_object_fptr)
+{
+    AssertThrow(managed_class != nullptr);
+    AssertThrow(managed_class->class_object != nullptr);
+
+    managed_class->class_object->SetMarshalObjectFunction(marshal_object_fptr);
 }
 
 HYP_EXPORT void NativeInterop_AddMethodToCache(ManagedGuid *assembly_guid, ManagedGuid *method_guid, void *method_info_ptr)
@@ -150,14 +165,14 @@ HYP_EXPORT void NativeInterop_AddMethodToCache(ManagedGuid *assembly_guid, Manag
     DotNetSystem::GetInstance().AddMethodToCache(*assembly_guid, *method_guid, method_info_ptr);
 }
 
-HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive)
+HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive)
 {
     AssertThrow(assembly_guid != nullptr);
     AssertThrow(object_guid != nullptr);
     AssertThrow(object_ptr != nullptr);
-    AssertThrow(out_managed_object != nullptr);
+    AssertThrow(out_object_reference != nullptr);
 
-    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_managed_object, keep_alive);
+    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_object_reference, keep_alive);
 }
 
 } // extern "C"

@@ -8,6 +8,8 @@ namespace hyperion {
 
 enum class HypClassAllocationMethod : uint8
 {
+    NONE = 0,
+    
     OBJECT_POOL_HANDLE,
     REF_COUNTED_PTR,
 

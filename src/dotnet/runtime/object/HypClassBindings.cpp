@@ -9,10 +9,6 @@
 
 #include <dotnet/Object.hpp>
 
-#include <dotnet/runtime/ManagedHandle.hpp>
-
-#include <asset/serialization/fbom/FBOM.hpp>
-
 #include <Engine.hpp>
 #include <Types.hpp>
 
@@ -75,6 +71,24 @@ HYP_EXPORT void HypClass_GetTypeID(const HypClass *hyp_class, TypeID *out_type_i
     *out_type_id = hyp_class->GetTypeID();
 }
 
+HYP_EXPORT uint32 HypClass_GetSize(const HypClass *hyp_class)
+{
+    if (!hyp_class) {
+        return 0;
+    }
+
+    return uint32(hyp_class->GetSize());
+}
+
+HYP_EXPORT uint32 HypClass_GetFlags(const HypClass *hyp_class)
+{
+    if (!hyp_class) {
+        return 0;
+    }
+
+    return uint32(hyp_class->GetFlags());
+}
+
 HYP_EXPORT uint32 HypClass_GetProperties(const HypClass *hyp_class, const void **out_properties)
 {
     if (!hyp_class || !out_properties) {
@@ -121,6 +135,30 @@ HYP_EXPORT HypMethod *HypClass_GetMethod(const HypClass *hyp_class, const Name *
     }
 
     return hyp_class->GetMethod(*name);
+}
+
+HYP_EXPORT HypField *HypClass_GetField(const HypClass *hyp_class, const Name *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    return hyp_class->GetField(*name);
+}
+
+HYP_EXPORT uint32 HypClass_GetFields(const HypClass *hyp_class, const void **out_fields)
+{
+    if (!hyp_class || !out_fields) {
+        return 0;
+    }
+
+    if (hyp_class->GetFields().Empty()) {
+        return 0;
+    }
+
+    *out_fields = hyp_class->GetFields().Begin();
+
+    return (uint32)hyp_class->GetFields().Size();
 }
 
 #pragma endregion HypClass

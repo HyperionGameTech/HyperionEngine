@@ -196,54 +196,27 @@ public:
         { return m_type_id == TypeID::ForType<NormalizedType<T>>(); }
 
     /*! \brief Returns true if the held object is of type \ref{type_id}. */
-    HYP_FORCE_INLINE
-    bool Is(TypeID type_id) const
+    HYP_FORCE_INLINE bool Is(TypeID type_id) const
         { return m_type_id == type_id; }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Get()
+    HYP_NODISCARD HYP_FORCE_INLINE T &Get() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T> *>(m_ptr);
     }
-    
-    /*! \brief Returns the held object as a const reference to type T. If the held object is not of type T, an assertion will fail. */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Get() const
-    {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
-
-        return *static_cast<const NormalizedType<T> *>(m_ptr);
-    }
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *TryGet()
+    HYP_FORCE_INLINE T *TryGet() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
 
         if (m_type_id == requested_type_id) {
             return static_cast<NormalizedType<T> *>(m_ptr);
-        }
-
-        return nullptr;
-    }
-    
-    /*! \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned. */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T *TryGet() const
-    {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        if (m_type_id == requested_type_id) {
-            return static_cast<const NormalizedType<T> *>(m_ptr);
         }
 
         return nullptr;

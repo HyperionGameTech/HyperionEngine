@@ -90,7 +90,7 @@ AnyHandle::~AnyHandle()
     }
 }
 
-AnyRef AnyHandle::ToAnyRef() const
+AnyRef AnyHandle::ToRef() const
 {
     if (!type_id || index == 0) {
         return AnyRef();

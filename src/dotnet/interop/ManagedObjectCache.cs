@@ -26,9 +26,9 @@ namespace Hyperion
             gcHandle.Free();
         }
 
-        public ManagedObject ToManagedObject()
+        public ObjectReference ToObjectReference()
         {
-            return new ManagedObject
+            return new ObjectReference
             {
                 guid = guid,
                 ptr = GCHandle.ToIntPtr(gcHandle)
@@ -56,8 +56,17 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedObject> objects = new Dictionary<Guid, StoredManagedObject>();
         private object lockObject = new object();
 
-        public ManagedObject AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive)
+        public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive)
         {
+            // log stack trace
+            var stackTrace = new System.Diagnostics.StackTrace();
+
+            foreach (var frame in stackTrace.GetFrames())
+            {
+                var method = frame.GetMethod();
+                Logger.Log(LogType.Debug, $"Method: {method.DeclaringType}.{method.Name}");
+            }
+
             Logger.Log(LogType.Debug, $"Adding object {obj} to cache for assembly {assemblyGuid}");
 
             lock (lockObject)
@@ -66,7 +75,7 @@ namespace Hyperion
 
                 objects.Add(objectGuid, storedObject);
 
-                return storedObject.ToManagedObject();
+                return storedObject.ToObjectReference();
             }
         }
 

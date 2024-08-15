@@ -4,8 +4,9 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    public delegate ManagedObject NewObjectDelegate(bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress);
-    public delegate void FreeObjectDelegate(ManagedObject obj);
+    public delegate ObjectReference NewObjectDelegate(bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr);
+    public delegate void FreeObjectDelegate(ObjectReference obj);
+    public delegate ObjectReference MarshalObjectDelegate(IntPtr ptr, uint size);
 
     internal class DelegateCache
     {
@@ -43,6 +44,15 @@ namespace Hyperion
         }
     }
 
+    [Flags]
+    public enum ManagedClassFlags : uint
+    {
+        None = 0x0,
+        ClassType = 0x1,
+        StructType = 0x2,
+        EnumType = 0x4
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct ManagedClass
     {
@@ -51,6 +61,8 @@ namespace Hyperion
         internal Guid assemblyGuid;
         internal Guid newObjectGuid;
         internal Guid freeObjectGuid;
+        internal Guid marshalObjectGuid;
+        internal ManagedClassFlags flags;
 
         public void AddMethod(string methodName, Guid guid, string[] attributeNames)
         {
@@ -62,7 +74,7 @@ namespace Hyperion
                 attributeNamesPtrs[i] = Marshal.StringToHGlobalAnsi(attributeNames[i]);
             }
 
-            ManagedClass_AddMethod(this, methodNamePtr, guid, (uint)attributeNames.Length, attributeNamesPtrs);
+            ManagedClass_AddMethod(ref this, methodNamePtr, guid, (uint)attributeNames.Length, attributeNamesPtrs);
 
             Marshal.FreeHGlobal(methodNamePtr);
 
@@ -86,7 +98,7 @@ namespace Hyperion
                 GCHandle handle = GCHandle.Alloc(value);
                 DelegateCache.Instance.AddToCache(newObjectGuid, handle);
 
-                ManagedClass_SetNewObjectFunction(this, Marshal.GetFunctionPointerForDelegate(value));
+                ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
             }
         }
 
@@ -104,18 +116,39 @@ namespace Hyperion
                 GCHandle handle = GCHandle.Alloc(value);
                 DelegateCache.Instance.AddToCache(freeObjectGuid, handle);
 
-                ManagedClass_SetFreeObjectFunction(this, Marshal.GetFunctionPointerForDelegate(value));
+                ManagedClass_SetFreeObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
+            }
+        }
+
+        public MarshalObjectDelegate MarshalObjectFunction
+        {
+            set
+            {
+                if (marshalObjectGuid != Guid.Empty)
+                {
+                    DelegateCache.Instance.RemoveFromCache(marshalObjectGuid);
+                }
+
+                marshalObjectGuid = Guid.NewGuid();
+
+                GCHandle handle = GCHandle.Alloc(value);
+                DelegateCache.Instance.AddToCache(marshalObjectGuid, handle);
+
+                ManagedClass_SetMarshalObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
             }
         }
 
         // Add a function pointer to the managed class
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern void ManagedClass_AddMethod(ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
+        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
-        private static extern void ManagedClass_SetNewObjectFunction(ManagedClass managedClass, IntPtr newObjectFunctionPtr);
+        private static extern void ManagedClass_SetNewObjectFunction([In] ref ManagedClass managedClass, IntPtr newObjectFunctionPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetFreeObjectFunction")]
-        private static extern void ManagedClass_SetFreeObjectFunction(ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
+        private static extern void ManagedClass_SetFreeObjectFunction([In] ref ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
+
+        [DllImport("hyperion", EntryPoint = "ManagedClass_SetMarshalObjectFunction")]
+        private static extern void ManagedClass_SetMarshalObjectFunction([In] ref ManagedClass managedClass, IntPtr marshalObjectFunctionPtr);
     }
 }

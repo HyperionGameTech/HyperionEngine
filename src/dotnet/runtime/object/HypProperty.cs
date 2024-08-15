@@ -55,6 +55,29 @@ namespace Hyperion
 
             return new HypData(resultBuffer);
         }
+
+        public void InvokeSetter(HypObject hypObject, HypData value)
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke setter: Invalid property");
+            }
+
+            if (!hypObject.IsValid)
+            {
+                throw new InvalidOperationException("Cannot invoke setter: Invalid target object");
+            }
+
+            if (value == null)
+            {
+                throw new ArgumentNullException("value");
+            }
+
+            if (!HypProperty_InvokeSetter(ptr, hypObject.HypClass.Address, hypObject.NativeAddress, ref value.Buffer))
+            {
+                throw new InvalidOperationException("Failed to invoke setter");
+            }
+        }
         
         [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
         private static extern void HypProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
@@ -65,5 +88,9 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool HypProperty_InvokeGetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [Out] out HypDataBuffer outResult);
+
+        [DllImport("hyperion", EntryPoint = "HypProperty_InvokeSetter")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool HypProperty_InvokeSetter([In] IntPtr propertyPtr, [In] IntPtr targetClassPtr, [In] IntPtr targetPtr, [In] ref HypDataBuffer value);
     }
 }

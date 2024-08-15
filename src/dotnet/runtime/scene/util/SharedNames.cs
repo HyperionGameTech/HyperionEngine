@@ -8,5 +8,7 @@ namespace Hyperion
         public static Name ID { get; } = Name.FromString("ID", weak: true);
         public static Name World { get; } = Name.FromString("World", weak: true);
         public static Name GameTime { get; } = Name.FromString("GameTime", weak: true);
+        public static Name NumIndices { get; } = Name.FromString("NumIndices", weak: true);
+        public static Name AABB { get; } = Name.FromString("AABB", weak: true);
     }
 }

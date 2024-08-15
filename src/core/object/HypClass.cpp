@@ -1,8 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/object/HypClass.hpp>
-#include <core/object/HypMember.hpp>
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypMember.hpp>
+#include <core/object/HypObject.hpp>
+
+#include <dotnet/Object.hpp>
 
 #include <Engine.hpp>
 
@@ -31,6 +34,11 @@ HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypMembe
 
             m_methods.PushBack(method_ptr);
             m_methods_by_name.Set(method_ptr->name, method_ptr);
+        } else if (HypField *field = member.value.TryGet<HypField>()) {
+            HypField *field_ptr = new HypField(std::move(*field));
+
+            m_fields.PushBack(field_ptr);
+            m_fields_by_name.Set(field_ptr->name, field_ptr);
         } else {
             HYP_FAIL("Invalid member");
         }
@@ -45,6 +53,10 @@ HypClass::~HypClass()
 
     for (HypMethod *method_ptr : m_methods) {
         delete method_ptr;
+    }
+
+    for (HypField *field_ptr : m_fields) {
+        delete field_ptr;
     }
 }
 
@@ -70,9 +82,35 @@ HypMethod *HypClass::GetMethod(WeakName name) const
     return it->second;
 }
 
+HypField *HypClass::GetField(WeakName name) const
+{
+    const auto it = m_fields_by_name.FindAs(name);
+
+    if (it == m_fields_by_name.End()) {
+        return nullptr;
+    }
+
+    return it->second;
+}
+
 dotnet::Class *HypClass::GetManagedClass() const
 {
     return HypClassRegistry::GetInstance().GetManagedClass(this);
+}
+
+bool HypClass::GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference)
+{
+    if (!object_initializer) {
+        return false;
+    }
+
+    if (!object_initializer->GetManagedObject()) {
+        return false;
+    }
+
+    out_object_reference = object_initializer->GetManagedObject()->GetObjectReference();
+
+    return true;
 }
 
 #pragma endregion HypClass

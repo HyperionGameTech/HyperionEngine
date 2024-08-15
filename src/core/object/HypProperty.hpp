@@ -223,7 +223,7 @@ struct HypProperty
     HYP_FORCE_INLINE void InvokeSetter(AnyRef target, const HypData &value) const
         { setter(target, value); }
 
-    template <class ValueType, typename = std::enable_if_t< !std::is_same_v< HypData, ValueType > > >
+    template <class ValueType, typename = std::enable_if_t< !std::is_same_v< HypData, NormalizedType<ValueType> > > >
     HYP_FORCE_INLINE void InvokeSetter(AnyRef target, ValueType &&value) const
         { setter.Invoke<ValueType>(target, std::forward<ValueType>(value)); }
 

@@ -51,7 +51,7 @@ struct TransformArgument<Object *>
 class Object
 {
 public:
-    Object(Class *class_ptr, ManagedObject managed_object);
+    Object(Class *class_ptr, ObjectReference object_reference);
 
     Object(const Object &)                  = delete;
     Object &operator=(const Object &)       = delete;
@@ -64,8 +64,8 @@ public:
     HYP_FORCE_INLINE Class *GetClass() const
         { return m_class_ptr; }
 
-    HYP_FORCE_INLINE const ManagedObject &GetUnderlyingObject() const
-        { return m_managed_object; }
+    HYP_FORCE_INLINE const ObjectReference &GetObjectReference() const
+        { return m_object_reference; }
 
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod(const ManagedMethod *method_ptr, Args... args)
@@ -116,8 +116,8 @@ private:
         }
     }
 
-    Class          *m_class_ptr;
-    ManagedObject   m_managed_object;
+    Class           *m_class_ptr;
+    ObjectReference m_object_reference;
 };
 
 } // namespace hyperion::dotnet

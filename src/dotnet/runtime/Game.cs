@@ -52,21 +52,36 @@ namespace Hyperion
             this.assetManager = assetManager;
             this.uiStage = new UIStage(uiStageRc);
 
+            HypClass boundingBoxClass = (HypClass)HypClass.GetClass("BoundingBox");
+            // object boundingBoxTest = HypStructRegistry.CreateInstance(boundingBoxClass);
+            // Console.WriteLine("BoundingBox Test = {0} {1}", boundingBoxTest, boundingBoxTest.GetType().Name);
+
+            foreach (var field in boundingBoxClass.Fields)
+            {
+                Console.WriteLine("Field Name = {0}, Type = {1}, Offset = {2}", field.Name, field.TypeID, field.Offset);
+            }
 
             Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
             Console.WriteLine("this.scene.World = {0}", this.scene.World);
             Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);
             Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GameTime);
 
+            HypData testArray = new HypData(new float[] { 1.0f, 2.0f, 3.0f, 4.0f });
+            Console.WriteLine("TestArray = {0}", testArray.GetValue());
+
             var mesh = new Mesh();
+            Console.WriteLine("Mesh NumIndices = {0}", mesh.NumIndices);
+            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
+            mesh.AABB = new BoundingBox(new Vec3f(1.0f, 2.0f, 3.0f), new Vec3f(4.0f, 5.0f, 6.0f));
+            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
 
-            HypMethod? testMethod = mesh.HypClass.GetMethod(Name.FromString("TestMethod"));
+            // HypMethod? testMethod = mesh.HypClass.GetMethod(Name.FromString("InvertNormals"));
 
-            if (testMethod != null)
-            {
-                HypData testMethodResult = ((HypMethod)testMethod).Invoke(mesh, 8);
-                Console.WriteLine("TestMethod result = {0}", testMethodResult.GetValue());
-            }
+            // if (testMethod != null)
+            // {
+            //     HypData testMethodResult = ((HypMethod)testMethod).Invoke(mesh);
+            //     Console.WriteLine("TestMethod result = {0}", testMethodResult.GetValue());
+            // }
 
             // // iterate over methods
             // foreach (var method in mesh.HypClass.Methods)

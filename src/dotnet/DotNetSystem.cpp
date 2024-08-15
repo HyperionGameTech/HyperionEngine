@@ -45,7 +45,7 @@ public:
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
     virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const = 0;
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive) const = 0;
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const = 0;
 
     virtual void *GetDelegate(
         const TChar *assembly_path,
@@ -59,7 +59,7 @@ using InitializeAssemblyDelegate = void(*)(ManagedGuid *, ClassHolder *, const c
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
 
 using AddMethodToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *);
-using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, ManagedObject *, bool);
+using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, ObjectReference *, bool);
 
 static Optional<FilePath> FindAssemblyFilePath(AppContext *app_context, const char *path)
 {
@@ -274,9 +274,9 @@ public:
         m_add_method_to_cache_fptr(&assembly_guid, &method_guid, method_info_ptr);
     }
 
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive) const override
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const override
     {
-        m_add_object_to_cache_fptr(&assembly_guid, &object_guid, object_ptr, out_managed_object, keep_alive);
+        m_add_object_to_cache_fptr(&assembly_guid, &object_guid, object_ptr, out_object_reference, keep_alive);
     }
 
     virtual void *GetDelegate(
@@ -458,7 +458,7 @@ public:
     }
 
     virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const override {}
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive) const override {}
+    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const override {}
 
     virtual void *GetDelegate(
         const TChar *assembly_path,
@@ -539,13 +539,13 @@ void DotNetSystem::AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid metho
     m_impl->AddMethodToCache(assembly_guid, method_guid, method_info_ptr);
 }
 
-void DotNetSystem::AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ManagedObject *out_managed_object, bool keep_alive) const
+void DotNetSystem::AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const
 {
     if (!EnsureInitialized()) {
         return;
     }
 
-    m_impl->AddObjectToCache(assembly_guid, object_guid, object_ptr, out_managed_object, keep_alive);
+    m_impl->AddObjectToCache(assembly_guid, object_guid, object_ptr, out_object_reference, keep_alive);
 }
 
 bool DotNetSystem::IsEnabled() const

@@ -7,6 +7,9 @@
 
 #include <core/Name.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <dotnet/Object.hpp>
 
 #include <dotnet/runtime/ManagedHandle.hpp>
@@ -38,13 +41,29 @@ HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_t
     *out_type_id = property->type_id;
 }
 
-HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)
+HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, const void *target_ptr, HypData *out_result)
 {
     if (!property || !target_class || !target_ptr || !out_result) {
         return false;
     }
 
     *out_result = property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr));
+
+    return true;
+}
+
+HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *value)
+{
+    if (!property || !target_class || !target_ptr || !value) {
+        return false;
+    }
+
+    if (value->GetTypeID() == TypeID::ForType<BoundingBox>()) {
+        const BoundingBox &bb = value->Get<BoundingBox>();
+        HYP_LOG(Object, LogLevel::DEBUG, "BoundingBox in setter = {}", bb);
+    }
+
+    property->InvokeSetter(AnyRef(target_class->GetTypeID(), target_ptr), *value);
 
     return true;
 }

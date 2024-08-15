@@ -23,18 +23,19 @@ class Object;
 } // namespace dotnet
 
 class HypClass;
+struct HypMember;
 
 template <class T>
 class HypClassInstance;
 
-struct HypMember;
+template <class T>
+class HypStructInstance;
 
 enum class HypClassFlags : uint32
 {
-    NONE = 0x0,
-    ABSTRACT = 0x1,
-    NO_DEFAULT_CONSTRUCTOR = 0x2,
-    POD_TYPE = 0x4
+    NONE        = 0x0,
+    CLASS_TYPE  = 0x1,
+    STRUCT_TYPE = 0x2
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)
@@ -94,6 +95,15 @@ struct HypClassRegistration : public HypClassRegistrationBase
 {   
     HypClassRegistration(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
         : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(flags, Span<HypMember>(members.Begin(), members.End())))
+    {
+    }
+};
+
+template <class T>
+struct HypStructRegistration : public HypClassRegistrationBase
+{   
+    HypStructRegistration(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

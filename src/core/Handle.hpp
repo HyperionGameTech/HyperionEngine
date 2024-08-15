@@ -541,11 +541,11 @@ struct AnyHandle
         return Handle<T>(typename Handle<T>::IDType { index });
     }
 
-    HYP_API AnyRef ToAnyRef() const;
+    HYP_API AnyRef ToRef() const;
 
     template <class T>
     HYP_FORCE_INLINE T *TryGet() const
-        { return ToAnyRef().TryGet<T>(); }
+        { return ToRef().TryGet<T>(); }
 };
 
 template <class T>

@@ -12,13 +12,13 @@ namespace hyperion::dotnet {
 
 extern "C" {
 
-struct ManagedObject
+struct ObjectReference
 {
     ManagedGuid guid;
     void        *ptr;
 };
 
-static_assert(sizeof(ManagedObject) == 24, "ManagedObject size mismatch with C#");
+static_assert(sizeof(ObjectReference) == 24, "ObjectReference size mismatch with C#");
 
 } // extern "C"
 

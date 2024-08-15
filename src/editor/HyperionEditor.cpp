@@ -1201,6 +1201,12 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+    const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
+    AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
+
+    const HypClass *mesh_class = Mesh::GetClass();
+    const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
+
     HYP_BREAKPOINT;
 
 #if 0

@@ -3,6 +3,9 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -45,6 +48,8 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
 {
     AssertThrow(hyp_class != nullptr);
 
+    HYP_LOG(Object, LogLevel::INFO, "Register class {}", hyp_class->GetName());
+
     const auto it = m_registered_classes.Find(type_id);
     AssertThrowMsg(it == m_registered_classes.End(), "Class already registered for type: %s", *hyp_class->GetName());
 
@@ -55,6 +60,8 @@ void HypClassRegistry::RegisterManagedClass(const HypClass *hyp_class, dotnet::C
 {
     AssertThrow(hyp_class != nullptr);
     AssertThrow(managed_class != nullptr);
+
+    HYP_LOG(Object, LogLevel::INFO, "Register managed class for {}", hyp_class->GetName());
 
     Mutex::Guard guard(m_managed_classes_mutex);
 

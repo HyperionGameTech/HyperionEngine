@@ -3,6 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [Flags]
+    public enum HypClassFlags : uint
+    {
+        None = 0x0,
+        ClassType = 0x1,
+        StructType = 0x2
+    }
+
     public struct HypClass
     {
         public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
@@ -26,6 +34,14 @@ namespace Hyperion
             }
         }
 
+        public bool IsValid
+        {
+            get
+            {
+                return ptr != IntPtr.Zero;
+            }
+        }
+
         public Name Name
         {
             get
@@ -43,6 +59,38 @@ namespace Hyperion
                 TypeID typeId;
                 HypClass_GetTypeID(ptr, out typeId);
                 return typeId;
+            }
+        }
+
+        public uint Size
+        {
+            get
+            {
+                return HypClass_GetSize(ptr);
+            }
+        }
+
+        public HypClassFlags Flags
+        {
+            get
+            {
+                return (HypClassFlags)HypClass_GetFlags(ptr);
+            }
+        }
+
+        public bool IsClassType
+        {
+            get
+            {
+                return (Flags & HypClassFlags.ClassType) != 0;
+            }
+        }
+
+        public bool IsStructType
+        {
+            get
+            {
+                return (Flags & HypClassFlags.StructType) != 0;
             }
         }
 
@@ -100,6 +148,33 @@ namespace Hyperion
             return new HypMethod(methodPtr);
         }
 
+        public IEnumerable<HypField> Fields
+        {
+            get
+            {
+                IntPtr fieldsPtr;
+                uint count = HypClass_GetFields(ptr, out fieldsPtr);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IntPtr fieldPtr = Marshal.ReadIntPtr(fieldsPtr, i * IntPtr.Size);
+                    yield return new HypField(fieldPtr);
+                }
+            }
+        }
+
+        public HypField? GetField(Name name)
+        {
+            IntPtr fieldPtr = HypClass_GetField(ptr, ref name);
+
+            if (fieldPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new HypField(fieldPtr);
+        }
+
         /// <summary>
         ///  Creates a native instance of this object. The object has an initial ref count of zero,
         ///  so the reference must be manually decremented to destroy the object (with HypObject_DecRef)  
@@ -149,6 +224,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetTypeID")]
         private static extern void HypClass_GetTypeID([In] IntPtr hypClassPtr, [Out] out TypeID typeId);
+        
+        [DllImport("hyperion", EntryPoint = "HypClass_GetSize")]
+        private static extern uint HypClass_GetSize([In] IntPtr hypClassPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetFlags")]
+        private static extern uint HypClass_GetFlags([In] IntPtr hypClassPtr);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetProperties")]
         private static extern uint HypClass_GetProperties([In] IntPtr hypClassPtr, [Out] out IntPtr outPropertiesPtr);
@@ -161,5 +242,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetMethod")]
         private static extern IntPtr HypClass_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetFields")]
+        private static extern uint HypClass_GetFields([In] IntPtr hypClassPtr, [Out] out IntPtr outFieldsPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetField")]
+        private static extern IntPtr HypClass_GetField([In] IntPtr hypClassPtr, [In] ref Name name);
     }
 }

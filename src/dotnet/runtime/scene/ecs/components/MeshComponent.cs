@@ -34,11 +34,13 @@ namespace Hyperion
         {
             get
             {
-                return new Mesh(meshHandle);
+                throw new NotImplementedException();
+                // return new Mesh(meshHandle);
             }
             set
             {
-                meshHandle = value.Handle;
+                throw new NotImplementedException();
+                // meshHandle = value.Handle;
             }
         }
 

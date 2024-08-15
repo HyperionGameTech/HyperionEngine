@@ -8,21 +8,46 @@ namespace Hyperion
     {
     }
 
-    [AttributeUsage(AttributeTargets.Class, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
     public class HypClassBinding : Attribute
     {
         public string Name { get; set; }
 
-        public HypClass LoadHypClass()
+        public HypClass HypClass
         {
-            HypClass? hypClass = HypClass.GetClass(Name);
-
-            if (hypClass == null)
+            get
             {
-                throw new Exception("Failed to load HypClass: " + Name);
-            }
+                HypClass? hypClass = HypClass.GetClass(Name);
 
-            return (HypClass)hypClass;
+                if (hypClass == null || !((HypClass)hypClass).IsValid)
+                {
+                    throw new Exception("Failed to load HypClass: " + Name);
+                }
+
+                return (HypClass)hypClass;
+            }
         }
+    }
+
+    [AttributeUsage(AttributeTargets.Struct, Inherited = false)]
+    public class HypStructBinding : Attribute
+    {
+        public string Name { get; set; }
+
+        public HypClass HypClass
+        {
+            get
+            {
+                HypClass? hypClass = HypClass.GetClass(Name);
+
+                if (hypClass == null)
+                {
+                    throw new Exception("Failed to load HypClass: " + Name);
+                }
+
+                return (HypClass)hypClass;
+            }
+        }
+
     }
 }

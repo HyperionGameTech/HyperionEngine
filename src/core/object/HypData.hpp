@@ -30,11 +30,17 @@ namespace detail {
 template <class T, class T2 = void>
 struct HypDataInitializer;
 
-template <class T, class ConvertibleTypesTuple>
+template <class T, class ConvertibleFromTuple>
 struct HypDataTypeChecker_Tuple;
 
-template <class ReturnType, class T, class ConvertibleTypesTuple>
+template <class ReturnType, class T, class ConvertibleFromTuple>
 struct HypDataGetter_Tuple;
+
+template <class T, bool IsConst>
+struct HypDataGetReturnTypeHelper
+{
+    using Type = decltype(std::declval<detail::HypDataInitializer<T>>().Get(*std::declval<std::conditional_t<IsConst, const T, T> *>()));
+};
 
 } // namespace detail
 
@@ -77,7 +83,9 @@ struct HypData
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
 
         /*! Pointers are stored as AnyRef which holds TypeID for conversion */
-        || std::is_same_v<T, AnyRef> || std::is_pointer_v<T>;
+        || std::is_same_v<T, AnyRef> || std::is_pointer_v<T>
+        
+        || std::is_same_v<T, Any>;
 
     VariantType value;
 
@@ -151,69 +159,46 @@ struct HypData
         if (!value.IsValid()) {
             return false;
         }
-
-        // // if the struct's StorageType typedef is the same as T, we don't need to perform another check.
-        // constexpr bool should_skip_additional_is_check = std::is_same_v<T, typename detail::HypDataInitializer<T>::StorageType>;
         
-        // if constexpr (can_store_directly<typename detail::HypDataInitializer<T>::StorageType>) {
-        //     return value.Is<typename detail::HypDataInitializer<T>::StorageType>()
-        //         && (should_skip_additional_is_check || detail::HypDataInitializer<T>{}.Is(value.Get<typename detail::HypDataInitializer<T>::StorageType>()));
-        // } else {
-        //     if (const Any *any_ptr = value.TryGet<Any>()) {
-        //         return any_ptr->Is<typename detail::HypDataInitializer<T>::StorageType>()
-        //             && (should_skip_additional_is_check || detail::HypDataInitializer<T>{}.Is(any_ptr->Get<typename detail::HypDataInitializer<T>::StorageType>()));
-        //     }
-
-        //     return false;
-        // }
-
-        return detail::HypDataTypeChecker_Tuple<T, typename detail::HypDataInitializer<T>::ConvertibleTypes>{}(value);
+        return detail::HypDataTypeChecker_Tuple<T, typename detail::HypDataInitializer<T>::ConvertibleFrom>{}(value);
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get()
+    HYP_FORCE_INLINE auto Get() -> typename detail::HypDataGetReturnTypeHelper<T, false>::Type
     {
         static_assert(!std::is_same_v<T, HypData>);
 
-        // if constexpr (can_store_directly<typename detail::HypDataInitializer<T>::StorageType>) {
-        //     return detail::HypDataInitializer<NormalizedType<T>>{}.Get(value.Get<typename detail::HypDataInitializer<T>::StorageType>());
-        // } else {
-        //     return detail::HypDataInitializer<NormalizedType<T>>{}.Get(value.Get<Any>().Get<typename detail::HypDataInitializer<T>::StorageType>());
-        // }
+        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
 
-        Optional<T> result_value;
+        Optional<ReturnType> result_value;
 
-        detail::HypDataGetter_Tuple<T, T, typename detail::HypDataInitializer<T>::ConvertibleTypes> getter_instance { };
+        detail::HypDataGetter_Tuple<ReturnType, T, typename detail::HypDataInitializer<T>::ConvertibleFrom> getter_instance { };
 
         AssertThrowMsg(getter_instance(value, result_value),
             "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
             TypeName<T>().Data(),
             GetTypeID().Value());
 
-        return result_value.Get();
+        return *result_value;
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get() const
+    HYP_FORCE_INLINE auto Get() const -> typename detail::HypDataGetReturnTypeHelper<T, true>::Type
     {
-        // static_assert(!std::is_same_v<T, HypData>);
+        static_assert(!std::is_same_v<T, HypData>);
 
-        // if constexpr (can_store_directly<typename detail::HypDataInitializer<T>::StorageType>) {
-        //     return detail::HypDataInitializer<NormalizedType<T>>{}.Get(value.Get<typename detail::HypDataInitializer<T>::StorageType>());
-        // } else {
-        //     return detail::HypDataInitializer<NormalizedType<T>>{}.Get(value.Get<Any>().Get<typename detail::HypDataInitializer<T>::StorageType>());
-        // }
+        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
 
-        Optional<T> result_value;
+        Optional<ReturnType> result_value;
 
-        detail::HypDataGetter_Tuple<T, T, typename detail::HypDataInitializer<T>::ConvertibleTypes> getter_instance { };
+        detail::HypDataGetter_Tuple<ReturnType, T, typename detail::HypDataInitializer<T>::ConvertibleFrom> getter_instance { };
 
         AssertThrowMsg(getter_instance(value, result_value),
             "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
             TypeName<T>().Data(),
             GetTypeID().Value());
 
-        return result_value.Get();
+        return *result_value;
     }
 };
 
@@ -223,7 +208,7 @@ template <class T>
 struct HypDataInitializer<T, std::enable_if_t<std::is_fundamental_v<T>>>
 {
     using StorageType = T;
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const T &value) const
     {
@@ -246,7 +231,7 @@ template <>
 struct HypDataInitializer<IDBase>
 {
     using StorageType = IDBase;
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const IDBase &value) const
     {
@@ -272,7 +257,7 @@ struct HypDataInitializer<IDBase>
 template <class T>
 struct HypDataInitializer<ID<T>> : HypDataInitializer<IDBase>
 {
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const IDBase &value) const
     {
@@ -299,7 +284,7 @@ template <>
 struct HypDataInitializer<AnyHandle>
 {
     using StorageType = AnyHandle;
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
@@ -331,7 +316,7 @@ struct HypDataInitializer<AnyHandle>
 template <class T>
 struct HypDataInitializer<Handle<T>> : HypDataInitializer<AnyHandle>
 {
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
@@ -358,7 +343,7 @@ template <>
 struct HypDataInitializer<RC<void>>
 {
     using StorageType = RC<void>;
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const RC<void> &value) const
     {
@@ -409,7 +394,7 @@ template <>
 struct HypDataInitializer<AnyRef>
 {
     using StorageType = AnyRef;
-    using ConvertibleTypes = Tuple<>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const AnyRef &value) const
     {
@@ -436,7 +421,7 @@ struct HypDataInitializer<AnyRef>
 template <class T>
 struct HypDataInitializer<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_same_v<T *, void *> >> : HypDataInitializer<AnyRef>
 {
-    using ConvertibleTypes = Tuple<AnyHandle, RC<void>>;
+    using ConvertibleFrom = Tuple<AnyHandle, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const AnyRef &value) const
     {
@@ -480,36 +465,57 @@ struct HypDataInitializer<T *, std::enable_if_t< !is_const_pointer<T *> && !std:
     }
 };
 
-template <class T>
-struct HypDataInitializer<T, std::enable_if_t<!HypData::can_store_directly<T>>>
+template <>
+struct HypDataInitializer<Any>
 {
-    using StorageType = T;
-    using ConvertibleTypes = Tuple<>;
+    using StorageType = Any;
+    using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const T &value) const
+    HYP_FORCE_INLINE bool Is(const Any &value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    T &Get(T &value) const
+    Any &Get(Any &value) const
     {
         return value;
     }
 
-    const T &Get(const T &value) const
+    const Any &Get(const Any &value) const
     {
         return value;
+    }
+
+    void Set(HypData &hyp_data, Any &&value) const
+    {
+        hyp_data.value.Set<Any>(std::move(value));
+    }
+};
+
+template <class T>
+struct HypDataInitializer<T, std::enable_if_t<!HypData::can_store_directly<T>>> : HypDataInitializer<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<T>();
+    }
+
+    T &Get(const Any &value) const
+    {
+        return value.Get<T>();
     }
 
     void Set(HypData &hyp_data, const T &value) const
     {
-        hyp_data.value.Set(Any(value));
+        hyp_data.value.Set(Any::Construct<T>(value));
     }
 
     void Set(HypData &hyp_data, T &&value) const
     {
-        hyp_data.value.Set(Any(std::move(value)));
+        hyp_data.value.Set(Any::Construct<T>(std::move(value)));
     }
 };
 
@@ -522,26 +528,19 @@ struct HypDataTypeChecker
     {
         constexpr bool should_skip_additional_is_check = std::is_same_v<T, typename HypDataInitializer<T>::StorageType>;
 
-        if constexpr (HypData::can_store_directly<typename HypDataInitializer<T>::StorageType>) {
-            return value.Is<typename HypDataInitializer<T>::StorageType>()
-                && (should_skip_additional_is_check || HypDataInitializer<T>{}.Is(value.Get<typename HypDataInitializer<T>::StorageType>()));
-        } else {
-            if (const Any *any_ptr = value.TryGet<Any>()) {
-                return any_ptr->Is<typename HypDataInitializer<T>::StorageType>()
-                    && (should_skip_additional_is_check || HypDataInitializer<T>{}.Is(any_ptr->Get<typename HypDataInitializer<T>::StorageType>()));
-            }
+        static_assert(HypData::can_store_directly<typename HypDataInitializer<T>::StorageType>);
 
-            return false;
-        }
+        return value.Is<typename HypDataInitializer<T>::StorageType>()
+            && (should_skip_additional_is_check || HypDataInitializer<T>{}.Is(value.Get<typename HypDataInitializer<T>::StorageType>()));
     }
 };
 
-template <class T, class... ConvertibleTypes>
-struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleTypes...>>
+template <class T, class... ConvertibleFrom>
+struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleFrom...>>
 {
     HYP_FORCE_INLINE bool operator()(const HypData::VariantType &value) const
     {
-        return HypDataTypeChecker<T>{}(value) || (HypDataTypeChecker<ConvertibleTypes>{}(value) || ...);
+        return HypDataTypeChecker<T>{}(value) || (HypDataTypeChecker<ConvertibleFrom>{}(value) || ...);
     }
 };
 
@@ -572,75 +571,45 @@ struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleTypes...>>
 // };
 
 
-template <class ReturnType, class... Types, SizeType... Indices>
-HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(HypData::VariantType &value, Optional<ReturnType> &out_value, std::index_sequence<Indices...>)
+template <class VariantType, class ReturnType, class... Types, SizeType... Indices>
+HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType &&value, Optional<ReturnType> &out_value, std::index_sequence<Indices...>)
 {
-    const auto InvokeGetter = []<SizeType SelectedTypeIndex>(HypData::VariantType &value, Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
+    const auto InvokeGetter = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
     {
         using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
+        using StorageType = typename HypDataInitializer<SelectedType>::StorageType;
 
-        if constexpr (HypData::can_store_directly<typename HypDataInitializer<SelectedType>::StorageType>) {
-            if constexpr (std::is_same_v<ReturnType, typename HypDataInitializer<SelectedType>::StorageType>) {
-                out_value.Set(value.Get<typename HypDataInitializer<SelectedType>::StorageType>());
-            } else {
-                decltype(auto) internal_value = value.Get<typename HypDataInitializer<SelectedType>::StorageType>();
+        static_assert(HypData::can_store_directly<typename HypDataInitializer<NormalizedType<ReturnType>>::StorageType>);
 
-                if (!HypDataInitializer<ReturnType>{}.Is(internal_value)) {
-                    return false;
-                }
-                
-                out_value.Set(HypDataInitializer<ReturnType>{}.Get(std::forward<decltype(internal_value)>(internal_value)));
-            }
+        if constexpr (std::is_same_v<NormalizedType<ReturnType>, StorageType>) {
+            out_value.Set(value.template Get<StorageType>());
         } else {
-            if constexpr (std::is_same_v<ReturnType, typename HypDataInitializer<SelectedType>::StorageType>) {
-                out_value.Set(value.Get<Any>().Get<typename HypDataInitializer<SelectedType>::StorageType>());
-            } else {
-                decltype(auto) internal_value = value.Get<Any>().Get<typename HypDataInitializer<SelectedType>::StorageType>();
+            decltype(auto) internal_value = value.template Get<StorageType>();
 
-                if (!HypDataInitializer<ReturnType>{}.Is(internal_value)) {
-                    return false;
-                }
-
-                out_value.Set(HypDataInitializer<ReturnType>{}.Get(std::forward<decltype(internal_value)>(internal_value)));
+            if (!HypDataInitializer<NormalizedType<ReturnType>>{}.Is(internal_value)) {
+                return false;
             }
+            
+            out_value.Set(HypDataInitializer<NormalizedType<ReturnType>>{}.Get(std::forward<decltype(internal_value)>(internal_value)));
         }
 
         return true;
     };
 
-    return ((HypDataTypeChecker<Types>{}(value) && InvokeGetter(value, out_value, std::integral_constant<SizeType, Indices>{})) || ...);
+    return ((HypDataTypeChecker<Types>{}(value) && InvokeGetter(out_value, std::integral_constant<SizeType, Indices>{})) || ...);
 }
 
-template <class ReturnType, class... Types, SizeType... Indices>
-HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(const HypData::VariantType &value, Optional<ReturnType> &out_value, std::index_sequence<Indices...>)
-{
-    const auto InvokeGetter = []<SizeType SelectedTypeIndex>(const HypData::VariantType &value, Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
-    {
-        using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
-
-        if constexpr (HypData::can_store_directly<typename HypDataInitializer<SelectedType>::StorageType>) {
-            out_value.Set(HypDataInitializer<ReturnType>{}.Get(value.Get<typename HypDataInitializer<SelectedType>::StorageType>()));
-        } else {
-            out_value.Set(HypDataInitializer<ReturnType>{}.Get(value.Get<Any>().Get<typename HypDataInitializer<SelectedType>::StorageType>()));
-        }
-
-        return true;
-    };
-
-    return ((HypDataTypeChecker<Types>{}(value) && InvokeGetter(value, out_value, std::integral_constant<SizeType, Indices>{})) || ...);
-}
-
-template <class ReturnType, class T, class... ConvertibleTypes>
-struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleTypes...>>
+template <class ReturnType, class T, class... ConvertibleFrom>
+struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleFrom...>>
 {
     HYP_FORCE_INLINE bool operator()(HypData::VariantType &value, Optional<ReturnType> &out_value) const
     {
-        return HypDataGetter_Tuple_Impl<ReturnType, T, ConvertibleTypes...>(value, out_value, std::index_sequence_for<T, ConvertibleTypes...>{});
+        return HypDataGetter_Tuple_Impl<HypData::VariantType &, ReturnType, T, ConvertibleFrom...>(value, out_value, std::index_sequence_for<T, ConvertibleFrom...>{});
     }
 
     HYP_FORCE_INLINE bool operator()(const HypData::VariantType &value, Optional<ReturnType> &out_value) const
     {
-        return HypDataGetter_Tuple_Impl<ReturnType, T, ConvertibleTypes...>(value, out_value, std::index_sequence_for<T, ConvertibleTypes...>{});
+        return HypDataGetter_Tuple_Impl<const HypData::VariantType &, ReturnType, T, ConvertibleFrom...>(value, out_value, std::index_sequence_for<T, ConvertibleFrom...>{});
     }
 };
 

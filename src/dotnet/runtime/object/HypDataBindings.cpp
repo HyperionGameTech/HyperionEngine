@@ -2,8 +2,12 @@
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypClass.hpp>
+#include <core/object/HypStruct.hpp>
 
 #include <core/Name.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>
@@ -128,6 +132,51 @@ HYP_DEFINE_HYPDATA_IS(bool, Bool)
 #undef HYP_DEFINE_HYPDATA_IS
 #undef HYP_DEFINE_HYPDATA_SET
 
+HYP_EXPORT bool HypData_IsArray(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    return hyp_data->Is<Array<HypData>>();
+}
+
+HYP_EXPORT bool HypData_GetArray(const HypData *hyp_data, HypData **out_array, uint32 *out_size)
+{
+    if (!hyp_data || !out_array || !out_size) {
+        return false;
+    }
+
+    if (hyp_data->Is<Array<HypData>>()) {
+        Array<HypData> &array = hyp_data->Get<Array<HypData>>();
+
+        *out_array = array.Data();
+        *out_size = uint32(array.Size());
+
+        return true;
+    }
+
+    return false;
+}
+
+HYP_EXPORT bool HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 size)
+{
+    if (!hyp_data || !elements) {
+        return false;
+    }
+
+    Array<HypData> hyp_data_array;
+    hyp_data_array.Reserve(size);
+
+    for (uint32 i = 0; i < size; i++) {
+        hyp_data_array.PushBack(std::move(*(elements + i)));
+    }
+
+    *hyp_data = HypData(std::move(hyp_data_array));
+
+    return true;
+}
+
 HYP_EXPORT bool HypData_IsID(const HypData *hyp_data)
 {
     if (!hyp_data) {
@@ -196,25 +245,19 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
     }
 
     TypeID type_id;
-    AnyRef any_ref;
-
-    DebugLog(LogType::Debug, "GetHypObject, current type = %u  anyref = %u\n", hyp_data->value.GetTypeID().Value(), TypeID::ForType<AnyRef>().Value());
-    if (hyp_data->value.GetTypeID() == TypeID::ForType<AnyRef>()) {
-        AssertThrow(hyp_data->Is<AnyRef>());
-    }
+    ConstAnyRef any_ref;
 
     if (hyp_data->Is<AnyHandle>()) {
         const AnyHandle &handle = hyp_data->Get<AnyHandle>();
 
         type_id = handle.GetTypeID();
-        any_ref = handle.ToAnyRef();
+        any_ref = handle.ToRef();
     } else if (hyp_data->Is<RC<void>>()) {
         const RC<void> &rc = hyp_data->Get<RC<void>>();
 
         type_id = rc.GetTypeID();
         any_ref = AnyRef(type_id, rc.Get());
-    } else if (hyp_data->Is<AnyRef>()) {
-        any_ref = hyp_data->Get<AnyRef>();
+    } else if ((any_ref = hyp_data->ToRef()); any_ref.HasValue()) {
         type_id = any_ref.GetTypeID();
     } else {
         return false;
@@ -229,15 +272,13 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
             return false;
         }
 
-        const IHypObjectInitializer *object_initializer = hyp_class->GetObjectInitializer(any_ref.GetPointer());
-        AssertThrow(object_initializer != nullptr);
+        dotnet::ObjectReference object_reference;
 
-        dotnet::Object *managed_object = object_initializer->GetManagedObject();
-        AssertThrow(managed_object != nullptr);
+        if (hyp_class->GetManagedObject(any_ref.GetPointer(), object_reference)) {
+            *out_object = object_reference.ptr;
 
-        *out_object = managed_object->GetUnderlyingObject().ptr;
-
-        return true;
+            return true;
+        }
     }
 
     return false;
@@ -251,29 +292,96 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
 
     const TypeID type_id = hyp_class->GetTypeID();
 
-    if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-        const uint32 index = container.GetObjectIndex(native_address);
-        if (index == ~0u) {
-            HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
+    if (hyp_class->IsClassType()) {
+        if (hyp_class->UseHandles()) {
+            ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+            
+            const uint32 index = container.GetObjectIndex(native_address);
+            if (index == ~0u) {
+                HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
+            }
+
+            *hyp_data = HypData(AnyHandle(type_id, IDBase { index + 1 }));
+
+            return true;
+        } else if (hyp_class->UseRefCountedPtr()) {
+            RC<void> rc;
+            rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ true);
+
+            *hyp_data = HypData(std::move(rc));
+
+            return true;
+        } else {
+            HYP_FAIL("Unhandled HypClass allocation method");
         }
+    } else if (hyp_class->IsStructType()) {
 
-        *hyp_data = HypData(AnyHandle(type_id, IDBase { index + 1 }));
-
-        return true;
-    } else if (hyp_class->UseRefCountedPtr()) {
-        RC<void> rc;
-        rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ true);
-
-        *hyp_data = HypData(std::move(rc));
-
-        return true;
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
     }
 
     return false;
+}
+
+HYP_EXPORT bool HypData_GetHypStruct(const HypData *hyp_data, void **out_ptr)
+{
+    if (!hyp_data || !out_ptr) {
+        return false;
+    }
+
+    ConstAnyRef ref = hyp_data->ToRef();
+
+    if (!ref.HasValue()) {
+        return false;
+    }
+
+    const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
+
+    if (!hyp_class) {
+        return false;
+    }
+
+    if (!hyp_class->IsStructType()) {
+        return false;
+    }
+
+    dotnet::Class *managed_class = hyp_class->GetManagedClass();
+    AssertThrow(managed_class != nullptr);
+    AssertThrow(managed_class->GetMarshalObjectFunction() != nullptr);
+
+    // @TODO: Find another way to marshal it without needing to add to ManagedObjectCache.
+    //  maybe we need to pass the function pointer back to C# so it can invoke it.
+    *out_ptr = managed_class->GetMarshalObjectFunction()(ref.GetPointer(), uint32(hyp_class->GetSize())).ptr;
+
+    return true;
+}
+
+HYP_EXPORT bool HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_class, uint32 size, void *object_ptr)
+{
+    if (!hyp_data || !hyp_class || !object_ptr) {
+        return false;
+    }
+
+    if (!hyp_class->IsStructType()) {
+        HYP_LOG(Object, LogLevel::ERR, "HypClass {} is not a struct type", hyp_class->GetName());
+
+        return false;
+    }
+
+    if (size != hyp_class->GetSize()) {
+        HYP_LOG(Object, LogLevel::ERR, "Given a buffer size of {} but HypClass {} has a size of {}",
+            size, hyp_class->GetName(), hyp_class->GetSize());
+
+        return false;
+    }
+
+    const HypStruct *hyp_struct = dynamic_cast<const HypStruct *>(hyp_class);
+    AssertThrow(hyp_struct != nullptr);
+
+    Any any;
+    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), any);
+
+    *hyp_data = HypData(std::move(any));
+
+    return true;
 }
 
 } // extern "C"
