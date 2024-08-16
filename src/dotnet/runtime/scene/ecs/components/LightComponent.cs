@@ -22,11 +22,13 @@ namespace Hyperion
         {
             get
             {
-                return new Light(lightHandle);
+                throw new NotImplementedException();
+                // return new Light(lightHandle);
             }
             set
             {
-                lightHandle = value.Handle;
+                throw new NotImplementedException();
+                // lightHandle = value.Handle;
             }
         }
     }

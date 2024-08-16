@@ -14,6 +14,8 @@ class WorldGrid;
 
 class HYP_API WorldGridSubsystem : public Subsystem<WorldGridSubsystem>
 {
+    HYP_OBJECT_BODY(WorldGridSubsystem);
+
 public:
     WorldGridSubsystem();
     virtual ~WorldGridSubsystem() override;

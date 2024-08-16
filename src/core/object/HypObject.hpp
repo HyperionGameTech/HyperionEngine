@@ -19,6 +19,14 @@ namespace dotnet {
 class Object;
 } // namespace dotnet
 
+// enum class HypObjectInitializerFlags : uint32
+// {
+//     NONE        = 0x0,
+//     ABSTRACT    = 0x1
+// };
+
+// HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
+
 class IHypObjectInitializer;
 
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
@@ -117,7 +125,7 @@ struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
 
 } // namespace detail
 
-#define HYP_OBJECT_BODY(T) \
+#define HYP_OBJECT_BODY(T, ...) \
     private: \
         friend class HypObjectInitializer<T>; \
         \
@@ -186,6 +194,20 @@ struct HypObjectType_Impl<T, std::true_type>
 
 template <class T>
 using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant< IsHypObject<T>::value > >::Type;
+
+// template <class T>
+// HYP_FORCE_INLINE inline bool InitObject(HypObjectType<T> *object)
+// {
+//     static_assert(!has_opaque_handle_defined<T>, "Use InitObject(Handle<T>) overload instead");
+
+//     if (!object) {
+//         return false;
+//     }
+
+//     object
+
+//     return true;
+// }
 
 } // namespace hyperion
 

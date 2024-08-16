@@ -10,10 +10,15 @@
 #include <HashCode.hpp>
 
 namespace hyperion {
-class HYP_API Transform
+
+struct HYP_API Transform
 {
-public:
     static const Transform identity;
+
+    Vec3f       translation;
+    Vec3f       scale;
+    Quaternion  rotation;
+    Matrix4     matrix;
 
     Transform();
     explicit Transform(const Vec3f &translation);
@@ -21,63 +26,60 @@ public:
     Transform(const Vec3f &translation, const Vec3f &scale, const Quaternion &rotation);
     Transform(const Transform &other);
 
-    const Vec3f &GetTranslation() const
-        { return m_translation; }
+    HYP_FORCE_INLINE const Vec3f &GetTranslation() const
+        { return translation; }
 
     /** returns a reference to the translation - if modified, you must call UpdateMatrix(). */
-    Vec3f &GetTranslation()
-        { return m_translation; }
+    HYP_FORCE_INLINE Vec3f &GetTranslation()
+        { return translation; }
 
-    void SetTranslation(const Vec3f &translation)
-        { m_translation = translation; UpdateMatrix(); }
+    HYP_FORCE_INLINE void SetTranslation(const Vec3f &translation)
+        { this->translation = translation; UpdateMatrix(); }
 
-    const Vec3f &GetScale() const
-        { return m_scale; }
+    HYP_FORCE_INLINE const Vec3f &GetScale() const
+        { return scale; }
 
     /** returns a reference to the scale - if modified, you must call UpdateMatrix(). */
-    Vec3f &GetScale()
-        { return m_scale; }
+    HYP_FORCE_INLINE Vec3f &GetScale()
+        { return scale; }
 
-    void SetScale(const Vec3f &scale)
-        { m_scale = scale; UpdateMatrix(); }
+    HYP_FORCE_INLINE void SetScale(const Vec3f &scale)
+        { this->scale = scale; UpdateMatrix(); }
 
-    const Quaternion &GetRotation() const
-        { return m_rotation; }
+    HYP_FORCE_INLINE const Quaternion &GetRotation() const
+        { return rotation; }
 
     /** returns a reference to the rotation - if modified, you must call UpdateMatrix(). */
-    Quaternion &GetRotation()
-        { return m_rotation; }
+    HYP_FORCE_INLINE Quaternion &GetRotation()
+        { return rotation; }
 
-    void SetRotation(const Quaternion &rotation)
-        { m_rotation = rotation; UpdateMatrix(); }
+    HYP_FORCE_INLINE void SetRotation(const Quaternion &rotation)
+        { this->rotation = rotation; UpdateMatrix(); }
 
     void UpdateMatrix();
-    const Matrix4 &GetMatrix() const
-        { return m_matrix; }
+    
+    HYP_FORCE_INLINE const Matrix4 &GetMatrix() const
+        { return this->matrix; }
 
     Transform GetInverse() const;
 
     Transform operator*(const Transform &other) const;
     Transform &operator*=(const Transform &other);
 
-    bool operator==(const Transform &other) const
-        { return m_matrix == other.m_matrix; }
+    HYP_FORCE_INLINE bool operator==(const Transform &other) const
+        { return matrix == other.matrix; }
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE bool operator!=(const Transform &other) const
+        { return matrix != other.matrix; }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
-        hc.Add(m_matrix.GetHashCode());
+        hc.Add(matrix.GetHashCode());
 
         return hc;
     }
-
-private:
-    Vec3f       m_translation;
-    Vec3f       m_scale;
-    Quaternion  m_rotation;
-    Matrix4     m_matrix;
 };
 
 static_assert(sizeof(Transform) == 112, "Expected sizeof(Transform) to equal 112 bytes to match C# size");

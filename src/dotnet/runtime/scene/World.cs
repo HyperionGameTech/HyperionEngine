@@ -30,6 +30,13 @@ namespace Hyperion
             }
         }
 
+        public Subsystem? GetSubsystem(TypeID typeId)
+        {
+            return (Subsystem?)GetMethod(MethodNames.GetSubsystem)
+                .Invoke(this, new HypData(typeId.Value))
+                .GetValue();
+        }
+
         // public Subsystem? GetSubsystem(TypeID typeID)
         // {
         //     IntPtr subsystemPtr = World_GetSubsystem(ptr, typeID);

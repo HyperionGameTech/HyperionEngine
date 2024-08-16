@@ -167,12 +167,14 @@ FinalPass::~FinalPass()
 void FinalPass::SetUITexture(Handle<Texture> texture)
 {
     if (!texture.IsValid()) {
-        texture = CreateObject<Texture>(Texture2D(
-            Extent2D { 1, 1 },
+        texture = CreateObject<Texture>(TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA8,
+            Extent3D(1, 1, 1),
             FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_REPEAT
-        ));
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        });
     }
 
     InitObject(texture);

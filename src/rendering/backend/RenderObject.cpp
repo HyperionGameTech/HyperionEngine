@@ -4,11 +4,19 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <Engine.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 
 using renderer::Platform;
+
+template <>
+renderer::platform::Device<Platform::CURRENT> *RenderObjectDeleter<Platform::CURRENT>::GetDevice()
+{
+    return g_engine->GetGPUDevice();
+}
 
 template <>
 void RenderObjectDeleter<Platform::CURRENT>::Initialize()

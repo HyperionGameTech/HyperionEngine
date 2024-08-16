@@ -13,10 +13,15 @@ namespace Hyperion
         public Func<IntPtr, Entity, IntPtr, ComponentID> addComponent;
     }
 
-    public class EntityManager
+    [HypClassBinding(Name="EntityManager")]
+    public class EntityManager : HypObject
     {
         private IntPtr ptr = IntPtr.Zero;
         private Dictionary<Type, ComponentDefinition> componentNativeTypeIDs = new Dictionary<Type, ComponentDefinition>();
+
+        public EntityManager()
+        {
+        }
 
         public EntityManager(IntPtr ptr)
         {
@@ -78,18 +83,38 @@ namespace Hyperion
 
         public Entity AddEntity()
         {
-            return EntityManager_AddEntity(ptr);
+            return new Entity((IDBase)GetMethod(MethodNames.AddEntity)
+                .Invoke(this)
+                .GetValue());
         }
 
         public void RemoveEntity(Entity entity)
         {
-            EntityManager_RemoveEntity(ptr, entity);
+            GetMethod(MethodNames.RemoveEntity)
+                .Invoke(this, new HypData(entity.ID));
         }
 
         public bool HasEntity(Entity entity)
         {
-            return EntityManager_HasEntity(ptr, entity);
+            return (bool)GetMethod(MethodNames.HasEntity)
+                .Invoke(this, new HypData(entity.ID))
+                .GetValue();
         }
+
+        // public Entity AddEntity()
+        // {
+        //     return EntityManager_AddEntity(ptr);
+        // }
+
+        // public void RemoveEntity(Entity entity)
+        // {
+        //     EntityManager_RemoveEntity(ptr, entity);
+        // }
+
+        // public bool HasEntity(Entity entity)
+        // {
+        //     return EntityManager_HasEntity(ptr, entity);
+        // }
 
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
@@ -131,44 +156,6 @@ namespace Hyperion
             {
                 return ref System.Runtime.CompilerServices.Unsafe.AsRef<T>(componentPtr.ToPointer());
             }
-        }
-
-        public ComponentWrapper<T> GetComponentWrapper<T>(Entity entity) where T : struct, IComponent
-        {
-            ComponentDefinition componentDefinition = componentNativeTypeIDs[typeof(T)];
-
-            IntPtr componentPtr = EntityManager_GetComponent(ptr, componentDefinition.nativeTypeId, entity);
-
-            if (componentPtr == IntPtr.Zero)
-            {
-                throw new Exception("Failed to get component of type " + typeof(T).Name + " for entity " + entity);
-            }
-
-            IntPtr componentInterfacePtr = EntityManager_GetComponentInterface(ptr, componentDefinition.nativeTypeId);
-
-            if (componentInterfacePtr == IntPtr.Zero)
-            {
-                throw new Exception("Failed to get component interface for type " + typeof(T).Name);
-            }
-
-            return new ComponentWrapper<T> {
-                componentPtr = componentPtr,
-                componentInterfacePtr = componentInterfacePtr
-            };
-        }
-
-        public ComponentInterface<T>? GetComponentInterface<T>() where T : struct, IComponent
-        {
-            ComponentDefinition typeId = componentNativeTypeIDs[typeof(T)];
-
-            IntPtr componentInterfacePtr = EntityManager_GetComponentInterface(ptr, typeId.nativeTypeId);
-
-            if (componentInterfacePtr == IntPtr.Zero)
-            {
-                return null;
-            }
-
-            return new ComponentInterface<T>(componentInterfacePtr);
         }
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddEntity")]

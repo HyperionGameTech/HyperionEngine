@@ -6,9 +6,14 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/HashMap.hpp>
+
 #include <core/utilities/Pair.hpp>
+
+#include <core/Handle.hpp>
+
 #include <scene/Entity.hpp>
 #include <scene/VisibilityState.hpp>
+
 #include <scene/ecs/EntityTag.hpp>
 
 #include <math/Vector3.hpp>

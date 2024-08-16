@@ -6,9 +6,6 @@ namespace Hyperion
     [HypClassBinding(Name="Scene")]
     public class Scene : HypObject
     {
-        private Node? root;
-        private EntityManager? entityManager;
-
         public Scene()
         {
         }
@@ -37,7 +34,9 @@ namespace Hyperion
         {
             get
             {
-                return root!;
+                return (Node)GetProperty(PropertyNames.Root)
+                    .InvokeGetter(this)
+                    .GetValue();
             }
         }
 
@@ -45,7 +44,9 @@ namespace Hyperion
         {
             get
             {
-                return entityManager!;
+                return (EntityManager)GetProperty(PropertyNames.EntityManager)
+                    .InvokeGetter(this)
+                    .GetValue();
             }
         }
 

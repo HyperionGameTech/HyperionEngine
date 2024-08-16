@@ -48,11 +48,13 @@ namespace Hyperion
         {
             get
             {
-                return new Material(materialHandle);
+                throw new NotImplementedException();
+                // return new Material(materialHandle);
             }
             set
             {
-                materialHandle = value.Handle;
+                throw new NotImplementedException();
+                // materialHandle = value.Handle;
             }
         }
 

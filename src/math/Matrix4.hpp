@@ -75,25 +75,22 @@ public:
 
     Vec4f GetColumn(uint index) const;
 
-    HYP_FORCE_INLINE
-    bool operator==(const Matrix4 &other) const
+    HYP_FORCE_INLINE bool operator==(const Matrix4 &other) const
         { return &values[0] == &other.values[0] || !std::memcmp(values, other.values, std::size(values) * sizeof(values[0])); }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const Matrix4 &other) const { return !operator==(other); }
+    HYP_FORCE_INLINE bool operator!=(const Matrix4 &other) const { return !operator==(other); }
 
-    HYP_FORCE_INLINE
-    constexpr Vec4f &operator[](uint row) { return rows[row]; }
+    HYP_FORCE_INLINE constexpr Vec4f &operator[](uint row)
+        { return rows[row]; }
 
-    HYP_FORCE_INLINE
-    constexpr const Vec4f &operator[](uint row) const { return rows[row]; }
+    HYP_FORCE_INLINE constexpr const Vec4f &operator[](uint row) const
+        { return rows[row]; }
 
     static Matrix4 Zeros();
     static Matrix4 Ones();
     static Matrix4 Identity();
 
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 

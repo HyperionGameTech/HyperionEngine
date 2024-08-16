@@ -22,38 +22,40 @@ namespace Hyperion
 
         public Node GetNode()
         {
-            if (!IsValid)
-            {
-                throw new Exception("Asset is not valid");
-            }
+            throw new NotImplementedException();
+            // if (!IsValid)
+            // {
+            //     throw new Exception("Asset is not valid");
+            // }
 
-            ManagedNode node = new ManagedNode();
-            Asset_GetNode(ptr, out node);
+            // ManagedNode node = new ManagedNode();
+            // Asset_GetNode(ptr, out node);
 
-            if (!node.IsValid)
-            {
-                throw new Exception("Failed to get node from asset");
-            }
+            // if (!node.IsValid)
+            // {
+            //     throw new Exception("Failed to get node from asset");
+            // }
 
-            return new Node(node);
+            // return new Node(node);
         }
 
         public Texture GetTexture()
         {
-            if (!IsValid)
-            {
-                throw new Exception("Asset is not valid");
-            }
+            throw new NotImplementedException();
+            // if (!IsValid)
+            // {
+            //     throw new Exception("Asset is not valid");
+            // }
 
-            ManagedHandle handle = new ManagedHandle();
-            Asset_GetTexture(ptr, out handle);
+            // ManagedHandle handle = new ManagedHandle();
+            // Asset_GetTexture(ptr, out handle);
 
-            if (!handle.IsValid)
-            {
-                throw new Exception("Failed to get texture from asset");
-            }
+            // if (!handle.IsValid)
+            // {
+            //     throw new Exception("Failed to get texture from asset");
+            // }
 
-            return new Texture(handle);
+            // return new Texture(handle);
         }
 
         [DllImport("hyperion", EntryPoint = "Asset_GetNode")]

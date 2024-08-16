@@ -2,7 +2,6 @@
 #ifndef HYPERION_ASSET_LOADER_HPP
 #define HYPERION_ASSET_LOADER_HPP
 
-#include <core/Core.hpp>
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
 #include <core/memory/Any.hpp>
@@ -55,23 +54,19 @@ struct LoadedAsset
     LoadedAsset &operator=(LoadedAsset &&other) noexcept    = default;
     ~LoadedAsset()                                          = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    operator bool() const
+    HYP_FORCE_INLINE operator bool() const
         { return IsOK(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsOK() const
+    HYP_FORCE_INLINE bool IsOK() const
         { return result.status == LoaderResult::Status::OK; }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    typename SerializationWrapper<T>::Type ExtractAs()
+    HYP_NODISCARD HYP_FORCE_INLINE typename SerializationWrapper<T>::Type ExtractAs()
     {
         return static_cast<LoadedAssetInstance<T> *>(this)->Result();
     }
 
-    HYP_FORCE_INLINE
-    void OnPostLoad()
+    HYP_FORCE_INLINE void OnPostLoad()
     {
         if (!OnPostLoadProc.IsValid()) {
             return;
@@ -133,7 +128,7 @@ struct LoadedAssetInstance : LoadedAsset
         return *this;
     }
 
-    Type &Result()
+    HYP_FORCE_INLINE Type &Result()
     {
         AssertThrowMsg(IsOK() && value.Is<Type>(), "Asset did not load successfully");
 

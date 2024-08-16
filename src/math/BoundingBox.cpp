@@ -9,8 +9,8 @@
 namespace hyperion {
 
 HYP_BEGIN_STRUCT(BoundingBox)
-    HYP_STRUCT_FIELD(min),
-    HYP_STRUCT_FIELD(max)
+    HYP_FIELD(min),
+    HYP_FIELD(max)
 HYP_END_STRUCT
 
 BoundingBox::BoundingBox()

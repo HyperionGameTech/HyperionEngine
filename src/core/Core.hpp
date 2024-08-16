@@ -33,7 +33,6 @@ template <class T>
 struct Handle;
 
 HYP_API Engine *GetEngine();
-HYP_API renderer::Device *GetEngineDevice();
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
@@ -46,7 +45,7 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
     return Handle<T>(ID<T>::FromIndex(index));
 }
 
-template <class T, class ... Args>
+template <class T, class... Args>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 {
     auto &container = Handle<T>::GetContainer();

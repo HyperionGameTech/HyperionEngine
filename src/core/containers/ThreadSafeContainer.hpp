@@ -2,7 +2,6 @@
 #ifndef HYPERION_THREAD_SAFE_CONTAINER_HPP
 #define HYPERION_THREAD_SAFE_CONTAINER_HPP
 
-#include <core/Core.hpp>
 #include <core/Handle.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/containers/Array.hpp>

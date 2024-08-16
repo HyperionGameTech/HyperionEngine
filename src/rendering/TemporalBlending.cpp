@@ -186,22 +186,26 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
 void TemporalBlending::CreateImageOutputs()
 {
-    m_result_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_result_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         m_image_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_result_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_result_texture);
 
-    m_history_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_history_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         m_image_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_history_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_history_texture);

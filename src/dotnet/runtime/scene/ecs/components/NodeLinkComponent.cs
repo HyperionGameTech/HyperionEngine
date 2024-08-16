@@ -17,15 +17,16 @@ namespace Hyperion
         {
             get
             {
-                ManagedNode managedNode = new ManagedNode();
-                NodeLinkComponent_LockReference(node.Address, out managedNode);
+                throw new NotImplementedException();
+                // ManagedNode managedNode = new ManagedNode();
+                // NodeLinkComponent_LockReference(node.Address, out managedNode);
 
-                if (!managedNode.IsValid)
-                {
-                    throw new Exception("NodeLinkComponent is not valid");
-                }
+                // if (!managedNode.IsValid)
+                // {
+                //     throw new Exception("NodeLinkComponent is not valid");
+                // }
 
-                return new Node(managedNode);
+                // return new Node(managedNode);
             }
         }
 

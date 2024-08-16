@@ -11,6 +11,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -20,6 +21,8 @@
 
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/EnumFlags.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <core/Handle.hpp>
 #include <core/ID.hpp>
@@ -266,8 +269,7 @@ private:
 class EntityToEntityManagerMap
 {
 public:
-    HYP_FORCE_INLINE
-    void Add(ID<Entity> entity, EntityManager *entity_manager)
+    HYP_FORCE_INLINE void Add(ID<Entity> entity, EntityManager *entity_manager)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -279,8 +281,7 @@ public:
         m_map.Set(entity, entity_manager);
     }
 
-    HYP_FORCE_INLINE
-    void Remove(ID<Entity> entity)
+    HYP_FORCE_INLINE void Remove(ID<Entity> entity)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -290,9 +291,7 @@ public:
         m_map.Erase(it);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    EntityManager *GetEntityManager(ID<Entity> entity) const
+    HYP_FORCE_INLINE EntityManager *GetEntityManager(ID<Entity> entity) const
     {
         Mutex::Guard guard(m_mutex);
 
@@ -305,8 +304,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE
-    void RemoveEntityManager(EntityManager *entity_manager)
+    HYP_FORCE_INLINE void RemoveEntityManager(EntityManager *entity_manager)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -323,8 +321,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE
-    void Remap(ID<Entity> entity, EntityManager *new_entity_manager)
+    HYP_FORCE_INLINE void Remap(ID<Entity> entity, EntityManager *new_entity_manager)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -339,9 +336,11 @@ private:
     mutable Mutex                           m_mutex;
 };
 
-class HYP_API EntityManager
+class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
 {
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
+
+    HYP_OBJECT_BODY(EntityManager);
 
 public:
     EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);

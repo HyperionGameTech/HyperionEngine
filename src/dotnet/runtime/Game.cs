@@ -61,6 +61,9 @@ namespace Hyperion
                 Console.WriteLine("Field Name = {0}, Type = {1}, Offset = {2}", field.Name, field.TypeID, field.Offset);
             }
 
+            Entity newEntity = this.scene.EntityManager.AddEntity();
+            Console.WriteLine("New Entity = {0}", newEntity.ID);
+
             Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
             Console.WriteLine("this.scene.World = {0}", this.scene.World);
             Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);

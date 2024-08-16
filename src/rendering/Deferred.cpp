@@ -596,12 +596,14 @@ void EnvGridPass::CreatePipeline()
 void EnvGridPass::CreatePreviousTexture()
 {
     // Create previous image
-    m_previous_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_previous_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         m_image_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_LINEAR,
         FilterMode::TEXTURE_FILTER_LINEAR,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     InitObject(m_previous_texture);
 }
@@ -941,12 +943,14 @@ void ReflectionProbePass::CreateCommandBuffers()
 void ReflectionProbePass::CreatePreviousTexture()
 {
     // Create previous image
-    m_previous_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_previous_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         m_image_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_LINEAR,
         FilterMode::TEXTURE_FILTER_LINEAR,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     InitObject(m_previous_texture);
 }
@@ -1271,12 +1275,14 @@ void DeferredRenderer::Create()
     m_depth_pyramid_renderer.Reset(new DepthPyramidRenderer);
     m_depth_pyramid_renderer->Create(depth_attachment);
 
-    m_mip_chain = CreateObject<Texture>(Texture2D(
-        mip_chain_extent,
+    m_mip_chain = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         mip_chain_format,
+        Extent3D(mip_chain_extent),
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     InitObject(m_mip_chain);
 

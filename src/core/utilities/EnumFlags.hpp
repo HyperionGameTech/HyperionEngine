@@ -198,6 +198,21 @@ EnumFlags<Enum> &operator^=(EnumFlags<Enum> lhs, Enum rhs)
     return lhs ^= EnumFlags<Enum>(rhs);
 }
 
+template <class Enum, Enum... AllValues>
+struct MergeEnumFlags;
+
+template <class Enum>
+struct MergeEnumFlags<Enum>
+{
+    static constexpr EnumFlags<Enum> value = { };
+};
+
+template <class Enum, Enum... Values>
+struct MergeEnumFlags
+{
+    static constexpr EnumFlags<Enum> value = (Values | ...);
+};
+
 } // namespace hyperion
 
 #define HYP_MAKE_ENUM_FLAGS_PUBLIC(_enum) \

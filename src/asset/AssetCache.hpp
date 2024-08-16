@@ -2,7 +2,6 @@
 #ifndef HYPERION_ASSET_CACHE_HPP
 #define HYPERION_ASSET_CACHE_HPP
 
-#include <core/Core.hpp>
 #include <core/Handle.hpp>
 
 #include <core/containers/HashMap.hpp>

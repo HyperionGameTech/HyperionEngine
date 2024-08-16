@@ -177,6 +177,43 @@ HYP_EXPORT bool HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 si
     return true;
 }
 
+HYP_EXPORT bool HypData_IsString(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    return hyp_data->Is<String>();
+}
+
+HYP_EXPORT bool HypData_GetString(const HypData *hyp_data, const char **out_str)
+{
+    if (!hyp_data || !out_str) {
+        return false;
+    }
+
+    if (hyp_data->Is<String>()) {
+        const String &str = hyp_data->Get<String>();
+
+        *out_str = str.Data();
+
+        return true;
+    }
+
+    return false;
+}
+
+HYP_EXPORT bool HypData_SetString(HypData *hyp_data, const char *str)
+{
+    if (!hyp_data || !str) {
+        return false;
+    }
+
+    *hyp_data = HypData(String(str));
+
+    return true;
+}
+
 HYP_EXPORT bool HypData_IsID(const HypData *hyp_data)
 {
     if (!hyp_data) {
@@ -269,6 +306,8 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
         const HypClass *hyp_class = GetClass(type_id);
 
         if (!hyp_class) {
+            HYP_LOG(Object, LogLevel::ERR, "No HypClass defined for TypeID {}", type_id.Value());
+
             return false;
         }
 
@@ -279,6 +318,8 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
 
             return true;
         }
+
+        HYP_LOG(Object, LogLevel::ERR, "Failed to get managed object for instance of HypClass {}", hyp_class->GetName());
     }
 
     return false;
@@ -319,6 +360,21 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
     }
 
     return false;
+}
+
+HYP_EXPORT bool HypData_IsHypStruct(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
+
+    if (!hyp_class) {
+        return false;
+    }
+
+    return hyp_class->IsStructType();
 }
 
 HYP_EXPORT bool HypData_GetHypStruct(const HypData *hyp_data, void **out_ptr)

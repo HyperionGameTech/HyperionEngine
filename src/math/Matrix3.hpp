@@ -7,6 +7,8 @@
 
 #include <Types.hpp>
 
+#include <HashCode.hpp>
+
 #include <string.h>
 
 namespace hyperion {
@@ -44,10 +46,10 @@ public:
     Matrix3 operator*(float scalar) const;
     Matrix3 &operator*=(float scalar);
 
-    bool operator==(const Matrix3 &other) const
+    HYP_FORCE_INLINE bool operator==(const Matrix3 &other) const
         { return &values[0] == &other.values[0] || !memcmp(values, other.values, std::size(values) * sizeof(values[0])); }
     
-    bool operator!=(const Matrix3 &other) const
+    HYP_FORCE_INLINE bool operator!=(const Matrix3 &other) const
         { return !operator==(other); }
 
 #pragma region deprecated
@@ -58,15 +60,26 @@ public:
     float &At(int i, int j);
 #pragma endregion deprecated
 
-    constexpr Vec3f &operator[](uint row)
+    HYP_FORCE_INLINE constexpr Vec3f &operator[](uint row)
         { return rows[row]; }
 
-    constexpr const Vec3f &operator[](uint row) const
+    HYP_FORCE_INLINE constexpr const Vec3f &operator[](uint row) const
         { return rows[row]; }
 
     static Matrix3 Zeros();
     static Matrix3 Ones();
     static Matrix3 Identity();
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        for (float value : values) {
+            hc.Add(value);
+        }
+
+        return hc;
+    }
 };
 
 static_assert(sizeof(Matrix3) == sizeof(float) * 12, "sizeof(Matrix3) must be equal to sizeof(float) * 12");

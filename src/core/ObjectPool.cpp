@@ -44,6 +44,8 @@ ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeI
         HYP_FAIL("No object container for TypeID: %u", type_id.Value());
     }
 
+    AssertThrow(it->second != nullptr);
+
     return *it->second;
 }
 

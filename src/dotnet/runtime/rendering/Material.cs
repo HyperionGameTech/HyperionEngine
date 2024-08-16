@@ -235,13 +235,15 @@ namespace Hyperion
         {
             get
             {
-                ManagedHandle textureHandle = new ManagedHandle();
-                Material_GetTexture(material.Handle, key, out textureHandle);
-                return new Texture(textureHandle);
+                throw new NotImplementedException();
+                // ManagedHandle textureHandle = new ManagedHandle();
+                // Material_GetTexture(material.Handle, key, out textureHandle);
+                // return new Texture(textureHandle);
             }
             set
             {
-                Material_SetTexture(material.Handle, key, value.Handle);
+                throw new NotImplementedException();
+                // Material_SetTexture(material.Handle, key, value.Handle);
             }
         }
 
@@ -252,77 +254,21 @@ namespace Hyperion
         private static extern void Material_SetTexture(ManagedHandle material, TextureKey key, ManagedHandle texture);
     }
 
-    public class Material
+    [HypClassBinding(Name="Material")]
+    public class Material : HypObject
     {
-        private ManagedHandle handle;
-
         public Material()
         {
-            handle = new ManagedHandle();
-
-            Material_Create(out handle);
         }
 
-        public Material(ManagedHandle handle)
-        {
-            this.handle = handle;
-            this.handle.IncRef(Material_GetTypeID());
-        }
-
-        ~Material()
-        {
-            handle.DecRef(Material_GetTypeID());
-        }
-
-        public ManagedHandle Handle
+        public IDBase ID
         {
             get
             {
-                return handle;
+                return (IDBase)GetProperty(PropertyNames.ID)
+                    .InvokeGetter(this)
+                    .GetValue();
             }
         }
-
-        public uint ID
-        {
-            get
-            {
-                return handle.id;
-            }
-        }
-
-        public MaterialParameter this[MaterialKey key]
-        {
-            get
-            {
-                MaterialParameter materialParameter = new MaterialParameter();
-                Material_GetParameter(handle, key, out materialParameter);
-                return materialParameter;
-            }
-            set
-            {
-                Material_SetParameter(handle, key, ref value);
-            }
-        }
-
-        public TextureSet Textures
-        {
-            get
-            {
-                return new TextureSet(this);
-            }
-        }
-
-        [DllImport("hyperion", EntryPoint = "Material_GetTypeID")]
-        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
-        private static extern TypeID Material_GetTypeID();
-
-        [DllImport("hyperion", EntryPoint = "Material_Create")]
-        private static extern void Material_Create([Out] out ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "Material_GetParameter")]
-        private static extern void Material_GetParameter(ManagedHandle material, [MarshalAs(UnmanagedType.U8)] MaterialKey key, [Out] out MaterialParameter materialParameter);
-
-        [DllImport("hyperion", EntryPoint = "Material_SetParameter")]
-        private static extern void Material_SetParameter(ManagedHandle material, [MarshalAs(UnmanagedType.U8)] MaterialKey key, [In] ref MaterialParameter parameter);
     }
 }

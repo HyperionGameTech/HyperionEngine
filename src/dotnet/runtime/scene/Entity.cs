@@ -3,17 +3,18 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    // Corresponds to ID<Entity>
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct Entity
     {
-        private uint id;
+        private IDBase id;
 
-        public Entity(uint id)
+        public Entity(IDBase id)
         {
             this.id = id;
         }
 
-        public uint ID
+        public IDBase ID
         {
             get
             {

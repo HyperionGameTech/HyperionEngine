@@ -216,12 +216,14 @@ void RTRadianceRenderer::Render(Frame *frame)
 
 void RTRadianceRenderer::CreateImages()
 {
-    m_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_texture);

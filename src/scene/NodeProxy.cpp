@@ -77,6 +77,11 @@ NodeProxy::NodeProxy(const Base &other)
 {
 }
 
+NodeProxy::NodeProxy(Base &&other)
+    : Base(std::move(other))
+{
+}
+
 NodeProxy::NodeProxy(const NodeProxy &other)
     : Base(other)
 {

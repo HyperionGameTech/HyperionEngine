@@ -25,6 +25,9 @@ namespace hyperion {
 
 struct HypData;
 
+class Node;
+class NodeProxy;
+
 namespace detail {
 
 template <class T, class T2 = void>
@@ -366,6 +369,7 @@ struct HypDataInitializer<RC<void>>
         hyp_data.value.Set<RC<void>>(std::move(value));
     }
 };
+
 template <class T>
 struct HypDataInitializer<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDataInitializer<RC<void>>
 {
@@ -388,6 +392,11 @@ struct HypDataInitializer<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDa
     {
         hyp_data.value.Set<RC<void>>(value.template Cast<void>());
     }
+};
+
+template <>
+struct HypDataInitializer<NodeProxy> : HypDataInitializer<RC<Node>>
+{
 };
 
 template <>

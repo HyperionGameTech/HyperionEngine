@@ -293,12 +293,14 @@ void ShadowPass::CreateShadowMap()
     for (Handle<Texture> *texture_ptr : shadow_map_textures) {
         Handle<Texture> &texture = *texture_ptr;
 
-        texture = CreateObject<Texture>(Texture2D(
-            GetExtent(),
+        texture = CreateObject<Texture>(TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
             GetFormat(),
+            Extent3D(GetExtent()),
+            FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        ));
+        });
 
         texture->GetImage()->SetIsRWTexture(true);
 

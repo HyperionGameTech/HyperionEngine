@@ -99,22 +99,26 @@ void TemporalAA::Create()
 
 void TemporalAA::CreateImages()
 {
-    m_result_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_result_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA16F,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
-
+    });
+    
     m_result_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_result_texture);
 
-    m_history_texture = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_history_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA16F,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_history_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_history_texture);

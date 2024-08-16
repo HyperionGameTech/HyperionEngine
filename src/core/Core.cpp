@@ -13,11 +13,6 @@ Engine *GetEngine()
     return g_engine;
 }
 
-Device *GetEngineDevice()
-{
-    return g_engine->GetGPUDevice();
-}
-
 const HypClass *GetClass(TypeID type_id)
 {
     return HypClassRegistry::GetInstance().GetClass(type_id);

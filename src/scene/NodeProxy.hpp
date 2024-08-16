@@ -95,7 +95,7 @@ struct HYP_API NodeProxyChildren
 
 /*! \brief The NodeProxy class is a reference-counted wrapper around a Node pointer, allowing
     for safe access to Node data and lessening the likelihood of a missing Node asset causing a full game crash. */
-class HYP_API NodeProxy : RC<Node>
+class HYP_API NodeProxy : public RC<Node>
 {
 protected:
     using Base = RC<Node>;
@@ -107,7 +107,10 @@ public:
     NodeProxy();
     /*! \brief Construct a NodeProxy from a Node pointer. Takes ownership of the Node, so ensure the Node pointer is not used elsewhere. */
     explicit NodeProxy(Node *ptr);
-    explicit NodeProxy(const Base &other);
+
+    NodeProxy(const Base &other);
+    NodeProxy(Base &&other);
+
     NodeProxy(const NodeProxy &other);
     NodeProxy &operator=(const NodeProxy &other);
     NodeProxy(NodeProxy &&other) noexcept;
@@ -115,13 +118,11 @@ public:
     ~NodeProxy();
 
     /*! \brief Return the Node pointer held by the NodeProxy. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Node *Get() const
+    HYP_FORCE_INLINE Node *Get() const
         { return Base::Get(); }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
         static_assert(std::is_base_of_v<Node, T>, "T must be a subclass of Node");
 
@@ -129,8 +130,7 @@ public:
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *Cast() const
+    HYP_FORCE_INLINE T *Cast() const
     {
         if (Base::Is<T>()) {
             return static_cast<T *>(Base::Get());
@@ -140,57 +140,45 @@ public:
     }
 
     /*! \brief Checks if the NodeProxy is not empty */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Any() const
+    HYP_FORCE_INLINE bool Any() const
         { return Get() != nullptr; }
 
     /*! \brief Checks if the NodeProxy is empty */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return Get() == nullptr; }
 
     /*! \brief Checks if the NodeProxy is in a valid state. (equivalent to Any()) */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return Any(); }
 
     /*! \brief Conversion operator to bool. Checks if the NodeProxy is not empty. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return Any(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return Empty(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const NodeProxy &other) const
+    HYP_FORCE_INLINE bool operator==(const NodeProxy &other) const
         { return Get() == other.Get(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const NodeProxy &other) const
+    HYP_FORCE_INLINE bool operator!=(const NodeProxy &other) const
         { return Get() != other.Get(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Get() == nullptr; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Node *operator->() const
+    HYP_FORCE_INLINE Node *operator->() const
         { return Get(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Node &operator*() const
+    HYP_FORCE_INLINE Node &operator*() const
         { return *Get(); }
 
     /*! \brief If the Node is present, returns a child Node at the given index.
         If the index is out of bounds, returns an empty NodeProxy. If no Node is present, returns an empty NodeProxy. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    NodeProxy operator[](SizeType index)
+    HYP_FORCE_INLINE NodeProxy operator[](SizeType index)
         { return GetChild(index); }
 
     /*! \brief If the Node exists, returns the String name of the Node.
@@ -346,13 +334,11 @@ public:
     /*! \brief Calculate the depth of the Node relative to the root Node. */
     uint CalculateDepth() const;
 
-    HYP_FORCE_INLINE
-    Weak<Node> ToWeak() const
+    HYP_FORCE_INLINE Weak<Node> ToWeak() const
         { return Weak<Node>(static_cast<const RC<Node> &>(*this)); }
 
     /*! \brief Conversion operator to Weak<Node>. */
-    HYP_FORCE_INLINE
-    operator Weak<Node>() const
+    HYP_FORCE_INLINE operator Weak<Node>() const
         { return ToWeak(); }
 
     HashCode GetHashCode() const;

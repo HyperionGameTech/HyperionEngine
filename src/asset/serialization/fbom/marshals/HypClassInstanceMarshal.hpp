@@ -3,7 +3,6 @@
 #ifndef HYPERION_FBOM_HYP_CLASS_INSTANCE_MARSHAL_HPP
 #define HYPERION_FBOM_HYP_CLASS_INSTANCE_MARSHAL_HPP
 
-#include <core/Core.hpp>
 #include <core/Util.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>

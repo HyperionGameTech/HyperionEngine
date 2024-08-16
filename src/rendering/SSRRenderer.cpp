@@ -140,42 +140,50 @@ SSRRenderer::~SSRRenderer()
 
 void SSRRenderer::Create()
 {
-    m_image_outputs[0] = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_image_outputs[0] = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         ssr_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_image_outputs[0]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[0]);
 
-    m_image_outputs[1] = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_image_outputs[1] = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         ssr_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_image_outputs[1]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[1]);
 
-    m_image_outputs[2] = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_image_outputs[2] = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         ssr_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_image_outputs[2]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[2]);
 
-    m_image_outputs[3] = CreateObject<Texture>(Texture2D(
-        m_extent,
+    m_image_outputs[3] = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         ssr_format,
+        Extent3D(m_extent),
+        FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
 
     m_image_outputs[3]->GetImage()->SetIsRWTexture(true);
     InitObject(m_image_outputs[3]);

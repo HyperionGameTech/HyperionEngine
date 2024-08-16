@@ -47,6 +47,10 @@ HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypC
         return false;
     }
 
+    if (!property->HasGetter()) {
+        return false;
+    }
+
     *out_result = property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr));
 
     return true;
@@ -58,9 +62,8 @@ HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty *property, const HypC
         return false;
     }
 
-    if (value->GetTypeID() == TypeID::ForType<BoundingBox>()) {
-        const BoundingBox &bb = value->Get<BoundingBox>();
-        HYP_LOG(Object, LogLevel::DEBUG, "BoundingBox in setter = {}", bb);
+    if (!property->HasSetter()) {
+        return false;
     }
 
     property->InvokeSetter(AnyRef(target_class->GetTypeID(), target_ptr), *value);

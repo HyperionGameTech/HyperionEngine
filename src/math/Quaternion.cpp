@@ -9,6 +9,13 @@
 
 namespace hyperion {
 
+HYP_BEGIN_STRUCT(Quaternion)
+    HYP_FIELD(x),
+    HYP_FIELD(y),
+    HYP_FIELD(z),
+    HYP_FIELD(w)
+HYP_END_STRUCT
+
 // HYP_DEFINE_CLASS(
 //     Quaternion,
 //     HypProperty(NAME("X"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetX), &Quaternion::SetX),

@@ -35,7 +35,8 @@ enum class HypClassFlags : uint32
 {
     NONE        = 0x0,
     CLASS_TYPE  = 0x1,
-    STRUCT_TYPE = 0x2
+    STRUCT_TYPE = 0x2,
+    ABSTRACT    = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)
@@ -90,20 +91,20 @@ protected:
     HypClassRegistrationBase(TypeID type_id, HypClass *hyp_class);
 };
 
-template <class T>
+template <class T, EnumFlags<HypClassFlags> Flags>
 struct HypClassRegistration : public HypClassRegistrationBase
 {   
-    HypClassRegistration(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(flags, Span<HypMember>(members.Begin(), members.End())))
+    HypClassRegistration(Name name, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
 
-template <class T>
+template <class T, EnumFlags<HypClassFlags> Flags>
 struct HypStructRegistration : public HypClassRegistrationBase
 {   
-    HypStructRegistration(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(flags, Span<HypMember>(members.Begin(), members.End())))
+    HypStructRegistration(Name name, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

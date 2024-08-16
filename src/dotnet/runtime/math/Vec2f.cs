@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="Vec2f")]
     [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct Vec2f
     {

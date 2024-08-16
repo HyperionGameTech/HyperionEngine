@@ -107,6 +107,15 @@ HYP_EXPORT HypProperty *HypObject_GetProperty(const HypClass *hyp_class, const N
     return hyp_class->GetProperty(*name);
 }
 
+HYP_EXPORT HypMethod *HypObject_GetMethod(const HypClass *hyp_class, const Name *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    return hyp_class->GetMethod(*name);
+}
+
 #pragma endregion HypObject
 
 } // extern "C"

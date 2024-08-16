@@ -173,6 +173,25 @@ namespace Hyperion
                 return;
             }
 
+            if (value is string)
+            {
+                string str = (string)value;
+
+                // Set Utf8 string
+                IntPtr stringPtr = Marshal.StringToCoTaskMemUTF8(str);
+
+                if (!HypData_SetString(ref this, stringPtr))
+                {
+                    Marshal.FreeCoTaskMem(stringPtr);
+                    
+                    throw new InvalidOperationException("Failed to set string");
+                }
+
+                Marshal.FreeCoTaskMem(stringPtr);
+
+                return;
+            }
+
             Type type = value.GetType();
 
             if (type.IsValueType)
@@ -306,6 +325,18 @@ namespace Hyperion
                 return value.valueBool;
             }
 
+            if (HypData_IsString(ref this))
+            {
+                IntPtr stringPtr;
+
+                if (!HypData_GetString(ref this, out stringPtr))
+                {
+                    throw new InvalidOperationException("Failed to get string");
+                }
+
+                return Marshal.PtrToStringUTF8(stringPtr);
+            }
+
             if (HypData_IsArray(ref this))
             {
                 IntPtr arrayPtr;
@@ -420,6 +451,10 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetArray([In] ref HypDataBuffer hypData, [Out] out IntPtr outArrayPtr, [Out] out uint outArraySize);
 
+        [DllImport("hyperion", EntryPoint = "HypData_GetString")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_GetString([In] ref HypDataBuffer hypData, [Out] out IntPtr outStringPtr);
+
         [DllImport("hyperion", EntryPoint = "HypData_GetID")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetID([In] ref HypDataBuffer hypData, [Out] out uint outIdValue);
@@ -480,9 +515,17 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsArray([In] ref HypDataBuffer hypData);
 
+        [DllImport("hyperion", EntryPoint = "HypData_IsString")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_IsString([In] ref HypDataBuffer hypData);
+
         [DllImport("hyperion", EntryPoint = "HypData_IsHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsHypObject([In] ref HypDataBuffer hypData);
+
+        [DllImport("hyperion", EntryPoint = "HypData_IsHypStruct")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_IsHypStruct([In] ref HypDataBuffer hypData);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsID")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -535,6 +578,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_SetArray")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr arrayPtr, uint arraySize);
+
+        [DllImport("hyperion", EntryPoint = "HypData_SetString")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_SetString([In] ref HypDataBuffer hypData, [In] IntPtr stringPtr);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetID")]
         [return: MarshalAs(UnmanagedType.I1)]

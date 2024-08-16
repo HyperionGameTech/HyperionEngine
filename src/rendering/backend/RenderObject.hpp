@@ -3,6 +3,8 @@
 #ifndef HYPERION_BACKEND_RENDERER_RENDER_OBJECT_HPP
 #define HYPERION_BACKEND_RENDERER_RENDER_OBJECT_HPP
 
+#include <core/Defines.hpp>
+
 #include <core/utilities/ValueStorage.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -10,7 +12,6 @@
 
 #include <core/containers/FixedArray.hpp>
 
-#include <core/Core.hpp>
 #include <core/Name.hpp>
 #include <core/IDGenerator.hpp>
 
@@ -25,15 +26,16 @@
 #include <mutex>
 
 namespace hyperion {
-namespace renderer {
 
+class Engine;
+
+extern HYP_API Engine *g_engine;
+
+namespace renderer {
 namespace platform {
 
 template <PlatformType PLATFORM>
-class RenderObject
-{
-protected:
-};
+class Device;
 
 } // namespace platform
 
@@ -85,12 +87,10 @@ public:
             }
         }
 
-        HYP_FORCE_INLINE
-        uint16 GetRefCountStrong() const
+        HYP_FORCE_INLINE uint16 GetRefCountStrong() const
             { return ref_count_strong.Get(MemoryOrder::ACQUIRE); }
 
-        HYP_FORCE_INLINE
-        uint16 GetRefCountWeak() const
+        HYP_FORCE_INLINE uint16 GetRefCountWeak() const
             { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
 
         template <class ...Args>
@@ -105,11 +105,10 @@ public:
             return ptr;
         }
 
-        HYP_FORCE_INLINE
-        void IncRefStrong()
+        HYP_FORCE_INLINE void IncRefStrong()
             { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
 
-        uint DecRefStrong()
+        HYP_FORCE_INLINE uint DecRefStrong()
         {
             AssertThrow(GetRefCountStrong() != 0);
 
@@ -127,7 +126,7 @@ public:
         void IncRefWeak()
             { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
 
-        uint DecRefWeak()
+        HYP_FORCE_INLINE uint DecRefWeak()
         {
             AssertThrow(GetRefCountWeak() != 0);
 
@@ -136,8 +135,7 @@ public:
             return uint(count) - 1;
         }
 
-        HYP_FORCE_INLINE
-        T &Get()
+        HYP_FORCE_INLINE T &Get()
         {
 #ifdef HYP_DEBUG_MODE
             AssertThrowMsg(HasValue(), "Render object of type %s has no value!", GetNameForRenderObject<T, PLATFORM>().LookupString());
@@ -147,8 +145,7 @@ public:
         }
 
     private:
-        HYP_FORCE_INLINE
-        bool HasValue() const
+        HYP_FORCE_INLINE bool HasValue() const
             { return has_value; }
     };
 
@@ -162,8 +159,7 @@ public:
 
     ~RenderObjectContainer() = default;
 
-    HYP_FORCE_INLINE
-    uint NextIndex()
+    HYP_FORCE_INLINE uint NextIndex()
     {
         using RenderObjectDefinitionType = RenderObjectDefinition<T, PLATFORM>;
 
@@ -179,49 +175,40 @@ public:
         return index;
     }
 
-    HYP_FORCE_INLINE
-    void IncRefStrong(uint index)
+    HYP_FORCE_INLINE void IncRefStrong(uint index)
         { m_data[index].IncRefStrong(); }
 
-    HYP_FORCE_INLINE
-    void DecRefStrong(uint index)
+    HYP_FORCE_INLINE void DecRefStrong(uint index)
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
             m_id_generator.FreeID(index + 1);
         }
     }
 
-    HYP_FORCE_INLINE
-    void IncRefWeak(uint index)
+    HYP_FORCE_INLINE void IncRefWeak(uint index)
         { m_data[index].IncRefWeak(); }
 
-    HYP_FORCE_INLINE
-    void DecRefWeak(uint index)
+    HYP_FORCE_INLINE void DecRefWeak(uint index)
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
             m_id_generator.FreeID(index + 1);
         }
     }
 
-    HYP_FORCE_INLINE
-    uint16 GetRefCountStrong(uint index)
+    HYP_FORCE_INLINE uint16 GetRefCountStrong(uint index)
         { return m_data[index].GetRefCountStrong(); }
 
-    HYP_FORCE_INLINE
-    uint16 GetRefCountWeak(uint index)
+    HYP_FORCE_INLINE uint16 GetRefCountWeak(uint index)
         { return m_data[index].GetRefCountWeak(); }
 
-    HYP_FORCE_INLINE
-    T &Get(uint index)
+    HYP_FORCE_INLINE T &Get(uint index)
         { return m_data[index].Get(); }
     
-    template <class ...Args>
-    HYP_FORCE_INLINE
-    void ConstructAtIndex(uint index, Args &&... args)
+    template <class... Args>
+    HYP_FORCE_INLINE void ConstructAtIndex(uint index, Args &&... args)
         { m_data[index].Construct(std::forward<Args>(args)...); }
 
-    HYP_FORCE_INLINE
-    Name GetDebugName(uint index) const
+    HYP_FORCE_INLINE Name GetDebugName(uint index) const
     {
 #ifdef HYP_DEBUG_MODE
         return m_debug_names[index];
@@ -230,8 +217,7 @@ public:
 #endif
     }
 
-    HYP_FORCE_INLINE
-    void SetDebugName(uint index, Name name)
+    HYP_FORCE_INLINE void SetDebugName(uint index, Name name)
     {
 #ifdef HYP_DEBUG_MODE
         m_debug_names[index] = name;
@@ -267,7 +253,7 @@ public:
         return container;
     }
 
-    template <class T, class ...Args>
+    template <class T, class... Args>
     static RenderObjectHandle_Strong<T, PLATFORM> Make(Args &&... args)
     {
         auto &container = GetRenderObjectContainer<T>();
@@ -288,7 +274,7 @@ class RenderObjectHandle_Strong
 {
     static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
 
-    RenderObjectContainer<T, PLATFORM>  *_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+    RenderObjectContainer<T, PLATFORM> *_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
 
 public:
     using Type = T;
@@ -378,63 +364,40 @@ public:
         }
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T *operator->() const
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    T &operator*() const
+    HYP_FORCE_INLINE T &operator*() const
         { return *Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return !IsValid(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return !IsValid(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return IsValid(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const RenderObjectHandle_Strong &other) const
+    HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Strong &other) const
         { return index == other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const RenderObjectHandle_Strong &other) const
-        { return index == other.index; }
+    HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Strong &other) const
+        { return index != other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const RenderObjectHandle_Strong &other) const
+    HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Strong &other) const
         { return index < other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return index != 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint16 GetRefCount() const
+    HYP_FORCE_INLINE uint16 GetRefCount() const
         { return index == 0 ? 0 : _container->GetRefCountStrong(index - 1); }
 
-    HYP_FORCE_INLINE
-    T *Get() const &
+    HYP_FORCE_INLINE T *Get() const &
     {
         if (index == 0) {
             return nullptr;
@@ -443,8 +406,7 @@ public:
         return &_container->Get(index - 1);
     }
 
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (index != 0) {
             _container->DecRefStrong(index - 1);
@@ -453,34 +415,25 @@ public:
         index = 0;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    operator T *() const &
+    HYP_FORCE_INLINE operator T *() const &
         { return Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    operator const T *() const &
+    HYP_FORCE_INLINE operator const T *() const &
         { return const_cast<const T *>(Get()); }
 
-    HYP_FORCE_INLINE
-    void SetName(Name name)
+    HYP_FORCE_INLINE void SetName(Name name)
     {
         AssertThrowMsg(index != 0, "Render object is not valid");
         _container->SetDebugName(index - 1, name);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Name GetName() const
+    HYP_FORCE_INLINE Name GetName() const
     {
         AssertThrowMsg(index != 0, "Render object is not valid");
         return _container->GetDebugName(index - 1);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(TypeNameWithoutNamespace<T>().GetHashCode());
@@ -500,7 +453,6 @@ const RenderObjectHandle_Strong<T, PLATFORM> &RenderObjectHandle_Strong<T, PLATF
 {
     return unset;
 }
-
 
 template <class T, PlatformType PLATFORM>
 class RenderObjectHandle_Weak
@@ -587,8 +539,7 @@ public:
         }
     }
 
-    [[nodiscard]]
-    RenderObjectHandle_Strong<T, PLATFORM> Lock() const
+    HYP_NODISCARD RenderObjectHandle_Strong<T, PLATFORM> Lock() const
     {
         if (index == 0) {
             return RenderObjectHandle_Strong<T, PLATFORM>::unset;
@@ -599,27 +550,19 @@ public:
             : RenderObjectHandle_Strong<T, PLATFORM>::unset;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const RenderObjectHandle_Weak &other) const
+    HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Weak &other) const
         { return index == other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const RenderObjectHandle_Weak &other) const
-        { return index == other.index; }
+    HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Weak &other) const
+        { return index != other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const RenderObjectHandle_Weak &other) const
+    HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Weak &other) const
         { return index < other.index; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return index != 0; }
 
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (index != 0) {
             _container->DecRefWeak(index - 1);
@@ -847,7 +790,7 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetEngineDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
             }
         }
 
@@ -882,7 +825,7 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetEngineDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
             }
 
             return num_deleted_objects;
@@ -935,6 +878,8 @@ struct RenderObjectDeleter
     static void Initialize();
     static void Iterate();
     static void RemoveAllNow(bool force = false);
+
+    static HYP_API renderer::platform::Device<PLATFORM> *GetDevice();
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -990,7 +935,5 @@ static inline void SafeRelease(FixedArray<renderer::RenderObjectHandle_Strong<T,
 }
 
 } // namespace hyperion
-
-#define RENDER_OBJECT(CLASS, PLATFORM) CLASS : public platform::RenderObject<PLATFORM>
 
 #endif

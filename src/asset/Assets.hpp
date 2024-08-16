@@ -11,7 +11,6 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <core/Core.hpp>
 #include <core/Defines.hpp>
 
 #include <core/ObjectPool.hpp>

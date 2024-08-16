@@ -6,6 +6,10 @@
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>
 
+#include <core/object/HypObject.hpp>
+
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/utilities/StringView.hpp>
 
 #include <HashCode.hpp>
@@ -15,8 +19,10 @@ namespace hyperion {
 
 class Scene;
 
-class HYP_API SubsystemBase
+class HYP_API SubsystemBase : public EnableRefCountedPtrFromThis<SubsystemBase>
 {
+    HYP_OBJECT_BODY(SubsystemBase, Abstract);
+
 public:
     SubsystemBase();
     SubsystemBase(const SubsystemBase &other)               = delete;

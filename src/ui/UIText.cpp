@@ -851,12 +851,14 @@ void UIText::UpdateRenderData(const RC<FontAtlas> &font_atlas, const Handle<Text
     if (!m_texture.IsValid() || Extent2D(m_texture->GetExtent()) != Extent2D(size)) {
         g_safe_deleter->SafeRelease(std::move(m_texture));
 
-        m_texture = CreateObject<Texture>(Texture2D(
-            Extent2D(size) * GetWindowDPIFactor(),
+        m_texture = CreateObject<Texture>(TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA8,
+            Extent3D(Extent2D(size) * GetWindowDPIFactor()),
+            FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        ));
+        });
         
         InitObject(m_texture);
     }

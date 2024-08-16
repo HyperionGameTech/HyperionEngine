@@ -5,6 +5,9 @@
 #include <core/object/HypMember.hpp>
 #include <core/object/HypObject.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <dotnet/Object.hpp>
 
 #include <Engine.hpp>
@@ -13,8 +16,9 @@ namespace hyperion {
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+HypClass::HypClass(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_type_id(type_id),
+      m_name(name),
       m_flags(flags)
 {
     // initialize properties containers
@@ -101,10 +105,14 @@ dotnet::Class *HypClass::GetManagedClass() const
 bool HypClass::GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference)
 {
     if (!object_initializer) {
+        HYP_LOG(Object, LogLevel::ERR, "Could not get managed object for instance of HypClass; No object initializer");
+
         return false;
     }
 
     if (!object_initializer->GetManagedObject()) {
+        HYP_LOG(Object, LogLevel::ERR, "Could not get managed object for instance of HypClass; No managed object assigned");
+
         return false;
     }
 

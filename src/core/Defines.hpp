@@ -114,6 +114,10 @@
 #define HYP_VA_OPT_SUPPORTED_I(...) HYP_PP_THIRD_ARG(__VA_OPT__(,),true,false,)
 #define HYP_VA_OPT_SUPPORTED HYP_VA_OPT_SUPPORTED_I(?)
 
+#ifndef HYP_VA_OPT_SUPPORTED
+    #define __VA_OPT__(c) c
+#endif
+
 #pragma endregion Compiler and Platform Switches
 
 #pragma region Utility Macros
@@ -121,7 +125,6 @@
 #define HYP_ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 #define HYP_STR(x) #x
-#define HYP_METHOD(method) HYP_STR(method)
 
 #ifdef HYP_WINDOWS
 #define HYP_TEXT(x) L##x
@@ -305,6 +308,10 @@
 #define HYP_NOT_IMPLEMENTED() \
     HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
     return { }
+
+#define HYP_NOT_IMPLEMENTED_VOID() \
+    HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
+    return
 
 #pragma endregion Error Handling
 

@@ -1,9 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef HYPERION_SAFE_DELETER_HPP
 
+#ifndef HYPERION_SAFE_DELETER_HPP
 #define HYPERION_SAFE_DELETER_HPP
 
-#include <core/Core.hpp>
 #include <core/containers/LinkedList.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>

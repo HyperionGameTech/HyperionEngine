@@ -3,26 +3,21 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class Subsystem
+    [HypClassBinding(Name="SubsystemBase")]
+    public class Subsystem : HypObject
     {
-        internal IntPtr ptr;
-
-        internal Subsystem(IntPtr ptr)
+        protected Subsystem()
         {
-            this.ptr = ptr;
         }
 
         public string Name
         {
             get
             {
-                IntPtr stringPtr = Subsystem_GetName(ptr);
-                
-                return Marshal.PtrToStringAnsi(stringPtr);
+                return (string)GetProperty(PropertyNames.Name)
+                    .InvokeGetter(this)
+                    .GetValue();
             }
         }
-
-        [DllImport("hyperion", EntryPoint = "Subsystem_GetName")]
-        private static extern IntPtr Subsystem_GetName(IntPtr subsystemPtr);
     }
 }

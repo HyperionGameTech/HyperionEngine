@@ -52,7 +52,9 @@ HYP_DEFINE_CLASS(
     Scene,
     HypProperty(NAME("ID"), &Scene::GetID),
     HypProperty(NAME("World"), &Scene::GetWorld),
-    HypProperty(NAME("Camera"), &Scene::GetCamera)
+    HypProperty(NAME("Camera"), &Scene::GetCamera),
+    HypProperty(NAME("EntityManager"), &Scene::GetEntityManager),
+    HypProperty(NAME("Root"), &Scene::GetRoot)
 );
 
 using renderer::Result;

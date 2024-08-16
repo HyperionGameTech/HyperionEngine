@@ -37,7 +37,7 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -55,7 +55,8 @@ public:
     HYP_FORCE_INLINE bool UseRefCountedPtr() const
         { return GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR; }
 
-    virtual Name GetName() const = 0;
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
 
     virtual SizeType GetSize() const = 0;
 
@@ -72,6 +73,9 @@ public:
 
     HYP_FORCE_INLINE bool IsStructType() const
         { return m_flags & HypClassFlags::STRUCT_TYPE; }
+
+    HYP_FORCE_INLINE bool IsAbstract() const
+        { return m_flags & HypClassFlags::ABSTRACT; }
 
     HypProperty *GetProperty(WeakName name) const;
 
@@ -92,9 +96,14 @@ public:
 
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const = 0;
 
+    virtual bool CanCreateInstance() const = 0;
+
     template <class T>
     HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
     {
+        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
+            GetName().LookupString());
+
         AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
             TypeID::ForType<T>().Value(), GetTypeID().Value());
 
@@ -103,6 +112,9 @@ public:
 
     HYP_FORCE_INLINE void CreateInstance(Any &out) const
     {
+        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
+            GetName().LookupString());
+
         CreateInstance_Internal(out);
     }
 
@@ -122,6 +134,7 @@ protected:
     static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference);
 
     TypeID                          m_type_id;
+    Name                            m_name;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
@@ -135,15 +148,15 @@ template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypClassInstance &GetInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypClassInstance instance { flags, members };
+        static HypClassInstance instance { name, flags, members };
 
         return instance;
     }
 
-    HypClassInstance(EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(TypeID::ForType<T>(), flags, members)
+    HypClassInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(TypeID::ForType<T>(), name, flags, members)
     {
     }
 
@@ -160,15 +173,9 @@ public:
             return HypClassAllocationMethod::OBJECT_POOL_HANDLE;
         } else {
             static_assert(std::is_base_of_v<EnableRefCountedPtrFromThis<T>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
+            
             return HypClassAllocationMethod::REF_COUNTED_PTR;
         }
-    }
-
-    virtual Name GetName() const override
-    {
-        static const Name name = CreateNameFromDynamicString(TypeNameWithoutNamespace<T>().Data());
-
-        return name;
     }
 
     virtual SizeType GetSize() const override
@@ -194,6 +201,15 @@ public:
         return GetManagedObjectFromObjectInitializer(GetObjectInitializer(object_ptr), out_object_reference);
     }
 
+    virtual bool CanCreateInstance() const override
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     T CreateInstance() const
     {
         ValueStorage<T> result_storage;
@@ -204,13 +220,31 @@ public:
 
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const override
-        { Memory::Construct<T>(out_ptr); }
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            Memory::Construct<T>(out_ptr);
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
 
     virtual void CreateInstance_Internal(Any &out) const override
-        { out.Emplace<T>(); }
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            out.Emplace<T>();
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
-        { return HashCode::GetHashCode(ref.Get<T>()); }
+    {
+        if constexpr (HasGetHashCode<T, HashCode>::value) {
+            return HashCode::GetHashCode(ref.Get<T>());
+        } else {
+            HYP_NOT_IMPLEMENTED();
+        }
+    }
 };
 
 } // namespace hyperion

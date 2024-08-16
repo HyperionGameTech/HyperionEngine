@@ -110,6 +110,30 @@ namespace Hyperion
             return new HypProperty(propertyPtr);
         }
 
+        protected HypMethod GetMethod(Name name)
+        {
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                throw new Exception("HypClass pointer is null");
+            }
+
+            IntPtr methodPtr = HypObject_GetMethod(_hypClassPtr, ref name);
+
+            if (methodPtr == IntPtr.Zero)
+            {
+                string methodsString = "";
+
+                foreach (HypMethod method in HypClass.Methods)
+                {
+                    methodsString += method.Name + ", ";
+                }
+
+                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + HypClass.Name + "\". Available methods: " + methodsString);
+            }
+
+            return new HypMethod(methodPtr);
+        }
+
         [DllImport("hyperion", EntryPoint = "HypObject_Verify")]
         private static extern void HypObject_Verify([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
 
@@ -121,5 +145,8 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetProperty")]
         private static extern IntPtr HypObject_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "HypObject_GetMethod")]
+        private static extern IntPtr HypObject_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
     }
 }

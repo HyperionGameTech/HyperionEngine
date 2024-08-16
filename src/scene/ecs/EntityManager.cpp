@@ -10,6 +10,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
@@ -20,6 +22,14 @@ namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static const uint32 systems_execution_parallel_threshold = 3;
+
+HYP_BEGIN_CLASS(EntityManager)
+    HYP_GETTER(Scene),
+
+    HYP_METHOD(AddEntity),
+    HYP_METHOD(RemoveEntity),
+    HYP_METHOD(HasEntity)
+HYP_END_CLASS
 
 #pragma region EntityManagerCommandQueue
 

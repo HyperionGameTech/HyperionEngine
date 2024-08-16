@@ -4,7 +4,14 @@
 
 #include <core/memory/Memory.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 namespace hyperion {
+
+HYP_BEGIN_STRUCT(Matrix3)
+    HYP_FIELD(values)
+HYP_END_STRUCT
+
 Matrix3::Matrix3()
     : rows {
           { 1.0f, 0.0f, 0.0f },

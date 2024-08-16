@@ -194,10 +194,10 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem<T>, T>, "T must be a subclass of Subsystem<T>");
 
-        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), UniquePtr<T>(new T())));
+        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), RC<T>::Construct()));
     }
 
-    SubsystemBase *AddSubsystem(TypeID type_id, UniquePtr<SubsystemBase> &&subsystem);
+    SubsystemBase *AddSubsystem(TypeID type_id, RC<SubsystemBase> &&subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T *GetSubsystem()
@@ -239,7 +239,7 @@ private:
     FlatSet<ID<Scene>>                  m_scenes_pending_removal;
     FlatSet<ID<Scene>>                  m_scenes_pending_addition;
 
-    TypeMap<UniquePtr<SubsystemBase>>   m_subsystems;
+    TypeMap<RC<SubsystemBase>>          m_subsystems;
 
     AtomicVar<bool>                     m_has_scene_updates { false };
     Mutex                               m_scene_update_mutex;

@@ -3,7 +3,6 @@
 #ifndef HYPERION_FBOM_MARSHALER_HPP
 #define HYPERION_FBOM_MARSHALER_HPP
 
-#include <core/Core.hpp>
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>

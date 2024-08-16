@@ -12,6 +12,8 @@ namespace hyperion {
 
 class HYP_API EditorSubsystem : public Subsystem<EditorSubsystem>
 {
+    HYP_OBJECT_BODY(EditorSubsystem);
+
 public:
     EditorSubsystem();
     virtual ~EditorSubsystem() override;

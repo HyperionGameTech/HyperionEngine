@@ -25,11 +25,15 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    World,
-    HypProperty(NAME("ID"), &World::GetID),
-    HypProperty(NAME("GameTime"), &World::GetGameTime)
-);
+HYP_BEGIN_CLASS(World)
+    HYP_GETTER(ID),
+    HYP_GETTER(GameTime),
+
+    HYP_FUNCTION(GetSubsystem, [](World *world, uint32 type_id_value)
+    {
+        return world->GetSubsystem(TypeID(type_id_value));
+    })
+HYP_END_CLASS
 
 using renderer::RTUpdateStateFlags;
 
@@ -267,7 +271,7 @@ void World::Render(Frame *frame)
     }
 }
 
-SubsystemBase *World::AddSubsystem(TypeID type_id, UniquePtr<SubsystemBase> &&subsystem)
+SubsystemBase *World::AddSubsystem(TypeID type_id, RC<SubsystemBase> &&subsystem)
 {
     HYP_SCOPE;
 

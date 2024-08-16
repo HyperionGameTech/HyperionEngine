@@ -77,92 +77,21 @@ namespace Hyperion
         ImageCube
     }
 
-    public class Texture
+    [HypClassBinding(Name="Texture")]
+    public class Texture : HypObject
     {
-        private ManagedHandle handle;
-
         public Texture()
         {
-            handle = new ManagedHandle();
-            Texture_Create(out handle);
         }
-
-        public Texture(ManagedHandle handle)
-        {
-            this.handle = handle;
-            this.handle.IncRef(Texture_GetTypeID());
-        }
-
-        ~Texture()
-        {
-            handle.DecRef(Texture_GetTypeID());
-        }
-
-        public void Init()
-        {
-            Texture_Init(handle);
-        }
-
-        public ManagedHandle Handle
+        
+        public IDBase ID
         {
             get
             {
-                return handle;
+                return (IDBase)GetProperty(PropertyNames.ID)
+                    .InvokeGetter(this)
+                    .GetValue();
             }
         }
-
-        public uint ID
-        {
-            get
-            {
-                return handle.id;
-            }
-        }
-
-        public InternalFormat InternalFormat
-        {
-            get
-            {
-                return Texture_GetInternalFormat(handle);
-            }
-        }
-
-        public FilterMode FilterMode
-        {
-            get
-            {
-                return Texture_GetFilterMode(handle);
-            }
-        }
-
-        public ImageType ImageType
-        {
-            get
-            {
-                return Texture_GetImageType(handle);
-            }
-        }
-
-        [DllImport("hyperion", EntryPoint = "Texture_GetTypeID")]
-        [return: MarshalAs(UnmanagedType.Struct, SizeConst = 4)]
-        private static extern TypeID Texture_GetTypeID();
-
-        [DllImport("hyperion", EntryPoint = "Texture_Create")]
-        private static extern void Texture_Create([Out] out ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "Texture_Init")]
-        private static extern void Texture_Init(ManagedHandle texture);
-
-        [DllImport("hyperion", EntryPoint = "Texture_GetInternalFormat")]
-        [return: MarshalAs(UnmanagedType.U4)]
-        private static extern InternalFormat Texture_GetInternalFormat(ManagedHandle texture);
-
-        [DllImport("hyperion", EntryPoint = "Texture_GetFilterMode")]
-        [return: MarshalAs(UnmanagedType.U4)]
-        private static extern FilterMode Texture_GetFilterMode(ManagedHandle texture);
-
-        [DllImport("hyperion", EntryPoint = "Texture_GetImageType")]
-        [return: MarshalAs(UnmanagedType.U4)]
-        private static extern ImageType Texture_GetImageType(ManagedHandle texture);
     }
 }

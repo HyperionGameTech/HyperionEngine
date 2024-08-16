@@ -237,11 +237,35 @@ struct HypMethod
         params.Reserve(sizeof...(ArgTypes) + 1);
         detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
     }
+    
+    template <class ReturnType, class TargetType, class... ArgTypes>
+    HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...) const)
+        : name(name),
+          flags(HypMethodFlags::MEMBER),
+          proc([mem_fn](Span<HypData> args) -> HypData
+          {
+              AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
 
-    // HypMethod(Name name)
-    //     : name(name)
-    // {
-    // }
+              // replace member function with free function using target pointer as first arg
+              const auto fn = [mem_fn](TargetType *target, ArgTypes... args) -> ReturnType
+              {
+                  return (target->*mem_fn)(args...);
+              };
+
+              if constexpr (std::is_void_v<ReturnType>) {
+                  detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args);
+
+                  return HypData();
+              } else {
+                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args));
+              }
+          })
+    {
+        return_type_id = TypeID::ForType<NormalizedType< ReturnType >>();
+
+        params.Reserve(sizeof...(ArgTypes) + 1);
+        detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
+    }
 
     HypMethod(const HypMethod &other)                   = delete;
     HypMethod &operator=(const HypMethod &other)        = delete;
