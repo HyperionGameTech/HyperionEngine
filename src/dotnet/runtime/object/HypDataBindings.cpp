@@ -346,8 +346,13 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
 
             return true;
         } else if (hyp_class->UseRefCountedPtr()) {
+            EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
+        
+            auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+            AssertThrow(ref_count_data != nullptr);
+
             RC<void> rc;
-            rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ true);
+            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
 
             *hyp_data = HypData(std::move(rc));
 

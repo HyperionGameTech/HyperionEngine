@@ -32,8 +32,6 @@ class ObjectPool;
 template <class T>
 struct Handle;
 
-HYP_API Engine *GetEngine();
-
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 {

@@ -6,8 +6,12 @@
 #include <Engine.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/containers/String.hpp>
+
 #include <core/utilities/StringView.hpp>
+
+#include <core/ID.hpp>
 
 #include <dotnet/interop/ManagedMethod.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
@@ -39,6 +43,15 @@ template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v
 template <> struct TransformArgument<void *> : DefaultTransformArgument<void *> { };
 template <> struct TransformArgument<char *> : DefaultTransformArgument<char *> { };
 template <> struct TransformArgument<const char *> : DefaultTransformArgument<const char *> { };
+
+template <class T>
+struct TransformArgument<ID<T>>
+{
+    HYP_FORCE_INLINE typename ID<T>::ValueType operator()(ID<T> id) const
+    {
+        return id.Value();
+    }
+};
 
 template <>
 struct TransformArgument<Object *>

@@ -114,9 +114,9 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
                 if (dotnet::ManagedMethod *init_method_ptr = class_ptr->GetMethod("Init")) {
                     HYP_NAMED_SCOPE("Call Init() on script component");
 
-                    script_component.object->InvokeMethod<void, ManagedEntity>(
+                    script_component.object->InvokeMethod<void, ID<Entity>>(
                         init_method_ptr,
-                        ManagedEntity { entity.Value() }
+                        entity
                     );
 
                     script_component.flags |= ScriptComponentFlags::INIT_CALLED;

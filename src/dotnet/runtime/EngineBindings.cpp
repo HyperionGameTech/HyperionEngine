@@ -8,7 +8,7 @@
 using namespace hyperion;
 
 extern "C" {
-HYP_EXPORT Engine *Engine_GetInstance()
+HYP_EXPORT const Handle<Engine> &Engine_GetInstance()
 {
     return g_engine;
 }

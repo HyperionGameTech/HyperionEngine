@@ -7,6 +7,8 @@
 
 #include <core/object/HypObjectEnums.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -97,15 +99,15 @@ private:
 
 namespace detail {
 
-template <class T, bool Condition = std::is_base_of_v<memory::EnableRefCountedPtrFromThis<T>, T>>
+template <class T, bool Condition = std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>>
 struct HypObject_WeakRefCountedPtrFromThis_Impl;
 
 template <class T>
 struct HypObject_WeakRefCountedPtrFromThis_Impl<T, true>
 {
-    Weak<T> operator()(T *ptr) const
+    auto operator()(T *ptr) const
     {
-        return RawPtrToWeakRefCountedPtrHelper<T>{}(ptr);
+        return ptr->WeakRefCountedPtrFromThis();
     }
 };
 
@@ -116,7 +118,7 @@ struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
     {
         // Would fail at compile time on instantiation of HypClassInstance<T>, anyway - but throw an error to be sure
 
-        HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis for HypObject that does not use ObjectPool",
+        HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis<T> for HypObject that does not use ObjectPool",
             TypeName<T>().Data());
         
         return { };
@@ -141,7 +143,7 @@ struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
             } \
         } \
         \
-        HypObjectInitializer<T> m_hyp_object_initializer { GetHypObjectNativeAddress() }; \
+        HypObjectInitializer<T> m_hyp_object_initializer { /*GetHypObjectNativeAddress()*/ this }; \
         \
     public: \
         static constexpr bool is_hyp_object = true; \

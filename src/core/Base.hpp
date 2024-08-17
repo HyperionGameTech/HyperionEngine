@@ -11,8 +11,6 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/StaticString.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-
 #include <core/functional/Delegate.hpp>
 
 #include <core/threading/AtomicVar.hpp>
@@ -42,18 +40,10 @@ struct ComponentInitInfo
 
 class HYP_API BasicObjectBase
 {
-public:
-    // HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const
-    //     { return m_managed_object.Get(); }
-
 protected:
-    // BasicObjectBase(const IClassInfo *class_info);
-
     BasicObjectBase() = default;
     BasicObjectBase(BasicObjectBase &&other) noexcept;
     ~BasicObjectBase();
-
-    // UniquePtr<dotnet::Object>   m_managed_object;
 };
 
 template <class T>
@@ -62,8 +52,6 @@ class BasicObject : public BasicObjectBase
     using InnerType = T;
 
     static constexpr auto type_name = TypeNameWithoutNamespace<InnerType>();
-    
-    // static const ClassInfo<InnerType> s_class_info;
 
 public:
     using InitInfo = ComponentInitInfo<InnerType>;

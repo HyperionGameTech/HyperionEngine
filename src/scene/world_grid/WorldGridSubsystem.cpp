@@ -23,6 +23,9 @@
 
 namespace hyperion {
 
+HYP_BEGIN_CLASS(WorldGridSubsystem)
+HYP_END_CLASS
+
 #pragma region WorldGridSubsystem
 
 WorldGridSubsystem::WorldGridSubsystem()

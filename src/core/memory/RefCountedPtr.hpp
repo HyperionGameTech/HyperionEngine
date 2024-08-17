@@ -30,8 +30,6 @@ class RefCountedPtr;
 template <class T, class CountType>
 class WeakRefCountedPtr;
 
-namespace detail {
-
 template <class CountType>
 class WeakRefCountedPtrBase;
 
@@ -44,6 +42,8 @@ class RefCountedPtrBase;
 #ifndef HYP_DEBUG_MODE
     #define EnsureUninitialized()
 #endif
+
+namespace detail {
 
 template <class CountType>
 struct RefCountData
@@ -205,6 +205,8 @@ struct RefCountData
     }
 };
 
+} // namespace detail
+
 #ifndef HYP_DEBUG_MODE
     #undef EnsureUninitialized
 #endif
@@ -215,7 +217,7 @@ class RefCountedPtrBase
     friend class WeakRefCountedPtrBase<CountType>;
 
 public:
-    using RefCountDataType = RefCountData<CountType>;
+    using RefCountDataType = detail::RefCountData<CountType>;
     
     static const RefCountDataType null_ref__internal;
 
@@ -405,7 +407,7 @@ template <class CountType>
 class WeakRefCountedPtrBase
 {
 public:
-    using RefCountDataType = RefCountData<CountType>;
+    using RefCountDataType = detail::RefCountData<CountType>;
 
     WeakRefCountedPtrBase()
         : m_ref(const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal))
@@ -554,18 +556,16 @@ protected:
     RefCountDataType    *m_ref;
 };
 
-} // namespace detail
-
 /*! \brief A simple ref counted pointer class.
     Not atomic by default, but using AtomicRefCountedPtr allows it to be. */
 template <class T, class CountType>
-class RefCountedPtr : public detail::RefCountedPtrBase<CountType>
+class RefCountedPtr : public RefCountedPtrBase<CountType>
 {
     friend class WeakRefCountedPtr<std::remove_const_t<T>, CountType>;
     friend class WeakRefCountedPtr<std::add_const_t<T>, CountType>;
 
 protected:
-    using Base = detail::RefCountedPtrBase<CountType>;
+    using Base = RefCountedPtrBase<CountType>;
 
 public:
     template <class ...Args>
@@ -739,12 +739,12 @@ public:
 
 // void pointer specialization -- just uses base class, but with Set() and Reset()
 template <class CountType>
-class RefCountedPtr<void, CountType> : public detail::RefCountedPtrBase<CountType>
+class RefCountedPtr<void, CountType> : public RefCountedPtrBase<CountType>
 {
     friend class WeakRefCountedPtr<void, CountType>;
 
 protected:
-    using Base = detail::RefCountedPtrBase<CountType>;
+    using Base = RefCountedPtrBase<CountType>;
 
 public:
     RefCountedPtr()
@@ -793,49 +793,39 @@ public:
 
     ~RefCountedPtr() = default;
 
-    HYP_FORCE_INLINE
-    operator void *() const
+    HYP_FORCE_INLINE operator void *() const
         { return Base::Get(); }
     
-    HYP_FORCE_INLINE
-    void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return Base::Get(); }
     
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return Base::operator bool(); }
     
-    HYP_FORCE_INLINE
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return Base::operator!(); }
     
-    HYP_FORCE_INLINE
-    bool operator==(const RefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtr &other) const
         { return Base::operator==(other); }
     
-    HYP_FORCE_INLINE
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(const RefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtr &other) const
         { return Base::operator!=(other); }
     
-    HYP_FORCE_INLINE
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
     /*! \brief Drops the reference to the currently held value, if any. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    void Reset(Ty *ptr)
+    HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
 
@@ -845,8 +835,7 @@ public:
     /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type,
      *  or if the given type is convertible to the type of this RefCountedPtr. */
     template <class Ty>
-    HYP_FORCE_INLINE
-    bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
         return Base::GetTypeID() == TypeID::ForType<Ty>()
             || std::is_same_v<Ty, void>;
@@ -874,10 +863,10 @@ public:
 
 // weak ref counters
 template <class T, class CountType = std::atomic<uint>>
-class WeakRefCountedPtr : public detail::WeakRefCountedPtrBase<CountType>
+class WeakRefCountedPtr : public WeakRefCountedPtrBase<CountType>
 {
 protected:
-    using Base = detail::WeakRefCountedPtrBase<CountType>;
+    using Base = WeakRefCountedPtrBase<CountType>;
 
 public:
     WeakRefCountedPtr()
@@ -926,24 +915,19 @@ public:
 
     ~WeakRefCountedPtr() = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(const WeakRefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr &other) const
         { return Base::operator==(other); }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const WeakRefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator!=(const WeakRefCountedPtr &other) const
         { return Base::operator!=(other); }
 
-    HYP_FORCE_INLINE
-    bool operator==(const T *ptr) const
+    HYP_FORCE_INLINE bool operator==(const T *ptr) const
         { return Base::m_ref->value == ptr; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const T *ptr) const
+    HYP_FORCE_INLINE bool operator!=(const T *ptr) const
         { return Base::m_ref->value != ptr; }
 
-    HYP_FORCE_INLINE
-    RefCountedPtr<T, CountType> Lock() const
+    HYP_FORCE_INLINE RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
 
@@ -963,10 +947,10 @@ public:
 // Weak<void> specialization
 // Cannot be locked directly; must be cast to another type using `Cast<T>()` first.
 template <class CountType>
-class WeakRefCountedPtr<void, CountType> : public detail::WeakRefCountedPtrBase<CountType>
+class WeakRefCountedPtr<void, CountType> : public WeakRefCountedPtrBase<CountType>
 {
 protected:
-    using Base = detail::WeakRefCountedPtrBase<CountType>;
+    using Base = WeakRefCountedPtrBase<CountType>;
 
 public:
     WeakRefCountedPtr()
@@ -1015,30 +999,24 @@ public:
 
     ~WeakRefCountedPtr() = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(const WeakRefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr &other) const
         { return Base::operator==(other); }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const WeakRefCountedPtr &other) const
+    HYP_FORCE_INLINE bool operator!=(const WeakRefCountedPtr &other) const
         { return Base::operator!=(other); }
 
-    HYP_FORCE_INLINE
-    bool operator==(const void *ptr) const
+    HYP_FORCE_INLINE bool operator==(const void *ptr) const
         { return Base::m_ref->value == ptr; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const void *ptr) const
+    HYP_FORCE_INLINE bool operator!=(const void *ptr) const
         { return Base::m_ref->value != ptr; }
 };
-
-namespace detail {
 
 template <class CountType>
 class EnableRefCountedPtrFromThisBase
 {
 public:
-    friend struct RefCountData<CountType>;
+    friend struct detail::RefCountData<CountType>;
     friend class RefCountedPtrBase<CountType>;
     
 protected:
@@ -1062,10 +1040,9 @@ protected:
         // weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
     }
 
+public:
     WeakRefCountedPtr<void, CountType>  weak;
 };
-
-} // namespace detail
 
 /*! \brief Helper struct to convert raw pointers to RefCountedPtrs.
  *  For internal use only. */
@@ -1116,13 +1093,16 @@ struct RawPtrToWeakRefCountedPtrHelper
 };
 
 template <class T, class CountType>
-class EnableRefCountedPtrFromThis : public detail::EnableRefCountedPtrFromThisBase<CountType>
+class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<CountType>
 {
-    using Base = detail::EnableRefCountedPtrFromThisBase<CountType>;
+    using Base = EnableRefCountedPtrFromThisBase<CountType>;
 
 public:
-    friend struct RawPtrToRefCountedPtrHelper<T, CountType>;
-    friend struct RawPtrToWeakRefCountedPtrHelper<T, CountType>;
+    template <class OtherT, class OtherCountType>
+    friend struct RawPtrToRefCountedPtrHelper;
+
+    template <class OtherT, class OtherCountType>
+    friend struct RawPtrToWeakRefCountedPtrHelper;
 
     EnableRefCountedPtrFromThis()
     {
@@ -1132,7 +1112,6 @@ public:
 
     ~EnableRefCountedPtrFromThis() = default;
 
-protected:
     RefCountedPtr<T, CountType> RefCountedPtrFromThis()
         { return Base::weak.template CastUnsafe<T>().Lock(); }
 
@@ -1163,6 +1142,9 @@ using Weak = memory::WeakRefCountedPtr<T, CountType>;
 
 template <class T, class CountType = std::atomic<uint>>
 using RC = memory::RefCountedPtr<T, CountType>;
+
+template <class CountType = std::atomic<uint>>
+using EnableRefCountedPtrFromThisBase = memory::EnableRefCountedPtrFromThisBase<CountType>;
 
 template <class T, class CountType = std::atomic<uint>>
 using EnableRefCountedPtrFromThis = memory::EnableRefCountedPtrFromThis<T, CountType>;

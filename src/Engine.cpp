@@ -16,8 +16,6 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
-#include <Game.hpp>
-
 #include <asset/Assets.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
@@ -38,14 +36,22 @@
 
 #include <core/system/ArgParse.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
+#include <Game.hpp>
+
 namespace hyperion {
+
+HYP_BEGIN_CLASS(Engine)
+    HYP_FUNCTION(GetInstance, &Engine::GetInstance)
+HYP_END_CLASS
 
 using renderer::FillMode;
 using renderer::GPUBufferType;
 
-Engine                  *g_engine = nullptr;
+Handle<Engine>          g_engine = { };
 Handle<AssetManager>    g_asset_manager { };
 ShaderManagerSystem     *g_shader_manager = nullptr;
 MaterialCache           *g_material_system = nullptr;
@@ -93,7 +99,7 @@ struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-Engine *Engine::GetInstance()
+const Handle<Engine> &Engine::GetInstance()
 {
     return g_engine;
 }
@@ -194,6 +200,12 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     AssertThrow(m_instance == nullptr);
     m_instance.Reset(new Instance());
+    
+#ifdef HYP_DEBUG_MODE
+    constexpr bool use_debug_layers = true;
+#else
+    constexpr bool use_debug_layers = false;
+#endif
 
     HYPERION_ASSERT_RESULT(m_instance->Initialize(*app_context, use_debug_layers));
     

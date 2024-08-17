@@ -14,13 +14,19 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderGroup.hpp>
+
 #include <scene/World.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
+#include <core/Base.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <core/containers/FlatMap.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <rendering/CrashHandler.hpp>
@@ -53,7 +59,7 @@ class ScriptingService;
 class AssetManager;
 class DebugDrawer;
 
-extern Engine               *g_engine;
+extern Handle<Engine>       g_engine;
 extern Handle<AssetManager> g_asset_manager;
 extern ShaderManagerSystem  *g_shader_manager;
 extern MaterialCache        *g_material_system;
@@ -126,16 +132,12 @@ struct EngineDelegates
     Delegate<void>  OnAfterSwapchainRecreated;
 };
 
-class Engine
+class Engine : public BasicObject<Engine>
 {
-#ifdef HYP_DEBUG_MODE
-    static constexpr bool use_debug_layers = true;
-#else
-    static constexpr bool use_debug_layers = false;
-#endif
+    HYP_OBJECT_BODY(Engine);
 
 public:
-    HYP_API static Engine *GetInstance();
+    HYP_API static const Handle<Engine> &GetInstance();
 
     Engine();
     ~Engine();

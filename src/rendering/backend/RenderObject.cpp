@@ -4,9 +4,9 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
-#include <Engine.hpp>
-
 #include <util/profiling/ProfileScope.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 

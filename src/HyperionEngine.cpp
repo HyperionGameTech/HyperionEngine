@@ -15,13 +15,13 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     AssertThrowMsg(
-        g_engine == nullptr,
+        !g_engine.IsValid(),
         "Hyperion already initialized!"
     );
 
     dotnet::DotNetSystem::GetInstance().Initialize(app_context);
 
-    g_engine = new Engine;
+    g_engine = CreateObject<Engine>();
     g_asset_manager = CreateObject<AssetManager>();
     g_shader_manager = new ShaderManagerSystem;
     g_material_system = new MaterialCache;
@@ -54,8 +54,7 @@ HYP_API void ShutdownApplication()
     delete g_material_system;
     g_material_system = nullptr;
 
-    delete g_engine;
-    g_engine = nullptr;
+    g_engine.Reset();
 }
 
 } // namespace hyperion

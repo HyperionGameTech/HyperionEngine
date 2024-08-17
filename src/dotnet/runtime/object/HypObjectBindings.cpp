@@ -41,6 +41,11 @@ HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address
         }
     } else if (hyp_class->UseRefCountedPtr()) {
         AssertThrow(native_address != nullptr);
+
+        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
+        
+        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+        AssertThrow(ref_count_data != nullptr);
     } else {
         HYP_FAIL("Unhandled HypClass allocation method");
     }
@@ -64,9 +69,16 @@ HYP_EXPORT void HypObject_IncRef(const HypClass *hyp_class, void *native_address
 
         container.IncRefStrong(index);
     } else if (hyp_class->UseRefCountedPtr()) {
-        RC<void> rc;
-        rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ true);
-        (void)rc.Release();
+        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
+        
+        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+        AssertThrow(ref_count_data != nullptr);
+
+        ref_count_data->IncRefCount_Strong();
+
+        // RC<void> rc;
+        // rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ true);
+        // (void)rc.Release();
     } else {
         HYP_FAIL("Unhandled HypClass allocation method");
     }
@@ -90,9 +102,16 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
         
         container.DecRefStrong(index);
     } else if (hyp_class->UseRefCountedPtr()) {
-        RC<void> rc;
-        rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ false);
-        rc.Reset();
+        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
+        
+        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+        AssertThrow(ref_count_data != nullptr);
+
+        ref_count_data->DecRefCount_Strong();
+
+        // RC<void> rc;
+        // rc.SetRefCountData_Internal(static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(native_address), /* inc_ref */ false);
+        // rc.Reset();
     } else {
         HYP_FAIL("Unhandled HypClass allocation method");
     }

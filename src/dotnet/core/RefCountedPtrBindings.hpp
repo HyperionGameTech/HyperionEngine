@@ -53,7 +53,7 @@ static inline ManagedRefCountedPtr UnmarshalRefCountedPtr(const RC<T> &ref_count
 template <class T>
 static inline RC<T> MarshalRefCountedPtr(ManagedRefCountedPtr managed_ref_counted_ptr)
 {
-    auto *ref_count_data = reinterpret_cast<typename memory::detail::RefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_ref_counted_ptr.address);
+    auto *ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;
@@ -68,7 +68,7 @@ static inline RC<T> MarshalRefCountedPtr(ManagedRefCountedPtr managed_ref_counte
 template <class T>
 static inline Weak<T> MarshalWeakRefCountedPtr(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)
 {
-    auto *ref_count_data = reinterpret_cast<typename memory::detail::WeakRefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
+    auto *ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<std::atomic<uint>>::RefCountDataType *>(managed_weak_ref_counted_ptr.address);
 
     if (!ref_count_data) {
         return nullptr;

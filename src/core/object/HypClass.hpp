@@ -172,7 +172,7 @@ public:
         if constexpr (has_opaque_handle_defined<T>) {
             return HypClassAllocationMethod::OBJECT_POOL_HANDLE;
         } else {
-            static_assert(std::is_base_of_v<EnableRefCountedPtrFromThis<T>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
+            static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
             
             return HypClassAllocationMethod::REF_COUNTED_PTR;
         }

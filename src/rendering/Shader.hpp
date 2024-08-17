@@ -43,14 +43,8 @@ class HYP_API ShaderManagerSystem
 public:
     static ShaderManagerSystem *GetInstance();
 
-    ShaderRef GetOrCreate(
-        const ShaderDefinition &definition
-    );
-
-    ShaderRef GetOrCreate(
-        Name name,
-        const ShaderProperties &props = { }
-    );
+    ShaderRef GetOrCreate(const ShaderDefinition &definition);
+    ShaderRef GetOrCreate(Name name, const ShaderProperties &props = { });
 
 private:
     struct ShaderMapEntry

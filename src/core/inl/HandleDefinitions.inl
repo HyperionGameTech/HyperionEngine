@@ -1,3 +1,4 @@
+DEF_HANDLE(Engine,                      1)
 DEF_HANDLE(Texture,                     65536)
 DEF_HANDLE(Camera,                      8192)
 DEF_HANDLE(Entity,                      32768)

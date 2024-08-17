@@ -29,8 +29,6 @@ namespace hyperion {
 
 class Engine;
 
-extern HYP_API Engine *g_engine;
-
 namespace renderer {
 namespace platform {
 

@@ -29,5 +29,6 @@ namespace Hyperion
         public static Name RemoveEntity { get; } = Name.FromString("RemoveEntity", weak: true);
         public static Name HasEntity { get; } = Name.FromString("HasEntity", weak: true);
         public static Name GetSubsystem { get; } = Name.FromString("GetSubsystem", weak: true);
+        public static Name GetInstance { get; } = Name.FromString("GetInstance", weak: true);
     }
 }
